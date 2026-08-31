@@ -184,12 +184,26 @@ class Map:
             Reader(fields.get(MAP_EVENTS, b"\x00")).read_struct_array().items())]
 
 
+# Passability por defecto, para los chipsets que dejaron el chunk sin escribir
+# (liblcf: src/generated/lcf/rpg/chipset.h). 15 = transitable por los cuatro
+# lados y por debajo del héroe; el 31 del primer tile alto lo pone por encima.
+PASSABLE_LOWER_DEFAULT = bytes([15]) * 162
+PASSABLE_UPPER_DEFAULT = bytes([31]) + bytes([15]) * 143
+
+
+def _passability(payload, default):
+    """Completa con los defaults lo que el archivo no traiga."""
+    return payload + default[len(payload):]
+
+
 class Chipset:
     def __init__(self, fields):
         self.name = to_string(fields.get(CHIPSET_NAME, b""))
         self.filename = to_string(fields.get(CHIPSET_FILENAME, b""))
-        self.passable_lower = fields.get(CHIPSET_PASSABLE_LOWER, b"")
-        self.passable_upper = fields.get(CHIPSET_PASSABLE_UPPER, b"")
+        self.passable_lower = _passability(
+            fields.get(CHIPSET_PASSABLE_LOWER, b""), PASSABLE_LOWER_DEFAULT)
+        self.passable_upper = _passability(
+            fields.get(CHIPSET_PASSABLE_UPPER, b""), PASSABLE_UPPER_DEFAULT)
 
 
 class Database:

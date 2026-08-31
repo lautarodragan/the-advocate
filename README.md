@@ -6,11 +6,15 @@ Lee los datos originales de RPG Maker 2000 y saca un PNG del mapa entero: las
 dos capas de tiles más los eventos en su posición inicial, como se verían al
 empezar una partida nueva. Sin panorama y sin el héroe.
 
-    just render        # mapa 7, "Talan's Pad" -> render/Map0007.png
+    just render        # mapa 1, "Introduction" -> render/Map0001.png
     just render 8      # "Lashe City - 34,35"
-    just maps          # todos los mapas, su chipset, y qué se puede renderizar
+    just maps          # todos los mapas, su chipset, eventos y assets faltantes
+    just check         # renderiza los 328 sin guardar, para ver si algo rompe
 
 No hay nada que instalar: es Python con Pillow, que ya está en el sistema.
+
+El mapa de arranque del juego es el 4, "Blank (Leave START here)": un cuarto
+vacío de 20x15 que sólo teletransporta. El primer mapa de verdad es el 1.
 
 ### Piezas
 
@@ -57,14 +61,23 @@ Cada página trae dirección y frame explícitos, así que no hay que inventar u
 pose. Y un evento **sin** CharSet se dibuja como un tile de la página alta del
 chipset: así están hechas las puertas, los cofres y buena parte del decorado.
 
-### Limitación conocida
+### El RTP
 
-El juego usa recursos del RTP oficial de RM2k que no vienen con él ni están en
-el RTP libre de EasyRPG: 5 chipsets (`ChipSet1/2/3`, `Basis`, `inner`) y 17
-charsets (`Chara1-4`, `Crown*`, `Future1-3`, `Men1`, `Women1`, `People7`,
-`Vehicle`). 280 de 328 mapas renderizan — entre los que faltan están el 1 al 6,
-la intro y los flashbacks. Los mapas que sí renderizan igual pierden algunos
-NPCs. Si conseguís el RTP, va en `--rtp-dir` y se arregla solo.
+ABL usa recursos que no vienen con el juego: 5 chipsets (`ChipSet1/2/3`,
+`Basis`, `Inner`) y 17 charsets (`Chara1-4`, `Crown*`, `Future1-3`, `Men1`,
+`Women1`, `People7`, `Vehicle`). Están en el **RTP de Don Miguel** (junio de
+2000), que es el que se usaba fuera de Japón: su traducción del RPG Maker 2000
+traía su propio RTP traducido, con archivos agregados por él que no existen en
+el japonés — `Future1-3`, por ejemplo. El RTP libre de EasyRPG **no sirve**: es
+un reemplazo con arte distinto y otros nombres (`Actor1-4` en vez de
+`Chara1-4`).
+
+`RTP/` no está en git. Para reponerlo, de `RTPE.EXE` (un SFX de RAR):
+
+    7z x -oRTP-tmp RTPE.EXE && mv RTP-tmp/Data/RTP RTP && rm -rf RTP-tmp
+
+Con eso, los 328 mapas renderizan sin faltantes. `just maps` avisa si falta
+algo. Se puede apuntar a otra copia con `--rtp-dir`.
 
 ### Referencias
 

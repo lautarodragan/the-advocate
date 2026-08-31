@@ -1,32 +1,41 @@
 #!/usr/bin/env python3
-"""Lista los mapas de A Blurred Line con su chipset y si podemos renderizarlo."""
+"""Inventario de los mapas de A Blurred Line.
 
+Cada mapa con su tamaño, su chipset, cuántos eventos se dibujarían y si nos
+falta algún asset. Con --render además renderiza todo (sin guardar), que es la
+forma barata de encontrar mapas que rompen el pipeline.
+"""
+
+import argparse
 import os
 import sys
+import traceback
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import lcf
-from render_map import GAME_DIR, REPO, RTP_DIR, find_resource
+from render_map import REPO, Renderer, find_resource
 
 
 def main():
-    database = lcf.Database(os.path.join(GAME_DIR, "RPG_RT.ldb"))
-    tree = lcf.TreeMap(os.path.join(GAME_DIR, "RPG_RT.lmt"))
-    search_dirs = [REPO, GAME_DIR, RTP_DIR]
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--render", action="store_true",
+                        help="renderizar cada mapa para verificar que no rompe")
+    args = parser.parse_args()
 
-    missing_chipsets = set()
-    missing_charsets = set()
-    for map_id in sorted(tree.map_names):
+    renderer = Renderer()
+    failures = []
+
+    for map_id in sorted(renderer.tree.map_names):
         path = os.path.join(REPO, "Maps", "Map%04d.lmu" % map_id)
         if not os.path.exists(path):
             continue
 
         game_map = lcf.Map(path)
-        chipset = database.chipsets[game_map.chipset_id]
-        found = find_resource(search_dirs, "ChipSet", chipset.filename)
+        chipset = renderer.database.chipsets[game_map.chipset_id]
+        found = find_resource(renderer.search_dirs, "ChipSet", chipset.filename)
         if not found:
-            missing_chipsets.add(chipset.filename)
+            renderer.missing_chipsets.add(chipset.filename)
 
         drawn = 0
         for event in game_map.events:
@@ -34,19 +43,34 @@ def main():
             if page is None:
                 continue
             drawn += 1
-            if page.character_name and not find_resource(
-                    search_dirs, "CharSet", page.character_name):
-                missing_charsets.add(page.character_name)
+            if page.character_name:
+                renderer.charsets.get(page.character_name)
+
+        if args.render and found:
+            try:
+                renderer.render(game_map)
+            except Exception:
+                failures.append(map_id)
+                traceback.print_exc()
 
         print("%s %4d  %-34s %4dx%-4d %-22s %3d/%-3d ev" % (
-            "ok" if found else "--", map_id, tree.map_names[map_id][:34],
+            "ok" if found else "--", map_id, renderer.tree.map_names[map_id][:34],
             game_map.width, game_map.height, chipset.filename,
             drawn, len(game_map.events)))
 
-    print("\nDel RTP oficial de RM2k, que no tenemos:")
-    print("  chipsets: %s" % ", ".join(sorted(missing_chipsets)))
-    print("  charsets: %s" % ", ".join(sorted(missing_charsets)))
+    missing = sorted(renderer.missing_chipsets), sorted(renderer.charsets.missing)
+    if any(missing):
+        print("\nAssets que faltan (ver README):")
+        print("  chipsets: %s" % (", ".join(missing[0]) or "-"))
+        print("  charsets: %s" % (", ".join(missing[1]) or "-"))
+    else:
+        print("\nNo falta ningún asset.")
+
+    if args.render:
+        print("Mapas que rompen: %s" % (failures or "ninguno"))
+        return 1 if failures else 0
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
