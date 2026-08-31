@@ -15,7 +15,8 @@ def main():
     tree = lcf.TreeMap(os.path.join(GAME_DIR, "RPG_RT.lmt"))
     search_dirs = [REPO, GAME_DIR, RTP_DIR]
 
-    missing = set()
+    missing_chipsets = set()
+    missing_charsets = set()
     for map_id in sorted(tree.map_names):
         path = os.path.join(REPO, "Maps", "Map%04d.lmu" % map_id)
         if not os.path.exists(path):
@@ -25,15 +26,26 @@ def main():
         chipset = database.chipsets[game_map.chipset_id]
         found = find_resource(search_dirs, "ChipSet", chipset.filename)
         if not found:
-            missing.add(chipset.filename)
+            missing_chipsets.add(chipset.filename)
 
-        print("%s %4d  %-34s %4dx%-4d %s" % (
+        drawn = 0
+        for event in game_map.events:
+            page = event.active_page()
+            if page is None:
+                continue
+            drawn += 1
+            if page.character_name and not find_resource(
+                    search_dirs, "CharSet", page.character_name):
+                missing_charsets.add(page.character_name)
+
+        print("%s %4d  %-34s %4dx%-4d %-22s %3d/%-3d ev" % (
             "ok" if found else "--", map_id, tree.map_names[map_id][:34],
-            game_map.width, game_map.height, chipset.filename))
+            game_map.width, game_map.height, chipset.filename,
+            drawn, len(game_map.events)))
 
-    if missing:
-        print("\nChipsets que faltan (RTP oficial de RM2k): %s"
-              % ", ".join(sorted(missing)))
+    print("\nDel RTP oficial de RM2k, que no tenemos:")
+    print("  chipsets: %s" % ", ".join(sorted(missing_chipsets)))
+    print("  charsets: %s" % ", ".join(sorted(missing_charsets)))
 
 
 if __name__ == "__main__":

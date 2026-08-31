@@ -28,10 +28,20 @@ LOWER = 0x1388      # 5000
 UPPER = 0x2710      # 10000
 
 
-def _blit(dst, dx, dy, src, sx, sy, w, h):
-    """Copia respetando el color key: los píxeles transparentes no pisan nada."""
-    region = src.crop((sx, sy, sx + w, sy + h))
-    dst.paste(region, (dx, dy), region)
+def blit(dst, dx, dy, src, sx, sy, w, h):
+    """Copia respetando el color key: los píxeles transparentes no pisan nada.
+
+    Recorta contra los bordes del destino: los sprites de 24x32 se anclan
+    fuera de la grilla y se salen del mapa en los bordes.
+    """
+    left, top = max(0, -dx), max(0, -dy)
+    right = w - max(0, dx + w - dst.width)
+    bottom = h - max(0, dy + h - dst.height)
+    if left >= right or top >= bottom:
+        return
+
+    region = src.crop((sx + left, sy + top, sx + right, sy + bottom))
+    dst.paste(region, (dx + left, dy + top), region)
 
 
 class ChipsetAtlas:
@@ -81,7 +91,7 @@ class ChipsetAtlas:
     def _draw(self, t, sx, sy, w, h, dx=0, dy=0):
         x = (t % ATLAS_COLS) * TILE + dx
         y = (t // ATLAS_COLS) * TILE + dy
-        _blit(self.atlas, x, y, self.base, sx, sy, w, h)
+        blit(self.atlas, x, y, self.base, sx, sy, w, h)
 
     def _draw_full(self, t, sx, sy, dx=0, dy=0):
         self._draw(t, sx, sy, TILE, TILE, dx, dy)
@@ -293,5 +303,5 @@ class ChipsetAtlas:
         else:
             index = (tile // 50 // 20) * 141 + tile % 50 + (frame % 3) * 47
 
-        _blit(dst, tile_x * TILE, tile_y * TILE, self.atlas,
+        blit(dst, tile_x * TILE, tile_y * TILE, self.atlas,
               (index & 0x1F) * TILE, (index >> 5) * TILE, TILE, TILE)

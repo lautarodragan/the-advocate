@@ -87,6 +87,24 @@ MAP_HEIGHT = 0x03
 MAP_PARALLAX_NAME = 0x20
 MAP_LOWER_LAYER = 0x47
 MAP_UPPER_LAYER = 0x48
+MAP_EVENTS = 0x51
+
+EVENT_NAME = 0x01
+EVENT_X = 0x02
+EVENT_Y = 0x03
+EVENT_PAGES = 0x05
+
+PAGE_CONDITION = 0x02
+PAGE_CHARACTER_NAME = 0x15
+PAGE_CHARACTER_INDEX = 0x16
+PAGE_CHARACTER_DIRECTION = 0x17
+PAGE_CHARACTER_PATTERN = 0x18
+PAGE_LAYER = 0x22
+
+CONDITION_FLAGS = 0x01
+# switch_a, switch_b, variable, item, actor, timer, timer2: un bit cada una,
+# LSB primero (liblcf: src/reader_flags.cpp).
+CONDITION_ALL = 0x7F
 
 DB_CHIPSETS = 0x14
 
@@ -100,6 +118,50 @@ START_PARTY_X = 0x02
 START_PARTY_Y = 0x03
 
 MAPINFO_NAME = 0x01
+
+
+class EventPage:
+    """Una de las versiones que puede adoptar un evento.
+
+    Los defaults salen de liblcf (src/generated/lcf/rpg/eventpage.h): mirando
+    hacia abajo (dirección 2) y con el frame del medio (patrón 1), que es la
+    pose parada.
+    """
+
+    def __init__(self, fields):
+        self.character_name = to_string(fields.get(PAGE_CHARACTER_NAME, b""))
+        self.character_index = to_int(fields.get(PAGE_CHARACTER_INDEX, b"\x00"))
+        self.character_direction = to_int(fields.get(PAGE_CHARACTER_DIRECTION, b"\x02"))
+        self.character_pattern = to_int(fields.get(PAGE_CHARACTER_PATTERN, b"\x01"))
+        self.layer = to_int(fields.get(PAGE_LAYER, b"\x00"))
+
+        condition = Reader(fields.get(PAGE_CONDITION, b"\x00")).read_struct()
+        flags = condition.get(CONDITION_FLAGS, b"\x00")
+        self.unconditional = not (flags[0] & CONDITION_ALL)
+
+
+class Event:
+    def __init__(self, fields):
+        self.name = to_string(fields.get(EVENT_NAME, b""))
+        self.x = to_int(fields.get(EVENT_X, b"\x00"))
+        self.y = to_int(fields.get(EVENT_Y, b"\x00"))
+        self.pages = [EventPage(f) for _, f
+                      in sorted(Reader(fields[EVENT_PAGES]).read_struct_array().items())]
+
+    def active_page(self, ignore_conditions=False):
+        """La página que mostraría el motor en una partida recién empezada.
+
+        RM2k usa la página de número más alto cuyas condiciones se cumplen
+        todas. Sin switches ni variables seteadas, eso es la última página que
+        no tiene ninguna condición. Puede no haber ninguna.
+        """
+        if ignore_conditions:
+            return self.pages[0] if self.pages else None
+
+        for page in reversed(self.pages):
+            if page.unconditional:
+                return page
+        return None
 
 
 class Map:
@@ -118,6 +180,8 @@ class Map:
         self.parallax_name = to_string(fields.get(MAP_PARALLAX_NAME, b""))
         self.lower_layer = to_u16_array(fields[MAP_LOWER_LAYER])
         self.upper_layer = to_u16_array(fields[MAP_UPPER_LAYER])
+        self.events = [Event(f) for _, f in sorted(
+            Reader(fields.get(MAP_EVENTS, b"\x00")).read_struct_array().items())]
 
 
 class Chipset:
