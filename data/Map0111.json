@@ -1,0 +1,100 @@
+{
+  "id": 111,
+  "name": "CustomMenuTest",
+  "size": [20, 15],
+  "chipset": [1, "Basis"],
+  "tiles": "Map0111.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ChangePartyMembers", "", [1, 0, 10]],
+            [0, "ChangePartyMembers", "", [0, 0, 14]],
+            [0, "ControlVars", "", [0, 63, 63, 0, 0, 1, 0]],
+            [0, "ControlVars", "", [0, 74, 74, 0, 0, 19, 0]],
+            [0, "ControlVars", "", [0, 79, 79, 0, 0, 4, 0]],
+            [0, "ControlVars", "", [0, 86, 86, 0, 0, 99, 0]],
+            [0, "ControlVars", "", [0, 95, 95, 0, 0, 4, 0]],
+            [0, "ControlVars", "", [0, 111, 111, 0, 0, 11, 0]],
+            [0, "ControlVars", "", [0, 116, 116, 0, 0, 3, 0]],
+            [0, "ControlVars", "", [0, 119, 119, 0, 0, 11, 0]],
+            [0, "ChangeItems", "", [0, 0, 81, 0, 1]],
+            [0, "ControlSwitches", "", [0, 334, 334, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 334
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [4, 4],
+      "pages": [
+        {
+          "tile": 7,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ChangePartyMembers", "", [0, 0, 17]],
+            [0, "ChangePartyMembers", "", [0, 0, 18]],
+            [0, "ChangePartyMembers", "", [1, 0, 14]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [12, 4],
+      "pages": [
+        {
+          "tile": 26,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ChangeItems", "", [0, 0, 281, 0, 1]],
+            [0, "ChangeItems", "", [0, 0, 289, 0, 1]],
+            [0, "ChangeItems", "", [0, 0, 275, 0, 1]],
+            [0, "ChangeItems", "", [0, 0, 269, 0, 1]],
+            [0, "ShowMessage", "Items added.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [5, 9],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "ABLDalia",
+            "index": 1,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "This is a test of the Inn music.", []],
+            [0, "ShowInn", "", [0, 0, 0]]
+          ]
+        }
+      ]
+    }
+  ]
+}

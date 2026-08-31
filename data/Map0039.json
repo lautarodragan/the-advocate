@@ -1,0 +1,319 @@
+{
+  "id": 39,
+  "name": "Talan's Pad With Car",
+  "size": [20, 15],
+  "chipset": [9, "BLchp1"],
+  "tiles": "Map0039.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [15, 6],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "A quick nap to restore my strength?", []],
+            [0, "ShowChoice", "Yes/No", [2]],
+            [0, "ShowChoiceOption", "Yes", [0]],
+            [1, "ShowInn", "", [0, 0, 0]],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "Refreshing!", []],
+            [1, "END", "", []],
+            [0, "ShowChoiceOption", "No", [1]],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "I shouldn't hang around here for too", []],
+            [1, "ShowMessage_2", "long... just in case!", []],
+            [1, "END", "", []],
+            [0, "ShowChoiceEnd", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "TalDoorBottom",
+      "at": [9, 13],
+      "pages": [
+        {
+          "tile": 117,
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "TalDoorTop",
+      "at": [9, 12],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 151
+          },
+          "tile": 111,
+          "layer": "above",
+          "trigger": "action",
+          "script": [
+            [0, "PlaySound", "Open2", [90, 100, 50]],
+            [0, "ChangeEventLocation", "", [2, 0, 8, 13]],
+            [0, "ChangeEventLocation", "", [3, 0, 8, 12]],
+            [0, "Wait", "", [4]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [0, "Wait", "", [5]],
+            [0, "Teleport", "", [37, 10, 31]],
+            [0, "ChangeEventLocation", "", [2, 0, 9, 13]],
+            [0, "ChangeEventLocation", "", [3, 0, 9, 12]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 153
+          },
+          "tile": 111,
+          "layer": "above",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I should check and see if the vidcasts", []],
+            [0, "ShowMessage_2", "have any information about the", []],
+            [0, "ShowMessage_2", "assassination of the Director.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [15, 7],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "A quick nap to restore my strength?", []],
+            [0, "ShowChoice", "Yes/No", [2]],
+            [0, "ShowChoiceOption", "Yes", [0]],
+            [1, "ShowInn", "", [0, 0, 0]],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "Refreshing!", []],
+            [1, "END", "", []],
+            [0, "ShowChoiceOption", "No", [1]],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "I shouldn't hang around here for too", []],
+            [1, "ShowMessage_2", "long... just in case!", []],
+            [1, "END", "", []],
+            [0, "ShowChoiceEnd", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "EV0005",
+      "at": [11, 4],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I wonder if the vidcasts have news of", []],
+            [0, "ShowMessage_2", "the Director's assassination yet...", []],
+            [0, "PlaySound", "Key", [60, 80, 50]],
+            [0, "Wait", "", [6]],
+            [0, "PlaySound", "Sand Storm", [60, 130, 50]],
+            [0, "Wait", "", [5]],
+            [0, "PlaySound", "Sand Storm", [60, 130, 50]],
+            [0, "Wait", "", [5]],
+            [0, "PlaySound", "Sand Storm", [60, 130, 50]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "This computer is so cheap, the news", []],
+            [0, "ShowMessage_2", "is barely coming in...", []],
+            [0, "PlaySound", "Sand Storm", [60, 130, 50]],
+            [0, "Wait", "", [5]],
+            [0, "PlaySound", "Key", [60, 80, 50]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I bet my neighbor could get the vidcasts.", []],
+            [0, "ShowMessage_2", "He's got a massive antenna, after all.", []],
+            [0, "ControlSwitches", "", [0, 153, 153, 1]],
+            [0, "ControlSwitches", "", [0, 151, 151, 0]],
+            [0, "MessageOptions", "", [0, 0, 0, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 151
+          },
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's useless. My computer is a worthless", []],
+            [0, "ShowMessage_2", "piece of junk. I won't be able to get any", []],
+            [0, "ShowMessage_2", "information from it.", []],
+            [0, "MessageOptions", "", [0, 0, 0, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "EV0006",
+      "at": [6, 4],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's my Insta-Shave Unit, complete with", []],
+            [0, "ShowMessage_2", "Teeth-Cleaning Module and deodorant", []],
+            [0, "ShowMessage_2", "spray.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Should I use it?", []],
+            [0, "ShowChoice", "Yes/No", [2]],
+            [0, "ShowChoiceOption", "Yes", [0]],
+            [1, "PlaySound", "Cold9", [60, 100, 50]],
+            [1, "PlaySound", "Cold3", [60, 100, 50]],
+            [1, "PlaySound", "Explosion5", [60, 100, 50]],
+            [1, "PlaySound", "Holy6", [60, 100, 50]],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "Maybe I'll be less recognizable now.", []],
+            [1, "ShowMessage_2", "But I wasn't THAT scruffy...", []],
+            [1, "ControlSwitches", "", [0, 157, 157, 0]],
+            [1, "END", "", []],
+            [0, "ShowChoiceOption", "No", [1]],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "I've got more important things to", []],
+            [1, "ShowMessage_2", "worry about!", []],
+            [1, "END", "", []],
+            [0, "ShowChoiceEnd", "", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 25
+          },
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I've already used my Insta-Shave today!", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I don't want to get razor burn!", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 157
+          },
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I've already used my Insta-Shave today!", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I don't want to get razor burn!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "EV0007",
+      "at": [3, 8],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 24
+          },
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "These pipes are as ugly as ever.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "EV0008",
+      "at": [3, 10],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 24
+          },
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "These pipes are as ugly as ever.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "EV0009",
+      "at": [19, 0],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 54
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ShowMessage", "ARDEN", []],
+            [0, "ShowMessage_2", "So this is home, huh?", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Well... it's where I live.", []],
+            [0, "ControlSwitches", "", [0, 154, 154, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 56
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ShowMessage", "SALDRA", []],
+            [0, "ShowMessage_2", "What a dump! This is your home?", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Well... it's where I live.", []],
+            [0, "ControlSwitches", "", [0, 154, 154, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 154
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    }
+  ]
+}

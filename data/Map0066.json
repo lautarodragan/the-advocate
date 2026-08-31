@@ -1,0 +1,842 @@
+{
+  "id": 66,
+  "name": "Lashe Area",
+  "size": [100, 75],
+  "chipset": [31, "worldmapcharlie"],
+  "tiles": "Map0066.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [59, 28],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 37]],
+            [0, "ConditionalBranch", "", [0, 162, 0, 0, 0, 1]],
+            [1, "ControlSwitches", "", [0, 239, 239, 0]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ControlSwitches", "", [0, 237, 237, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 237
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [70, 29],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I can't just walk back into Lashe City!", []],
+            [0, "ShowMessage_2", "If I need to go back, I should at least", []],
+            [0, "ShowMessage_2", "find a more secret way in...", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 1]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [60, 33],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I can't just walk back into Lashe City!", []],
+            [0, "ShowMessage_2", "If I need to go back, I should at least", []],
+            [0, "ShowMessage_2", "find a more secret way in...", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [52, 33],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I can't just walk back into Lashe City!", []],
+            [0, "ShowMessage_2", "If I need to go back, I should at least", []],
+            [0, "ShowMessage_2", "find a more secret way in...", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 3]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "EV0005",
+      "at": [59, 21],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I can't just walk back into Lashe City!", []],
+            [0, "ShowMessage_2", "If I need to go back, I should at least", []],
+            [0, "ShowMessage_2", "find a more secret way in...", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 0]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "EV0006",
+      "at": [74, 7],
+      "pages": [
+        {
+          "tile": 17,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It looks as if a truck caravan has broken", []],
+            [0, "ShowMessage_2", "down on the bridge. I can't get by it.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 1]],
+            [0, "Wait", "", [5]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 252
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched"
+        },
+        {
+          "conditions": {
+            "switch_a": 849
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It looks like the Agency has given up", []],
+            [0, "ShowMessage_2", "on its blockade of this bridge. I wonder", []],
+            [0, "ShowMessage_2", "where they're looking now?", []],
+            [0, "Teleport", "", [66, 76, 7]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "EV0007",
+      "at": [99, 29],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLAgents",
+            "index": 1,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "EV0008",
+      "at": [90, 29],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It looks like the Agency has a barricade", []],
+            [0, "ShowMessage_2", "set up blocking the road further along.", []],
+            [0, "ShowMessage_2", "I'd better not get any closer.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 3]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "EV0009",
+      "at": [93, 38],
+      "pages": [
+        {
+          "tile": 5,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MessageOptions", "", [0, 0, 1, 0]],
+            [0, "Teleport", "", [67, 1, 17]],
+            [0, "ControlSwitches", "", [0, 236, 236, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "EV0010",
+      "at": [75, 10],
+      "pages": [
+        {
+          "tile": 4,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [69, 20, 38]],
+            [0, "ControlSwitches", "", [0, 236, 236, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "EV0011",
+      "at": [29, 7],
+      "pages": [
+        {
+          "tile": 11,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [68, 48, 14]],
+            [0, "ControlSwitches", "", [0, 236, 236, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "EV0012",
+      "at": [82, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It looks like the Agency has a barricade", []],
+            [0, "ShowMessage_2", "set up blocking the road further along.", []],
+            [0, "ShowMessage_2", "I'd better not get any closer.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "Tasgarde",
+      "at": [93, 4],
+      "pages": [
+        {
+          "tile": 16,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [74, 19, 48]],
+            [0, "ControlSwitches", "", [0, 236, 236, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "name": "DaliaGoingToTasgarde",
+      "at": [69, 26],
+      "pages": [
+        {
+          "conditions": {
+            "actor": 10
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ChangeEncounterSteps", "", [0]],
+            [0, "ChangePartyMembers", "", [1, 0, 10]],
+            [0, "ChangePartyMembers", "", [0, 0, 22]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 2, 2, 3]],
+            [0, "Wait", "", [80]],
+            [0, "ChangePartyMembers", "", [1, 0, 22]],
+            [0, "ChangePartyMembers", "", [0, 0, 21]],
+            [0, "ControlSwitches", "", [0, 278, 278, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 278
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched"
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "name": "EV0015",
+      "at": [75, 7],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It looks as if a truck caravan has broken", []],
+            [0, "ShowMessage_2", "down on the bridge. I can't get by it.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 1]],
+            [0, "Wait", "", [5]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 252
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [259, 68, 10]],
+            [0, "ControlSwitches", "", [0, 236, 236, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 849,
+            "switch_b": 252
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [66, 73, 7]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "name": "EV0016",
+      "at": [38, 55],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 847
+          },
+          "tile": 133,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "name": "EV0017",
+      "at": [10, 66],
+      "pages": [
+        {
+          "tile": 92,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "MessageOptions", "", [1, 1, 0, 0]],
+            [0, "ShowMessage", "<-- Paradise Tunnel 2 Km", []],
+            [0, "MessageOptions", "", [0, 0, 1, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "We're almost there!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "name": "EV0018",
+      "at": [5, 64],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It should just be a little longer until", []],
+            [0, "ShowMessage_2", "we reach Paradise. There'll be no", []],
+            [0, "ShowMessage_2", "turning back. Are we ready?", []],
+            [0, "ShowChoice", "No - Not yet/Yes - Continue onward", [1]],
+            [0, "ShowChoiceOption", "No - Not yet", [0]],
+            [1, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [1, "Wait", "", [5]],
+            [1, "END", "", []],
+            [0, "ShowChoiceOption", "Yes - Continue onward", [1]],
+            [1, "Wait", "", [5]],
+            [1, "TintScreen", "", [70, 70, 70, 70, 5, 1]],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "It's starting to get dark. I hope we can make", []],
+            [1, "ShowMessage_2", "it there before it's too dark to see.", []],
+            [1, "Teleport", "", [105, 68, 19]],
+            [1, "ControlSwitches", "", [0, 236, 236, 1]],
+            [1, "MoveEvent", "", [10001, 8, 0, 0, 15]],
+            [1, "END", "", []],
+            [0, "ShowChoiceEnd", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "name": "EV0019",
+      "at": [43, 57],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [310, 48, 22]],
+            [0, "ConditionalBranch", "", [0, 880, 1, 0, 0, 1]],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "If Vago's right, Paradise should be just", []],
+            [1, "ShowMessage_2", "a short journey to the west, on the other ", []],
+            [1, "ShowMessage_2", "side of this forest.", []],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "Hopefully this stage of our journey", []],
+            [1, "ShowMessage_2", "will be an uneventful one...", []],
+            [1, "ControlSwitches", "", [0, 880, 880, 0]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ControlSwitches", "", [0, 236, 236, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 847
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [312, 68, 61]],
+            [0, "ControlSwitches", "", [0, 236, 236, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "name": "EV0020",
+      "at": [35, 56],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [312, 1, 61]],
+            [0, "ControlSwitches", "", [0, 236, 236, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "name": "EV0021",
+      "at": [0, 0],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 498
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "CallEvent", "", [0, 35, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "name": "EV0022",
+      "at": [17, 4],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It looks like an avalanche has blocked", []],
+            [0, "ShowMessage_2", "off the road further along - I'm out of", []],
+            [0, "ShowMessage_2", "luck this way.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 1]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "name": "EV0023",
+      "at": [0, 30],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It looks like the Agency has a barricade", []],
+            [0, "ShowMessage_2", "set up blocking the road further along.", []],
+            [0, "ShowMessage_2", "I'd better not get any closer.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 1]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 24,
+      "name": "EV0024",
+      "at": [60, 54],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "This road leads to Prima City... which is", []],
+            [0, "ShowMessage_2", "the most Agency-dominated city there is.", []],
+            [0, "ShowMessage_2", "I shouldn't go this way...", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 0]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 25,
+      "name": "EV0025",
+      "at": [66, 48],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It looks like the Agency has a barricade", []],
+            [0, "ShowMessage_2", "set up blocking the road further along.", []],
+            [0, "ShowMessage_2", "I'd better not get any closer.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 3]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 26,
+      "name": "WorldMapTurnOnSaving",
+      "at": [1, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "parallel",
+          "script": [
+            [0, "ConditionalBranch", "", [0, 236, 1, 0, 0, 1]],
+            [1, "ControlSwitches", "", [0, 236, 236, 0]],
+            [1, "ChangeSaveAccess", "", [1]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 27,
+      "name": "EV0027",
+      "at": [36, 54],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 847
+          },
+          "tile": 133,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 28,
+      "name": "EV0028",
+      "at": [37, 56],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 847
+          },
+          "tile": 133,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 29,
+      "name": "EV0029",
+      "at": [37, 57],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 847
+          },
+          "tile": 133,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 30,
+      "name": "EV0030",
+      "at": [39, 56],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 847
+          },
+          "tile": 133,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 31,
+      "name": "EV0031",
+      "at": [38, 56],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 847
+          },
+          "tile": 133,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 32,
+      "name": "EV0032",
+      "at": [38, 57],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 847
+          },
+          "tile": 133,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 33,
+      "name": "EV0033",
+      "at": [39, 57],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 847
+          },
+          "tile": 133,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 34,
+      "name": "EV0034",
+      "at": [39, 53],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 847
+          },
+          "tile": 133,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 35,
+      "name": "EV0035",
+      "at": [37, 52],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 847
+          },
+          "tile": 133,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 36,
+      "name": "EV0036",
+      "at": [40, 57],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 847
+          },
+          "tile": 133,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 37,
+      "name": "EV0037",
+      "at": [41, 56],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 847
+          },
+          "tile": 133,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 38,
+      "name": "EV0038",
+      "at": [40, 54],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 847
+          },
+          "tile": 133,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 39,
+      "name": "EV0039",
+      "at": [36, 32],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "The bridge is out -  we'll need to find", []],
+            [0, "ShowMessage_2", "another way around. Paradise should", []],
+            [0, "ShowMessage_2", "be to the south and west of here...", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 1]],
+            [0, "ProceedWithMovement", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 40,
+      "name": "EV0040",
+      "at": [22, 57],
+      "pages": [
+        {
+          "tile": 5,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [348, 18, 13]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 41,
+      "name": "EV0041",
+      "at": [14, 4],
+      "pages": [
+        {
+          "tile": 24,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 42,
+      "name": "EV0042",
+      "at": [15, 4],
+      "pages": [
+        {
+          "tile": 25,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    }
+  ]
+}

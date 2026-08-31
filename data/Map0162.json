@@ -1,0 +1,57 @@
+{
+  "id": 162,
+  "name": "Arden Tutorial",
+  "size": [20, 15],
+  "chipset": [11, "ChipSet1"],
+  "tiles": "Map0162.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "RunArdenTutorial",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "MemorizeBGM", "", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 14, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3]],
+            [0, "MessageOptions", "", [1, 0, 0, 0]],
+            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]],
+            [0, "ShowMessage", "Arden is a member of the Neon Vipers", []],
+            [0, "ShowMessage_2", "street gang.", []],
+            [0, "ShowMessage", "Her weapon of choice is the Dagger, and", []],
+            [0, "ShowMessage_2", "she is also skilled with specially-weighted", []],
+            [0, "ShowMessage_2", "throwing knives.", []],
+            [0, "ShowMessage", "Arden learns her Streetwise skills at", []],
+            [0, "ShowMessage_2", "set increments while gaining levels.", []],
+            [0, "ShowMessage_2", "She can learn additional skills by taking", []],
+            [0, "ShowMessage_2", "certain actions.", []],
+            [0, "PlayMemorizedBGM", "", []],
+            [0, "MessageOptions", "", [0, 0, 1, 0]],
+            [0, "RecallToLocation", "", [127, 128, 129]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [10, 7],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara2",
+            "index": 0,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,60 @@
+{
+  "id": 56,
+  "name": "Sector 33 Discount Items",
+  "size": [20, 15],
+  "chipset": [10, "lasheint"],
+  "tiles": "Map0056.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [9, 14],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [47, 3, 35]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [8, 3],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLPeople",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [8, 4],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "SHOPKEEPER", []],
+            [0, "ShowMessage_2", "Welcome.", []],
+            [0, "OpenShop", "", [0, 1, 0, 0, 97, 299, 300, 301, 302, 103, 114, 115]],
+            [0, "ShowMessage", "SHOPKEEPER", []],
+            [0, "ShowMessage_2", "If you ever need items, I'll be here. <sigh>", []]
+          ]
+        }
+      ]
+    }
+  ]
+}

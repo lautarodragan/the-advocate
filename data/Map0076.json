@@ -1,0 +1,526 @@
+{
+  "id": 76,
+  "name": "Sorbe Mountain",
+  "size": [30, 50],
+  "chipset": [49, "ABLTownMountain"],
+  "tiles": "Map0076.tiles",
+  "parallax": {
+    "name": "Morning1",
+    "loop_x": false,
+    "loop_y": false,
+    "scroll_x": 0,
+    "scroll_y": 0
+  },
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [13, 49],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [69, 21, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Vago",
+      "at": [15, 5],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 239
+          },
+          "sprite": {
+            "charset": "People5",
+            "index": 2,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [24, 8],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 239
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 0, 0, 0, 3, 3, 3, 3]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ConditionalBranch", "", [0, 54, 0, 0, 0, 1]],
+            [1, "MoveEvent", "", [4, 8, 0, 0, 34, 6, 67, 104, 97, 114, 97, 50, 0]],
+            [1, "ProceedWithMovement", "", []],
+            [1, "ChangeEventLocation", "", [4, 0, 20, 5]],
+            [1, "MoveEvent", "", [4, 8, 0, 0, 0, 15]],
+            [1, "Wait", "", [5]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "ConditionalBranch", "", [0, 56, 0, 0, 0, 1]],
+            [2, "MoveEvent", "", [4, 8, 0, 0, 34, 6, 67, 104, 97, 114, 97, 51, 6]],
+            [2, "ProceedWithMovement", "", []],
+            [2, "ChangeEventLocation", "", [4, 0, 20, 5]],
+            [2, "MoveEvent", "", [4, 8, 0, 0, 0, 15]],
+            [2, "Wait", "", [5]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ConditionalBranch", "", [0, 150, 0, 0, 0, 1]],
+            [1, "MoveEvent", "", [5, 8, 0, 0, 34, 5, 65, 71, 55, 49, 55, 4]],
+            [1, "ProceedWithMovement", "", []],
+            [1, "ChangeEventLocation", "", [5, 0, 20, 5]],
+            [1, "MoveEvent", "", [5, 8, 0, 0, 2, 15]],
+            [1, "Wait", "", [5]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Hello... um, Dr. Vago?", []],
+            [0, "ShowMessage", "VAGO", []],
+            [0, "ShowMessage_2", "... ... ...", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I recently sprained my ankle, and I", []],
+            [0, "ShowMessage_2", "was wondering if maybe you could", []],
+            [0, "ShowMessage_2", "take a look at it, you know, sort of", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "give me some medicine for it, or a", []],
+            [0, "ShowMessage_2", "splint, or something to heal it...", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Dr. Vago?", []],
+            [0, "ConditionalBranch", "", [0, 54, 0, 0, 0, 1]],
+            [1, "ShowMessage", "ARDEN", []],
+            [1, "ShowMessage_2", "He doesn't look very good - there's", []],
+            [1, "ShowMessage_2", "something wrong with -", []],
+            [1, "MoveEvent", "", [2, 8, 0, 0, 13, 1, 1]],
+            [1, "Wait", "", [10]],
+            [1, "ShowMessage", "ARDEN", []],
+            [1, "ShowMessage_2", "- his eyes...", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ConditionalBranch", "", [0, 56, 0, 0, 0, 1]],
+            [1, "ShowMessage", "SALDRA", []],
+            [1, "ShowMessage_2", "He doesn't look very good - there's", []],
+            [1, "ShowMessage_2", "something wrong with -", []],
+            [1, "MoveEvent", "", [2, 8, 0, 0, 13, 1, 1]],
+            [1, "Wait", "", [10]],
+            [1, "ShowMessage", "SALDRA", []],
+            [1, "ShowMessage_2", "- his eyes...", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ConditionalBranch", "", [0, 56, 1, 0, 0, 1]],
+            [1, "ConditionalBranch", "", [0, 54, 1, 0, 0, 1]],
+            [2, "ShowMessage", "AG7-17", []],
+            [2, "ShowMessage_2", "K&@%ERbloodmoss detectedYI&", []],
+            [2, "ShowMessage_2", "375rt386%@#???????", []],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "What did you say, AG7?", []],
+            [2, "ShowMessage", "AG7-17", []],
+            [2, "ShowMessage_2", "KU#%^gbfi735f*^@%DG", []],
+            [2, "ShowMessage_2", "(&@dhdcjYD3t3g3dgkiuu777", []],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "You're a big help.", []],
+            [2, "Wait", "", [10]],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "He looks strange... as if there's something", []],
+            [2, "ShowMessage_2", "wrong with -", []],
+            [2, "MoveEvent", "", [2, 8, 0, 0, 13, 1, 1]],
+            [2, "Wait", "", [10]],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "- his eyes...", []],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "MoveEvent", "", [2, 8, 0, 1, 28, 1, 1, 1, 1, 29]],
+            [0, "Wait", "", [10]],
+            [0, "ChangeEscapeAccess", "", [0]],
+            [0, "ChangeSystemBGM", "KW-robot", [0, 0, 100, 100, 50]],
+            [0, "ChangeSystemBGM", "KW-robot", [1, 0, 100, 100, 50]],
+            [0, "EnemyEncounter", "mroad4", [0, 178, 1, 0, 0, 0]],
+            [0, "ChangeSystemBGM", "T_VGFighterMAX_Masako", [0, 0, 100, 100, 50]],
+            [0, "ChangeSystemBGM", "T_VGFighterMAX_Masako", [1, 0, 100, 100, 50]],
+            [0, "ChangeEscapeAccess", "", [1]],
+            [0, "CallEvent", "", [0, 35, 0]],
+            [0, "ShowMessage", "DR. VAGO", []],
+            [0, "ShowMessage_2", "Oh my goodness...", []],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 26, 3, 27]],
+            [0, "Wait", "", [7]],
+            [0, "ShowMessage", "DR. VAGO", []],
+            [0, "ShowMessage_2", "Where am I? I don't -", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 1, 0]],
+            [0, "PlaySound", "Blow6", [100, 100, 50]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "He's fainted! We should bring him back to", []],
+            [0, "ShowMessage_2", "the village... I wonder what's wrong with", []],
+            [0, "ShowMessage_2", "him?", []],
+            [0, "ControlSwitches", "", [0, 265, 265, 0]],
+            [0, "Teleport", "", [81, 10, 7]],
+            [0, "ControlSwitches", "", [0, 262, 262, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 262
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Arden/Saldra",
+      "at": [29, 49],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 54
+          },
+          "sprite": {
+            "charset": "nobodyhere",
+            "index": 0,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 56
+          },
+          "sprite": {
+            "charset": "nobodyhere",
+            "index": 0,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "AG7-17",
+      "at": [29, 48],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "nobodyhere",
+            "index": 0,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "EV0006",
+      "at": [0, 0],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 498
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "CallEvent", "", [0, 35, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "SorbeMountain.1",
+      "at": [12, 42],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 896, 896, 0]],
+            [0, "ChangeItems", "", [0, 0, 114, 0, 2]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Fresh Pita-HP x2", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 896
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "SorbeMountain.2",
+      "at": [9, 30],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 897, 897, 0]],
+            [0, "ChangeItems", "", [0, 0, 103, 0, 2]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Cheap Wine-SP x2", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 897
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "SorbeMountain.3",
+      "at": [15, 39],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 898, 898, 0]],
+            [0, "ChangeItems", "", [0, 0, 392, 0, 1]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Wooden Club-R", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 898
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "SorbeMountain.4",
+      "at": [20, 45],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 899, 899, 0]],
+            [0, "ChangeItems", "", [0, 0, 232, 0, 1]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Small Shield-L", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 899
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "SorbeMountain.5",
+      "at": [11, 18],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 900, 900, 0]],
+            [0, "ChangeItems", "", [0, 0, 97, 0, 1]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Cold Sandwich-HP", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 900
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "SorbeMountain.7",
+      "at": [23, 33],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 901, 901, 0]],
+            [0, "ChangeItems", "", [0, 0, 115, 0, 2]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Pungent Elixir-LIFE x2", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 901
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    }
+  ]
+}

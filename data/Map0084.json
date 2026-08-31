@@ -1,0 +1,83 @@
+{
+  "id": 84,
+  "name": "OutsideFactory",
+  "size": [20, 15],
+  "chipset": [20, "BLchp1"],
+  "tiles": "Map0084.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "Transport",
+      "at": [9, 13],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLVehicles",
+            "index": 5,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TRANSPORT DRIVER", []],
+            [0, "ShowMessage_2", "Corporal, I have orders to get you", []],
+            [0, "ShowMessage_2", "to Tasgarde Military Base as soon", []],
+            [0, "ShowMessage_2", "as possible.", []],
+            [0, "ShowMessage", "DALIA", []],
+            [0, "ShowMessage_2", "Do your duty, driver.", []],
+            [0, "ChangePartyMembers", "", [1, 0, 21]],
+            [0, "ChangePartyMembers", "", [0, 0, 10]],
+            [0, "Teleport", "", [66, 59, 20]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [9, 9],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [83, 35, 73]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [8, 9],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [83, 35, 73]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [10, 9],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [83, 35, 73]]
+          ]
+        }
+      ]
+    }
+  ]
+}

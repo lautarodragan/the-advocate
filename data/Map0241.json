@@ -1,0 +1,158 @@
+{
+  "id": 241,
+  "name": "Tram to Prima",
+  "size": [20, 15],
+  "chipset": [39, "tech5"],
+  "tiles": "Map0241.tiles",
+  "parallax": {
+    "name": "PrimaTunnel2",
+    "loop_x": true,
+    "loop_y": false,
+    "scroll_x": -7,
+    "scroll_y": 0
+  },
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "TintScreen", "", [100, 100, 100, 100, 10, 1]],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 24, 25]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Wait", "", [3]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "We're on our way, Kersh!", []],
+            [0, "ShowMessage_2", "Now we'll make the Agency pay for", []],
+            [0, "ShowMessage_2", "what they've done!", []],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 0, 13]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "It'll be a few hours before we get to", []],
+            [0, "ShowMessage_2", "Prima, so we should get some rest.", []],
+            [0, "Wait", "", [15]],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 14, 23, 15]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "Kersh, are you OK?", []],
+            [0, "MoveEvent", "", [3, 8, 0, 0, 14, 23, 23, 13]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Wait", "", [17]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "Don't worry, Kersh. I'm sure the others", []],
+            [0, "ShowMessage_2", "will be able to meet up with us at Prima.", []],
+            [0, "ShowMessage_2", "Talan's very dependable.", []],
+            [0, "Wait", "", [10]],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "KERSH", []],
+            [0, "ShowMessage_2", "I'm fine. I just have some thinking to do.", []],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 23, 23, 36, 24, 0, 25, 14, 37]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "OK. Goodnight.", []],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 23, 13, 23, 23, 34, 5, 101, 109, 105, 108, 121, 6]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Wait", "", [20]],
+            [0, "MoveEvent", "", [3, 8, 0, 0, 14, 23, 23, 23, 23, 15, 23, 23, 23]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "KERSH", []],
+            [0, "ShowMessage_2", "Some thinking... and some planning.", []],
+            [0, "MessageOptions", "", [1, 1, 0, 0]],
+            [0, "TintScreen", "", [0, 0, 0, 100, 10, 1]],
+            [0, "Wait", "", [20]],
+            [0, "MessageOptions", "", [1, 1, 0, 0]],
+            [0, "ShowMessage", "To be concluded...\\|\\|\\|\\^", []],
+            [0, "Wait", "", [10]],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "LYS", []],
+            [0, "ShowMessage_2", "Thank you for playing!", []],
+            [0, "ShowMessage", "LYS", []],
+            [0, "ShowMessage_2", "Send your questions, comments, and", []],
+            [0, "ShowMessage_2", "criticisms to:", []],
+            [0, "ShowMessage_2", "  lysander86@hotmail.com", []],
+            [0, "Wait", "", [10]],
+            [0, "MessageOptions", "", [0, 1, 0, 0]],
+            [0, "ShowMessage", "Save your game for use in LINE'S END?", []],
+            [0, "ShowChoice", "Yes/No", [0]],
+            [0, "ShowChoiceOption", "Yes", [0]],
+            [1, "OpenSaveMenu", "", []],
+            [1, "END", "", []],
+            [0, "ShowChoiceOption", "No", [1]],
+            [1, "END", "", []],
+            [0, "ShowChoiceEnd", "", []],
+            [0, "FadeOutBGM", "", [2000]],
+            [0, "Wait", "", [30]],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "LYS", []],
+            [0, "ShowMessage_2", "And now, a special bonus, exclusive", []],
+            [0, "ShowMessage_2", "to this release of A BLURRED LINE...", []],
+            [0, "ShowMessage", "LYS", []],
+            [0, "ShowMessage_2", "A special teaser-trailer for the", []],
+            [0, "ShowMessage_2", "final thrilling conclusion,", []],
+            [0, "ShowMessage_2", "LINE'S END... enjoy!  :)", []],
+            [0, "Teleport", "", [256, 1, 8]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [1, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "parallel",
+          "script": [
+            [0, "ShakeScreen", "", [5, 5, 10, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Kersh",
+      "at": [5, 7],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future1",
+            "index": 5,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Emily",
+      "at": [15, 8],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "emily",
+            "index": 4,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    }
+  ]
+}

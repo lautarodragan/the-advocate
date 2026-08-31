@@ -1,0 +1,8 @@
+{
+  "id": 15,
+  "name": "Lashe City",
+  "size": [20, 15],
+  "chipset": [1, "Basis"],
+  "tiles": "Map0015.tiles",
+  "events": []
+}

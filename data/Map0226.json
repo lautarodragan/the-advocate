@@ -1,0 +1,30 @@
+{
+  "id": 226,
+  "name": "Sorbe Memory",
+  "size": [20, 15],
+  "chipset": [40, "ABLForestTown"],
+  "tiles": "Map0226.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 36, 3, 3, 3, 3, 3, 3, 0, 0, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3, 37]],
+            [0, "Wait", "", [18]],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "MEMNOSYNE", []],
+            [0, "ShowMessage_2", "I just don't understand this...", []],
+            [0, "PlaySound", "Rebirth3", [100, 60, 50]],
+            [0, "Teleport", "", [227, 10, 13]]
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "id": 286,
+  "name": "Reset Game",
+  "size": [20, 15],
+  "chipset": [42, "Ancient(1)"],
+  "tiles": "Map0286.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ControlSwitches", "", [0, 696, 696, 1]],
+            [0, "ControlVars", "", [0, 150, 150, 1, 0, 1, 0]],
+            [0, "ErasePicture", "", [4]],
+            [0, "ConditionalBranch", "", [1, 150, 0, 3, 1, 1]],
+            [1, "ShowMessage", "ADVOCATE", []],
+            [1, "ShowMessage_2", "I can't seem to activate enough power.", []],
+            [1, "ShowMessage_2", "The system is too riddled with virii!", []],
+            [1, "ShowMessage", "ADVOCATE", []],
+            [1, "ShowMessage_2", "What should I do?", []],
+            [1, "ShowChoice", "Keep trying./Give up.", [1]],
+            [1, "ShowChoiceOption", "Keep trying.", [0]],
+            [2, "Teleport", "", [285, 15, 27]],
+            [2, "END", "", []],
+            [1, "ShowChoiceOption", "Give up.", [1]],
+            [2, "ErasePicture", "", [4]],
+            [2, "ChangePartyMembers", "", [1, 0, 31]],
+            [2, "ChangePartyMembers", "", [0, 0, 21]],
+            [2, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [2, "ProceedWithMovement", "", []],
+            [2, "ControlSwitches", "", [0, 684, 684, 0]],
+            [2, "Teleport", "", [277, 8, 21]],
+            [2, "END", "", []],
+            [1, "ShowChoiceEnd", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "Teleport", "", [285, 15, 27]],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 697
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ErasePicture", "", [4]],
+            [0, "ShowMessage", "ADVOCATE", []],
+            [0, "ShowMessage_2", "That should be enough power.", []],
+            [0, "ChangePartyMembers", "", [1, 0, 31]],
+            [0, "ChangePartyMembers", "", [0, 0, 21]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ControlSwitches", "", [0, 684, 684, 0]],
+            [0, "Teleport", "", [277, 8, 21]]
+          ]
+        }
+      ]
+    }
+  ]
+}

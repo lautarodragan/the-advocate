@@ -1,0 +1,201 @@
+{
+  "id": 350,
+  "name": "Farmland",
+  "size": [20, 15],
+  "chipset": [23, "PS4Chipset"],
+  "tiles": "Map0350.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "Radin",
+      "at": [8, 14],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "extra2(1)",
+            "index": 0,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 977
+          },
+          "sprite": {
+            "charset": "nobodyhere",
+            "index": 0,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "MoveEvent", "", [1, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 14, 23, 23, 12, 23, 14, 23, 23, 23]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "MoveEvent", "", [1, 8, 0, 1, 0, 0, 0, 0, 0, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
+            [0, "Wait", "", [10]],
+            [0, "MessageOptions", "", [1, 2, 0, 0]],
+            [0, "ShowMessage", "MEMNOSYNE", []],
+            [0, "ShowMessage_2", "Where are you going, Radin?", []],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "Teleport", "", [351, 7, 10]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 977
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "TintScreen", "", [40, 20, 60, 100, 5, 1]],
+            [0, "MoveEvent", "", [4, 8, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "VOICE", []],
+            [0, "ShowMessage_2", "Radin.", []],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 24, 25, 13, 23, 24, 25]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ShowMessage", "RADIN", []],
+            [0, "ShowMessage_2", "Pierson! Sir! Wha... what are you doing out", []],
+            [0, "ShowMessage_2", "here so late?", []],
+            [0, "MoveEvent", "", [3, 8, 0, 0, 3]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Wait", "", [15]],
+            [0, "ShowMessage", "PIERSON", []],
+            [0, "ShowMessage_2", "I knew that someone was bringing some", []],
+            [0, "ShowMessage_2", "of our foodstocks to the bandits every", []],
+            [0, "ShowMessage_2", "few weeks. The inventory didn't match up.", []],
+            [0, "Wait", "", [15]],
+            [0, "ShowMessage", "PIERSON", []],
+            [0, "ShowMessage_2", "I had hoped it wasn't you, Radin.", []],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 14, 23, 13]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ShowMessage", "RADIN", []],
+            [0, "ShowMessage_2", "Sir, I - ", []],
+            [0, "Wait", "", [15]],
+            [0, "ShowMessage", "PIERSON", []],
+            [0, "ShowMessage_2", "When you first joined us, you said that", []],
+            [0, "ShowMessage_2", "your ties with the bandits were severed.", []],
+            [0, "ShowMessage_2", "I made it clear this was a binding condition.", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "PIERSON", []],
+            [0, "ShowMessage_2", "Their raids have turned deadly, Radin.", []],
+            [0, "ShowMessage_2", "They have wounded and killed our people!", []],
+            [0, "ShowMessage_2", "How can you, in clear conscience, aid them?", []],
+            [0, "Wait", "", [15]],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 14]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Wait", "", [15]],
+            [0, "ShowMessage", "RADIN", []],
+            [0, "ShowMessage_2", "Because... they were my friends, sir.", []],
+            [0, "Wait", "", [12]],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 14]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Wait", "", [8]],
+            [0, "ShowMessage", "PIERSON", []],
+            [0, "ShowMessage_2", "The bonds of friendship are very strong,", []],
+            [0, "ShowMessage_2", "I know. But are we not also your friends?", []],
+            [0, "Wait", "", [25]],
+            [0, "ShowMessage", "PIERSON", []],
+            [0, "ShowMessage_2", "I will think about whether this action", []],
+            [0, "ShowMessage_2", "merits banishment from Paradise. But", []],
+            [0, "ShowMessage_2", "perhaps that won't be necessary.", []],
+            [0, "MoveEvent", "", [3, 8, 0, 0, 15]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "PIERSON", []],
+            [0, "ShowMessage_2", "Goodnight, Radin.", []],
+            [0, "MoveEvent", "", [3, 8, 0, 0, 2]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 0, 0]],
+            [0, "MessageOptions", "", [1, 1, 0, 0]],
+            [0, "ShowMessage", "RADIN", []],
+            [0, "ShowMessage_2", "zzz... tell him this time... please... zzz...", []],
+            [0, "ShowMessage_2", "... tell him about the deal...", []],
+            [0, "TintScreen", "", [40, 20, 60, 100, 5, 1]],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 13]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ShowMessage", "RADIN", []],
+            [0, "ShowMessage_2", "Sir...", []],
+            [0, "MoveEvent", "", [3, 8, 0, 0, 15]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ShowMessage", "PIERSON", []],
+            [0, "ShowMessage_2", "Yes? Is something else troubling you?", []],
+            [0, "Wait", "", [30]],
+            [0, "ShowMessage", "RADIN", []],
+            [0, "ShowMessage_2", "... No, sir.", []],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "PIERSON", []],
+            [0, "ShowMessage_2", "Very well, then. Goodnight.", []],
+            [0, "MoveEvent", "", [3, 8, 0, 0, 2, 2, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 10, 1]],
+            [0, "Wait", "", [10]],
+            [0, "ControlSwitches", "", [0, 976, 976, 0]],
+            [0, "Teleport", "", [221, 9, 8]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Pierson",
+      "at": [11, 11],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 977
+          },
+          "sprite": {
+            "charset": "People1",
+            "index": 6,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Radin2",
+      "at": [7, 0],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 977
+          },
+          "sprite": {
+            "charset": "extra2(1)",
+            "index": 0,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    }
+  ]
+}

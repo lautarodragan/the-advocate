@@ -1,0 +1,1876 @@
+{
+  "id": 127,
+  "name": "ParadiseFarmland",
+  "size": [30, 30],
+  "chipset": [23, "PS4Chipset"],
+  "tiles": "Map0127.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "Pierson",
+      "at": [23, 7],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 383
+          },
+          "sprite": {
+            "charset": "People1",
+            "index": 6,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Farmer",
+      "at": [25, 14],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 383
+          },
+          "sprite": {
+            "charset": "People1",
+            "index": 3,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Farmer",
+      "at": [18, 12],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 383
+          },
+          "sprite": {
+            "charset": "People1",
+            "index": 3,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Farmer",
+      "at": [21, 10],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 383
+          },
+          "sprite": {
+            "charset": "People1",
+            "index": 3,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Farmer",
+      "at": [26, 10],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 383
+          },
+          "sprite": {
+            "charset": "People1",
+            "index": 3,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "Radin",
+      "at": [24, 14],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 383
+          },
+          "sprite": {
+            "charset": "extra2(1)",
+            "index": 0,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "Farmer",
+      "at": [19, 10],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 383
+          },
+          "sprite": {
+            "charset": "Crown3",
+            "index": 1,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "Farmer",
+      "at": [26, 12],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 383
+          },
+          "sprite": {
+            "charset": "Crown3",
+            "index": 1,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "Emily1",
+      "at": [19, 14],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 383
+          },
+          "sprite": {
+            "charset": "emily",
+            "index": 4,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "Farmer",
+      "at": [24, 10],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 383
+          },
+          "sprite": {
+            "charset": "Crown3",
+            "index": 1,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "Defender",
+      "at": [20, 10],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 383
+          },
+          "sprite": {
+            "charset": "Chara1",
+            "index": 2,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "Defender",
+      "at": [25, 12],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 383
+          },
+          "sprite": {
+            "charset": "Chara1",
+            "index": 2,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "Defender",
+      "at": [26, 14],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 383
+          },
+          "sprite": {
+            "charset": "Chara1",
+            "index": 2,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "name": "Isabella1",
+      "at": [21, 8],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 383
+          },
+          "sprite": {
+            "charset": "Chara1",
+            "index": 3,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "name": "Defender",
+      "at": [19, 12],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 383
+          },
+          "sprite": {
+            "charset": "Chara1",
+            "index": 3,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "name": "Actor",
+      "at": [20, 12],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 383
+          },
+          "sprite": {
+            "charset": "People3",
+            "index": 2,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "name": "Actor",
+      "at": [27, 14],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 383
+          },
+          "sprite": {
+            "charset": "People3",
+            "index": 2,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "name": "Actor",
+      "at": [27, 10],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 383
+          },
+          "sprite": {
+            "charset": "People3",
+            "index": 2,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "name": "Actor",
+      "at": [18, 10],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 383
+          },
+          "sprite": {
+            "charset": "People3",
+            "index": 0,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "name": "Actor",
+      "at": [21, 12],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 383
+          },
+          "sprite": {
+            "charset": "People3",
+            "index": 1,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "name": "Actor",
+      "at": [25, 10],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 383
+          },
+          "sprite": {
+            "charset": "People3",
+            "index": 3,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "name": "Lawyer",
+      "at": [18, 14],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 383
+          },
+          "sprite": {
+            "charset": "People4",
+            "index": 2,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "name": "Lawyer",
+      "at": [24, 12],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 383
+          },
+          "sprite": {
+            "charset": "People4",
+            "index": 2,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 24,
+      "name": "Lawyer",
+      "at": [21, 14],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 383
+          },
+          "sprite": {
+            "charset": "People4",
+            "index": 2,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 25,
+      "name": "Lawyer",
+      "at": [20, 14],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 383
+          },
+          "sprite": {
+            "charset": "Chara4",
+            "index": 1,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 26,
+      "name": "Lawyer",
+      "at": [27, 12],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 383
+          },
+          "sprite": {
+            "charset": "Chara4",
+            "index": 1,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 27,
+      "name": "Exit/Emily2",
+      "at": [29, 25],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "PlayBGM", "wb3town", [0, 100, 100, 50]],
+            [0, "Teleport", "", [108, 1, 41]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 383
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I can't just leave the celebration!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 3]],
+            [0, "Wait", "", [5]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 389
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I don't think I should leave:", []],
+            [0, "ShowMessage_2", "I haven't found Emily yet...", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 3]],
+            [0, "Wait", "", [5]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 389,
+            "switch_b": 390
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13, 26, 3, 3, 24, 25, 27]],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 15, 34, 5, 101, 109, 105, 108, 121, 4]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "Trying to sneak out without me, huh?", []],
+            [0, "ShowMessage_2", "You still owe me a dance!", []],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 14]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "You missed the ceremony, I guess.", []],
+            [0, "ShowMessage_2", "I gave a speech.", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "I was here! I just left to get something,", []],
+            [0, "ShowMessage_2", "that's all. You were great.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Thanks, Emily.", []],
+            [0, "Wait", "", [8]],
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 14]],
+            [0, "Wait", "", [7]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "Wait", "", [6]],
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 13]],
+            [0, "Wait", "", [7]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "So... do you, um... want to dance?", []],
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 15]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "I thought you were never going to", []],
+            [0, "ShowMessage_2", "get around to it!", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Well...", []],
+            [0, "Wait", "", [6]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "Here - I know a place we can go.", []],
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2]],
+            [0, "Wait", "", [5]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2, 2, 2]],
+            [0, "Wait", "", [5]],
+            [0, "ControlSwitches", "", [0, 391, 391, 0]],
+            [0, "PlayBGM", "elemental_end", [0, 40, 100, 50]],
+            [0, "Teleport", "", [128, 9, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 28,
+      "name": "FarmCouncil",
+      "at": [24, 8],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 383
+          },
+          "sprite": {
+            "charset": "Crown3",
+            "index": 1,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 29,
+      "name": "ActCouncil",
+      "at": [25, 8],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 383
+          },
+          "sprite": {
+            "charset": "People3",
+            "index": 3,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 30,
+      "name": "LawyerCouncil",
+      "at": [20, 8],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 383
+          },
+          "sprite": {
+            "charset": "People4",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 31,
+      "name": "EV0031",
+      "at": [19, 3],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 383
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "PlayBGM", "lodging", [0, 60, 100, 50]],
+            [0, "TintScreen", "", [70, 70, 70, 100, 1, 0]],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 3, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 3, 3, 3, 0, 0, 0, 0, 0, 0]],
+            [0, "Wait", "", [40]],
+            [0, "ShowMessage", "PIERSON", []],
+            [0, "ShowMessage_2", "And here he is, only marginally late, the", []],
+            [0, "ShowMessage_2", "newest member of our community: Talan.", []],
+            [0, "PlaySound", "clap", [80, 120, 50]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "PIERSON", []],
+            [0, "ShowMessage_2", "Come on up here and say a few", []],
+            [0, "ShowMessage_2", "words, Talan.", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "... ... ...", []],
+            [0, "MessageOptions", "", [1, 2, 1, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Do I have to?", []],
+            [0, "MessageOptions", "", [0, 2, 1, 0]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "PIERSON", []],
+            [0, "ShowMessage_2", "Talan?", []],
+            [0, "Wait", "", [10]],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 36, 0, 0, 24, 0, 0, 25, 14, 37]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I... uh, well... I'd just like to say...", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Thanks. I don't know what I'd have done", []],
+            [0, "ShowMessage_2", "if the Agency had caught up to me and", []],
+            [0, "ShowMessage_2", "I hadn't made it here. You see, they -", []],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 15]],
+            [0, "MessageOptions", "", [1, 2, 1, 0]],
+            [0, "ShowMessage", "PIERSON", []],
+            [0, "ShowMessage_2", "Talan, nothing about your past. It's our", []],
+            [0, "ShowMessage_2", "only rule.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Oh, right. Sorry...", []],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 14]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "So... thanks for everything.", []],
+            [0, "Wait", "", [5]],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 14]],
+            [0, "ShowMessage", "PIERSON", []],
+            [0, "ShowMessage_2", "The time has come... for the Question!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "ShowMessage", "PIERSON", []],
+            [0, "ShowMessage_2", "As you all know, the four professions of", []],
+            [0, "ShowMessage_2", "Paradise keep our society functioning.", []],
+            [0, "ShowMessage", "PIERSON", []],
+            [0, "ShowMessage_2", "The Defenders keep us safe. They build", []],
+            [0, "ShowMessage_2", "the walls that protect our livelihood and", []],
+            [0, "ShowMessage_2", "guard us from threats day and night.", []],
+            [0, "ShowMessage", "PIERSON", []],
+            [0, "ShowMessage_2", "The Farmers grow our food, and produce", []],
+            [0, "ShowMessage_2", "the potions and salves that make our day", []],
+            [0, "ShowMessage_2", "to day lives easier.", []],
+            [0, "ShowMessage", "PIERSON", []],
+            [0, "ShowMessage_2", "The Lawyers are the record-keepers and", []],
+            [0, "ShowMessage_2", "are responsible for dispute-resolution.", []],
+            [0, "ShowMessage_2", "Society runs smoothly under their guidance.", []],
+            [0, "ShowMessage", "PIERSON", []],
+            [0, "ShowMessage_2", "The Actors enrich our lives with entertainment.", []],
+            [0, "ShowMessage_2", "No society is complete without forms of", []],
+            [0, "ShowMessage_2", "culture and art, and the Actors provide both.", []],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 15]],
+            [0, "ShowMessage", "PIERSON", []],
+            [0, "ShowMessage_2", "Talan, I will ask you the Question twice.", []],
+            [0, "ShowMessage_2", "You must abide by your second answer.", []],
+            [0, "ShowMessage_2", "There will be no turning back.", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "PIERSON", []],
+            [0, "ShowMessage_2", "That said, keep in mind that we have", []],
+            [0, "ShowMessage_2", "enough Lawyers as it is - if you wish to", []],
+            [0, "ShowMessage_2", "become a Lawyer, you will need to wait", []],
+            [0, "ShowMessage", "PIERSON", []],
+            [0, "ShowMessage_2", "until our population grows and we can", []],
+            [0, "ShowMessage_2", "support more Lawyers in our community.", []],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "PIERSON", []],
+            [0, "ShowMessage_2", "Talan, newest member of Paradise...", []],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 14]],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "PIERSON", []],
+            [0, "ShowMessage_2", "Which of the professions will you adopt", []],
+            [0, "ShowMessage_2", "as your own, to work at during your stay", []],
+            [0, "ShowMessage_2", "here in Paradise?", []],
+            [0, "ShowChoice", "Defender/Farmer/Actor", [0]],
+            [0, "ShowChoiceOption", "Defender", [0]],
+            [1, "END", "", []],
+            [0, "ShowChoiceOption", "Farmer", [1]],
+            [1, "END", "", []],
+            [0, "ShowChoiceOption", "Actor", [2]],
+            [1, "END", "", []],
+            [0, "ShowChoiceEnd", "", []],
+            [0, "ShowMessage", "CROWD", []],
+            [0, "ShowMessage_2", "Oooooooooh...", []],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 15]],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "PIERSON", []],
+            [0, "ShowMessage_2", "I will only ask this one more time. You", []],
+            [0, "ShowMessage_2", "may change your mind, but your next", []],
+            [0, "ShowMessage_2", "answer is final, and you will be held to it.", []],
+            [0, "ShowMessage", "PIERSON", []],
+            [0, "ShowMessage_2", "Talan, for the period of your stay here", []],
+            [0, "ShowMessage_2", "in Paradise, for the last time...", []],
+            [0, "ShowMessage", "PIERSON", []],
+            [0, "ShowMessage_2", "Which of the professions will you", []],
+            [0, "ShowMessage_2", "adopt as your own, to work at during your", []],
+            [0, "ShowMessage_2", "stay here in Paradise?", []],
+            [0, "ShowChoice", "Defender/Farmer/Actor", [0]],
+            [0, "ShowChoiceOption", "Defender", [0]],
+            [1, "Wait", "", [5]],
+            [1, "ShowMessage", "DEFENDERS", []],
+            [1, "ShowMessage_2", "Yeah!", []],
+            [1, "PlaySound", "clap", [80, 120, 50]],
+            [1, "MoveEvent", "", [11, 8, 0, 0, 24, 25]],
+            [1, "MoveEvent", "", [12, 8, 0, 0, 24, 25]],
+            [1, "MoveEvent", "", [15, 8, 0, 0, 24, 25]],
+            [1, "Wait", "", [7]],
+            [1, "ChangeHeroTitle", "Defender", [14]],
+            [1, "MoveEvent", "", [1, 8, 0, 0, 15]],
+            [1, "Wait", "", [10]],
+            [1, "ControlSwitches", "", [0, 385, 385, 0]],
+            [1, "ShowMessage", "PIERSON", []],
+            [1, "ShowMessage_2", "Welcome to Paradise, Defender Talan.", []],
+            [1, "END", "", []],
+            [0, "ShowChoiceOption", "Farmer", [1]],
+            [1, "Wait", "", [5]],
+            [1, "ShowMessage", "FARMERS", []],
+            [1, "ShowMessage_2", "Yeah!", []],
+            [1, "PlaySound", "clap", [80, 120, 50]],
+            [1, "MoveEvent", "", [2, 8, 0, 0, 24, 25]],
+            [1, "MoveEvent", "", [3, 8, 0, 0, 24, 25]],
+            [1, "MoveEvent", "", [4, 8, 0, 0, 24, 25]],
+            [1, "MoveEvent", "", [5, 8, 0, 0, 24, 25]],
+            [1, "MoveEvent", "", [6, 8, 0, 0, 24, 25]],
+            [1, "MoveEvent", "", [7, 8, 0, 0, 24, 25]],
+            [1, "MoveEvent", "", [8, 8, 0, 0, 24, 25]],
+            [1, "Wait", "", [7]],
+            [1, "ChangeHeroTitle", "Farmer", [14]],
+            [1, "MoveEvent", "", [1, 8, 0, 0, 15]],
+            [1, "Wait", "", [10]],
+            [1, "ControlSwitches", "", [0, 386, 386, 0]],
+            [1, "ShowMessage", "PIERSON", []],
+            [1, "ShowMessage_2", "Welcome to Paradise, Farmer Talan.", []],
+            [1, "END", "", []],
+            [0, "ShowChoiceOption", "Actor", [2]],
+            [1, "Wait", "", [5]],
+            [1, "ShowMessage", "ACTORS", []],
+            [1, "ShowMessage_2", "Yeah!", []],
+            [1, "PlaySound", "clap", [80, 120, 50]],
+            [1, "MoveEvent", "", [16, 8, 0, 0, 24, 25]],
+            [1, "MoveEvent", "", [17, 8, 0, 0, 24, 25]],
+            [1, "MoveEvent", "", [18, 8, 0, 0, 24, 25]],
+            [1, "MoveEvent", "", [19, 8, 0, 0, 24, 25]],
+            [1, "MoveEvent", "", [21, 8, 0, 0, 24, 25]],
+            [1, "MoveEvent", "", [21, 8, 0, 0, 24, 25]],
+            [1, "Wait", "", [7]],
+            [1, "ChangeHeroTitle", "Actor", [14]],
+            [1, "MoveEvent", "", [1, 8, 0, 0, 15]],
+            [1, "Wait", "", [10]],
+            [1, "ControlSwitches", "", [0, 388, 388, 0]],
+            [1, "ShowMessage", "PIERSON", []],
+            [1, "ShowMessage_2", "Welcome to Paradise, Actor Talan.", []],
+            [1, "END", "", []],
+            [0, "ShowChoiceEnd", "", []],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 14]],
+            [0, "ShowMessage", "PIERSON", []],
+            [0, "ShowMessage_2", "Refreshments and dancing for everyone!", []],
+            [0, "ShowMessage", "CROWD", []],
+            [0, "ShowMessage_2", "Woooooooo!", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
+            [0, "ShowMessage", "PIERSON", []],
+            [0, "ShowMessage_2", "Orchestra, take it away!", []],
+            [0, "PlayBGM", "elemental_end", [0, 60, 100, 50]],
+            [0, "ControlSwitches", "", [0, 383, 383, 1]],
+            [0, "ControlSwitches", "", [0, 389, 389, 0]],
+            [0, "Teleport", "", [127, 22, 16]],
+            [0, "TintScreen", "", [70, 70, 70, 100, 5, 0]],
+            [0, "ControlSwitches", "", [0, 384, 384, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 384
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 32,
+      "name": "RequestDefender",
+      "at": [15, 1],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 389
+          },
+          "sprite": {
+            "charset": "Chara1",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "DEFENDER", []],
+            [0, "ShowMessage_2", "We've set up the orchestra back here.", []],
+            [0, "ShowMessage_2", "You should really stay on this side of the", []],
+            [0, "ShowMessage_2", "fence.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 33,
+      "name": "Farmer2",
+      "at": [12, 5],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 389
+          },
+          "sprite": {
+            "charset": "People1",
+            "index": 3,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "move": {
+            "type": "custom",
+            "speed": "half",
+            "frequency": 3
+          }
+        }
+      ]
+    },
+    {
+      "id": 34,
+      "name": "Lawyer2",
+      "at": [11, 5],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 389
+          },
+          "sprite": {
+            "charset": "People4",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "move": {
+            "type": "custom",
+            "speed": "half",
+            "frequency": 3
+          }
+        }
+      ]
+    },
+    {
+      "id": 35,
+      "name": "Actor2",
+      "at": [6, 7],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 389
+          },
+          "sprite": {
+            "charset": "People3",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "move": {
+            "type": "custom",
+            "speed": "half",
+            "frequency": 5
+          }
+        }
+      ]
+    },
+    {
+      "id": 36,
+      "name": "Defender2",
+      "at": [7, 7],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 389
+          },
+          "sprite": {
+            "charset": "People4",
+            "index": 3,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "move": {
+            "type": "custom",
+            "speed": "half",
+            "frequency": 5
+          }
+        }
+      ]
+    },
+    {
+      "id": 37,
+      "name": "Farmer2",
+      "at": [5, 4],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 389
+          },
+          "sprite": {
+            "charset": "Crown3",
+            "index": 1,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "move": {
+            "type": "custom",
+            "speed": "half",
+            "frequency": 3
+          },
+          "animation": "spin"
+        }
+      ]
+    },
+    {
+      "id": 38,
+      "name": "Actress2",
+      "at": [6, 4],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 389
+          },
+          "sprite": {
+            "charset": "People3",
+            "index": 1,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "move": {
+            "type": "custom",
+            "speed": "half",
+            "frequency": 3
+          },
+          "animation": "spin"
+        }
+      ]
+    },
+    {
+      "id": 39,
+      "name": "Lawyer2",
+      "at": [9, 2],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 389
+          },
+          "sprite": {
+            "charset": "Chara4",
+            "index": 1,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "LAWYER", []],
+            [0, "ShowMessage_2", "I don't dance, but I enjoy watching other", []],
+            [0, "ShowMessage_2", "people trod on their partners' feet.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 40,
+      "name": "Farmer",
+      "at": [17, 7],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 389
+          },
+          "sprite": {
+            "charset": "Crown3",
+            "index": 1,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "FARMER", []],
+            [0, "ShowMessage_2", "All I've got to say is that those dancers had", []],
+            [0, "ShowMessage_2", "better not spin into my field and crush any", []],
+            [0, "ShowMessage_2", "of my crops!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 41,
+      "name": "Actor2",
+      "at": [9, 9],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 389
+          },
+          "sprite": {
+            "charset": "People3",
+            "index": 0,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "move": {
+            "type": "custom",
+            "speed": "half",
+            "frequency": 4
+          }
+        }
+      ]
+    },
+    {
+      "id": 42,
+      "name": "Lawyer2",
+      "at": [8, 9],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 389
+          },
+          "sprite": {
+            "charset": "Chara4",
+            "index": 1,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "move": {
+            "type": "custom",
+            "speed": "half",
+            "frequency": 4
+          }
+        }
+      ]
+    },
+    {
+      "id": 43,
+      "name": "EV0043",
+      "at": [17, 2],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 389
+          },
+          "sprite": {
+            "charset": "People4",
+            "index": 2,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "LAWYER", []],
+            [0, "ShowMessage_2", "The orchestra is made up of people from", []],
+            [0, "ShowMessage_2", "the different professions who play music", []],
+            [0, "ShowMessage_2", "as a hobby.", []],
+            [0, "ShowMessage", "LAWYER", []],
+            [0, "ShowMessage_2", "I don't think they're very good - but don't", []],
+            [0, "ShowMessage_2", "tell them I said that!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 44,
+      "name": "Pierson2",
+      "at": [23, 9],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 389
+          },
+          "sprite": {
+            "charset": "People1",
+            "index": 6,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "PIERSON", []],
+            [0, "ShowMessage_2", "Another celebration. We've had a lot of them,", []],
+            [0, "ShowMessage_2", "that's for sure. Anyway, congratulations,", []],
+            [0, "ShowMessage_2", "Talan.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Thank you, Sir.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 45,
+      "name": "Farmer2",
+      "at": [14, 15],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 389
+          },
+          "sprite": {
+            "charset": "People1",
+            "index": 3,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "FARMER", []],
+            [0, "ShowMessage_2", "We need to start planting the new crops", []],
+            [0, "ShowMessage_2", "pretty soon.", []],
+            [0, "ShowMessage", "FARMER", []],
+            [0, "ShowMessage_2", "Why am I thinking about work right now?", []],
+            [0, "ShowMessage_2", "I should be dancing and having fun! <sigh>", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 46,
+      "name": "Isabella2",
+      "at": [8, 19],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 389
+          },
+          "sprite": {
+            "charset": "Chara1",
+            "index": 3,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "ISABELLA", []],
+            [0, "ShowMessage_2", "Hello, Talan. Congratulations!", []],
+            [0, "ConditionalBranch", "", [0, 385, 0, 0, 0, 1]],
+            [1, "ShowMessage", "ISABELLA", []],
+            [1, "ShowMessage_2", "I'm glad you chose to be a Defender!", []],
+            [1, "ShowMessage_2", "We could always use some extra", []],
+            [1, "ShowMessage_2", "manpower.", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "ShowMessage", "ISABELLA", []],
+            [1, "ShowMessage_2", "It's too bad you didn't choose Defender,", []],
+            [1, "ShowMessage_2", "but I guess it's not for everyone.", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Why aren't you dancing, Isabella?", []],
+            [0, "Wait", "", [15]],
+            [0, "ShowMessage", "ISABELLA", []],
+            [0, "ShowMessage_2", "Drago has guard duty tonight. It wouldn't", []],
+            [0, "ShowMessage_2", "feel right dancing with anyone else.", []],
+            [0, "ShowMessage", "ISABELLA", []],
+            [0, "ShowMessage_2", "But you're the guest of honor, Talan.", []],
+            [0, "ShowMessage_2", "Why aren't you dancing?", []],
+            [0, "Wait", "", [15]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Emily said she'd dance with me, but", []],
+            [0, "ShowMessage_2", "I haven't seen her anywhere. Maybe", []],
+            [0, "ShowMessage_2", "I should just leave.", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "ISABELLA", []],
+            [0, "ShowMessage_2", "I suppose. Whatever you do, Talan, be", []],
+            [0, "ShowMessage_2", "careful...", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "What do you mean?", []],
+            [0, "ShowMessage", "ISABELLA", []],
+            [0, "ShowMessage_2", "We women can be wily creatures, when", []],
+            [0, "ShowMessage_2", "we wish to be. Ask Drago, I'm sure he'd", []],
+            [0, "ShowMessage_2", "agree! <laugh>", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Thanks, Isabella.", []],
+            [0, "ShowMessage", "ISABELLA", []],
+            [0, "ShowMessage_2", "Come see me if you ever have any", []],
+            [0, "ShowMessage_2", "women troubles, Talan. Maybe I can", []],
+            [0, "ShowMessage_2", "help you out.", []],
+            [0, "ControlSwitches", "", [0, 390, 390, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 389,
+            "switch_b": 390
+          },
+          "sprite": {
+            "charset": "Chara1",
+            "index": 3,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "ISABELLA", []],
+            [0, "ShowMessage_2", "Drago likes this song, too... <sigh>", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 47,
+      "name": "Exit/Emily2",
+      "at": [15, 29],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ChangeSystemBGM", "T_VGFighterMAX_Masako", [0, 0, 100, 100, 50]],
+            [0, "ChangeSystemBGM", "T_VGFighterMAX_Masako", [1, 0, 100, 100, 50]],
+            [0, "Teleport", "", [158, 19, 33]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 383
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I can't just leave the celebration!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 0]],
+            [0, "Wait", "", [5]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 389
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "This path leads away from Paradise.", []],
+            [0, "ShowMessage_2", "I don't want to go this way.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 0]],
+            [0, "Wait", "", [5]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 386,
+            "switch_b": 396
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I need to exterminate the bug nests in", []],
+            [0, "ShowMessage_2", "the four sheds - I shouldn't leave Paradise.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 0]],
+            [0, "Wait", "", [5]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 388,
+            "switch_b": 427
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "We're going to be rehearsing the play", []],
+            [0, "ShowMessage_2", "in the Actor house. I shouldn't leave", []],
+            [0, "ShowMessage_2", "Paradise right now.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 0]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 48,
+      "name": "Radin",
+      "at": [26, 20],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 396,
+            "switch_b": 386
+          },
+          "sprite": {
+            "charset": "extra2(1)",
+            "index": 0,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ShowMessage", "FARMER", []],
+            [0, "ShowMessage_2", "Talan, right? Nice to meet you, especially", []],
+            [0, "ShowMessage_2", "since we've got a job all lined up for you!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 3, 3, 0, 0, 0]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Sure. What exactly do I need to do?", []],
+            [0, "ShowMessage_2", "I don't really know anything about", []],
+            [0, "ShowMessage_2", "farming...", []],
+            [0, "ShowMessage", "FARMER", []],
+            [0, "ShowMessage_2", "My name's Radin. I'll teach you everything", []],
+            [0, "ShowMessage_2", "you need to know. But first, we've got a", []],
+            [0, "ShowMessage_2", "bit of a problem.", []],
+            [0, "ShowMessage", "RADIN", []],
+            [0, "ShowMessage_2", "We'd get one of the Defenders to help", []],
+            [0, "ShowMessage_2", "us out, but they're pretty busy building", []],
+            [0, "ShowMessage_2", "their walls and we'd rather do this ourselves.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "OK. What is it?", []],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "RADIN", []],
+            [0, "ShowMessage_2", "We keep a lot of our tools and the leftovers", []],
+            [0, "ShowMessage_2", "from past harvests in four sheds further out", []],
+            [0, "ShowMessage_2", "in the fields. Problem is, every year we get", []],
+            [0, "ShowMessage", "RADIN", []],
+            [0, "ShowMessage_2", "a big infestation of bugs and the like which", []],
+            [0, "ShowMessage_2", "destroys a lot of our stock and makes", []],
+            [0, "ShowMessage_2", "it difficult to work.", []],
+            [0, "ShowMessage", "RADIN", []],
+            [0, "ShowMessage_2", "Since you're our newest member, you get", []],
+            [0, "ShowMessage_2", "the... honor, I guess... of cleaning out the", []],
+            [0, "ShowMessage_2", "sheds. Just burn out the nests in each one.", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Oh. Well, I guess I can do that.", []],
+            [0, "ShowMessage", "RADIN", []],
+            [0, "ShowMessage_2", "Sorry to lay this on you, but nobody else", []],
+            [0, "ShowMessage_2", "wants to do it. Just follow this path left", []],
+            [0, "ShowMessage_2", "through the fields to get to the sheds.", []],
+            [0, "ShowMessage", "RADIN", []],
+            [0, "ShowMessage_2", "Here's a torch you can use to burn", []],
+            [0, "ShowMessage_2", "the nests. And be careful, some of those", []],
+            [0, "ShowMessage_2", "buggers can get pretty big...", []],
+            [0, "PlaySound", "Item1", [80, 100, 50]],
+            [0, "MessageOptions", "", [1, 1, 0, 0]],
+            [0, "ChangeItems", "", [0, 0, 215, 0, 1]],
+            [0, "ShowMessage", "TALAN received BUG TORCH.", []],
+            [0, "MessageOptions", "", [0, 0, 1, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "OK, I'll just... go get rid of those nests.", []],
+            [0, "ShowMessage", "RADIN", []],
+            [0, "ShowMessage_2", "Thanks, Talan. In a couple months, you'll", []],
+            [0, "ShowMessage_2", "be one of us and won't always get the", []],
+            [0, "ShowMessage_2", "lousy jobs... <grin>", []],
+            [0, "ShowMessage", "RADIN", []],
+            [0, "ShowMessage_2", "Oh, and Talan, one tip: the nests will usually", []],
+            [0, "ShowMessage_2", "be hidden in dark places. Be sure to check", []],
+            [0, "ShowMessage_2", "everywhere!", []],
+            [0, "ControlSwitches", "", [0, 451, 451, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 451,
+            "switch_b": 396
+          },
+          "sprite": {
+            "charset": "extra2(1)",
+            "index": 0,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "RADIN", []],
+            [0, "ShowMessage_2", "Good luck - there will probably be lots of", []],
+            [0, "ShowMessage_2", "bug nests - be sure to get them all!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 49,
+      "name": "EV0049",
+      "at": [0, 20],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 396,
+            "switch_b": 386
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ChangeSystemBGM", "T_VGFighterMAX_Masako", [0, 0, 100, 100, 50]],
+            [0, "ChangeSystemBGM", "T_VGFighterMAX_Masako", [1, 0, 100, 100, 50]],
+            [0, "Teleport", "", [152, 28, 10]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 383
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I can't just leave the celebration!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 1]],
+            [0, "Wait", "", [5]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 389
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "This path leads further into the farmland.", []],
+            [0, "ShowMessage_2", "I don't want to go this way.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 1]],
+            [0, "Wait", "", [5]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 386,
+            "switch_b": 427
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I don't need to go further out into the", []],
+            [0, "ShowMessage_2", "fields.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 1]],
+            [0, "Wait", "", [5]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 396,
+            "switch_b": 404
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I don't need to go further out into the", []],
+            [0, "ShowMessage_2", "fields.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 1]],
+            [0, "Wait", "", [5]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 427,
+            "switch_b": 404
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I don't need to go further out into the", []],
+            [0, "ShowMessage_2", "fields.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 1]],
+            [0, "Wait", "", [5]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 441,
+            "switch_b": 404
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I don't need to go further out into the", []],
+            [0, "ShowMessage_2", "fields.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 1]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 50,
+      "name": "Exit/Emily2",
+      "at": [14, 29],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ChangeSystemBGM", "T_VGFighterMAX_Masako", [0, 0, 100, 100, 50]],
+            [0, "ChangeSystemBGM", "T_VGFighterMAX_Masako", [1, 0, 100, 100, 50]],
+            [0, "Teleport", "", [158, 19, 33]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 383
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I can't just leave the celebration!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 0]],
+            [0, "Wait", "", [5]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 389
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "This path leads away from Paradise.", []],
+            [0, "ShowMessage_2", "I don't want to go this way.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 0]],
+            [0, "Wait", "", [5]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 386,
+            "switch_b": 396
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I need to exterminate the bug nests in", []],
+            [0, "ShowMessage_2", "the four sheds - I shouldn't leave Paradise.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 0]],
+            [0, "Wait", "", [5]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 388,
+            "switch_b": 427
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "We're going to be rehearsing the play", []],
+            [0, "ShowMessage_2", "in the Actor house. I shouldn't leave", []],
+            [0, "ShowMessage_2", "Paradise right now.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 0]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 51,
+      "name": "EV0051",
+      "at": [15, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "This path leads to more farmland.", []],
+            [0, "ShowMessage_2", "I don't need to go this way.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [0, "Wait", "", [5]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 386,
+            "switch_b": 396
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "The sheds are among the fields to the west.", []],
+            [0, "ShowMessage_2", "I don't need to go to the northern farmland.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 52,
+      "name": "RadinAfterBugHunt",
+      "at": [11, 19],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 510
+          },
+          "sprite": {
+            "charset": "extra2(1)",
+            "index": 0,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "auto_start",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 1, 1, 1]],
+            [0, "MoveEvent", "", [52, 8, 0, 0, 28, 2, 23, 3, 3, 3, 3, 3, 29]],
+            [0, "Wait", "", [18]],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "RADIN", []],
+            [0, "ShowMessage_2", "So you got them all? Excellent! Let's head", []],
+            [0, "ShowMessage_2", "back to town and get a bite to eat, and I'll", []],
+            [0, "ShowMessage_2", "introduce you to the rest of the Farmers!", []],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "That sounds great, Radin. Thanks.", []],
+            [0, "ShowMessage", "RADIN", []],
+            [0, "ShowMessage_2", "Don't mention it. You're one of us, now.", []],
+            [0, "FadeOutBGM", "", [2000]],
+            [0, "TintScreen", "", [0, 0, 0, 100, 10, 1]],
+            [0, "Wait", "", [10]],
+            [0, "PlayBGM", "Farewell2", [0, 100, 100, 50]],
+            [0, "Wait", "", [30]],
+            [0, "FadeOutBGM", "", [1000]],
+            [0, "Wait", "", [10]],
+            [0, "MessageOptions", "", [1, 2, 0, 0]],
+            [0, "ControlSwitches", "", [0, 396, 396, 1]],
+            [0, "ControlSwitches", "", [0, 427, 427, 0]],
+            [0, "ShowMessage", "ONE MONTH LATER", []],
+            [0, "PlayBGM", "wb3town", [0, 80, 100, 50]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 14]],
+            [0, "Teleport", "", [114, 2, 6]],
+            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]],
+            [0, "ControlSwitches", "", [0, 495, 495, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 495
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 53,
+      "name": "EV0053",
+      "at": [28, 23],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "MessageOptions", "", [1, 0, 0, 0]],
+            [0, "ShowMessage", "Paradise --->", []],
+            [0, "MessageOptions", "", [0, 2, 0, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 54,
+      "name": "EV0054",
+      "at": [1, 19],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "MessageOptions", "", [1, 0, 0, 0]],
+            [0, "ShowMessage", "<--- Farmland and Storage Sheds", []],
+            [0, "MessageOptions", "", [0, 2, 0, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 55,
+      "name": "EV0055",
+      "at": [29, 0],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 811
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "CallEvent", "", [0, 47, 0]],
+            [0, "ControlSwitches", "", [0, 811, 811, 1]]
+          ]
+        }
+      ]
+    }
+  ]
+}

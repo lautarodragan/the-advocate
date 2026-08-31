@@ -1,0 +1,4079 @@
+{
+  "id": 108,
+  "name": "Distant Paradise",
+  "size": [60, 60],
+  "chipset": [23, "PS4Chipset"],
+  "tiles": "Map0108.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [4, 5],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [107, 48, 8]],
+            [0, "TintScreen", "", [50, 50, 50, 100, 1, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 350
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I just got here! I can't leave just yet.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [0, "Wait", "", [5]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 376
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I should stay around so I don't miss the", []],
+            [0, "ShowMessage_2", "celebration.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [0, "Wait", "", [5]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 382
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I should really head out to the farmland", []],
+            [0, "ShowMessage_2", "where they're holding the ceremony. It's", []],
+            [0, "ShowMessage_2", "in my honor, after all.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [0, "Wait", "", [5]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 396
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I don't need to go back through the", []],
+            [0, "ShowMessage_2", "tunnel.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [0, "Wait", "", [5]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 427
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ConditionalBranch", "", [0, 150, 0, 0, 0, 1]],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "I don't think I need to go check on AG7.", []],
+            [1, "ShowMessage_2", "I went a few days ago and he didn't", []],
+            [1, "ShowMessage_2", "seem to want to talk to me...", []],
+            [1, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [1, "Wait", "", [5]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "I don't need to go back through the", []],
+            [1, "ShowMessage_2", "tunnel.", []],
+            [1, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [1, "Wait", "", [5]],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 441
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ConditionalBranch", "", [0, 150, 0, 0, 0, 1]],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "I don't think I need to go check on AG7.", []],
+            [1, "ShowMessage_2", "He hasn't wanted to see me recently...", []],
+            [1, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [1, "Wait", "", [5]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "I don't need to go back through the", []],
+            [1, "ShowMessage_2", "tunnel.", []],
+            [1, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [1, "Wait", "", [5]],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [3, 5],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [107, 48, 8]],
+            [0, "TintScreen", "", [50, 50, 50, 100, 1, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 350
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I just got here! I can't leave just yet.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [0, "Wait", "", [5]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 376
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I should stay around so I don't miss the", []],
+            [0, "ShowMessage_2", "celebration.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [0, "Wait", "", [5]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 382
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I should really head out to the farmland", []],
+            [0, "ShowMessage_2", "where they're holding the ceremony. It's", []],
+            [0, "ShowMessage_2", "in my honor, after all.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [0, "Wait", "", [5]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 396
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I don't need to go back through the", []],
+            [0, "ShowMessage_2", "tunnel.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [0, "Wait", "", [5]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 427
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ConditionalBranch", "", [0, 150, 0, 0, 0, 1]],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "I don't think I need to go check on AG7.", []],
+            [1, "ShowMessage_2", "I went a few days ago and he didn't", []],
+            [1, "ShowMessage_2", "seem to want to talk to me...", []],
+            [1, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [1, "Wait", "", [5]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "I don't need to go back through the", []],
+            [1, "ShowMessage_2", "tunnel.", []],
+            [1, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [1, "Wait", "", [5]],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 441
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ConditionalBranch", "", [0, 150, 0, 0, 0, 1]],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "I don't think I need to go check on AG7.", []],
+            [1, "ShowMessage_2", "He hasn't wanted to see me recently...", []],
+            [1, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [1, "Wait", "", [5]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "I don't need to go back through the", []],
+            [1, "ShowMessage_2", "tunnel.", []],
+            [1, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [1, "Wait", "", [5]],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [50, 0],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 376
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [126, 11, 27]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "IsabellaExplains2",
+      "at": [22, 23],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara1",
+            "index": 3,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 333
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "EV0005",
+      "at": [22, 18],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2, 2, 2, 2, 1]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Isabella... what are the Trials?", []],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 1, 1, 1, 1, 15]],
+            [0, "Wait", "", [7]],
+            [0, "ShowMessage", "ISABELLA", []],
+            [0, "ShowMessage_2", "This way, please.", []],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 1, 1, 1, 1, 1, 0, 0]],
+            [0, "Wait", "", [10]],
+            [0, "TintScreen", "", [100, 100, 100, 100, 1, 0]],
+            [0, "Teleport", "", [110, 10, 18]],
+            [0, "ControlSwitches", "", [0, 333, 333, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 333
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "EV0006",
+      "at": [25, 21],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "TintScreen", "", [100, 100, 100, 100, 1, 0]],
+            [0, "Teleport", "", [110, 10, 18]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 376
+          },
+          "sprite": {
+            "charset": "Chara1",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "DEFENDER", []],
+            [0, "ShowMessage_2", "The Council is having a meeting right now.", []],
+            [0, "ShowMessage_2", "Come back later.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Oh, OK.", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 382
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I should really head out to the farmland", []],
+            [0, "ShowMessage_2", "where they're holding the ceremony. It's", []],
+            [0, "ShowMessage_2", "in my honor, after all.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [0, "Wait", "", [5]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 396
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I don't need to bother the Council", []],
+            [0, "ShowMessage_2", "right now.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [0, "Wait", "", [5]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 427
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I don't need to bother the Council", []],
+            [0, "ShowMessage_2", "right now.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [0, "Wait", "", [5]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 441
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I don't need to bother the Council", []],
+            [0, "ShowMessage_2", "right now.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "EV0007",
+      "at": [10, 18],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "TintScreen", "", [100, 100, 100, 100, 1, 0]],
+            [0, "Teleport", "", [112, 9, 13]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 382
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I should really head out to the farmland", []],
+            [0, "ShowMessage_2", "where they're holding the ceremony. It's", []],
+            [0, "ShowMessage_2", "in my honor, after all.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "EV0008",
+      "at": [37, 21],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "TintScreen", "", [100, 100, 100, 100, 1, 0]],
+            [0, "Teleport", "", [113, 9, 13]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 382
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I should really head out to the farmland", []],
+            [0, "ShowMessage_2", "where they're holding the ceremony. It's", []],
+            [0, "ShowMessage_2", "in my honor, after all.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "EV0009",
+      "at": [49, 21],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "TintScreen", "", [100, 100, 100, 100, 1, 0]],
+            [0, "Teleport", "", [114, 9, 13]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 382
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I should really head out to the farmland", []],
+            [0, "ShowMessage_2", "where they're holding the ceremony. It's", []],
+            [0, "ShowMessage_2", "in my honor, after all.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "EV0010",
+      "at": [2, 28],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "TintScreen", "", [100, 100, 100, 100, 1, 0]],
+            [0, "Teleport", "", [115, 9, 13]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 382
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I should really head out to the farmland", []],
+            [0, "ShowMessage_2", "where they're holding the ceremony. It's", []],
+            [0, "ShowMessage_2", "in my honor, after all.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "EV0011",
+      "at": [11, 28],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "TintScreen", "", [100, 100, 100, 100, 1, 0]],
+            [0, "Teleport", "", [116, 9, 13]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 382
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I should really head out to the farmland", []],
+            [0, "ShowMessage_2", "where they're holding the ceremony. It's", []],
+            [0, "ShowMessage_2", "in my honor, after all.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "EV0012",
+      "at": [44, 29],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "TintScreen", "", [100, 100, 100, 100, 1, 0]],
+            [0, "Teleport", "", [117, 9, 13]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 382
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I should really head out to the farmland", []],
+            [0, "ShowMessage_2", "where they're holding the ceremony. It's", []],
+            [0, "ShowMessage_2", "in my honor, after all.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "EV0013",
+      "at": [25, 29],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "TintScreen", "", [100, 100, 100, 100, 1, 0]],
+            [0, "Teleport", "", [119, 6, 13]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 382
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I should really head out to the farmland", []],
+            [0, "ShowMessage_2", "where they're holding the ceremony. It's", []],
+            [0, "ShowMessage_2", "in my honor, after all.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "name": "EV0014",
+      "at": [34, 29],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "TintScreen", "", [100, 100, 100, 100, 1, 0]],
+            [0, "Teleport", "", [119, 23, 13]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 382
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I should really head out to the farmland", []],
+            [0, "ShowMessage_2", "where they're holding the ceremony. It's", []],
+            [0, "ShowMessage_2", "in my honor, after all.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "name": "EV0015",
+      "at": [37, 40],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "TintScreen", "", [100, 100, 100, 100, 1, 0]],
+            [0, "Teleport", "", [118, 9, 13]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 382
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I should really head out to the farmland", []],
+            [0, "ShowMessage_2", "where they're holding the ceremony. It's", []],
+            [0, "ShowMessage_2", "in my honor, after all.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "name": "StorageDefender",
+      "at": [28, 40],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara1",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "DEFENDER", []],
+            [0, "ShowMessage_2", "This is the entrance to Storage. Only the", []],
+            [0, "ShowMessage_2", "Council can authorize access.", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 382
+          },
+          "sprite": {
+            "charset": "Chara1",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "DEFENDER", []],
+            [0, "ShowMessage_2", "One of the downsides of being a", []],
+            [0, "ShowMessage_2", "Defender is that you miss out on", []],
+            [0, "ShowMessage_2", "a lot of parties because of guard duty.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "name": "EV0017",
+      "at": [27, 9],
+      "pages": [
+        {
+          "tile": 30,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "This stairway is roped off - I don't think", []],
+            [0, "ShowMessage_2", "I'm allowed down there.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "name": "EV0018",
+      "at": [38, 50],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "TintScreen", "", [100, 100, 100, 100, 1, 0]],
+            [0, "Teleport", "", [120, 9, 12]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 382
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I should really head out to the farmland", []],
+            [0, "ShowMessage_2", "where they're holding the ceremony. It's", []],
+            [0, "ShowMessage_2", "in my honor, after all.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "name": "EV0019",
+      "at": [39, 50],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "TintScreen", "", [100, 100, 100, 100, 1, 0]],
+            [0, "Teleport", "", [120, 9, 12]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 382
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I should really head out to the farmland", []],
+            [0, "ShowMessage_2", "where they're holding the ceremony. It's", []],
+            [0, "ShowMessage_2", "in my honor, after all.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "name": "EV0020",
+      "at": [0, 41],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 350
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "This road looks like it leads out to farmland.", []],
+            [0, "ShowMessage_2", "I should probably stay in Paradise proper", []],
+            [0, "ShowMessage_2", "for now.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 1]],
+            [0, "Wait", "", [5]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 376
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I've still got time to kill before the", []],
+            [0, "ShowMessage_2", "celebration. Maybe I should see if", []],
+            [0, "ShowMessage_2", "I can find Emily.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 1]],
+            [0, "Wait", "", [5]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 382
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [127, 28, 25]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 396,
+            "switch_b": 386
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [127, 28, 25]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 396,
+            "switch_b": 388
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [127, 28, 25]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 396,
+            "switch_b": 385
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "This path leads to the farms. Since I'm", []],
+            [0, "ShowMessage_2", "not a Farmer, I shouldn't wander out there.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 1]],
+            [0, "Wait", "", [5]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 427
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [127, 28, 25]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 441
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [127, 28, 25]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "name": "EV0021",
+      "at": [0, 42],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 350
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "This road looks like it leads out to farmland.", []],
+            [0, "ShowMessage_2", "I should probably stay in Paradise proper", []],
+            [0, "ShowMessage_2", "for now.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 1]],
+            [0, "Wait", "", [5]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 376
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I've still got time to kill before the", []],
+            [0, "ShowMessage_2", "celebration. Maybe I should see if", []],
+            [0, "ShowMessage_2", "I can find Emily.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 1]],
+            [0, "Wait", "", [5]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 382
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [127, 28, 25]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 396,
+            "switch_b": 386
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [127, 28, 25]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 396,
+            "switch_b": 388
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [127, 28, 25]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 396,
+            "switch_b": 385
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "This path leads to the farms. Since I'm", []],
+            [0, "ShowMessage_2", "not a Farmer, I shouldn't wander out there.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 1]],
+            [0, "Wait", "", [5]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 427
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [127, 28, 25]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 441
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [127, 28, 25]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "name": "EV0022",
+      "at": [50, 5],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 350
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "This path looks like it leads up to an overlook.", []],
+            [0, "ShowMessage_2", "I should probably stay in Paradise proper", []],
+            [0, "ShowMessage_2", "for now.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [0, "Wait", "", [5]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 382
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I should really head out to the farmland", []],
+            [0, "ShowMessage_2", "where they're holding the ceremony. It's", []],
+            [0, "ShowMessage_2", "in my honor, after all.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [0, "Wait", "", [5]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 396
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I shouldn't head up to the Overlook", []],
+            [0, "ShowMessage_2", "right now.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [0, "Wait", "", [5]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 427
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I shouldn't head up to the Overlook", []],
+            [0, "ShowMessage_2", "right now.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [0, "Wait", "", [5]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 441
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I shouldn't head up to the Overlook", []],
+            [0, "ShowMessage_2", "right now.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "name": "Farmer",
+      "at": [17, 55],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 350
+          },
+          "sprite": {
+            "charset": "Crown3",
+            "index": 1,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "FARMER", []],
+            [0, "ShowMessage_2", "We're called Farmers, but in reality we're the", []],
+            [0, "ShowMessage_2", "producers for Paradise. If it involves growing,", []],
+            [0, "ShowMessage_2", "catching, or finding food - you need a Farmer.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 24,
+      "name": "Farmer",
+      "at": [26, 54],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 350
+          },
+          "sprite": {
+            "charset": "Crown3",
+            "index": 1,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "FARMER", []],
+            [0, "ShowMessage_2", "It's getting dark - just one more fish and", []],
+            [0, "ShowMessage_2", "I'll have met my quota for the day!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 25,
+      "name": "Farmer",
+      "at": [7, 33],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 350
+          },
+          "sprite": {
+            "charset": "Crown3",
+            "index": 1,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "FARMER", []],
+            [0, "ShowMessage_2", "What a day! Soon we'll need to plant the", []],
+            [0, "ShowMessage_2", "next round of seeds. I wonder how the", []],
+            [0, "ShowMessage_2", "harvest will be this year?", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 26,
+      "name": "Farmer",
+      "at": [3, 40],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 350
+          },
+          "sprite": {
+            "charset": "Crown3",
+            "index": 1,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "FARMER", []],
+            [0, "ShowMessage_2", "This way to the farmland, friend, but since it's", []],
+            [0, "ShowMessage_2", "getting dark, everyone's coming back home.", []],
+            [0, "ShowMessage_2", "You can see the fields tomorrow morning.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I've got to take these \"Trials\" tomorrow...", []],
+            [0, "ShowMessage", "FARMER", []],
+            [0, "ShowMessage_2", "Well, if you pass them, you can see the fields", []],
+            [0, "ShowMessage_2", "after the celebration ceremony.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "What if I fail?", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "FARMER", []],
+            [0, "ShowMessage_2", "Well... if you don't pass the Trials you'll have", []],
+            [0, "ShowMessage_2", "to leave. It's not the end of the world, though.", []],
+            [0, "Wait", "", [10]],
+            [0, "MessageOptions", "", [1, 0, 0, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It might be for me, though... <shudder>", []],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ControlSwitches", "", [0, 351, 351, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 350,
+            "switch_b": 351
+          },
+          "sprite": {
+            "charset": "Crown3",
+            "index": 1,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "FARMER", []],
+            [0, "ShowMessage_2", "I'm sure you'll do fine, friend.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Let's hope so!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 27,
+      "name": "Defender",
+      "at": [46, 46],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 350
+          },
+          "sprite": {
+            "charset": "Chara1",
+            "index": 2,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "DEFENDER", []],
+            [0, "ShowMessage_2", "It's taken us weeks to haul these stones", []],
+            [0, "ShowMessage_2", "back here from the quarry, but we need", []],
+            [0, "ShowMessage_2", "these walls.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 28,
+      "name": "Defender",
+      "at": [57, 47],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 350
+          },
+          "sprite": {
+            "charset": "Chara1",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "DEFENDER", []],
+            [0, "ShowMessage_2", "We're going to be building some walls around", []],
+            [0, "ShowMessage_2", "here to fortify our defenses. The bandit raids", []],
+            [0, "ShowMessage_2", "have been increasing lately.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 29,
+      "name": "Defender",
+      "at": [50, 13],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 350
+          },
+          "sprite": {
+            "charset": "Chara1",
+            "index": 2,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "DEFENDER", []],
+            [0, "ShowMessage_2", "Old Carb died a few weeks ago. He was", []],
+            [0, "ShowMessage_2", "a Defender, and a good one. I remember", []],
+            [0, "ShowMessage_2", "him yelling at me when I was just a boy... <sniff>", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 30,
+      "name": "Lawyer",
+      "at": [31, 31],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 350
+          },
+          "sprite": {
+            "charset": "People4",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "LAWYER", []],
+            [0, "ShowMessage_2", "Frankly, I'm surprised the Agency keeps", []],
+            [0, "ShowMessage_2", "shipping us the legal volumes we need. I'm", []],
+            [0, "ShowMessage_2", "glad they do, but it just seems... odd.", []],
+            [0, "ShowMessage", "LAWYER", []],
+            [0, "ShowMessage_2", "As a people, we are the antithesis of what", []],
+            [0, "ShowMessage_2", "the Agency stands for, yet they still supply", []],
+            [0, "ShowMessage_2", "us with goods and services.", []],
+            [0, "ShowMessage", "LAWYER", []],
+            [0, "ShowMessage_2", "Perhaps the assumption on my part that the", []],
+            [0, "ShowMessage_2", "Agency acts uniformly with bad faith is", []],
+            [0, "ShowMessage_2", "erroneous. That must be it.", []],
+            [0, "ShowMessage", "LAWYER", []],
+            [0, "ShowMessage_2", "I apologize for talking your ear off.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "That's... that's OK.", []],
+            [0, "ControlSwitches", "", [0, 358, 358, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 350,
+            "switch_b": 358
+          },
+          "sprite": {
+            "charset": "People4",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "LAWYER", []],
+            [0, "ShowMessage_2", "Maybe the upper echelons of the Agency", []],
+            [0, "ShowMessage_2", "just don't realize that their caravans are", []],
+            [0, "ShowMessage_2", "supplying us. Perhaps that explains it.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 31,
+      "name": "Lawyer",
+      "at": [3, 6],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 350
+          },
+          "sprite": {
+            "charset": "People4",
+            "index": 2,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "LAWYER", []],
+            [0, "ShowMessage_2", "Oh, I missed her. I meant to speak with", []],
+            [0, "ShowMessage_2", "Defender Isabella about a matter she brought", []],
+            [0, "ShowMessage_2", "to my attention, but she's already left.", []],
+            [0, "ShowMessage", "LAWYER", []],
+            [0, "ShowMessage_2", "I'll find her later, I suppose.", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 376
+          },
+          "sprite": {
+            "charset": "Chara4",
+            "index": 1,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "LAWYER", []],
+            [0, "ShowMessage_2", "Congratulations on becoming a citizen", []],
+            [0, "ShowMessage_2", "of Paradise!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 32,
+      "name": "Lawyer",
+      "at": [4, 52],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 350
+          },
+          "sprite": {
+            "charset": "Chara4",
+            "index": 1,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "LAWYER", []],
+            [0, "ShowMessage_2", "I wonder if Law was the right career for", []],
+            [0, "ShowMessage_2", "me... everyone I work with seems more", []],
+            [0, "ShowMessage_2", "concerned with credits than with justice.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I think it's society as a whole. The people", []],
+            [0, "ShowMessage_2", "I worked with in Lashe City were like that", []],
+            [0, "ShowMessage_2", "too... I remember - ", []],
+            [0, "ShowMessage", "LAWYER", []],
+            [0, "ShowMessage_2", "I'm sorry, we're not allowed to talk about", []],
+            [0, "ShowMessage_2", "our pasts here. Please stop.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Oh! I forgot... I'm sorry -", []],
+            [0, "ShowMessage", "LAWYER", []],
+            [0, "ShowMessage_2", "That's all right.", []],
+            [0, "ControlSwitches", "", [0, 359, 359, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 350,
+            "switch_b": 359
+          },
+          "sprite": {
+            "charset": "Chara4",
+            "index": 1,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "LAWYER", []],
+            [0, "ShowMessage_2", "I wonder if the Council will let me become", []],
+            [0, "ShowMessage_2", "a Farmer instead?", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 33,
+      "name": "Actress",
+      "at": [22, 39],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 350
+          },
+          "sprite": {
+            "charset": "People3",
+            "index": 1,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "ACTRESS", []],
+            [0, "ShowMessage_2", "To see, or not to see! That is what we ask.", []],
+            [0, "ShowMessage_2", "Whether it is better to... hmmmm... that's", []],
+            [0, "ShowMessage_2", "not quite right...", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 34,
+      "name": "EV0034",
+      "at": [49, 18],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 362
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "WeatherEffects", "", [1, 1]],
+            [0, "Wait", "", [20]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13, 23, 23, 23, 15, 23, 23, 23]],
+            [0, "Wait", "", [15]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's coming from this way.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 3, 23, 23, 3, 23, 23, 3, 23, 23, 3, 23, 23]],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's a girl. I wonder what's wrong...?", []],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "CRYING GIRL", []],
+            [0, "ShowMessage_2", "... ... ...", []],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [36, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
+            [0, "Wait", "", [20]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 3, 12]],
+            [0, "Wait", "", [8]],
+            [0, "ChangeEventLocation", "", [36, 0, 46, 7]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I'd better follow her.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
+            [0, "Wait", "", [30]],
+            [0, "MoveEvent", "", [36, 8, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3]],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I wonder where she's going? I hope she's", []],
+            [0, "ShowMessage_2", "all right, whoever she is...", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0]],
+            [0, "Wait", "", [30]],
+            [0, "Teleport", "", [109, 11, 27]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 382
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "PanScreen", "", [2, 3, 6, 5, 0]],
+            [0, "MoveEvent", "", [44, 8, 0, 0, 36, 28, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0, 29, 37]],
+            [0, "MoveEvent", "", [46, 8, 0, 0, 36, 28, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0, 29, 37]],
+            [0, "MoveEvent", "", [45, 8, 0, 0, 36, 28, 0, 0, 0, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0, 29, 37]],
+            [0, "Wait", "", [20]],
+            [0, "PanScreen", "", [2, 1, 6, 5, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Looks like I'm not the only one running", []],
+            [0, "ShowMessage_2", "late!", []],
+            [0, "ControlSwitches", "", [0, 383, 383, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 383
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 35,
+      "name": "EV0035",
+      "at": [50, 18],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 362
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "parallel",
+          "script": [
+            [0, "PlaySound", "Rain1", [70, 100, 50]],
+            [0, "Wait", "", [30]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 36,
+      "name": "Emily",
+      "at": [42, 20],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 362
+          },
+          "sprite": {
+            "charset": "emily",
+            "index": 4,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 37,
+      "name": "EV0037",
+      "at": [33, 12],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 376
+          },
+          "sprite": {
+            "charset": "People3",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "ACTOR", []],
+            [0, "ShowMessage_2", "You should consider choosing Acting as", []],
+            [0, "ShowMessage_2", "your profession - we always need more", []],
+            [0, "ShowMessage_2", "people for the little parts!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 38,
+      "name": "EV0038",
+      "at": [42, 32],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 376
+          },
+          "sprite": {
+            "charset": "People3",
+            "index": 1,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "ACTRESS", []],
+            [0, "ShowMessage_2", "We were going to perform a play tonight", []],
+            [0, "ShowMessage_2", "at the celebration, but no one wants to", []],
+            [0, "ShowMessage_2", "go to the Theatre Ruins for a new script.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 39,
+      "name": "EV0039",
+      "at": [15, 11],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 376
+          },
+          "sprite": {
+            "charset": "Crown1",
+            "index": 2,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "FARMER", []],
+            [0, "ShowMessage_2", "Everyone else is out in the fields already,", []],
+            [0, "ShowMessage_2", "but I'm just checking on the wells to make", []],
+            [0, "ShowMessage_2", "sure they're not running dry.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 40,
+      "name": "EV0040",
+      "at": [12, 43],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 376
+          },
+          "sprite": {
+            "charset": "People4",
+            "index": 2,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "LAWYER", []],
+            [0, "ShowMessage_2", "Everyone always gets intoxicated during", []],
+            [0, "ShowMessage_2", "these welcoming celebrations. We'll probably", []],
+            [0, "ShowMessage_2", "have a few RUI violations.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "What's an RUI violation?", []],
+            [0, "ShowMessage", "LAWYER", []],
+            [0, "ShowMessage_2", "Running Under the Influence. It's a real", []],
+            [0, "ShowMessage_2", "problem these days.", []],
+            [0, "ControlSwitches", "", [0, 378, 378, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 376,
+            "switch_b": 378
+          },
+          "sprite": {
+            "charset": "People4",
+            "index": 2,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "LAWYER", []],
+            [0, "ShowMessage_2", "Maybe I should raise my consultation", []],
+            [0, "ShowMessage_2", "fee for tonight.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 41,
+      "name": "EV0041",
+      "at": [44, 56],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 376
+          },
+          "sprite": {
+            "charset": "Chara4",
+            "index": 1,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "LAWYER", []],
+            [0, "ShowMessage_2", "I don't know if I'm cut out for the Law.", []],
+            [0, "ShowMessage_2", "Maybe I should become an actress instead.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 42,
+      "name": "EV0042",
+      "at": [49, 51],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 376
+          },
+          "sprite": {
+            "charset": "Chara1",
+            "index": 3,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "ISABELLA", []],
+            [0, "ShowMessage_2", "Hello there, Talan. I don't have guard", []],
+            [0, "ShowMessage_2", "duty today, so I'm helping with the wall.", []],
+            [0, "ShowMessage_2", "See you at the celebration tonight.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Oh, yes. Absolutely.", []],
+            [0, "ControlSwitches", "", [0, 379, 379, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 376,
+            "switch_b": 379
+          },
+          "sprite": {
+            "charset": "Chara1",
+            "index": 3,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "ISABELLA", []],
+            [0, "ShowMessage_2", "You should choose to be a Defender.", []],
+            [0, "ShowMessage_2", "Then you could help us build these walls!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 43,
+      "name": "EV0043",
+      "at": [52, 49],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 376
+          },
+          "sprite": {
+            "charset": "Chara1",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "DEFENDER", []],
+            [0, "ShowMessage_2", "Lift! Ugh... too heavy.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 44,
+      "name": "LawyerRunning",
+      "at": [52, 23],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 382
+          },
+          "sprite": {
+            "charset": "Chara4",
+            "index": 1,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 383
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 45,
+      "name": "FarmerRunning",
+      "at": [39, 29],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 382
+          },
+          "sprite": {
+            "charset": "People1",
+            "index": 3,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 383
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 46,
+      "name": "ActorRunning",
+      "at": [39, 23],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 382
+          },
+          "sprite": {
+            "charset": "People3",
+            "index": 0,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 383
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 47,
+      "name": "EV0047",
+      "at": [36, 18],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 395
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "PlayBGM", "nightbg", [0, 50, 50, 50]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 29, 1, 1, 1, 1, 1, 1, 28, 15]],
+            [0, "MoveEvent", "", [48, 8, 0, 0, 1, 1, 1, 1, 1, 23, 0, 13]],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "Talan, I just wanted to say...", []],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "Thanks. For everything.", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Don't worry about it. It's nice to have", []],
+            [0, "ShowMessage_2", "finally done something right, for once!", []],
+            [0, "ShowMessage_2", "<laugh>", []],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "Here's something else you can do right.", []],
+            [0, "MessageOptions", "", [0, 1, 0, 0]],
+            [0, "ShowMessage", "", []],
+            [0, "ShowMessage_2", "                  < Kiss >\\|\\|\\|\\^", []],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "Wait", "", [12]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "Goodnight, Talan.", []],
+            [0, "MoveEvent", "", [48, 8, 0, 0, 0, 0, 14]],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 3, 12]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Goodnight.", []],
+            [0, "MoveEvent", "", [48, 8, 0, 0, 12, 23, 23, 14]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "Talan, one more thing...", []],
+            [0, "ShowMessage_2", "My profession...", []],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "I'm an actress. <smile>", []],
+            [0, "MoveEvent", "", [48, 8, 0, 0, 12, 23, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3]],
+            [0, "Wait", "", [20]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 29, 1, 1, 1, 23, 15, 28]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "What does that...", []],
+            [0, "ShowMessage_2", "What does that mean?", []],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 29, 1, 1, 28]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "... ... ...", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "What a day.", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 15, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0]],
+            [0, "Wait", "", [25]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 14]],
+            [0, "ControlSwitches", "", [0, 395, 395, 1]],
+            [0, "ControlSwitches", "", [0, 396, 396, 0]],
+            [0, "PlayBGM", "wb3town", [0, 80, 100, 50]],
+            [0, "Teleport", "", [114, 2, 6]],
+            [0, "TintScreen", "", [100, 100, 100, 100, 15, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 48,
+      "name": "EmilyGoodnightScene",
+      "at": [32, 24],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 395
+          },
+          "sprite": {
+            "charset": "emily",
+            "index": 4,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 49,
+      "name": "EV0049",
+      "at": [9, 51],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 427,
+            "switch_b": 388
+          },
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 3,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Hey, how'd one of my notebooks get", []],
+            [0, "ShowMessage_2", "out here?", []],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "TALAN'S NOTES", []],
+            [0, "ShowMessage_2", "Osmond faints at the sight of blood.", []],
+            [0, "ShowMessage_2", "He belches at the sight of spilt ale.", []],
+            [0, "ShowMessage_2", "He stutters around ghosts.", []],
+            [0, "ShowMessage", "TALAN'S NOTES", []],
+            [0, "ShowMessage_2", "Osmond doesn't like riding horses. Instead,", []],
+            [0, "ShowMessage_2", "he has a short, fat pony named Piker which", []],
+            [0, "ShowMessage_2", "he feeds apples to, but always takes a bite", []],
+            [0, "ShowMessage", "TALAN'S NOTES", []],
+            [0, "ShowMessage_2", "first. He thinks it's unlucky to give Piker", []],
+            [0, "ShowMessage_2", "an apple that's been untasted first.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 50,
+      "name": "EV0050",
+      "at": [52, 42],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 385,
+            "switch_b": 396
+          },
+          "sprite": {
+            "charset": "Chara1",
+            "index": 3,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "ISABELLA", []],
+            [0, "ShowMessage_2", "Good morning, Talan. Are you ready for", []],
+            [0, "ShowMessage_2", "your first day as a Defender of Paradise?", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I think so. What do I need to do?", []],
+            [0, "ShowMessage", "ISABELLA", []],
+            [0, "ShowMessage_2", "You should report to the Rock Quarry", []],
+            [0, "ShowMessage_2", "to meet some of the other Defenders.", []],
+            [0, "ShowMessage_2", "I'll be along in just a minute.", []],
+            [0, "ControlSwitches", "", [0, 538, 538, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 538,
+            "switch_b": 396
+          },
+          "sprite": {
+            "charset": "Chara1",
+            "index": 3,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "ISABELLA", []],
+            [0, "ShowMessage_2", "The Rock Quarry is to the right of", []],
+            [0, "ShowMessage_2", "the main area of Paradise.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 51,
+      "name": "EV0051",
+      "at": [59, 40],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 376
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I don't need to explore the Rock Quarry", []],
+            [0, "ShowMessage_2", "right now. Maybe I should see if I can", []],
+            [0, "ShowMessage_2", "find Emily.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 3]],
+            [0, "Wait", "", [5]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 396,
+            "switch_b": 385
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
+            [0, "Teleport", "", [150, 18, 2]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 396,
+            "switch_b": 406
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I think only Defenders are allowed near", []],
+            [0, "ShowMessage_2", "the Rock Quarry. That's just as well...", []],
+            [0, "ShowMessage_2", "I don't feel like lifting heavy objects today!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 3]],
+            [0, "Wait", "", [5]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 427
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I don't need to go to the Quarry today.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 3]],
+            [0, "Wait", "", [5]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 441
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I don't need to go to the Quarry today.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 3]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 52,
+      "name": "EV0052",
+      "at": [59, 41],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 376
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I don't need to explore the Rock Quarry", []],
+            [0, "ShowMessage_2", "right now. Maybe I should see if I can", []],
+            [0, "ShowMessage_2", "find Emily.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 3]],
+            [0, "Wait", "", [5]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 396,
+            "switch_b": 385
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
+            [0, "Teleport", "", [150, 18, 2]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 396,
+            "switch_b": 406
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I think only Defenders are allowed near", []],
+            [0, "ShowMessage_2", "the Rock Quarry. That's just as well...", []],
+            [0, "ShowMessage_2", "I don't feel like lifting heavy objects today!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 3]],
+            [0, "Wait", "", [5]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 427
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I don't need to go to the Quarry today.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 3]],
+            [0, "Wait", "", [5]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 441
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I don't need to go to the Quarry today.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 3]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 53,
+      "name": "EV0053",
+      "at": [2, 40],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "MessageOptions", "", [1, 0, 0, 0]],
+            [0, "ShowMessage", "<--- Farmland and Town Limits", []],
+            [0, "MessageOptions", "", [0, 2, 0, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 54,
+      "name": "EV0054",
+      "at": [51, 6],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "MessageOptions", "", [1, 0, 0, 0]],
+            [0, "ShowMessage", "Paradise Overlook", []],
+            [0, "MessageOptions", "", [0, 2, 0, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 55,
+      "name": "EV0055",
+      "at": [58, 39],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "MessageOptions", "", [1, 0, 0, 0]],
+            [0, "ShowMessage", "Rock Quarry            --->", []],
+            [0, "ShowMessage_2", "(Defenders Only)", []],
+            [0, "MessageOptions", "", [0, 2, 0, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 56,
+      "name": "EV0056",
+      "at": [57, 8],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "MessageOptions", "", [1, 0, 0, 0]],
+            [0, "ShowMessage", "\"For a better tomorrow, we seal away", []],
+            [0, "ShowMessage_2", "our yesterdays  - Pierson of the Council\"", []],
+            [0, "MessageOptions", "", [0, 2, 0, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 57,
+      "name": "EV0057",
+      "at": [58, 8],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "MessageOptions", "", [1, 0, 0, 0]],
+            [0, "ShowMessage", "\"For a better tomorrow, we seal away", []],
+            [0, "ShowMessage_2", "our yesterdays  - Pierson of the Council\"", []],
+            [0, "MessageOptions", "", [0, 2, 0, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 58,
+      "name": "EV0058",
+      "at": [51, 29],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 376
+          },
+          "sprite": {
+            "charset": "Crown1",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "FARMER", []],
+            [0, "ShowMessage_2", "It's lucky for you that Radin is so adept", []],
+            [0, "ShowMessage_2", "at brewing potions - his healing draughts", []],
+            [0, "ShowMessage_2", "coaxed you back from death's doorway!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 59,
+      "name": "EV0059",
+      "at": [34, 45],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 376
+          },
+          "sprite": {
+            "charset": "People4",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "LAWYER", []],
+            [0, "ShowMessage_2", "At the celebration you'll need to choose", []],
+            [0, "ShowMessage_2", "what profession you're going to take up.", []],
+            [0, "ShowMessage_2", "But we've got enough Lawyers already.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 60,
+      "name": "EV0060",
+      "at": [6, 24],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 376
+          },
+          "sprite": {
+            "charset": "People4",
+            "index": 3,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "FARMER", []],
+            [0, "ShowMessage_2", "We've had a real problem with bandits", []],
+            [0, "ShowMessage_2", "lately - they raid our fields almost every", []],
+            [0, "ShowMessage_2", "week!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 61,
+      "name": "EV0061",
+      "at": [11, 7],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 376
+          },
+          "sprite": {
+            "charset": "People3",
+            "index": 3,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "ACTRESS", []],
+            [0, "ShowMessage_2", "Shall I compare thee to a summer's day?", []],
+            [0, "ShowMessage_2", "Or should I not bother?", []],
+            [0, "ShowMessage", "ACTRESS", []],
+            [0, "ShowMessage_2", "... ... ...", []],
+            [0, "ShowMessage", "ACTRESS", []],
+            [0, "ShowMessage_2", "That doesn't seem right.", []],
+            [0, "ControlSwitches", "", [0, 537, 537, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 537,
+            "switch_b": 376
+          },
+          "sprite": {
+            "charset": "People3",
+            "index": 3,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "ACTRESS", []],
+            [0, "ShowMessage_2", "Something about the sun? Hmmm...", []],
+            [0, "ShowMessage_2", "Memorizing lines is really hard!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 62,
+      "name": "EV0062",
+      "at": [44, 22],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 376
+          },
+          "sprite": {
+            "charset": "People3",
+            "index": 2,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "ACTOR", []],
+            [0, "ShowMessage_2", "I think I saw Emily head up to the", []],
+            [0, "ShowMessage_2", "Overlook. She goes up there a lot.", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 376,
+            "switch_b": 380
+          },
+          "sprite": {
+            "charset": "People3",
+            "index": 2,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "ACTOR", []],
+            [0, "ShowMessage_2", "Emily just ran by here again... I think", []],
+            [0, "ShowMessage_2", "she went into her house.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 63,
+      "name": "EV0063",
+      "at": [47, 37],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 376
+          },
+          "sprite": {
+            "charset": "Chara1",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "DEFENDER", []],
+            [0, "ShowMessage_2", "I heard that Sern and Drago had another", []],
+            [0, "ShowMessage_2", "big duel the other day. When will Sern", []],
+            [0, "ShowMessage_2", "realize he's just not as good and give up?", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 64,
+      "name": "EV0064",
+      "at": [11, 52],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 376
+          },
+          "sprite": {
+            "charset": "Crown3",
+            "index": 1,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "FARMER", []],
+            [0, "ShowMessage_2", "There'll be lots of food and dancing at", []],
+            [0, "ShowMessage_2", "the celebration tonight - just head out", []],
+            [0, "ShowMessage_2", "to the fields in a few hours!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 65,
+      "name": "EV0065",
+      "at": [44, 33],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 396,
+            "switch_b": 386
+          },
+          "sprite": {
+            "charset": "Crown3",
+            "index": 1,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "FARMER", []],
+            [0, "ShowMessage_2", "First day as a Farmer, huh? You", []],
+            [0, "ShowMessage_2", "should head out to the fields to get", []],
+            [0, "ShowMessage_2", "your first assignment!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 66,
+      "name": "EV0066",
+      "at": [22, 32],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 396,
+            "switch_b": 386
+          },
+          "sprite": {
+            "charset": "Crown3",
+            "index": 1,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "FARMER", []],
+            [0, "ShowMessage_2", "I wish the Defenders would hurry up", []],
+            [0, "ShowMessage_2", "with quarrying all that stone - we need", []],
+            [0, "ShowMessage_2", "walls to protect against the bandits!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 67,
+      "name": "EV0067",
+      "at": [28, 49],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 396,
+            "switch_b": 386
+          },
+          "sprite": {
+            "charset": "People1",
+            "index": 3,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "FARMER", []],
+            [0, "ShowMessage_2", "Hi, Talan! Don't let the other Farmers", []],
+            [0, "ShowMessage_2", "give you a hard time - they were all new", []],
+            [0, "ShowMessage_2", "once, too!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 68,
+      "name": "EV0068",
+      "at": [40, 10],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 396,
+            "switch_b": 386
+          },
+          "sprite": {
+            "charset": "People1",
+            "index": 3,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "FARMER", []],
+            [0, "ShowMessage_2", "I always walk around up here before", []],
+            [0, "ShowMessage_2", "going to the fields. It's so shady and", []],
+            [0, "ShowMessage_2", "relaxing!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 69,
+      "name": "EV0069",
+      "at": [4, 16],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 396,
+            "switch_b": 386
+          },
+          "sprite": {
+            "charset": "Crown3",
+            "index": 1,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "FARMER", []],
+            [0, "ShowMessage_2", "Farmers brew potions as well as grow", []],
+            [0, "ShowMessage_2", "food. If you're ever low on health, a", []],
+            [0, "ShowMessage_2", "Farmer is a great ally to have!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 70,
+      "name": "EV0070",
+      "at": [24, 6],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 396
+          },
+          "sprite": {
+            "charset": "Crown3",
+            "index": 1,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "FARMER", []],
+            [0, "ShowMessage_2", "The last time the bandits attacked,", []],
+            [0, "ShowMessage_2", "Isabella and Drago were able to", []],
+            [0, "ShowMessage_2", "drive them off singlehandedly!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 71,
+      "name": "EV0071",
+      "at": [21, 54],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 396
+          },
+          "sprite": {
+            "charset": "Crown3",
+            "index": 1,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "FARMER", []],
+            [0, "ShowMessage_2", "Another long day of fishing. Actually, I", []],
+            [0, "ShowMessage_2", "really enjoy it - where else can you", []],
+            [0, "ShowMessage_2", "sleep in the sun while you're working?", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 72,
+      "name": "EV0072",
+      "at": [13, 29],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 396
+          },
+          "sprite": {
+            "charset": "Crown3",
+            "index": 1,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "FARMER", []],
+            [0, "ShowMessage_2", "It's a really nice day outside today, so", []],
+            [0, "ShowMessage_2", "working in the fields should be fine. On", []],
+            [0, "ShowMessage_2", "rainy days... I wish I were a Lawyer!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 73,
+      "name": "EV0073",
+      "at": [45, 22],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 396,
+            "switch_b": 388
+          },
+          "sprite": {
+            "charset": "People3",
+            "index": 1,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "ACTRESS", []],
+            [0, "ShowMessage_2", "Good morning, Talan! The building just", []],
+            [0, "ShowMessage_2", "south of here is our main rehearsal space.", []],
+            [0, "ShowMessage_2", "You should go meet everyone!", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I'll do that - thanks!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 74,
+      "name": "EV0074",
+      "at": [43, 40],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 396,
+            "switch_b": 388
+          },
+          "sprite": {
+            "charset": "People3",
+            "index": 3,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "ACTRESS", []],
+            [0, "ShowMessage_2", "The theatre ruins are spooky! I get the", []],
+            [0, "ShowMessage_2", "impression that the ghosts that \"live\" there", []],
+            [0, "ShowMessage_2", "don't like us breaking in to look for scripts...", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 75,
+      "name": "EV0075",
+      "at": [15, 42],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 396,
+            "switch_b": 388
+          },
+          "sprite": {
+            "charset": "People3",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "ACTOR", []],
+            [0, "ShowMessage_2", "Emily's a great person, but her most", []],
+            [0, "ShowMessage_2", "recent script isn't very good. I think", []],
+            [0, "ShowMessage_2", "it's time to go find a new one.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 76,
+      "name": "EV0076",
+      "at": [19, 17],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 396,
+            "switch_b": 388
+          },
+          "sprite": {
+            "charset": "People3",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "ACTOR", []],
+            [0, "ShowMessage_2", "I think the people of Paradise are getting", []],
+            [0, "ShowMessage_2", "a little upset with us Actors... our most", []],
+            [0, "ShowMessage_2", "recent plays haven't gone over very well.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 77,
+      "name": "EV0077",
+      "at": [58, 31],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 396,
+            "switch_b": 388
+          },
+          "sprite": {
+            "charset": "People3",
+            "index": 3,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "ACTRESS", []],
+            [0, "ShowMessage_2", "Sewell's a great man. When he gets an", []],
+            [0, "ShowMessage_2", "idea, he can just ramble on for hours", []],
+            [0, "ShowMessage_2", "without pause!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 78,
+      "name": "EV0078",
+      "at": [1, 11],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 396,
+            "switch_b": 388
+          },
+          "sprite": {
+            "charset": "People3",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "ACTOR", []],
+            [0, "ShowMessage_2", "I'm trying to memorize this long monologue", []],
+            [0, "ShowMessage_2", "that Emily wrote into her play. It's not really", []],
+            [0, "ShowMessage_2", "very good.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 79,
+      "name": "EV0079",
+      "at": [15, 25],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 396
+          },
+          "sprite": {
+            "charset": "People3",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "ACTOR", []],
+            [0, "ShowMessage_2", "Sometimes I wish I were a Defender", []],
+            [0, "ShowMessage_2", "instead - then I could live all this excitement,", []],
+            [0, "ShowMessage_2", "instead of just pretending to...", []],
+            [0, "ShowMessage", "ACTOR", []],
+            [0, "ShowMessage_2", "And I'd get to work with Isabella! Woohoo!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 80,
+      "name": "EV0080",
+      "at": [11, 36],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 396,
+            "switch_b": 388
+          },
+          "sprite": {
+            "charset": "People3",
+            "index": 3,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ConditionalBranch", "", [4, 152, 0, 0, 0, 1]],
+            [1, "ShowMessage", "ACTRESS", []],
+            [1, "ShowMessage_2", "Ooooh, a new script!", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "ShowMessage", "ACTRESS", []],
+            [1, "ShowMessage_2", "You can find the Theatre Ruins by leaving", []],
+            [1, "ShowMessage_2", "Paradise by the farms, and then following", []],
+            [1, "ShowMessage_2", "the path south until it curves west and north.", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 81,
+      "name": "EV0081",
+      "at": [33, 56],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 396,
+            "actor": 26
+          },
+          "sprite": {
+            "charset": "People3",
+            "index": 3,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "ACTRESS", []],
+            [0, "ShowMessage_2", "The last time Lerle and I practiced", []],
+            [0, "ShowMessage_2", "swordfighting, I nicked his ear...", []],
+            [0, "ShowMessage", "ACTRESS", []],
+            [0, "ShowMessage_2", "He screamed like a girl!", []],
+            [0, "ShowMessage", "LERLE", []],
+            [0, "ShowMessage_2", "I did not!", []],
+            [0, "ControlSwitches", "", [0, 539, 539, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 396,
+            "switch_b": 539,
+            "actor": 26
+          },
+          "sprite": {
+            "charset": "People3",
+            "index": 3,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "ACTRESS", []],
+            [0, "ShowMessage_2", "You did, Lerle!", []],
+            [0, "ShowMessage", "LERLE", []],
+            [0, "ShowMessage_2", "I did not! You must be thinking of", []],
+            [0, "ShowMessage_2", "someone else...", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 82,
+      "name": "EV0082",
+      "at": [30, 33],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 396
+          },
+          "sprite": {
+            "charset": "Chara1",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "DEFENDER", []],
+            [0, "ShowMessage_2", "The next time those bandits attack,", []],
+            [0, "ShowMessage_2", "we'll be ready!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 83,
+      "name": "EV0083",
+      "at": [45, 12],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 396
+          },
+          "sprite": {
+            "charset": "Chara1",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "DEFENDER", []],
+            [0, "ShowMessage_2", "Too many Defenders are buried here.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 84,
+      "name": "EV0084",
+      "at": [58, 9],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 396
+          },
+          "sprite": {
+            "charset": "Chara1",
+            "index": 2,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "DEFENDER", []],
+            [0, "ShowMessage_2", "I've never really understood what this", []],
+            [0, "ShowMessage_2", "inscription means... Pierson's a great old", []],
+            [0, "ShowMessage_2", "guy - but sometimes he's sort of loopy.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 85,
+      "name": "EV0085",
+      "at": [36, 30],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 396
+          },
+          "sprite": {
+            "charset": "Chara1",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "DEFENDER", []],
+            [0, "ShowMessage_2", "We make the best weapons and armor", []],
+            [0, "ShowMessage_2", "around! Of course, we also make pretty", []],
+            [0, "ShowMessage_2", "much the ONLY weapons and armor...", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 86,
+      "name": "EV0086",
+      "at": [54, 26],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 427,
+            "switch_b": 388
+          },
+          "sprite": {
+            "charset": "Crown3",
+            "index": 1,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "FARMER", []],
+            [0, "ShowMessage_2", "I wonder what this play all the Actors", []],
+            [0, "ShowMessage_2", "are talking about is? They're really", []],
+            [0, "ShowMessage_2", "keeping it under wraps!", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's a secret! <laugh>", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 87,
+      "name": "EV0087",
+      "at": [46, 32],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 427,
+            "switch_b": 388
+          },
+          "sprite": {
+            "charset": "Crown3",
+            "index": 1,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "FARMER", []],
+            [0, "ShowMessage_2", "The last play I saw, Lerle forgot all his", []],
+            [0, "ShowMessage_2", "lines and just stood on stage looking", []],
+            [0, "ShowMessage_2", "nervous. I hope that doesn't happen again.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 88,
+      "name": "EV0088",
+      "at": [39, 56],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 427,
+            "switch_b": 388
+          },
+          "sprite": {
+            "charset": "Crown3",
+            "index": 1,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "FARMER", []],
+            [0, "ShowMessage_2", "I'm looking forward to the play!", []],
+            [0, "ShowMessage_2", "What's it called again?", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "\"The Tragedy of Captain Ellis.\"", []],
+            [0, "ShowMessage", "FARMER", []],
+            [0, "ShowMessage_2", "Hmmm... I don't like sad things. I hope", []],
+            [0, "ShowMessage_2", "there's some big laughs in there too...", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Actually, my character is the comic relief!", []],
+            [0, "ShowMessage", "FARMER", []],
+            [0, "ShowMessage_2", "Oh.", []],
+            [0, "MessageOptions", "", [1, 0, 0, 0]],
+            [0, "ShowMessage", "FARMER", []],
+            [0, "ShowMessage_2", "Maybe I won't go after all.", []],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "FARMER", []],
+            [0, "ShowMessage_2", "That sounds... great, Talan.", []],
+            [0, "ControlSwitches", "", [0, 540, 540, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 540,
+            "switch_b": 427
+          },
+          "sprite": {
+            "charset": "Crown3",
+            "index": 1,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "FARMER", []],
+            [0, "ShowMessage_2", "Well... keep rehearsing, Talan.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 89,
+      "name": "EV0089",
+      "at": [30, 38],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 427,
+            "switch_b": 388
+          },
+          "sprite": {
+            "charset": "People1",
+            "index": 3,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "FARMER", []],
+            [0, "ShowMessage_2", "I like plays! They're a great break from", []],
+            [0, "ShowMessage_2", "working in the fields all day... I'm really", []],
+            [0, "ShowMessage_2", "excited!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 90,
+      "name": "LerleMonth2",
+      "at": [8, 51],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 427,
+            "switch_b": 388
+          },
+          "sprite": {
+            "charset": "People3",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "LERLE", []],
+            [0, "ShowMessage_2", "Hey, Talan - ready for rehearsal yet?", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Yeah... are you sure all of these notebooks", []],
+            [0, "ShowMessage_2", "are yours? I thought maybe one of mine", []],
+            [0, "ShowMessage_2", "got mixed in...", []],
+            [0, "ShowMessage", "LERLE", []],
+            [0, "ShowMessage_2", "I dunno... I'm busy right now. Ellis is a", []],
+            [0, "ShowMessage_2", "very complicated figure!", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Uh... Osmond's really complicated too!", []],
+            [0, "ShowMessage", "LERLE", []],
+            [0, "ShowMessage_2", "Yeah, sure, Talan. See you at rehearsal.", []],
+            [0, "ControlSwitches", "", [0, 541, 541, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 541,
+            "switch_b": 427
+          },
+          "sprite": {
+            "charset": "People3",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "LERLE", []],
+            [0, "ShowMessage_2", "... and then I say \"That will leave a mark,", []],
+            [0, "ShowMessage_2", "surely!\" Ha - what a great scene!...", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 91,
+      "name": "EV0091",
+      "at": [8, 52],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 427,
+            "switch_b": 388
+          },
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 3,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "LERLE'S NOTES", []],
+            [0, "ShowMessage_2", "Captain Ellis is a heroic, dashing character.", []],
+            [0, "ShowMessage_2", "He is excellent at swordplay and has a", []],
+            [0, "ShowMessage_2", "wit as sharp as his sword.", []],
+            [0, "ShowMessage", "LERLE'S NOTES", []],
+            [0, "ShowMessage_2", "This is especially evident when he is", []],
+            [0, "ShowMessage_2", "compared with his fat servant Osmond,", []],
+            [0, "ShowMessage_2", "who is a bumbling fool.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 92,
+      "name": "EV0092",
+      "at": [6, 51],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 427,
+            "switch_b": 388
+          },
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 3,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "LERLE'S NOTES", []],
+            [0, "ShowMessage_2", "Ellis is not afraid of ghosts; he is more", []],
+            [0, "ShowMessage_2", "curious of them than anything else. And", []],
+            [0, "ShowMessage_2", "he is VERY curious about women.", []],
+            [0, "ShowMessage", "LERLE'S NOTES", []],
+            [0, "ShowMessage_2", "Women are very attracted to Ellis, but", []],
+            [0, "ShowMessage_2", "not only because of his handsome features.", []],
+            [0, "ShowMessage_2", "He's quite a sweet-talker.", []],
+            [0, "ShowMessage", "LERLE'S NOTES", []],
+            [0, "ShowMessage_2", "Just like me!", []],
+            [0, "MessageOptions", "", [1, 0, 0, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Right, Lerle... in your dreams!", []],
+            [0, "MessageOptions", "", [0, 2, 0, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 93,
+      "name": "EV0093",
+      "at": [4, 30],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 427,
+            "switch_b": 388
+          },
+          "sprite": {
+            "charset": "Chara1",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "DEFENDER", []],
+            [0, "ShowMessage_2", "We get so few breaks, that a play should", []],
+            [0, "ShowMessage_2", "be just the thing to give the Defenders", []],
+            [0, "ShowMessage_2", "something fun to do!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 94,
+      "name": "EV0094",
+      "at": [28, 46],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 376
+          },
+          "sprite": {
+            "charset": "People4",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "LAWYER", []],
+            [0, "ShowMessage_2", "Sure are a lot of Lawyers in this town.", []],
+            [0, "ShowMessage_2", "Most people would say there's too many,", []],
+            [0, "ShowMessage_2", "but I think we're a vital part of Paradise!", []],
+            [0, "ShowMessage", "LAWYER", []],
+            [0, "ShowMessage_2", "And this way we can divide up the", []],
+            [0, "ShowMessage_2", "work so we each have to do less!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 95,
+      "name": "EV0095",
+      "at": [28, 22],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 388,
+            "switch_b": 427
+          },
+          "sprite": {
+            "charset": "People4",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "LAWYER", []],
+            [0, "ShowMessage_2", "I don't like plays. Being in court is like a", []],
+            [0, "ShowMessage_2", "play, but you actually have to think!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 96,
+      "name": "EV0096",
+      "at": [13, 19],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 388,
+            "switch_b": 427
+          },
+          "sprite": {
+            "charset": "Chara4",
+            "index": 1,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "LAWYER", []],
+            [0, "ShowMessage_2", "I wonder if this play all you Actors are", []],
+            [0, "ShowMessage_2", "so excited about will be any good...", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Of course it will!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 97,
+      "name": "EV0097",
+      "at": [49, 31],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 427,
+            "switch_b": 403
+          },
+          "sprite": {
+            "charset": "Crown3",
+            "index": 1,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "FARMER", []],
+            [0, "ShowMessage_2", "This is terrible! I can't believe that", []],
+            [0, "ShowMessage_2", "Drago's been captured by the bandits!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 98,
+      "name": "EV0098",
+      "at": [20, 31],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 427,
+            "switch_b": 386
+          },
+          "sprite": {
+            "charset": "Crown3",
+            "index": 1,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "FARMER", []],
+            [0, "ShowMessage_2", "What if the bandits come back? Most of", []],
+            [0, "ShowMessage_2", "the Defenders have left!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 99,
+      "name": "EV0099",
+      "at": [31, 54],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 427,
+            "switch_b": 386
+          },
+          "sprite": {
+            "charset": "Crown3",
+            "index": 1,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "FARMER", []],
+            [0, "ShowMessage_2", "I can't fish at a time like this! We have", []],
+            [0, "ShowMessage_2", "to do something!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 100,
+      "name": "EV0100",
+      "at": [35, 41],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 427,
+            "switch_b": 386
+          },
+          "sprite": {
+            "charset": "People1",
+            "index": 3,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "FARMER", []],
+            [0, "ShowMessage_2", "What's wrong with Isabella? No one is", []],
+            [0, "ShowMessage_2", "telling me anything!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 101,
+      "name": "EV0101",
+      "at": [31, 17],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 427,
+            "switch_b": 386
+          },
+          "sprite": {
+            "charset": "People1",
+            "index": 3,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "FARMER", []],
+            [0, "ShowMessage_2", "The bandits didn't even take as much", []],
+            [0, "ShowMessage_2", "food as they usually do - that's odd.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 102,
+      "name": "EV0102",
+      "at": [44, 17],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 427,
+            "switch_b": 403
+          },
+          "sprite": {
+            "charset": "People3",
+            "index": 3,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "ACTRESS", []],
+            [0, "ShowMessage_2", "I don't feel like rehearsing today. This", []],
+            [0, "ShowMessage_2", "is just too horrible!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 103,
+      "name": "EV0103",
+      "at": [58, 35],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 427,
+            "switch_b": 403
+          },
+          "sprite": {
+            "charset": "People3",
+            "index": 3,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "ACTRESS", []],
+            [0, "ShowMessage_2", "I can't believe it...", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 104,
+      "name": "EV0104",
+      "at": [11, 32],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 427,
+            "switch_b": 403
+          },
+          "sprite": {
+            "charset": "People3",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "ACTOR", []],
+            [0, "ShowMessage_2", "The bandits have never taken prisoners", []],
+            [0, "ShowMessage_2", "before!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 105,
+      "name": "EV0105",
+      "at": [2, 47],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 427,
+            "switch_b": 403
+          },
+          "sprite": {
+            "charset": "People3",
+            "index": 0,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "ACTOR", []],
+            [0, "ShowMessage_2", "Drago is one tough Defender. He'll be", []],
+            [0, "ShowMessage_2", "able to escape... I hope...", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 106,
+      "name": "EV0106",
+      "at": [42, 48],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 427,
+            "switch_b": 403
+          },
+          "sprite": {
+            "charset": "Chara4",
+            "index": 1,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "LAWYER", []],
+            [0, "ShowMessage_2", "The Lawyers are helpless, because no", []],
+            [0, "ShowMessage_2", "bandit would try listening to logic!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 107,
+      "name": "EV0107",
+      "at": [49, 34],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 427,
+            "switch_b": 385
+          },
+          "sprite": {
+            "charset": "Chara1",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "DEFENDER", []],
+            [0, "ShowMessage_2", "This is an outrage! The bandits must", []],
+            [0, "ShowMessage_2", "pay for this!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 108,
+      "name": "EV0108",
+      "at": [37, 13],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 427,
+            "switch_b": 385
+          },
+          "sprite": {
+            "charset": "Chara1",
+            "index": 2,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "DEFENDER", []],
+            [0, "ShowMessage_2", "I hope we don't need to construct two", []],
+            [0, "ShowMessage_2", "more graves here... <sigh>", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 109,
+      "name": "EV0109",
+      "at": [16, 18],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 427,
+            "switch_b": 385
+          },
+          "sprite": {
+            "charset": "Chara1",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "DEFENDER", []],
+            [0, "ShowMessage_2", "We should go wipe those bandits off", []],
+            [0, "ShowMessage_2", "the face of the planet!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 110,
+      "name": "EV0110",
+      "at": [35, 33],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 427,
+            "switch_b": 385
+          },
+          "sprite": {
+            "charset": "Chara1",
+            "index": 2,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "DEFENDER", []],
+            [0, "ShowMessage_2", "... ... ...", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 111,
+      "name": "EV0111",
+      "at": [47, 18],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 441
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Where is everybody?", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Oh, they must be getting all their", []],
+            [0, "ShowMessage_2", "work done so they can see the show", []],
+            [0, "ShowMessage_2", "tonight!", []],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I hope we're really ready...", []],
+            [0, "ControlSwitches", "", [0, 542, 542, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 542
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 112,
+      "name": "EV0112",
+      "at": [5, 6],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "MessageOptions", "", [1, 0, 0, 0]],
+            [0, "ShowMessage", "Paradise Tunnel", []],
+            [0, "MessageOptions", "", [0, 2, 0, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 113,
+      "name": "Glove Merchant",
+      "at": [55, 54],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara1",
+            "index": 1,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "WANDERING GLOVE MERCHANT", []],
+            [0, "ShowMessage_2", "You never know when you might want", []],
+            [0, "ShowMessage_2", "a nice pair of gloves.", []],
+            [0, "OpenShop", "", [0, 1, 0, 0, 143, 141, 142, 184, 185]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 114,
+      "name": "EV0114",
+      "at": [59, 0],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 811
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "CallEvent", "", [0, 47, 0]],
+            [0, "ControlSwitches", "", [0, 811, 811, 1]]
+          ]
+        }
+      ]
+    }
+  ]
+}

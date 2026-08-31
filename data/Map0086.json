@@ -1,0 +1,117 @@
+{
+  "id": 86,
+  "name": "Eisen's Story",
+  "size": [20, 15],
+  "chipset": [40, "ABLForestTown"],
+  "tiles": "Map0086.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "Eisen",
+      "at": [9, 11],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Eisen",
+            "index": 0,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "Wait", "", [10]],
+            [0, "MessageOptions", "", [1, 0, 0, 0]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "I had a house in Yun Village. It was", []],
+            [0, "ShowMessage_2", "small, but it was cozy.", []],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "I taught at a local school. Good kids,", []],
+            [0, "ShowMessage_2", "mostly. A few bad apples, but on the", []],
+            [0, "ShowMessage_2", "whole, it was a good place to be.", []],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 2, 3, 3, 3, 3]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "I had a beautiful wife, and a lovely daughter.", []],
+            [0, "ControlSwitches", "", [0, 285, 285, 0]],
+            [0, "MoveEvent", "", [3, 8, 0, 0, 1, 1, 1]],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 1, 1, 1]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "But...", []],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [3, 8, 0, 0, 40, 23, 40, 23, 40, 23, 40, 23, 40, 23, 40]],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 40, 23, 40, 23, 40, 23, 40, 23, 40, 23, 40]],
+            [0, "Wait", "", [30]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "Well... I'm getting ahead of myself.", []],
+            [0, "TintScreen", "", [0, 0, 0, 0, 10, 1]],
+            [0, "Teleport", "", [87, 9, 10]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Eisen's Wife",
+      "at": [1, 12],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 285
+          },
+          "sprite": {
+            "charset": "Chara4",
+            "index": 4,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Eisen's Daughter",
+      "at": [0, 12],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 285
+          },
+          "sprite": {
+            "charset": "People1",
+            "index": 1,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    }
+  ]
+}

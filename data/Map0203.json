@@ -1,0 +1,179 @@
+{
+  "id": 203,
+  "name": "Up The Overlook",
+  "size": [20, 30],
+  "chipset": [21, "PS4Chipset"],
+  "tiles": "Map0203.tiles",
+  "parallax": {
+    "name": "Night1",
+    "loop_x": false,
+    "loop_y": true,
+    "scroll_x": 0,
+    "scroll_y": 0
+  },
+  "events": [
+    {
+      "id": 1,
+      "name": "Talan",
+      "at": [8, 11],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future1",
+            "index": 0,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Emily",
+      "at": [6, 11],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "emily",
+            "index": 4,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ControlSwitches", "", [0, 608, 608, 0]],
+            [0, "TintScreen", "", [60, 20, 30, 100, 0, 0]],
+            [0, "MoveEvent", "", [6, 8, 0, 0, 3, 3, 3, 0]],
+            [0, "Wait", "", [10]],
+            [0, "PanScreen", "", [2, 0, 10, 3, 0]],
+            [0, "Wait", "", [7]],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 28, 0, 0, 1, 1, 1, 1, 1, 1, 0, 15, 29]],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 28, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 29]],
+            [0, "Wait", "", [20]],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 14]],
+            [0, "Wait", "", [1]],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 1, 1]],
+            [0, "MoveEvent", "", [6, 8, 0, 0, 0, 0, 0, 1, 0, 0, 13]],
+            [0, "MoveEvent", "", [5, 8, 0, 0, 1]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Here they come - we're trapped!", []],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 12]],
+            [0, "Wait", "", [2]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "Not quite. On the count of three, OK?", []],
+            [0, "Wait", "", [1]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "What?", []],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 1, 0, 1, 1]],
+            [0, "MoveEvent", "", [5, 8, 0, 0, 1, 1, 1, 0, 1]],
+            [0, "MoveEvent", "", [6, 8, 0, 0, 1, 1, 1, 1, 0, 13]],
+            [0, "Wait", "", [8]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "One...", []],
+            [0, "Wait", "", [5]],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 36, 7, 37, 13]],
+            [0, "Wait", "", [3]],
+            [0, "ShowBattleAnimation", "", [3, 1, 0, 0]],
+            [0, "MoveEvent", "", [4, 7, 0, 0, 24, 25]],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 36, 38, 28, 4, 5, 5, 5, 5, 29, 37, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Aaaaaaaaaaaaaaaahhhhhh!", []],
+            [0, "Wait", "", [3]],
+            [0, "PlaySound", "Water1", [70, 80, 100]],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 1]],
+            [0, "Wait", "", [3]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "... two, three!", []],
+            [0, "MoveEvent", "", [4, 7, 0, 0, 24, 25]],
+            [0, "MoveEvent", "", [5, 7, 0, 0, 24, 25]],
+            [0, "MoveEvent", "", [6, 7, 0, 0, 24, 25]],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 28, 36, 28, 24, 1, 1, 1, 1, 25, 12, 38, 26, 2, 2, 2, 2, 2, 2, 2, 2, 2, 27, 37, 29, 39, 25, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3, 29]],
+            [0, "Wait", "", [10]],
+            [0, "PlaySound", "Water1", [70, 90, 0]],
+            [0, "Wait", "", [10]],
+            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
+            [0, "Teleport", "", [204, 15, 5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Agency Guard1",
+      "at": [5, 10],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 608
+          },
+          "sprite": {
+            "charset": "BLAgents",
+            "index": 1,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Agency Guard2",
+      "at": [4, 11],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 608
+          },
+          "sprite": {
+            "charset": "BLAgents",
+            "index": 1,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "Agency Guard3",
+      "at": [6, 16],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 608
+          },
+          "sprite": {
+            "charset": "BLAgents",
+            "index": 1,
+            "direction": "left",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    }
+  ]
+}

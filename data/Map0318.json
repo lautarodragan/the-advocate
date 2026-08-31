@@ -1,0 +1,419 @@
+{
+  "id": 318,
+  "name": "The Show",
+  "size": [20, 15],
+  "chipset": [23, "PS4Chipset"],
+  "tiles": "Map0318.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "Emily",
+      "at": [8, 7],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "emily",
+            "index": 4,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Lerle",
+      "at": [14, 9],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People3",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Sewell",
+      "at": [10, 6],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People3",
+            "index": 0,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Auleen",
+      "at": [12, 8],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People3",
+            "index": 3,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "EV0005",
+      "at": [7, 14],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara1",
+            "index": 2,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "EV0006",
+      "at": [12, 14],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "extra2(1)",
+            "index": 1,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "EV0007",
+      "at": [11, 14],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara1",
+            "index": 3,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "EV0008",
+      "at": [10, 14],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "extra2(1)",
+            "index": 2,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "EV0009",
+      "at": [9, 14],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara4",
+            "index": 0,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "EV0010",
+      "at": [13, 14],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara4",
+            "index": 1,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "EV0011",
+      "at": [8, 14],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People4",
+            "index": 2,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "EV0012",
+      "at": [6, 14],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People1",
+            "index": 5,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "EV0013",
+      "at": [7, 13],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People5",
+            "index": 5,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "name": "EV0014",
+      "at": [9, 13],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People4",
+            "index": 5,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "name": "EV0015",
+      "at": [11, 13],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People1",
+            "index": 4,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "name": "EV0016",
+      "at": [12, 13],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People4",
+            "index": 7,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "name": "EV0017",
+      "at": [10, 13],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People5",
+            "index": 7,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "name": "EV0018",
+      "at": [8, 13],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Crown3",
+            "index": 1,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "name": "EV0019",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "TintScreen", "", [60, 60, 60, 100, 10, 1]],
+            [0, "Wait", "", [5]],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 36, 1]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "It was not Cedric, father!", []],
+            [0, "ShowMessage_2", "It was... your wife, Pellania!", []],
+            [0, "ShowMessage_2", "SHE murdered Lord Morenon!", []],
+            [0, "MoveEvent", "", [3, 8, 0, 0, 36, 24, 25, 2, 2, 23, 13]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ShowMessage", "SEWELL", []],
+            [0, "ShowMessage_2", "What?! Is there truth to this", []],
+            [0, "ShowMessage_2", "accusation, Pellania?", []],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 36, 13]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "AULEEN", []],
+            [0, "ShowMessage_2", "Yes... I murdered Lord Morenon.", []],
+            [0, "MoveEvent", "", [3, 8, 0, 0, 24, 25]],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 24, 25, 28, 1, 1, 1, 1, 2, 15, 29]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 15]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ShowMessage", "AULEEN", []],
+            [0, "ShowMessage_2", "But it shall not be the least of my crimes!", []],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 24, 3, 25]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ShowBattleAnimation", "", [38, 3, 1, 0]],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 36, 15]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 14]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "LERLE", []],
+            [0, "ShowMessage_2", "Uh...", []],
+            [0, "MoveEvent", "", [3, 8, 0, 0, 2, 13]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "MessageOptions", "", [1, 2, 0, 0]],
+            [0, "ShowMessage", "SEWELL, whispering", []],
+            [0, "ShowMessage_2", "(Narrator... this is you...)", []],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 15, 23, 23, 14, 23, 23]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "LERLE, asleep", []],
+            [0, "ShowMessage_2", "... not this dream again...", []],
+            [0, "ShowMessage_2", "... why is it always this one...?", []],
+            [0, "MessageOptions", "", [0, 1, 0, 0]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "MEMNOSYNE", []],
+            [0, "ShowMessage_2", "How awful!", []],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 13]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Wait", "", [5]],
+            [0, "MessageOptions", "", [1, 2, 0, 0]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "(And finally he knew the truth he had", []],
+            [0, "ShowMessage_2", "been seeking...)", []],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 24, 25, 2]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "LERLE", []],
+            [0, "ShowMessage_2", "And finally he knew the truth he had been", []],
+            [0, "ShowMessage_2", "seeking: in the heart of Woman lies a tiny", []],
+            [0, "ShowMessage_2", "frozen diamond, colder than the", []],
+            [0, "ShowMessage", "LERLE", []],
+            [0, "ShowMessage_2", "furthest reaches of space, sharper", []],
+            [0, "ShowMessage_2", "than the sharpest knives, and more", []],
+            [0, "ShowMessage_2", "dangerous than the fiery pits of Hell.", []],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "LERLE", []],
+            [0, "ShowMessage_2", "But it was too late for good King Dalamar.", []],
+            [0, "ShowMessage_2", "With his passing passes an age. So too does", []],
+            [0, "ShowMessage_2", "our play draw to its close.", []],
+            [0, "PlaySound", "applause", [100, 100, 50]],
+            [0, "TintScreen", "", [0, 0, 0, 100, 20, 1]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "LERLE", []],
+            [0, "ShowMessage_2", "Thanks for whispering me that line, Emily.", []],
+            [0, "ShowMessage_2", "I don't know what I would have done if", []],
+            [0, "ShowMessage_2", "you hadn't gotten me started!", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "What?", []],
+            [0, "PlaySound", "applause", [0, 100, 50]],
+            [0, "MessageOptions", "", [1, 1, 0, 0]],
+            [0, "Teleport", "", [319, 5, 8]]
+          ]
+        }
+      ]
+    }
+  ]
+}

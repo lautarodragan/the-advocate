@@ -1,0 +1,79 @@
+{
+  "id": 79,
+  "name": "Weapon Shop",
+  "size": [20, 15],
+  "chipset": [18, "Inside"],
+  "tiles": "Map0079.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [9, 14],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [69, 25, 19]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [9, 5],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara2",
+            "index": 5,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [15, 9],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLPeople",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "WOMAN", []],
+            [0, "ShowMessage_2", "I'm rather busy right now.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Oh, sorry. Yeah.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [9, 6],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "OpenShop", "", [0, 2, 0, 0, 120, 157, 393, 172, 173, 392]]
+          ]
+        }
+      ]
+    }
+  ]
+}

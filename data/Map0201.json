@@ -1,0 +1,86 @@
+{
+  "id": 201,
+  "name": "Net's Droid Emporium",
+  "size": [20, 15],
+  "chipset": [49, "ABLTownMountain"],
+  "tiles": "Map0201.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "Net",
+      "at": [10, 5],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara3",
+            "index": 3,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Malrick",
+      "at": [11, 12],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara3",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "MALRICK", []],
+            [0, "ShowMessage_2", "Don't pull any funny business.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "M-me? Of course not!", []],
+            [0, "ShowMessage", "MALRICK", []],
+            [0, "ShowMessage_2", "All right, then.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [10, 6],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "NET", []],
+            [0, "ShowMessage_2", "I've got all the droid components you", []],
+            [0, "ShowMessage_2", "could ever want... but I don't recommend", []],
+            [0, "ShowMessage_2", "telling too many people about them...", []],
+            [0, "OpenShop", "", [0, 0, 0, 0, 129, 130, 282, 278, 279, 135, 269, 283, 281, 284, 271, 273, 274, 270, 290, 287, 272, 275, 276, 291, 288]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [10, 14],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "Teleport", "", [68, 1, 3]]
+          ]
+        }
+      ]
+    }
+  ]
+}

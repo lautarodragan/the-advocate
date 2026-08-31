@@ -1,0 +1,94 @@
+{
+  "id": 211,
+  "name": "Memories of Surl",
+  "size": [20, 15],
+  "chipset": [36, "townQ"],
+  "tiles": "Map0211.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "Man1",
+      "at": [3, 1],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara1",
+            "index": 0,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Man2",
+      "at": [18, 14],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara2",
+            "index": 2,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Woman3",
+      "at": [0, 13],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara2",
+            "index": 3,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Woman4",
+      "at": [7, 8],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Crown1",
+            "index": 0,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Girl5",
+      "at": [3, 10],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People1",
+            "index": 1,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    }
+  ]
+}

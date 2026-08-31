@@ -1,0 +1,521 @@
+{
+  "id": 28,
+  "name": "Sector 27 Back Alleys",
+  "size": [50, 50],
+  "chipset": [9, "BLchp1"],
+  "tiles": "Map0028.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [17, 30],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [26, 11, 2]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "SaveInSector27",
+      "at": [12, 28],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "savept",
+            "index": 0,
+            "direction": "up",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "action",
+          "animation": "fixed_continuous",
+          "translucent": true,
+          "script": [
+            [0, "PlaySound", "Holy5", [70, 100, 50]],
+            [0, "OpenSaveMenu", "", []],
+            [0, "ChangeSaveAccess", "", [0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [20, 27],
+      "pages": [
+        {
+          "tile": 53,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "MessageOptions", "", [1, 0, 0, 0]],
+            [0, "ShowMessage", "SECTOR 27 PACKAGE STORE", []],
+            [0, "MessageOptions", "", [0, 2, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [19, 27],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [29, 9, 13]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "EV0005",
+      "at": [15, 17],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "The door is locked.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "EV0006",
+      "at": [29, 17],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [30, 10, 13]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "EV0007",
+      "at": [25, 43],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLVehicles",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "EV0008",
+      "at": [28, 45],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLVehicles",
+            "index": 2,
+            "direction": "down",
+            "pattern": "right"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "EV0009",
+      "at": [31, 44],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLVehicles",
+            "index": 2,
+            "direction": "right",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "EV0010",
+      "at": [25, 47],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLVehicles",
+            "index": 2,
+            "direction": "right",
+            "pattern": "right"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "Hover2",
+      "at": [48, 47],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLVehicles",
+            "index": 2,
+            "direction": "left",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "Hover1",
+      "at": [48, 46],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLVehicles",
+            "index": 2,
+            "direction": "left",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "Hover4",
+      "at": [49, 47],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLVehicles",
+            "index": 2,
+            "direction": "left",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic"
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "name": "ResetBattleSwitches",
+      "at": [0, 0],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 145
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ControlSwitches", "", [0, 145, 145, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 142
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ControlSwitches", "", [0, 142, 142, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "variable": [28, "greater_equal", 1]
+          },
+          "tile": 13,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ControlVars", "", [0, 28, 28, 0, 0, 0, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "name": "EV0015",
+      "at": [33, 39],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "What's that?", []],
+            [0, "PlaySound", "Wind8", [100, 70, 0]],
+            [0, "ChangeEventLocation", "", [12, 0, 25, 31]],
+            [0, "MoveEvent", "", [12, 8, 0, 0, 36, 2, 2]],
+            [0, "Wait", "", [5]],
+            [0, "PlaySound", "Wind8", [100, 70, 100]],
+            [0, "ChangeEventLocation", "", [11, 0, 42, 31]],
+            [0, "MoveEvent", "", [11, 8, 0, 0, 36, 2, 2, 2, 2, 2, 2, 2]],
+            [0, "Wait", "", [5]],
+            [0, "PlayBGM", "Lunar_Pyramid", [0, 100, 100, 50]],
+            [0, "ChangeSystemBGM", "Lunar_Pyramid", [0, 0, 100, 100, 50]],
+            [0, "ChangeSystemBGM", "Lunar_Pyramid", [1, 0, 100, 100, 50]],
+            [0, "Wait", "", [15]],
+            [0, "ConditionalBranch", "", [0, 54, 0, 0, 0, 1]],
+            [1, "ShowMessage", "ARDEN", []],
+            [1, "ShowMessage_2", "Those are Agency vehicles!", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ConditionalBranch", "", [0, 56, 0, 0, 0, 1]],
+            [1, "ShowMessage", "SALDRA", []],
+            [1, "ShowMessage_2", "It's the Agency!", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ConditionalBranch", "", [0, 54, 1, 0, 0, 1]],
+            [1, "ControlSwitches", "", [0, 56, 56, 1]],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "Agency Guards!", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 0, 0, 0, 0, 0]],
+            [0, "Wait", "", [7]],
+            [0, "ChangeEventLocation", "", [17, 0, 34, 25]],
+            [0, "ChangeEventLocation", "", [16, 0, 33, 24]],
+            [0, "MoveEvent", "", [16, 8, 0, 0, 2, 2, 2, 2, 2, 2]],
+            [0, "MoveEvent", "", [17, 8, 0, 0, 2, 2, 2, 2, 2]],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 24, 25, 2, 2, 2, 2, 2]],
+            [0, "Wait", "", [6]],
+            [0, "ChangeEventLocation", "", [18, 0, 34, 49]],
+            [0, "ChangeEventLocation", "", [19, 0, 33, 49]],
+            [0, "MoveEvent", "", [16, 8, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]],
+            [0, "MoveEvent", "", [17, 8, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2, 2, 2, 2, 2, 24, 25, 23, 0, 0, 0, 3, 3, 3, 3, 3, 3, 14, 23, 13, 23, 12]],
+            [0, "Wait", "", [26]],
+            [0, "ConditionalBranch", "", [5, 15, 0, 0, 0, 1]],
+            [1, "ShowMessage", "ARDEN", []],
+            [1, "ShowMessage_2", "Talan, in here!", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "ConditionalBranch", "", [5, 17, 0, 0, 0, 1]],
+            [2, "ShowMessage", "SALDRA", []],
+            [2, "ShowMessage_2", "This way, man!", []],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "This door is unlocked!", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "PlaySound", "Open2", [100, 100, 50]],
+            [0, "ChangeEventLocation", "", [20, 0, 27, 39]],
+            [0, "ChangeEventLocation", "", [21, 0, 27, 38]],
+            [0, "Wait", "", [5]],
+            [0, "Teleport", "", [32, 22, 46]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 14, 23, 35, 7, 83, 119, 105, 116, 99, 104, 50, 100, 100, 50, 37]],
+            [0, "Wait", "", [8]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "OK, the door is locked! But it won't", []],
+            [0, "ShowMessage_2", "hold them for long...", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "name": "Agent2",
+      "at": [48, 48],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLAgents",
+            "index": 1,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "name": "Agent1",
+      "at": [49, 48],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLAgents",
+            "index": 1,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "name": "Agent3",
+      "at": [48, 49],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLAgents",
+            "index": 1,
+            "direction": "up",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "name": "Agent4",
+      "at": [49, 49],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLAgents",
+            "index": 1,
+            "direction": "up",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "name": "DoorBottom",
+      "at": [49, 45],
+      "pages": [
+        {
+          "tile": 118,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "name": "DoorTop",
+      "at": [48, 45],
+      "pages": [
+        {
+          "tile": 112,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "name": "EV0022",
+      "at": [11, 25],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "parallel",
+          "translucent": true,
+          "script": [
+            [0, "ControlVars", "", [0, 39, 39, 0, 6, 10001, 1]],
+            [0, "ControlVars", "", [0, 40, 40, 0, 6, 10001, 2]],
+            [0, "ControlVars", "", [0, 41, 41, 0, 6, 2, 1]],
+            [0, "ControlVars", "", [0, 42, 42, 0, 6, 2, 2]],
+            [0, "ConditionalBranch", "", [1, 39, 1, 41, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 40, 1, 42, 0, 1]],
+            [2, "ChangeSaveAccess", "", [1]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "name": "EV0023",
+      "at": [31, 17],
+      "pages": [
+        {
+          "tile": 53,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "MessageOptions", "", [1, 0, 0, 0]],
+            [0, "ShowMessage", "SECTOR 27 REPAIR WORKSHOP", []],
+            [0, "MessageOptions", "", [0, 2, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 24,
+      "name": "EV0024",
+      "at": [1, 0],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 498
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "CallEvent", "", [0, 35, 0]]
+          ]
+        }
+      ]
+    }
+  ]
+}

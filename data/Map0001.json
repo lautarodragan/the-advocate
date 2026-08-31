@@ -1,0 +1,411 @@
+{
+  "id": 1,
+  "name": "Introduction",
+  "size": [100, 100],
+  "chipset": [6, "ChipSet3"],
+  "tiles": "Map0001.tiles",
+  "parallax": {
+    "name": "Night1",
+    "loop_x": true,
+    "loop_y": false,
+    "scroll_x": 3,
+    "scroll_y": 0
+  },
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [38, 74],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 20,
+            "actor": 10
+          },
+          "tile": 45,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "PlayBGM", "escape_newyork", [0, 100, 100, 50]],
+            [0, "WeatherEffects", "", [1, 1]],
+            [0, "Wait", "", [60]],
+            [0, "Teleport", "", [1, 23, 49]],
+            [0, "MoveEvent", "", [8, 8, 0, 1, 0, 0, 0, 0, 0, 0, 0]],
+            [0, "Wait", "", [20]],
+            [0, "WeatherEffects", "", [1, 0]],
+            [0, "Teleport", "", [1, 59, 49]],
+            [0, "ChangePartyMembers", "", [1, 0, 10]],
+            [0, "ChangePartyMembers", "", [0, 0, 11]],
+            [0, "ChangePartyMembers", "", [0, 0, 12]],
+            [0, "ChangePartyMembers", "", [0, 0, 13]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 0, 0, 0]],
+            [0, "ControlSwitches", "", [0, 20, 20, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [59, 46],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ControlSwitches", "", [0, 14, 14, 0]],
+            [0, "TintScreen", "", [100, 100, 100, 100, 10, 1]],
+            [0, "ChangeEventLocation", "", [3, 0, 59, 46]],
+            [0, "MoveEvent", "", [3, 8, 0, 1, 1]],
+            [0, "ChangeEventLocation", "", [4, 0, 59, 46]],
+            [0, "MoveEvent", "", [4, 8, 0, 1, 3]],
+            [0, "MessageOptions", "", [0, 2, 1, 0]],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [3, 8, 0, 0, 21]],
+            [0, "ShowMessage", "CORE", []],
+            [0, "ShowMessage_2", "That climb wasn't such a big deal. I", []],
+            [0, "ShowMessage_2", "thought this place was supposed to", []],
+            [0, "ShowMessage_2", "be falling apart?", []],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 21]],
+            [0, "ShowMessage", "MANTA", []],
+            [0, "ShowMessage_2", "We still have some time. It looks as if", []],
+            [0, "ShowMessage_2", "he hasn't started unfastening the Link", []],
+            [0, "ShowMessage_2", "yet.", []],
+            [0, "MoveEvent", "", [3, 8, 0, 0, 12]],
+            [0, "ShowMessage", "CORE", []],
+            [0, "ShowMessage_2", "And he's not gonna be able to - cuz", []],
+            [0, "ShowMessage_2", "Core and Manta are on the job!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 0, 0]],
+            [0, "ShowMessage", "?????", []],
+            [0, "ShowMessage_2", "Quiet. Something's coming.", []],
+            [0, "MoveEvent", "", [3, 8, 0, 1, 1, 1, 1, 1, 0, 0, 15]],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 1, 1, 1, 1, 1, 0, 15]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2, 1, 1, 1, 15]],
+            [0, "Wait", "", [30]],
+            [0, "ChangeEventLocation", "", [5, 0, 59, 41]],
+            [0, "MoveEvent", "", [5, 8, 0, 0, 2, 2, 13, 23, 23, 15, 23, 23, 0, 0]],
+            [0, "Wait", "", [25]],
+            [0, "ChangeEventLocation", "", [5, 0, 70, 98]],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2, 3, 3, 12]],
+            [0, "ShowMessage", "?????", []],
+            [0, "ShowMessage_2", "That security droid has been deactivated.", []],
+            [0, "ShowMessage_2", "Its attack mode has been switched off.", []],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 13, 23, 15]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "MANTA", []],
+            [0, "ShowMessage_2", "That means we shouldn't have to deal", []],
+            [0, "ShowMessage_2", "with the security system - he must have", []],
+            [0, "ShowMessage_2", "deactivated everything on his way up.", []],
+            [0, "MoveEvent", "", [3, 8, 0, 0, 2, 2, 3]],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "CORE", []],
+            [0, "ShowMessage_2", "Awwwwww.... that's no fun.", []],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 14]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "MANTA", []],
+            [0, "ShowMessage_2", "Core, we're not here to fight drones.", []],
+            [0, "ShowMessage_2", "We're here to prevent a disaster.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 15]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "?????", []],
+            [0, "ShowMessage_2", "Remember, my alias for this operation is", []],
+            [0, "ShowMessage_2", "\"Kersh.\" We should have the element of", []],
+            [0, "ShowMessage_2", "surprise.", []],
+            [0, "ShowMessage", "MANTA", []],
+            [0, "ShowMessage_2", "Won't he recognize you anyway, Boss?", []],
+            [0, "MoveEvent", "", [10001, 4, 0, 0, 15, 3, 23]],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "KERSH", []],
+            [0, "ShowMessage_2", "It doesn't matter.", []],
+            [0, "MoveEvent", "", [3, 8, 0, 0, 3]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "CORE", []],
+            [0, "ShowMessage_2", "But... what about your wife?", []],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 15, 24, 38, 0, 2, 39, 25]],
+            [0, "Wait", "", [8]],
+            [0, "ShowMessage", "MANTA", []],
+            [0, "ShowMessage_2", "  CORE!!!", []],
+            [0, "Wait", "", [12]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "KERSH", []],
+            [0, "ShowMessage_2", "I think Emily was... an accident.", []],
+            [0, "ShowMessage_2", "And that makes it worse.", []],
+            [0, "ShowMessage", "KERSH", []],
+            [0, "ShowMessage_2", "No, he won't recognize me. Let's go.", []],
+            [0, "MoveEvent", "", [3, 8, 0, 1, 36, 3, 3, 3, 37]],
+            [0, "MoveEvent", "", [4, 8, 0, 1, 36, 2, 3, 3, 3, 3, 37]],
+            [0, "Wait", "", [15]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "ChangeEventLocation", "", [3, 0, 72, 98]],
+            [0, "ChangeEventLocation", "", [4, 0, 71, 98]],
+            [0, "ControlSwitches", "", [0, 3, 3, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 3
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Core",
+      "at": [72, 98],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future1",
+            "index": 1,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Manta",
+      "at": [71, 98],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future1",
+            "index": 4,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Droid",
+      "at": [70, 98],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Vehicle",
+            "index": 5,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "EV0006",
+      "at": [59, 48],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "?????", []],
+            [0, "ShowMessage_2", "I have pressing business within the Linkage", []],
+            [0, "ShowMessage_2", "Block. No turning back.", []],
+            [0, "ShowMessage", "CORE", []],
+            [0, "ShowMessage_2", "Sure, Boss. No problem! I, uh... don't", []],
+            [0, "ShowMessage_2", "know what I was thinking...", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 0, 12]],
+            [0, "ProceedWithMovement", "", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 3
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "KERSH", []],
+            [0, "ShowMessage_2", "I have pressing business within the Linkage", []],
+            [0, "ShowMessage_2", "Block. No turning back.", []],
+            [0, "ShowMessage", "CORE", []],
+            [0, "ShowMessage_2", "Sure, Boss. No problem! I, uh... don't", []],
+            [0, "ShowMessage_2", "know what I was thinking...", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "EV0007",
+      "at": [59, 41],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "WeatherEffects", "", [0, 0]],
+            [0, "Teleport", "", [2, 9, 80]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "DummyKersh",
+      "at": [23, 58],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future1",
+            "index": 5,
+            "direction": "up",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "EV0009",
+      "at": [83, 53],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 14
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "parallel",
+          "script": [
+            [0, "PlaySound", "Rain1", [60, 100, 50]],
+            [0, "Wait", "", [35]],
+            [0, "PlaySound", "Rain1", [60, 100, 50]],
+            [0, "Wait", "", [25]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "EV0010",
+      "at": [60, 48],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "EV0011",
+      "at": [58, 48],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "EV0012",
+      "at": [59, 49],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "EV0013",
+      "at": [69, 35],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "parallel",
+          "script": [
+            [0, "PlaySound", "Rain1", [70, 100, 50]],
+            [0, "Wait", "", [40]],
+            [0, "PlaySound", "Thunder9", [100, 80, 50]],
+            [0, "FlashScreen", "", [31, 31, 31, 31, 12, 1]],
+            [0, "PlaySound", "Rain1", [70, 100, 50]],
+            [0, "Wait", "", [40]],
+            [0, "PlaySound", "Rain1", [70, 100, 50]],
+            [0, "Wait", "", [40]],
+            [0, "PlaySound", "Rain1", [70, 100, 50]],
+            [0, "Wait", "", [40]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "name": "Kersh",
+      "at": [73, 98],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future1",
+            "index": 5,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "name": "Stored Narration",
+      "at": [37, 80],
+      "pages": [
+        {
+          "tile": 96,
+          "layer": "below",
+          "trigger": "action",
+          "script": [
+            [0, "MessageOptions", "", [1, 1, 0, 0]],
+            [0, "ShowMessage", "In the beginning, life was simple.", []],
+            [0, "ShowMessage_2", "Perhaps, for the computers, it still is.", []],
+            [0, "ShowMessage_2", "Imagination is not easily represented", []],
+            [0, "ShowMessage_2", "with ones and zeroes.", []],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "As society grew more complex, an", []],
+            [0, "ShowMessage_2", "immense bureaucracy was formed.", []],
+            [0, "ShowMessage_2", "Social freedom is now a relic", []],
+            [0, "ShowMessage_2", "of the past.", []],
+            [0, "Wait", "", [20]],
+            [0, "Teleport", "", [1, 7, 49]],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "Little in this world is what it seems.", []],
+            [0, "ShowMessage_2", "One man is about to discover this", []],
+            [0, "ShowMessage_2", "for himself, walking the fine line", []],
+            [0, "ShowMessage_2", "between Good and Evil.", []]
+          ]
+        }
+      ]
+    }
+  ]
+}

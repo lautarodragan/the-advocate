@@ -1,0 +1,722 @@
+{
+  "id": 257,
+  "name": "Surl Ruins 1",
+  "size": [60, 35],
+  "chipset": [37, "shrine1"],
+  "tiles": "Map0257.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [0, 33],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [210, 8, 32]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [59, 17],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "TintScreen", "", [50, 50, 50, 100, 5, 1]],
+            [0, "Teleport", "", [264, 1, 8]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ChangeEventLocation", "", [4, 0, 1, 33]],
+            [0, "ChangeEventLocation", "", [5, 0, 1, 33]],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 34, 5, 101, 109, 105, 108, 121, 4, 1]],
+            [0, "MoveEvent", "", [5, 8, 0, 0, 36, 2, 1, 37, 12]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's getting dark - we should look for a", []],
+            [0, "ShowMessage_2", "safe place to wait out the night.", []],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "Everything is so overgrown. Surl would", []],
+            [0, "ShowMessage_2", "almost be a nice place to live, if it wasn't", []],
+            [0, "ShowMessage_2", "for what happened here so long ago.", []],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I'm trying not to think about it - it's", []],
+            [0, "ShowMessage_2", "only going to get worse as it gets darker.", []],
+            [0, "Wait", "", [8]],
+            [0, "MoveEvent", "", [5, 8, 0, 0, 13]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ShowMessage", "KERSH", []],
+            [0, "ShowMessage_2", "Darrrker...", []],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 36, 3, 37, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Let's go, Kersh. We're wasting time.", []],
+            [0, "MoveEvent", "", [5, 8, 0, 0, 36, 0, 13, 23, 23, 3, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0, 37]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ChangeEventLocation", "", [4, 0, 59, 0]],
+            [0, "ChangeEventLocation", "", [5, 0, 59, 1]],
+            [0, "ControlSwitches", "", [0, 665, 665, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 665
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Emily",
+      "at": [59, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Kersh",
+      "at": [59, 1],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "EV0006",
+      "at": [59, 18],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "TintScreen", "", [50, 50, 50, 100, 5, 1]],
+            [0, "Teleport", "", [264, 1, 8]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "Ruin1.1",
+      "at": [0, 22],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 768, 768, 0]],
+            [0, "ChangeItems", "", [0, 0, 342, 0, 1]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Torn Cloth Shirt-B", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 768
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "Ruin1.2",
+      "at": [20, 17],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 769, 769, 0]],
+            [0, "ChangeItems", "", [0, 0, 339, 0, 1]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Melted Plastic Toy", []],
+            [0, "Wait", "", [2]],
+            [0, "PlaySound", "Dark5", [100, 100, 50]],
+            [0, "ChangeSkills", "", [1, 32, 0, 0, 294]],
+            [0, "ShowMessage", "KERSH has been subjected", []],
+            [0, "ShowMessage_2", "to MEMORIES OF SORROW!", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 769
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "Ruin1.3",
+      "at": [22, 34],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 770, 770, 0]],
+            [0, "ChangeItems", "", [0, 0, 340, 0, 1]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Broken Field Device", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 770
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "Ruin1.4",
+      "at": [10, 5],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 771, 771, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "There's nothing inside.", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 771
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "Ruin1.5",
+      "at": [46, 30],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 772, 772, 0]],
+            [0, "ChangeItems", "", [0, 0, 124, 0, 3]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Bag of Chips-HP x3", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 772
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "Ruin1.6",
+      "at": [34, 6],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 773, 773, 0]],
+            [0, "ChangeItems", "", [0, 0, 346, 0, 1]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Cracked Helmet-H", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 773
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "Ruin1.7",
+      "at": [50, 12],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 774, 774, 0]],
+            [0, "ChangeGold", "", [0, 0, 445]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       445 credits", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 774
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "name": "Ruin1.8",
+      "at": [50, 28],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 775, 775, 0]],
+            [0, "ChangeItems", "", [0, 0, 341, 0, 1]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Contaminated Battery", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 775
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "name": "AfterBattleMint",
+      "at": [58, 0],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 498
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "CallEvent", "", [0, 35, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "name": "EV0016",
+      "at": [0, 34],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [210, 8, 32]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "name": "EV0017",
+      "at": [59, 34],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 811
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "CallEvent", "", [0, 47, 0]],
+            [0, "ControlSwitches", "", [0, 811, 811, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "name": "RadinBox.21",
+      "at": [8, 11],
+      "pages": [
+        {
+          "conditions": {
+            "switch_b": 386
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 999, 999, 0]],
+            [0, "ChangeItems", "", [0, 0, 313, 0, 2]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Gray Bark x2", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 999,
+            "switch_b": 386
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "name": "RadinBox.22",
+      "at": [12, 33],
+      "pages": [
+        {
+          "conditions": {
+            "switch_b": 386
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 1000, 1000, 0]],
+            [0, "ChangeItems", "", [0, 0, 310, 0, 3]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Red Berries x3", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 1000,
+            "switch_b": 386
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "name": "RadinBox.23",
+      "at": [41, 18],
+      "pages": [
+        {
+          "conditions": {
+            "switch_b": 386
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 1001, 1001, 0]],
+            [0, "ChangeItems", "", [0, 0, 310, 0, 3]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Red Berries x3", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 1001,
+            "switch_b": 386
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "name": "RadinBox.24",
+      "at": [52, 22],
+      "pages": [
+        {
+          "conditions": {
+            "switch_b": 386
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 1002, 1002, 0]],
+            [0, "ChangeItems", "", [0, 0, 310, 0, 3]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Red Berries x3", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 1002,
+            "switch_b": 386
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    }
+  ]
+}

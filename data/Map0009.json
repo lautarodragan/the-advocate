@@ -1,0 +1,1309 @@
+{
+  "id": 9,
+  "name": "Lashe City 33,36",
+  "size": [75, 75],
+  "chipset": [9, "BLchp1"],
+  "tiles": "Map0009.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [54, 38],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Crown7",
+            "index": 3,
+            "direction": "right",
+            "pattern": "right"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous",
+          "translucent": true
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [60, 38],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Crown7",
+            "index": 3,
+            "direction": "right",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous",
+          "translucent": true
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [74, 47],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "PlayBGM", "hzstream", [0, 100, 100, 50]],
+            [0, "Teleport", "", [8, 1, 15]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [64, 49],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 24
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 3, 3, 3, 3]],
+            [0, "FadeOutBGM", "", [1000]],
+            [0, "Wait", "", [10]],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "PlayBGM", "cd4", [0, 100, 100, 50]],
+            [0, "ShowMessage", "VOICE", []],
+            [0, "ShowMessage_2", "Freeze! Come any closer and you're toast!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 24, 25]],
+            [0, "Wait", "", [5]],
+            [0, "MoveEvent", "", [5, 8, 0, 0, 1, 1, 1, 1, 1]],
+            [0, "MoveEvent", "", [6, 8, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2]],
+            [0, "MoveEvent", "", [7, 8, 0, 0, 2, 2, 2, 2, 13]],
+            [0, "MoveEvent", "", [8, 8, 0, 0, 1, 1, 1, 1, 14, 23, 2, 2, 2, 2, 13]],
+            [0, "Wait", "", [15]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Listen, I don't want any trouble, I just", []],
+            [0, "ShowMessage_2", "need to get to Sector 30...", []],
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "You can't come through here. This sector", []],
+            [0, "ShowMessage_2", "belongs to the Lazer Teeth!", []],
+            [0, "ShowMessage", "ALL", []],
+            [0, "ShowMessage_2", "Lazer, Lazer Teeth! zzzZZZAAAPPP!!!", []],
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "You have been warned. Come through here", []],
+            [0, "ShowMessage_2", "again and we'll defend our turf.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 1, 1, 1, 1, 1]],
+            [0, "ControlSwitches", "", [0, 34, 34, 0]],
+            [0, "FadeOutBGM", "", [1000]],
+            [0, "Wait", "", [6]],
+            [0, "Teleport", "", [8, 1, 15]],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "PlayBGM", "hzstream", [0, 100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 33, 33, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Well, now what? Maybe I should take", []],
+            [0, "ShowMessage_2", "a Hover-Tram after all...", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 24,
+            "switch_b": 34
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "FadeOutBGM", "", [1000]],
+            [0, "Wait", "", [10]],
+            [0, "PlayBGM", "cd4", [0, 100, 100, 50]],
+            [0, "PanScreen", "", [2, 3, 4, 4, 1]],
+            [0, "MoveEvent", "", [5, 8, 0, 0, 1, 1, 1, 1, 1]],
+            [0, "MoveEvent", "", [6, 8, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2]],
+            [0, "MoveEvent", "", [7, 8, 0, 0, 2, 2, 2, 2, 13]],
+            [0, "MoveEvent", "", [8, 8, 0, 0, 1, 1, 1, 1, 14, 23, 2, 2, 2, 2, 13]],
+            [0, "Wait", "", [15]],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "Back again? You must be a spy for the", []],
+            [0, "ShowMessage_2", "Neon Vipers! Now you'll pay...", []],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "PanScreen", "", [2, 1, 4, 4, 1]],
+            [0, "EnemyEncounter", "ABLBackdropSJ03", [0, 86, 1, 2, 1, 0]],
+            [0, "VictoryHandler", "", []],
+            [1, "ShowMessage", "GANG MEMBERS", []],
+            [1, "ShowMessage_2", "You'll never get the Idol!", []],
+            [1, "ChangeEventLocation", "", [5, 0, 72, 74]],
+            [1, "ChangeEventLocation", "", [6, 0, 68, 74]],
+            [1, "ChangeEventLocation", "", [7, 0, 64, 74]],
+            [1, "ChangeEventLocation", "", [8, 0, 73, 74]],
+            [1, "ConditionalBranch", "", [0, 37, 1, 0, 0, 1]],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "Idol? What Idol?", []],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "MessageOptions", "", [1, 1, 0, 0]],
+            [1, "PlaySound", "Failure2", [100, 100, 50]],
+            [1, "ShowMessage", "TALAN made an ENEMY: the Lazer Teeth!", []],
+            [1, "ControlSwitches", "", [0, 35, 35, 0]],
+            [1, "MessageOptions", "", [0, 0, 0, 0]],
+            [1, "END", "", []],
+            [0, "EscapeHandler", "", []],
+            [1, "FullHeal", "", [0, 0]],
+            [1, "PlayBGM", "cd4", [0, 100, 100, 50]],
+            [1, "ShowMessage", "GANG MEMBER", []],
+            [1, "ShowMessage_2", "You should have known better than to mess", []],
+            [1, "ShowMessage_2", "with...", []],
+            [1, "ShowMessage", "ALL", []],
+            [1, "ShowMessage_2", "The Lazer, Lazer Teeth! zzzZZZAAAPPP!!!", []],
+            [1, "ShowMessage", "GANG MEMBER", []],
+            [1, "ShowMessage_2", "Grab him! We've got ourselves a", []],
+            [1, "ShowMessage_2", "prisoner!", []],
+            [1, "MoveEvent", "", [5, 8, 0, 0, 9, 9, 9, 9, 9]],
+            [1, "Wait", "", [6]],
+            [1, "ShowMessage", "GANG MEMBER", []],
+            [1, "ShowMessage_2", "Probably here to steal the Idol.", []],
+            [1, "ConditionalBranch", "", [0, 37, 1, 0, 0, 1]],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "Idol? What Idol?", []],
+            [2, "ShowMessage", "GANG MEMBER", []],
+            [2, "ShowMessage_2", "Ha! Don't play dumb with us!", []],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "... ... ...", []],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "MessageOptions", "", [1, 1, 0, 0]],
+            [1, "PlaySound", "Failure2", [100, 100, 50]],
+            [1, "ShowMessage", "TALAN made an ENEMY: the Lazer Teeth!", []],
+            [1, "ControlSwitches", "", [0, 35, 35, 0]],
+            [1, "MessageOptions", "", [0, 0, 0, 0]],
+            [1, "ChangeHP", "", [0, 0, 0, 0, 1, 0]],
+            [1, "Teleport", "", [11, 26, 47]],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "At least there's no door on this cell.", []],
+            [1, "ShowMessage_2", "I might still be able to break out", []],
+            [1, "ShowMessage_2", "and not get to work TOO late.", []],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "Too bad there's a guard beyond", []],
+            [1, "ShowMessage_2", "that door - I doubt I could make", []],
+            [1, "ShowMessage_2", "a run for it.", []],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "<sigh>", []],
+            [1, "END", "", []],
+            [0, "DefeatHandler", "", []],
+            [1, "FullHeal", "", [0, 0]],
+            [1, "PlayBGM", "cd4", [0, 100, 100, 50]],
+            [1, "ShowMessage", "GANG MEMBER", []],
+            [1, "ShowMessage_2", "You should have known better than to mess", []],
+            [1, "ShowMessage_2", "with...", []],
+            [1, "ShowMessage", "ALL", []],
+            [1, "ShowMessage_2", "The Lazer, Lazer Teeth! zzzZZZAAAPPP!!!", []],
+            [1, "ShowMessage", "GANG MEMBER", []],
+            [1, "ShowMessage_2", "Grab him! We've got ourselves a", []],
+            [1, "ShowMessage_2", "prisoner!", []],
+            [1, "MoveEvent", "", [5, 8, 0, 0, 9, 9, 9, 9, 9]],
+            [1, "Wait", "", [6]],
+            [1, "ShowMessage", "GANG MEMBER", []],
+            [1, "ShowMessage_2", "Probably here to steal the Idol.", []],
+            [1, "ConditionalBranch", "", [0, 37, 1, 0, 0, 1]],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "Idol? What Idol?", []],
+            [2, "ShowMessage", "GANG MEMBER", []],
+            [2, "ShowMessage_2", "Ha! Don't play dumb with us!", []],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "... ... ...", []],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "MessageOptions", "", [1, 1, 0, 0]],
+            [1, "PlaySound", "Failure2", [100, 100, 50]],
+            [1, "ShowMessage", "TALAN made an ENEMY: the Lazer Teeth!", []],
+            [1, "ControlSwitches", "", [0, 35, 35, 0]],
+            [1, "MessageOptions", "", [0, 0, 0, 0]],
+            [1, "ChangeHP", "", [0, 0, 0, 0, 1, 0]],
+            [1, "Teleport", "", [11, 26, 47]],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "At least there's no door on this cell.", []],
+            [1, "ShowMessage_2", "I might still be able to break out", []],
+            [1, "ShowMessage_2", "and not get to work TOO late.", []],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "Too bad there's a guard beyond", []],
+            [1, "ShowMessage_2", "that door - I doubt I could make", []],
+            [1, "ShowMessage_2", "a run for it.", []],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "<sigh>", []],
+            [1, "END", "", []],
+            [0, "EndBattle", "", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 24,
+            "switch_b": 35
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched"
+        },
+        {
+          "conditions": {
+            "switch_a": 38
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "FadeOutBGM", "", [1000]],
+            [0, "Wait", "", [10]],
+            [0, "PlayBGM", "cd4", [0, 100, 100, 50]],
+            [0, "PanScreen", "", [2, 3, 4, 4, 1]],
+            [0, "MoveEvent", "", [5, 8, 0, 0, 1, 1, 1, 1, 1]],
+            [0, "MoveEvent", "", [6, 8, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2]],
+            [0, "MoveEvent", "", [7, 8, 0, 0, 2, 2, 2, 2, 13]],
+            [0, "MoveEvent", "", [8, 8, 0, 0, 1, 1, 1, 1, 14, 23, 2, 2, 2, 2, 13]],
+            [0, "Wait", "", [15]],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ConditionalBranch", "", [0, 34, 0, 0, 0, 1]],
+            [1, "ShowMessage", "GANG MEMBER", []],
+            [1, "ShowMessage_2", "Back again? You must be a spy for the", []],
+            [1, "ShowMessage_2", "Neon Vipers! Now you'll pay...", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "ShowMessage", "GANG MEMBER", []],
+            [1, "ShowMessage_2", "Looks like we've got an intruder!", []],
+            [1, "ShowMessage_2", "Let's rough him up!", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "PanScreen", "", [2, 1, 4, 4, 1]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Wait!", []],
+            [0, "ShowMessage", "Tell them about the Neon Viper Spy?", []],
+            [0, "ShowChoice", "There's a spy among you!/Uh... nevermind.", [2]],
+            [0, "ShowChoiceOption", "There's a spy among you!", [0]],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "One of you is a spy for the Neon", []],
+            [1, "ShowMessage_2", "Vipers! I overheard them talking!", []],
+            [1, "ShowMessage", "GANG MEMBER", []],
+            [1, "ShowMessage_2", "What? Hmmm... interesting.", []],
+            [1, "MoveEvent", "", [5, 8, 0, 0, 12]],
+            [1, "Wait", "", [5]],
+            [1, "ShowMessage", "GANG MEMBER", []],
+            [1, "ShowMessage_2", "Arden, why don't you tell this gentleman", []],
+            [1, "ShowMessage_2", "who the newest member of the Lazer", []],
+            [1, "ShowMessage_2", "Teeth is?", []],
+            [1, "MoveEvent", "", [8, 8, 0, 0, 14]],
+            [1, "Wait", "", [5]],
+            [1, "ShowMessage", "ARDEN", []],
+            [1, "ShowMessage_2", "Well, it's me... but... um...", []],
+            [1, "ShowMessage", "GANG MEMBER", []],
+            [1, "ShowMessage_2", "That's right. It's you.", []],
+            [1, "ShowMessage", "ARDEN", []],
+            [1, "ShowMessage_2", "You're not suggesting... you can't", []],
+            [1, "ShowMessage_2", "be...", []],
+            [1, "ShowMessage", "GANG MEMBER", []],
+            [1, "ShowMessage_2", "<grins>", []],
+            [1, "MoveEvent", "", [8, 8, 0, 0, 12, 23, 15, 23, 2]],
+            [1, "Wait", "", [10]],
+            [1, "PlaySound", "Jump1", [100, 100, 50]],
+            [1, "MoveEvent", "", [8, 8, 0, 0, 34, 6, 67, 104, 97, 114, 97, 50, 0, 23]],
+            [1, "ShowBattleAnimation", "", [132, 8, 1, 0]],
+            [1, "Wait", "", [7]],
+            [1, "ShowMessage", "ARDEN", []],
+            [1, "ShowMessage_2", "That's right! I am a spy for the Neon", []],
+            [1, "ShowMessage_2", "Vipers - the TRUE owners of these", []],
+            [1, "ShowMessage_2", "streets!", []],
+            [1, "ShowMessage", "GANG MEMBERS", []],
+            [1, "ShowMessage_2", "Traitor! Imposter!", []],
+            [1, "MoveEvent", "", [8, 8, 0, 0, 2, 1]],
+            [1, "ShowMessage", "ARDEN", []],
+            [1, "ShowMessage_2", "I won't forget this, newcomer! The Neon", []],
+            [1, "ShowMessage_2", "Vipers have LOOONG memories!", []],
+            [1, "MoveEvent", "", [8, 8, 0, 0, 36, 28, 28, 1, 1, 1, 1, 1, 24, 1, 1, 1, 25, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 29, 29, 37]],
+            [1, "Wait", "", [14]],
+            [1, "ChangeEventLocation", "", [8, 0, 68, 21]],
+            [1, "MoveEvent", "", [8, 8, 0, 0, 34, 6, 67, 104, 97, 114, 97, 51, 6, 23]],
+            [1, "MessageOptions", "", [1, 1, 0, 0]],
+            [1, "PlaySound", "Failure2", [100, 100, 50]],
+            [1, "ShowMessage", "TALAN made an ENEMY: the Neon Vipers!", []],
+            [1, "ControlSwitches", "", [0, 55, 55, 0]],
+            [1, "MessageOptions", "", [0, 0, 0, 0]],
+            [1, "ShowMessage", "GANG MEMBER", []],
+            [1, "ShowMessage_2", "We won't forget this, either. From now", []],
+            [1, "ShowMessage_2", "on, consider yourself a friend of the", []],
+            [1, "ShowMessage_2", "Lazer Teeth.", []],
+            [1, "MessageOptions", "", [1, 1, 0, 0]],
+            [1, "PlaySound", "Success2", [100, 100, 50]],
+            [1, "ShowMessage", "TALAN made an ALLY: the Lazer Teeth!", []],
+            [1, "ControlSwitches", "", [0, 56, 56, 0]],
+            [1, "ControlSwitches", "", [0, 54, 54, 1]],
+            [1, "MessageOptions", "", [0, 0, 0, 0]],
+            [1, "ShowMessage", "GANG MEMBER", []],
+            [1, "ShowMessage_2", "You may freely pass through this", []],
+            [1, "ShowMessage_2", "Sector.", []],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "Thanks a lot!", []],
+            [1, "END", "", []],
+            [0, "ShowChoiceOption", "Uh... nevermind.", [1]],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "Uh... nevermind. I didn't say anything.", []],
+            [1, "ShowMessage", "GANG MEMBER", []],
+            [1, "ShowMessage_2", "Those were some lame last words,", []],
+            [1, "ShowMessage_2", "friend!", []],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "Aaaaagh!", []],
+            [1, "MessageOptions", "", [0, 0, 0, 0]],
+            [1, "EnemyEncounter", "ABLBackdropSJ03", [0, 86, 1, 2, 1, 0]],
+            [1, "VictoryHandler", "", []],
+            [2, "ShowMessage", "GANG MEMBERS", []],
+            [2, "ShowMessage_2", "You'll never get the Idol!", []],
+            [2, "ChangeEventLocation", "", [5, 0, 72, 74]],
+            [2, "ChangeEventLocation", "", [6, 0, 68, 74]],
+            [2, "ChangeEventLocation", "", [7, 0, 64, 74]],
+            [2, "ChangeEventLocation", "", [8, 0, 73, 74]],
+            [2, "ConditionalBranch", "", [0, 37, 1, 0, 0, 1]],
+            [3, "ShowMessage", "TALAN", []],
+            [3, "ShowMessage_2", "Idol? What Idol?", []],
+            [3, "END", "", []],
+            [2, "ElseBranch", "", []],
+            [3, "END", "", []],
+            [2, "EndBranch", "", []],
+            [2, "MessageOptions", "", [1, 1, 0, 0]],
+            [2, "PlaySound", "Failure2", [100, 100, 50]],
+            [2, "ShowMessage", "TALAN made an ENEMY: the Lazer Teeth!", []],
+            [2, "ControlSwitches", "", [0, 56, 56, 1]],
+            [2, "ControlSwitches", "", [0, 35, 35, 0]],
+            [2, "MessageOptions", "", [0, 0, 0, 0]],
+            [2, "END", "", []],
+            [1, "EscapeHandler", "", []],
+            [2, "ChangeHP", "", [0, 0, 0, 0, 1, 0]],
+            [2, "PlayBGM", "cd4", [0, 100, 100, 50]],
+            [2, "ShowMessage", "GANG MEMBER", []],
+            [2, "ShowMessage_2", "You should have known better than to mess", []],
+            [2, "ShowMessage_2", "with...", []],
+            [2, "ShowMessage", "ALL", []],
+            [2, "ShowMessage_2", "The Lazer, Lazer Teeth! zzzZZZAAAPPP!!!", []],
+            [2, "ShowMessage", "GANG MEMBER", []],
+            [2, "ShowMessage_2", "Grab him! We've got ourselves a", []],
+            [2, "ShowMessage_2", "prisoner!", []],
+            [2, "MoveEvent", "", [5, 8, 0, 0, 9, 9, 9, 9, 9]],
+            [2, "Wait", "", [6]],
+            [2, "ShowMessage", "GANG MEMBER", []],
+            [2, "ShowMessage_2", "Probably here to steal the Idol.", []],
+            [2, "ConditionalBranch", "", [0, 37, 1, 0, 0, 1]],
+            [3, "ShowMessage", "TALAN", []],
+            [3, "ShowMessage_2", "Idol? What Idol?", []],
+            [3, "ShowMessage", "GANG MEMBER", []],
+            [3, "ShowMessage_2", "Ha! Don't play dumb with us!", []],
+            [3, "ShowMessage", "TALAN", []],
+            [3, "ShowMessage_2", "... ... ...", []],
+            [3, "END", "", []],
+            [2, "ElseBranch", "", []],
+            [3, "END", "", []],
+            [2, "EndBranch", "", []],
+            [2, "MessageOptions", "", [1, 1, 0, 0]],
+            [2, "PlaySound", "Failure2", [100, 100, 50]],
+            [2, "ShowMessage", "TALAN made an ENEMY: the Lazer Teeth!", []],
+            [2, "ControlSwitches", "", [0, 56, 56, 1]],
+            [2, "ControlSwitches", "", [0, 35, 35, 0]],
+            [2, "MessageOptions", "", [0, 0, 0, 0]],
+            [2, "ChangeHP", "", [0, 0, 0, 0, 1, 0]],
+            [2, "Teleport", "", [11, 26, 47]],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "At least there's no door on this cell.", []],
+            [2, "ShowMessage_2", "I might still be able to break out", []],
+            [2, "ShowMessage_2", "and not get to work TOO late.", []],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "Too bad there's a guard beyond", []],
+            [2, "ShowMessage_2", "that door - I doubt I could make", []],
+            [2, "ShowMessage_2", "a run for it.", []],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "<sigh>", []],
+            [2, "END", "", []],
+            [1, "DefeatHandler", "", []],
+            [2, "ChangeHP", "", [0, 0, 0, 0, 1, 0]],
+            [2, "PlayBGM", "cd4", [0, 100, 100, 50]],
+            [2, "ShowMessage", "GANG MEMBER", []],
+            [2, "ShowMessage_2", "You should have known better than to mess", []],
+            [2, "ShowMessage_2", "with...", []],
+            [2, "ShowMessage", "ALL", []],
+            [2, "ShowMessage_2", "The Lazer, Lazer Teeth! zzzZZZAAAPPP!!!", []],
+            [2, "ShowMessage", "GANG MEMBER", []],
+            [2, "ShowMessage_2", "Grab him! We've got ourselves a", []],
+            [2, "ShowMessage_2", "prisoner!", []],
+            [2, "MoveEvent", "", [5, 8, 0, 0, 9, 9, 9, 9, 9]],
+            [2, "Wait", "", [6]],
+            [2, "ShowMessage", "GANG MEMBER", []],
+            [2, "ShowMessage_2", "Probably here to steal the Idol.", []],
+            [2, "ConditionalBranch", "", [0, 37, 1, 0, 0, 1]],
+            [3, "ShowMessage", "TALAN", []],
+            [3, "ShowMessage_2", "Idol? What Idol?", []],
+            [3, "ShowMessage", "GANG MEMBER", []],
+            [3, "ShowMessage_2", "Ha! Don't play dumb with us!", []],
+            [3, "ShowMessage", "TALAN", []],
+            [3, "ShowMessage_2", "... ... ...", []],
+            [3, "END", "", []],
+            [2, "ElseBranch", "", []],
+            [3, "END", "", []],
+            [2, "EndBranch", "", []],
+            [2, "MessageOptions", "", [1, 1, 0, 0]],
+            [2, "PlaySound", "Failure2", [100, 100, 50]],
+            [2, "ShowMessage", "TALAN made an ENEMY: the Lazer Teeth!", []],
+            [2, "ControlSwitches", "", [0, 56, 56, 1]],
+            [2, "ControlSwitches", "", [0, 35, 35, 0]],
+            [2, "MessageOptions", "", [0, 0, 0, 0]],
+            [2, "ChangeHP", "", [0, 0, 0, 0, 1, 0]],
+            [2, "Teleport", "", [11, 26, 47]],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "At least there's no door on this cell.", []],
+            [2, "ShowMessage_2", "I might still be able to break out", []],
+            [2, "ShowMessage_2", "and not get to work TOO late.", []],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "Too bad there's a guard beyond", []],
+            [2, "ShowMessage_2", "that door - I doubt I could make", []],
+            [2, "ShowMessage_2", "a run for it.", []],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "<sigh>", []],
+            [2, "END", "", []],
+            [1, "EndBattle", "", []],
+            [1, "END", "", []],
+            [0, "ShowChoiceEnd", "", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 56
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "LTone",
+      "at": [52, 49],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara3",
+            "index": 6,
+            "direction": "right",
+            "pattern": "right"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "Actually, I didn't really know Arden was", []],
+            [0, "ShowMessage_2", "a spy. It was just a lucky guess!", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 35
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "LTtwo",
+      "at": [54, 41],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara3",
+            "index": 6,
+            "direction": "right",
+            "pattern": "right"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "I heard the Neon Vipers have their", []],
+            [0, "ShowMessage_2", "hideout in a junkyard. How appropriate!", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 35
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "LTthree",
+      "at": [54, 43],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara3",
+            "index": 6,
+            "direction": "down",
+            "pattern": "right"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "As long as we have the Idol of the", []],
+            [0, "ShowMessage_2", "Streets, we're Number One! The Vipers", []],
+            [0, "ShowMessage_2", "can't even touch us!", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 35
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "LTfour",
+      "at": [52, 42],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara3",
+            "index": 6,
+            "direction": "right",
+            "pattern": "right"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "Glad yer with us, man.", []],
+            [0, "ShowMessage_2", "Respect.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Uh... OK. Yeah, respect.", []],
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "Peace.", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 35
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "EV0009",
+      "at": [44, 37],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [11, 15, 50]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "EV0010",
+      "at": [47, 42],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 35
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 3, 3, 3, 12]],
+            [0, "Wait", "", [5]],
+            [0, "MoveEvent", "", [11, 8, 0, 0, 36, 28, 2, 2, 2, 2, 2, 2, 24, 2, 2, 2, 25, 15, 3, 29]],
+            [0, "MoveEvent", "", [12, 8, 0, 0, 36, 28, 2, 2, 2, 2, 2, 2, 24, 2, 2, 2, 25, 13, 1, 29]],
+            [0, "Wait", "", [12]],
+            [0, "ShowMessage", "GANG MEMBERS", []],
+            [0, "ShowMessage_2", "Now we've got you! You're coming with", []],
+            [0, "ShowMessage_2", "us, tough-guy!", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "But... I've got to get to work...", []],
+            [0, "ShowMessage", "GANG MEMBERS", []],
+            [0, "ShowMessage_2", "Poor widdle baby - now you work for US!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "Grab him! We've got ourselves a", []],
+            [0, "ShowMessage_2", "prisoner!", []],
+            [0, "Teleport", "", [11, 26, 47]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "At least there's no door on this cell.", []],
+            [0, "ShowMessage_2", "I might still be able to break out", []],
+            [0, "ShowMessage_2", "and not get to work TOO late.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Too bad there's a guard beyond", []],
+            [0, "ShowMessage_2", "that door - I doubt I could make", []],
+            [0, "ShowMessage_2", "a run for it.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "<sigh>", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "LTFive",
+      "at": [46, 33],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara3",
+            "index": 6,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "Sorry, I know you're a friend and", []],
+            [0, "ShowMessage_2", "everything, but we're sweeping the", []],
+            [0, "ShowMessage_2", "hideout to make sure the spy", []],
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "didn't leave any explosives or other", []],
+            [0, "ShowMessage_2", "nasty tricks behind. Come back", []],
+            [0, "ShowMessage_2", "some other time.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "LTSix",
+      "at": [42, 33],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara3",
+            "index": 6,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "Lashe City is a warzone, man. But", []],
+            [0, "ShowMessage_2", "the Lazer Teeth will be the victors!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "AutoIdolScene",
+      "at": [44, 32],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 53,
+            "switch_b": 74
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ChangeEventLocation", "", [11, 0, 46, 34]],
+            [0, "ChangeEventLocation", "", [12, 0, 42, 33]],
+            [0, "ChangeEventLocation", "", [5, 0, 41, 18]],
+            [0, "ChangeEventLocation", "", [6, 0, 41, 18]],
+            [0, "ChangeEventLocation", "", [7, 0, 41, 18]],
+            [0, "ChangeEventLocation", "", [8, 0, 41, 18]],
+            [0, "MoveEvent", "", [12, 8, 0, 0, 36, 28, 2, 2, 2, 2, 2, 2, 2, 24, 2, 2, 25, 13, 29, 37]],
+            [0, "Wait", "", [3]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2, 2, 2, 2, 23, 23, 15, 23, 23, 13, 23]],
+            [0, "MoveEvent", "", [11, 8, 0, 0, 36, 28, 2, 2, 2, 2, 2, 2, 24, 2, 2, 25, 15, 37]],
+            [0, "Wait", "", [12]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 1, 24, 1, 1, 1, 25, 1, 1]],
+            [0, "Wait", "", [6]],
+            [0, "MoveEvent", "", [11, 8, 0, 0, 13, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 13]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1]],
+            [0, "Wait", "", [20]],
+            [0, "Teleport", "", [8, 2, 15]],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Well, I got the Idol. Of course, now it'll", []],
+            [0, "ShowMessage_2", "be suicide to go back in Sector 33, but at", []],
+            [0, "ShowMessage_2", "least I got it.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Man, but this is an ugly thing. I wonder", []],
+            [0, "ShowMessage_2", "how much it's worth?", []],
+            [0, "ConditionalBranch", "", [0, 37, 0, 0, 0, 1]],
+            [1, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [1, "Wait", "", [5]],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "Well, it doesn't matter. I've got to bring", []],
+            [1, "ShowMessage_2", "this back to the Neon Vipers.", []],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "Yeah. That's it.", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [1, "Wait", "", [5]],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "I can't just hold onto this thing. I've got", []],
+            [1, "ShowMessage_2", "to ditch it somewhere.", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ControlSwitches", "", [0, 74, 74, 1]],
+            [0, "PlayBGM", "hzstream", [0, 100, 100, 50]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "name": "EV0014",
+      "at": [65, 27],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 56
+          },
+          "tile": 45,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ChangeEventLocation", "", [5, 0, 57, 49]],
+            [0, "ChangeEventLocation", "", [6, 0, 58, 42]],
+            [0, "ChangeEventLocation", "", [7, 0, 25, 41]],
+            [0, "ChangeEventLocation", "", [8, 0, 33, 48]],
+            [0, "ChangeEventLocation", "", [11, 0, 44, 38]],
+            [0, "ChangeEventLocation", "", [12, 0, 20, 36]],
+            [0, "ControlSwitches", "", [0, 57, 57, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 57
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start"
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "name": "EV0015",
+      "at": [37, 41],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "There's nothing in the grate.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "name": "EV0016",
+      "at": [17, 35],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "There's nothing in the grate.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "name": "EV0017",
+      "at": [28, 49],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "There's nothing in the grate.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "name": "EV0018",
+      "at": [74, 12],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "above",
+          "trigger": "parallel",
+          "script": [
+            [0, "Wait", "", [50]],
+            [0, "ChangeEventLocation", "", [21, 0, 0, 13]],
+            [0, "Wait", "", [50]],
+            [0, "ChangeEventLocation", "", [21, 0, 0, 11]],
+            [0, "Wait", "", [50]],
+            [0, "ChangeEventLocation", "", [21, 0, 0, 12]],
+            [0, "Wait", "", [50]],
+            [0, "ChangeEventLocation", "", [21, 0, 0, 14]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "name": "EV0019",
+      "at": [74, 13],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "above",
+          "trigger": "parallel",
+          "script": [
+            [0, "Wait", "", [30]],
+            [0, "ChangeEventLocation", "", [20, 0, 0, 11]],
+            [0, "Wait", "", [50]],
+            [0, "ChangeEventLocation", "", [20, 0, 0, 14]],
+            [0, "Wait", "", [50]],
+            [0, "ChangeEventLocation", "", [20, 0, 0, 13]],
+            [0, "Wait", "", [50]],
+            [0, "ChangeEventLocation", "", [20, 0, 0, 12]],
+            [0, "Wait", "", [20]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "name": "Car2",
+      "at": [14, 71],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLVehicles",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "parallel",
+          "script": [
+            [0, "MoveEvent", "", [3, 8, 0, 0, 14, 26]],
+            [0, "MoveEvent", "", [10005, 8, 1, 0, 14, 26, 36, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "name": "Car1",
+      "at": [0, 12],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLVehicles",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "parallel",
+          "script": [
+            [0, "MoveEvent", "", [10005, 8, 1, 0, 36, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "name": "EV0022",
+      "at": [0, 7],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [8, 73, 56]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "name": "EV0023",
+      "at": [0, 8],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [8, 73, 57]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 24,
+      "name": "EV0024",
+      "at": [0, 9],
+      "pages": [
+        {
+          "tile": 52,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "MessageOptions", "", [1, 0, 0, 0]],
+            [0, "ShowMessage", "<--- To Sector 35", []],
+            [0, "MessageOptions", "", [0, 0, 0, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 25,
+      "name": "Tram Officer",
+      "at": [24, 7],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 24
+          },
+          "sprite": {
+            "charset": "Future1",
+            "index": 7,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_non_continuous",
+          "script": [
+            [0, "ShowMessage", "TRAM OFFICER", []],
+            [0, "ShowMessage_2", "The next Hover-Tram isn't here yet.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Do you know when it'll get here? I'm", []],
+            [0, "ShowMessage_2", "in a bit of a hurry, and -", []],
+            [0, "ShowMessage", "TRAM OFFICER", []],
+            [0, "ShowMessage_2", "Nope. You could try waiting though.", []],
+            [0, "ShowMessage", "How long would you like to wait?", []],
+            [0, "ShowChoice", "1 minute/2 minutes/5 minutes/Don't wait at all", [4]],
+            [0, "ShowChoiceOption", "1 minute", [0]],
+            [1, "PlayBGM", "C3classi", [0, 100, 100, 50]],
+            [1, "MoveEvent", "", [10001, 8, 0, 0, 28, 3, 3, 3, 3, 3, 2, 1, 1, 1, 1, 1, 3, 3, 3, 3, 3, 0, 1, 1, 1, 1, 1, 29]],
+            [1, "MoveEvent", "", [10001, 8, 0, 0, 28, 3, 3, 3, 3, 3, 2, 1, 1, 1, 1, 1, 3, 3, 3, 3, 3, 0, 1, 1, 1, 1, 1, 29]],
+            [1, "Wait", "", [15]],
+            [1, "ControlVars", "", [0, 17, 17, 0, 7, 1, 0]],
+            [1, "ControlVars", "", [0, 17, 17, 2, 0, 60, 0]],
+            [1, "TimerOperation", "", [0, 1, 17, 0, 0]],
+            [1, "ConditionalBranch", "", [0, 68, 1, 0, 0, 1]],
+            [2, "ConditionalBranch", "", [1, 17, 0, 1, 2, 1]],
+            [3, "ControlSwitches", "", [0, 67, 67, 1]],
+            [3, "TimerOperation", "", [2, 0, 0, 0, 0]],
+            [3, "ShowMessage", "TALAN", []],
+            [3, "ShowMessage_2", "Well... it's official. I'm late.", []],
+            [3, "ShowMessage", "TALAN", []],
+            [3, "ShowMessage_2", "Maybe if I get there soon I can keep", []],
+            [3, "ShowMessage_2", "my job... <sigh>", []],
+            [3, "ControlSwitches", "", [0, 68, 68, 0]],
+            [3, "END", "", []],
+            [2, "ElseBranch", "", []],
+            [3, "END", "", []],
+            [2, "EndBranch", "", []],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "ControlVars", "", [0, 21, 21, 0, 3, 0, 100]],
+            [1, "PlayBGM", "hzstream", [0, 100, 100, 50]],
+            [1, "ConditionalBranch", "", [1, 21, 0, 90, 1, 1]],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "It's here!", []],
+            [2, "CallEvent", "", [1, 27, 1]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "No luck.", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ShowChoiceOption", "2 minutes", [1]],
+            [1, "PlayBGM", "C3classi", [0, 100, 100, 50]],
+            [1, "MoveEvent", "", [10001, 8, 0, 0, 28, 3, 3, 3, 3, 3, 2, 1, 1, 1, 1, 1, 3, 3, 3, 3, 3, 0, 1, 1, 1, 1, 1, 29]],
+            [1, "MoveEvent", "", [10001, 8, 0, 0, 28, 3, 3, 3, 3, 3, 2, 1, 1, 1, 1, 1, 3, 3, 3, 3, 3, 0, 1, 1, 1, 1, 1, 29]],
+            [1, "Wait", "", [15]],
+            [1, "MoveEvent", "", [10001, 8, 0, 0, 28, 3, 3, 3, 3, 3, 2, 1, 1, 1, 1, 1, 3, 3, 3, 3, 3, 0, 1, 1, 1, 1, 1, 29]],
+            [1, "MoveEvent", "", [10001, 8, 0, 0, 28, 3, 3, 3, 3, 3, 2, 1, 1, 1, 1, 1, 3, 3, 3, 3, 3, 0, 1, 1, 1, 1, 1, 29]],
+            [1, "Wait", "", [15]],
+            [1, "ControlVars", "", [0, 17, 17, 0, 7, 1, 0]],
+            [1, "ControlVars", "", [0, 17, 17, 2, 0, 120, 0]],
+            [1, "TimerOperation", "", [0, 1, 17, 0, 0]],
+            [1, "ConditionalBranch", "", [0, 68, 1, 0, 0, 1]],
+            [2, "ConditionalBranch", "", [1, 17, 0, 1, 2, 1]],
+            [3, "ControlSwitches", "", [0, 67, 67, 1]],
+            [3, "TimerOperation", "", [2, 0, 0, 0, 0]],
+            [3, "ShowMessage", "TALAN", []],
+            [3, "ShowMessage_2", "Well... it's official. I'm late.", []],
+            [3, "ShowMessage", "TALAN", []],
+            [3, "ShowMessage_2", "Maybe if I get there soon I can keep", []],
+            [3, "ShowMessage_2", "my job... <sigh>", []],
+            [3, "ControlSwitches", "", [0, 68, 68, 0]],
+            [3, "END", "", []],
+            [2, "ElseBranch", "", []],
+            [3, "END", "", []],
+            [2, "EndBranch", "", []],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "ControlVars", "", [0, 21, 21, 0, 3, 0, 100]],
+            [1, "PlayBGM", "hzstream", [0, 100, 100, 50]],
+            [1, "ConditionalBranch", "", [1, 21, 0, 80, 1, 1]],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "It's here!", []],
+            [2, "CallEvent", "", [1, 27, 1]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "No luck.", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ShowChoiceOption", "5 minutes", [2]],
+            [1, "PlayBGM", "C3classi", [0, 100, 100, 50]],
+            [1, "MoveEvent", "", [10001, 8, 0, 0, 28, 3, 3, 3, 3, 3, 2, 1, 1, 1, 1, 1, 3, 3, 3, 3, 3, 0, 1, 1, 1, 1, 1, 29]],
+            [1, "MoveEvent", "", [10001, 8, 0, 0, 28, 3, 3, 3, 3, 3, 2, 1, 1, 1, 1, 1, 3, 3, 3, 3, 3, 0, 1, 1, 1, 1, 1, 29]],
+            [1, "Wait", "", [15]],
+            [1, "MoveEvent", "", [10001, 8, 0, 0, 28, 3, 3, 3, 3, 3, 2, 1, 1, 1, 1, 1, 3, 3, 3, 3, 3, 0, 1, 1, 1, 1, 1, 29]],
+            [1, "MoveEvent", "", [10001, 8, 0, 0, 28, 3, 3, 3, 3, 3, 2, 1, 1, 1, 1, 1, 3, 3, 3, 3, 3, 0, 1, 1, 1, 1, 1, 29]],
+            [1, "Wait", "", [15]],
+            [1, "MoveEvent", "", [10001, 8, 0, 0, 28, 3, 3, 3, 3, 3, 2, 1, 1, 1, 1, 1, 3, 3, 3, 3, 3, 0, 1, 1, 1, 1, 1, 29]],
+            [1, "MoveEvent", "", [10001, 8, 0, 0, 28, 3, 3, 3, 3, 3, 2, 1, 1, 1, 1, 1, 3, 3, 3, 3, 3, 0, 1, 1, 1, 1, 1, 29]],
+            [1, "Wait", "", [15]],
+            [1, "MoveEvent", "", [10001, 8, 0, 0, 28, 3, 3, 3, 3, 3, 2, 1, 1, 1, 1, 1, 3, 3, 3, 3, 3, 0, 1, 1, 1, 1, 1, 29]],
+            [1, "MoveEvent", "", [10001, 8, 0, 0, 28, 3, 3, 3, 3, 3, 2, 1, 1, 1, 1, 1, 3, 3, 3, 3, 3, 0, 1, 1, 1, 1, 1, 29]],
+            [1, "Wait", "", [15]],
+            [1, "ControlVars", "", [0, 17, 17, 0, 7, 1, 0]],
+            [1, "ControlVars", "", [0, 17, 17, 2, 0, 300, 0]],
+            [1, "TimerOperation", "", [0, 1, 17, 0, 0]],
+            [1, "ConditionalBranch", "", [0, 68, 1, 0, 0, 1]],
+            [2, "ConditionalBranch", "", [1, 17, 0, 1, 2, 1]],
+            [3, "ControlSwitches", "", [0, 67, 67, 1]],
+            [3, "TimerOperation", "", [2, 0, 0, 0, 0]],
+            [3, "ShowMessage", "TALAN", []],
+            [3, "ShowMessage_2", "Well... it's official. I'm late.", []],
+            [3, "ShowMessage", "TALAN", []],
+            [3, "ShowMessage_2", "Maybe if I get there soon I can keep", []],
+            [3, "ShowMessage_2", "my job... <sigh>", []],
+            [3, "ControlSwitches", "", [0, 68, 68, 0]],
+            [3, "END", "", []],
+            [2, "ElseBranch", "", []],
+            [3, "END", "", []],
+            [2, "EndBranch", "", []],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "ControlVars", "", [0, 21, 21, 0, 3, 0, 100]],
+            [1, "PlayBGM", "hzstream", [0, 100, 100, 50]],
+            [1, "ConditionalBranch", "", [1, 21, 0, 50, 1, 1]],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "It's here!", []],
+            [2, "CallEvent", "", [1, 27, 1]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "No luck.", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ShowChoiceOption", "Don't wait at all", [3]],
+            [1, "END", "", []],
+            [0, "ShowChoiceEnd", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 26,
+      "name": "EV0026",
+      "at": [25, 7],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 24
+          },
+          "tile": 53,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "MessageOptions", "", [1, 0, 0, 0]],
+            [0, "ShowMessage", "Speed-Commute Hover-Tram Co.", []],
+            [0, "ShowMessage_2", "   is NOT liable for damages resulting", []],
+            [0, "ShowMessage_2", "        from slow service.", []],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Blast.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "That's a major confidence booster.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 27,
+      "name": "Hover-Tram",
+      "at": [52, 5],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLVehicles",
+            "index": 2,
+            "direction": "left",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Teleport1", [100, 100, 50]],
+            [0, "ChangeEventLocation", "", [10005, 0, 30, 0]],
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 36, 2, 2, 2, 2, 2, 37]],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 34, 7, 70, 117, 116, 117, 114, 101, 50, 7]],
+            [0, "Wait", "", [10]],
+            [0, "PlaySound", "Recovery5", [100, 100, 50]],
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 36, 0, 0, 0, 0, 0]],
+            [0, "Wait", "", [10]],
+            [0, "ChangeEventLocation", "", [10005, 0, 52, 5]],
+            [0, "Teleport", "", [13, 2, 7]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 34, 7, 70, 117, 116, 117, 114, 101, 49, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 28,
+      "name": "EV0028",
+      "at": [6, 36],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [16, 53, 7]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 29,
+      "name": "EV0029",
+      "at": [6, 37],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [16, 53, 7]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 30,
+      "name": "UpsetWorker",
+      "at": [13, 7],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future2",
+            "index": 5,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "UPSET WORKER", []],
+            [0, "ShowMessage_2", "I don't believe this! I missed the Hover", []],
+            [0, "ShowMessage_2", "Tram AGAIN!", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Maybe there'll be another one along", []],
+            [0, "ShowMessage_2", "really soon... at least, I hope there will!", []],
+            [0, "ShowMessage", "UPSET WORKER", []],
+            [0, "ShowMessage_2", "I'm in enough trouble with my boss", []],
+            [0, "ShowMessage_2", "as it is - being late again isn't going", []],
+            [0, "ShowMessage_2", "to help matters.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "<gulp>", []],
+            [0, "ControlSwitches", "", [0, 235, 235, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 235
+          },
+          "sprite": {
+            "charset": "Future2",
+            "index": 5,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 24, 25]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "UPSET WORKER", []],
+            [0, "ShowMessage_2", "C'mon, Hover Tram! C'mon!", []]
+          ]
+        }
+      ]
+    }
+  ]
+}

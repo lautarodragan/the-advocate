@@ -1,0 +1,101 @@
+{
+  "id": 134,
+  "name": "Room2",
+  "size": [20, 15],
+  "chipset": [25, "sd3_castle_inside_2"],
+  "tiles": "Map0134.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [7, 12],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [130, 15, 29]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "KeyChest",
+      "at": [10, 5],
+      "pages": [
+        {
+          "conditions": {
+            "variable": [123, "greater_equal", 8]
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_continuous",
+          "script": [
+            [0, "PlaySound", "Open1", [70, 100, 50]],
+            [0, "ControlSwitches", "", [0, 411, 411, 0]],
+            [0, "PlaySound", "Item1", [70, 100, 50]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's the Theatre Ruins key!", []],
+            [0, "ChangeItems", "", [0, 0, 151, 0, 1]],
+            [0, "ShowBattleAnimation", "", [132, 2, 1, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "The treasure chest vanished!", []],
+            [0, "ControlVars", "", [0, 123, 123, 0, 0, 0, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 411
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_continuous",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "The chest is empty.", []]
+          ]
+        },
+        {
+          "conditions": {
+            "item": 151
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [0, 0],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 498
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "CallEvent", "", [0, 35, 0]]
+          ]
+        }
+      ]
+    }
+  ]
+}

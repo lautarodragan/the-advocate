@@ -1,0 +1,296 @@
+{
+  "id": 14,
+  "name": "NV Get Talan to Work",
+  "size": [75, 75],
+  "chipset": [9, "BLchp1"],
+  "tiles": "Map0014.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "LTLookout1",
+      "at": [50, 9],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara3",
+            "index": 6,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "SceneDriver",
+      "at": [49, 4],
+      "pages": [
+        {
+          "tile": 45,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "Wait", "", [35]],
+            [0, "ShowMessage", "LAZER TEETH LOOKOUT", []],
+            [0, "ShowMessage_2", "It's quiet - almost... too quiet...", []],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 13]],
+            [0, "PanScreen", "", [2, 1, 15, 4, 1]],
+            [0, "ChangeEventLocation", "", [3, 0, 44, 9]],
+            [0, "PanScreen", "", [2, 3, 15, 4, 1]],
+            [0, "MoveEvent", "", [3, 8, 0, 0, 13]],
+            [0, "ShowMessage", "LAZER TEETH MEMBER", []],
+            [0, "ShowMessage_2", "Anything yet?", []],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 15]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "LAZER TEETH LOOKOUT", []],
+            [0, "ShowMessage_2", "Not yet, man. I'm surprised the Vipers", []],
+            [0, "ShowMessage_2", "haven't come back to gloat about", []],
+            [0, "ShowMessage_2", "getting the Idol.", []],
+            [0, "ShowMessage", "LAZER TEETH MEMBER", []],
+            [0, "ShowMessage_2", "They'll be here. Keep your eyes peeled.", []],
+            [0, "MoveEvent", "", [3, 8, 0, 0, 12, 0]],
+            [0, "Wait", "", [4]],
+            [0, "ChangeEventLocation", "", [3, 0, 41, 37]],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 13]],
+            [0, "Wait", "", [15]],
+            [0, "ShowMessage", "LAZER TEETH LOOKOUT", []],
+            [0, "ShowMessage_2", "... ... ...", []],
+            [0, "ShowMessage", "LAZER TEETH LOOKOUT", []],
+            [0, "ShowMessage_2", "<mocking voice>", []],
+            [0, "ShowMessage_2", "\"Keep your eyes peeled!\"", []],
+            [0, "ShowMessage_2", "I don't see you up here, man...", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "LAZER TEETH LOOKOUT", []],
+            [0, "ShowMessage_2", "How'd I ever get stuck with lookout", []],
+            [0, "ShowMessage_2", "duty? Just because the prisoner", []],
+            [0, "ShowMessage_2", "escaped on my watch...", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "LAZER TEETH LOOKOUT", []],
+            [0, "ShowMessage_2", "This sucks.", []],
+            [0, "ShowMessage", "LAZER TEETH LOOKOUT", []],
+            [0, "ShowMessage_2", "I gotta get something to eat.", []],
+            [0, "ShowMessage_2", "The Vipers aren't gonna show up", []],
+            [0, "ShowMessage_2", "anyway.", []],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 36, 3, 3, 3, 3, 24, 3, 3, 25, 12, 0, 37, 34, 8, 66, 76, 80, 101, 111, 112, 108, 101, 3]],
+            [0, "Wait", "", [12]],
+            [0, "ChangeEventLocation", "", [4, 0, 60, 19]],
+            [0, "PanScreen", "", [2, 1, 15, 4, 1]],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 3, 3, 3, 3]],
+            [0, "Wait", "", [20]],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 3, 3, 26, 0, 0, 0, 0, 0]],
+            [0, "Wait", "", [20]],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 36, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]],
+            [0, "PanScreen", "", [2, 3, 15, 4, 1]],
+            [0, "ShowMessage", "VOICE", []],
+            [0, "ShowMessage_2", "Fine! I was just hungry, that's all!", []],
+            [0, "ShowMessage_2", "Gimme a break!", []],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 34, 6, 67, 104, 97, 114, 97, 51, 6, 2]],
+            [0, "Wait", "", [3]],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 24, 25]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "LAZER TEETH LOOKOUT", []],
+            [0, "ShowMessage_2", "What's this barrel doing here?", []],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 12]],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 29, 29, 29, 3, 28, 28, 28]],
+            [0, "ShowMessage", "LAZER TEETH LOOKOUT", []],
+            [0, "ShowMessage_2", "Did somebody leave a barrel out here", []],
+            [0, "ShowMessage_2", "in front of the hideout? No?", []],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 14]],
+            [0, "Wait", "", [3]],
+            [0, "ShowMessage", "LAZER TEETH LOOKOUT", []],
+            [0, "ShowMessage_2", "Huh?", []],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 36, 2, 2, 2, 2, 15]],
+            [0, "Wait", "", [13]],
+            [0, "PlaySound", "Earth8", [100, 100, 50]],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 34, 7, 70, 117, 116, 117, 114, 101, 49, 0]],
+            [0, "ShowBattleAnimation", "", [132, 4, 1, 0]],
+            [0, "ShowMessage", "LAZER TEETH LOOKOUT", []],
+            [0, "ShowMessage_2", "Gotcha!", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Blast! Now what?", []],
+            [0, "Wait", "", [8]],
+            [0, "ShowMessage", "VOICE", []],
+            [0, "ShowMessage_2", "Hold it right there, Lazer Scum!", []],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 13]],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 13]],
+            [0, "ChangeEventLocation", "", [5, 0, 57, 13]],
+            [0, "ChangeEventLocation", "", [6, 0, 59, 15]],
+            [0, "ChangeEventLocation", "", [7, 0, 54, 16]],
+            [0, "ChangeEventLocation", "", [8, 0, 59, 12]],
+            [0, "ChangeEventLocation", "", [9, 0, 56, 19]],
+            [0, "PanScreen", "", [2, 1, 15, 4, 1]],
+            [0, "PlaySound", "Earth8", [100, 100, 50]],
+            [0, "MoveEvent", "", [5, 8, 0, 0, 34, 6, 67, 104, 97, 114, 97, 50, 0]],
+            [0, "ShowBattleAnimation", "", [132, 5, 0, 0]],
+            [0, "Wait", "", [1]],
+            [0, "PlaySound", "Earth8", [100, 100, 50]],
+            [0, "MoveEvent", "", [6, 8, 0, 0, 34, 6, 67, 104, 97, 114, 97, 50, 0]],
+            [0, "ShowBattleAnimation", "", [132, 6, 0, 0]],
+            [0, "Wait", "", [1]],
+            [0, "PlaySound", "Earth8", [100, 100, 50]],
+            [0, "MoveEvent", "", [7, 8, 0, 0, 34, 6, 67, 104, 97, 114, 97, 50, 0]],
+            [0, "ShowBattleAnimation", "", [132, 7, 0, 0]],
+            [0, "Wait", "", [1]],
+            [0, "PlaySound", "Earth8", [100, 100, 50]],
+            [0, "MoveEvent", "", [8, 8, 0, 0, 34, 6, 67, 104, 97, 114, 97, 50, 0]],
+            [0, "ShowBattleAnimation", "", [132, 8, 0, 0]],
+            [0, "Wait", "", [1]],
+            [0, "PlaySound", "Earth8", [100, 100, 50]],
+            [0, "MoveEvent", "", [9, 8, 0, 0, 34, 6, 67, 104, 97, 114, 97, 50, 0]],
+            [0, "ShowBattleAnimation", "", [132, 9, 0, 0]],
+            [0, "Wait", "", [4]],
+            [0, "ShowMessage", "NEON VIPERS", []],
+            [0, "ShowMessage_2", "Run for it, Talan!", []],
+            [0, "PlayBGM", "hzbreach", [0, 100, 100, 50]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 36, 3]],
+            [0, "ChangePartyMembers", "", [0, 0, 14]],
+            [0, "ChangePartyMembers", "", [1, 0, 10]],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 34, 8, 66, 76, 80, 101, 111, 112, 108, 101, 3]],
+            [0, "PanScreen", "", [2, 3, 15, 4, 1]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 23, 23, 15, 23, 13, 24, 25]],
+            [0, "Wait", "", [8]],
+            [0, "MessageOptions", "", [0, 0, 0, 1]],
+            [0, "ShowMessage", "LAZER TEETH LOOKOUT", []],
+            [0, "ShowMessage_2", "The Vipers are here!", []],
+            [0, "ShowMessage_2", "HELP!!\\|\\|\\^", []],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 3, 3, 3, 3, 24, 3, 3, 25, 3, 3, 24, 3, 3, 25, 0, 0, 0, 35, 5, 75, 105, 108, 108, 51, 80, 100, 100, 0, 0, 35, 6, 83, 119, 111, 114, 100, 49, 70, 100, 100, 0, 35, 6, 83, 119, 111, 114, 100, 50, 60, 100, 100, 3, 3, 3, 3, 35, 6, 83, 119, 111, 114, 100, 49, 50, 100, 100, 3, 3, 35, 10, 69, 120, 112, 108, 111, 115, 105, 111, 110, 52, 50, 100, 100, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]],
+            [0, "Wait", "", [40]],
+            [0, "Teleport", "", [16, 53, 7]],
+            [0, "ControlSwitches", "", [0, 73, 73, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 73
+          },
+          "tile": 45,
+          "layer": "below",
+          "trigger": "auto_start"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "LTFighter1",
+      "at": [41, 37],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara3",
+            "index": 6,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "NVBarrel1",
+      "at": [47, 37],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLPeople",
+            "index": 1,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "NV1",
+      "at": [50, 37],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLPeople",
+            "index": 1,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "NV2",
+      "at": [51, 37],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLPeople",
+            "index": 1,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "NV3",
+      "at": [52, 37],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLPeople",
+            "index": 1,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "NV4",
+      "at": [53, 37],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLPeople",
+            "index": 1,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "NV5",
+      "at": [54, 37],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLPeople",
+            "index": 1,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,73 @@
+{
+  "id": 88,
+  "name": "Construction",
+  "size": [20, 15],
+  "chipset": [19, "Ancient(1)"],
+  "tiles": "Map0088.tiles",
+  "events": [
+    {
+      "id": 3,
+      "name": "Eisen",
+      "at": [5, 14],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Eisen",
+            "index": 0,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "TintScreen", "", [60, 60, 60, 0, 10, 1]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "For the better part of a year, I slaved", []],
+            [0, "ShowMessage_2", "over creation of a computer program", []],
+            [0, "ShowMessage_2", "to save mankind.", []],
+            [0, "Wait", "", [10]],
+            [0, "ChangeEventLocation", "", [3, 0, 8, 6]],
+            [0, "Wait", "", [40]],
+            [0, "ChangeEventLocation", "", [3, 0, 13, 7]],
+            [0, "Wait", "", [30]],
+            [0, "ChangeEventLocation", "", [3, 0, 13, 14]],
+            [0, "Wait", "", [20]],
+            [0, "ChangeEventLocation", "", [3, 0, 5, 7]],
+            [0, "Wait", "", [10]],
+            [0, "ChangeEventLocation", "", [3, 0, 9, 6]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "At last, I began seeing results. I named", []],
+            [0, "ShowMessage_2", "it the Advocate System, because it was", []],
+            [0, "ShowMessage_2", "designed to advise the various", []],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "components of the construction process", []],
+            [0, "ShowMessage_2", "and make correct, instantaneous", []],
+            [0, "ShowMessage_2", "decisions. It was the very model of", []],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "efficiency. It almost seemed to be", []],
+            [0, "ShowMessage_2", "coding itself.", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 10, 1]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "That was my first warning. Too bad", []],
+            [0, "ShowMessage_2", "I didn't realize it, what?", []],
+            [0, "Teleport", "", [89, 9, 6]]
+          ]
+        }
+      ]
+    }
+  ]
+}

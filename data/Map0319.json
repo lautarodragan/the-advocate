@@ -1,0 +1,89 @@
+{
+  "id": 319,
+  "name": "Grove",
+  "size": [20, 15],
+  "chipset": [23, "PS4Chipset"],
+  "tiles": "Map0319.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "Emily",
+      "at": [6, 7],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "emily",
+            "index": 4,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Lerle",
+      "at": [8, 7],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People3",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "TintScreen", "", [60, 60, 60, 100, 5, 1]],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "LERLE", []],
+            [0, "ShowMessage_2", "Whispering that line, remember?", []],
+            [0, "ShowMessage_2", "\"And then he knew...?\"", []],
+            [0, "Wait", "", [10]],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "I didn't whisper anything to you, Lerle.", []],
+            [0, "ShowMessage_2", "One minute you seemed to be", []],
+            [0, "ShowMessage_2", "floundering, and then you remembered.", []],
+            [0, "Wait", "", [5]],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "LERLE", []],
+            [0, "ShowMessage_2", "Are you kidding? I heard you whisper", []],
+            [0, "ShowMessage_2", "that line! I don't know if this is some", []],
+            [0, "ShowMessage_2", "\"acting\" thing, but thanks for the help.", []],
+            [0, "ShowMessage", "LERLE", []],
+            [0, "ShowMessage_2", "Now I get to stay in Paradise!", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "I didn't whisper that line, Lerle.", []],
+            [0, "Wait", "", [15]],
+            [0, "MessageOptions", "", [1, 1, 0, 0]],
+            [0, "ShowMessage", "MEMNOSYNE", []],
+            [0, "ShowMessage_2", "Could it be?", []],
+            [0, "ShowMessage", "MEMNOSYNE", []],
+            [0, "ShowMessage_2", "So the girl's a telepath? Interesting...", []],
+            [0, "ControlSwitches", "", [0, 854, 854, 0]],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "Teleport", "", [220, 12, 9]]
+          ]
+        }
+      ]
+    }
+  ]
+}

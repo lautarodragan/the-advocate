@@ -12,3 +12,7 @@ maps:
 # Lo mismo, pero renderizando todo: verifica que ningún mapa rompa el pipeline.
 check:
   python3 tools/list_maps.py --render
+
+# Vuelca los .lmu a data/ como JSON + grillas de tiles en texto, versionables.
+export:
+  python3 tools/export_json.py --verify

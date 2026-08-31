@@ -1,0 +1,953 @@
+{
+  "id": 10,
+  "name": "Lashe City Interiors",
+  "size": [50, 50],
+  "chipset": [10, "lasheint"],
+  "tiles": "Map0010.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "Barkeep",
+      "at": [3, 10],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People4",
+            "index": 4,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Patron3atBar",
+      "at": [5, 10],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 24
+          },
+          "sprite": {
+            "charset": "Future2",
+            "index": 6,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_non_continuous",
+          "script": [
+            [0, "ShowMessage", "BAR PATRON", []],
+            [0, "ShowMessage_2", "So then I says to him... lessee...", []],
+            [0, "ShowMessage_2", "I says to him...", []],
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 21, 23, 23]],
+            [0, "ShowMessage", "BAR PATRON", []],
+            [0, "ShowMessage_2", "What are you lookin' at?", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Nothing, nothing!", []],
+            [0, "ShowMessage", "BAR PATRON", []],
+            [0, "ShowMessage_2", "All right...", []],
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 15, 23, 23]],
+            [0, "ShowMessage", "BAR PATRON", []],
+            [0, "ShowMessage_2", "Now... what was I sayin'...?", []],
+            [0, "ShowMessage_2", "<chugs drink>", []],
+            [0, "ControlSwitches", "", [0, 64, 64, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 24,
+            "switch_b": 64
+          },
+          "sprite": {
+            "charset": "Future2",
+            "index": 6,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_non_continuous",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I don't think I should bother this guy again.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Waitress",
+      "at": [9, 8],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 24
+          },
+          "sprite": {
+            "charset": "Chara3",
+            "index": 5,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "WAITRESS", []],
+            [0, "ShowMessage_2", "Can I help you with something, Sir?", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "No, thanks. I'm sort of in a hurry.", []],
+            [0, "ShowMessage", "WAITRESS", []],
+            [0, "ShowMessage_2", "Yup, sure you are. That's why you're", []],
+            [0, "ShowMessage_2", "standing in the Last Call Pub this early", []],
+            [0, "ShowMessage_2", "in the morning, right?", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Actually, I'm not sure why I came here.", []],
+            [0, "ShowMessage_2", "I'm supposed to be going to work.", []],
+            [0, "ShowMessage", "WAITRESS", []],
+            [0, "ShowMessage_2", "Well, I have drunkards <ahem> I mean", []],
+            [0, "ShowMessage_2", "customers to wait on. Good luck", []],
+            [0, "ShowMessage_2", "getting to work!", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Thanks, it looks like I'll need it.", []],
+            [0, "ControlSwitches", "", [0, 65, 65, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 24,
+            "switch_b": 65
+          },
+          "sprite": {
+            "charset": "Chara3",
+            "index": 5,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "WAITRESS", []],
+            [0, "ShowMessage_2", "Are you still here? I don't mean to be", []],
+            [0, "ShowMessage_2", "rude, but...", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "No, you're right. I really should be going.", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 24,
+            "switch_b": 53,
+            "item": 90
+          },
+          "sprite": {
+            "charset": "Chara3",
+            "index": 5,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "WAITRESS", []],
+            [0, "ShowMessage_2", "What are you, a dealer in cheap, ugly", []],
+            [0, "ShowMessage_2", "merchandise?", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I actually think this Idol thing is supposed", []],
+            [0, "ShowMessage_2", "to be valuable, but I need somewhere to", []],
+            [0, "ShowMessage_2", "get rid of it.", []],
+            [0, "ShowMessage", "WAITRESS", []],
+            [0, "ShowMessage_2", "Really? Maybe you should talk to Stash.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Stash?", []],
+            [0, "ShowMessage", "WAITRESS", []],
+            [0, "ShowMessage_2", "Yeah, he deals in \"questionable", []],
+            [0, "ShowMessage_2", "merchandise\" - he comes in here now", []],
+            [0, "ShowMessage_2", "and then to do business.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I'll keep an eye out.", []],
+            [0, "ControlSwitches", "", [0, 66, 66, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 66,
+            "switch_b": 53,
+            "item": 90
+          },
+          "sprite": {
+            "charset": "Chara3",
+            "index": 5,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "WAITRESS", []],
+            [0, "ShowMessage_2", "No luck finding Stash?", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Not yet.", []],
+            [0, "ShowMessage", "WAITRESS", []],
+            [0, "ShowMessage_2", "I think he has a store in Sector 32.", []],
+            [0, "ShowMessage_2", "I'm not sure though.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [4, 9],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "This is no time to be ordering drinks!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "EV0005",
+      "at": [4, 11],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "This is no time to be ordering drinks!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "EV0006",
+      "at": [4, 7],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "This is no time to be ordering drinks!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "EV0007",
+      "at": [4, 5],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "This is no time to be ordering drinks!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "EV0008",
+      "at": [5, 8],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "This is no time to be sitting down!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "EV0009",
+      "at": [5, 6],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "This is no time to be sitting down!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "EV0010",
+      "at": [7, 5],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "This is no time to be sitting down!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "EV0011",
+      "at": [16, 7],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "This is no time to be sitting down!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "EV0012",
+      "at": [17, 10],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "This is no time to be sitting down!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "EV0013",
+      "at": [15, 11],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "This is no time to be sitting down!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "name": "BarPat1",
+      "at": [11, 5],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 24
+          },
+          "sprite": {
+            "charset": "Future2",
+            "index": 6,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "BAR PATRON", []],
+            [0, "ShowMessage_2", "Huh...? Can't you see I'm...", []],
+            [0, "ShowMessage_2", "What am I doing?", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Drinking?", []],
+            [0, "ShowMessage", "BAR PATRON", []],
+            [0, "ShowMessage_2", "Eh... oh yeah! That was it!", []],
+            [0, "ShowMessage_2", "Thanks, Mister!", []],
+            [0, "ControlSwitches", "", [0, 59, 59, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 59,
+            "switch_b": 24
+          },
+          "sprite": {
+            "charset": "Future2",
+            "index": 6,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "BAR PATRON", []],
+            [0, "ShowMessage_2", "You'd think... with all the advances", []],
+            [0, "ShowMessage_2", "in... shtuff these daysss... what", []],
+            [0, "ShowMessage_2", "was I saying?", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I have no idea.", []],
+            [0, "ShowMessage", "BAR PATRON", []],
+            [0, "ShowMessage_2", "Oh yeah... you'd think we'd have a", []],
+            [0, "ShowMessage_2", "better class of beer by now!", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 24,
+            "switch_b": 53,
+            "item": 90
+          },
+          "sprite": {
+            "charset": "Future2",
+            "index": 6,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "BAR PATRON", []],
+            [0, "ShowMessage_2", "What have you got there?", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "This thing? I guess it's called \"The Idol.\"", []],
+            [0, "ShowMessage", "BAR PATRON", []],
+            [0, "ShowMessage_2", "Heh! That's what people always call me!", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "???", []],
+            [0, "ShowMessage", "BAR PATRON", []],
+            [0, "ShowMessage_2", "I was fired at the job I used to have", []],
+            [0, "ShowMessage_2", "because my boss always said I was", []],
+            [0, "ShowMessage_2", "\"idle!\"", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "<shudder>", []],
+            [0, "ControlSwitches", "", [0, 60, 60, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 60,
+            "switch_b": 53,
+            "item": 90
+          },
+          "sprite": {
+            "charset": "Future2",
+            "index": 6,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "BAR PATRON", []],
+            [0, "ShowMessage_2", "That Idol thing sure is ugly. Go away and", []],
+            [0, "ShowMessage_2", "let me drink in peace!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "name": "BarPat2",
+      "at": [14, 6],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 24
+          },
+          "sprite": {
+            "charset": "Future2",
+            "index": 6,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "BAR PATRON", []],
+            [0, "ShowMessage_2", "Lashe City has the finest bars! I'd", []],
+            [0, "ShowMessage_2", "stay here forever if I could!", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Why can't you?", []],
+            [0, "ShowMessage", "BAR PATRON", []],
+            [0, "ShowMessage_2", "I drive one of the Hover-Trams. I called", []],
+            [0, "ShowMessage_2", "in sick to work today so I could come here.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Oh... are the Trams running on schedule?", []],
+            [0, "ShowMessage", "BAR PATRON", []],
+            [0, "ShowMessage_2", "Are you kidding me? On schedule?", []],
+            [0, "ShowMessage_2", "That's a laugh!", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "That's what I thought.", []],
+            [0, "ControlSwitches", "", [0, 61, 61, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 61,
+            "switch_b": 24
+          },
+          "sprite": {
+            "charset": "Future2",
+            "index": 6,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "BAR PATRON", []],
+            [0, "ShowMessage_2", "Where do you work, Mister?", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Well, I work at the Delcentric Factory", []],
+            [0, "ShowMessage_2", "in Sector 30, but I'm running late.", []],
+            [0, "ShowMessage", "BAR PATRON", []],
+            [0, "ShowMessage_2", "Pull up a stool! Who needs to work", []],
+            [0, "ShowMessage_2", "today, anyway?", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "But... there was something going on", []],
+            [0, "ShowMessage_2", "today. Darned if I can remember what", []],
+            [0, "ShowMessage_2", "it was, though.", []],
+            [0, "ShowMessage", "BAR PATRON", []],
+            [0, "ShowMessage_2", "OK, that's your choice.", []],
+            [0, "ControlSwitches", "", [0, 62, 62, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 62,
+            "switch_b": 24
+          },
+          "sprite": {
+            "charset": "Future2",
+            "index": 6,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "BAR PATRON", []],
+            [0, "ShowMessage_2", "What a city this is!", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 24,
+            "switch_b": 53,
+            "item": 90
+          },
+          "sprite": {
+            "charset": "Future2",
+            "index": 6,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "BAR PATRON", []],
+            [0, "ShowMessage_2", "Where'd you get that ugly thing at?", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "This thing? I stole it from a street gang.", []],
+            [0, "ShowMessage", "BAR PATRON", []],
+            [0, "ShowMessage_2", "Sure... they didn't just give it to you?", []],
+            [0, "ShowMessage_2", "Who'd want to keep that garbage?", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Hmmm... you're right.", []],
+            [0, "ControlSwitches", "", [0, 63, 63, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 63,
+            "switch_b": 53,
+            "item": 90
+          },
+          "sprite": {
+            "charset": "Future2",
+            "index": 6,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "BAR PATRON", []],
+            [0, "ShowMessage_2", "Good luck getting rid of that stupid", []],
+            [0, "ShowMessage_2", "thing - you're gonna need it!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "name": "EV0016",
+      "at": [12, 17],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [8, 25, 12]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "name": "WeaponsOwner1",
+      "at": [42, 4],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future1",
+            "index": 6,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "name": "EV0018",
+      "at": [42, 15],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [8, 48, 21]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 231
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [38, 48, 54]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "name": "EV0019",
+      "at": [42, 35],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future2",
+            "index": 5,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "name": "EV0020",
+      "at": [42, 46],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [8, 29, 21]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 231
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [38, 29, 54]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "name": "EV0021",
+      "at": [42, 5],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "SHOPKEEPER", []],
+            [0, "ShowMessage_2", "Yo. I got weapons. Check 'em out.", []],
+            [0, "OpenShop", "", [0, 0, 0, 0, 96, 92, 93]],
+            [0, "ShowMessage", "SHOPKEEPER", []],
+            [0, "ShowMessage_2", "Yeah... come again.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "name": "EV0022",
+      "at": [9, 48],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ControlSwitches", "", [0, 75, 75, 1]],
+            [0, "Teleport", "", [8, 68, 56]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "name": "EV0023",
+      "at": [42, 36],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "SHOPKEEPER", []],
+            [0, "ShowMessage_2", "These are dangerous times. You need", []],
+            [0, "ShowMessage_2", "armor and defensive items to survive.", []],
+            [0, "OpenShop", "", [0, 1, 0, 0, 110, 113, 112, 111]],
+            [0, "ShowMessage", "SHOPKEEPER", []],
+            [0, "ShowMessage_2", "Live long enough to tell your enemies", []],
+            [0, "ShowMessage_2", "about our high quality merchandise!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 24,
+      "name": "Pawn Guy",
+      "at": [9, 44],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 75
+          },
+          "sprite": {
+            "charset": "Chara3",
+            "index": 1,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ShowMessage", "PAWN GUY", []],
+            [0, "ShowMessage_2", "Yeah? So what's this item you have", []],
+            [0, "ShowMessage_2", "for me?", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Well... what do you say about this", []],
+            [0, "ShowMessage_2", "\"Idol\" thing?", []],
+            [0, "ShowMessage", "PAWN GUY", []],
+            [0, "ShowMessage_2", "Hmmm... hmmm...", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "PAWN GUY", []],
+            [0, "ShowMessage_2", "It's ugly.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Well, how much will you give me", []],
+            [0, "ShowMessage_2", "for it?", []],
+            [0, "ShowMessage", "PAWN GUY", []],
+            [0, "ShowMessage_2", "Hmmm... hmmm...", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "PAWN GUY", []],
+            [0, "ShowMessage_2", "600 creds.", []],
+            [0, "ShowChoice", "Sell Idol for 600/That's not enough!", [2]],
+            [0, "ShowChoiceOption", "Sell Idol for 600", [0]],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "600 creds sounds good!", []],
+            [1, "PlaySound", "Success2", [100, 100, 50]],
+            [1, "ChangeGold", "", [0, 0, 600]],
+            [1, "ControlSwitches", "", [0, 338, 338, 0]],
+            [1, "ChangeItems", "", [1, 0, 90, 0, 1]],
+            [1, "ShowMessage", "PAWN GUY", []],
+            [1, "ShowMessage_2", "Sold! Come back again, once I've", []],
+            [1, "ShowMessage_2", "cleaned this place up.", []],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "Yeah, whatever...", []],
+            [1, "ShowMessage_2", "(sucker)", []],
+            [1, "ShowMessage", "PAWN GUY", []],
+            [1, "ShowMessage_2", "Later.", []],
+            [1, "ShowMessage_2", "(sucker)", []],
+            [1, "END", "", []],
+            [0, "ShowChoiceOption", "That's not enough!", [1]],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "Are you kidding me? 600 creds for this", []],
+            [1, "ShowMessage_2", "piece of exquisite merchandise?", []],
+            [1, "ShowMessage", "PAWN GUY", []],
+            [1, "ShowMessage_2", "It's a cheap glass statue with", []],
+            [1, "ShowMessage_2", "\"Lazer Teeth Are Number One\"", []],
+            [1, "ShowMessage_2", "painted on it.", []],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "It's historically significant!", []],
+            [1, "ShowMessage", "PAWN GUY", []],
+            [1, "ShowMessage_2", "All right... 700 creds.", []],
+            [1, "ShowChoice", "Sell Idol for 700/That's not enough!", [2]],
+            [1, "ShowChoiceOption", "Sell Idol for 700", [0]],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "700 creds sounds good!", []],
+            [2, "PlaySound", "Success2", [100, 100, 50]],
+            [2, "ChangeGold", "", [0, 0, 700]],
+            [2, "ControlSwitches", "", [0, 338, 338, 0]],
+            [2, "ChangeItems", "", [1, 0, 90, 0, 1]],
+            [2, "ShowMessage", "PAWN GUY", []],
+            [2, "ShowMessage_2", "Sold! Come back again, once I've", []],
+            [2, "ShowMessage_2", "cleaned this place up.", []],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "Yeah, whatever...", []],
+            [2, "ShowMessage_2", "(sucker)", []],
+            [2, "ShowMessage", "PAWN GUY", []],
+            [2, "ShowMessage_2", "Later.", []],
+            [2, "ShowMessage_2", "(sucker)", []],
+            [2, "END", "", []],
+            [1, "ShowChoiceOption", "That's not enough!", [1]],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "700 creds for this... cultural... thing?", []],
+            [2, "ShowMessage", "PAWN GUY", []],
+            [2, "ShowMessage_2", "Culture? You probably dug it out of", []],
+            [2, "ShowMessage_2", "someone's trash!", []],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "This \"Idol\" has class! It... exudes...", []],
+            [2, "ShowMessage_2", "fine taste and... other good qualities.", []],
+            [2, "ShowMessage", "PAWN GUY", []],
+            [2, "ShowMessage_2", "All right... 1000 creds.", []],
+            [2, "ShowChoice", "Sell Idol for 1000/That's not enough!", [2]],
+            [2, "ShowChoiceOption", "Sell Idol for 1000", [0]],
+            [3, "ShowMessage", "TALAN", []],
+            [3, "ShowMessage_2", "1000 creds sounds great!", []],
+            [3, "PlaySound", "Success2", [100, 100, 50]],
+            [3, "ChangeGold", "", [0, 0, 1000]],
+            [3, "ControlSwitches", "", [0, 338, 338, 0]],
+            [3, "ChangeItems", "", [1, 0, 90, 0, 1]],
+            [3, "ShowMessage", "PAWN GUY", []],
+            [3, "ShowMessage_2", "Sold! Come back again, once I've", []],
+            [3, "ShowMessage_2", "cleaned this place up.", []],
+            [3, "ShowMessage", "TALAN", []],
+            [3, "ShowMessage_2", "Yeah, whatever...", []],
+            [3, "ShowMessage_2", "(sucker)", []],
+            [3, "ShowMessage", "PAWN GUY", []],
+            [3, "ShowMessage_2", "Later.", []],
+            [3, "ShowMessage_2", "(sucker)", []],
+            [3, "END", "", []],
+            [2, "ShowChoiceOption", "That's not enough!", [1]],
+            [3, "ShowMessage", "TALAN", []],
+            [3, "ShowMessage_2", "You would pay a mere 1000 creds", []],
+            [3, "ShowMessage_2", "to obtain this... beautiful... OK, not", []],
+            [3, "ShowMessage_2", "beautiful...", []],
+            [3, "ShowMessage", "PAWN GUY", []],
+            [3, "ShowMessage_2", "Cheap, cut-rate garbage?", []],
+            [3, "ShowMessage", "TALAN", []],
+            [3, "ShowMessage_2", "Um...", []],
+            [3, "ShowMessage", "PAWN GUY", []],
+            [3, "ShowMessage_2", "No chance. Get out of here!", []],
+            [3, "ShowMessage_2", "The only swindler allowed here is ME!", []],
+            [3, "ShowMessage", "TALAN", []],
+            [3, "ShowMessage_2", "On second thought... about those", []],
+            [3, "ShowMessage_2", "1000 creds...", []],
+            [3, "ShowMessage", "PAWN GUY", []],
+            [3, "ShowMessage_2", "Get out of my shop!", []],
+            [3, "END", "", []],
+            [2, "ShowChoiceEnd", "", []],
+            [2, "END", "", []],
+            [1, "ShowChoiceEnd", "", []],
+            [1, "END", "", []],
+            [0, "ShowChoiceEnd", "", []],
+            [0, "ControlSwitches", "", [0, 75, 75, 1]],
+            [0, "ControlSwitches", "", [0, 76, 76, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2, 2]],
+            [0, "Wait", "", [5]],
+            [0, "Teleport", "", [8, 68, 56]],
+            [0, "PlaySound", "Close1", [100, 100, 50]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 25,
+      "name": "EV0025",
+      "at": [47, 6],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "SEEDY-LOOKING MAN", []],
+            [0, "ShowMessage_2", "I might be able to hook you up with", []],
+            [0, "ShowMessage_2", "components for... ah, never mind.", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 150
+          },
+          "sprite": {
+            "charset": "Future1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "SEEDY-LOOKING MAN", []],
+            [0, "ShowMessage_2", "Ah, I see you have an AG7-17!", []],
+            [0, "ShowMessage_2", "I have just the parts you're looking", []],
+            [0, "ShowMessage_2", "for!", []],
+            [0, "OpenShop", "", [0, 0, 0, 0, 129, 130, 282, 278, 279, 135, 269, 283, 271, 270, 287]]
+          ]
+        }
+      ]
+    }
+  ]
+}

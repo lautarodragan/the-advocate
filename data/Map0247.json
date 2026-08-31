@@ -1,0 +1,75 @@
+{
+  "id": 247,
+  "name": "PathToMemnosyne",
+  "size": [20, 15],
+  "chipset": [23, "PS4Chipset"],
+  "tiles": "Map0247.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [0, 12],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [246, 18, 12]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [14, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ControlSwitches", "", [0, 708, 708, 0]],
+            [0, "Teleport", "", [207, 7, 18]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 635
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "We're not going back until we know what", []],
+            [0, "ShowMessage_2", "the Agency is up to. We need to see if they've", []],
+            [0, "ShowMessage_2", "left Paradise, and why the Captain was alone.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [0, "ProceedWithMovement", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [19, 14],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 811
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "CallEvent", "", [0, 47, 0]],
+            [0, "ControlSwitches", "", [0, 811, 811, 1]]
+          ]
+        }
+      ]
+    }
+  ]
+}

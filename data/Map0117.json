@@ -1,0 +1,1059 @@
+{
+  "id": 117,
+  "name": "House3",
+  "size": [20, 15],
+  "chipset": [24, "INNER ITEMS SHOP"],
+  "tiles": "Map0117.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [9, 14],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ConditionalBranch", "", [0, 350, 0, 0, 0, 1]],
+            [1, "TintScreen", "", [0, 0, 0, 70, 2, 1]],
+            [1, "Teleport", "", [108, 44, 30]],
+            [1, "TintScreen", "", [70, 70, 70, 70, 2, 1]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "Teleport", "", [108, 44, 30]],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Actress",
+      "at": [4, 10],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 350
+          },
+          "sprite": {
+            "charset": "People3",
+            "index": 3,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "ACTRESS", []],
+            [0, "ShowMessage_2", "I wish we could fix up the Theatre Ruins", []],
+            [0, "ShowMessage_2", "and perform there. This little house is much", []],
+            [0, "ShowMessage_2", "too small, and we don't have the right props!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Actor",
+      "at": [8, 5],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 350
+          },
+          "sprite": {
+            "charset": "People3",
+            "index": 2,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "ACTOR", []],
+            [0, "ShowMessage_2", "This looks sort of like a dragon's head, if", []],
+            [0, "ShowMessage_2", "you squint. Of course, our audience probably", []],
+            [0, "ShowMessage_2", "won't want to squint during all of Act II...", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Actress",
+      "at": [12, 4],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 350
+          },
+          "sprite": {
+            "charset": "People3",
+            "index": 3,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "ACTRESS", []],
+            [0, "ShowMessage_2", "My face alone could launch a thousand ships -", []],
+            [0, "ShowMessage_2", "Nay! Do not speak on it... it is more painful", []],
+            [0, "ShowMessage_2", "now than the... uhhh... line?", []],
+            [0, "ControlSwitches", "", [0, 360, 360, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 350,
+            "switch_b": 360
+          },
+          "sprite": {
+            "charset": "People3",
+            "index": 3,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "ACTRESS", []],
+            [0, "ShowMessage_2", "It is more painful now than the... hmmm... rosy", []],
+            [0, "ShowMessage_2", "red of Spring?... posies plucked on wing? Tosies", []],
+            [0, "ShowMessage_2", "trod on by Ming? LINE!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Old Actor",
+      "at": [12, 10],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 350
+          },
+          "sprite": {
+            "charset": "People3",
+            "index": 0,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "ACTOR", []],
+            [0, "ShowMessage_2", "Auleen can never remember her lines", []],
+            [0, "ShowMessage_2", "properly... this is going to drive me to", []],
+            [0, "ShowMessage_2", "drink!", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 396,
+            "switch_b": 399
+          },
+          "sprite": {
+            "charset": "People3",
+            "index": 0,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "SEWELL", []],
+            [0, "ShowMessage_2", "To the Theatre Ruins! And Godspeed!", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 427
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "Actor",
+      "at": [6, 4],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 376
+          },
+          "sprite": {
+            "charset": "People3",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "ACTOR, squinting", []],
+            [0, "ShowMessage_2", "Yeah, it sorta looks like a dragon's head...", []],
+            [0, "ShowMessage_2", "A little bit...", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "EV0007",
+      "at": [2, 6],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 376
+          },
+          "sprite": {
+            "charset": "People3",
+            "index": 0,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "ACTOR", []],
+            [0, "ShowMessage_2", "Give me strength - can NO ONE remember", []],
+            [0, "ShowMessage_2", "all their lines??", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "AuleenIfCandles",
+      "at": [18, 5],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 376
+          },
+          "sprite": {
+            "charset": "People3",
+            "index": 3,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "ACTRESS", []],
+            [0, "ShowMessage_2", "These candles have an annoying tendency", []],
+            [0, "ShowMessage_2", "to go out in the middle of a performance.", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 396,
+            "switch_b": 399
+          },
+          "sprite": {
+            "charset": "People3",
+            "index": 3,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "AULEEN", []],
+            [0, "ShowMessage_2", "If you happen to find any candles in", []],
+            [0, "ShowMessage_2", "the Theatre Ruins, bring them back.", []],
+            [0, "ShowMessage_2", "We could use some more.", []],
+            [0, "ControlSwitches", "", [0, 401, 401, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 427
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "Auleen",
+      "at": [4, 11],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 396,
+            "switch_b": 398
+          },
+          "sprite": {
+            "charset": "People3",
+            "index": 3,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "EV0010",
+      "at": [0, 0],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 396,
+            "switch_b": 398
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "OLD ACTOR", []],
+            [0, "ShowMessage_2", "Well, nice of you to join us, eh? I'm Sewell,", []],
+            [0, "ShowMessage_2", "the leader of this company. Talan, isn't it?", []],
+            [0, "MoveEvent", "", [12, 8, 0, 0, 2, 2, 1, 1, 14]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Sorry I'm a little late... it won't happen", []],
+            [0, "ShowMessage_2", "again, I promise!", []],
+            [0, "ShowMessage", "SEWELL", []],
+            [0, "ShowMessage_2", "I swear, I've seen more promising actors", []],
+            [0, "ShowMessage_2", "sleeping underneath the tables in the bar!", []],
+            [0, "MoveEvent", "", [13, 8, 0, 0, 2, 2, 2, 2, 2, 2, 13]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "SEWELL", []],
+            [0, "ShowMessage_2", "If you think you're just going to be able", []],
+            [0, "ShowMessage_2", "to waltz in here like a martyred hero", []],
+            [0, "ShowMessage_2", "(by which I mean \"late\"), well...", []],
+            [0, "MoveEvent", "", [9, 8, 0, 0, 1, 1]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "SEWELL", []],
+            [0, "ShowMessage_2", "... you're certainly mistaken!", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I'm - I'm sorry! It won't happen again, Sir!", []],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [12, 8, 0, 0, 1, 23, 1, 23, 3, 23, 3, 14]],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "SEWELL", []],
+            [0, "ShowMessage_2", "Well... you're one of us, now. I'll let you in", []],
+            [0, "ShowMessage_2", "on a little secret.", []],
+            [0, "MoveEvent", "", [12, 8, 0, 0, 2]],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [12, 8, 0, 0, 13]],
+            [0, "ShowMessage", "SEWELL", []],
+            [0, "ShowMessage_2", "I'm acting right now! Ha! Ha! Hehehehe...", []],
+            [0, "MoveEvent", "", [12, 8, 0, 0, 0, 0]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "SEWELL", []],
+            [0, "ShowMessage_2", "Ha! Ha! Hehehehehe!", []],
+            [0, "MoveEvent", "", [12, 8, 0, 0, 14]],
+            [0, "ShowMessage", "SEWELL", []],
+            [0, "ShowMessage_2", "Welcome to the great profession of Actors,", []],
+            [0, "ShowMessage_2", "Talan! I'm sure you'll have a great time with", []],
+            [0, "ShowMessage_2", "us!", []],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Me... me too, Sir.", []],
+            [0, "MessageOptions", "", [1, 0, 0, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Just as soon as my heart rate drops again...", []],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "MoveEvent", "", [13, 8, 0, 0, 2, 1, 1]],
+            [0, "ShowMessage", "ACTOR", []],
+            [0, "ShowMessage_2", "Don't mind that old coot. He did the same", []],
+            [0, "ShowMessage_2", "exact thing when I joined up last year.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
+            [0, "ShowMessage", "ACTOR", []],
+            [0, "ShowMessage_2", "My name's Lerle. Pleased to meet you.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Nice to meet you, Lerle.", []],
+            [0, "MessageOptions", "", [0, 1, 0, 0]],
+            [0, "ShowMessage", "LERLE", []],
+            [0, "ShowMessage_2", "This is Auleen behind me, and Emily's", []],
+            [0, "ShowMessage_2", "up front by the dragon head.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "We've met, actually...", []],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "There's no way this thing is going to pass", []],
+            [0, "ShowMessage_2", "for a dragon's head, Lerle.", []],
+            [0, "MoveEvent", "", [13, 8, 0, 0, 12]],
+            [0, "ShowMessage", "LERLE", []],
+            [0, "ShowMessage_2", "Well, I don't see you finding anything", []],
+            [0, "ShowMessage_2", "better, Em!", []],
+            [0, "MoveEvent", "", [9, 8, 0, 0, 1, 1, 14]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 23, 12]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "AULEEN", []],
+            [0, "ShowMessage_2", "Welcome to our little family, Talan!", []],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [12, 8, 0, 0, 1, 1, 1]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "SEWELL", []],
+            [0, "ShowMessage_2", "I hate to cut the festivities short, but I'm", []],
+            [0, "ShowMessage_2", "sure everyone agrees that we're going", []],
+            [0, "ShowMessage_2", "to need a new script.", []],
+            [0, "MoveEvent", "", [11, 8, 0, 0, 14]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "I sort of liked that last one. What was", []],
+            [0, "ShowMessage_2", "wrong with it?", []],
+            [0, "MoveEvent", "", [12, 8, 0, 0, 12]],
+            [0, "ShowMessage", "SEWELL", []],
+            [0, "ShowMessage_2", "You wrote it! Ha! Ha! Hehehehehe!", []],
+            [0, "ShowMessage_2", "We need something epic, and that calls", []],
+            [0, "ShowMessage_2", "for an expedition to...", []],
+            [0, "ShowMessage", "AULEEN", []],
+            [0, "ShowMessage_2", "...the Theatre Ruins.", []],
+            [0, "MoveEvent", "", [12, 8, 0, 0, 15]],
+            [0, "ShowMessage", "SEWELL", []],
+            [0, "ShowMessage_2", "I know just the man for the job, eh,", []],
+            [0, "ShowMessage_2", "Talan? Oh, and Lerle, you go with him.", []],
+            [0, "ShowMessage_2", "Keep him out of trouble. Ha! Ha! Hehe...", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
+            [0, "ChangePartyMembers", "", [0, 0, 26]],
+            [0, "ShowMessage", "LERLE", []],
+            [0, "ShowMessage_2", "Looks like it's you and me, Talan. Let's", []],
+            [0, "ShowMessage_2", "head to the Theatre Ruins and find an", []],
+            [0, "ShowMessage_2", "epic script!", []],
+            [0, "ShowMessage", "LERLE", []],
+            [0, "ShowMessage_2", "We should outfit ourselves first, though.", []],
+            [0, "ShowMessage_2", "Auleen says the Ruins are haunted... but", []],
+            [0, "ShowMessage_2", "I don't know if I believe her.", []],
+            [0, "ShowMessage", "LERLE", []],
+            [0, "ShowMessage_2", "Anyway, the Theatre Ruins are to the", []],
+            [0, "ShowMessage_2", "south of the Paradise farmland, so that's", []],
+            [0, "ShowMessage_2", "where we're going!", []],
+            [0, "MessageOptions", "", [0, 0, 1, 0]],
+            [0, "ControlSwitches", "", [0, 407, 407, 0]],
+            [0, "ControlSwitches", "", [0, 398, 398, 1]],
+            [0, "ControlSwitches", "", [0, 399, 399, 0]],
+            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 399
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start"
+        },
+        {
+          "conditions": {
+            "switch_a": 396,
+            "item": 152
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "MoveEvent", "", [5, 8, 0, 0, 14, 24, 25]],
+            [0, "Wait", "", [7]],
+            [0, "ShowMessage", "SEWELL", []],
+            [0, "ShowMessage_2", "Back already? I didn't think you kids had", []],
+            [0, "ShowMessage_2", "a \"ghost\" of a chance! Ha! Ha! Hehehehe...", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
+            [0, "Wait", "", [10]],
+            [0, "MessageOptions", "", [0, 1, 0, 0]],
+            [0, "ChangeItems", "", [1, 0, 152, 0, 1]],
+            [0, "ShowMessage", "SEWELL", []],
+            [0, "ShowMessage_2", "\"The Tragedy of Captain Ellis,\" eh?", []],
+            [0, "ShowMessage_2", "Let's see... a heroic and handsome lead...", []],
+            [0, "ShowMessage_2", "his fat servant... murder... hmmmm...", []],
+            [0, "ShowMessage", "SEWELL", []],
+            [0, "ShowMessage_2", "...no magic sword, though. Well, we can", []],
+            [0, "ShowMessage_2", "add one. Oooh, a forbidden romance,", []],
+            [0, "ShowMessage_2", "those are always good... clowns...", []],
+            [0, "ShowMessage", "SEWELL", []],
+            [0, "ShowMessage_2", "...don't like Act 3-2, too slow... maybe add a", []],
+            [0, "ShowMessage_2", "witch or two...", []],
+            [0, "Wait", "", [10]],
+            [0, "ConditionalBranch", "", [0, 401, 0, 0, 0, 1]],
+            [1, "MessageOptions", "", [0, 0, 0, 0]],
+            [1, "ShowMessage", "AULEEN", []],
+            [1, "ShowMessage_2", "Oh, Talan, did you find any candles for me?", []],
+            [1, "ConditionalBranch", "", [4, 153, 0, 0, 0, 1]],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "Yeah, here you go.", []],
+            [2, "ChangeItems", "", [1, 0, 153, 0, 1]],
+            [2, "ShowMessage", "AULEEN", []],
+            [2, "ShowMessage_2", "Great! Here, you and Lerle can split the", []],
+            [2, "ShowMessage_2", "money I was going to have to spend on", []],
+            [2, "ShowMessage_2", "buying these from the caravans.", []],
+            [2, "PlaySound", "Item1", [90, 70, 50]],
+            [2, "MessageOptions", "", [1, 1, 0, 0]],
+            [2, "ShowMessage", "TALAN received 600 credits!", []],
+            [2, "ChangeGold", "", [0, 0, 600]],
+            [2, "MessageOptions", "", [0, 0, 0, 0]],
+            [2, "ControlSwitches", "", [0, 402, 402, 0]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "Oh, I'm sorry - we didn't find any.", []],
+            [2, "ShowMessage", "AULEEN", []],
+            [2, "ShowMessage_2", "That's OK. I'll just have to buy them from", []],
+            [2, "ShowMessage_2", "the next caravan, that's all.", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "MessageOptions", "", [0, 1, 0, 0]],
+            [0, "ShowMessage", "SEWELL", []],
+            [0, "ShowMessage_2", "... poison in the champagne! That's beautiful!", []],
+            [0, "ShowMessage_2", "Don't know about the two-way mirror... too", []],
+            [0, "ShowMessage_2", "coincidental... maybe some juggling instead?", []],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "LERLE", []],
+            [0, "ShowMessage_2", "He's gonna be at this for awhile. Let's", []],
+            [0, "ShowMessage_2", "go grab a bite to eat, or something.", []],
+            [0, "ChangePartyMembers", "", [1, 0, 26]],
+            [0, "FadeOutBGM", "", [2000]],
+            [0, "Wait", "", [20]],
+            [0, "PlayBGM", "Farewell2", [0, 100, 100, 50]],
+            [0, "Wait", "", [30]],
+            [0, "FadeOutBGM", "", [1000]],
+            [0, "Wait", "", [10]],
+            [0, "MessageOptions", "", [1, 2, 0, 0]],
+            [0, "ControlSwitches", "", [0, 396, 396, 1]],
+            [0, "ControlSwitches", "", [0, 427, 427, 0]],
+            [0, "ShowMessage", "ONE MONTH LATER", []],
+            [0, "PlayBGM", "wb3town", [0, 80, 100, 50]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 14]],
+            [0, "Teleport", "", [114, 2, 6]],
+            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 440,
+            "switch_b": 427
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]],
+            [0, "PlayBGM", "Knights", [0, 100, 100, 50]],
+            [0, "Wait", "", [8]],
+            [0, "MoveEvent", "", [23, 8, 0, 0, 24, 25]],
+            [0, "Wait", "", [10]],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "I can't get this transparent powder to wash", []],
+            [0, "ShowMessage_2", "off! It's just sticking everywhere. My one", []],
+            [0, "ShowMessage_2", "line during the scenes we did isn't worth this!", []],
+            [0, "MoveEvent", "", [22, 8, 0, 0, 2, 2, 2, 13]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "LERLE", []],
+            [0, "ShowMessage_2", "Hmmmm...", []],
+            [0, "MoveEvent", "", [24, 8, 0, 0, 1, 1, 1, 0, 0, 0, 0, 13]],
+            [0, "Wait", "", [15]],
+            [0, "ShowMessage", "AULEEN", []],
+            [0, "ShowMessage_2", "Lerle, what is it?", []],
+            [0, "MoveEvent", "", [22, 8, 0, 0, 15]],
+            [0, "ShowMessage", "LERLE", []],
+            [0, "ShowMessage_2", "I just had a crazy idea... why don't we", []],
+            [0, "ShowMessage_2", "perform \"The Tragedy of Captain Ellis...\"", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "LERLE", []],
+            [0, "ShowMessage_2", "... at the Theatre Ruins!", []],
+            [0, "MoveEvent", "", [23, 8, 0, 0, 24, 25]],
+            [0, "MoveEvent", "", [24, 8, 0, 0, 24, 25]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 24, 25]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "AULEEN", []],
+            [0, "ShowMessage_2", "Are you CRAZY?! You've seen that place!", []],
+            [0, "MoveEvent", "", [24, 8, 0, 0, 12]],
+            [0, "ShowMessage", "AULEEN", []],
+            [0, "ShowMessage_2", "Talan, tell him!", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Uh... I -", []],
+            [0, "MoveEvent", "", [21, 8, 0, 1, 36, 0, 0, 0, 14, 37]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "SEWELL", []],
+            [0, "ShowMessage_2", "That's a GREAT idea! Where better to", []],
+            [0, "ShowMessage_2", "perform such an epic than in the Theatre", []],
+            [0, "ShowMessage_2", "Ruins, legacy of a forgotten period of", []],
+            [0, "ShowMessage", "SEWELL", []],
+            [0, "ShowMessage_2", "dramatic history! All it needs is a little", []],
+            [0, "ShowMessage_2", "fixing up - this performance will be", []],
+            [0, "ShowMessage_2", "astounding!", []],
+            [0, "MoveEvent", "", [21, 8, 0, 0, 14]],
+            [0, "ShowMessage", "SEWELL", []],
+            [0, "ShowMessage_2", "Look alive, people! We've got to breathe", []],
+            [0, "ShowMessage_2", "some \"life\" into the Theatre Ruins in the", []],
+            [0, "ShowMessage_2", "next thirty days! Ha! Ha! Hehehehehe...", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 5, 0]],
+            [0, "FadeOutBGM", "", [2000]],
+            [0, "Wait", "", [20]],
+            [0, "PlayBGM", "Farewell2", [0, 100, 100, 50]],
+            [0, "Wait", "", [30]],
+            [0, "FadeOutBGM", "", [1000]],
+            [0, "Wait", "", [10]],
+            [0, "MessageOptions", "", [1, 2, 0, 0]],
+            [0, "ControlSwitches", "", [0, 427, 427, 1]],
+            [0, "ControlSwitches", "", [0, 396, 396, 1]],
+            [0, "ControlSwitches", "", [0, 441, 441, 0]],
+            [0, "ShowMessage", "ONE MONTH LATER", []],
+            [0, "PlayBGM", "wb3town", [0, 80, 100, 50]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 14]],
+            [0, "Teleport", "", [114, 2, 6]],
+            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "Emily",
+      "at": [9, 4],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 396,
+            "switch_b": 398
+          },
+          "sprite": {
+            "charset": "emily",
+            "index": 4,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 396,
+            "switch_b": 399
+          },
+          "sprite": {
+            "charset": "emily",
+            "index": 4,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "There was nothing wrong with my script!", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 427
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "Sewell",
+      "at": [7, 9],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 396,
+            "switch_b": 398
+          },
+          "sprite": {
+            "charset": "People3",
+            "index": 0,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "Lerle",
+      "at": [6, 6],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 396,
+            "switch_b": 398
+          },
+          "sprite": {
+            "charset": "People3",
+            "index": 2,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "name": "EV0014",
+      "at": [16, 12],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "name": "EV0015",
+      "at": [17, 12],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "name": "EV0016",
+      "at": [18, 12],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "name": "EV0017",
+      "at": [5, 8],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 396,
+            "switch_b": 403
+          },
+          "sprite": {
+            "charset": "emily",
+            "index": 4,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "Lerle has gone to the Theatre Ruins to", []],
+            [0, "ShowMessage_2", "get a script, so until then we basically", []],
+            [0, "ShowMessage_2", "have nothing to do. I can't leave, though.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "name": "EV0018",
+      "at": [11, 7],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 396,
+            "switch_b": 403
+          },
+          "sprite": {
+            "charset": "People3",
+            "index": 0,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "move": {
+            "type": "custom",
+            "speed": "half",
+            "frequency": 5
+          },
+          "script": [
+            [0, "ShowMessage", "OLD ACTOR", []],
+            [0, "ShowMessage_2", "I wish that boy would hurry up!", []],
+            [0, "ShowMessage_2", "Can't act without a script!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "name": "EV0019",
+      "at": [2, 8],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 396,
+            "switch_b": 403
+          },
+          "sprite": {
+            "charset": "People3",
+            "index": 3,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "ACTRESS", []],
+            [0, "ShowMessage_2", "I never memorized all of my lines for", []],
+            [0, "ShowMessage_2", "the last play we did, and we're already", []],
+            [0, "ShowMessage_2", "preparing for another one?", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "name": "SewellMonth2",
+      "at": [9, 6],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 427,
+            "switch_b": 388
+          },
+          "sprite": {
+            "charset": "People3",
+            "index": 0,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "SEWELL", []],
+            [0, "ShowMessage_2", "Everyone should be here for rehearsal soon.", []],
+            [0, "ShowMessage_2", "Are you ready for some acting?", []],
+            [0, "ShowChoice", "No - Not just yet/Yes - I'm ready to rehearse!", [1]],
+            [0, "ShowChoiceOption", "No - Not just yet", [0]],
+            [1, "ShowMessage", "SEWELL", []],
+            [1, "ShowMessage_2", "Fine, fine. Hurry up and tell me when", []],
+            [1, "ShowMessage_2", "you're finally ready! Ha! Ha! Hehehehe...", []],
+            [1, "END", "", []],
+            [0, "ShowChoiceOption", "Yes - I'm ready to rehearse!", [1]],
+            [1, "ShowMessage", "SEWELL", []],
+            [1, "ShowMessage_2", "Great! I hope you're ready to become", []],
+            [1, "ShowMessage_2", "part of the world of Captain Ellis and his", []],
+            [1, "ShowMessage_2", "tragic story! Imagination is key, since we", []],
+            [1, "ShowMessage", "SEWELL", []],
+            [1, "ShowMessage_2", "don't have a set yet. And remember to", []],
+            [1, "ShowMessage_2", "stay in character!", []],
+            [1, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
+            [1, "MessageOptions", "", [0, 1, 0, 0]],
+            [1, "ShowMessage", "SEWELL", []],
+            [1, "ShowMessage_2", "Everybody's here now - let's just do Talan's", []],
+            [1, "ShowMessage_2", "scenes to start with...", []],
+            [1, "MessageOptions", "", [1, 1, 0, 0]],
+            [1, "ShowMessage", "SEWELL", []],
+            [1, "ShowMessage_2", "...since he's the one I'm most concerned", []],
+            [1, "ShowMessage_2", "about...", []],
+            [1, "MessageOptions", "", [0, 0, 1, 0]],
+            [1, "Teleport", "", [142, 8, 14]],
+            [1, "TintScreen", "", [100, 100, 100, 100, 5, 1]],
+            [1, "END", "", []],
+            [0, "ShowChoiceEnd", "", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 440
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "name": "SewellAfterRehearse",
+      "at": [9, 10],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 440,
+            "switch_b": 427
+          },
+          "sprite": {
+            "charset": "People3",
+            "index": 0,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "name": "LerleOnStage",
+      "at": [13, 4],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 427,
+            "switch_b": 440
+          },
+          "sprite": {
+            "charset": "People3",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "name": "EmGhost",
+      "at": [18, 7],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 440,
+            "switch_b": 427
+          },
+          "sprite": {
+            "charset": "emily",
+            "index": 4,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "translucent": true
+        }
+      ]
+    },
+    {
+      "id": 24,
+      "name": "AulAfterRehearse",
+      "at": [2, 12],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 427,
+            "switch_b": 440
+          },
+          "sprite": {
+            "charset": "People3",
+            "index": 3,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 25,
+      "name": "Note",
+      "at": [8, 10],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 441,
+            "switch_b": 388
+          },
+          "tile": 6,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "MessageOptions", "", [1, 0, 0, 0]],
+            [0, "ShowMessage", "Talan, if you decide to wake up sometime", []],
+            [0, "ShowMessage_2", "today, we're already at the Theatre - so", []],
+            [0, "ShowMessage_2", "hurry up! We've got a show tonight!", []],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I'd better hurry!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 26,
+      "name": "EV0026",
+      "at": [7, 4],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Hmmm... I'm not sure what this used", []],
+            [0, "ShowMessage_2", "to be, but someone seems to think that", []],
+            [0, "ShowMessage_2", "writing \"DRAGON\" on its nose helps...", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 27,
+      "name": "EV0027",
+      "at": [8, 4],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Hmmm... I'm not sure what this used", []],
+            [0, "ShowMessage_2", "to be, but someone seems to think that", []],
+            [0, "ShowMessage_2", "writing \"DRAGON\" on its nose helps...", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 28,
+      "name": "EV0028",
+      "at": [19, 0],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 811
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ShowMessage", "RADIN", []],
+            [0, "ShowMessage_2", "I can't find ingredients here.", []],
+            [0, "ControlSwitches", "", [0, 811, 811, 1]]
+          ]
+        }
+      ]
+    }
+  ]
+}

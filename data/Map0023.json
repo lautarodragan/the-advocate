@@ -1,0 +1,137 @@
+{
+  "id": 23,
+  "name": "Beggar's Hideout",
+  "size": [20, 15],
+  "chipset": [43, "caveD"],
+  "tiles": "Map0023.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [11, 13],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [21, 41, 4]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Life Bucket",
+      "at": [14, 4],
+      "pages": [
+        {
+          "tile": 25,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "PlaySound", "Recovery4", [100, 100, 50]],
+            [0, "FlashScreen", "", [31, 31, 31, 31, 5, 1]],
+            [0, "MessageOptions", "", [1, 1, 0, 0]],
+            [0, "FullHeal", "", [0, 0]],
+            [0, "ShowMessage", "HP and SP completely recovered!", []],
+            [0, "MessageOptions", "", [0, 2, 1, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "The water in this bucket is amazing!", []],
+            [0, "ShowMessage_2", "I wonder if I could bring some of it", []],
+            [0, "ShowMessage_2", "with me?", []]
+          ]
+        },
+        {
+          "conditions": {
+            "item": 106
+          },
+          "tile": 25,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "PlaySound", "Recovery4", [100, 100, 50]],
+            [0, "FlashScreen", "", [31, 31, 31, 31, 5, 1]],
+            [0, "MessageOptions", "", [1, 1, 0, 0]],
+            [0, "FullHeal", "", [0, 0]],
+            [0, "ShowMessage", "HP and SP completely recovered!", []],
+            [0, "MessageOptions", "", [0, 2, 1, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "The water in this bucket is amazing!", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Should I fill up an empty bottle?", []],
+            [0, "ShowChoice", "Yes/No", [2]],
+            [0, "ShowChoiceOption", "Yes", [0]],
+            [1, "ChangeItems", "", [1, 0, 106, 0, 1]],
+            [1, "ChangeItems", "", [0, 0, 107, 0, 1]],
+            [1, "MessageOptions", "", [1, 1, 0, 0]],
+            [1, "PlaySound", "Water3", [100, 100, 50]],
+            [1, "ShowMessage", "TALAN filled an empty bottle with", []],
+            [1, "ShowMessage_2", "the healing liquid.", []],
+            [1, "MessageOptions", "", [0, 2, 1, 0]],
+            [1, "END", "", []],
+            [0, "ShowChoiceOption", "No", [1]],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "I think I'll hold onto my empty bottle.", []],
+            [1, "END", "", []],
+            [0, "ShowChoiceEnd", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "SaveInBeggarsHideout",
+      "at": [9, 4],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "savept",
+            "index": 0,
+            "direction": "up",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "action",
+          "animation": "fixed_continuous",
+          "translucent": true,
+          "script": [
+            [0, "PlaySound", "Holy5", [70, 100, 50]],
+            [0, "OpenSaveMenu", "", []],
+            [0, "ChangeSaveAccess", "", [0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [8, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "parallel",
+          "translucent": true,
+          "script": [
+            [0, "ControlVars", "", [0, 39, 39, 0, 6, 10001, 1]],
+            [0, "ControlVars", "", [0, 40, 40, 0, 6, 10001, 2]],
+            [0, "ControlVars", "", [0, 41, 41, 0, 6, 3, 1]],
+            [0, "ControlVars", "", [0, 42, 42, 0, 6, 3, 2]],
+            [0, "ConditionalBranch", "", [1, 39, 1, 41, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 40, 1, 42, 0, 1]],
+            [2, "ChangeSaveAccess", "", [1]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    }
+  ]
+}

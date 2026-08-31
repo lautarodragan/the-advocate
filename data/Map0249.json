@@ -1,0 +1,218 @@
+{
+  "id": 249,
+  "name": "PathToParadiseRuins",
+  "size": [60, 25],
+  "chipset": [49, "ABLTownMountain"],
+  "tiles": "Map0249.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [59, 13],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [245, 1, 20]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [32, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [296, 10, 38]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 636
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Teleport", "", [250, 58, 42]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "ParadiseRoad.1",
+      "at": [54, 3],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 760, 760, 0]],
+            [0, "ChangeItems", "", [0, 0, 332, 0, 1]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Volt Battery", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 760
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "ParadiseRoad.2",
+      "at": [4, 18],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 761, 761, 0]],
+            [0, "ChangeItems", "", [0, 0, 332, 0, 1]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Volt Battery", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 761
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "ParadiseRoad.3",
+      "at": [52, 19],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 762, 762, 0]],
+            [0, "ChangeItems", "", [0, 0, 196, 0, 1]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Large Axe-RL", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 762
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "AfterBattleMint",
+      "at": [59, 0],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 498
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "CallEvent", "", [0, 35, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "EV0007",
+      "at": [59, 24],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 811
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "CallEvent", "", [0, 47, 0]],
+            [0, "ControlSwitches", "", [0, 811, 811, 1]]
+          ]
+        }
+      ]
+    }
+  ]
+}

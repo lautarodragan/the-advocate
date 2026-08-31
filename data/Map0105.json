@@ -1,0 +1,477 @@
+{
+  "id": 105,
+  "name": "Mountain Path",
+  "size": [70, 30],
+  "chipset": [49, "ABLTownMountain"],
+  "tiles": "Map0105.tiles",
+  "parallax": {
+    "name": "Evening1",
+    "loop_x": true,
+    "loop_y": false,
+    "scroll_x": 2,
+    "scroll_y": 0
+  },
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [69, 18],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "We're almost to Paradise! There's no", []],
+            [0, "ShowMessage_2", "turning back now!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 3]],
+            [0, "Wait", "", [5]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 326
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Agency Guards are streaming out of the", []],
+            [0, "ShowMessage_2", "vehicles that have landed further down", []],
+            [0, "ShowMessage_2", "the path! No escape that way!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 3]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Arden/Saldra",
+      "at": [0, 0],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 54
+          },
+          "sprite": {
+            "charset": "Chara2",
+            "index": 0,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 56
+          },
+          "sprite": {
+            "charset": "Chara3",
+            "index": 6,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [0, 16],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [106, 10, 13]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [52, 17],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "FadeOutBGM", "", [1000]],
+            [0, "Wait", "", [10]],
+            [0, "PlaySound", "Wind8", [100, 70, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 24, 25]],
+            [0, "Wait", "", [3]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "What's that?!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "PlayBGM", "lf-st5", [0, 80, 100, 50]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Agency vehicles! We've got to move!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
+            [0, "ChangeSystemBGM", "lf-st5", [0, 0, 80, 100, 50]],
+            [0, "ChangeSystemBGM", "lf-st5", [1, 0, 80, 100, 50]],
+            [0, "ControlSwitches", "", [0, 326, 326, 0]],
+            [0, "ChangeEventLocation", "", [5, 0, 69, 18]],
+            [0, "ControlSwitches", "", [0, 327, 327, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 326
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "AgencyGuardChasing!",
+      "at": [69, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 328
+          },
+          "sprite": {
+            "charset": "BLAgents",
+            "index": 1,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "collision",
+          "move": {
+            "type": "custom",
+            "speed": "double",
+            "frequency": 8
+          },
+          "animation": "continuous",
+          "script": [
+            [0, "ChangeEscapeAccess", "", [0]],
+            [0, "EnemyEncounter", "mroad1", [0, 184, 1, 1, 0, 0]],
+            [0, "ChangeEscapeAccess", "", [1]],
+            [0, "ChangeEventLocation", "", [10005, 0, 69, 18]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 329
+          },
+          "sprite": {
+            "charset": "BLAgents",
+            "index": 1,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "collision",
+          "move": {
+            "type": "custom",
+            "speed": "double",
+            "frequency": 8
+          },
+          "animation": "continuous",
+          "script": [
+            [0, "ChangeEscapeAccess", "", [0]],
+            [0, "EnemyEncounter", "mroad1", [0, 184, 1, 1, 0, 0]],
+            [0, "ChangeEscapeAccess", "", [1]],
+            [0, "ChangeEventLocation", "", [10005, 0, 69, 18]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "EV0006",
+      "at": [59, 12],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 327
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "parallel",
+          "script": [
+            [0, "ControlVars", "", [0, 53, 53, 0, 6, 10001, 2]],
+            [0, "ConditionalBranch", "", [1, 53, 0, 18, 1, 1]],
+            [1, "ControlSwitches", "", [0, 328, 328, 0]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "ControlSwitches", "", [0, 329, 329, 0]],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "EV0007",
+      "at": [14, 16],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ChangeSystemBGM", "lf-st5", [0, 0, 100, 100, 50]],
+            [0, "ChangeSystemBGM", "lf-st5", [1, 0, 100, 100, 50]],
+            [0, "ChangeEscapeAccess", "", [0]],
+            [0, "EnemyEncounter", "", [0, 184, 0, 1, 0, 0]],
+            [0, "CallEvent", "", [0, 35, 0]],
+            [0, "ChangeEscapeAccess", "", [1]],
+            [0, "ChangeSystemBGM", "T_VGFighterMAX_Masako", [0, 0, 100, 100, 50]],
+            [0, "ChangeSystemBGM", "T_VGFighterMAX_Masako", [1, 0, 100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 329, 329, 1]],
+            [0, "ControlSwitches", "", [0, 328, 328, 1]],
+            [0, "ChangeEventLocation", "", [5, 0, 60, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I can see the tunnel! We're almost there!", []],
+            [0, "ConditionalBranch", "", [0, 54, 0, 0, 0, 1]],
+            [1, "ChangeEventLocation", "", [2, 0, 14, 16]],
+            [1, "MoveEvent", "", [2, 8, 0, 0, 1, 1, 15]],
+            [1, "MoveEvent", "", [10001, 8, 0, 0, 29, 1, 23, 23, 3, 36, 24, 3, 3, 3, 3, 3, 25, 3, 37, 28, 23, 23, 13]],
+            [1, "Wait", "", [25]],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "Come on, Arden! We're almost home free!", []],
+            [1, "Wait", "", [10]],
+            [1, "ShowMessage", "ARDEN", []],
+            [1, "ShowMessage_2", "Okay, Talan... here I come!", []],
+            [1, "ControlSwitches", "", [0, 496, 496, 0]],
+            [1, "MoveEvent", "", [8, 8, 0, 0, 28, 28, 3, 3, 3, 0, 3, 3, 0, 15, 29, 29]],
+            [1, "Wait", "", [10]],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "Arden, look out!!", []],
+            [1, "MoveEvent", "", [2, 8, 0, 0, 36, 3, 3, 24, 3, 3, 25]],
+            [1, "Wait", "", [3]],
+            [1, "ShowBattleAnimation", "", [62, 2, 1, 0]],
+            [1, "MoveEvent", "", [2, 8, 0, 0, 28, 12, 36, 26, 2, 2, 2, 2, 2, 35, 5, 66, 108, 111, 119, 54, 100, 90, 50, 27, 14, 29]],
+            [1, "Wait", "", [10]],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "Arden!", []],
+            [1, "Wait", "", [10]],
+            [1, "ChangePartyMembers", "", [1, 0, 15]],
+            [1, "ShowMessage", "ARDEN", []],
+            [1, "ShowMessage_2", "I'm... I'm okay...", []],
+            [1, "MoveEvent", "", [8, 8, 0, 0, 3, 3, 3, 3]],
+            [1, "MoveEvent", "", [10001, 8, 0, 0, 1]],
+            [1, "Wait", "", [10]],
+            [1, "MoveEvent", "", [2, 8, 0, 0, 15]],
+            [1, "ShowMessage", "ARDEN", []],
+            [1, "ShowMessage_2", "Talan, get out of here! You have to", []],
+            [1, "ShowMessage_2", "keep going!", []],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "I can't just leave you here!", []],
+            [1, "ShowBattleAnimation", "", [62, 9, 1, 0]],
+            [1, "MoveEvent", "", [10001, 8, 0, 0, 26, 29, 24, 3, 3, 3, 3, 25, 27, 13, 28]],
+            [1, "Wait", "", [12]],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "Whoa!", []],
+            [1, "Wait", "", [3]],
+            [1, "ShowBattleAnimation", "", [62, 10, 1, 0]],
+            [1, "MoveEvent", "", [10001, 8, 0, 0, 24, 25]],
+            [1, "Wait", "", [5]],
+            [1, "ShowMessage", "ARDEN", []],
+            [1, "ShowMessage_2", "Talan, get out of here! I'll catch up with", []],
+            [1, "ShowMessage_2", "you later! Don't let the Agency get you!", []],
+            [1, "MoveEvent", "", [2, 8, 0, 1, 28, 2, 2, 2, 2, 2, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3]],
+            [1, "MoveEvent", "", [8, 8, 0, 1, 28, 24, 36, 3, 12, 26, 2, 2, 2, 2, 2, 25, 27, 14, 2, 2, 2, 29, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3]],
+            [1, "Wait", "", [10]],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "Arden, I'll find you later! I promise!", []],
+            [1, "MoveEvent", "", [10001, 8, 0, 1, 28, 3, 3, 3, 29]],
+            [1, "Wait", "", [8]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "ConditionalBranch", "", [0, 56, 0, 0, 0, 1]],
+            [2, "ChangeEventLocation", "", [2, 0, 14, 16]],
+            [2, "MoveEvent", "", [2, 8, 0, 0, 1, 1, 15]],
+            [2, "MoveEvent", "", [10001, 8, 0, 0, 29, 1, 23, 23, 3, 36, 24, 3, 3, 3, 3, 3, 25, 3, 37, 28, 23, 23, 13]],
+            [2, "Wait", "", [25]],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "Come on, Saldra! We're almost home free!", []],
+            [2, "Wait", "", [10]],
+            [2, "ShowMessage", "SALDRA", []],
+            [2, "ShowMessage_2", "OK, man - step back!", []],
+            [2, "ControlSwitches", "", [0, 496, 496, 0]],
+            [2, "MoveEvent", "", [8, 8, 0, 0, 28, 28, 3, 3, 3, 0, 3, 3, 0, 15, 29, 29]],
+            [2, "Wait", "", [10]],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "Saldra, look out!!", []],
+            [2, "MoveEvent", "", [2, 8, 0, 0, 36, 3, 3, 24, 3, 3, 25]],
+            [2, "Wait", "", [3]],
+            [2, "ShowBattleAnimation", "", [62, 2, 1, 0]],
+            [2, "MoveEvent", "", [2, 8, 0, 0, 28, 12, 36, 26, 2, 2, 2, 2, 2, 35, 5, 66, 108, 111, 119, 54, 100, 90, 50, 27, 14, 29]],
+            [2, "Wait", "", [10]],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "Saldra!", []],
+            [2, "Wait", "", [10]],
+            [2, "ChangePartyMembers", "", [1, 0, 17]],
+            [2, "ShowMessage", "SALDRA", []],
+            [2, "ShowMessage_2", "I'm... I'm okay...", []],
+            [2, "MoveEvent", "", [8, 8, 0, 0, 3, 3, 3, 3]],
+            [2, "MoveEvent", "", [10001, 8, 0, 0, 1]],
+            [2, "Wait", "", [10]],
+            [2, "MoveEvent", "", [2, 8, 0, 0, 15]],
+            [2, "ShowMessage", "SALDRA", []],
+            [2, "ShowMessage_2", "Get out of here, man! You have to", []],
+            [2, "ShowMessage_2", "keep going!", []],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "I can't just leave you here!", []],
+            [2, "ShowBattleAnimation", "", [62, 9, 1, 0]],
+            [2, "MoveEvent", "", [10001, 8, 0, 0, 26, 29, 24, 3, 3, 3, 3, 25, 27, 13, 28]],
+            [2, "Wait", "", [12]],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "Whoa!", []],
+            [2, "Wait", "", [3]],
+            [2, "ShowBattleAnimation", "", [62, 10, 1, 0]],
+            [2, "MoveEvent", "", [10001, 8, 0, 0, 24, 25]],
+            [2, "Wait", "", [5]],
+            [2, "ShowMessage", "SALDRA", []],
+            [2, "ShowMessage_2", "Don't worry about me - I'll catch up with", []],
+            [2, "ShowMessage_2", "you later! Don't let the Agency get you!", []],
+            [2, "MoveEvent", "", [2, 8, 0, 1, 28, 2, 2, 2, 2, 2, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3]],
+            [2, "MoveEvent", "", [8, 8, 0, 1, 28, 24, 36, 3, 12, 26, 2, 2, 2, 2, 2, 25, 27, 14, 2, 2, 2, 29, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3]],
+            [2, "Wait", "", [10]],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "Saldra, I'll find you later! I promise!", []],
+            [2, "MoveEvent", "", [10001, 8, 0, 1, 28, 3, 3, 3, 29]],
+            [2, "Wait", "", [8]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "Teleport", "", [106, 10, 13]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "RunningAgent",
+      "at": [23, 18],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 496
+          },
+          "sprite": {
+            "charset": "BLAgents",
+            "index": 1,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "Target1",
+      "at": [9, 12],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "Target2",
+      "at": [5, 14],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "EV0011",
+      "at": [1, 0],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 498
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "CallEvent", "", [0, 35, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "MountainPath.1",
+      "at": [32, 19],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 922, 922, 0]],
+            [0, "ChangeItems", "", [0, 0, 397, 0, 1]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       FightingDirty vol. 5", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 922
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    }
+  ]
+}

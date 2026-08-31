@@ -1,0 +1,95 @@
+{
+  "id": 80,
+  "name": "Sorbe Mayor's House",
+  "size": [20, 15],
+  "chipset": [18, "Inside"],
+  "tiles": "Map0080.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [9, 14],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [69, 32, 19]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Receptionist",
+      "at": [9, 5],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara4",
+            "index": 5,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "RECEPTIONIST", []],
+            [0, "ShowMessage_2", "I'm sorry, the mayor is too busy to", []],
+            [0, "ShowMessage_2", "see you right now.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I understand. Sorry to bother you.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "ReceptionistDesk",
+      "at": [9, 6],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "RECEPTIONIST", []],
+            [0, "ShowMessage_2", "I'm sorry, the mayor is too busy to", []],
+            [0, "ShowMessage_2", "see you right now.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I understand. Sorry to bother you.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "EV0006",
+      "at": [9, 2],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 12]],
+            [0, "ShowMessage", "RECEPTIONIST", []],
+            [0, "ShowMessage_2", "I'm sorry, sir, but you need an", []],
+            [0, "ShowMessage_2", "appointment to see the mayor.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 14]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Oh, I'm sorry.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 14]],
+            [0, "Wait", "", [5]],
+            [0, "MessageOptions", "", [0, 2, 0, 0]]
+          ]
+        }
+      ]
+    }
+  ]
+}

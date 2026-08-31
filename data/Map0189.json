@@ -1,0 +1,99 @@
+{
+  "id": 189,
+  "name": "ParadiseTunnel",
+  "size": [20, 15],
+  "chipset": [21, "PS4Chipset"],
+  "tiles": "Map0189.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "Lerle",
+      "at": [7, 8],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People3",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Drago",
+      "at": [10, 8],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "extra2(1)",
+            "index": 1,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 1]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "LERLE", []],
+            [0, "ShowMessage_2", "So... uh, Drago, you said your name was?", []],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 15]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Wait", "", [10]],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "DRAGO", []],
+            [0, "ShowMessage_2", "Yep. Is something wrong?", []],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 14]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Wait", "", [15]],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "LERLE", []],
+            [0, "ShowMessage_2", "Well, I... ah... this Trial - just what exactly", []],
+            [0, "ShowMessage_2", "am I going to have to do?", []],
+            [0, "Wait", "", [10]],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "DRAGO", []],
+            [0, "ShowMessage_2", "It's different for every person.", []],
+            [0, "ShowMessage_2", "It's usually something to do with", []],
+            [0, "ShowMessage_2", "the profession you want to choose.", []],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 13]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Wait", "", [10]],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "LERLE", []],
+            [0, "ShowMessage_2", "Wait a second.", []],
+            [0, "Wait", "", [15]],
+            [0, "ShowMessage", "LERLE", []],
+            [0, "ShowMessage_2", "We have to work? I thought this place", []],
+            [0, "ShowMessage_2", "was called Paradise!", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
+            [0, "MessageOptions", "", [1, 1, 0, 0]],
+            [0, "ShowMessage", "MEMNOSYNE", []],
+            [0, "ShowMessage_2", "This must be how you came to live", []],
+            [0, "ShowMessage_2", "at Paradise. Show me more of your", []],
+            [0, "ShowMessage_2", "happy memories!", []],
+            [0, "Teleport", "", [314, 8, 2]]
+          ]
+        }
+      ]
+    }
+  ]
+}

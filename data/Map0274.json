@@ -1,0 +1,24 @@
+{
+  "id": 274,
+  "name": "Ship Flash",
+  "size": [20, 15],
+  "chipset": [41, "tech7"],
+  "tiles": "Map0274.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "parallel",
+          "script": [
+            [0, "TintScreen", "", [200, 170, 130, 100, 0, 0]]
+          ]
+        }
+      ]
+    }
+  ]
+}

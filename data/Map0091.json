@@ -1,0 +1,96 @@
+{
+  "id": 91,
+  "name": "Advocate Online",
+  "size": [20, 15],
+  "chipset": [19, "Ancient(1)"],
+  "tiles": "Map0091.tiles",
+  "events": [
+    {
+      "id": 2,
+      "name": "Granddad",
+      "at": [8, 14],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People3",
+            "index": 4,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Eisen",
+      "at": [9, 6],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Eisen",
+            "index": 0,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "TintScreen", "", [60, 60, 60, 0, 10, 1]],
+            [0, "Wait", "", [10]],
+            [0, "MessageOptions", "", [1, 1, 0, 0]],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 0, 0, 0, 0, 0]],
+            [0, "Wait", "", [30]],
+            [0, "MoveEvent", "", [3, 8, 0, 0, 14]],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "Sir, you're here. I wasn't expecting", []],
+            [0, "ShowMessage_2", "you... where's that Agency soldier?", []],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "Oh, the Captain? He's out sick today. I", []],
+            [0, "ShowMessage_2", "told him to stay behind.", []],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "Oh.", []],
+            [0, "MoveEvent", "", [3, 8, 0, 0, 12]],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "Has the Advocate been integrated into", []],
+            [0, "ShowMessage_2", "all of our systems?", []],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "Yes, Sir. Our military-industrial complex", []],
+            [0, "ShowMessage_2", "is now fully linked into the Advocate", []],
+            [0, "ShowMessage_2", "System. Production on the Catch Colony", []],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "has been triple its ordinary rate for the", []],
+            [0, "ShowMessage_2", "last two weeks.", []],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "Amazing. We owe it all to you, Professor.", []],
+            [0, "ShowMessage_2", "It looks as if we might survive this crisis", []],
+            [0, "ShowMessage_2", "of our own making after all.", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 10, 1]],
+            [0, "MessageOptions", "", [1, 0, 0, 0]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "But even as the Director was speaking", []],
+            [0, "ShowMessage_2", "of one crisis, another was developing far", []],
+            [0, "ShowMessage_2", "to the south, in the Kingdom of Surl.", []],
+            [0, "Teleport", "", [92, 8, 9]],
+            [0, "FadeOutBGM", "", [3000]],
+            [0, "TintScreen", "", [60, 60, 60, 0, 10, 1]]
+          ]
+        }
+      ]
+    }
+  ]
+}

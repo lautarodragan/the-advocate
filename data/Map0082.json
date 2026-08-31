@@ -1,0 +1,188 @@
+{
+  "id": 82,
+  "name": "Director'sOfficeNextStep",
+  "size": [20, 15],
+  "chipset": [18, "Inside"],
+  "tiles": "Map0082.tiles",
+  "parallax": {
+    "name": "OfficeView",
+    "loop_x": false,
+    "loop_y": false,
+    "scroll_x": 0,
+    "scroll_y": 0
+  },
+  "events": [
+    {
+      "id": 1,
+      "name": "Agency Captain",
+      "at": [10, 12],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future1",
+            "index": 5,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Director",
+      "at": [17, 4],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People3",
+            "index": 4,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "RunTheScene",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "MoveEvent", "", [1, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 13]],
+            [0, "Wait", "", [25]],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 15]],
+            [0, "Wait", "", [5]],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "Ah, you're here.", []],
+            [0, "ShowMessage", "AGENCY CAPTAIN", []],
+            [0, "ShowMessage_2", "Sir.", []],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 12]],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "I suppose it's time for the next phase of", []],
+            [0, "ShowMessage_2", "the Schedule... this is where things might", []],
+            [0, "ShowMessage_2", "get dicey...", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "AGENCY CAPTAIN", []],
+            [0, "ShowMessage_2", "Corporal Dalia will handle the next phase.", []],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 15]],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "Dalia? Isn't she a bit... abrasive? I don't know", []],
+            [0, "ShowMessage_2", "whether Eisen will choose to cooperate with", []],
+            [0, "ShowMessage_2", "her.", []],
+            [0, "ShowMessage", "AGENCY CAPTAIN", []],
+            [0, "ShowMessage_2", "He won't have a choice, Sir. The Advocate", []],
+            [0, "ShowMessage_2", "must be reactivated. Dalia will be acceptable.", []],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 12]],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "Well, there's no denying that she's loyal.", []],
+            [0, "ShowMessage_2", "But Corporal Dalia sometimes lacks...", []],
+            [0, "ShowMessage_2", "a gentle touch, shall we say?", []],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "Have you found the Slicer yet? We can't", []],
+            [0, "ShowMessage_2", "let someone just get away with hacking our", []],
+            [0, "ShowMessage_2", "systems...", []],
+            [0, "ShowMessage", "AGENCY CAPTAIN", []],
+            [0, "ShowMessage_2", "Not yet, Sir. But he will be found.", []],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 13]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "Good - I want you to offer him a position", []],
+            [0, "ShowMessage_2", "with the Agency. We can't let his talents", []],
+            [0, "ShowMessage_2", "remain unattached...", []],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "...otherwise someone might use them", []],
+            [0, "ShowMessage_2", "against us. Plus, if Eisen refuses to reactivate", []],
+            [0, "ShowMessage_2", "the Advocate, we might need a Slicer.", []],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "AGENCY CAPTAIN", []],
+            [0, "ShowMessage_2", "Sir.", []],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 15]],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "That is all, Captain.", []],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2]],
+            [0, "Wait", "", [25]],
+            [0, "ControlSwitches", "", [0, 274, 274, 0]],
+            [0, "PlaySound", "Open2", [70, 100, 50]],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 2, 2, 34, 8, 66, 76, 65, 103, 101, 110, 116, 115, 3]],
+            [0, "Wait", "", [8]],
+            [0, "ControlSwitches", "", [0, 274, 274, 1]],
+            [0, "PlaySound", "Close1", [70, 100, 50]],
+            [0, "Wait", "", [15]],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 14]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "... ... ...", []],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 3, 3, 3, 3, 3, 3, 3, 12]],
+            [0, "Wait", "", [30]],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "A foolish charade...", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "Teleport", "", [83, 68, 68]],
+            [0, "ChangePartyMembers", "", [1, 0, 10]],
+            [0, "ChangePartyMembers", "", [0, 0, 21]],
+            [0, "ControlSwitches", "", [0, 275, 275, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 275
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [10, 13],
+      "pages": [
+        {
+          "tile": 32,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 274
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "EV0005",
+      "at": [10, 14],
+      "pages": [
+        {
+          "tile": 38,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 274
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    }
+  ]
+}

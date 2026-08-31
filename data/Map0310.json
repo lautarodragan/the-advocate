@@ -1,0 +1,457 @@
+{
+  "id": 310,
+  "name": "New Tangle Forest",
+  "size": [50, 50],
+  "chipset": [48, "deepforest"],
+  "tiles": "Map0310.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [49, 22],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [66, 44, 57]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [43, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [311, 10, 13]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "AfterBattleMint",
+      "at": [49, 0],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 498
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "CallEvent", "", [0, 35, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "TangleForest.1",
+      "at": [30, 28],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 903, 903, 0]],
+            [0, "ChangeItems", "", [0, 0, 155, 0, 1]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Lucky Bandana-H", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 903
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "TangleForest.2",
+      "at": [11, 24],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 904, 904, 0]],
+            [0, "ChangeItems", "", [0, 0, 127, 0, 2]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Stale Pita-HP x2", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 904
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "TangleForest.3",
+      "at": [47, 34],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 905, 905, 0]],
+            [0, "ChangeItems", "", [0, 0, 130, 0, 2]],
+            [0, "ChangeItems", "", [0, 0, 129, 0, 2]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Jumper Cable-LIFE x2", []],
+            [0, "ShowMessage_2", "       Motor Oil-HP x2", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 905
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "TangleForest.4",
+      "at": [45, 48],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 906, 906, 0]],
+            [0, "ChangeItems", "", [0, 0, 125, 0, 1]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Bottled Water-SP", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 906
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "TangleForest.5",
+      "at": [10, 45],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 907, 907, 0]],
+            [0, "ChangeItems", "", [0, 0, 162, 0, 1]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Electric Knife-R", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 907
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "TangleForest.6",
+      "at": [1, 15],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 908, 908, 0]],
+            [0, "ChangeItems", "", [0, 0, 299, 0, 3]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Anti-Venom Vial x3", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 908
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "TangleForest.7",
+      "at": [6, 9],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 909, 909, 0]],
+            [0, "ChangeItems", "", [0, 0, 258, 0, 1]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Recharge Draught-SP", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 909
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "SaveTangleForest",
+      "at": [46, 8],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "savept",
+            "index": 0,
+            "direction": "up",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "action",
+          "animation": "fixed_continuous",
+          "translucent": true,
+          "script": [
+            [0, "PlaySound", "Holy5", [70, 100, 50]],
+            [0, "OpenSaveMenu", "", []],
+            [0, "ChangeSaveAccess", "", [0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "EV0012",
+      "at": [49, 5],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "parallel",
+          "translucent": true,
+          "script": [
+            [0, "ControlVars", "", [0, 39, 39, 0, 6, 10001, 1]],
+            [0, "ControlVars", "", [0, 40, 40, 0, 6, 10001, 2]],
+            [0, "ControlVars", "", [0, 41, 41, 0, 6, 11, 1]],
+            [0, "ControlVars", "", [0, 42, 42, 0, 6, 11, 2]],
+            [0, "ConditionalBranch", "", [1, 39, 1, 41, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 40, 1, 42, 0, 1]],
+            [2, "ChangeSaveAccess", "", [1]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "TangleForest.8",
+      "at": [24, 10],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 910, 910, 0]],
+            [0, "ChangeItems", "", [0, 0, 301, 0, 2]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Vial of Sight x2", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 910
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    }
+  ]
+}

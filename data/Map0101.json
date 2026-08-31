@@ -1,0 +1,194 @@
+{
+  "id": 101,
+  "name": "Lab After Eisen's Story",
+  "size": [20, 30],
+  "chipset": [19, "Ancient(1)"],
+  "tiles": "Map0101.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [5, 13],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "TintScreen", "", [100, 100, 100, 100, 10, 1]],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "DALIA", []],
+            [0, "ShowMessage_2", "What happened then?", []],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "<sigh>... The Agency had no choice but", []],
+            [0, "ShowMessage_2", "to counterattack. The Kingdom of Surl", []],
+            [0, "ShowMessage_2", "had started a war, and the Agency could", []],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "not let their surprise attack go unpunished.", []],
+            [0, "ShowMessage_2", "Surl was wiped off the face of the planet.", []],
+            [0, "ShowMessage_2", "They never had a chance.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 1]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "DALIA", []],
+            [0, "ShowMessage_2", "But they deserved it! The missile that got", []],
+            [0, "ShowMessage_2", "through killed 50,000 people!", []],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 15]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "How many innocent people do you think", []],
+            [0, "ShowMessage_2", "there were in Surl Kingdom, eh? Half a", []],
+            [0, "ShowMessage_2", "dozen? A few hundred?", []],
+            [0, "ShowMessage", "DALIA", []],
+            [0, "ShowMessage_2", "... ... ...", []],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "The leaders of Surl were frightened", []],
+            [0, "ShowMessage_2", "of the Agency's power, at least partially", []],
+            [0, "ShowMessage_2", "because of what I made: the Advocate.", []],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "It was that fear that prompted them to", []],
+            [0, "ShowMessage_2", "launch their missiles. I am responsible for", []],
+            [0, "ShowMessage_2", "the destruction of a nation.", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "DALIA", []],
+            [0, "ShowMessage_2", "Professor Eisen, I just...", []],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 15]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "I told you I would reactivate the Advocate", []],
+            [0, "ShowMessage_2", "if you listened to my story... so I will.", []],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "I'll need your help, though. If you could", []],
+            [0, "ShowMessage_2", "get in the simulation chamber over there...", []],
+            [0, "ShowMessage", "DALIA", []],
+            [0, "ShowMessage_2", "Thank you, Professor. The Agency will be", []],
+            [0, "ShowMessage_2", "pleased at your decision to cooperate.", []],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 13]],
+            [0, "Wait", "", [3]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 3, 0, 0, 0, 3, 23, 13]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "DALIA", []],
+            [0, "ShowMessage_2", "And Sir... I want to thank you for your actions", []],
+            [0, "ShowMessage_2", "during the crisis you were telling me about.", []],
+            [0, "ShowMessage_2", "You saved a lot of people. Thank you.", []],
+            [0, "Wait", "", [7]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "... ... ...", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 3, 0, 14]],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 36, 1, 1, 0, 37]],
+            [0, "Wait", "", [8]],
+            [0, "ShowMessage", "DALIA", []],
+            [0, "ShowMessage_2", "Now what? What do I need to do to help?", []],
+            [0, "Wait", "", [3]],
+            [0, "PlaySound", "Open1", [100, 150, 50]],
+            [0, "Wait", "", [1]],
+            [0, "ChangePartyMembers", "", [0, 0, 10]],
+            [0, "ChangePartyMembers", "", [1, 0, 21]],
+            [0, "ChangeScreenTransitions", "", [0, 17]],
+            [0, "Teleport", "", [102, 6, 3]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 309
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "I'm sorry, Corporal Dalia, but I refuse to", []],
+            [0, "ShowMessage_2", "reactivate the Advocate. I'll just have to", []],
+            [0, "ShowMessage_2", "keep you a prisoner in my simulation", []],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "until you agree. The Advocate has caused", []],
+            [0, "ShowMessage_2", "too much pain already.", []],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 14]],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "And the wait begins.", []],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "I'm too old for this sort of thing.", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 25, 1]],
+            [0, "Wait", "", [10]],
+            [0, "MessageOptions", "", [1, 1, 0, 0]],
+            [0, "ShowMessage", "Back in Sorbe Village...", []],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
+            [0, "Wait", "", [1]],
+            [0, "Teleport", "", [81, 10, 7]],
+            [0, "ChangePartyMembers", "", [0, 0, 14]],
+            [0, "ChangePartyMembers", "", [1, 0, 10]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EisenAtControls",
+      "at": [12, 19],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 309
+          },
+          "sprite": {
+            "charset": "People5",
+            "index": 6,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [5, 16],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 309
+          },
+          "sprite": {
+            "charset": "ABLDalia",
+            "index": 1,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Eisen",
+      "at": [10, 20],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People5",
+            "index": 6,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 309
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    }
+  ]
+}

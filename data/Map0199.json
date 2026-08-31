@@ -1,0 +1,456 @@
+{
+  "id": 199,
+  "name": "Battle Rink",
+  "size": [20, 15],
+  "chipset": [49, "ABLTownMountain"],
+  "tiles": "Map0199.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [4, 2],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara2",
+            "index": 1,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [14, 2],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara2",
+            "index": 1,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [12, 2],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara2",
+            "index": 1,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [5, 13],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara2",
+            "index": 1,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "EV0005",
+      "at": [13, 13],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara2",
+            "index": 1,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "EV0006",
+      "at": [7, 13],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara2",
+            "index": 4,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "EV0007",
+      "at": [14, 13],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara2",
+            "index": 4,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "EV0008",
+      "at": [13, 2],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara2",
+            "index": 4,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "EV0009",
+      "at": [6, 2],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara2",
+            "index": 7,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "EV0010",
+      "at": [9, 2],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara2",
+            "index": 7,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "EV0011",
+      "at": [12, 13],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara2",
+            "index": 7,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "EV0012",
+      "at": [11, 13],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future2",
+            "index": 5,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "EV0013",
+      "at": [8, 2],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future2",
+            "index": 5,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "name": "EV0014",
+      "at": [6, 13],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future2",
+            "index": 5,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "name": "EV0015",
+      "at": [11, 2],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future2",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "name": "EV0016",
+      "at": [5, 2],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future2",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "name": "EV0017",
+      "at": [2, 6],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Monster1",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "name": "EV0018",
+      "at": [3, 7],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Monster1",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "name": "EV0019",
+      "at": [17, 7],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Monster1",
+            "index": 1,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "name": "EV0020",
+      "at": [2, 7],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Monster1",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "name": "EV0021",
+      "at": [17, 6],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Monster2",
+            "index": 4,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "name": "RunningObling",
+      "at": [6, 8],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Monster1",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "move": {
+            "type": "custom",
+            "speed": "half",
+            "frequency": 8
+          }
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "name": "Blue Flyer",
+      "at": [12, 7],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Monster2",
+            "index": 1,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "move": {
+            "type": "custom",
+            "speed": "half",
+            "frequency": 6
+          }
+        }
+      ]
+    },
+    {
+      "id": 24,
+      "name": "Operator",
+      "at": [9, 12],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Crown7",
+            "index": 6,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "auto_start",
+          "script": [
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ConditionalBranch", "", [0, 601, 0, 0, 0, 1]],
+            [1, "MessageOptions", "", [0, 0, 0, 0]],
+            [1, "ShowMessage", "OPERATOR", []],
+            [1, "ShowMessage_2", "Care to tackle some critters in the", []],
+            [1, "ShowMessage_2", "Battle Rink? Big rewards if you win!", []],
+            [1, "ShowMessage_2", "(Death if you lose...)", []],
+            [1, "ShowChoice", "No - I don't want to fight./Yes - I'm ready for the Rink!", [1]],
+            [1, "ShowChoiceOption", "No - I don't want to fight.", [0]],
+            [2, "ShowMessage", "OPERATOR", []],
+            [2, "ShowMessage_2", "Wimp.", []],
+            [2, "MoveEvent", "", [10001, 8, 0, 0, 15]],
+            [2, "Teleport", "", [68, 48, 2]],
+            [2, "END", "", []],
+            [1, "ShowChoiceOption", "Yes - I'm ready for the Rink!", [1]],
+            [2, "END", "", []],
+            [1, "ShowChoiceEnd", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "ShowMessage", "OPERATOR", []],
+            [1, "ShowMessage_2", "We're not accepting any more challenges", []],
+            [1, "ShowMessage_2", "this week - come back later if you want", []],
+            [1, "ShowMessage_2", "to fight!", []],
+            [1, "MoveEvent", "", [10001, 8, 0, 0, 15]],
+            [1, "Teleport", "", [68, 48, 2]],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    }
+  ]
+}

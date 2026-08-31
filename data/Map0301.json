@@ -1,0 +1,56 @@
+{
+  "id": 301,
+  "name": "The Overlook",
+  "size": [20, 30],
+  "chipset": [21, "PS4Chipset"],
+  "tiles": "Map0301.tiles",
+  "parallax": {
+    "name": "Dawn1",
+    "loop_x": true,
+    "loop_y": false,
+    "scroll_x": -1,
+    "scroll_y": 0
+  },
+  "events": [
+    {
+      "id": 1,
+      "name": "Talan",
+      "at": [14, 8],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future1",
+            "index": 0,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "TintScreen", "", [80, 80, 80, 100, 0, 0]],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 2, 3, 23, 13, 23, 23, 28, 3, 3, 3, 3, 29]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 0, 0]],
+            [0, "MessageOptions", "", [1, 2, 0, 0]],
+            [0, "ShowMessage", "VOICE", []],
+            [0, "ShowMessage_2", "This isn't about revenge!\\|\\^", []],
+            [0, "Teleport", "", [303, 7, 8]]
+          ]
+        }
+      ]
+    }
+  ]
+}

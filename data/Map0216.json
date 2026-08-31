@@ -1,0 +1,190 @@
+{
+  "id": 216,
+  "name": "Agency Tanks - After",
+  "size": [20, 15],
+  "chipset": [37, "shrine1"],
+  "tiles": "Map0216.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [2, 11],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLVehicles",
+            "index": 5,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [13, 12],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLVehicles",
+            "index": 5,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [17, 11],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLVehicles",
+            "index": 5,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [4, 14],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AG717",
+            "index": 4,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "EV0005",
+      "at": [13, 7],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AG717",
+            "index": 4,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "GuardRight",
+      "at": [14, 8],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLAgents",
+            "index": 1,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "GuardLeft",
+      "at": [13, 9],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLAgents",
+            "index": 1,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "EV0008",
+      "at": [14, 7],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AG717",
+            "index": 4,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "EV0009",
+      "at": [0, 14],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "PlaySound", "Earthquake1", [100, 100, 50]],
+            [0, "MoveEvent", "", [7, 8, 0, 0, 15, 23, 23, 14, 23, 23, 12]],
+            [0, "MoveEvent", "", [6, 8, 0, 0, 14, 23, 15, 23, 13, 23, 23, 12]],
+            [0, "Wait", "", [30]],
+            [0, "FlashScreen", "", [31, 31, 31, 31, 2, 0]],
+            [0, "PlaySound", "Bell", [80, 150, 50]],
+            [0, "ShowPicture", "ThreeRubbleDiff", [20, 0, 160, 120, 1, 100, 0, 1, 100, 100, 100, 100, 0, 60]],
+            [0, "Wait", "", [15]],
+            [0, "TintScreen", "", [0, 0, 0, 100, 1, 0]],
+            [0, "MovePicture", "", [20, 0, 160, 120, 0, 0, 0, 0, 100, 100, 100, 100, 0, 5497976, 20, 1]],
+            [0, "Wait", "", [10]],
+            [0, "MessageOptions", "", [1, 1, 0, 0]],
+            [0, "ShowMessage", "MAN", []],
+            [0, "ShowMessage_2", "My wife and I had bought a new", []],
+            [0, "ShowMessage_2", "home, just a few months before", []],
+            [0, "ShowMessage_2", "the Agency's attack.", []],
+            [0, "ShowMessage", "MAN", []],
+            [0, "ShowMessage_2", "It was part of a row of houses, and", []],
+            [0, "ShowMessage_2", "each one looked just like the one", []],
+            [0, "ShowMessage_2", "next to it.", []],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "MAN", []],
+            [0, "ShowMessage_2", "I guess that's still true.", []],
+            [0, "Wait", "", [10]],
+            [0, "Teleport", "", [217, 9, 11]]
+          ]
+        }
+      ]
+    }
+  ]
+}

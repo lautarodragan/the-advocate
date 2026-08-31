@@ -1,0 +1,8 @@
+{
+  "id": 341,
+  "name": "Area 3 Aqueduct",
+  "size": [20, 15],
+  "chipset": [3, "inner"],
+  "tiles": "Map0341.tiles",
+  "events": []
+}

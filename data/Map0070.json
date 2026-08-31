@@ -1,0 +1,187 @@
+{
+  "id": 70,
+  "name": "Green Cuisine Deli",
+  "size": [20, 15],
+  "chipset": [44, "ABLForestTownInner"],
+  "tiles": "Map0070.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [9, 14],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [67, 26, 37]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Owner",
+      "at": [15, 6],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara4",
+            "index": 1,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [9, 9],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People1",
+            "index": 5,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "WOMAN", []],
+            [0, "ShowMessage_2", "My herb sprout salad was exquisite!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [11, 9],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People5",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "MAN", []],
+            [0, "ShowMessage_2", "The tofu steak was a little underdone,", []],
+            [0, "ShowMessage_2", "but it was still quite tasty.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "EV0005",
+      "at": [2, 6],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara2",
+            "index": 4,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "BEARDED MAN", []],
+            [0, "ShowMessage_2", "Leave me alone. Can't a guy drink in", []],
+            [0, "ShowMessage_2", "peace?", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "Marcy",
+      "at": [6, 5],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People1",
+            "index": 1,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "move": {
+            "type": "horizontal",
+            "speed": "half",
+            "frequency": 8
+          },
+          "script": [
+            [0, "MoveEvent", "", [2, 8, 0, 0, 15]],
+            [0, "ShowMessage", "OWNER", []],
+            [0, "ShowMessage_2", "Marcy! Stop that running!", []],
+            [0, "ShowMessage", "MARCY", []],
+            [0, "ShowMessage_2", "Wheeeeeeeeeee!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "EV0007",
+      "at": [12, 4],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I don't think I'm allowed in the kitchen.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "EV0008",
+      "at": [15, 7],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "MoveEvent", "", [2, 8, 0, 0, 14]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "OpenShop", "", [0, 2, 0, 0, 124, 114, 125, 145, 144]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "EV0009",
+      "at": [14, 6],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "MoveEvent", "", [2, 8, 0, 0, 15]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "OpenShop", "", [0, 2, 0, 0, 124, 114, 125, 145, 144]]
+          ]
+        }
+      ]
+    }
+  ]
+}

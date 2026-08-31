@@ -1,0 +1,130 @@
+{
+  "id": 43,
+  "name": "Vidcasts (Office)",
+  "size": [20, 15],
+  "chipset": [18, "Inside"],
+  "tiles": "Map0043.tiles",
+  "parallax": {
+    "name": "OfficeView",
+    "loop_x": false,
+    "loop_y": false,
+    "scroll_x": 0,
+    "scroll_y": 0
+  },
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [19, 14],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "MessageOptions", "", [0, 1, 0, 0]],
+            [0, "ShowMessage", "ZED", []],
+            [0, "ShowMessage_2", "Thank you, Tia.", []],
+            [0, "ShowMessage", "ZED", []],
+            [0, "ShowMessage_2", "The office where the Director was staying", []],
+            [0, "ShowMessage_2", "before this terrible incident is in shambles.", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "ZED", []],
+            [0, "ShowMessage_2", "The door was kicked in by Agency officials,", []],
+            [0, "ShowMessage_2", "but not before the assassin was able to", []],
+            [0, "ShowMessage_2", "break this window and escape down", []],
+            [0, "ShowMessage", "ZED", []],
+            [0, "ShowMessage_2", "to the alleyways below. He", []],
+            [0, "ShowMessage_2", "is believed to be armed and extremely", []],
+            [0, "ShowMessage_2", "dangerous.", []],
+            [0, "Teleport", "", [44, 10, 8]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 160
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "MessageOptions", "", [0, 1, 0, 0]],
+            [0, "ShowMessage", "ZED", []],
+            [0, "ShowMessage_2", "Well... that was... horrifying.", []],
+            [0, "ShowMessage", "ZED", []],
+            [0, "ShowMessage_2", "They told me the Director was nearly", []],
+            [0, "ShowMessage_2", "unrecognizable when that bastard was", []],
+            [0, "ShowMessage_2", "done with him, but...", []],
+            [0, "Wait", "", [15]],
+            [0, "ShowMessage", "ZED", []],
+            [0, "ShowMessage_2", "I'm sorry, ladies and gentlemen. They", []],
+            [0, "ShowMessage_2", "train you for situations like this, but no", []],
+            [0, "ShowMessage_2", "reporter is ever really ready.", []],
+            [0, "Wait", "", [15]],
+            [0, "ShowMessage", "VOICE OF TIA", []],
+            [0, "ShowMessage_2", "Zed, are you there? I have someone here", []],
+            [0, "ShowMessage_2", "who says he knew Talan, and thinks he", []],
+            [0, "ShowMessage_2", "might know where he's headed!", []],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "BOSS WICK", []],
+            [0, "ShowMessage_2", "Did you tell anyone you were coming here?", []],
+            [0, "ConditionalBranch", "", [0, 54, 1, 0, 0, 1]],
+            [1, "ConditionalBranch", "", [0, 56, 0, 0, 0, 1]],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "Just Saldra, outside - but he's been with me!", []],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ConditionalBranch", "", [0, 56, 1, 0, 0, 1]],
+            [1, "ConditionalBranch", "", [0, 54, 0, 0, 0, 1]],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "Just Arden, outside - but she's been with me!", []],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ConditionalBranch", "", [0, 54, 1, 0, 0, 1]],
+            [1, "ConditionalBranch", "", [0, 56, 1, 0, 0, 1]],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "Uh... no! I didn't, really!", []],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "Teleport", "", [42, 8, 12]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [10, 4],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People5",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    }
+  ]
+}

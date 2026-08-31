@@ -1,0 +1,186 @@
+{
+  "id": 292,
+  "name": "Emily's Scenario",
+  "size": [40, 40],
+  "chipset": [39, "tech5"],
+  "tiles": "Map0292.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [17, 39],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [261, 49, 39]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [39, 13],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [293, 1, 25]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "AfterBattleMint",
+      "at": [39, 0],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 498
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "CallEvent", "", [0, 35, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Refinery.10",
+      "at": [10, 35],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 969, 969, 0]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Volt Battery x2", []],
+            [0, "ChangeItems", "", [0, 0, 332, 0, 2]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 969
+          },
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "There's nothing inside.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Refinery.11",
+      "at": [36, 35],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 970, 970, 0]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Healing Draught-HP x2", []],
+            [0, "ChangeItems", "", [0, 0, 257, 0, 2]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 970
+          },
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "There's nothing inside.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "Refinery.12",
+      "at": [2, 13],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 971, 971, 0]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Rapidity Field-AGL", []],
+            [0, "ChangeItems", "", [0, 0, 333, 0, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 971
+          },
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "There's nothing inside.", []]
+          ]
+        }
+      ]
+    }
+  ]
+}

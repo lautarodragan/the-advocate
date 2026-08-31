@@ -1,0 +1,107 @@
+{
+  "id": 170,
+  "name": "Vago Taken Away",
+  "size": [20, 15],
+  "chipset": [40, "ABLForestTown"],
+  "tiles": "Map0170.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "Dr. Vago",
+      "at": [5, 8],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People5",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Agent3",
+      "at": [14, 14],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLAgents",
+            "index": 1,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Agent4",
+      "at": [15, 14],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLAgents",
+            "index": 1,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "EV0006",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "MoveEvent", "", [4, 8, 0, 0, 0, 0, 0, 0, 0, 15]],
+            [0, "MoveEvent", "", [5, 8, 0, 0, 0, 0, 0, 0, 3]],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 2, 1, 1, 1, 1, 1]],
+            [0, "Wait", "", [12]],
+            [0, "ShowMessage", "AGENCY GUARD", []],
+            [0, "ShowMessage_2", "Dr. Vago?", []],
+            [0, "Wait", "", [12]],
+            [0, "ShowMessage", "DR. VAGO", []],
+            [0, "ShowMessage_2", "Yes... that's me.", []],
+            [0, "ShowMessage", "DR. VAGO", []],
+            [0, "ShowMessage_2", "Is... is there a problem?", []],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "AGENCY GUARD", []],
+            [0, "ShowMessage_2", "You'll need to come with us, Doctor.", []],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 14, 23, 23, 15, 23, 23, 13]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "DR. VAGO", []],
+            [0, "ShowMessage_2", "This isn't really a good time, I'm afraid...", []],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "AGENCY GUARD", []],
+            [0, "ShowMessage_2", "We apologize for the inconvenience -", []],
+            [0, "ShowMessage_2", "but you really have very little choice in", []],
+            [0, "ShowMessage_2", "the matter, Doctor.", []],
+            [0, "Wait", "", [16]],
+            [0, "ShowMessage", "DR. VAGO", []],
+            [0, "ShowMessage_2", "I see.", []],
+            [0, "Wait", "", [12]],
+            [0, "MoveEvent", "", [1, 8, 0, 1, 1, 1, 1, 1]],
+            [0, "Wait", "", [8]],
+            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
+            [0, "Teleport", "", [171, 10, 14]],
+            [0, "TintScreen", "", [70, 70, 40, 100, 5, 1]]
+          ]
+        }
+      ]
+    }
+  ]
+}

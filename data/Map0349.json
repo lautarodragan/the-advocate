@@ -1,0 +1,46 @@
+{
+  "id": 349,
+  "name": "Walking in Paradise",
+  "size": [20, 15],
+  "chipset": [23, "PS4Chipset"],
+  "tiles": "Map0349.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "Radin",
+      "at": [19, 9],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "extra2(1)",
+            "index": 0,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "TintScreen", "", [40, 20, 60, 100, 5, 1]],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 23, 23, 13, 23, 23, 23, 14, 12, 15]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Teleport", "", [350, 10, 14]]
+          ]
+        }
+      ]
+    }
+  ]
+}

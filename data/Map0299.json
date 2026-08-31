@@ -1,0 +1,140 @@
+{
+  "id": 299,
+  "name": "AgentMob",
+  "size": [20, 15],
+  "chipset": [9, "BLchp1"],
+  "tiles": "Map0299.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "GangMember",
+      "at": [14, 6],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 54
+          },
+          "sprite": {
+            "charset": "Chara2",
+            "index": 0,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 56
+          },
+          "sprite": {
+            "charset": "Chara3",
+            "index": 6,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Agent1",
+      "at": [5, 6],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLAgents",
+            "index": 1,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Agent2",
+      "at": [7, 8],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLAgents",
+            "index": 1,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Agent3",
+      "at": [10, 11],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLAgents",
+            "index": 1,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Agent4",
+      "at": [14, 11],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLAgents",
+            "index": 1,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "EV0006",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "TintScreen", "", [100, 100, 100, 100, 0, 0]],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 1, 23, 1, 23, 1]],
+            [0, "MoveEvent", "", [3, 8, 0, 0, 23, 1, 23, 1, 23]],
+            [0, "MoveEvent", "", [5, 8, 0, 0, 0, 23, 0, 23, 0, 23, 0]],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 26, 23, 0, 23, 0, 23, 0, 27]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 0, 0]],
+            [0, "MessageOptions", "", [1, 0, 0, 0]],
+            [0, "PlaySound", "Rebirth2", [100, 70, 50]],
+            [0, "ShowMessage", "VOICE", []],
+            [0, "ShowMessage_2", "It shouldn't have been like this...", []],
+            [0, "ShowMessage_2", "I didn't want this at all...\\|\\^", []],
+            [0, "PlaySound", "Explosion4", [100, 100, 50]],
+            [0, "Wait", "", [3]],
+            [0, "PlaySound", "Fight1", [100, 100, 50]],
+            [0, "Teleport", "", [300, 0, 9]]
+          ]
+        }
+      ]
+    }
+  ]
+}

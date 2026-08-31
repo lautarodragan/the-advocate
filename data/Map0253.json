@@ -1,0 +1,60 @@
+{
+  "id": 253,
+  "name": "The Agency and Advocate",
+  "size": [40, 39],
+  "chipset": [31, "worldmapcharlie"],
+  "tiles": "Map0253.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "Tasgarde",
+      "at": [33, 4],
+      "pages": [
+        {
+          "tile": 16,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [74, 19, 48]],
+            [0, "ControlSwitches", "", [0, 236, 236, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [15, 10],
+      "pages": [
+        {
+          "tile": 4,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [69, 20, 38]],
+            [0, "ControlSwitches", "", [0, 236, 236, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ChangeItems", "", [1, 0, 81, 0, 1]],
+            [0, "PanScreen", "", [2, 0, 30, 4, 0]],
+            [0, "PanScreen", "", [2, 1, 30, 4, 1]],
+            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
+            [0, "Teleport", "", [277, 6, 28]]
+          ]
+        }
+      ]
+    }
+  ]
+}

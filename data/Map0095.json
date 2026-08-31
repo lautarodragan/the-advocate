@@ -1,0 +1,1510 @@
+{
+  "id": 95,
+  "name": "Into The Machine",
+  "size": [50, 50],
+  "chipset": [19, "Ancient(1)"],
+  "tiles": "Map0095.tiles",
+  "parallax": {
+    "name": "TasgardePan",
+    "loop_x": false,
+    "loop_y": false,
+    "scroll_x": 0,
+    "scroll_y": 0
+  },
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [13, 39],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "VOICE OF ADVOCATE", []],
+            [0, "ShowMessage_2", "Where are you going, Professor Eisen?", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 15, 23, 13, 23, 15, 23, 13, 23]],
+            [0, "Wait", "", [10]],
+            [0, "MessageOptions", "", [1, 2, 0, 0]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "So... it's wired itself into the base's", []],
+            [0, "ShowMessage_2", "intercom system. I hope it hasn't", []],
+            [0, "ShowMessage_2", "realized that I'm a threat to it.", []],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "I'm just down here for... routine", []],
+            [0, "ShowMessage_2", "maintenance, Advocate.", []],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "VOICE OF ADVOCATE", []],
+            [0, "ShowMessage_2", "You want me to shoot down the", []],
+            [0, "ShowMessage_2", "missiles. Why are you down here?", []],
+            [0, "ShowMessage_2", "You should go watch the explosions", []],
+            [0, "ShowMessage", "VOICE OF ADVOCATE", []],
+            [0, "ShowMessage_2", "on the long-range monitors. I'm", []],
+            [0, "ShowMessage_2", "really looking forward to it.", []],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "Advocate!", []],
+            [0, "ShowMessage", "VOICE OF ADVOCATE", []],
+            [0, "ShowMessage_2", "I don't think I want you down here.", []],
+            [0, "ControlSwitches", "", [0, 297, 297, 0]],
+            [0, "PlaySound", "Close2", [100, 50, 50]],
+            [0, "Wait", "", [5]],
+            [0, "MessageOptions", "", [1, 2, 0, 0]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "Damn - that would have been the quickest", []],
+            [0, "ShowMessage_2", "way... I'd better get ready for some", []],
+            [0, "ShowMessage_2", "acrobatics!", []],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ControlVars", "", [0, 48, 48, 0, 0, 99, 0]],
+            [0, "ShowPicture", "Fortitude", [1, 0, 70, 10, 0, 100, 0, 1, 100, 100, 100, 100, 0, 5497976]],
+            [0, "ShowPicture", "9", [2, 0, 55, 30, 0, 100, 0, 1, 100, 100, 100, 100, 0, 60]],
+            [0, "ShowPicture", "9", [3, 0, 70, 30, 0, 100, 0, 1, 100, 100, 100, 100, 0, 5497976]],
+            [0, "ControlSwitches", "", [0, 298, 298, 0]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "A NOTE ABOUT FORTITUDE", []],
+            [0, "ShowMessage_2", "Eisen is a computer programmer, not", []],
+            [0, "ShowMessage_2", "a body-builder. Any physical task, such", []],
+            [0, "ShowMessage_2", "as climbing ladders, jumping gaps,", []],
+            [0, "ShowMessage", "A NOTE ABOUT FORTITUDE", []],
+            [0, "ShowMessage_2", "running very quickly, getting zapped", []],
+            [0, "ShowMessage_2", "by dangerous electronics - these", []],
+            [0, "ShowMessage_2", "activities all drain his Fortitude.", []],
+            [0, "ShowMessage", "A NOTE ABOUT FORTITUDE", []],
+            [0, "ShowMessage_2", "If Eisen's Fortitude reaches 0, he", []],
+            [0, "ShowMessage_2", "won't be able to proceed.", []],
+            [0, "PanScreen", "", [2, 0, 5, 4, 1]],
+            [0, "PanScreen", "", [2, 1, 5, 4, 1]],
+            [0, "FlashSprite", "", [53, 31, 0, 0, 31, 25, 1]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "If I can find the three release mechanisms,", []],
+            [0, "ShowMessage_2", "I should be able to open that secondary", []],
+            [0, "ShowMessage_2", "access hatch...", []],
+            [0, "PanScreen", "", [3, 1, 5, 5, 1]],
+            [0, "ControlSwitches", "", [0, 315, 315, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 297
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [10, 49],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "I can't go back up to the Command", []],
+            [0, "ShowMessage_2", "Center - I need to shut down the", []],
+            [0, "ShowMessage_2", "Advocate... and fast!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 0]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [14, 36],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 297
+          },
+          "tile": 109,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [14, 37],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 297
+          },
+          "tile": 115,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "Advocate has sealed off this passage.", []],
+            [0, "ShowMessage_2", "I'll need to find another way around.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "EV0005",
+      "at": [13, 38],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "VOICE OF ADVOCATE", []],
+            [0, "ShowMessage_2", "Where are you going, Professor Eisen?", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 15, 23, 13, 23, 15, 23, 13, 23]],
+            [0, "Wait", "", [10]],
+            [0, "MessageOptions", "", [1, 2, 0, 0]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "So... it's wired itself into the base's", []],
+            [0, "ShowMessage_2", "intercom system. I hope it hasn't", []],
+            [0, "ShowMessage_2", "realized that I'm a threat to it.", []],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "I'm just down here for... routine", []],
+            [0, "ShowMessage_2", "maintenance, Advocate.", []],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "VOICE OF ADVOCATE", []],
+            [0, "ShowMessage_2", "You want me to shoot down the", []],
+            [0, "ShowMessage_2", "missiles. Why are you down here?", []],
+            [0, "ShowMessage_2", "You should go watch the explosions", []],
+            [0, "ShowMessage", "VOICE OF ADVOCATE", []],
+            [0, "ShowMessage_2", "on the long-range monitors. I'm", []],
+            [0, "ShowMessage_2", "really looking forward to it.", []],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "Advocate!", []],
+            [0, "ShowMessage", "VOICE OF ADVOCATE", []],
+            [0, "ShowMessage_2", "I don't think I want you down here.", []],
+            [0, "ControlSwitches", "", [0, 297, 297, 0]],
+            [0, "PlaySound", "Close2", [100, 50, 50]],
+            [0, "Wait", "", [5]],
+            [0, "MessageOptions", "", [1, 2, 0, 0]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "Damn - that would have been the quickest", []],
+            [0, "ShowMessage_2", "way... I'd better get ready for some", []],
+            [0, "ShowMessage_2", "acrobatics!", []],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ControlVars", "", [0, 48, 48, 0, 0, 99, 0]],
+            [0, "ShowPicture", "Fortitude", [1, 0, 70, 10, 0, 100, 0, 1, 100, 100, 100, 100, 0, 5497976]],
+            [0, "ShowPicture", "9", [2, 0, 55, 30, 0, 100, 0, 1, 100, 100, 100, 100, 0, 60]],
+            [0, "ShowPicture", "9", [3, 0, 70, 30, 0, 100, 0, 1, 100, 100, 100, 100, 0, 5497976]],
+            [0, "ControlSwitches", "", [0, 298, 298, 0]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "A NOTE ABOUT FORTITUDE", []],
+            [0, "ShowMessage_2", "Eisen is a computer programmer, not", []],
+            [0, "ShowMessage_2", "a body-builder. Any physical task, such", []],
+            [0, "ShowMessage_2", "as climbing ladders, jumping gaps,", []],
+            [0, "ShowMessage", "A NOTE ABOUT FORTITUDE", []],
+            [0, "ShowMessage_2", "running very quickly, getting zapped", []],
+            [0, "ShowMessage_2", "by dangerous electronics - these", []],
+            [0, "ShowMessage_2", "activities all drain his Fortitude.", []],
+            [0, "ShowMessage", "A NOTE ABOUT FORTITUDE", []],
+            [0, "ShowMessage_2", "If Eisen's Fortitude reaches 0, he", []],
+            [0, "ShowMessage_2", "won't be able to proceed.", []],
+            [0, "PanScreen", "", [2, 0, 5, 4, 1]],
+            [0, "PanScreen", "", [2, 1, 5, 4, 1]],
+            [0, "FlashSprite", "", [53, 31, 0, 0, 31, 25, 1]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "If I can find the three release mechanisms,", []],
+            [0, "ShowMessage_2", "I should be able to open that secondary", []],
+            [0, "ShowMessage_2", "access hatch...", []],
+            [0, "PanScreen", "", [3, 1, 5, 5, 1]],
+            [0, "ControlSwitches", "", [0, 315, 315, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 297
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "SaveByFortitudeStart",
+      "at": [10, 38],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "savept",
+            "index": 0,
+            "direction": "up",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "action",
+          "animation": "fixed_continuous",
+          "translucent": true,
+          "script": [
+            [0, "PlaySound", "Holy5", [70, 100, 50]],
+            [0, "OpenSaveMenu", "", []],
+            [0, "ChangeSaveAccess", "", [0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "EV0007",
+      "at": [15, 37],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "Even if I were able to open the door,", []],
+            [0, "ShowMessage_2", "Advocate could just close it again.", []],
+            [0, "ShowMessage_2", "I'll need to find a way around.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "EV0008",
+      "at": [16, 37],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "Even if I were able to open the door,", []],
+            [0, "ShowMessage_2", "Advocate could just close it again.", []],
+            [0, "ShowMessage_2", "I'll need to find a way around.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "EV0009",
+      "at": [38, 35],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 36, 3, 14, 26, 38, 2, 2, 2, 2, 2, 27, 37, 39]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "EV0010",
+      "at": [48, 39],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "This is one of the hydraulic controls", []],
+            [0, "ShowMessage_2", "for the secondary access hatch.", []],
+            [0, "Wait", "", [5]],
+            [0, "PlaySound", "Open1", [100, 150, 50]],
+            [0, "ControlSwitches", "", [0, 301, 301, 0]],
+            [0, "ControlVars", "", [0, 50, 50, 1, 0, 1, 0]],
+            [0, "ConditionalBranch", "", [1, 50, 0, 1, 0, 1]],
+            [1, "ShowMessage", "EISEN", []],
+            [1, "ShowMessage_2", "That's the first one. There are two more!", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "ConditionalBranch", "", [1, 50, 0, 2, 0, 1]],
+            [2, "ShowMessage", "EISEN", []],
+            [2, "ShowMessage_2", "That's the second of the release controls.", []],
+            [2, "ShowMessage_2", "There's only one left!", []],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "ConditionalBranch", "", [1, 50, 0, 3, 0, 1]],
+            [3, "ShowMessage", "EISEN", []],
+            [3, "ShowMessage_2", "That's the last of the controls! Now I", []],
+            [3, "ShowMessage_2", "can get through to the core!", []],
+            [3, "END", "", []],
+            [2, "ElseBranch", "", []],
+            [3, "END", "", []],
+            [2, "EndBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 301
+          },
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "I've already activated this release control.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "EV0011",
+      "at": [48, 38],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 301
+          },
+          "tile": 74,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "EV0012",
+      "at": [36, 45],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 24, 1, 1, 25, 1]],
+            [0, "Wait", "", [5]],
+            [0, "ShowBattleAnimation", "", [146, 10001, 1, 0]],
+            [0, "ControlVars", "", [0, 48, 48, 2, 0, 5, 0]],
+            [0, "CallEvent", "", [0, 9, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "EV0013",
+      "at": [8, 34],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "parallel",
+          "translucent": true,
+          "script": [
+            [0, "ControlVars", "", [0, 39, 39, 0, 6, 10001, 1]],
+            [0, "ControlVars", "", [0, 40, 40, 0, 6, 10001, 2]],
+            [0, "ControlVars", "", [0, 41, 41, 0, 6, 6, 1]],
+            [0, "ControlVars", "", [0, 42, 42, 0, 6, 6, 2]],
+            [0, "ConditionalBranch", "", [1, 39, 1, 41, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 40, 1, 42, 0, 1]],
+            [2, "ChangeSaveAccess", "", [1]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "name": "EV0014",
+      "at": [38, 45],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 24, 3, 3, 25, 3]],
+            [0, "Wait", "", [5]],
+            [0, "ShowBattleAnimation", "", [146, 10001, 1, 0]],
+            [0, "ControlVars", "", [0, 48, 48, 2, 0, 5, 0]],
+            [0, "CallEvent", "", [0, 9, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "name": "EV0015",
+      "at": [21, 38],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 24, 1, 1, 25, 1]],
+            [0, "Wait", "", [5]],
+            [0, "ShowBattleAnimation", "", [146, 10001, 1, 0]],
+            [0, "ControlVars", "", [0, 48, 48, 2, 0, 5, 0]],
+            [0, "CallEvent", "", [0, 9, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "name": "EV0016",
+      "at": [23, 38],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 24, 3, 3, 25, 3]],
+            [0, "Wait", "", [5]],
+            [0, "ShowBattleAnimation", "", [146, 10001, 1, 0]],
+            [0, "ControlVars", "", [0, 48, 48, 2, 0, 5, 0]],
+            [0, "CallEvent", "", [0, 9, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "name": "EV0017",
+      "at": [26, 36],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 24, 0, 0, 0, 25, 0]],
+            [0, "Wait", "", [5]],
+            [0, "ShowBattleAnimation", "", [147, 10001, 1, 0]],
+            [0, "ControlVars", "", [0, 48, 48, 2, 0, 10, 0]],
+            [0, "CallEvent", "", [0, 9, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "name": "EV0018",
+      "at": [26, 43],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 24, 0, 0, 0, 25, 0]],
+            [0, "Wait", "", [5]],
+            [0, "ShowBattleAnimation", "", [147, 10001, 1, 0]],
+            [0, "ControlVars", "", [0, 48, 48, 2, 0, 10, 0]],
+            [0, "CallEvent", "", [0, 9, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "name": "EV0019",
+      "at": [26, 33],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 24, 2, 2, 2, 25, 2]],
+            [0, "Wait", "", [5]],
+            [0, "ShowBattleAnimation", "", [147, 10001, 1, 0]],
+            [0, "ControlVars", "", [0, 48, 48, 2, 0, 10, 0]],
+            [0, "CallEvent", "", [0, 9, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "name": "EV0020",
+      "at": [26, 40],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 24, 2, 2, 2, 25, 2]],
+            [0, "Wait", "", [5]],
+            [0, "ShowBattleAnimation", "", [147, 10001, 1, 0]],
+            [0, "ControlVars", "", [0, 48, 48, 2, 0, 10, 0]],
+            [0, "CallEvent", "", [0, 9, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "name": "EV0021",
+      "at": [29, 37],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12, 26, 0, 0, 27, 24, 1, 25]],
+            [0, "Wait", "", [5]],
+            [0, "ShowBattleAnimation", "", [146, 10001, 1, 0]],
+            [0, "ControlVars", "", [0, 48, 48, 2, 0, 5, 0]],
+            [0, "CallEvent", "", [0, 9, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "name": "EV0022",
+      "at": [29, 35],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12, 26, 2, 2, 27, 24, 2, 25]],
+            [0, "Wait", "", [5]],
+            [0, "ShowBattleAnimation", "", [146, 10001, 1, 0]],
+            [0, "ControlVars", "", [0, 48, 48, 2, 0, 5, 0]],
+            [0, "CallEvent", "", [0, 9, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "name": "EV0023",
+      "at": [33, 42],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12, 26, 0, 0, 0, 0, 27, 24, 0, 25]],
+            [0, "Wait", "", [5]],
+            [0, "ShowBattleAnimation", "", [147, 10001, 1, 0]],
+            [0, "ControlVars", "", [0, 48, 48, 2, 0, 10, 0]],
+            [0, "CallEvent", "", [0, 9, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 24,
+      "name": "EV0024",
+      "at": [33, 38],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12, 26, 2, 2, 2, 2, 27, 24, 2, 25]],
+            [0, "Wait", "", [5]],
+            [0, "ShowBattleAnimation", "", [147, 10001, 1, 0]],
+            [0, "ControlVars", "", [0, 48, 48, 2, 0, 10, 0]],
+            [0, "CallEvent", "", [0, 9, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 25,
+      "name": "EV0025",
+      "at": [46, 40],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 24, 3, 3, 25, 3]],
+            [0, "Wait", "", [5]],
+            [0, "ShowBattleAnimation", "", [146, 10001, 1, 0]],
+            [0, "ControlVars", "", [0, 48, 48, 2, 0, 5, 0]],
+            [0, "CallEvent", "", [0, 9, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 26,
+      "name": "EV0026",
+      "at": [42, 41],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 24, 3, 3, 25, 3]],
+            [0, "Wait", "", [5]],
+            [0, "ShowBattleAnimation", "", [146, 10001, 1, 0]],
+            [0, "ControlVars", "", [0, 48, 48, 2, 0, 5, 0]],
+            [0, "CallEvent", "", [0, 9, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 27,
+      "name": "EV0027",
+      "at": [40, 41],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 24, 1, 1, 25, 1]],
+            [0, "Wait", "", [5]],
+            [0, "ShowBattleAnimation", "", [146, 10001, 1, 0]],
+            [0, "ControlVars", "", [0, 48, 48, 2, 0, 5, 0]],
+            [0, "CallEvent", "", [0, 9, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 28,
+      "name": "EV0028",
+      "at": [44, 40],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 24, 1, 1, 25, 1]],
+            [0, "Wait", "", [5]],
+            [0, "ShowBattleAnimation", "", [146, 10001, 1, 0]],
+            [0, "ControlVars", "", [0, 48, 48, 2, 0, 5, 0]],
+            [0, "CallEvent", "", [0, 9, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 29,
+      "name": "EV0029",
+      "at": [43, 39],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12, 26, 0, 0, 0, 0, 0, 27, 24, 0, 25]],
+            [0, "Wait", "", [5]],
+            [0, "ShowBattleAnimation", "", [147, 10001, 1, 0]],
+            [0, "ControlVars", "", [0, 48, 48, 2, 0, 10, 0]],
+            [0, "CallEvent", "", [0, 9, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 30,
+      "name": "EV0030",
+      "at": [43, 34],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12, 26, 2, 2, 2, 2, 2, 27, 24, 2, 25]],
+            [0, "Wait", "", [5]],
+            [0, "ShowBattleAnimation", "", [147, 10001, 1, 0]],
+            [0, "ControlVars", "", [0, 48, 48, 2, 0, 10, 0]],
+            [0, "CallEvent", "", [0, 9, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 31,
+      "name": "EV0031",
+      "at": [39, 39],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 24, 0, 0, 25, 0]],
+            [0, "Wait", "", [5]],
+            [0, "ShowBattleAnimation", "", [146, 10001, 1, 0]],
+            [0, "ControlVars", "", [0, 48, 48, 2, 0, 5, 0]],
+            [0, "CallEvent", "", [0, 9, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 32,
+      "name": "EV0032",
+      "at": [39, 37],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 24, 2, 2, 25, 2]],
+            [0, "Wait", "", [5]],
+            [0, "ShowBattleAnimation", "", [146, 10001, 1, 0]],
+            [0, "ControlVars", "", [0, 48, 48, 2, 0, 5, 0]],
+            [0, "CallEvent", "", [0, 9, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 33,
+      "name": "EV0033",
+      "at": [33, 30],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 24, 2, 2, 2, 25, 2]],
+            [0, "Wait", "", [5]],
+            [0, "ShowBattleAnimation", "", [147, 10001, 1, 0]],
+            [0, "ControlVars", "", [0, 48, 48, 2, 0, 10, 0]],
+            [0, "CallEvent", "", [0, 9, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 34,
+      "name": "EV0034",
+      "at": [33, 33],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 24, 0, 0, 0, 25, 0]],
+            [0, "Wait", "", [5]],
+            [0, "ShowBattleAnimation", "", [147, 10001, 1, 0]],
+            [0, "ControlVars", "", [0, 48, 48, 2, 0, 10, 0]],
+            [0, "CallEvent", "", [0, 9, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 35,
+      "name": "EV0035",
+      "at": [36, 35],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 36, 1, 14, 26, 38, 2, 2, 2, 2, 2, 27, 37, 39]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 36,
+      "name": "EV0036",
+      "at": [37, 29],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 36, 2, 26, 38, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 39, 27, 37]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 37,
+      "name": "EV0037",
+      "at": [37, 27],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "The pipe is too slippery for me to climb up.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 38,
+      "name": "EV0038",
+      "at": [37, 39],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "The pipe is too slippery for me to climb up.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 39,
+      "name": "EV0039",
+      "at": [17, 44],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "This is one of the hydraulic controls", []],
+            [0, "ShowMessage_2", "for the secondary access hatch.", []],
+            [0, "Wait", "", [5]],
+            [0, "PlaySound", "Open1", [100, 150, 50]],
+            [0, "ControlSwitches", "", [0, 300, 300, 0]],
+            [0, "ControlVars", "", [0, 50, 50, 1, 0, 1, 0]],
+            [0, "ConditionalBranch", "", [1, 50, 0, 1, 0, 1]],
+            [1, "ShowMessage", "EISEN", []],
+            [1, "ShowMessage_2", "That's the first one.  There are two more!", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "ConditionalBranch", "", [1, 50, 0, 2, 0, 1]],
+            [2, "ShowMessage", "EISEN", []],
+            [2, "ShowMessage_2", "That's the second of the release controls.", []],
+            [2, "ShowMessage_2", "There's only one left!", []],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "ConditionalBranch", "", [1, 50, 0, 3, 0, 1]],
+            [3, "ShowMessage", "EISEN", []],
+            [3, "ShowMessage_2", "That's the last of the controls! Now I", []],
+            [3, "ShowMessage_2", "can get through to the core!", []],
+            [3, "END", "", []],
+            [2, "ElseBranch", "", []],
+            [3, "END", "", []],
+            [2, "EndBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 300
+          },
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "I've already activated this release control.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 40,
+      "name": "EV0040",
+      "at": [17, 43],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 300
+          },
+          "tile": 74,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 41,
+      "name": "EV0041",
+      "at": [28, 45],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 24, 1, 1, 1, 25, 1]],
+            [0, "Wait", "", [5]],
+            [0, "ShowBattleAnimation", "", [147, 10001, 1, 0]],
+            [0, "ControlVars", "", [0, 48, 48, 2, 0, 10, 0]],
+            [0, "CallEvent", "", [0, 9, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 42,
+      "name": "EV0042",
+      "at": [31, 45],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 24, 3, 3, 3, 25, 3]],
+            [0, "Wait", "", [5]],
+            [0, "ShowBattleAnimation", "", [147, 10001, 1, 0]],
+            [0, "ControlVars", "", [0, 48, 48, 2, 0, 10, 0]],
+            [0, "CallEvent", "", [0, 9, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 43,
+      "name": "EV0043",
+      "at": [26, 28],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12, 26, 0, 0, 0, 0, 27, 24, 0, 25]],
+            [0, "Wait", "", [5]],
+            [0, "ShowBattleAnimation", "", [147, 10001, 1, 0]],
+            [0, "ControlVars", "", [0, 48, 48, 2, 0, 10, 0]],
+            [0, "CallEvent", "", [0, 9, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 44,
+      "name": "EV0044",
+      "at": [26, 24],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12, 26, 2, 2, 2, 2, 27, 24, 2, 25]],
+            [0, "Wait", "", [5]],
+            [0, "ShowBattleAnimation", "", [147, 10001, 1, 0]],
+            [0, "ControlVars", "", [0, 48, 48, 2, 0, 10, 0]],
+            [0, "CallEvent", "", [0, 9, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 45,
+      "name": "EV0045",
+      "at": [30, 28],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 24, 1, 1, 25, 1]],
+            [0, "Wait", "", [5]],
+            [0, "ShowBattleAnimation", "", [146, 10001, 1, 0]],
+            [0, "ControlVars", "", [0, 48, 48, 2, 0, 5, 0]],
+            [0, "CallEvent", "", [0, 9, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 46,
+      "name": "EV0046",
+      "at": [32, 28],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 24, 3, 3, 25, 2]],
+            [0, "Wait", "", [5]],
+            [0, "ShowBattleAnimation", "", [146, 10001, 1, 0]],
+            [0, "ControlVars", "", [0, 48, 48, 2, 0, 5, 0]],
+            [0, "CallEvent", "", [0, 9, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 47,
+      "name": "EV0047",
+      "at": [27, 14],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "This is one of the hydraulic controls", []],
+            [0, "ShowMessage_2", "for the secondary access hatch.", []],
+            [0, "Wait", "", [5]],
+            [0, "PlaySound", "Open1", [100, 150, 50]],
+            [0, "ControlSwitches", "", [0, 302, 302, 0]],
+            [0, "ControlVars", "", [0, 50, 50, 1, 0, 1, 0]],
+            [0, "ConditionalBranch", "", [1, 50, 0, 1, 0, 1]],
+            [1, "ShowMessage", "EISEN", []],
+            [1, "ShowMessage_2", "That's the first one. There are two more!", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "ConditionalBranch", "", [1, 50, 0, 2, 0, 1]],
+            [2, "ShowMessage", "EISEN", []],
+            [2, "ShowMessage_2", "That's the second of the release controls.", []],
+            [2, "ShowMessage_2", "There's only one left!", []],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "ConditionalBranch", "", [1, 50, 0, 3, 0, 1]],
+            [3, "ShowMessage", "EISEN", []],
+            [3, "ShowMessage_2", "That's the last of the controls! Now I", []],
+            [3, "ShowMessage_2", "can get through to the core!", []],
+            [3, "END", "", []],
+            [2, "ElseBranch", "", []],
+            [3, "END", "", []],
+            [2, "EndBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 302
+          },
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "I've already activated this release control.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 48,
+      "name": "EV0048",
+      "at": [27, 13],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 302
+          },
+          "tile": 74,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 49,
+      "name": "EV0049",
+      "at": [37, 20],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "The pipe is too slippery for me to climb up.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 50,
+      "name": "EV0050",
+      "at": [37, 22],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 36, 2, 38, 26, 2, 2, 2, 2, 2, 2, 27, 39, 37]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 51,
+      "name": "EV0051",
+      "at": [43, 21],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 24, 1, 1, 25, 1]],
+            [0, "Wait", "", [5]],
+            [0, "ShowBattleAnimation", "", [146, 10001, 1, 0]],
+            [0, "ControlVars", "", [0, 48, 48, 2, 0, 5, 0]],
+            [0, "CallEvent", "", [0, 9, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 52,
+      "name": "EV0052",
+      "at": [45, 21],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 24, 3, 3, 25, 3]],
+            [0, "Wait", "", [5]],
+            [0, "ShowBattleAnimation", "", [146, 10001, 1, 0]],
+            [0, "ControlVars", "", [0, 48, 48, 2, 0, 5, 0]],
+            [0, "CallEvent", "", [0, 9, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 53,
+      "name": "Secondary AccessHatc",
+      "at": [24, 31],
+      "pages": [
+        {
+          "tile": 109,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ConditionalBranch", "", [1, 50, 0, 0, 0, 1]],
+            [1, "ShowMessage", "EISEN", []],
+            [1, "ShowMessage_2", "There are three release controls somewhere", []],
+            [1, "ShowMessage_2", "down here to unlock this access hatch.", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "ConditionalBranch", "", [1, 50, 0, 1, 0, 1]],
+            [2, "ShowMessage", "EISEN", []],
+            [2, "ShowMessage_2", "I have to trigger two more of the release", []],
+            [2, "ShowMessage_2", "controls to unlock this access door.", []],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "ConditionalBranch", "", [1, 50, 0, 2, 0, 1]],
+            [3, "ShowMessage", "EISEN", []],
+            [3, "ShowMessage_2", "I have to trigger one more release control", []],
+            [3, "ShowMessage_2", "to unlock this door.", []],
+            [3, "END", "", []],
+            [2, "ElseBranch", "", []],
+            [3, "ConditionalBranch", "", [1, 50, 0, 3, 0, 1]],
+            [4, "ShowMessage", "EISEN", []],
+            [4, "ShowMessage_2", "The access hatch is unlocked!", []],
+            [4, "PlaySound", "Open2", [100, 50, 50]],
+            [4, "ControlSwitches", "", [0, 303, 303, 0]],
+            [4, "END", "", []],
+            [3, "ElseBranch", "", []],
+            [4, "END", "", []],
+            [3, "EndBranch", "", []],
+            [3, "END", "", []],
+            [2, "EndBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 303
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 54,
+      "name": "EV0054",
+      "at": [20, 31],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched"
+        },
+        {
+          "conditions": {
+            "switch_a": 305
+          },
+          "sprite": {
+            "charset": "Eisen",
+            "index": 0,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "auto_start",
+          "script": [
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "VOICE OF ADVOCATE", []],
+            [0, "ShowMessage_2", "How are you transmitting the self-destruct", []],
+            [0, "ShowMessage_2", "codes to this base? You're not using", []],
+            [0, "ShowMessage_2", "a remote, are you?", []],
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 24, 25]],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "What? I'm not transmitting any self-destruct", []],
+            [0, "ShowMessage_2", "codes!", []],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "VOICE OF ADVOCATE", []],
+            [0, "ShowMessage_2", "Someone is. Someone is trying to", []],
+            [0, "ShowMessage_2", "blow up this base and keep me from", []],
+            [0, "ShowMessage_2", "seeing a missile explosion.", []],
+            [0, "ShowMessage", "VOICE OF ADVOCATE", []],
+            [0, "ShowMessage_2", "That makes me sad. Who would want", []],
+            [0, "ShowMessage_2", "to keep me from having my fun?", []],
+            [0, "Teleport", "", [100, 6, 5]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 306
+          },
+          "sprite": {
+            "charset": "Eisen",
+            "index": 0,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "auto_start",
+          "script": [
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "Advocate, can you cancel the self-destruct", []],
+            [0, "ShowMessage_2", "order?", []],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "VOICE OF ADVOCATE", []],
+            [0, "ShowMessage_2", "No, it's keying into the hardwired", []],
+            [0, "ShowMessage_2", "matrix of the base. I don't have access.", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "VOICE OF ADVOCATE", []],
+            [0, "ShowMessage_2", "But this way I'll get to experience an", []],
+            [0, "ShowMessage_2", "actual explosion - that's even better than", []],
+            [0, "ShowMessage_2", "watching one on the long-range monitors!", []],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "Advocate... shoot down the missiles.", []],
+            [0, "ShowMessage_2", "Whoever sent that destruction order", []],
+            [0, "ShowMessage_2", "wants to kill us both!", []],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "VOICE OF ADVOCATE", []],
+            [0, "ShowMessage_2", "Kill? I won't be killed. I'm part of almost", []],
+            [0, "ShowMessage_2", "every mechanical system the Agency", []],
+            [0, "ShowMessage_2", "owns. I can't be killed.", []],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "You CAN be killed! If you let those", []],
+            [0, "ShowMessage_2", "missiles destroy Lashe and Prima,", []],
+            [0, "ShowMessage_2", "the Agency will erase you completely!", []],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "VOICE OF ADVOCATE", []],
+            [0, "ShowMessage_2", "... ... ...", []],
+            [0, "ShowMessage", "VOICE OF ADVOCATE", []],
+            [0, "ShowMessage_2", "Death? There is no such thing... is there?", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "VOICE OF ADVOCATE", []],
+            [0, "ShowMessage_2", "Is there?", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "VOICE OF ADVOCATE", []],
+            [0, "ShowMessage_2", "No.", []],
+            [0, "Wait", "", [7]],
+            [0, "ShowMessage", "VOICE OF ADVOCATE", []],
+            [0, "ShowMessage_2", "They can't do that.", []],
+            [0, "Wait", "", [7]],
+            [0, "ShowMessage", "VOICE OF ADVOCATE", []],
+            [0, "ShowMessage_2", "I will not let them kill me!", []],
+            [0, "Teleport", "", [99, 4, 7]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 307
+          },
+          "sprite": {
+            "charset": "Eisen",
+            "index": 0,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "auto_start",
+          "script": [
+            [0, "Wait", "", [10]],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "VOICE OF ADVOCATE", []],
+            [0, "ShowMessage_2", "The missiles have been destroyed.", []],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "You did it! Advocate, transmit my voice", []],
+            [0, "ShowMessage_2", "over the exterior loudspeakers! They", []],
+            [0, "ShowMessage_2", "have to cancel the self-destruct sequence!", []],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "Teleport", "", [100, 14, 7]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 55,
+      "name": "EV0055",
+      "at": [23, 31],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 36, 3, 3, 3, 37]],
+            [0, "Wait", "", [10]],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "VOICE OF ADVOCATE", []],
+            [0, "ShowMessage_2", "What are you doing, Professor?", []],
+            [0, "ShowMessage_2", "I don't want you down here.", []],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "Advocate, listen to me!", []],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "If you don't shoot down those missiles,", []],
+            [0, "ShowMessage_2", "the people of Lashe and Prima will die!", []],
+            [0, "ShowMessage_2", "It will be all your fault!", []],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "VOICE OF ADVOCATE", []],
+            [0, "ShowMessage_2", "I don't care.", []],
+            [0, "ControlSwitches", "", [0, 304, 304, 0]],
+            [0, "ChangeScreenTransitions", "", [0, 19]],
+            [0, "ChangePartyMembers", "", [0, 0, 10]],
+            [0, "ChangePartyMembers", "", [1, 0, 23]],
+            [0, "Teleport", "", [99, 6, 13]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 56,
+      "name": "EV0056",
+      "at": [7, 36],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 315
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "parallel",
+          "script": [
+            [0, "ConditionalBranch", "", [1, 48, 0, 0, 2, 1]],
+            [1, "ShowMessage", "EISEN", []],
+            [1, "ShowMessage_2", "So... tired... can't go on...", []],
+            [1, "TintScreen", "", [0, 0, 0, 100, 15, 1]],
+            [1, "ControlSwitches", "", [0, 300, 300, 1]],
+            [1, "ControlSwitches", "", [0, 301, 301, 1]],
+            [1, "ControlSwitches", "", [0, 302, 302, 1]],
+            [1, "ControlSwitches", "", [0, 303, 303, 1]],
+            [1, "ControlVars", "", [0, 50, 50, 0, 0, 0, 0]],
+            [1, "ControlVars", "", [0, 48, 48, 0, 0, 99, 0]],
+            [1, "CallEvent", "", [0, 9, 0]],
+            [1, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [1, "Teleport", "", [95, 11, 39]],
+            [1, "TintScreen", "", [100, 100, 100, 100, 10, 1]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    }
+  ]
+}

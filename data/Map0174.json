@@ -1,0 +1,91 @@
+{
+  "id": 174,
+  "name": "Pierson and Kersh",
+  "size": [20, 15],
+  "chipset": [24, "INNER ITEMS SHOP"],
+  "tiles": "Map0174.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "Pierson",
+      "at": [9, 6],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People1",
+            "index": 6,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Kersh",
+      "at": [9, 14],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 483
+          },
+          "sprite": {
+            "charset": "Future1",
+            "index": 5,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "TintScreen", "", [70, 70, 40, 100, 5, 1]],
+            [0, "Wait", "", [20]],
+            [0, "MessageOptions", "", [0, 0, 1, 0]],
+            [0, "ShowMessage", "PIERSON", []],
+            [0, "ShowMessage_2", "I thought it would be you.", []],
+            [0, "Wait", "", [20]],
+            [0, "ControlSwitches", "", [0, 483, 483, 0]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "AGENCY CAPTAIN", []],
+            [0, "ShowMessage_2", "Where is it?", []],
+            [0, "Wait", "", [6]],
+            [0, "ShowMessage", "PIERSON", []],
+            [0, "ShowMessage_2", "... ... ...", []],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 0, 0, 0, 0]],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "AGENCY CAPTAIN", []],
+            [0, "ShowMessage_2", "I won't ask again. Where have you hidden it?", []],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "PIERSON", []],
+            [0, "ShowMessage_2", "You've made a tactical error, old friend.", []],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "PIERSON", []],
+            [0, "ShowMessage_2", "Never underestimate an old man who", []],
+            [0, "ShowMessage_2", "has nothing left to live for.", []],
+            [0, "Wait", "", [5]],
+            [0, "TintScreen", "", [0, 0, 0, 100, 1, 1]],
+            [0, "Wait", "", [25]],
+            [0, "PlaySound", "gun2", [100, 90, 50]],
+            [0, "FadeOutBGM", "", [5000]],
+            [0, "Wait", "", [50]],
+            [0, "Teleport", "", [203, 10, 27]]
+          ]
+        }
+      ]
+    }
+  ]
+}

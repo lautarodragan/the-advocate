@@ -1,0 +1,76 @@
+{
+  "id": 125,
+  "name": "AG7 in the Rain",
+  "size": [20, 15],
+  "chipset": [21, "PS4Chipset"],
+  "tiles": "Map0125.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "parallel",
+          "script": [
+            [0, "PlaySound", "Rain1", [70, 100, 50]],
+            [0, "Wait", "", [30]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "AG7-17",
+      "at": [12, 8],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AG717",
+            "index": 4,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Drago",
+      "at": [7, 6],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "extra2(1)",
+            "index": 1,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "Isabella",
+      "at": [6, 6],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara1",
+            "index": 3,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    }
+  ]
+}

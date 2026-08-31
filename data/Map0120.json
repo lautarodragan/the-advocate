@@ -1,0 +1,102 @@
+{
+  "id": 120,
+  "name": "ConstructionTent",
+  "size": [20, 15],
+  "chipset": [23, "PS4Chipset"],
+  "tiles": "Map0120.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [9, 13],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ConditionalBranch", "", [0, 350, 0, 0, 0, 1]],
+            [1, "TintScreen", "", [0, 0, 0, 70, 2, 1]],
+            [1, "Teleport", "", [108, 38, 51]],
+            [1, "TintScreen", "", [70, 70, 70, 70, 2, 1]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "Teleport", "", [108, 38, 51]],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [7, 9],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 376
+          },
+          "sprite": {
+            "charset": "Chara1",
+            "index": 2,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "DEFENDER", []],
+            [0, "ShowMessage_2", "Hmmm... let's see, what do we need now?", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [10, 9],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 385,
+            "switch_b": 396
+          },
+          "sprite": {
+            "charset": "Chara1",
+            "index": 2,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "DEFENDER", []],
+            [0, "ShowMessage_2", "This wall is taking awhile to build,", []],
+            [0, "ShowMessage_2", "but it'll be worth it when we're done.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [19, 14],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 811
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ShowMessage", "RADIN", []],
+            [0, "ShowMessage_2", "I can't find ingredients here.", []],
+            [0, "ControlSwitches", "", [0, 811, 811, 1]]
+          ]
+        }
+      ]
+    }
+  ]
+}

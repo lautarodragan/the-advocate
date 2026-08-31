@@ -1,0 +1,62 @@
+{
+  "id": 204,
+  "name": "Splashdown",
+  "size": [20, 15],
+  "chipset": [21, "PS4Chipset"],
+  "tiles": "Map0204.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "Talan",
+      "at": [18, 8],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future1",
+            "index": 0,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Emily",
+      "at": [12, 6],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "emily",
+            "index": 4,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "TintScreen", "", [30, 20, 60, 100, 0, 0]],
+            [0, "MoveEvent", "", [2, 7, 0, 0, 29, 26, 38, 6, 6, 5, 2, 6]],
+            [0, "MoveEvent", "", [1, 7, 0, 0, 29, 29, 26, 38, 6, 5, 5, 5]],
+            [0, "Wait", "", [30]],
+            [0, "Teleport", "", [236, 10, 11]]
+          ]
+        }
+      ]
+    }
+  ]
+}

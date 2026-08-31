@@ -1,0 +1,661 @@
+{
+  "id": 118,
+  "name": "House4",
+  "size": [20, 15],
+  "chipset": [24, "INNER ITEMS SHOP"],
+  "tiles": "Map0118.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [9, 14],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ConditionalBranch", "", [0, 350, 0, 0, 0, 1]],
+            [1, "TintScreen", "", [0, 0, 0, 70, 2, 1]],
+            [1, "Teleport", "", [108, 37, 41]],
+            [1, "TintScreen", "", [70, 70, 70, 70, 2, 1]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "Teleport", "", [108, 37, 41]],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Dince",
+      "at": [2, 5],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 350
+          },
+          "sprite": {
+            "charset": "Chara4",
+            "index": 2,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "DINCE", []],
+            [0, "ShowMessage_2", "Hi. You must be new here. I'm Dince, an", []],
+            [0, "ShowMessage_2", "apprentice Defender. Just one more year", []],
+            [0, "ShowMessage_2", "until I'm 18 and can take the Trials!", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Oh, I didn't know there was an age", []],
+            [0, "ShowMessage_2", "requirement.", []],
+            [0, "ShowMessage", "DINCE", []],
+            [0, "ShowMessage_2", "Yeah... if you're born here, like I was, then", []],
+            [0, "ShowMessage_2", "you get to stay until you're 18 before you", []],
+            [0, "ShowMessage_2", "need to take the Trials.", []],
+            [0, "ShowMessage", "DINCE", []],
+            [0, "ShowMessage_2", "I'd better pass them, too - I'm not very good", []],
+            [0, "ShowMessage_2", "at forging armor, so I always get yelled at.", []],
+            [0, "ControlSwitches", "", [0, 356, 356, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 350,
+            "switch_b": 356
+          },
+          "sprite": {
+            "charset": "Chara4",
+            "index": 2,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "DINCE", []],
+            [0, "ShowMessage_2", "I guess I should keep working.", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 376
+          },
+          "sprite": {
+            "charset": "Chara4",
+            "index": 2,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ConditionalBranch", "", [0, 356, 0, 0, 0, 1]],
+            [1, "ShowMessage", "DINCE", []],
+            [1, "ShowMessage_2", "Oh, hello again. I heard that you've been", []],
+            [1, "ShowMessage_2", "accepted - congratulations!", []],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "Thanks.", []],
+            [1, "ShowMessage", "DINCE", []],
+            [1, "ShowMessage_2", "Take my advice and don't become a", []],
+            [1, "ShowMessage_2", "Defender - my master is a lunatic! He", []],
+            [1, "ShowMessage_2", "expects me to have this forged by tonight!", []],
+            [1, "MessageOptions", "", [1, 1, 0, 0]],
+            [1, "ShowMessage", "The half-forged armor melts into a", []],
+            [1, "ShowMessage_2", "puddle in the fireplace.", []],
+            [1, "MessageOptions", "", [0, 2, 0, 0]],
+            [1, "ShowMessage", "DINCE", []],
+            [1, "ShowMessage_2", "Oh no! Drat!", []],
+            [1, "MessageOptions", "", [1, 0, 0, 0]],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "I'd better leave him alone for now.", []],
+            [1, "MessageOptions", "", [0, 2, 0, 0]],
+            [1, "ControlSwitches", "", [0, 377, 377, 0]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "ShowMessage", "DINCE", []],
+            [1, "ShowMessage_2", "Hi. You must be new here. I'm Dince, an", []],
+            [1, "ShowMessage_2", "apprentice Defender. Just one more year", []],
+            [1, "ShowMessage_2", "until I'm 18 and can take the Trials!", []],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "Oh, I didn't know there was an age", []],
+            [1, "ShowMessage_2", "requirement.", []],
+            [1, "ShowMessage", "DINCE", []],
+            [1, "ShowMessage_2", "Yeah... if you're born here, like I was, then", []],
+            [1, "ShowMessage_2", "you get to stay until you're 18 before you", []],
+            [1, "ShowMessage_2", "need to take the Trials.", []],
+            [1, "ShowMessage", "DINCE", []],
+            [1, "ShowMessage_2", "I'd better pass them, too - I'm not very good", []],
+            [1, "ShowMessage_2", "at forging armor, so I always get yelled at. They'd", []],
+            [1, "ShowMessage_2", "have kicked me out already, if they could.", []],
+            [1, "ShowMessage", "DINCE", []],
+            [1, "ShowMessage_2", "Take my advice and don't become a", []],
+            [1, "ShowMessage_2", "Defender - my master is a lunatic! He", []],
+            [1, "ShowMessage_2", "expects me to have this forged by tonight!", []],
+            [1, "MessageOptions", "", [1, 1, 0, 0]],
+            [1, "ShowMessage", "The half-forged armor melts into a", []],
+            [1, "ShowMessage_2", "puddle in the fireplace.", []],
+            [1, "MessageOptions", "", [0, 2, 0, 0]],
+            [1, "ShowMessage", "DINCE", []],
+            [1, "ShowMessage_2", "Oh no! Drat!", []],
+            [1, "MessageOptions", "", [1, 0, 0, 0]],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "I'd better leave him alone for now.", []],
+            [1, "MessageOptions", "", [0, 2, 0, 0]],
+            [1, "ControlSwitches", "", [0, 377, 377, 0]],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 377,
+            "switch_b": 376
+          },
+          "sprite": {
+            "charset": "Chara4",
+            "index": 2,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "DINCE", []],
+            [0, "ShowMessage_2", "I'm never going to finish this in time!", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 427,
+            "switch_b": 388
+          },
+          "sprite": {
+            "charset": "Chara4",
+            "index": 2,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "DINCE", []],
+            [0, "ShowMessage_2", "This metal doesn't want to cooperate.", []],
+            [0, "ShowMessage_2", "<sigh>", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 441,
+            "switch_b": 388
+          },
+          "sprite": {
+            "charset": "Chara4",
+            "index": 2,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "DINCE", []],
+            [0, "ShowMessage_2", "I need to finish this armor before I", []],
+            [0, "ShowMessage_2", "can go to the play tonight! Oh, man!", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 457
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [16, 6],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [17, 6],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "EV0005",
+      "at": [18, 6],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "Isabella",
+      "at": [17, 5],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 457
+          },
+          "sprite": {
+            "charset": "Chara1",
+            "index": 3,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "Emily",
+      "at": [13, 5],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 457
+          },
+          "sprite": {
+            "charset": "emily",
+            "index": 4,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "She can't die!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "Pierson",
+      "at": [15, 5],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 457
+          },
+          "sprite": {
+            "charset": "People1",
+            "index": 6,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ConditionalBranch", "", [0, 386, 0, 0, 0, 1]],
+            [1, "ShowMessage", "PIERSON", []],
+            [1, "ShowMessage_2", "Hurry to the marshes and find the antidote!", []],
+            [1, "ShowMessage_2", "Isabella doesn't have very much time...", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ConditionalBranch", "", [0, 385, 0, 0, 0, 1]],
+            [1, "ShowMessage", "PIERSON", []],
+            [1, "ShowMessage_2", "You need to rescue Drago from the hidden", []],
+            [1, "ShowMessage_2", "bandit hideout somewhere to the north!", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ShowMessage", "PIERSON", []],
+            [0, "ShowMessage_2", "I don't like this at all... that bandit raid was", []],
+            [0, "ShowMessage_2", "too unusual. I think something suspicious", []],
+            [0, "ShowMessage_2", "is going on...", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "Radin/Sern",
+      "at": [14, 7],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 457,
+            "switch_b": 386
+          },
+          "sprite": {
+            "charset": "extra2(1)",
+            "index": 0,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 457,
+            "switch_b": 385
+          },
+          "sprite": {
+            "charset": "extra2(1)",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 458
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "IsabellaWoundedScene",
+      "at": [19, 0],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 457
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ConditionalBranch", "", [0, 386, 0, 0, 0, 1]],
+            [1, "Wait", "", [20]],
+            [1, "ShowMessage", "EMILY", []],
+            [1, "ShowMessage_2", "How is she?", []],
+            [1, "Wait", "", [15]],
+            [1, "ShowMessage", "PIERSON", []],
+            [1, "ShowMessage_2", "The arrow was coated with Gnashtooth", []],
+            [1, "ShowMessage_2", "poison - she doesn't have very long to live.", []],
+            [1, "ShowMessage", "EMILY", []],
+            [1, "ShowMessage_2", "Is there an antidote?", []],
+            [1, "MoveEvent", "", [8, 8, 0, 0, 14]],
+            [1, "ShowMessage", "PIERSON", []],
+            [1, "ShowMessage_2", "You're the expert, Radin. Is there an", []],
+            [1, "ShowMessage_2", "antidote for Gnashtooth?", []],
+            [1, "MoveEvent", "", [9, 8, 0, 0, 12]],
+            [1, "ShowMessage", "RADIN", []],
+            [1, "ShowMessage_2", "The only known antidote for this toxin", []],
+            [1, "ShowMessage_2", "is a powder made from the tongue of a", []],
+            [1, "ShowMessage_2", "Murgator - and they're very dangerous.", []],
+            [1, "MoveEvent", "", [10001, 8, 0, 0, 24, 25]],
+            [1, "Wait", "", [5]],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "We have to do something! Isabella will die", []],
+            [1, "ShowMessage_2", "if we don't!", []],
+            [1, "ShowMessage", "EMILY", []],
+            [1, "ShowMessage_2", "If Drago were here, he'd have already", []],
+            [1, "ShowMessage_2", "found a Murgator, killed it, and given", []],
+            [1, "ShowMessage_2", "her the antidote!", []],
+            [1, "MoveEvent", "", [8, 8, 0, 0, 13]],
+            [1, "Wait", "", [10]],
+            [1, "ShowMessage", "PIERSON", []],
+            [1, "ShowMessage_2", "It is unfortunate that the bandits captured", []],
+            [1, "ShowMessage_2", "Drago - and highly unusual: they've never", []],
+            [1, "ShowMessage_2", "taken prisoners before. I was also not aware", []],
+            [1, "ShowMessage", "PIERSON", []],
+            [1, "ShowMessage_2", "that they had access to Gnashtooth.", []],
+            [1, "MoveEvent", "", [9, 8, 0, 0, 13]],
+            [1, "Wait", "", [10]],
+            [1, "ShowMessage", "RADIN", []],
+            [1, "ShowMessage_2", "The Defenders have already left to", []],
+            [1, "ShowMessage_2", "rescue Drago. Maybe they'll get him", []],
+            [1, "ShowMessage_2", "back in time to find the antidote?", []],
+            [1, "ShowMessage", "PIERSON", []],
+            [1, "ShowMessage_2", "That is a possibility.", []],
+            [1, "MoveEvent", "", [7, 8, 0, 0, 24, 25]],
+            [1, "Wait", "", [5]],
+            [1, "ShowMessage", "EMILY", []],
+            [1, "ShowMessage_2", "We can't just wait around for them", []],
+            [1, "ShowMessage_2", "to get back! We need to find the", []],
+            [1, "ShowMessage_2", "antidote NOW!", []],
+            [1, "MoveEvent", "", [8, 8, 0, 0, 15]],
+            [1, "Wait", "", [10]],
+            [1, "ShowMessage", "PIERSON", []],
+            [1, "ShowMessage_2", "... ... ...", []],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "What if Radin and I are able to find", []],
+            [1, "ShowMessage_2", "a Murgator - would we be able to", []],
+            [1, "ShowMessage_2", "save Isabella?", []],
+            [1, "MoveEvent", "", [8, 8, 0, 0, 14]],
+            [1, "Wait", "", [5]],
+            [1, "ShowMessage", "PIERSON", []],
+            [1, "ShowMessage_2", "Do you know where to find this antidote?", []],
+            [1, "ShowMessage", "RADIN", []],
+            [1, "ShowMessage_2", "The Ill Marshes to the south would be", []],
+            [1, "ShowMessage_2", "an ideal environment for Murgators... but", []],
+            [1, "ShowMessage_2", "there's no guarantee that any live there.", []],
+            [1, "Wait", "", [10]],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "We have to try, even if there's only", []],
+            [1, "ShowMessage_2", "a slight chance...", []],
+            [1, "Wait", "", [20]],
+            [1, "ShowMessage", "PIERSON", []],
+            [1, "ShowMessage_2", "Very well. Radin and Talan, good luck.", []],
+            [1, "ShowMessage_2", "And keep this quiet - I don't want to cause", []],
+            [1, "ShowMessage_2", "any more of a panic.", []],
+            [1, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
+            [1, "MessageOptions", "", [1, 1, 0, 0]],
+            [1, "ShowMessage", "RADIN", []],
+            [1, "ShowMessage_2", "We should outfit ourselves before we leave.", []],
+            [1, "ShowMessage_2", "The swamp is far to the south, and Murgators", []],
+            [1, "ShowMessage_2", "are very dangerous.", []],
+            [1, "MessageOptions", "", [0, 0, 1, 0]],
+            [1, "MoveEvent", "", [10001, 8, 0, 0, 14]],
+            [1, "ChangePartyMembers", "", [0, 0, 27]],
+            [1, "Teleport", "", [108, 37, 41]],
+            [1, "TintScreen", "", [100, 100, 100, 100, 5, 1]],
+            [1, "ControlSwitches", "", [0, 458, 458, 0]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ConditionalBranch", "", [0, 385, 0, 0, 0, 1]],
+            [1, "ShowMessage", "PIERSON", []],
+            [1, "ShowMessage_2", "I hope Radin and the other Farmers can", []],
+            [1, "ShowMessage_2", "find the antidote quickly. The poison on", []],
+            [1, "ShowMessage_2", "this arrow... is very rare.", []],
+            [1, "MoveEvent", "", [9, 8, 0, 0, 12]],
+            [1, "ShowMessage", "SERN", []],
+            [1, "ShowMessage_2", "Permission to lead a corps of Defenders", []],
+            [1, "ShowMessage_2", "against the bandit hideout, Sir?", []],
+            [1, "Wait", "", [10]],
+            [1, "ShowMessage", "PIERSON", []],
+            [1, "ShowMessage_2", "I don't know, Sern. This whole raid was", []],
+            [1, "ShowMessage_2", "unusual. I think it might be a trap.", []],
+            [1, "MoveEvent", "", [7, 8, 0, 0, 24, 25]],
+            [1, "Wait", "", [5]],
+            [1, "ShowMessage", "EMILY", []],
+            [1, "ShowMessage_2", "But Drago's been captured by the bandits!", []],
+            [1, "ShowMessage_2", "We have to get him back... that's what", []],
+            [1, "ShowMessage_2", "Isabella would want!", []],
+            [1, "MoveEvent", "", [8, 8, 0, 0, 15]],
+            [1, "ShowMessage", "PIERSON", []],
+            [1, "ShowMessage_2", "I know, Emily, I know. But the bandits have", []],
+            [1, "ShowMessage_2", "never taken prisoners before, and their", []],
+            [1, "ShowMessage_2", "arrows have never been poison-tipped.", []],
+            [1, "ShowMessage", "PIERSON", []],
+            [1, "ShowMessage_2", "If we send all of our Defenders to get", []],
+            [1, "ShowMessage_2", "Drago back, Paradise will be defenseless.", []],
+            [1, "ShowMessage_2", "We can't risk it.", []],
+            [1, "ShowMessage", "PIERSON", []],
+            [1, "ShowMessage_2", "This feels like a setup.", []],
+            [1, "Wait", "", [15]],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "Sern and I could go. Leave the rest of the", []],
+            [1, "ShowMessage_2", "Defenders here, and the two of us could ", []],
+            [1, "ShowMessage_2", "get Drago back!", []],
+            [1, "MoveEvent", "", [8, 8, 0, 0, 14]],
+            [1, "ShowMessage", "PIERSON", []],
+            [1, "ShowMessage_2", "Out of the question. We need -", []],
+            [1, "MoveEvent", "", [9, 8, 0, 0, 12]],
+            [1, "ShowMessage", "SERN", []],
+            [1, "ShowMessage_2", "The boy has a point. We might be able to", []],
+            [1, "ShowMessage_2", "get in without being noticed. We could", []],
+            [1, "ShowMessage_2", "have Drago back within a few hours.", []],
+            [1, "MoveEvent", "", [7, 8, 0, 0, 13]],
+            [1, "ShowMessage", "EMILY", []],
+            [1, "ShowMessage_2", "You let those farmers go looking for the", []],
+            [1, "ShowMessage_2", "antidote for Isabella. Drago deserves", []],
+            [1, "ShowMessage_2", "the same - He needs to be rescued!", []],
+            [1, "ShowMessage", "EMILY", []],
+            [1, "ShowMessage_2", "Saving just one isn't good enough - because", []],
+            [1, "ShowMessage_2", "without each other, Drago and Isabella would", []],
+            [1, "ShowMessage_2", "rather be dead! I just know it.", []],
+            [1, "Wait", "", [15]],
+            [1, "ShowMessage", "PIERSON", []],
+            [1, "ShowMessage_2", "... ... ...", []],
+            [1, "MoveEvent", "", [8, 8, 0, 0, 14]],
+            [1, "ShowMessage", "PIERSON", []],
+            [1, "ShowMessage_2", "Sern and Talan, it looks as if it's up to you.", []],
+            [1, "ShowMessage_2", "The bandit hideout is somewhere to the", []],
+            [1, "ShowMessage_2", "north. Bring Drago home to us.", []],
+            [1, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
+            [1, "MessageOptions", "", [1, 1, 0, 0]],
+            [1, "ShowMessage", "SERN", []],
+            [1, "ShowMessage_2", "We should outfit ourselves before we leave.", []],
+            [1, "ShowMessage_2", "Who knows what we'll have to face up north?", []],
+            [1, "MessageOptions", "", [0, 0, 1, 0]],
+            [1, "MoveEvent", "", [10001, 8, 0, 0, 14]],
+            [1, "ChangePartyMembers", "", [0, 0, 28]],
+            [1, "Teleport", "", [108, 37, 41]],
+            [1, "TintScreen", "", [100, 100, 100, 100, 5, 1]],
+            [1, "ControlSwitches", "", [0, 458, 458, 0]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "PlayBGM", "wb3town", [0, 80, 100, 50]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 458
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "EV0011",
+      "at": [9, 9],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 427,
+            "switch_b": 388
+          },
+          "sprite": {
+            "charset": "Chara1",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "DEFENDER", []],
+            [0, "ShowMessage_2", "Dince's heart is in the right place, but", []],
+            [0, "ShowMessage_2", "he can't seem to master the art of", []],
+            [0, "ShowMessage_2", "forging.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "EV0012",
+      "at": [16, 7],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "EV0013",
+      "at": [17, 7],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "name": "EV0014",
+      "at": [18, 7],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "name": "EV0015",
+      "at": [19, 14],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 811
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ShowMessage", "RADIN", []],
+            [0, "ShowMessage_2", "I can't find ingredients here.", []],
+            [0, "ControlSwitches", "", [0, 811, 811, 1]]
+          ]
+        }
+      ]
+    }
+  ]
+}

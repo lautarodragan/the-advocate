@@ -1,0 +1,125 @@
+{
+  "id": 146,
+  "name": "Entrance - fixed",
+  "size": [20, 15],
+  "chipset": [26, "tower2"],
+  "tiles": "Map0146.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "Pierson",
+      "at": [7, 10],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People1",
+            "index": 6,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Isabella",
+      "at": [7, 11],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara1",
+            "index": 3,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Farmer",
+      "at": [7, 13],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Crown3",
+            "index": 1,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "TintScreen", "", [50, 50, 50, 100, 5, 1]],
+            [0, "MoveEvent", "", [1, 8, 0, 1, 36, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3]],
+            [0, "MoveEvent", "", [2, 8, 0, 1, 36, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3]],
+            [0, "MoveEvent", "", [5, 8, 0, 1, 36, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3]],
+            [0, "MoveEvent", "", [3, 8, 0, 1, 36, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3]],
+            [0, "MoveEvent", "", [6, 8, 0, 1, 36, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3]],
+            [0, "Wait", "", [25]],
+            [0, "ShowMessage", "DRAGO", []],
+            [0, "ShowMessage_2", "So, what's this play supposed to be about?", []],
+            [0, "ShowMessage", "ISABELLA", []],
+            [0, "ShowMessage_2", "It's a tragedy, I think.", []],
+            [0, "ShowMessage", "DRAGO", []],
+            [0, "ShowMessage_2", "Thanks for spoiling the ending, Is! Now", []],
+            [0, "ShowMessage_2", "I know that everyone dies in the end!", []],
+            [0, "ShowMessage", "ISABELLA", []],
+            [0, "ShowMessage_2", "Oh, Drago... <smile>", []],
+            [0, "Teleport", "", [145, 14, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Drago",
+      "at": [7, 12],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "extra2(1)",
+            "index": 1,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "OrchestraLeader",
+      "at": [7, 14],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Crown2",
+            "index": 2,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    }
+  ]
+}

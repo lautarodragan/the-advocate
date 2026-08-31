@@ -1,0 +1,986 @@
+{
+  "id": 18,
+  "name": "Auditorium",
+  "size": [20, 15],
+  "chipset": [25, "sd3_castle_inside_2"],
+  "tiles": "Map0018.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "Director",
+      "at": [9, 3],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People3",
+            "index": 4,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 88
+          },
+          "sprite": {
+            "charset": "People3",
+            "index": 4,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [4, 8],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future1",
+            "index": 0,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [3, 10],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future1",
+            "index": 0,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [1, 10],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future2",
+            "index": 6,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "EV0005",
+      "at": [2, 8],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future2",
+            "index": 6,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "EV0006",
+      "at": [16, 8],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future1",
+            "index": 0,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "EV0007",
+      "at": [2, 12],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future2",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "EV0008",
+      "at": [5, 8],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future2",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "WalkIn2",
+      "at": [6, 8],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 77
+          },
+          "sprite": {
+            "charset": "Future2",
+            "index": 7,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 87
+          },
+          "sprite": {
+            "charset": "Future2",
+            "index": 6,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 68
+          },
+          "sprite": {
+            "charset": "Future2",
+            "index": 6,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "EV0010",
+      "at": [6, 10],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future2",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "EV0011",
+      "at": [13, 12],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future2",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "EV0012",
+      "at": [17, 12],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future2",
+            "index": 6,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "EV0013",
+      "at": [16, 12],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future2",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "name": "EV0014",
+      "at": [15, 12],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future2",
+            "index": 6,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "name": "EV0015",
+      "at": [15, 10],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future2",
+            "index": 6,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "name": "WalkIn1",
+      "at": [13, 10],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 77
+          },
+          "sprite": {
+            "charset": "Future2",
+            "index": 7,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 86
+          },
+          "sprite": {
+            "charset": "Future2",
+            "index": 6,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 68
+          },
+          "sprite": {
+            "charset": "Future2",
+            "index": 6,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "name": "EV0017",
+      "at": [17, 10],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future2",
+            "index": 6,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "name": "EV0018",
+      "at": [18, 8],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future2",
+            "index": 6,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "name": "EV0019",
+      "at": [14, 12],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLPeople",
+            "index": 2,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "name": "EV0020",
+      "at": [15, 8],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future2",
+            "index": 6,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "name": "EV0021",
+      "at": [13, 8],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future2",
+            "index": 6,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "name": "EV0022",
+      "at": [1, 8],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future3",
+            "index": 5,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "name": "EV0023",
+      "at": [3, 8],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future3",
+            "index": 5,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 24,
+      "name": "EV0024",
+      "at": [2, 10],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future3",
+            "index": 5,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 25,
+      "name": "EV0025",
+      "at": [4, 10],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future3",
+            "index": 5,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 26,
+      "name": "EV0026",
+      "at": [14, 8],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future3",
+            "index": 5,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 27,
+      "name": "EV0027",
+      "at": [17, 8],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future3",
+            "index": 5,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 28,
+      "name": "EV0028",
+      "at": [3, 12],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future3",
+            "index": 5,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 29,
+      "name": "EV0029",
+      "at": [4, 12],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future3",
+            "index": 5,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 30,
+      "name": "EV0030",
+      "at": [1, 12],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future3",
+            "index": 5,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 31,
+      "name": "EV0031",
+      "at": [14, 10],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future3",
+            "index": 5,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 32,
+      "name": "EV0032",
+      "at": [16, 10],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future3",
+            "index": 5,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 33,
+      "name": "EV0033",
+      "at": [18, 10],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future3",
+            "index": 5,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 34,
+      "name": "EV0034",
+      "at": [18, 12],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future3",
+            "index": 5,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 35,
+      "name": "EV0035",
+      "at": [5, 10],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future3",
+            "index": 5,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 36,
+      "name": "EV0036",
+      "at": [0, 0],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 77
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ChangeEventLocation", "", [16, 0, 10, 14]],
+            [0, "ControlSwitches", "", [0, 86, 86, 0]],
+            [0, "MoveEvent", "", [16, 8, 0, 0, 0, 0, 0, 0, 1, 1, 1, 12]],
+            [0, "Wait", "", [5]],
+            [0, "ChangeEventLocation", "", [9, 0, 8, 14]],
+            [0, "ControlSwitches", "", [0, 87, 87, 0]],
+            [0, "MoveEvent", "", [9, 8, 0, 0, 0, 0, 0, 0, 0, 0, 3, 3, 12]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I'd better find a seat - this place is", []],
+            [0, "ShowMessage_2", "filling up!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 0, 0, 3, 3, 3, 12, 23, 23, 15]],
+            [0, "Wait", "", [12]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "How'd you get here before me, Dess?", []],
+            [0, "MoveEvent", "", [37, 8, 0, 0, 13]],
+            [0, "Wait", "", [5]],
+            [0, "FadeOutBGM", "", [2000]],
+            [0, "ShowMessage", "DESSEN", []],
+            [0, "ShowMessage_2", "I dunno - I just did. Quiet, it's about to", []],
+            [0, "ShowMessage_2", "start!", []],
+            [0, "MoveEvent", "", [37, 8, 0, 0, 12]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "Wait", "", [5]],
+            [0, "TintScreen", "", [100, 100, 100, 100, 10, 1]],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "VOICE", []],
+            [0, "ShowMessage_2", "Ladies and gentlemen of Delcentric", []],
+            [0, "ShowMessage_2", "Factory #2072, Lashe City...", []],
+            [0, "ShowMessage", "VOICE", []],
+            [0, "ShowMessage_2", "The Director of the Agency!", []],
+            [0, "Wait", "", [10]],
+            [0, "PlaySound", "Wind1", [40, 100, 50]],
+            [0, "ControlSwitches", "", [0, 88, 88, 0]],
+            [0, "Wait", "", [3]],
+            [0, "PlaySound", "clap", [70, 100, 50]],
+            [0, "Wait", "", [14]],
+            [0, "PlayBGM", "Astpgmarch", [1000, 40, 70, 50]],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "Greetings, workers of Delcentric Factory", []],
+            [0, "ShowMessage_2", "#2072, Lashe City. It is an honor and a", []],
+            [0, "ShowMessage_2", "privilege to speak to you today.", []],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "Delcentric is one of the most valuable", []],
+            [0, "ShowMessage_2", "subsidiary corporations in the world", []],
+            [0, "ShowMessage_2", "today, and we owe it all to you.", []],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "Without your hard work and dedication,", []],
+            [0, "ShowMessage_2", "the energy we obtain from the Catch", []],
+            [0, "ShowMessage_2", "Colony would be useless!", []],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "You deserve congratulations, and that", []],
+            [0, "ShowMessage_2", "is one of the reasons I am here today.", []],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
+            [0, "MoveEvent", "", [37, 8, 0, 0, 13]],
+            [0, "Wait", "", [5]],
+            [0, "MessageOptions", "", [1, 0, 0, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "See - good news so far!", []],
+            [0, "ShowMessage", "DESSEN", []],
+            [0, "ShowMessage_2", "Sshhh!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "MoveEvent", "", [37, 8, 0, 0, 12]],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "Wait", "", [8]],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "As a reward for your hard work, I", []],
+            [0, "ShowMessage_2", "and the rest of Agency High Command", []],
+            [0, "ShowMessage_2", "have made a decision.", []],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "From this day forth, all Delcentric", []],
+            [0, "ShowMessage_2", "Employees will have permission to", []],
+            [0, "ShowMessage_2", "stay at Agency Houses.", []],
+            [0, "PlaySound", "clap", [70, 100, 50]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "As I am sure you all know, Agency", []],
+            [0, "ShowMessage_2", "Houses are luxurious abodes that", []],
+            [0, "ShowMessage_2", "were previously only for the wealthy.", []],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "But now - they are open to you, the", []],
+            [0, "ShowMessage_2", "valuable workers of Delcentric Factory", []],
+            [0, "ShowMessage_2", "#2072, Lashe City.", []],
+            [0, "PlaySound", "clap", [70, 70, 50]],
+            [0, "Wait", "", [30]],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "I remember the stories my Granddad", []],
+            [0, "ShowMessage_2", "told me when I was just a boy, of the", []],
+            [0, "ShowMessage_2", "terrible time of the Shortage.", []],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "Our natural resources had been", []],
+            [0, "ShowMessage_2", "depleted. Something needed to be", []],
+            [0, "ShowMessage_2", "done.", []],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "My Granddad, I am proud to say, was", []],
+            [0, "ShowMessage_2", "part of the solution. He and a team", []],
+            [0, "ShowMessage_2", "of scientists began an epic project.", []],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "Since our reservoirs of natural gas and", []],
+            [0, "ShowMessage_2", "crude oil had been used up, we would", []],
+            [0, "ShowMessage_2", "need a new form of power.", []],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "For that power, we turned to the", []],
+            [0, "ShowMessage_2", "heavens.", []],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
+            [0, "Wait", "", [5]],
+            [0, "MessageOptions", "", [1, 0, 0, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "We know all this already!", []],
+            [0, "MoveEvent", "", [37, 8, 0, 0, 13]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "DESSEN", []],
+            [0, "ShowMessage_2", "Quiet, Talan!", []],
+            [0, "Wait", "", [3]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "MoveEvent", "", [37, 8, 0, 0, 12]],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "Thus, the Catch Colony was born.", []],
+            [0, "ShowMessage_2", "A tremendous space station that", []],
+            [0, "ShowMessage_2", "would serve to collect cosmic energy", []],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "and relay it down to earth where it", []],
+            [0, "ShowMessage_2", "could be converted into the power", []],
+            [0, "ShowMessage_2", "needed to run our society.", []],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "The thousands of men and women who", []],
+            [0, "ShowMessage_2", "live on the Catch Colony deserve", []],
+            [0, "ShowMessage_2", "our utmost thanks... but so do you.", []],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "Without Delcentric and its fellow", []],
+            [0, "ShowMessage_2", "companies, their sacrifices would be", []],
+            [0, "ShowMessage_2", "in vain.", []],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "My Granddad's vision has come to", []],
+            [0, "ShowMessage_2", "pass. And I, as leader of the Agency,", []],
+            [0, "ShowMessage_2", "supreme governing body of our", []],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "society, will continue to make the", []],
+            [0, "ShowMessage_2", "RIGHT decisions, for you and your", []],
+            [0, "ShowMessage_2", "families.", []],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "Workers of Delcentric Factory #2072,", []],
+            [0, "ShowMessage_2", "you have made me proud. Let me now", []],
+            [0, "ShowMessage_2", "make you proud. Thank you.", []],
+            [0, "PlaySound", "clap", [70, 90, 50]],
+            [0, "Wait", "", [15]],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 12]],
+            [0, "PlaySound", "clap", [70, 100, 50]],
+            [0, "Wait", "", [15]],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 14]],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "One more thing. I would like to meet", []],
+            [0, "ShowMessage_2", "with... is there a worker here named", []],
+            [0, "ShowMessage_2", "\"Talan?\"", []],
+            [0, "PlaySound", "Earth7", [70, 100, 50]],
+            [0, "FadeOutBGM", "", [0]],
+            [0, "TintScreen", "", [0, 0, 0, 100, 0, 1]],
+            [0, "ChangePartyMembers", "", [0, 0, 10]],
+            [0, "ChangePartyMembers", "", [1, 0, 14]],
+            [0, "Teleport", "", [4, 9, 8]],
+            [0, "ControlSwitches", "", [0, 89, 89, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 68
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ControlSwitches", "", [0, 88, 88, 0]],
+            [0, "TintScreen", "", [100, 100, 100, 100, 0, 1]],
+            [0, "PlayBGM", "Astpgmarch", [1000, 40, 70, 50]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Uh oh... I'd better find a seat quick!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 0, 0, 3, 3, 3, 12, 23, 23, 15]],
+            [0, "Wait", "", [12]],
+            [0, "MoveEvent", "", [37, 8, 0, 0, 13]],
+            [0, "Wait", "", [5]],
+            [0, "MessageOptions", "", [1, 0, 0, 0]],
+            [0, "ShowMessage", "DESSEN", []],
+            [0, "ShowMessage_2", "Talan, where have you been?!", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I'll tell you about it later, Dess.", []],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "MoveEvent", "", [37, 8, 0, 0, 12]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "Our natural resources had been", []],
+            [0, "ShowMessage_2", "depleted. Something needed to be", []],
+            [0, "ShowMessage_2", "done.", []],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "My Granddad, I am proud to say, was", []],
+            [0, "ShowMessage_2", "part of the solution. He and a team", []],
+            [0, "ShowMessage_2", "of scientists began an epic project.", []],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "Since our reservoirs of natural gas and", []],
+            [0, "ShowMessage_2", "crude oil had been used up, we would", []],
+            [0, "ShowMessage_2", "need a new form of power.", []],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "For that power, we turned to the", []],
+            [0, "ShowMessage_2", "heavens.", []],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
+            [0, "Wait", "", [5]],
+            [0, "MessageOptions", "", [1, 0, 0, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "We know all this already! Has it", []],
+            [0, "ShowMessage_2", "all been like this?", []],
+            [0, "MoveEvent", "", [37, 8, 0, 0, 13]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "DESSEN", []],
+            [0, "ShowMessage_2", "Quiet, Talan!", []],
+            [0, "Wait", "", [3]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "MoveEvent", "", [37, 8, 0, 0, 12]],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "Thus, the Catch Colony was born.", []],
+            [0, "ShowMessage_2", "A tremendous space station that", []],
+            [0, "ShowMessage_2", "would serve to collect cosmic energy", []],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "and relay it down to earth where it", []],
+            [0, "ShowMessage_2", "could be converted into the power", []],
+            [0, "ShowMessage_2", "needed to run our society.", []],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "The thousands of men and women who", []],
+            [0, "ShowMessage_2", "live on the Catch Colony deserve", []],
+            [0, "ShowMessage_2", "our utmost thanks... but so do you.", []],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "Without Delcentric and its fellow", []],
+            [0, "ShowMessage_2", "companies, their sacrifices would be", []],
+            [0, "ShowMessage_2", "in vain.", []],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "My Granddad's vision has come to", []],
+            [0, "ShowMessage_2", "pass. And I, as leader of the Agency,", []],
+            [0, "ShowMessage_2", "supreme governing body of our", []],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "society, will continue to make the", []],
+            [0, "ShowMessage_2", "RIGHT decisions, for you and your", []],
+            [0, "ShowMessage_2", "families.", []],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "Workers of Delcentric Factory #2072,", []],
+            [0, "ShowMessage_2", "you have made me proud. Let me now", []],
+            [0, "ShowMessage_2", "make you proud. Thank you.", []],
+            [0, "PlaySound", "clap", [70, 90, 50]],
+            [0, "Wait", "", [15]],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 12]],
+            [0, "PlaySound", "clap", [70, 100, 50]],
+            [0, "Wait", "", [15]],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 14]],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "One more thing. I would like to meet", []],
+            [0, "ShowMessage_2", "with... is there a worker here named", []],
+            [0, "ShowMessage_2", "\"Talan?\"", []],
+            [0, "PlaySound", "Earth7", [70, 100, 50]],
+            [0, "FadeOutBGM", "", [0]],
+            [0, "TintScreen", "", [0, 0, 0, 100, 0, 1]],
+            [0, "ChangePartyMembers", "", [0, 0, 10]],
+            [0, "ChangePartyMembers", "", [1, 0, 14]],
+            [0, "Teleport", "", [4, 9, 8]],
+            [0, "ControlSwitches", "", [0, 89, 89, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 89
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start"
+        }
+      ]
+    },
+    {
+      "id": 37,
+      "name": "Dessen",
+      "at": [5, 12],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future2",
+            "index": 6,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    }
+  ]
+}

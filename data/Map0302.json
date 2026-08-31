@@ -1,0 +1,44 @@
+{
+  "id": 302,
+  "name": "Screen Adjust",
+  "size": [20, 15],
+  "chipset": [39, "tech5"],
+  "tiles": "Map0302.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "TintScreen", "", [200, 200, 200, 100, 10, 1]],
+            [0, "ChangeScreenTransitions", "", [1, 19]],
+            [0, "Teleport", "", [304, 1, 11]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [9, 7],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "emily",
+            "index": 4,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous"
+        }
+      ]
+    }
+  ]
+}

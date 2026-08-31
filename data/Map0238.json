@@ -1,0 +1,48 @@
+{
+  "id": 238,
+  "name": "KershClimbingPath",
+  "size": [20, 15],
+  "chipset": [23, "PS4Chipset"],
+  "tiles": "Map0238.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "Kersh",
+      "at": [17, 10],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future1",
+            "index": 5,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 0, 0, 3, 3, 3, 3, 3, 3, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 12]],
+            [0, "Wait", "", [35]],
+            [0, "ControlSwitches", "", [0, 628, 628, 0]],
+            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
+            [0, "Teleport", "", [207, 10, 3]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
+            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]]
+          ]
+        }
+      ]
+    }
+  ]
+}

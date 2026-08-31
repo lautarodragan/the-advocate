@@ -1,0 +1,290 @@
+{
+  "id": 152,
+  "name": "Farmland Sheds",
+  "size": [30, 30],
+  "chipset": [23, "PS4Chipset"],
+  "tiles": "Map0152.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [29, 10],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [127, 1, 20]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Shopkeeper",
+      "at": [26, 9],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara4",
+            "index": 0,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "STALL OWNER", []],
+            [0, "ShowMessage_2", "So, you're the poor sap who needs to", []],
+            [0, "ShowMessage_2", "exterminate the bug problem, huh?", []],
+            [0, "ShowMessage_2", "I set up this stand just for you, then!", []],
+            [0, "OpenShop", "", [0, 0, 0, 0, 257, 258, 234, 241]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [13, 5],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "TintScreen", "", [20, 20, 20, 100, 1, 1]],
+            [0, "Teleport", "", [153, 9, 18]],
+            [0, "ConditionalBranch", "", [0, 501, 0, 0, 0, 1]],
+            [1, "ChangeEncounterSteps", "", [0]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "ChangeEncounterSteps", "", [25]],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ControlSwitches", "", [0, 511, 511, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [4, 17],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "TintScreen", "", [20, 20, 20, 100, 1, 1]],
+            [0, "Teleport", "", [154, 9, 18]],
+            [0, "ConditionalBranch", "", [0, 502, 0, 0, 0, 1]],
+            [1, "ChangeEncounterSteps", "", [0]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "ChangeEncounterSteps", "", [25]],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ControlSwitches", "", [0, 511, 511, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "EV0005",
+      "at": [16, 28],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "TintScreen", "", [20, 20, 20, 100, 1, 1]],
+            [0, "Teleport", "", [155, 9, 18]],
+            [0, "ConditionalBranch", "", [0, 505, 0, 0, 0, 1]],
+            [1, "ChangeEncounterSteps", "", [0]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "ChangeEncounterSteps", "", [25]],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ControlSwitches", "", [0, 511, 511, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "EV0006",
+      "at": [24, 27],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "TintScreen", "", [20, 20, 20, 100, 1, 1]],
+            [0, "Teleport", "", [156, 9, 18]],
+            [0, "ConditionalBranch", "", [0, 507, 0, 0, 0, 1]],
+            [1, "ChangeEncounterSteps", "", [0]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "ChangeEncounterSteps", "", [25]],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ControlSwitches", "", [0, 511, 511, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "SaveByFarmSheds",
+      "at": [27, 9],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "savept",
+            "index": 0,
+            "direction": "up",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "action",
+          "animation": "fixed_continuous",
+          "translucent": true,
+          "script": [
+            [0, "PlaySound", "Holy5", [70, 100, 50]],
+            [0, "OpenSaveMenu", "", []],
+            [0, "ChangeSaveAccess", "", [0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "EV0008",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ConditionalBranch", "", [0, 501, 0, 0, 0, 1]],
+            [1, "ConditionalBranch", "", [0, 502, 0, 0, 0, 1]],
+            [2, "ConditionalBranch", "", [0, 505, 0, 0, 0, 1]],
+            [3, "ConditionalBranch", "", [0, 507, 0, 0, 0, 1]],
+            [4, "ShowMessage", "TALAN", []],
+            [4, "ShowMessage_2", "Well, that should be all of them. Now", []],
+            [4, "ShowMessage_2", "I just need to find Radin and tell him", []],
+            [4, "ShowMessage_2", "I've finished.", []],
+            [4, "ControlSwitches", "", [0, 510, 510, 0]],
+            [4, "END", "", []],
+            [3, "ElseBranch", "", []],
+            [4, "END", "", []],
+            [3, "EndBranch", "", []],
+            [3, "END", "", []],
+            [2, "ElseBranch", "", []],
+            [3, "END", "", []],
+            [2, "EndBranch", "", []],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ControlSwitches", "", [0, 511, 511, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 511
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 510
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "EV0009",
+      "at": [27, 4],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "parallel",
+          "translucent": true,
+          "script": [
+            [0, "ControlVars", "", [0, 39, 39, 0, 6, 10001, 1]],
+            [0, "ControlVars", "", [0, 40, 40, 0, 6, 10001, 2]],
+            [0, "ControlVars", "", [0, 41, 41, 0, 6, 7, 1]],
+            [0, "ControlVars", "", [0, 42, 42, 0, 6, 7, 2]],
+            [0, "ConditionalBranch", "", [1, 39, 1, 41, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 40, 1, 42, 0, 1]],
+            [2, "ChangeSaveAccess", "", [1]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "EV0010",
+      "at": [28, 9],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "MessageOptions", "", [1, 0, 0, 0]],
+            [0, "ShowMessage", "Paradise --->", []],
+            [0, "MessageOptions", "", [0, 2, 0, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "EV0011",
+      "at": [29, 29],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 811
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "CallEvent", "", [0, 47, 0]],
+            [0, "ControlSwitches", "", [0, 811, 811, 1]]
+          ]
+        }
+      ]
+    }
+  ]
+}

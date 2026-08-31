@@ -1,0 +1,611 @@
+{
+  "id": 130,
+  "name": "Ground Floor",
+  "size": [30, 40],
+  "chipset": [25, "sd3_castle_inside_2"],
+  "tiles": "Map0130.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [10, 39],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [129, 9, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [2, 14],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [131, 2, 16]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [3, 14],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [131, 3, 16]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Lerle",
+      "at": [29, 0],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People3",
+            "index": 2,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "EV0005",
+      "at": [2, 38],
+      "pages": [
+        {
+          "conditions": {
+            "actor": 26
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ChangeEventLocation", "", [4, 0, 10, 38]],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 3, 13]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "LERLE", []],
+            [0, "ShowMessage_2", "One odd thing about the Theatre Ruins:", []],
+            [0, "ShowMessage_2", "No matter how many times we've come", []],
+            [0, "ShowMessage_2", "in looking for scripts, the doors always", []],
+            [0, "ShowMessage", "LERLE", []],
+            [0, "ShowMessage_2", "seem to lock again, and the furniture", []],
+            [0, "ShowMessage_2", "is often in different places. Auleen thinks", []],
+            [0, "ShowMessage_2", "the place is haunted.", []],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 12]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "LERLE", []],
+            [0, "ShowMessage_2", "Maybe we'll find out for sure today!", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Uh... maybe.", []],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 36, 1, 37]],
+            [0, "Wait", "", [6]],
+            [0, "ChangeEventLocation", "", [4, 0, 29, 0]],
+            [0, "ControlSwitches", "", [0, 400, 400, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 400
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "EV0006",
+      "at": [8, 32],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ControlVars", "", [0, 123, 123, 1, 0, 1, 0]],
+            [0, "ControlSwitches", "", [0, 412, 412, 0]],
+            [0, "Teleport", "", [133, 7, 11]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 412
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [133, 7, 11]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "EV0007",
+      "at": [15, 28],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ControlVars", "", [0, 123, 123, 1, 0, 1, 0]],
+            [0, "ControlSwitches", "", [0, 413, 413, 0]],
+            [0, "Teleport", "", [134, 7, 11]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 413
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [134, 7, 11]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "EV0008",
+      "at": [24, 20],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ControlVars", "", [0, 123, 123, 1, 0, 1, 0]],
+            [0, "ControlSwitches", "", [0, 414, 414, 0]],
+            [0, "Teleport", "", [135, 7, 11]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 414
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [135, 7, 11]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "EV0009",
+      "at": [11, 12],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ControlVars", "", [0, 123, 123, 1, 0, 1, 0]],
+            [0, "ControlSwitches", "", [0, 415, 415, 0]],
+            [0, "Teleport", "", [136, 7, 11]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 415
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [136, 7, 11]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "EV0010",
+      "at": [5, 12],
+      "pages": [
+        {
+          "conditions": {
+            "actor": 26
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ChangeEventLocation", "", [4, 0, 5, 12]],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 3, 0]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "LERLE", []],
+            [0, "ShowMessage_2", "This huge door leads to the stage area.", []],
+            [0, "ShowMessage_2", "We can probably find a good script inside,", []],
+            [0, "ShowMessage_2", "but first we'll need a key for the door.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Where can we find the key?", []],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 14]],
+            [0, "ShowMessage", "LERLE", []],
+            [0, "ShowMessage_2", "Auleen's ghosts must move it around. Last", []],
+            [0, "ShowMessage_2", "time I was here, I found the key in a room", []],
+            [0, "ShowMessage_2", "upstairs somewhere.", []],
+            [0, "ShowMessage", "LERLE", []],
+            [0, "ShowMessage_2", "Auleen says the key is always in the last", []],
+            [0, "ShowMessage_2", "room you look - but that's obvious, right?", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Why don't we just use the key you found?", []],
+            [0, "ShowMessage_2", "Why go through all this over again?", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "LERLE", []],
+            [0, "ShowMessage_2", "Well... honestly, I lost it. It's probably", []],
+            [0, "ShowMessage_2", "wedged in a crack in the floorboards back", []],
+            [0, "ShowMessage_2", "home.", []],
+            [0, "ShowMessage", "LERLE", []],
+            [0, "ShowMessage_2", "Auleen thinks some spirit ghosted it", []],
+            [0, "ShowMessage_2", "away, or something, but I doubt it.", []],
+            [0, "ShowMessage", "LERLE", []],
+            [0, "ShowMessage_2", "There'll be one around here somewhere.", []],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 36, 2, 1, 37]],
+            [0, "Wait", "", [10]],
+            [0, "ChangeEventLocation", "", [4, 0, 29, 0]],
+            [0, "ControlSwitches", "", [0, 409, 409, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 409
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched"
+        },
+        {
+          "conditions": {
+            "item": 151
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 3, 0, 0]],
+            [0, "Wait", "", [10]],
+            [0, "ChangeEventLocation", "", [4, 0, 4, 10]],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 3, 12]],
+            [0, "Wait", "", [10]],
+            [0, "PlaySound", "Open1", [70, 150, 50]],
+            [0, "MessageOptions", "", [1, 1, 0, 0]],
+            [0, "ShowMessage", "TALAN unlocked the door with", []],
+            [0, "ShowMessage_2", "the THEATRE KEY.", []],
+            [0, "ControlSwitches", "", [0, 420, 420, 0]],
+            [0, "PlaySound", "Earth2", [90, 50, 50]],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "Wait", "", [6]],
+            [0, "ShowMessage", "LERLE", []],
+            [0, "ShowMessage_2", "Let's go, Talan!", []],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 36, 0, 37]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 36, 0, 37]],
+            [0, "Wait", "", [10]],
+            [0, "ChangeEventLocation", "", [4, 0, 29, 0]],
+            [0, "Teleport", "", [132, 16, 28]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 420
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "EV0011",
+      "at": [4, 9],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 420
+          },
+          "tile": 128,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I don't think we should go back to the", []],
+            [0, "ShowMessage_2", "stage area. Let's just get out of here!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "EV0012",
+      "at": [3, 9],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 420
+          },
+          "tile": 128,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I don't think we should go back to the", []],
+            [0, "ShowMessage_2", "stage area. Let's just get out of here!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "EV0013",
+      "at": [3, 8],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 420
+          },
+          "tile": 128,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "name": "EV0014",
+      "at": [4, 8],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 420
+          },
+          "tile": 128,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "name": "EV0015",
+      "at": [4, 7],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 420
+          },
+          "tile": 128,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "name": "EV0016",
+      "at": [3, 7],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 420
+          },
+          "tile": 128,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "name": "EV0017",
+      "at": [3, 6],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 420
+          },
+          "tile": 128,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "name": "EV0018",
+      "at": [4, 6],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 420
+          },
+          "tile": 128,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "name": "EV0019",
+      "at": [4, 5],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 420
+          },
+          "tile": 128,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "name": "EV0020",
+      "at": [3, 5],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 420
+          },
+          "tile": 128,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "name": "SaveInTheatreRuins",
+      "at": [10, 33],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "savept",
+            "index": 0,
+            "direction": "up",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "action",
+          "animation": "fixed_continuous",
+          "translucent": true,
+          "script": [
+            [0, "PlaySound", "Holy5", [70, 100, 50]],
+            [0, "OpenSaveMenu", "", []],
+            [0, "ChangeSaveAccess", "", [0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "name": "EV0022",
+      "at": [0, 3],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 422
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "MoveEvent", "", [4, 8, 0, 0, 14]],
+            [0, "ChangeEventLocation", "", [4, 0, 3, 10]],
+            [0, "Wait", "", [7]],
+            [0, "PlaySound", "Earth4", [70, 70, 50]],
+            [0, "Wait", "", [5]],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 24, 25]],
+            [0, "ShowMessage", "LERLE", []],
+            [0, "ShowMessage_2", "What's that?!", []],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It sounded like... walls shifting, or something...", []],
+            [0, "ShowMessage", "LERLE", []],
+            [0, "ShowMessage_2", "Let's just get out of here. I'm convinced, all", []],
+            [0, "ShowMessage_2", "right, Auleen! It's haunted! Good for you!", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "She's not here, Lerle.", []],
+            [0, "ShowMessage", "LERLE", []],
+            [0, "ShowMessage_2", "... ... ...", []],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 36, 1, 37]],
+            [0, "Wait", "", [7]],
+            [0, "ChangeEventLocation", "", [4, 0, 29, 0]],
+            [0, "ControlSwitches", "", [0, 423, 423, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 423
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched"
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "name": "EV0023",
+      "at": [0, 0],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 498
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "CallEvent", "", [0, 35, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 24,
+      "name": "EV0024",
+      "at": [8, 28],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "parallel",
+          "translucent": true,
+          "script": [
+            [0, "ControlVars", "", [0, 39, 39, 0, 6, 10001, 1]],
+            [0, "ControlVars", "", [0, 40, 40, 0, 6, 10001, 2]],
+            [0, "ControlVars", "", [0, 41, 41, 0, 6, 21, 1]],
+            [0, "ControlVars", "", [0, 42, 42, 0, 6, 21, 2]],
+            [0, "ConditionalBranch", "", [1, 39, 1, 41, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 40, 1, 42, 0, 1]],
+            [2, "ChangeSaveAccess", "", [1]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    }
+  ]
+}

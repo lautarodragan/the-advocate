@@ -1,0 +1,198 @@
+{
+  "id": 99,
+  "name": "Missiles On Their Way2",
+  "size": [20, 15],
+  "chipset": [15, "crashchp"],
+  "tiles": "Map0099.tiles",
+  "parallax": {
+    "name": "pan2",
+    "loop_x": false,
+    "loop_y": true,
+    "scroll_x": 0,
+    "scroll_y": 8
+  },
+  "events": [
+    {
+      "id": 1,
+      "name": "Missile2",
+      "at": [5, 7],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "ShquaMissiles",
+            "index": 2,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous"
+        },
+        {
+          "conditions": {
+            "switch_a": 312
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Missile1",
+      "at": [0, 3],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "ShquaMissiles",
+            "index": 2,
+            "direction": "up",
+            "pattern": "right"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous"
+        },
+        {
+          "conditions": {
+            "switch_a": 312
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Missile5",
+      "at": [17, 12],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "ShquaMissiles",
+            "index": 2,
+            "direction": "up",
+            "pattern": "right"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous"
+        },
+        {
+          "conditions": {
+            "switch_a": 312
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Missile4",
+      "at": [14, 10],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "ShquaMissiles",
+            "index": 2,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous"
+        },
+        {
+          "conditions": {
+            "switch_a": 312
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "EV0006",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "PlaySound", "misslesnd", [100, 50, 50]],
+            [0, "Wait", "", [35]],
+            [0, "ControlSwitches", "", [0, 291, 291, 0]],
+            [0, "Teleport", "", [93, 3, 9]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 292
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "PlaySound", "misslesnd", [100, 50, 50]],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [3, 8, 0, 0, 29, 29, 4, 4, 4, 4, 4, 4, 28, 28]],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 29, 29, 4, 4, 4, 4, 4, 4, 28, 28]],
+            [0, "Wait", "", [15]],
+            [0, "ControlSwitches", "", [0, 293, 293, 0]],
+            [0, "Teleport", "", [93, 6, 9]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 304
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "PlaySound", "misslesnd", [100, 50, 50]],
+            [0, "Wait", "", [35]],
+            [0, "ControlSwitches", "", [0, 305, 305, 0]],
+            [0, "Teleport", "", [95, 20, 31]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 306
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ShowBattleAnimation", "", [62, 3, 0, 0]],
+            [0, "Wait", "", [3]],
+            [0, "ShowBattleAnimation", "", [62, 4, 0, 0]],
+            [0, "Wait", "", [1]],
+            [0, "ShowBattleAnimation", "", [62, 2, 0, 0]],
+            [0, "Wait", "", [3]],
+            [0, "ShowBattleAnimation", "", [148, 4, 0, 0]],
+            [0, "Wait", "", [5]],
+            [0, "ControlSwitches", "", [0, 312, 312, 0]],
+            [0, "FlashScreen", "", [31, 31, 31, 31, 5, 1]],
+            [0, "ShowBattleAnimation", "", [77, 1, 0, 0]],
+            [0, "Wait", "", [1]],
+            [0, "ShowBattleAnimation", "", [77, 3, 0, 0]],
+            [0, "Wait", "", [1]],
+            [0, "ShowBattleAnimation", "", [77, 2, 0, 0]],
+            [0, "Wait", "", [1]],
+            [0, "ShowBattleAnimation", "", [77, 4, 1, 0]],
+            [0, "ControlSwitches", "", [0, 307, 307, 0]],
+            [0, "Teleport", "", [95, 20, 31]]
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1020 @@
+{
+  "id": 69,
+  "name": "Sorbe Village",
+  "size": [40, 40],
+  "chipset": [40, "ABLForestTown"],
+  "tiles": "Map0069.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [20, 39],
+      "pages": [
+        {
+          "tile": 49,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [66, 75, 11]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [19, 39],
+      "pages": [
+        {
+          "tile": 49,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [66, 75, 11]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [18, 30],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People1",
+            "index": 2,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "MAN", []],
+            [0, "ShowMessage_2", "Hi there. Welcome to Sorbe Village.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Hi. This place... it's very different from", []],
+            [0, "ShowMessage_2", "Lashe City, isn't it?", []],
+            [0, "ShowMessage", "MAN", []],
+            [0, "ShowMessage_2", "I don't know, I've never been to", []],
+            [0, "ShowMessage_2", "Lashe. I don't think I'd like to live", []],
+            [0, "ShowMessage_2", "in a big city.", []],
+            [0, "ShowMessage", "MAN", []],
+            [0, "ShowMessage_2", "I've got everything I need right here!", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Yeah.", []],
+            [0, "ControlSwitches", "", [0, 254, 254, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 254
+          },
+          "sprite": {
+            "charset": "People1",
+            "index": 2,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It must be nice, living out here in the", []],
+            [0, "ShowMessage_2", "country, I mean.", []],
+            [0, "ShowMessage", "MAN", []],
+            [0, "ShowMessage_2", "Yep.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "SorbeWoman1",
+      "at": [25, 19],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLPeople",
+            "index": 2,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "WOMAN", []],
+            [0, "ShowMessage_2", "Are you from Lashe City?", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Uh... yeah. Is it that obvious?", []],
+            [0, "ShowMessage", "WOMAN", []],
+            [0, "ShowMessage_2", "Yes. It's the way you seem to smell", []],
+            [0, "ShowMessage_2", "the air - as if you've never breathed", []],
+            [0, "ShowMessage_2", "clean air before.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "... ... ...", []],
+            [0, "ShowMessage", "WOMAN", []],
+            [0, "ShowMessage_2", "You should stay. Although the Agency", []],
+            [0, "ShowMessage_2", "would like to believe otherwise, living", []],
+            [0, "ShowMessage_2", "in a big city isn't good for you.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I bet you're right! You have no idea", []],
+            [0, "ShowMessage_2", "what's been going on for me recently!", []],
+            [0, "ShowMessage_2", "First, I was -", []],
+            [0, "ShowMessage", "WOMAN", []],
+            [0, "ShowMessage_2", "I'm sorry... I'm in a bit of a hurry.", []],
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 0, 34, 8, 66, 76, 80, 101, 111, 112, 108, 101, 3]],
+            [0, "Wait", "", [10]],
+            [0, "ChangeEventLocation", "", [10005, 0, 39, 0]],
+            [0, "Wait", "", [15]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 14]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "So people really are the same all over.", []],
+            [0, "ControlSwitches", "", [0, 255, 255, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 255
+          },
+          "sprite": {
+            "charset": "BLPeople",
+            "index": 3,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "EV0005",
+      "at": [6, 34],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future2",
+            "index": 6,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "WORKER", []],
+            [0, "ShowMessage_2", "I'm on vacation. I wanted to go to", []],
+            [0, "ShowMessage_2", "the casinos on Circuit Reef, but", []],
+            [0, "ShowMessage_2", "my wife said we couldn't afford it.", []],
+            [0, "ControlSwitches", "", [0, 264, 264, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 247,
+            "switch_b": 264
+          },
+          "sprite": {
+            "charset": "Future2",
+            "index": 6,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I understand there's gambling at Drust", []],
+            [0, "ShowMessage_2", "Camp - something about betting at the", []],
+            [0, "ShowMessage_2", "\"Battle Rink?\"", []],
+            [0, "ShowMessage", "WORKER", []],
+            [0, "ShowMessage_2", "Are you mad? I can't bring my wife to", []],
+            [0, "ShowMessage_2", "that sort of place - the miners at Drust", []],
+            [0, "ShowMessage_2", "are... well... earthy!", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It was just a suggestion... sorry.", []],
+            [0, "ShowMessage", "WORKER", []],
+            [0, "ShowMessage_2", "That's OK. I'm just a little frustrated", []],
+            [0, "ShowMessage_2", "right now, that's all. It's my vacation,", []],
+            [0, "ShowMessage_2", "you know? And I can't DO anything.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Wish I could have a vacation.", []],
+            [0, "ControlSwitches", "", [0, 256, 256, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 256
+          },
+          "sprite": {
+            "charset": "Future2",
+            "index": 6,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "WORKER", []],
+            [0, "ShowMessage_2", "So I guess this is one vacation I'm gonna", []],
+            [0, "ShowMessage_2", "spend staring out across the river. When", []],
+            [0, "ShowMessage_2", "do I get to go back to work?", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "LittleGirl1",
+      "at": [33, 31],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People5",
+            "index": 1,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "LITTLE GIRL", []],
+            [0, "ShowMessage_2", "I need to do a report for school on the", []],
+            [0, "ShowMessage_2", "Advocate System. Do you know", []],
+            [0, "ShowMessage_2", "anything about it?", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Well, as a matter of fact, I happen to", []],
+            [0, "ShowMessage_2", "work for the Agency, so I know", []],
+            [0, "ShowMessage_2", "about the Advocate. Maybe I can help!", []],
+            [0, "ShowMessage", "LITTLE GIRL", []],
+            [0, "ShowMessage_2", "... ... ...", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Well, you know about the Shortage", []],
+            [0, "ShowMessage_2", "thirty years ago, right?", []],
+            [0, "ShowMessage", "LITTLE GIRL", []],
+            [0, "ShowMessage_2", "... ... ...", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Yeah. Well, anyway, the Agency", []],
+            [0, "ShowMessage_2", "needed to build the Catch Colony so we", []],
+            [0, "ShowMessage_2", "could get our energy from space.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "But they needed an efficient way to", []],
+            [0, "ShowMessage_2", "build it - the Agency got a brilliant", []],
+            [0, "ShowMessage_2", "scientist called Eisen to design", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "a computer program that could be", []],
+            [0, "ShowMessage_2", "connected to every facet of the", []],
+            [0, "ShowMessage_2", "construction: this was the Advocate.", []],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "LITTLE GIRL", []],
+            [0, "ShowMessage_2", "I know all that! I need details!", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Well... um...", []],
+            [0, "ShowMessage", "LITTLE GIRL", []],
+            [0, "ShowMessage_2", "I thought a geezer like you would know", []],
+            [0, "ShowMessage_2", "more - you were alive then, right?", []],
+            [0, "MessageOptions", "", [1, 0, 0, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I hate kids.", []],
+            [0, "MessageOptions", "", [0, 0, 1, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "No, actually, I wasn't born then! I'm", []],
+            [0, "ShowMessage_2", "really not that old...", []],
+            [0, "ShowMessage", "LITTLE GIRL", []],
+            [0, "ShowMessage_2", "What-ever! I guess I'll just ask my", []],
+            [0, "ShowMessage_2", "grandpa.", []],
+            [0, "ControlSwitches", "", [0, 257, 257, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 257
+          },
+          "sprite": {
+            "charset": "People5",
+            "index": 1,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "LITTLE GIRL", []],
+            [0, "ShowMessage_2", "Who cares about the Advocate, anyway?", []],
+            [0, "ShowMessage_2", "It probably doesn't even exist anymore!", []],
+            [0, "MessageOptions", "", [1, 0, 0, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Actually, I wonder whatever DID happen", []],
+            [0, "ShowMessage_2", "to the Advocate System? Was it destroyed", []],
+            [0, "ShowMessage_2", "during the war?", []],
+            [0, "MessageOptions", "", [0, 0, 1, 0]],
+            [0, "ControlSwitches", "", [0, 258, 258, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 258
+          },
+          "sprite": {
+            "charset": "People5",
+            "index": 1,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "LITTLE GIRL", []],
+            [0, "ShowMessage_2", "I hate school projects. They're so DUMB!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "EV0007",
+      "at": [16, 21],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People1",
+            "index": 7,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "OLD LADY", []],
+            [0, "ShowMessage_2", "Doctor Vago is such a nice man.", []],
+            [0, "ShowMessage_2", "He's not home right now, though.", []],
+            [0, "ConditionalBranch", "", [0, 239, 0, 0, 0, 1]],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "This village has a doctor?", []],
+            [1, "MessageOptions", "", [1, 0, 1, 0]],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "Maybe he can cure my sprained", []],
+            [1, "ShowMessage_2", "ankle!", []],
+            [1, "MessageOptions", "", [0, 0, 1, 0]],
+            [1, "ShowMessage", "OLD LADY", []],
+            [1, "ShowMessage_2", "Yes, Doctor Vago. He's done wonders", []],
+            [1, "ShowMessage_2", "for my arthritis. What a nice man.", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ShowMessage", "OLD LADY", []],
+            [0, "ShowMessage_2", "He must be climbing Sorbe Mountain", []],
+            [0, "ShowMessage_2", "again to pick up more ingredients for", []],
+            [0, "ShowMessage_2", "his medicines. I hope he'll be OK.", []],
+            [0, "ConditionalBranch", "", [0, 239, 0, 0, 0, 1]],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "Sorbe Mountain... hmmm...", []],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "Looks like I should find this doctor!", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ControlSwitches", "", [0, 259, 259, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 259
+          },
+          "sprite": {
+            "charset": "People1",
+            "index": 7,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "OLD LADY", []],
+            [0, "ShowMessage_2", "I hope Doctor Vago will be OK up", []],
+            [0, "ShowMessage_2", "on the mountain. It can be dangerous!", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 267
+          },
+          "sprite": {
+            "charset": "People1",
+            "index": 7,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "OLD LADY", []],
+            [0, "ShowMessage_2", "We're very proud of Doctor Vago.", []],
+            [0, "ShowMessage_2", "He's such a nice man, and Sorbe", []],
+            [0, "ShowMessage_2", "Village is very lucky to have him.", []],
+            [0, "ShowMessage", "OLD LADY", []],
+            [0, "ShowMessage_2", "If I was twenty years younger...!", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "<shudder>", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 164
+          },
+          "sprite": {
+            "charset": "People1",
+            "index": 7,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "OLD LADY", []],
+            [0, "ShowMessage_2", "We're very proud of Doctor Vago.", []],
+            [0, "ShowMessage_2", "He's such a nice man, and Sorbe", []],
+            [0, "ShowMessage_2", "Village is very lucky to have him.", []],
+            [0, "ShowMessage", "OLD LADY", []],
+            [0, "ShowMessage_2", "If I was twenty years younger...!", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "<shudder>", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "MountainGuard",
+      "at": [20, 6],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People4",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "MAN", []],
+            [0, "ShowMessage_2", "Good morning. Behind me is Sorbe", []],
+            [0, "ShowMessage_2", "Mountain - it can be pretty dangerous", []],
+            [0, "ShowMessage_2", "sometimes.", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 268
+          },
+          "sprite": {
+            "charset": "People4",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "MAN", []],
+            [0, "ShowMessage_2", "I hope Dr. Vago is OK up on the mountain.", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 262
+          },
+          "sprite": {
+            "charset": "People4",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "MAN", []],
+            [0, "ShowMessage_2", "It's a good thing you came along when", []],
+            [0, "ShowMessage_2", "you did! Dr. Vago could have gotten", []],
+            [0, "ShowMessage_2", "into some serious trouble because", []],
+            [0, "ShowMessage", "MAN", []],
+            [0, "ShowMessage_2", "of that bloodroot! It's a good thing", []],
+            [0, "ShowMessage_2", "I gave you permission to climb the", []],
+            [0, "ShowMessage_2", "mountain, huh?", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Yeah. Nice job.", []],
+            [0, "ControlSwitches", "", [0, 269, 269, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 269
+          },
+          "sprite": {
+            "charset": "People4",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "MAN", []],
+            [0, "ShowMessage_2", "I'm nearly a hero! Quick thinking", []],
+            [0, "ShowMessage_2", "on my part made it so you could", []],
+            [0, "ShowMessage_2", "save Dr. Vago!", []],
+            [0, "ShowMessage", "MAN", []],
+            [0, "ShowMessage_2", "I wonder if the Agency will send me to", []],
+            [0, "ShowMessage_2", "the Catch Colony now? This is so great!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "EV0009",
+      "at": [37, 14],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People5",
+            "index": 4,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "MAN", []],
+            [0, "ShowMessage_2", "I can't believe that the mayor of Yun", []],
+            [0, "ShowMessage_2", "Town was promoted to the Catch", []],
+            [0, "ShowMessage_2", "Colony! Our mayor is far more", []],
+            [0, "ShowMessage", "MAN", []],
+            [0, "ShowMessage_2", "qualified, and is a lot more loyal to the", []],
+            [0, "ShowMessage_2", "Agency than Yun's mayor ever was!", []],
+            [0, "ControlSwitches", "", [0, 263, 263, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 241,
+            "switch_b": 263
+          },
+          "sprite": {
+            "charset": "People5",
+            "index": 4,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "The people of Yun are really happy", []],
+            [0, "ShowMessage_2", "about it.", []],
+            [0, "ShowMessage", "MAN", []],
+            [0, "ShowMessage_2", "Hmmph! Well, I bet Dr. Vago will be", []],
+            [0, "ShowMessage_2", "promoted to the Catch Colony any", []],
+            [0, "ShowMessage_2", "day now... he's the most respected", []],
+            [0, "ShowMessage", "MAN", []],
+            [0, "ShowMessage_2", "person in our entire village!", []],
+            [0, "ControlSwitches", "", [0, 260, 260, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 260
+          },
+          "sprite": {
+            "charset": "People5",
+            "index": 4,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "MAN", []],
+            [0, "ShowMessage_2", "Yeah, it's just a matter of time before", []],
+            [0, "ShowMessage_2", "the Agency starts sending people from", []],
+            [0, "ShowMessage_2", "Sorbe to the Catch Colony.", []],
+            [0, "ShowMessage", "MAN", []],
+            [0, "ShowMessage_2", "We'll have the last laugh! Those Yun", []],
+            [0, "ShowMessage_2", "creeps may have won the battle, but", []],
+            [0, "ShowMessage_2", "not the war!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "EV0010",
+      "at": [7, 7],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara2",
+            "index": 4,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "LARGE MAN", []],
+            [0, "ShowMessage_2", "Sometimes it pays to poke into every", []],
+            [0, "ShowMessage_2", "nook and cranny when you're out in", []],
+            [0, "ShowMessage_2", "the wilderness. I found this really", []],
+            [0, "ShowMessage", "LARGE MAN", []],
+            [0, "ShowMessage_2", "sweet axe one time that someone must", []],
+            [0, "ShowMessage_2", "have abandoned. You never know", []],
+            [0, "ShowMessage_2", "what you might stumble across!", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Hmmmm... I'll keep that in mind.", []],
+            [0, "ControlSwitches", "", [0, 261, 261, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 261
+          },
+          "sprite": {
+            "charset": "Chara2",
+            "index": 4,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "LARGE MAN", []],
+            [0, "ShowMessage_2", "I hope the owner of that axe doesn't", []],
+            [0, "ShowMessage_2", "come looking for it... <gulp>", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "EV0011",
+      "at": [10, 18],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [81, 9, 13]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 271
+          },
+          "sprite": {
+            "charset": "People5",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "touched"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "EV0012",
+      "at": [25, 18],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [79, 9, 13]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "EV0013",
+      "at": [32, 18],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [80, 9, 13]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "name": "EV0014",
+      "at": [29, 31],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [78, 9, 13]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "name": "EV0015",
+      "at": [10, 32],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [77, 9, 13]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "name": "EV0016",
+      "at": [21, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [76, 13, 48]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "name": "EV0017",
+      "at": [21, 5],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 164
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [8, 8, 0, 0, 13]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "MAN", []],
+            [0, "ShowMessage_2", "I'm sorry, I can't let you up the mountain", []],
+            [0, "ShowMessage_2", "unless you have a good reason.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 14]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Well, uh... OK. Sorry to trouble you.", []],
+            [0, "MoveEvent", "", [8, 8, 0, 0, 14]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 239
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [8, 8, 0, 0, 13]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "MAN", []],
+            [0, "ShowMessage_2", "I'm sorry, I can't let you up the mountain", []],
+            [0, "ShowMessage_2", "unless you have a good reason.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 14]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Well, uh... OK. Sorry to trouble you.", []],
+            [0, "MoveEvent", "", [8, 8, 0, 0, 14]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 259,
+            "switch_b": 239
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [8, 8, 0, 0, 13]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "MAN", []],
+            [0, "ShowMessage_2", "I'm sorry, I can't let you up the mountain", []],
+            [0, "ShowMessage_2", "unless you have a good reason.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 14]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I'm looking for Dr. Vago - I understand", []],
+            [0, "ShowMessage_2", "he's somewhere on the mountain?", []],
+            [0, "ShowMessage", "MAN", []],
+            [0, "ShowMessage_2", "Yes, that's right, he went up awhile ago.", []],
+            [0, "ShowMessage_2", "Should have been back by now. I hope", []],
+            [0, "ShowMessage_2", "he's all right...", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I'll go check on him.", []],
+            [0, "ShowMessage", "MAN", []],
+            [0, "ShowMessage_2", "Would you? That'd be great. Go on up.", []],
+            [0, "MoveEvent", "", [8, 8, 0, 0, 14]],
+            [0, "Wait", "", [3]],
+            [0, "ControlSwitches", "", [0, 268, 268, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 268
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched"
+        },
+        {
+          "conditions": {
+            "switch_a": 310
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [8, 8, 0, 0, 13]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ShowMessage", "MAN", []],
+            [0, "ShowMessage_2", "I'm sorry, but the mountain is off-limits.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "All right. Sorry to bother you.", []],
+            [0, "MoveEvent", "", [8, 8, 0, 0, 14]],
+            [0, "ProceedWithMovement", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "name": "EV0018",
+      "at": [10, 19],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 164
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ControlSwitches", "", [0, 271, 271, 0]],
+            [0, "PlaySound", "Open1", [60, 100, 50]],
+            [0, "ShowMessage", "MAN", []],
+            [0, "ShowMessage_2", "Oh! Excuse me, I was just stepping out...", []],
+            [0, "ShowMessage_2", "You're not from around here, are you?", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12, 23]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "No, I'm from... Lashe City, actually.", []],
+            [0, "ShowMessage", "MAN", []],
+            [0, "ShowMessage_2", "Really? I haven't had visitors from Lashe", []],
+            [0, "ShowMessage_2", "in awhile. You just have to come in and", []],
+            [0, "ShowMessage_2", "tell me the latest news!", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Well, I don't know -", []],
+            [0, "ShowMessage", "MAN", []],
+            [0, "ShowMessage_2", "I won't take no for an answer! Right", []],
+            [0, "ShowMessage_2", "this way... I never caught your name.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Oh, it's... Talan.", []],
+            [0, "ShowMessage", "MAN", []],
+            [0, "ShowMessage_2", "A pleasure to meet you, Talan. My name", []],
+            [0, "ShowMessage_2", "is Vago, and I'm the physician for this", []],
+            [0, "ShowMessage_2", "village. Come in, come in!", []],
+            [0, "ControlSwitches", "", [0, 270, 270, 0]],
+            [0, "ControlSwitches", "", [0, 271, 271, 1]],
+            [0, "Teleport", "", [81, 10, 7]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
+            [0, "ControlSwitches", "", [0, 272, 272, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 272
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched"
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "name": "SaveBySorbeMt",
+      "at": [22, 6],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "savept",
+            "index": 0,
+            "direction": "up",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "action",
+          "animation": "fixed_continuous",
+          "translucent": true,
+          "script": [
+            [0, "PlaySound", "Holy5", [70, 100, 50]],
+            [0, "OpenSaveMenu", "", []],
+            [0, "ChangeSaveAccess", "", [0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "name": "EV0020",
+      "at": [23, 4],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "parallel",
+          "translucent": true,
+          "script": [
+            [0, "ControlVars", "", [0, 39, 39, 0, 6, 10001, 1]],
+            [0, "ControlVars", "", [0, 40, 40, 0, 6, 10001, 2]],
+            [0, "ControlVars", "", [0, 41, 41, 0, 6, 19, 1]],
+            [0, "ControlVars", "", [0, 42, 42, 0, 6, 19, 2]],
+            [0, "ConditionalBranch", "", [1, 39, 1, 41, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 40, 1, 42, 0, 1]],
+            [2, "ChangeSaveAccess", "", [1]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "name": "EV0021",
+      "at": [37, 7],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "MAN FROM LASHE CITY", []],
+            [0, "ShowMessage_2", "Sorry, I can't help you.", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 150
+          },
+          "sprite": {
+            "charset": "Future1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "SEEDY-LOOKING MAN", []],
+            [0, "ShowMessage_2", "I might have some things for that", []],
+            [0, "ShowMessage_2", "old droid of yours...", []],
+            [0, "OpenShop", "", [0, 0, 0, 0, 129, 130, 282, 278, 279, 135, 269, 283, 271, 270, 287]]
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,176 @@
+{
+  "id": 112,
+  "name": "ParadiseInteriors",
+  "size": [20, 15],
+  "chipset": [24, "INNER ITEMS SHOP"],
+  "tiles": "Map0112.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [9, 14],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ConditionalBranch", "", [0, 350, 0, 0, 0, 1]],
+            [1, "TintScreen", "", [0, 0, 0, 100, 2, 1]],
+            [1, "Teleport", "", [108, 10, 19]],
+            [1, "TintScreen", "", [70, 70, 70, 70, 2, 1]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "Teleport", "", [108, 10, 19]],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Farmer",
+      "at": [14, 7],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 350
+          },
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "BARKEEP", []],
+            [0, "ShowMessage_2", "I was a Farmer, but the Council let me open", []],
+            [0, "ShowMessage_2", "this bar. I'm glad they did - I was getting tired", []],
+            [0, "ShowMessage_2", "of waking up so early to go to the fields!", []],
+            [0, "ShowInn", "", [0, 50, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 372
+          },
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "BARKEEP", []],
+            [0, "ShowMessage_2", "I was a Farmer, but the Council let me open", []],
+            [0, "ShowMessage_2", "this bar. I'm glad they did - I was getting tired", []],
+            [0, "ShowMessage_2", "of waking up so early to go to the fields!", []],
+            [0, "ShowInn", "", [0, 50, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 396
+          },
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "BARKEEP", []],
+            [0, "ShowMessage_2", "This has been a slow day for customers.", []],
+            [0, "ShowInn", "", [0, 50, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 427
+          },
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "BARKEEP", []],
+            [0, "ShowMessage_2", "This has been a slow day for customers.", []],
+            [0, "ShowInn", "", [0, 50, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 441
+          },
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "BARKEEP", []],
+            [0, "ShowMessage_2", "This has been a slow day for customers.", []],
+            [0, "ShowInn", "", [0, 50, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Farmer",
+      "at": [14, 5],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Crown3",
+            "index": 1,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Lawyer",
+      "at": [2, 11],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 350
+          },
+          "sprite": {
+            "charset": "People4",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "LAWYER", []],
+            [0, "ShowMessage_2", "I'm certainly not taking that case! My", []],
+            [0, "ShowMessage_2", "record is unblemished!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Lawyer",
+      "at": [3, 9],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 350
+          },
+          "sprite": {
+            "charset": "Chara4",
+            "index": 1,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "LAWYER", []],
+            [0, "ShowMessage_2", "Well, someone needs to represent the", []],
+            [0, "ShowMessage_2", "bandits. We need a trial before we can", []],
+            [0, "ShowMessage_2", "lock them up!", []]
+          ]
+        }
+      ]
+    }
+  ]
+}

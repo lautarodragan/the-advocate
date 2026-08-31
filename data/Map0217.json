@@ -1,0 +1,230 @@
+{
+  "id": 217,
+  "name": "Kersh's Mind",
+  "size": [20, 15],
+  "chipset": [34, "DSSmod"],
+  "tiles": "Map0217.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "Kersh",
+      "at": [9, 7],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future1",
+            "index": 5,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [1, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "TintScreen", "", [100, 100, 100, 100, 0, 0]],
+            [0, "PlaySound", "Wind5", [100, 50, 50]],
+            [0, "Wait", "", [20]],
+            [0, "PlaySound", "Holy8", [100, 50, 50]],
+            [0, "Wait", "", [30]],
+            [0, "Teleport", "", [212, 8, 10]],
+            [0, "ControlSwitches", "", [0, 632, 632, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 632
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "PlaySound", "Dark5", [100, 50, 50]],
+            [0, "Wait", "", [30]],
+            [0, "ControlSwitches", "", [0, 634, 634, 0]],
+            [0, "ErasePicture", "", [20]],
+            [0, "Wait", "", [10]],
+            [0, "MessageOptions", "", [1, 2, 0, 0]],
+            [0, "ShowMessage", "SOFT VOICE", []],
+            [0, "ShowMessage_2", "He's not moving...", []],
+            [0, "Wait", "", [10]],
+            [0, "MessageOptions", "", [1, 0, 0, 0]],
+            [0, "ShowMessage", "COLD VOICE", []],
+            [0, "ShowMessage_2", "This isn't like last time - he did more than", []],
+            [0, "ShowMessage_2", "just glimpse my memories... I actively", []],
+            [0, "ShowMessage_2", "transferred them into his mind.", []],
+            [0, "MessageOptions", "", [1, 1, 0, 0]],
+            [0, "ShowMessage", "SOFT VOICE", []],
+            [0, "ShowMessage_2", "But... does that mean...?", []],
+            [0, "MessageOptions", "", [1, 0, 0, 0]],
+            [0, "ShowMessage", "COLD VOICE", []],
+            [0, "ShowMessage_2", "He is the new Keeper of Memories...", []],
+            [0, "ShowMessage", "COLD VOICE", []],
+            [0, "ShowMessage_2", "He brought about the destruction of an", []],
+            [0, "ShowMessage_2", "innocent kingdom.", []],
+            [0, "ShowMessage", "COLD VOICE", []],
+            [0, "ShowMessage_2", "Let HIM deal with the despair, the hatred,", []],
+            [0, "ShowMessage_2", "the regret - let Surl haunt him for the rest", []],
+            [0, "ShowMessage_2", "of his days.", []],
+            [0, "ShowMessage", "COLD VOICE", []],
+            [0, "ShowMessage_2", "I can't think of a more fitting", []],
+            [0, "ShowMessage_2", "punishment.", []],
+            [0, "Wait", "", [10]],
+            [0, "MessageOptions", "", [1, 1, 0, 0]],
+            [0, "ShowMessage", "SOFT VOICE", []],
+            [0, "ShowMessage_2", "It seems so cruel.", []],
+            [0, "MessageOptions", "", [1, 2, 0, 0]],
+            [0, "ShowMessage", "ANGRY VOICE", []],
+            [0, "ShowMessage_2", "What's with you, Emily? This is the man", []],
+            [0, "ShowMessage_2", "who probably killed your father, burned", []],
+            [0, "ShowMessage_2", "down your town, chased me all over the -", []],
+            [0, "MessageOptions", "", [0, 1, 0, 0]],
+            [0, "ShowMessage", "CAPTAIN'S SHATTERED MIND", []],
+            [0, "ShowMessage_2", "Emily?", []],
+            [0, "MessageOptions", "", [1, 1, 0, 0]],
+            [0, "ShowMessage", "SOFT \"EMILY\" VOICE", []],
+            [0, "ShowMessage_2", "But... I'm sure he was just following", []],
+            [0, "ShowMessage_2", "orders. The real culprit is whoever", []],
+            [0, "ShowMessage_2", "GAVE him those orders!", []],
+            [0, "MessageOptions", "", [0, 1, 0, 0]],
+            [0, "ShowMessage", "CAPTAIN'S SHATTERED MIND", []],
+            [0, "ShowMessage_2", "Emily... a nice name...", []],
+            [0, "MessageOptions", "", [1, 0, 0, 0]],
+            [0, "ShowMessage", "COLD VOICE", []],
+            [0, "ShowMessage_2", "It doesn't matter anyway. He probably", []],
+            [0, "ShowMessage_2", "won't survive the transfer, and if he does,", []],
+            [0, "ShowMessage_2", "he won't remember anything of his life before.", []],
+            [0, "MessageOptions", "", [1, 2, 0, 0]],
+            [0, "ShowMessage", "ANGRY VOICE", []],
+            [0, "ShowMessage_2", "Good! I say we leave him somewhere", []],
+            [0, "ShowMessage_2", "in the mountains, and let him start a", []],
+            [0, "ShowMessage_2", "new life. Even that's too good for him!", []],
+            [0, "MessageOptions", "", [1, 1, 0, 0]],
+            [0, "ShowMessage", "SOFT \"EMILY\" VOICE", []],
+            [0, "ShowMessage_2", "Talan, what are you saying? We can't", []],
+            [0, "ShowMessage_2", "just leave him here! He was so proud,", []],
+            [0, "ShowMessage_2", "so...", []],
+            [0, "ShowMessage", "SOFT \"EMILY\" VOICE", []],
+            [0, "ShowMessage_2", "Look at him now - he's been reduced to", []],
+            [0, "ShowMessage_2", "just an empty shell of what he once was...", []],
+            [0, "ShowMessage", "SOFT \"EMILY\" VOICE", []],
+            [0, "ShowMessage_2", "And all because he was doing what", []],
+            [0, "ShowMessage_2", "he thought was right.", []],
+            [0, "MessageOptions", "", [0, 1, 0, 0]],
+            [0, "ShowMessage", "CAPTAIN'S SHATTERED MIND", []],
+            [0, "ShowMessage_2", "Emily. Protect me from...", []],
+            [0, "MessageOptions", "", [1, 2, 0, 0]],
+            [0, "ShowMessage", "ANGRY \"TALAN\" VOICE", []],
+            [0, "ShowMessage_2", "What's gotten into you? This is the", []],
+            [0, "ShowMessage_2", "enemy, right here on the ground before", []],
+            [0, "ShowMessage_2", "us! He was going to kill us all!", []],
+            [0, "ShowMessage", "ANGRY \"TALAN\" VOICE", []],
+            [0, "ShowMessage_2", "The enemy!", []],
+            [0, "MessageOptions", "", [0, 1, 0, 0]],
+            [0, "ShowMessage", "CAPTAIN'S SHATTERED MIND", []],
+            [0, "ShowMessage_2", "The enemy.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 14]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ChangePartyMembers", "", [1, 0, 10]],
+            [0, "ChangePartyMembers", "", [0, 0, 14]],
+            [0, "Teleport", "", [207, 12, 15]],
+            [0, "MessageOptions", "", [0, 0, 1, 0]],
+            [0, "ControlSwitches", "", [0, 663, 663, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [19, 9],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 633
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "PlayBGM", "brcklayr", [0, 100, 100, 50]],
+            [0, "MessageOptions", "", [1, 2, 0, 0]],
+            [0, "Wait", "", [20]],
+            [0, "PlaySound", "Bell", [80, 150, 50]],
+            [0, "ShowMessage", "KERSH", []],
+            [0, "ShowMessage_2", "What..... is.....?", []],
+            [0, "ShowMessage_2", "\\|\\|\\^", []],
+            [0, "Wait", "", [15]],
+            [0, "ShowMessage", "KERSH", []],
+            [0, "ShowMessage_2", "...happening... to...", []],
+            [0, "ShowMessage_2", "\\|\\|\\^", []],
+            [0, "PlaySound", "Bell", [80, 150, 50]],
+            [0, "Wait", "", [25]],
+            [0, "ShowMessage", "KERSH", []],
+            [0, "ShowMessage_2", "It burns! Make it - ", []],
+            [0, "ShowMessage_2", "\\|\\|\\^", []],
+            [0, "PlaySound", "Bell", [80, 150, 50]],
+            [0, "Wait", "", [7]],
+            [0, "ShowMessage", "KERSH", []],
+            [0, "ShowMessage_2", "It's the... same...", []],
+            [0, "ShowMessage_2", "\\|\\^", []],
+            [0, "PlaySound", "Bell", [80, 150, 50]],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "KERSH", []],
+            [0, "ShowMessage_2", "Guilty! Guilty! Guilty! Guilty!", []],
+            [0, "ShowMessage_2", "\\|\\^", []],
+            [0, "PlaySound", "Bell", [80, 150, 50]],
+            [0, "ShowMessage", "KERSH", []],
+            [0, "ShowMessage_2", "AAAAAAAAGGGGHHHHHH!!!!", []],
+            [0, "ShowMessage_2", "\\|\\^", []],
+            [0, "ShowBattleAnimation", "", [124, 1, 0, 0]],
+            [0, "PlaySound", "Breast", [100, 50, 50]],
+            [0, "TintScreen", "", [200, 200, 200, 100, 0, 0]],
+            [0, "Wait", "", [30]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "parallel",
+          "script": [
+            [0, "FlashSprite", "", [1, 31, 31, 31, 31, 2, 0]],
+            [0, "ShowPicture", "PhoneCallDiff", [20, 0, 160, 120, 0, 100, 50, 1, 100, 100, 100, 100, 0, 60]],
+            [0, "FlashScreen", "", [31, 31, 31, 31, 1, 1]],
+            [0, "ShowPicture", "SurlBroDiff", [20, 0, 160, 120, 0, 100, 50, 1, 100, 100, 100, 100, 0, 60]],
+            [0, "FlashScreen", "", [31, 31, 31, 31, 1, 1]],
+            [0, "ShowPicture", "SurlGravesDiff", [20, 0, 160, 120, 0, 100, 50, 1, 100, 100, 100, 100, 0, 60]],
+            [0, "FlashScreen", "", [31, 31, 31, 31, 1, 1]],
+            [0, "ShowPicture", "ThreeRubbleDiff", [20, 0, 160, 120, 0, 100, 50, 1, 100, 100, 100, 100, 0, 60]],
+            [0, "FlashScreen", "", [31, 31, 31, 31, 1, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 634
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    }
+  ]
+}

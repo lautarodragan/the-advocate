@@ -1,0 +1,592 @@
+{
+  "id": 258,
+  "name": "Surl Ruins 2",
+  "size": [35, 60],
+  "chipset": [37, "shrine1"],
+  "tiles": "Map0258.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [13, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [210, 11, 46]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [8, 59],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [271, 13, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Ruin2.1",
+      "at": [0, 2],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 783, 783, 0]],
+            [0, "ChangeItems", "", [0, 0, 257, 0, 1]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Healing Draught-HP", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 783
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Ruin2.2",
+      "at": [24, 12],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 784, 784, 0]],
+            [0, "ChangeItems", "", [0, 0, 274, 0, 1]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       CattleProd-!R", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 784
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Ruin2.3",
+      "at": [28, 18],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 785, 785, 0]],
+            [0, "ChangeItems", "", [0, 0, 336, 0, 1]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Scorched Doll", []],
+            [0, "Wait", "", [2]],
+            [0, "PlaySound", "Dark5", [100, 100, 50]],
+            [0, "ChangeSkills", "", [1, 32, 0, 0, 295]],
+            [0, "ShowMessage", "KERSH has been subjected", []],
+            [0, "ShowMessage_2", "to MEMORIES OF HATE!", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 785
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "Ruin2.4",
+      "at": [19, 21],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 786, 786, 0]],
+            [0, "ChangeItems", "", [0, 0, 350, 0, 1]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       One Boot-O", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 786
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "Ruin2.5",
+      "at": [10, 13],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 787, 787, 0]],
+            [0, "ChangeGold", "", [0, 0, 50]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       50 credits", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 787
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "Ruin2.6",
+      "at": [2, 29],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 788, 788, 0]],
+            [0, "ChangeItems", "", [0, 0, 354, 0, 1]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Dented Shield-L", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 788
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "Ruin2.7",
+      "at": [34, 44],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 789, 789, 0]],
+            [0, "ChangeItems", "", [0, 0, 313, 0, 1]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Gray Bark", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 789
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "Ruin2.8",
+      "at": [1, 50],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 790, 790, 0]],
+            [0, "ChangeItems", "", [0, 0, 130, 0, 2]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Jumper Cable-LIFE x2", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 790
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "Ruin2.9",
+      "at": [34, 54],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 791, 791, 0]],
+            [0, "ChangeItems", "", [0, 0, 259, 0, 1]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Agility Potion-AGL", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 791
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "AfterBattleMint",
+      "at": [34, 0],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 498
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "CallEvent", "", [0, 35, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "DroidMerchant",
+      "at": [16, 2],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Crown5",
+            "index": 4,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "SHOPPING DROID", []],
+            [0, "ShowMessage_2", "Welcome to.... <whir>.... <click>", []],
+            [0, "ShowMessage_2", "Emporium of... <snap> Goods!", []],
+            [0, "ShowMessage", "SHOPPING DROID", []],
+            [0, "ShowMessage_2", "What would... you... <whirrr> like?", []],
+            [0, "ShowChoice", "Weapons... and armor?/Other... <click> useful goods?", [0]],
+            [0, "ShowChoiceOption", "Weapons... and armor?", [0]],
+            [1, "OpenShop", "", [0, 1, 0, 0, 140, 203, 194, 390, 241, 248]],
+            [1, "END", "", []],
+            [0, "ShowChoiceOption", "Other... <click> useful goods?", [1]],
+            [1, "OpenShop", "", [0, 1, 0, 0, 124, 129, 125, 127, 257, 258, 259, 260, 130, 115]],
+            [1, "END", "", []],
+            [0, "ShowChoiceEnd", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "name": "SurlRuins.FD",
+      "at": [0, 44],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 924, 924, 0]],
+            [0, "ChangeItems", "", [0, 0, 399, 0, 1]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       FightingDirty vol. 7", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 924
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "name": "Ruin2.KM7",
+      "at": [34, 2],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 930, 930, 0]],
+            [0, "ChangeItems", "", [0, 0, 404, 0, 1]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Half a Yo-Yo", []],
+            [0, "Wait", "", [2]],
+            [0, "PlaySound", "Dark5", [100, 100, 50]],
+            [0, "ChangeSkills", "", [1, 32, 0, 0, 297]],
+            [0, "ShowMessage", "KERSH has been subjected", []],
+            [0, "ShowMessage_2", "to MEMORIES OF DESPAIR!", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 930
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "name": "EV0016",
+      "at": [34, 59],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 811
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "CallEvent", "", [0, 47, 0]],
+            [0, "ControlSwitches", "", [0, 811, 811, 1]]
+          ]
+        }
+      ]
+    }
+  ]
+}

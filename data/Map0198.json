@@ -1,0 +1,170 @@
+{
+  "id": 198,
+  "name": "BehindMayor'sHouse",
+  "size": [20, 15],
+  "chipset": [40, "ABLForestTown"],
+  "tiles": "Map0198.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "What's that? It sounded like two people", []],
+            [0, "ShowMessage_2", "arguing...", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2, 2, 2, 2, 1]],
+            [0, "Wait", "", [30]],
+            [0, "MessageOptions", "", [1, 0, 0, 0]],
+            [0, "ShowMessage", "VOICE", []],
+            [0, "ShowMessage_2", "I told you to steal it, I didn't tell you", []],
+            [0, "ShowMessage_2", "I was going to pay you 3000 credits!", []],
+            [0, "ShowMessage", "VOICE", []],
+            [0, "ShowMessage_2", "There's no way this hat is worth that", []],
+            [0, "ShowMessage_2", "much!", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "OTHER VOICE", []],
+            [0, "ShowMessage_2", "Then I'll just take it off your", []],
+            [0, "ShowMessage_2", "hands, if you don't want to pay for", []],
+            [0, "ShowMessage_2", "my services...", []],
+            [0, "Wait", "", [15]],
+            [0, "ShowMessage", "VOICE", []],
+            [0, "ShowMessage_2", "I'm the Mayor of this village, and you", []],
+            [0, "ShowMessage_2", "have to do what I say! Give me that", []],
+            [0, "ShowMessage_2", "hat at once!", []],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "OTHER VOICE", []],
+            [0, "ShowMessage_2", "I don't live here. I don't owe you anything.", []],
+            [0, "ControlSwitches", "", [0, 527, 527, 0]],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 36, 28, 38, 2, 2, 2, 2, 2, 39, 29, 15, 23, 23, 3, 3, 3, 3, 37]],
+            [0, "Wait", "", [20]],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "?????", []],
+            [0, "ShowMessage_2", "Want a hat, mister? I stole it, but I don't", []],
+            [0, "ShowMessage_2", "have any use for it anymore.", []],
+            [0, "MessageOptions", "", [1, 1, 0, 0]],
+            [0, "PlaySound", "Item1", [100, 100, 50]],
+            [0, "ChangeItems", "", [0, 0, 240, 0, 1]],
+            [0, "ShowMessage", "TALAN received MAYOR'S HAT.", []],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 28, 1, 1, 1, 1, 14, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3, 29]],
+            [0, "Wait", "", [10]],
+            [0, "ConditionalBranch", "", [0, 54, 0, 0, 0, 1]],
+            [1, "ChangeEventLocation", "", [3, 0, 4, 8]],
+            [1, "MoveEvent", "", [3, 8, 0, 0, 1]],
+            [1, "Wait", "", [10]],
+            [1, "ShowMessage", "ARDEN", []],
+            [1, "ShowMessage_2", "That looked like one of the Lazer Teeth.", []],
+            [1, "ShowMessage_2", "Hmmmm...", []],
+            [1, "MoveEvent", "", [3, 8, 0, 0, 36, 3, 37]],
+            [1, "Wait", "", [8]],
+            [1, "ControlSwitches", "", [0, 528, 528, 1]],
+            [1, "ChangeEventLocation", "", [3, 0, 19, 0]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ConditionalBranch", "", [0, 56, 0, 0, 0, 1]],
+            [1, "ChangeEventLocation", "", [3, 0, 4, 8]],
+            [1, "MoveEvent", "", [3, 8, 0, 0, 1]],
+            [1, "Wait", "", [10]],
+            [1, "ShowMessage", "SALDRA", []],
+            [1, "ShowMessage_2", "That was... that... that was... it was...", []],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "Are you OK, Saldra? What's wrong?", []],
+            [1, "MoveEvent", "", [3, 8, 0, 0, 15]],
+            [1, "ShowMessage", "SALDRA", []],
+            [1, "ShowMessage_2", "That was... the FD Master! He was the", []],
+            [1, "ShowMessage_2", "founder of the Lazer Teeth, and he created", []],
+            [1, "ShowMessage_2", "the FightingDirty technique!", []],
+            [1, "MoveEvent", "", [3, 8, 0, 0, 13]],
+            [1, "Wait", "", [10]],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "Should we follow him?", []],
+            [1, "Wait", "", [5]],
+            [1, "ShowMessage", "SALDRA", []],
+            [1, "ShowMessage_2", "No, he'd be long gone by now. He was", []],
+            [1, "ShowMessage_2", "the greatest! No one could match him", []],
+            [1, "ShowMessage_2", "in combat or in thieving!", []],
+            [1, "Wait", "", [20]],
+            [1, "ShowMessage", "SALDRA", []],
+            [1, "ShowMessage_2", "I thought he was dead.", []],
+            [1, "Wait", "", [15]],
+            [1, "MoveEvent", "", [3, 8, 0, 0, 36, 3, 37]],
+            [1, "Wait", "", [8]],
+            [1, "ControlSwitches", "", [0, 528, 528, 1]],
+            [1, "ChangeEventLocation", "", [3, 0, 19, 0]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ControlSwitches", "", [0, 529, 529, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 14]],
+            [0, "Teleport", "", [69, 36, 10]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "FD Master",
+      "at": [19, 3],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 527
+          },
+          "sprite": {
+            "charset": "Chara3",
+            "index": 6,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Arden/Saldra",
+      "at": [19, 0],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 54,
+            "switch_b": 528
+          },
+          "sprite": {
+            "charset": "Chara2",
+            "index": 0,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 56,
+            "switch_b": 528
+          },
+          "sprite": {
+            "charset": "Chara3",
+            "index": 6,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,247 @@
+{
+  "id": 63,
+  "name": "Tunnel Into Lashe City",
+  "size": [50, 25],
+  "chipset": [11, "ChipSet1"],
+  "tiles": "Map0063.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [0, 5],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I should head back to Stash's with this", []],
+            [0, "ShowMessage_2", "Motivator Chip and get my battle droid!", []],
+            [0, "ConditionalBranch", "", [0, 56, 0, 0, 0, 1]],
+            [1, "ShowMessage", "SALDRA", []],
+            [1, "ShowMessage_2", "Yeah, the AG7-17 used to be hot stuff!", []],
+            [1, "ShowMessage_2", "I think they're illegal now, though...", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 1]],
+            [0, "Wait", "", [6]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [0, 6],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I should head back to Stash's with this", []],
+            [0, "ShowMessage_2", "Motivator Chip and get my battle droid!", []],
+            [0, "ConditionalBranch", "", [0, 56, 0, 0, 0, 1]],
+            [1, "ShowMessage", "SALDRA", []],
+            [1, "ShowMessage_2", "Yeah, the AG7-17 used to be hot stuff!", []],
+            [1, "ShowMessage_2", "I think they're illegal now, though...", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 1]],
+            [0, "Wait", "", [6]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [0, 7],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I should head back to Stash's with this", []],
+            [0, "ShowMessage_2", "Motivator Chip and get my battle droid!", []],
+            [0, "ConditionalBranch", "", [0, 56, 0, 0, 0, 1]],
+            [1, "ShowMessage", "SALDRA", []],
+            [1, "ShowMessage_2", "Yeah, the AG7-17 used to be hot stuff!", []],
+            [1, "ShowMessage_2", "I think they're illegal now, though...", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 1]],
+            [0, "Wait", "", [6]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [0, 8],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I should head back to Stash's with this", []],
+            [0, "ShowMessage_2", "Motivator Chip and get my battle droid!", []],
+            [0, "ConditionalBranch", "", [0, 56, 0, 0, 0, 1]],
+            [1, "ShowMessage", "SALDRA", []],
+            [1, "ShowMessage_2", "Yeah, the AG7-17 used to be hot stuff!", []],
+            [1, "ShowMessage_2", "I think they're illegal now, though...", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 1]],
+            [0, "Wait", "", [6]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "EV0005",
+      "at": [31, 5],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Now, is Stash's place this way? Hmmm...", []],
+            [0, "ConditionalBranch", "", [0, 56, 0, 0, 0, 1]],
+            [1, "ShowMessage", "SALDRA", []],
+            [1, "ShowMessage_2", "I think it's the other way, man.", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 3]],
+            [0, "Wait", "", [6]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "EV0006",
+      "at": [31, 6],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Now, is Stash's place this way? Hmmm...", []],
+            [0, "ConditionalBranch", "", [0, 56, 0, 0, 0, 1]],
+            [1, "ShowMessage", "SALDRA", []],
+            [1, "ShowMessage_2", "I think it's the other way, man.", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 3]],
+            [0, "Wait", "", [6]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "EV0007",
+      "at": [31, 7],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Now, is Stash's place this way? Hmmm...", []],
+            [0, "ConditionalBranch", "", [0, 56, 0, 0, 0, 1]],
+            [1, "ShowMessage", "SALDRA", []],
+            [1, "ShowMessage_2", "I think it's the other way, man.", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 3]],
+            [0, "Wait", "", [6]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "EV0008",
+      "at": [31, 8],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Now, is Stash's place this way? Hmmm...", []],
+            [0, "ConditionalBranch", "", [0, 56, 0, 0, 0, 1]],
+            [1, "ShowMessage", "SALDRA", []],
+            [1, "ShowMessage_2", "I think it's the other way, man.", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 3]],
+            [0, "Wait", "", [6]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "EV0009",
+      "at": [4, 2],
+      "pages": [
+        {
+          "conditions": {
+            "item": 126
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [48, 43, 51]],
+            [0, "PlaySound", "Close2", [100, 70, 50]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
+            [0, "MessageOptions", "", [1, 0, 0, 0]],
+            [0, "ShowMessage", "The hatch closes with a bang and", []],
+            [0, "ShowMessage_2", "seals itself from the inside.", []],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "Wait", "", [8]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Well, I guess I'm not leaving that way.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    }
+  ]
+}

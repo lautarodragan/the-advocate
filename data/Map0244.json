@@ -1,0 +1,178 @@
+{
+  "id": 244,
+  "name": "Isabella's Dorm Room",
+  "size": [20, 15],
+  "chipset": [39, "tech5"],
+  "tiles": "Map0244.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "Isabella",
+      "at": [10, 10],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "YoungAgents",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Dalia",
+      "at": [16, 7],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "YoungAgents",
+            "index": 5,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "ISABELLA", []],
+            [0, "ShowMessage_2", "Drago made Squad Leader for the exam?", []],
+            [0, "ShowMessage_2", "That's GREAT! I knew he would!", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "SERN", []],
+            [0, "ShowMessage_2", "Yeah... I'm happy for him.", []],
+            [0, "Wait", "", [8]],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 0, 0, 0, 13]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ShowMessage", "ISABELLA", []],
+            [0, "ShowMessage_2", "Dalia, come on! We're already late!", []],
+            [0, "ShowMessage_2", "If you don't hurry up they're going to", []],
+            [0, "ShowMessage_2", "fail us!", []],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 24, 25]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ShowMessage", "DALIA", []],
+            [0, "ShowMessage_2", "I just want to be sure that I've got", []],
+            [0, "ShowMessage_2", "everything! If Rule 68(a) is on the test,", []],
+            [0, "ShowMessage_2", "I'm going to be in SERIOUS trouble...", []],
+            [0, "ShowMessage", "ISABELLA", []],
+            [0, "ShowMessage_2", "Your squad is probably going to start", []],
+            [0, "ShowMessage_2", "without you if we don't leave NOW!", []],
+            [0, "ShowMessage_2", "All that studying won't do you any good -", []],
+            [0, "Wait", "", [1]],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 28, 2, 2, 29]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "DALIA", []],
+            [0, "ShowMessage_2", "Ready!", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
+            [0, "Teleport", "", [347, 6, 24]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Sern",
+      "at": [10, 13],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "YoungAgents",
+            "index": 1,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "EV0005",
+      "at": [16, 6],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 3,
+            "direction": "right",
+            "pattern": "right"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "EV0006",
+      "at": [15, 7],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 3,
+            "direction": "right",
+            "pattern": "right"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "EV0007",
+      "at": [17, 7],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 3,
+            "direction": "right",
+            "pattern": "right"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "EV0008",
+      "at": [17, 6],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 3,
+            "direction": "down",
+            "pattern": "right"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic"
+        }
+      ]
+    }
+  ]
+}

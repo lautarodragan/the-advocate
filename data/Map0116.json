@@ -1,0 +1,282 @@
+{
+  "id": 116,
+  "name": "House2",
+  "size": [20, 15],
+  "chipset": [24, "INNER ITEMS SHOP"],
+  "tiles": "Map0116.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [9, 14],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ConditionalBranch", "", [0, 350, 0, 0, 0, 1]],
+            [1, "TintScreen", "", [0, 0, 0, 70, 2, 1]],
+            [1, "Teleport", "", [108, 11, 29]],
+            [1, "TintScreen", "", [70, 70, 70, 70, 2, 1]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "Teleport", "", [108, 11, 29]],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [0, 0],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 350
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Whoever lives here doesn't seem to be home.", []],
+            [0, "ControlSwitches", "", [0, 354, 354, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 350,
+            "switch_b": 354
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [16, 9],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [17, 9],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "EV0005",
+      "at": [18, 9],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "EV0006",
+      "at": [6, 5],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 376
+          },
+          "sprite": {
+            "charset": "Crown3",
+            "index": 1,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "FARMER", []],
+            [0, "ShowMessage_2", "I wonder what seeds we'll be able to plant", []],
+            [0, "ShowMessage_2", "this year?", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "EV0007",
+      "at": [9, 9],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 376
+          },
+          "sprite": {
+            "charset": "People1",
+            "index": 3,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "FARMER", []],
+            [0, "ShowMessage_2", "Just a quick bite to eat, and then back to", []],
+            [0, "ShowMessage_2", "the fields.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "EV0008",
+      "at": [12, 5],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 396,
+            "switch_b": 386
+          },
+          "sprite": {
+            "charset": "People1",
+            "index": 3,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "FARMER", []],
+            [0, "ShowMessage_2", "Hmmm... empty. I'll need to fill this up.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "EV0009",
+      "at": [1, 6],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 396
+          },
+          "sprite": {
+            "charset": "Crown3",
+            "index": 1,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "FARMER", []],
+            [0, "ShowMessage_2", "Our wood supply seems to be pretty good.", []],
+            [0, "ShowMessage_2", "Not that it ever gets very cold around here.", []],
+            [0, "ShowMessage_2", "We're practically in Surl Kingdom!", []],
+            [0, "ShowMessage", "FARMER", []],
+            [0, "ShowMessage_2", "Or... where it used to be, anyway.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "EV0010",
+      "at": [6, 9],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 441,
+            "switch_b": 388
+          },
+          "sprite": {
+            "charset": "People1",
+            "index": 3,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "FARMER", []],
+            [0, "ShowMessage_2", "It's the big night! I'm really excited to", []],
+            [0, "ShowMessage_2", "see this play - it better be good!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "EV0011",
+      "at": [16, 10],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "EV0012",
+      "at": [17, 10],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "EV0013",
+      "at": [18, 10],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "name": "EV0014",
+      "at": [19, 0],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 811
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ShowMessage", "RADIN", []],
+            [0, "ShowMessage_2", "I can't find ingredients here.", []],
+            [0, "ControlSwitches", "", [0, 811, 811, 1]]
+          ]
+        }
+      ]
+    }
+  ]
+}

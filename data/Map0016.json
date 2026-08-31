@@ -1,0 +1,66 @@
+{
+  "id": 16,
+  "name": "Running To Work Scene",
+  "size": [75, 75],
+  "chipset": [9, "BLchp1"],
+  "tiles": "Map0016.tiles",
+  "parallax": {
+    "name": "Evening1",
+    "loop_x": false,
+    "loop_y": false,
+    "scroll_x": 0,
+    "scroll_y": 0
+  },
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [52, 32],
+      "pages": [
+        {
+          "tile": 45,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "PlayBGM", "hzbreach", [0, 100, 100, 50]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]],
+            [0, "Wait", "", [15]],
+            [0, "Teleport", "", [16, 46, 15]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]],
+            [0, "Wait", "", [15]],
+            [0, "Teleport", "", [16, 43, 7]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 3, 3, 3, 3, 3, 3, 2, 2, 2, 2, 2, 2, 15]],
+            [0, "Wait", "", [15]],
+            [0, "Teleport", "", [16, 24, 15]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]],
+            [0, "Wait", "", [15]],
+            [0, "Teleport", "", [16, 50, 73]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
+            [0, "Wait", "", [30]],
+            [0, "PanScreen", "", [2, 0, 10, 4, 1]],
+            [0, "TimerOperation", "", [2, 0, 0, 0, 0]],
+            [0, "ConditionalBranch", "", [0, 68, 0, 0, 0, 1]],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "Well, I'm late. Let's hope the boss isn't", []],
+            [1, "ShowMessage_2", "TOO angry...", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "PlaySound", "Success2", [100, 100, 50]],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "I made it to work, and with time to", []],
+            [1, "ShowMessage_2", "spare!", []],
+            [1, "ControlSwitches", "", [0, 77, 77, 0]],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "PanScreen", "", [2, 2, 10, 4, 1]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 36, 0, 0, 0, 0, 37]],
+            [0, "FadeOutBGM", "", [1000]],
+            [0, "Wait", "", [11]],
+            [0, "PlayBGM", "wb3mlair", [1000, 100, 100, 50]],
+            [0, "Teleport", "", [17, 36, 73]]
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,151 @@
+{
+  "id": 153,
+  "name": "Shed1",
+  "size": [20, 20],
+  "chipset": [28, "INNERNICE"],
+  "tiles": "Map0153.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [9, 19],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [152, 13, 6]],
+            [0, "TintScreen", "", [100, 100, 100, 100, 1, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Nest",
+      "at": [1, 4],
+      "pages": [
+        {
+          "tile": 109,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I found one! There's a nest inside this", []],
+            [0, "ShowMessage_2", "container!", []],
+            [0, "ShowBattleAnimation", "", [77, 10005, 1, 0]],
+            [0, "ControlSwitches", "", [0, 499, 499, 0]],
+            [0, "ConditionalBranch", "", [0, 499, 0, 0, 0, 1]],
+            [1, "ConditionalBranch", "", [0, 500, 0, 0, 0, 1]],
+            [2, "ControlSwitches", "", [0, 501, 501, 0]],
+            [2, "ChangeEncounterSteps", "", [0]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 499
+          },
+          "tile": 37,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I've already burned out the nest that", []],
+            [0, "ShowMessage_2", "was here.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Nest",
+      "at": [4, 9],
+      "pages": [
+        {
+          "tile": 28,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I found one! There's a nest under this", []],
+            [0, "ShowMessage_2", "table!", []],
+            [0, "ShowBattleAnimation", "", [77, 10005, 1, 0]],
+            [0, "ControlSwitches", "", [0, 500, 500, 0]],
+            [0, "ConditionalBranch", "", [0, 499, 0, 0, 0, 1]],
+            [1, "ConditionalBranch", "", [0, 500, 0, 0, 0, 1]],
+            [2, "ControlSwitches", "", [0, 501, 501, 0]],
+            [2, "ChangeEncounterSteps", "", [0]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 500
+          },
+          "tile": 38,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I've already burned out the nest that", []],
+            [0, "ShowMessage_2", "was here.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [0, 0],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 498
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "CallEvent", "", [0, 35, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "EV0005",
+      "at": [19, 19],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 811
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ShowMessage", "RADIN", []],
+            [0, "ShowMessage_2", "I can't find ingredients here.", []],
+            [0, "ControlSwitches", "", [0, 811, 811, 1]]
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,298 @@
+{
+  "id": 263,
+  "name": "Talan's Scenario",
+  "size": [30, 40],
+  "chipset": [39, "tech5"],
+  "tiles": "Map0263.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [3, 39],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [261, 26, 40]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [8, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [289, 7, 28]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [9, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [289, 8, 28]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "AfterBattleMint",
+      "at": [29, 0],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 498
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "CallEvent", "", [0, 35, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Refinery.FD",
+      "at": [27, 10],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 925, 925, 0]],
+            [0, "ChangeItems", "", [0, 0, 400, 0, 1]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       FightingDirty vol. 8", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 925
+          },
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "EV0006",
+      "at": [29, 39],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 811
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ShowMessage", "RADIN", []],
+            [0, "ShowMessage_2", "I can't find ingredients here.", []],
+            [0, "ControlSwitches", "", [0, 811, 811, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "EV0007",
+      "at": [24, 5],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "This door is locked.", []],
+            [0, "ShowMessage_2", "I wonder where it goes?", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "EV0008",
+      "at": [25, 5],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "This door is locked.", []],
+            [0, "ShowMessage_2", "I wonder where it goes?", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "Refinery.1",
+      "at": [28, 35],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 960, 960, 0]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Volt Battery", []],
+            [0, "ChangeItems", "", [0, 0, 332, 0, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 960
+          },
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "Refinery.2",
+      "at": [1, 14],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 961, 961, 0]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Rejuve Field-HP", []],
+            [0, "ChangeItems", "", [0, 0, 335, 0, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 961
+          },
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "Refinery.3",
+      "at": [25, 27],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 962, 962, 0]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Force Field-DEF", []],
+            [0, "ChangeItems", "", [0, 0, 334, 0, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 962
+          },
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    }
+  ]
+}

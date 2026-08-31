@@ -1,0 +1,117 @@
+{
+  "id": 41,
+  "name": "ScreenToneAdjuster",
+  "size": [20, 15],
+  "chipset": [9, "BLchp1"],
+  "tiles": "Map0041.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [15, 10],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "Teleport", "", [40, 21, 39]],
+            [0, "TintScreen", "", [40, 40, 30, 70, 5, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 162
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
+            [0, "ChangePartyMembers", "", [1, 0, 10]],
+            [0, "ChangePartyMembers", "", [1, 0, 14]],
+            [0, "ChangePartyMembers", "", [1, 0, 15]],
+            [0, "ChangePartyMembers", "", [1, 0, 17]],
+            [0, "ChangePartyMembers", "", [1, 0, 18]],
+            [0, "ChangePartyMembers", "", [0, 0, 14]],
+            [0, "ConditionalBranch", "", [0, 54, 0, 0, 0, 1]],
+            [1, "ChangePartyMembers", "", [0, 0, 15]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ConditionalBranch", "", [0, 56, 0, 0, 0, 1]],
+            [1, "ChangePartyMembers", "", [0, 0, 17]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ConditionalBranch", "", [0, 150, 0, 0, 0, 1]],
+            [1, "ChangePartyMembers", "", [0, 0, 18]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ControlSwitches", "", [0, 163, 163, 0]],
+            [0, "ConditionalBranch", "", [0, 162, 0, 0, 0, 1]],
+            [1, "MoveEvent", "", [10001, 8, 0, 0, 29]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "PlayBGM", "golden_axe-turtlevillage2", [0, 50, 100, 50]],
+            [0, "Teleport", "", [37, 29, 31]],
+            [0, "TintScreen", "", [100, 100, 100, 100, 0, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 164
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
+            [0, "ChangePartyMembers", "", [1, 0, 10]],
+            [0, "ChangePartyMembers", "", [1, 0, 14]],
+            [0, "ChangePartyMembers", "", [1, 0, 15]],
+            [0, "ChangePartyMembers", "", [1, 0, 17]],
+            [0, "ChangePartyMembers", "", [1, 0, 18]],
+            [0, "ChangePartyMembers", "", [0, 0, 14]],
+            [0, "ConditionalBranch", "", [0, 54, 0, 0, 0, 1]],
+            [1, "ChangePartyMembers", "", [0, 0, 15]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ConditionalBranch", "", [0, 56, 0, 0, 0, 1]],
+            [1, "ChangePartyMembers", "", [0, 0, 17]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ConditionalBranch", "", [0, 150, 0, 0, 0, 1]],
+            [1, "ChangePartyMembers", "", [0, 0, 18]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ControlSwitches", "", [0, 163, 163, 0]],
+            [0, "ConditionalBranch", "", [0, 162, 0, 0, 0, 1]],
+            [1, "MoveEvent", "", [10001, 8, 0, 0, 29]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "PlayBGM", "golden_axe-turtlevillage2", [0, 50, 100, 50]],
+            [0, "Teleport", "", [37, 29, 31]],
+            [0, "TintScreen", "", [100, 100, 100, 100, 0, 0]]
+          ]
+        }
+      ]
+    }
+  ]
+}

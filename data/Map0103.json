@@ -1,0 +1,754 @@
+{
+  "id": 103,
+  "name": "Drust Mines",
+  "size": [75, 75],
+  "chipset": [22, "Minechips"],
+  "tiles": "Map0103.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [3, 42],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [103, 55, 42]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [55, 41],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [103, 3, 43]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [11, 74],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [68, 12, 2]],
+            [0, "TintScreen", "", [100, 100, 100, 100, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [45, 11],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [103, 32, 65]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "EV0005",
+      "at": [32, 64],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [103, 45, 12]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "EV0006",
+      "at": [1, 52],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 321
+          },
+          "sprite": {
+            "charset": "Chara2",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "YUN CONTACT", []],
+            [0, "ShowMessage_2", "So, you're the guy who's gonna run", []],
+            [0, "ShowMessage_2", "Iron shipments back to the Yun Armor", []],
+            [0, "ShowMessage_2", "Shop for me, eh?", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "That's me.", []],
+            [0, "ShowMessage", "YUN CONTACT", []],
+            [0, "ShowMessage_2", "OK - here you go.", []],
+            [0, "PlaySound", "Item1", [80, 100, 50]],
+            [0, "MessageOptions", "", [1, 1, 0, 0]],
+            [0, "ChangeItems", "", [0, 0, 149, 0, 1]],
+            [0, "ShowMessage", "TALAN received IRON SHIPMENT", []],
+            [0, "MessageOptions", "", [0, 0, 1, 0]],
+            [0, "ShowMessage", "YUN CONTACT", []],
+            [0, "ShowMessage_2", "Come back to the Mines once you've", []],
+            [0, "ShowMessage_2", "delivered that shipment and I'll give you", []],
+            [0, "ShowMessage_2", "some more.", []],
+            [0, "ShowMessage", "YUN CONTACT", []],
+            [0, "ShowMessage_2", "I might be somewhere else in the Mines,", []],
+            [0, "ShowMessage_2", "though... this isn't exactly legal, so I've got", []],
+            [0, "ShowMessage_2", "to keep a low profile.", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 321,
+            "item": 149
+          },
+          "sprite": {
+            "charset": "Chara2",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "YUN CONTACT", []],
+            [0, "ShowMessage_2", "You haven't delivered the Iron I already", []],
+            [0, "ShowMessage_2", "gave you yet! Take it to the Armor Shop", []],
+            [0, "ShowMessage_2", "in Yun Town! Geez...", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Sorry.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "EV0007",
+      "at": [64, 70],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 322
+          },
+          "sprite": {
+            "charset": "Chara2",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "YUN CONTACT", []],
+            [0, "ShowMessage_2", "So, you're the guy who's gonna run", []],
+            [0, "ShowMessage_2", "Iron shipments back to the Yun Armor", []],
+            [0, "ShowMessage_2", "Shop for me, eh?", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "That's me.", []],
+            [0, "ShowMessage", "YUN CONTACT", []],
+            [0, "ShowMessage_2", "OK - here you go.", []],
+            [0, "PlaySound", "Item1", [80, 100, 50]],
+            [0, "MessageOptions", "", [1, 1, 0, 0]],
+            [0, "ChangeItems", "", [0, 0, 149, 0, 1]],
+            [0, "ShowMessage", "TALAN received IRON SHIPMENT", []],
+            [0, "MessageOptions", "", [0, 0, 1, 0]],
+            [0, "ShowMessage", "YUN CONTACT", []],
+            [0, "ShowMessage_2", "Come back to the Mines once you've", []],
+            [0, "ShowMessage_2", "delivered that shipment and I'll give you", []],
+            [0, "ShowMessage_2", "some more.", []],
+            [0, "ShowMessage", "YUN CONTACT", []],
+            [0, "ShowMessage_2", "I might be somewhere else in the Mines,", []],
+            [0, "ShowMessage_2", "though... this isn't exactly legal, so I've got", []],
+            [0, "ShowMessage_2", "to keep a low profile.", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 322,
+            "item": 149
+          },
+          "sprite": {
+            "charset": "Chara2",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "YUN CONTACT", []],
+            [0, "ShowMessage_2", "You haven't delivered the Iron I already", []],
+            [0, "ShowMessage_2", "gave you yet! Take it to the Armor Shop", []],
+            [0, "ShowMessage_2", "in Yun Town! Geez...", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Sorry.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "EV0008",
+      "at": [66, 45],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 323
+          },
+          "sprite": {
+            "charset": "Chara2",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "YUN CONTACT", []],
+            [0, "ShowMessage_2", "So, you're the guy who's gonna run", []],
+            [0, "ShowMessage_2", "Iron shipments back to the Yun Armor", []],
+            [0, "ShowMessage_2", "Shop for me, eh?", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "That's me.", []],
+            [0, "ShowMessage", "YUN CONTACT", []],
+            [0, "ShowMessage_2", "OK - here you go.", []],
+            [0, "PlaySound", "Item1", [80, 100, 50]],
+            [0, "MessageOptions", "", [1, 1, 0, 0]],
+            [0, "ChangeItems", "", [0, 0, 149, 0, 1]],
+            [0, "ShowMessage", "TALAN received IRON SHIPMENT", []],
+            [0, "MessageOptions", "", [0, 0, 1, 0]],
+            [0, "ShowMessage", "YUN CONTACT", []],
+            [0, "ShowMessage_2", "Come back to the Mines once you've", []],
+            [0, "ShowMessage_2", "delivered that shipment and I'll give you", []],
+            [0, "ShowMessage_2", "some more.", []],
+            [0, "ShowMessage", "YUN CONTACT", []],
+            [0, "ShowMessage_2", "I might be somewhere else in the Mines,", []],
+            [0, "ShowMessage_2", "though... this isn't exactly legal, so I've got", []],
+            [0, "ShowMessage_2", "to keep a low profile.", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 323,
+            "item": 149
+          },
+          "sprite": {
+            "charset": "Chara2",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "YUN CONTACT", []],
+            [0, "ShowMessage_2", "You haven't delivered the Iron I already", []],
+            [0, "ShowMessage_2", "gave you yet! Take it to the Armor Shop", []],
+            [0, "ShowMessage_2", "in Yun Town! Geez...", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Sorry.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "EV0009",
+      "at": [69, 6],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 324
+          },
+          "sprite": {
+            "charset": "Chara2",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "YUN CONTACT", []],
+            [0, "ShowMessage_2", "So, you're the guy who's gonna run", []],
+            [0, "ShowMessage_2", "Iron shipments back to the Yun Armor", []],
+            [0, "ShowMessage_2", "Shop for me, eh?", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "That's me.", []],
+            [0, "ShowMessage", "YUN CONTACT", []],
+            [0, "ShowMessage_2", "OK - here you go.", []],
+            [0, "PlaySound", "Item1", [80, 100, 50]],
+            [0, "MessageOptions", "", [1, 1, 0, 0]],
+            [0, "ChangeItems", "", [0, 0, 149, 0, 1]],
+            [0, "ShowMessage", "TALAN received IRON SHIPMENT", []],
+            [0, "MessageOptions", "", [0, 0, 1, 0]],
+            [0, "ShowMessage", "YUN CONTACT", []],
+            [0, "ShowMessage_2", "Come back to the Mines once you've", []],
+            [0, "ShowMessage_2", "delivered that shipment and I'll give you", []],
+            [0, "ShowMessage_2", "some more.", []],
+            [0, "ShowMessage", "YUN CONTACT", []],
+            [0, "ShowMessage_2", "I might be somewhere else in the Mines,", []],
+            [0, "ShowMessage_2", "though... this isn't exactly legal, so I've got", []],
+            [0, "ShowMessage_2", "to keep a low profile.", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 324,
+            "item": 149
+          },
+          "sprite": {
+            "charset": "Chara2",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "YUN CONTACT", []],
+            [0, "ShowMessage_2", "You haven't delivered the Iron I already", []],
+            [0, "ShowMessage_2", "gave you yet! Take it to the Armor Shop", []],
+            [0, "ShowMessage_2", "in Yun Town! Geez...", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Sorry.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "EV0010",
+      "at": [67, 26],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 325
+          },
+          "sprite": {
+            "charset": "Chara2",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "YUN CONTACT", []],
+            [0, "ShowMessage_2", "So, you're the guy who's gonna run", []],
+            [0, "ShowMessage_2", "Iron shipments back to the Yun Armor", []],
+            [0, "ShowMessage_2", "Shop for me, eh?", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "That's me.", []],
+            [0, "ShowMessage", "YUN CONTACT", []],
+            [0, "ShowMessage_2", "OK - here you go.", []],
+            [0, "PlaySound", "Item1", [80, 100, 50]],
+            [0, "MessageOptions", "", [1, 1, 0, 0]],
+            [0, "ChangeItems", "", [0, 0, 149, 0, 1]],
+            [0, "ShowMessage", "TALAN received IRON SHIPMENT", []],
+            [0, "MessageOptions", "", [0, 0, 1, 0]],
+            [0, "ShowMessage", "YUN CONTACT", []],
+            [0, "ShowMessage_2", "Come back to the Mines once you've", []],
+            [0, "ShowMessage_2", "delivered that shipment and I'll give you", []],
+            [0, "ShowMessage_2", "some more.", []],
+            [0, "ShowMessage", "YUN CONTACT", []],
+            [0, "ShowMessage_2", "I might be somewhere else in the Mines,", []],
+            [0, "ShowMessage_2", "though... this isn't exactly legal, so I've got", []],
+            [0, "ShowMessage_2", "to keep a low profile.", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 325,
+            "item": 149
+          },
+          "sprite": {
+            "charset": "Chara2",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "YUN CONTACT", []],
+            [0, "ShowMessage_2", "You haven't delivered the Iron I already", []],
+            [0, "ShowMessage_2", "gave you yet! Take it to the Armor Shop", []],
+            [0, "ShowMessage_2", "in Yun Town! Geez...", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Sorry.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "EV0011",
+      "at": [0, 0],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 498
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "CallEvent", "", [0, 35, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "DrustTreasure.1",
+      "at": [30, 43],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 547, 547, 0]],
+            [0, "ChangeItems", "", [0, 0, 137, 0, 1]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Grounded Boots-O", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 547
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "DrustTreasure.2",
+      "at": [20, 60],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 548, 548, 0]],
+            [0, "ChangeItems", "", [0, 0, 127, 0, 1]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Stale Pita-HP", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 548
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "name": "DrustTreasure.3",
+      "at": [9, 67],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 549, 549, 0]],
+            [0, "ChangeItems", "", [0, 0, 128, 0, 1]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Rusty Chain-R", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 549
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "name": "DrustTreasure.4",
+      "at": [59, 5],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 550, 550, 0]],
+            [0, "ChangeItems", "", [0, 0, 103, 0, 2]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Cheap Wine-SP x2", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 550
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "name": "DrustTreasure.5",
+      "at": [70, 22],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 551, 551, 0]],
+            [0, "ChangeGold", "", [0, 0, 600]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       600 credits", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 551
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "name": "DrustTreasure.6",
+      "at": [64, 54],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 552, 552, 0]],
+            [0, "ChangeItems", "", [0, 0, 156, 0, 1]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Forcefield Knife-R", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 552
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "name": "DrustTreasure.7",
+      "at": [56, 68],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 553, 553, 0]],
+            [0, "ChangeItems", "", [0, 0, 134, 0, 1]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Vitality Pill-MHP", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 553
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    }
+  ]
+}

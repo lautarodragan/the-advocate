@@ -1,0 +1,129 @@
+{
+  "id": 87,
+  "name": "Director's Proposal",
+  "size": [20, 15],
+  "chipset": [19, "Ancient(1)"],
+  "tiles": "Map0087.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "Granddad",
+      "at": [8, 8],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People3",
+            "index": 4,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Captain",
+      "at": [9, 7],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future1",
+            "index": 5,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Eisen",
+      "at": [8, 12],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Eisen",
+            "index": 0,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "TintScreen", "", [60, 60, 60, 0, 10, 1]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "The Director of the Agency heard about", []],
+            [0, "ShowMessage_2", "my skills as an educator and as a man", []],
+            [0, "ShowMessage_2", "of science.", []],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "I suppose that there's a new Director", []],
+            [0, "ShowMessage_2", "these days? Well, the one I knew was", []],
+            [0, "ShowMessage_2", "a good man.", []],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "He told me that in a few years, we", []],
+            [0, "ShowMessage_2", "would have used up the last of our", []],
+            [0, "ShowMessage_2", "planet's resources.", []],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 12]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "The Agency had a plan, though. They", []],
+            [0, "ShowMessage_2", "would build a space station to collect", []],
+            [0, "ShowMessage_2", "energy from the cosmos and channel", []],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "it down to the planet in a form we could", []],
+            [0, "ShowMessage_2", "use. This \"Catch Colony\" was our only", []],
+            [0, "ShowMessage_2", "hope to surviving the ensuing Shortage.", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "But there was a problem. The Catch", []],
+            [0, "ShowMessage_2", "Colony would not be ready in time.", []],
+            [0, "Wait", "", [5]],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 2, 2]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "The Agency needed some way to", []],
+            [0, "ShowMessage_2", "coordinate its construction efforts.", []],
+            [0, "ShowMessage_2", "Only maximum, superhuman efficiency", []],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "would be enough to finish the project", []],
+            [0, "ShowMessage_2", "in time.", []],
+            [0, "MoveEvent", "", [3, 8, 0, 0, 14]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "I should never have accepted.", []],
+            [0, "TintScreen", "", [0, 0, 0, 0, 10, 1]],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "But, I was young, what? Probably as", []],
+            [0, "ShowMessage_2", "obstinate in my support of the Agency", []],
+            [0, "ShowMessage_2", "as you, little girl.", []],
+            [0, "MessageOptions", "", [1, 2, 0, 0]],
+            [0, "ShowMessage", "DALIA", []],
+            [0, "ShowMessage_2", "... ... ...", []],
+            [0, "MessageOptions", "", [1, 0, 0, 0]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "I agreed, and moved away from Yun,", []],
+            [0, "ShowMessage_2", "and my family, here, to this damn", []],
+            [0, "ShowMessage_2", "military complex.", []],
+            [0, "Teleport", "", [88, 7, 12]]
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,433 @@
+{
+  "id": 110,
+  "name": "Council Chambers",
+  "size": [20, 20],
+  "chipset": [24, "INNER ITEMS SHOP"],
+  "tiles": "Map0110.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [19, 0],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 811
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ShowMessage", "RADIN", []],
+            [0, "ShowMessage_2", "I can't find ingredients here.", []],
+            [0, "ControlSwitches", "", [0, 811, 811, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Farmer",
+      "at": [15, 10],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Crown3",
+            "index": 1,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "FARMER", []],
+            [0, "ShowMessage_2", "Without us farmers, Paradise would starve!", []],
+            [0, "ShowMessage_2", "We really are the lifeblood of this community.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Defender",
+      "at": [5, 12],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara1",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "DEFENDER", []],
+            [0, "ShowMessage_2", "Although we're on the Council, we still need", []],
+            [0, "ShowMessage_2", "to perform our duties. I have the tunnel-guarding", []],
+            [0, "ShowMessage_2", "shift following Isabella and Drago.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Lawyer",
+      "at": [5, 8],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People4",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "LAWYER", []],
+            [0, "ShowMessage_2", "The Agency caravans still bring goods to sell", []],
+            [0, "ShowMessage_2", "us - they also bring us the latest legal texts.", []],
+            [0, "ShowMessage_2", "There's another shipment due next week.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Actor",
+      "at": [15, 12],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People3",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "ACTOR", []],
+            [0, "ShowMessage_2", "We get many of our scripts from the ruins of a", []],
+            [0, "ShowMessage_2", "pre-Shortage theatre to the west.  It's pretty", []],
+            [0, "ShowMessage_2", "dangerous, though.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "Actress",
+      "at": [15, 14],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People3",
+            "index": 3,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "ACTRESS", []],
+            [0, "ShowMessage_2", "Since everyone in Paradise has to pull their", []],
+            [0, "ShowMessage_2", "own weight, the acting profession is very", []],
+            [0, "ShowMessage_2", "important. People need to be entertained!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "Farmer",
+      "at": [15, 8],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People1",
+            "index": 3,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "FARMER", []],
+            [0, "ShowMessage_2", "The bandits of the north have been raiding", []],
+            [0, "ShowMessage_2", "our fields lately. We need to do something", []],
+            [0, "ShowMessage_2", "about them!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "Defender",
+      "at": [5, 14],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara1",
+            "index": 3,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "DEFENDER", []],
+            [0, "ShowMessage_2", "The Trials are different for everyone.", []],
+            [0, "ShowMessage_2", "But good luck!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "Lawyer",
+      "at": [5, 10],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara4",
+            "index": 1,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "LAWYER", []],
+            [0, "ShowMessage_2", "You'd be amazed at the amount of trouble", []],
+            [0, "ShowMessage_2", "the people of Paradise can get themselves into.", []],
+            [0, "ShowMessage_2", "We lawyers are vital!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "Pierson",
+      "at": [10, 8],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People1",
+            "index": 6,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 350
+          },
+          "sprite": {
+            "charset": "People1",
+            "index": 6,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "PIERSON", []],
+            [0, "ShowMessage_2", "Please return and speak with me once", []],
+            [0, "ShowMessage_2", "you have explored our town and met some", []],
+            [0, "ShowMessage_2", "of our citizens. I am sure you will wish to stay.", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 361,
+            "switch_b": 350
+          },
+          "sprite": {
+            "charset": "People1",
+            "index": 6,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "PIERSON", []],
+            [0, "ShowMessage_2", "Are you done looking around?", []],
+            [0, "ShowChoice", "No/Yes", [1]],
+            [0, "ShowChoiceOption", "No", [0]],
+            [1, "ShowMessage", "PIERSON", []],
+            [1, "ShowMessage_2", "Well, make yourself at home. Come back", []],
+            [1, "ShowMessage_2", "and speak with me when you are ready.", []],
+            [1, "END", "", []],
+            [0, "ShowChoiceOption", "Yes", [1]],
+            [1, "ShowMessage", "PIERSON", []],
+            [1, "ShowMessage_2", "Excellent! We'll set you up in a guest house", []],
+            [1, "ShowMessage_2", "for the night, and tomorrow morning we", []],
+            [1, "ShowMessage_2", "will awake you for your Trials.", []],
+            [1, "ShowMessage", "PIERSON", []],
+            [1, "ShowMessage_2", "Sleep well, candidate Talan!", []],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "Uh... yes. Thank you.", []],
+            [1, "ControlSwitches", "", [0, 362, 362, 0]],
+            [1, "ControlSwitches", "", [0, 350, 350, 1]],
+            [1, "MoveEvent", "", [10001, 8, 0, 0, 14]],
+            [1, "PlayBGM", "dfrelax", [0, 100, 100, 50]],
+            [1, "Teleport", "", [114, 2, 6]],
+            [1, "END", "", []],
+            [0, "ShowChoiceEnd", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "RunExplainScene1",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 0, 0, 0, 0]],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "OLD MAN", []],
+            [0, "ShowMessage_2", "Welcome to Paradise, friend. My name is", []],
+            [0, "ShowMessage_2", "Pierson, and these are the men and women", []],
+            [0, "ShowMessage_2", "of the Council.", []],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "My name is Talan.  I... can't thank you enough", []],
+            [0, "ShowMessage_2", "for saving me from the Agency.", []],
+            [0, "MoveEvent", "", [10, 8, 0, 0, 13, 23]],
+            [0, "ShowMessage", "PIERSON", []],
+            [0, "ShowMessage_2", "Well... you're not quite in the clear, yet... you", []],
+            [0, "ShowMessage_2", "still have to face the Trials. Allow me to", []],
+            [0, "ShowMessage_2", "explain.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "... ... ...", []],
+            [0, "MoveEvent", "", [10, 8, 0, 0, 12]],
+            [0, "Wait", "", [5]],
+            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
+            [0, "Teleport", "", [175, 9, 5]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 484
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ChangePartyMembers", "", [1, 0, 10]],
+            [0, "ChangePartyMembers", "", [0, 0, 14]],
+            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]],
+            [0, "MoveEvent", "", [10, 8, 0, 0, 14]],
+            [0, "ShowMessage", "PIERSON", []],
+            [0, "ShowMessage_2", "We named it \"Paradise\" and set to work", []],
+            [0, "ShowMessage_2", "fixing the buildings and establishing a small", []],
+            [0, "ShowMessage_2", "community for those out of favor with", []],
+            [0, "ShowMessage", "PIERSON", []],
+            [0, "ShowMessage_2", "the Agency.  We have lived here ever since,", []],
+            [0, "ShowMessage_2", "gaining new members, losing old ones, but", []],
+            [0, "ShowMessage_2", "always disavowing technology and the Agency.", []],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I don't understand - why does the Agency let", []],
+            [0, "ShowMessage_2", "you stay here? Why have they given up on", []],
+            [0, "ShowMessage_2", "their pursuit of me because I made it here?", []],
+            [0, "ShowMessage", "PIERSON", []],
+            [0, "ShowMessage_2", "We came to an agreement with the Director", []],
+            [0, "ShowMessage_2", "of the Agency many, many years ago. He", []],
+            [0, "ShowMessage_2", "would not wish to break it.", []],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "... ... ...", []],
+            [0, "ShowMessage", "PIERSON", []],
+            [0, "ShowMessage_2", "But that is enough history for one day. You wish", []],
+            [0, "ShowMessage_2", "to know how you can stay here in this nirvana", []],
+            [0, "ShowMessage_2", "we have been given.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Um... yes. What exactly are these \"Trials?\"", []],
+            [0, "ShowMessage", "PIERSON", []],
+            [0, "ShowMessage_2", "Anyone wishing to stay in Paradise has the", []],
+            [0, "ShowMessage_2", "benefit of having their history erased - no one", []],
+            [0, "ShowMessage_2", "here will pry into your past.", []],
+            [0, "ShowMessage", "PIERSON", []],
+            [0, "ShowMessage_2", "However, this is not a benefit to be lightly", []],
+            [0, "ShowMessage_2", "given. We do not want this place to be a den", []],
+            [0, "ShowMessage_2", "of criminals, as the Agency considers it.", []],
+            [0, "ShowMessage", "PIERSON", []],
+            [0, "ShowMessage_2", "For this reason, anyone wishing to stay must", []],
+            [0, "ShowMessage_2", "complete a test of his moral fitness and strength", []],
+            [0, "ShowMessage_2", "of character.", []],
+            [0, "ShowMessage", "PIERSON", []],
+            [0, "ShowMessage_2", "You will be given the Trials tomorrow morning.", []],
+            [0, "ShowMessage_2", "For now, you are welcome to explore our", []],
+            [0, "ShowMessage_2", "community and speak with our citizens.", []],
+            [0, "ShowMessage", "PIERSON", []],
+            [0, "ShowMessage_2", "If you successfully complete tomorrow's", []],
+            [0, "ShowMessage_2", "Trials, you will be asked to select one of the", []],
+            [0, "ShowMessage_2", "four main professions of Paradise.", []],
+            [0, "ShowMessage", "PIERSON", []],
+            [0, "ShowMessage_2", "This will establish your role in our community,", []],
+            [0, "ShowMessage_2", "so choose wisely. But for now, welcome to", []],
+            [0, "ShowMessage_2", "Paradise, and good luck tomorrow!", []],
+            [0, "ShowMessage", "PIERSON", []],
+            [0, "ShowMessage_2", "Please return and speak to me when you have", []],
+            [0, "ShowMessage_2", "finished your explorations of our town.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Thank you, Sir.", []],
+            [0, "ShowMessage", "PIERSON", []],
+            [0, "ShowMessage_2", "Pierson will do fine, Talan. We try not to", []],
+            [0, "ShowMessage_2", "make very much of status in Paradise. Let", []],
+            [0, "ShowMessage_2", "the Agency display their ranks - it is not for us.", []],
+            [0, "ControlSwitches", "", [0, 350, 350, 0]],
+            [0, "ControlSwitches", "", [0, 349, 349, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 349
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "EV0012",
+      "at": [10, 19],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ConditionalBranch", "", [0, 350, 0, 0, 0, 1]],
+            [1, "TintScreen", "", [0, 0, 0, 70, 2, 1]],
+            [1, "Teleport", "", [108, 25, 22]],
+            [1, "TintScreen", "", [70, 70, 70, 70, 2, 1]],
+            [1, "ControlSwitches", "", [0, 361, 361, 0]],
+            [1, "PlayBGM", "wb3town", [0, 80, 100, 50]],
+            [1, "Teleport", "", [108, 25, 22]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "PlayBGM", "wb3town", [0, 80, 100, 50]],
+            [1, "Teleport", "", [108, 25, 22]],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    }
+  ]
+}

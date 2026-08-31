@@ -1,0 +1,58 @@
+{
+  "id": 90,
+  "name": "Consolidation Speech",
+  "size": [20, 15],
+  "chipset": [3, "inner"],
+  "tiles": "Map0090.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "Granddad",
+      "at": [9, 5],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People3",
+            "index": 4,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "TintScreen", "", [60, 60, 60, 0, 10, 1]],
+            [0, "Wait", "", [10]],
+            [0, "MessageOptions", "", [1, 2, 0, 0]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "That night, the Director gave his famous", []],
+            [0, "ShowMessage_2", "\"Consolidation Speech,\" asking all nations", []],
+            [0, "ShowMessage_2", "to rally behind the Agency in support of", []],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "the Catch Colony project. Some did...", []],
+            [0, "ShowMessage_2", "but others, like the Kingdom of Surl,", []],
+            [0, "ShowMessage_2", "renounced the plan.", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "But I wasn't concerned with these", []],
+            [0, "ShowMessage_2", "political troubles - not yet, anyway.", []],
+            [0, "ShowMessage_2", "I was worried about the Advocate.", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 10, 1]],
+            [0, "Teleport", "", [91, 7, 10]]
+          ]
+        }
+      ]
+    }
+  ]
+}

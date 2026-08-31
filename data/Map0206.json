@@ -1,0 +1,889 @@
+{
+  "id": 206,
+  "name": "Sandy Cave",
+  "size": [35, 35],
+  "chipset": [49, "ABLTownMountain"],
+  "tiles": "Map0206.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "Pitfall",
+      "at": [6, 8],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "PlaySound", "Earth4", [100, 100, 50]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Wait", "", [4]],
+            [0, "PlaySound", "Fall2", [100, 100, 50]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Teleport", "", [248, 5, 11]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Pitfall",
+      "at": [3, 13],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "PlaySound", "Earth4", [100, 100, 50]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Wait", "", [4]],
+            [0, "PlaySound", "Fall2", [100, 100, 50]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Teleport", "", [248, 1, 23]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Pitfall",
+      "at": [17, 22],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "PlaySound", "Earth4", [100, 100, 50]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Wait", "", [4]],
+            [0, "PlaySound", "Fall2", [100, 100, 50]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Teleport", "", [248, 23, 13]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Pitfall",
+      "at": [18, 14],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "PlaySound", "Earth4", [100, 100, 50]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Wait", "", [4]],
+            [0, "PlaySound", "Fall2", [100, 100, 50]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Teleport", "", [248, 31, 12]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Pitfall",
+      "at": [15, 8],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "PlaySound", "Earth4", [100, 100, 50]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Wait", "", [4]],
+            [0, "PlaySound", "Fall2", [100, 100, 50]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Teleport", "", [248, 13, 17]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "Pitfall",
+      "at": [32, 23],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "PlaySound", "Earth4", [100, 100, 50]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Wait", "", [4]],
+            [0, "PlaySound", "Fall2", [100, 100, 50]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Teleport", "", [248, 38, 30]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 879
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "EV0007",
+      "at": [7, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [205, 11, 28]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "EV0008",
+      "at": [32, 34],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [245, 11, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "EV0009",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "parallel",
+          "script": [
+            [0, "Wait", "", [12]],
+            [0, "ShowBattleAnimation", "", [35, 10001, 0, 1]],
+            [0, "Wait", "", [50]],
+            [0, "ShowBattleAnimation", "", [35, 10001, 0, 1]],
+            [0, "Wait", "", [45]],
+            [0, "ShowBattleAnimation", "", [35, 10001, 0, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "Emily",
+      "at": [7, 4],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "emily",
+            "index": 4,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 616
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "EV0011",
+      "at": [1, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ChangeSystemBGM", "T_VGFighterMAX_Masako", [0, 0, 100, 100, 50]],
+            [0, "ChangeSystemBGM", "T_VGFighterMAX_Masako", [1, 0, 100, 100, 50]],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "Wait", "", [8]],
+            [0, "MoveEvent", "", [10, 8, 0, 0, 12]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "That's what happens when you stay", []],
+            [0, "ShowMessage_2", "awake all night... you sleep late.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "What are doing? You shouldn't just", []],
+            [0, "ShowMessage_2", "go wandering off by yourself! This", []],
+            [0, "ShowMessage_2", "cave could be dangerous!", []],
+            [0, "MoveEvent", "", [10, 8, 0, 0, 15]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "... ... ...", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I mean it!", []],
+            [0, "MoveEvent", "", [10, 8, 0, 0, 12]],
+            [0, "Wait", "", [3]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "This cave is full of sand, and the breeze", []],
+            [0, "ShowMessage_2", "from the river blows through here", []],
+            [0, "ShowMessage_2", "almost constantly.", []],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "It makes it hard to see the path sometimes.", []],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "You're welcome.", []],
+            [0, "MoveEvent", "", [10, 8, 0, 0, 36, 0, 0, 0, 37, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ChangePartyMembers", "", [0, 0, 25]],
+            [0, "ControlSwitches", "", [0, 616, 616, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 616
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "First Pit",
+      "at": [26, 19],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ConditionalBranch", "", [4, 308, 0, 0, 0, 1]],
+            [1, "PlaySound", "Blow2", [100, 100, 50]],
+            [1, "ChangeItems", "", [1, 0, 308, 0, 1]],
+            [1, "ControlSwitches", "", [0, 702, 702, 0]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "This chasm is too wide for me to get", []],
+            [1, "ShowMessage_2", "across safely - if only I had something", []],
+            [1, "ShowMessage_2", "to bridge the gap with.", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 702
+          },
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 5,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "below",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I can't get a good grip on the plank", []],
+            [0, "ShowMessage_2", "because of the sand. Looks like it's", []],
+            [0, "ShowMessage_2", "just going to have to stay here.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "Second Pit",
+      "at": [28, 19],
+      "pages": [
+        {
+          "tile": 54,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ConditionalBranch", "", [4, 308, 0, 0, 0, 1]],
+            [1, "PlaySound", "Blow2", [100, 100, 50]],
+            [1, "ChangeItems", "", [1, 0, 308, 0, 1]],
+            [1, "ControlSwitches", "", [0, 703, 703, 0]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "This chasm is too wide for me to get", []],
+            [1, "ShowMessage_2", "across safely - if only I had something", []],
+            [1, "ShowMessage_2", "to bridge the gap with.", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 703
+          },
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 5,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "below",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I can't get a good grip on the plank", []],
+            [0, "ShowMessage_2", "because of the sand. Looks like it's", []],
+            [0, "ShowMessage_2", "just going to have to stay here.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "name": "Third Pit",
+      "at": [30, 19],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ConditionalBranch", "", [4, 308, 0, 0, 0, 1]],
+            [1, "PlaySound", "Blow2", [100, 100, 50]],
+            [1, "ChangeItems", "", [1, 0, 308, 0, 1]],
+            [1, "ControlSwitches", "", [0, 704, 704, 0]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "This chasm is too wide for me to get", []],
+            [1, "ShowMessage_2", "across safely - if only I had something", []],
+            [1, "ShowMessage_2", "to bridge the gap with.", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 704
+          },
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 5,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "below",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I can't get a good grip on the plank", []],
+            [0, "ShowMessage_2", "because of the sand. Looks like it's", []],
+            [0, "ShowMessage_2", "just going to have to stay here.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "name": "Board3",
+      "at": [27, 12],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 5,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Wooden Plank", []],
+            [0, "ChangeItems", "", [0, 0, 308, 0, 1]],
+            [0, "ControlSwitches", "", [0, 707, 707, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 707
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "name": "SandyCave.1",
+      "at": [1, 4],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 736, 736, 0]],
+            [0, "ChangeItems", "", [0, 0, 97, 0, 3]],
+            [0, "ChangeItems", "", [0, 0, 103, 0, 2]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Cold Sandwich-HP x3", []],
+            [0, "ShowMessage_2", "       Cheap Wine-SP x2", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 736
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "name": "SandyCave.2",
+      "at": [1, 21],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 737, 737, 0]],
+            [0, "ChangeItems", "", [0, 0, 329, 0, 1]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Carbon Battery", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 737
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "name": "SandyCave.3",
+      "at": [28, 9],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 738, 738, 0]],
+            [0, "ChangeItems", "", [0, 0, 343, 0, 1]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Faded Vest-B", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 738
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "name": "SandyCave.4",
+      "at": [7, 27],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 739, 739, 0]],
+            [0, "ChangeItems", "", [0, 0, 356, 0, 1]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Worn Shield-L", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 739
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "name": "SandyCave.5",
+      "at": [22, 30],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 740, 740, 0]],
+            [0, "ChangeGold", "", [0, 0, 750]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       750 credits", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 740
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "name": "SandyCave.6",
+      "at": [30, 29],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 741, 741, 0]],
+            [0, "ChangeItems", "", [0, 0, 340, 0, 1]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Broken Field Device", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 741
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "name": "SandyCave.7",
+      "at": [9, 14],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 742, 742, 0]],
+            [0, "ChangeItems", "", [0, 0, 115, 0, 3]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Pungent Elixir-LIFE x3", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 742
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "name": "DroidMerchant",
+      "at": [2, 6],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Crown5",
+            "index": 4,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ConditionalBranch", "", [0, 881, 1, 0, 0, 1]],
+            [1, "ShowMessage", "This rusted droid is half-buried in", []],
+            [1, "ShowMessage_2", "the sand, but it still appears to be", []],
+            [1, "ShowMessage_2", "functioning.", []],
+            [1, "ControlSwitches", "", [0, 881, 881, 0]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ShowMessage", "SHOPPING DROID", []],
+            [0, "ShowMessage_2", "Welcome to.... <whir>.... <click>", []],
+            [0, "ShowMessage_2", "Emporium of... <snap> Goods!", []],
+            [0, "ShowMessage", "SHOPPING DROID", []],
+            [0, "ShowMessage_2", "What would... you... <whirrr> like?", []],
+            [0, "ShowChoice", "Weapons... and armor?/Other... <click> useful goods?", [0]],
+            [0, "ShowChoiceOption", "Weapons... and armor?", [0]],
+            [1, "OpenShop", "", [0, 1, 0, 0, 140, 203, 194, 390, 241, 248]],
+            [1, "END", "", []],
+            [0, "ShowChoiceOption", "Other... <click> useful goods?", [1]],
+            [1, "OpenShop", "", [0, 1, 0, 0, 124, 129, 125, 127, 257, 258, 259, 260, 115, 130]],
+            [1, "END", "", []],
+            [0, "ShowChoiceEnd", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 24,
+      "name": "AfterBattleMint",
+      "at": [34, 0],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 498
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "CallEvent", "", [0, 35, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 25,
+      "name": "SaveExitSandyCave",
+      "at": [33, 19],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "savept",
+            "index": 0,
+            "direction": "up",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "action",
+          "animation": "fixed_continuous",
+          "translucent": true,
+          "script": [
+            [0, "PlaySound", "Holy5", [70, 100, 50]],
+            [0, "OpenSaveMenu", "", []],
+            [0, "ChangeSaveAccess", "", [0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 26,
+      "name": "EV0026",
+      "at": [34, 16],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "parallel",
+          "translucent": true,
+          "script": [
+            [0, "ControlVars", "", [0, 39, 39, 0, 6, 10001, 1]],
+            [0, "ControlVars", "", [0, 40, 40, 0, 6, 10001, 2]],
+            [0, "ControlVars", "", [0, 41, 41, 0, 6, 25, 1]],
+            [0, "ControlVars", "", [0, 42, 42, 0, 6, 25, 2]],
+            [0, "ConditionalBranch", "", [1, 39, 1, 41, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 40, 1, 42, 0, 1]],
+            [2, "ChangeSaveAccess", "", [1]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 27,
+      "name": "EV0027",
+      "at": [34, 34],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 811
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ShowMessage", "RADIN", []],
+            [0, "ShowMessage_2", "The soil here is not very good for", []],
+            [0, "ShowMessage_2", "finding ingredients. I should try", []],
+            [0, "ShowMessage_2", "elsewhere.", []],
+            [0, "ControlSwitches", "", [0, 811, 811, 1]]
+          ]
+        }
+      ]
+    }
+  ]
+}

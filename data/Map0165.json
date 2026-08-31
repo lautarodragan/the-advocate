@@ -1,0 +1,962 @@
+{
+  "id": 165,
+  "name": "Bandit Hideout Inside",
+  "size": [80, 50],
+  "chipset": [30, "Inside"],
+  "tiles": "Map0165.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "BanditR",
+      "at": [27, 20],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Crown2",
+            "index": 1,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 468
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Sern",
+      "at": [11, 26],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "extra2(1)",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 466
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [2, 26],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ChangePartyMembers", "", [1, 0, 10]],
+            [0, "ChangePartyMembers", "", [0, 0, 14]],
+            [0, "Wait", "", [20]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 15, 23, 23, 13, 23, 23]],
+            [0, "Wait", "", [20]],
+            [0, "MessageOptions", "", [0, 2, 1, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Where am I? And where's Sern?", []],
+            [0, "ControlSwitches", "", [0, 465, 465, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 465
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [8, 28],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ChangePartyMembers", "", [0, 0, 28]],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 3, 3, 3, 14]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "SERN", []],
+            [0, "ShowMessage_2", "Oh, you're awake. It's about time, boy.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "What happened? I don't remember very", []],
+            [0, "ShowMessage_2", "much after we were trapped in that canyon.", []],
+            [0, "ShowMessage", "SERN", []],
+            [0, "ShowMessage_2", "One of the bandits threw a stone at you.", []],
+            [0, "ShowMessage_2", "Hit you in the head, you passed out. They", []],
+            [0, "ShowMessage_2", "had to carry you here. You were lucky -", []],
+            [0, "ShowMessage", "SERN", []],
+            [0, "ShowMessage_2", "It was a pretty long journey over rocky", []],
+            [0, "ShowMessage_2", "terrain.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Any sign of Drago?", []],
+            [0, "Wait", "", [8]],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 12]],
+            [0, "Wait", "", [25]],
+            [0, "ShowMessage", "SERN", []],
+            [0, "ShowMessage_2", "The bastards fed him to this beast of theirs", []],
+            [0, "ShowMessage_2", "that lives in this mountain.", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "... ... ...", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "We need to get back to Paradise to warn", []],
+            [0, "ShowMessage_2", "everybody!", []],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 14]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "SERN", []],
+            [0, "ShowMessage_2", "If Drago wasn't able to escape, I don't", []],
+            [0, "ShowMessage_2", "think there's much hope for us. He was", []],
+            [0, "ShowMessage_2", "always stronger than... than I was.", []],
+            [0, "ShowMessage", "SERN", []],
+            [0, "ShowMessage_2", "But I'm taking some of these bandits out", []],
+            [0, "ShowMessage_2", "before I go! They'll pay for taking him", []],
+            [0, "ShowMessage_2", "from us...", []],
+            [0, "ShowMessage", "SERN", []],
+            [0, "ShowMessage_2", "... and from her.", []],
+            [0, "Wait", "", [15]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "There aren't any doors to this prison...", []],
+            [0, "ShowMessage_2", "let's get out of here!", []],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 36, 2, 2, 37]],
+            [0, "Wait", "", [8]],
+            [0, "ControlSwitches", "", [0, 466, 466, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 466
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "BanditL",
+      "at": [17, 21],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Crown2",
+            "index": 1,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 468
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "Sern2",
+      "at": [14, 16],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 9, 101, 120, 116, 114, 97, 50, 40, 49, 41, 2, 1, 2, 2, 1, 1, 14]],
+            [0, "Wait", "", [5]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2, 2, 2, 1, 1, 14]],
+            [0, "Wait", "", [10]],
+            [0, "MessageOptions", "", [1, 0, 0, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Do you think we should run for it?", []],
+            [0, "ShowMessage", "SERN", []],
+            [0, "ShowMessage_2", "I don't think we'd make it. There's only", []],
+            [0, "ShowMessage_2", "the one plank bridging the chasm - all", []],
+            [0, "ShowMessage_2", "they'd need to do is kick it down...", []],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "BANDIT", []],
+            [0, "ShowMessage_2", "Cross the bridge, scum.", []],
+            [0, "Wait", "", [5]],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "SERN", []],
+            [0, "ShowMessage_2", "... ... ...", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Uh...", []],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 3, 3, 3]],
+            [0, "Wait", "", [10]],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "BANDIT", []],
+            [0, "ShowMessage_2", "What's the problem? Get them over", []],
+            [0, "ShowMessage_2", "here, Ashe!", []],
+            [0, "MoveEvent", "", [5, 8, 0, 0, 13, 23, 23]],
+            [0, "ShowMessage", "ASHE", []],
+            [0, "ShowMessage_2", "I am, I am! Geez...", []],
+            [0, "MoveEvent", "", [6, 8, 0, 0, 24, 25]],
+            [0, "Wait", "", [3]],
+            [0, "MessageOptions", "", [0, 1, 0, 0]],
+            [0, "ShowMessage", "SERN", []],
+            [0, "ShowMessage_2", "Now!!", []],
+            [0, "MoveEvent", "", [6, 8, 0, 0, 28, 2, 2, 29]],
+            [0, "Wait", "", [4]],
+            [0, "ShowBattleAnimation", "", [3, 5, 1, 0]],
+            [0, "MoveEvent", "", [5, 8, 0, 0, 28, 28, 26, 38, 36, 1, 1, 1, 28, 2, 2, 2, 2, 2, 2, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3, 29, 29, 29]],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 24, 25]],
+            [0, "Wait", "", [5]],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "BANDIT", []],
+            [0, "ShowMessage_2", "Ashe!", []],
+            [0, "MoveEvent", "", [6, 8, 0, 0, 36, 0, 1, 1, 1, 1, 15]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "SERN", []],
+            [0, "ShowMessage_2", "C'mon, boy! Hurry up!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 24, 25, 1, 1, 1]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "BANDIT", []],
+            [0, "ShowMessage_2", "Looks like you're going to be food for", []],
+            [0, "ShowMessage_2", "the Lair a little ahead of schedule!", []],
+            [0, "ShowBattleAnimation", "", [42, 7, 1, 0]],
+            [0, "MoveEvent", "", [6, 8, 0, 0, 24, 25, 23, 1, 1]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 36, 24, 25, 1]],
+            [0, "Wait", "", [4]],
+            [0, "ShowBattleAnimation", "", [42, 7, 1, 0]],
+            [0, "MoveEvent", "", [6, 8, 0, 0, 24, 25, 23, 1]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 24, 25, 1, 37]],
+            [0, "Wait", "", [4]],
+            [0, "ShowBattleAnimation", "", [42, 7, 1, 0]],
+            [0, "ControlSwitches", "", [0, 467, 467, 0]],
+            [0, "PlaySound", "Fall2", [100, 80, 50]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 36, 12, 26, 38, 2, 2, 2, 2, 2, 39, 27, 37]],
+            [0, "MoveEvent", "", [6, 8, 0, 0, 12, 28, 26, 38, 2, 2, 2, 2, 2, 39, 27, 29]],
+            [0, "Wait", "", [4]],
+            [0, "Teleport", "", [166, 1, 20]],
+            [0, "ChangeEncounterSteps", "", [25]],
+            [0, "ControlSwitches", "", [0, 468, 468, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 468
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "6 - Kicktarget",
+      "at": [23, 20],
+      "pages": [
+        {
+          "tile": 20,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 467
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "5",
+      "at": [22, 20],
+      "pages": [
+        {
+          "tile": 19,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 467
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "4",
+      "at": [21, 20],
+      "pages": [
+        {
+          "tile": 19,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 467
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "3",
+      "at": [20, 20],
+      "pages": [
+        {
+          "tile": 19,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 467
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "2",
+      "at": [19, 20],
+      "pages": [
+        {
+          "tile": 19,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 467
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "1",
+      "at": [18, 20],
+      "pages": [
+        {
+          "tile": 18,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 467
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "EV0013",
+      "at": [37, 4],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [165, 5, 48]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "name": "EV0014",
+      "at": [5, 49],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [165, 37, 5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "name": "EV0015",
+      "at": [10, 42],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [165, 53, 42]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "name": "EV0016",
+      "at": [53, 43],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [165, 10, 43]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "name": "EV0017",
+      "at": [49, 36],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [165, 71, 42]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "name": "EV0018",
+      "at": [71, 43],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [165, 49, 37]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "name": "EV0019",
+      "at": [71, 30],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [165, 58, 19]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "name": "EV0020",
+      "at": [58, 20],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [165, 71, 31]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "name": "EV0021",
+      "at": [58, 14],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MessageOptions", "", [0, 2, 1, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Sunlight! We're almost out!", []],
+            [0, "ControlSwitches", "", [0, 475, 475, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 475
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched"
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "name": "EV0022",
+      "at": [58, 2],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 14]],
+            [0, "Teleport", "", [167, 9, 9]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "name": "EV0023",
+      "at": [0, 0],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 498
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "CallEvent", "", [0, 35, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 24,
+      "name": "BanditHQ.1",
+      "at": [12, 24],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 585, 585, 0]],
+            [0, "ChangeItems", "", [0, 0, 127, 0, 2]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Stale Pita-HP x2", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 585
+          },
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "There's nothing else inside the pot.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 25,
+      "name": "BanditHQ.2",
+      "at": [12, 10],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 591, 591, 0]],
+            [0, "ChangeItems", "", [0, 0, 243, 0, 1]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Electric Armor-B", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 591
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 26,
+      "name": "BanditHQ.3",
+      "at": [4, 4],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 592, 592, 0]],
+            [0, "ChangeItems", "", [0, 0, 189, 0, 1]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Thorn Gloves-RL", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 592
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 27,
+      "name": "BanditHQ.4",
+      "at": [36, 32],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 593, 593, 0]],
+            [0, "ChangeItems", "", [0, 0, 210, 0, 1]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Two-Handed Sword-RL", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 593
+          },
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "There's nothing else inside the pot.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 28,
+      "name": "EV0028",
+      "at": [28, 33],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 36, 24, 3, 3, 25, 37]],
+            [0, "Wait", "", [6]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 29,
+      "name": "EV0029",
+      "at": [26, 33],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 36, 24, 1, 1, 25, 37]],
+            [0, "Wait", "", [6]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 30,
+      "name": "BanditHQ.5",
+      "at": [11, 36],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 594, 594, 0]],
+            [0, "ChangeItems", "", [0, 0, 247, 0, 1]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Mystical Robes-B", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 594
+          },
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "There's nothing else inside the crate.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 31,
+      "name": "BanditHQ.6",
+      "at": [14, 15],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 595, 595, 0]],
+            [0, "ChangeItems", "", [0, 0, 195, 0, 1]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Sturdy Axe-R", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 595
+          },
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "There's nothing else inside the pot.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 32,
+      "name": "BanditHQ.7",
+      "at": [54, 39],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 596, 596, 0]],
+            [0, "ChangeItems", "", [0, 0, 257, 0, 1]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Healing Draught-HP", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 596
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 33,
+      "name": "BanditHQ.8",
+      "at": [61, 11],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 597, 597, 0]],
+            [0, "ChangeItems", "", [0, 0, 248, 0, 1]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Steel Armor-B", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 597
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 34,
+      "name": "SaveInBanditHQ",
+      "at": [6, 24],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "savept",
+            "index": 0,
+            "direction": "up",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "action",
+          "animation": "fixed_continuous",
+          "translucent": true,
+          "script": [
+            [0, "PlaySound", "Holy5", [70, 100, 50]],
+            [0, "OpenSaveMenu", "", []],
+            [0, "ChangeSaveAccess", "", [0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 35,
+      "name": "EV0035",
+      "at": [5, 20],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "parallel",
+          "translucent": true,
+          "script": [
+            [0, "ControlVars", "", [0, 39, 39, 0, 6, 10001, 1]],
+            [0, "ControlVars", "", [0, 40, 40, 0, 6, 10001, 2]],
+            [0, "ControlVars", "", [0, 41, 41, 0, 6, 34, 1]],
+            [0, "ControlVars", "", [0, 42, 42, 0, 6, 34, 2]],
+            [0, "ConditionalBranch", "", [1, 39, 1, 41, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 40, 1, 42, 0, 1]],
+            [2, "ChangeSaveAccess", "", [1]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    }
+  ]
+}

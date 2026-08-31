@@ -1,0 +1,543 @@
+{
+  "id": 158,
+  "name": "Paradise Area",
+  "size": [40, 60],
+  "chipset": [31, "worldmapcharlie"],
+  "tiles": "Map0158.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [15, 36],
+      "pages": [
+        {
+          "tile": 28,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ConditionalBranch", "", [0, 403, 0, 0, 0, 1]],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "These are the Theatre Ruins. Since I'm", []],
+            [1, "ShowMessage_2", "not an Actor, I really don't have any business", []],
+            [1, "ShowMessage_2", "exploring here.", []],
+            [1, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [1, "Wait", "", [5]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "ConditionalBranch", "", [5, 26, 0, 0, 0, 1]],
+            [2, "Teleport", "", [129, 7, 13]],
+            [2, "ControlSwitches", "", [0, 236, 236, 1]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "I don't need to be here right now.", []],
+            [2, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [2, "Wait", "", [5]],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 441,
+            "switch_b": 388
+          },
+          "tile": 28,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "PlayBGM", "pn28year", [0, 100, 100, 50]],
+            [0, "Teleport", "", [145, 13, 13]],
+            [0, "ControlSwitches", "", [0, 236, 236, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 492
+          },
+          "tile": 28,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Paradise is in trouble!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [19, 32],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [127, 15, 28]],
+            [0, "ControlSwitches", "", [0, 236, 236, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 492
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "Teleport", "", [148, 1, 41]],
+            [0, "ControlSwitches", "", [0, 236, 236, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [16, 57],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ConditionalBranch", "", [0, 404, 0, 0, 0, 1]],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "I don't have any reason to enter the Ill", []],
+            [1, "ShowMessage_2", "Marshes - I think I'm better off staying", []],
+            [1, "ShowMessage_2", "away!", []],
+            [1, "MoveEvent", "", [10001, 8, 0, 0, 0]],
+            [1, "Wait", "", [5]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "Teleport", "", [159, 14, 1]],
+            [1, "ControlSwitches", "", [0, 236, 236, 1]],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 492
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Paradise is in trouble!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 0]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Sign",
+      "at": [16, 43],
+      "pages": [
+        {
+          "tile": 92,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "MessageOptions", "", [1, 1, 0, 0]],
+            [0, "ShowMessage", "Theatre Ruins - path to the west.", []],
+            [0, "ShowMessage_2", "Ill Marshes - path to the south.", []],
+            [0, "MessageOptions", "", [0, 0, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "EV0005",
+      "at": [13, 24],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 406
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I guess the bandits always raid from the", []],
+            [0, "ShowMessage_2", "north - I shouldn't wander around up here.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [0, "Wait", "", [5]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 385
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ConditionalBranch", "", [0, 396, 0, 0, 0, 1]],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "This area is bandit country - I shouldn't", []],
+            [1, "ShowMessage_2", "wander around up here.", []],
+            [1, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [1, "Wait", "", [5]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ConditionalBranch", "", [0, 427, 0, 0, 0, 1]],
+            [1, "ConditionalBranch", "", [0, 463, 1, 0, 0, 1]],
+            [2, "Teleport", "", [121, 10, 28]],
+            [2, "ControlSwitches", "", [0, 236, 236, 1]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 492
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Paradise is in trouble!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "EV0006",
+      "at": [19, 29],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 492
+          },
+          "sprite": {
+            "charset": "Crown7",
+            "index": 3,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "EV0007",
+      "at": [23, 29],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 492
+          },
+          "sprite": {
+            "charset": "Crown7",
+            "index": 3,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "EV0008",
+      "at": [20, 26],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 492
+          },
+          "sprite": {
+            "charset": "Crown7",
+            "index": 3,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "EV0009",
+      "at": [22, 31],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 492
+          },
+          "sprite": {
+            "charset": "Crown7",
+            "index": 3,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "EV0010",
+      "at": [21, 29],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 492
+          },
+          "sprite": {
+            "charset": "Crown7",
+            "index": 3,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "EV0011",
+      "at": [22, 26],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 492
+          },
+          "sprite": {
+            "charset": "Crown7",
+            "index": 3,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "EV0012",
+      "at": [30, 26],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 492
+          },
+          "sprite": {
+            "charset": "Crown7",
+            "index": 3,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "EV0013",
+      "at": [30, 24],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 492
+          },
+          "sprite": {
+            "charset": "Crown7",
+            "index": 3,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous"
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "name": "EV0014",
+      "at": [32, 26],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 492
+          },
+          "sprite": {
+            "charset": "Crown7",
+            "index": 3,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous"
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "name": "EV0015",
+      "at": [29, 27],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 492
+          },
+          "sprite": {
+            "charset": "Crown7",
+            "index": 3,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous"
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "name": "EV0016",
+      "at": [26, 25],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 492
+          },
+          "sprite": {
+            "charset": "Crown7",
+            "index": 3,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous"
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "name": "EV0017",
+      "at": [18, 27],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 492
+          },
+          "sprite": {
+            "charset": "Crown7",
+            "index": 3,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous"
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "name": "EV0018",
+      "at": [0, 0],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 498
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "CallEvent", "", [0, 35, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "name": "WorldMapTurnOnSaving",
+      "at": [1, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "parallel",
+          "script": [
+            [0, "ConditionalBranch", "", [0, 236, 1, 0, 0, 1]],
+            [1, "ControlSwitches", "", [0, 236, 236, 0]],
+            [1, "ChangeSaveAccess", "", [1]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "name": "EV0020",
+      "at": [39, 0],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 811
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ShowMessage", "RADIN", []],
+            [0, "ShowMessage_2", "The soil here is not very good for", []],
+            [0, "ShowMessage_2", "finding ingredients. I should try", []],
+            [0, "ShowMessage_2", "elsewhere.", []],
+            [0, "ControlSwitches", "", [0, 811, 811, 1]]
+          ]
+        }
+      ]
+    }
+  ]
+}

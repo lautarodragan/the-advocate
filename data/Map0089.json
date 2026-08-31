@@ -1,0 +1,202 @@
+{
+  "id": 89,
+  "name": "Recoding",
+  "size": [20, 15],
+  "chipset": [19, "Ancient(1)"],
+  "tiles": "Map0089.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "Advocate",
+      "at": [9, 3],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Men1",
+            "index": 5,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 286
+          },
+          "sprite": {
+            "charset": "Men1",
+            "index": 5,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [9, 9],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 287
+          },
+          "sprite": {
+            "charset": "People3",
+            "index": 4,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Eisen",
+      "at": [9, 6],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Eisen",
+            "index": 0,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "TintScreen", "", [60, 60, 60, 0, 10, 1]],
+            [0, "Wait", "", [10]],
+            [0, "MessageOptions", "", [1, 1, 0, 0]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "Sometimes, upon waking up in the morning,", []],
+            [0, "ShowMessage_2", "I would discover that whole sections of", []],
+            [0, "ShowMessage_2", "code had been rewritten during the night,", []],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "and often, I'd have no idea what the", []],
+            [0, "ShowMessage_2", "new blocks of code were for.", []],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "The Advocate was developing a personality,", []],
+            [0, "ShowMessage_2", "one that I hadn't coded for it.", []],
+            [0, "Wait", "", [10]],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "I'm going to need to fix your Trans-Net", []],
+            [0, "ShowMessage_2", "A3G mode. Locate the thirty-fourth", []],
+            [0, "ShowMessage_2", "access block, Advocate.", []],
+            [0, "Wait", "", [10]],
+            [0, "ControlSwitches", "", [0, 286, 286, 2]],
+            [0, "ShowMessage", "ADVOCATE", []],
+            [0, "ShowMessage_2", "No.", []],
+            [0, "ControlSwitches", "", [0, 286, 286, 2]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "I'm not joking, Advocate! Open the access", []],
+            [0, "ShowMessage_2", "block!", []],
+            [0, "ControlSwitches", "", [0, 286, 286, 2]],
+            [0, "ShowMessage", "ADVOCATE", []],
+            [0, "ShowMessage_2", "Why should I?", []],
+            [0, "ControlSwitches", "", [0, 286, 286, 2]],
+            [0, "MessageOptions", "", [1, 1, 0, 0]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "For some reason, my world-saving", []],
+            [0, "ShowMessage_2", "construction supervisor had turned into", []],
+            [0, "ShowMessage_2", "a spoiled child.", []],
+            [0, "ControlSwitches", "", [0, 287, 287, 0]],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [3, 8, 0, 0, 14]],
+            [0, "MessageOptions", "", [1, 0, 0, 0]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "But, my pride prevented me from telling", []],
+            [0, "ShowMessage_2", "the Director, for fear that I would be", []],
+            [0, "ShowMessage_2", "laughed right out of Tasgarde.", []],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "I had abandoned my family for this project,", []],
+            [0, "ShowMessage_2", "and I wasn't about to give it up because", []],
+            [0, "ShowMessage_2", "of a faulty AI subroutine.", []],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "No problems here, Sir! Everything is", []],
+            [0, "ShowMessage_2", "just fine!", []],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "Good. I have a speech to make tonight.", []],
+            [0, "ShowMessage_2", "I'm planning on unveiling the Advocate", []],
+            [0, "ShowMessage_2", "to the world.", []],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "You'll be famous, Professor!", []],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "... ... ...", []],
+            [0, "ControlSwitches", "", [0, 287, 287, 1]],
+            [0, "MessageOptions", "", [1, 1, 0, 0]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "I didn't want to be famous.", []],
+            [0, "Wait", "", [20]],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ControlSwitches", "", [0, 286, 286, 2]],
+            [0, "ShowMessage", "ADVOCATE", []],
+            [0, "ShowMessage_2", "Will I be famous too?", []],
+            [0, "ControlSwitches", "", [0, 286, 286, 2]],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [3, 8, 0, 0, 12]],
+            [0, "Wait", "", [5]],
+            [0, "MessageOptions", "", [1, 1, 0, 0]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "Suddenly, I hated the Advocate very", []],
+            [0, "ShowMessage_2", "much.", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 10, 1]],
+            [0, "Teleport", "", [90, 9, 9]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "EV0005",
+      "at": [8, 10],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 287
+          },
+          "sprite": {
+            "charset": "Future1",
+            "index": 5,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    }
+  ]
+}

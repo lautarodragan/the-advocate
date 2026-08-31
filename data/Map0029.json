@@ -1,0 +1,63 @@
+{
+  "id": 29,
+  "name": "Sector 27 Item Shop",
+  "size": [20, 15],
+  "chipset": [10, "lasheint"],
+  "tiles": "Map0029.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [9, 3],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLPeople",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [9, 4],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "SHOPKEEPER", []],
+            [0, "ShowMessage_2", "I have a wide range of useful items.", []],
+            [0, "ShowMessage_2", "But most of my customers just want", []],
+            [0, "ShowMessage_2", "Cheap Wine.... <sigh>", []],
+            [0, "OpenShop", "", [0, 1, 0, 0, 97, 299, 300, 301, 302, 103, 114, 115]],
+            [0, "ShowMessage", "SHOPKEEPER", []],
+            [0, "ShowMessage_2", "Come again, if you have the ill fortune", []],
+            [0, "ShowMessage_2", "to return to Sector 27.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [9, 14],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [28, 19, 28]]
+          ]
+        }
+      ]
+    }
+  ]
+}

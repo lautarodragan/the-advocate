@@ -1,0 +1,317 @@
+{
+  "id": 218,
+  "name": "Talan and Memnosyne",
+  "size": [30, 20],
+  "chipset": [23, "PS4Chipset"],
+  "tiles": "Map0218.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
+            [0, "ChangePartyMembers", "", [1, 0, 10]],
+            [0, "ChangePartyMembers", "", [1, 0, 26]],
+            [0, "ChangePartyMembers", "", [1, 0, 27]],
+            [0, "ChangePartyMembers", "", [1, 0, 28]],
+            [0, "ChangePartyMembers", "", [1, 0, 25]],
+            [0, "ChangePartyMembers", "", [1, 0, 18]],
+            [0, "ChangePartyMembers", "", [0, 0, 14]],
+            [0, "PlayBGM", "nightbg", [0, 40, 80, 50]],
+            [0, "TintScreen", "", [40, 40, 40, 100, 10, 1]],
+            [0, "Wait", "", [25]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "... ... ...", []],
+            [0, "Wait", "", [20]],
+            [0, "ControlSwitches", "", [0, 620, 620, 0]],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 2, 3, 3, 3, 3, 3, 0, 0, 0, 3, 3, 3, 3, 2, 2]],
+            [0, "Wait", "", [40]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 24, 25, 12]],
+            [0, "Wait", "", [6]],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Uh... hello there, Memnosyne. No sign", []],
+            [0, "ShowMessage_2", "of the Agency yet.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 24, 36, 3, 12, 38, 2, 2, 2, 25, 35, 5, 66, 108, 111, 119, 54, 60, 100, 50, 39, 37, 12]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "MEMNOSYNE", []],
+            [0, "ShowMessage_2", "Are you feeling well, dearie? You look", []],
+            [0, "ShowMessage_2", "a tad under the weather...", []],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 2, 2, 2]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I'm fine... really!", []],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 2, 2, 2]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "MEMNOSYNE", []],
+            [0, "ShowMessage_2", "Let me check your forehead. You", []],
+            [0, "ShowMessage_2", "look like you might have a fever...", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Really, that's OK... you don't need to -", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 0, 0]],
+            [0, "PlaySound", "Holy7", [100, 50, 50]],
+            [0, "Wait", "", [5]],
+            [0, "MessageOptions", "", [1, 1, 0, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "What... what is this?", []],
+            [0, "ShowMessage_2", "Memnosyne! What's going on?!", []],
+            [0, "PlayBGM", "quiksil3mod", [0, 100, 100, 50]],
+            [0, "Wait", "", [30]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Memnosyne!", []],
+            [0, "TintScreen", "", [0, 0, 0, 170, 1, 0]],
+            [0, "Teleport", "", [223, 4, 9]],
+            [0, "TintScreen", "", [0, 120, 120, 200, 10, 1]],
+            [0, "Wait", "", [10]],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "MEMNOSYNE", []],
+            [0, "ShowMessage_2", "What's wrong with your memories??", []],
+            [0, "ShowMessage_2", "The color information is all wrong!", []],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "... ... ...", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 622
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "MoveEvent", "", [5, 8, 0, 0, 3, 24, 25]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "Oh no... Talan! What happened?", []],
+            [0, "ConditionalBranch", "", [0, 385, 0, 0, 0, 1]],
+            [1, "ShowMessage", "SERN", []],
+            [1, "ShowMessage_2", "What did you do to him, you old hag?!", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "ConditionalBranch", "", [0, 386, 0, 0, 0, 1]],
+            [2, "ShowMessage", "RADIN", []],
+            [2, "ShowMessage_2", "What have you done, Memnosyne?!", []],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "ConditionalBranch", "", [0, 388, 0, 0, 0, 1]],
+            [3, "ShowMessage", "LERLE", []],
+            [3, "ShowMessage_2", "What have you done to him!?", []],
+            [3, "END", "", []],
+            [2, "ElseBranch", "", []],
+            [3, "END", "", []],
+            [2, "EndBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "So many... voices...", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Why do they... suffer...?", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "MEMNOSYNE", []],
+            [0, "ShowMessage_2", "I'm sorry... I didn't think he would try", []],
+            [0, "ShowMessage_2", "to follow my Memory Pathway... this has", []],
+            [0, "ShowMessage_2", "never happened before!", []],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "Memory Pathway? What did you do?", []],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "...don't want to be in the Army anymore...", []],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "MEMNOSYNE", []],
+            [0, "ShowMessage_2", "I managed to break the Pathway", []],
+            [0, "ShowMessage_2", "before he received the full force of the", []],
+            [0, "ShowMessage_2", "shock, so he should come around soon...", []],
+            [0, "ShowMessage", "MEMNOSYNE", []],
+            [0, "ShowMessage_2", "I think.", []],
+            [0, "Wait", "", [10]],
+            [0, "ConditionalBranch", "", [0, 385, 0, 0, 0, 1]],
+            [1, "ShowMessage", "SERN", []],
+            [1, "ShowMessage_2", "You owe us an explanation. Now.", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "ConditionalBranch", "", [0, 386, 0, 0, 0, 1]],
+            [2, "ShowMessage", "RADIN", []],
+            [2, "ShowMessage_2", "I think you owe us an explanation.", []],
+            [2, "ShowMessage_2", "And right now.", []],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "ConditionalBranch", "", [0, 388, 0, 0, 0, 1]],
+            [3, "ShowMessage", "LERLE", []],
+            [3, "ShowMessage_2", "You need to tell us what's going on,", []],
+            [3, "ShowMessage_2", "Memnosyne.", []],
+            [3, "END", "", []],
+            [2, "ElseBranch", "", []],
+            [3, "END", "", []],
+            [2, "EndBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "Oh, Talan... please be all right...", []],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "...fired by themselves... the missiles...", []],
+            [0, "FadeOutBGM", "", [2000]],
+            [0, "Wait", "", [5]],
+            [0, "MoveEvent", "", [6, 8, 0, 0, 13]],
+            [0, "TintScreen", "", [0, 0, 0, 100, 15, 1]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
+            [0, "ChangePartyMembers", "", [1, 0, 10]],
+            [0, "ChangePartyMembers", "", [0, 0, 14]],
+            [0, "Teleport", "", [234, 10, 11]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Memnosyne",
+      "at": [21, 4],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 620
+          },
+          "sprite": {
+            "charset": "memnosyne",
+            "index": 3,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 622
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Talan",
+      "at": [12, 12],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 622
+          },
+          "sprite": {
+            "charset": "Future1",
+            "index": 0,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [12, 11],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 622
+          },
+          "sprite": {
+            "charset": "memnosyne",
+            "index": 3,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Emily",
+      "at": [14, 12],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 622
+          },
+          "sprite": {
+            "charset": "emily",
+            "index": 4,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "ParadiseCharacter",
+      "at": [14, 13],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 622,
+            "switch_b": 386
+          },
+          "sprite": {
+            "charset": "extra2(1)",
+            "index": 0,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 622,
+            "switch_b": 388
+          },
+          "sprite": {
+            "charset": "People3",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 622,
+            "switch_b": 385
+          },
+          "sprite": {
+            "charset": "extra2(1)",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    }
+  ]
+}

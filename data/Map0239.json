@@ -1,0 +1,122 @@
+{
+  "id": 239,
+  "name": "Kersh and Little Sally",
+  "size": [20, 15],
+  "chipset": [36, "townQ"],
+  "tiles": "Map0239.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "Kersh",
+      "at": [12, 13],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future1",
+            "index": 5,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Little Sally Kesman",
+      "at": [3, 5],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People5",
+            "index": 1,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "TintScreen", "", [100, 100, 100, 100, 10, 1]],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 26, 24, 1, 24, 2, 25, 24, 3, 25, 2, 2, 27, 12, 26, 24, 1, 25, 24, 1, 25]],
+            [0, "Wait", "", [20]],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "MEMNOSYNE", []],
+            [0, "ShowMessage_2", "She knew she wasn't supposed to", []],
+            [0, "ShowMessage_2", "go near the base, but she loved the", []],
+            [0, "ShowMessage_2", "wildflowers that grew there so much...", []],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 27, 2, 2, 3, 3, 0, 0, 2, 1, 2, 1]],
+            [0, "Wait", "", [15]],
+            [0, "ShowMessage", "MEMNOSYNE", []],
+            [0, "ShowMessage_2", "Oh, she did love flowers. Her mother", []],
+            [0, "ShowMessage_2", "let her keep a vase in her room full", []],
+            [0, "ShowMessage_2", "of the prettiest ones she could find.", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "MEMNOSYNE", []],
+            [0, "ShowMessage_2", "She was looking for flowers on the day", []],
+            [0, "ShowMessage_2", "Surl was destroyed.", []],
+            [0, "MoveEvent", "", [2, 8, 0, 1, 2, 2, 2, 6, 5, 5, 6, 2, 2, 2, 2, 2, 2, 13]],
+            [0, "Wait", "", [15]],
+            [0, "MessageOptions", "", [0, 1, 0, 0]],
+            [0, "ShowMessage", "SALLY KESMAN", []],
+            [0, "ShowMessage_2", "What are you doing?", []],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "SALLY KESMAN", []],
+            [0, "ShowMessage_2", "Hello? Do you work for the base?", []],
+            [0, "ShowMessage_2", "My daddy works for the base.", []],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 15]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "FUNNY-LOOKING MAN", []],
+            [0, "ShowMessage_2", "Yes I do. I work for the base.", []],
+            [0, "ShowMessage_2", "Now run along and play, little girl.", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "SALLY KESMAN", []],
+            [0, "ShowMessage_2", "What are you doing?", []],
+            [0, "Wait", "", [5]],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 12]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "SALLY KESMAN", []],
+            [0, "ShowMessage_2", "Can I see?", []],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 1, 1]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "FUNNY-LOOKING MAN", []],
+            [0, "ShowMessage_2", "I'm just making sure the base is safe", []],
+            [0, "ShowMessage_2", "for your daddy.", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "SALLY KESMAN", []],
+            [0, "ShowMessage_2", "Oh. OK.", []],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 3, 3, 3, 3, 3]],
+            [0, "Wait", "", [20]],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 1, 1]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "SALLY KESMAN", []],
+            [0, "ShowMessage_2", "Thank you very much.", []],
+            [0, "MoveEvent", "", [2, 8, 0, 1, 4, 7, 7, 7, 0, 3, 24, 0, 25]],
+            [0, "Wait", "", [10]],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "TintScreen", "", [0, 0, 0, 100, 10, 1]],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "MEMNOSYNE", []],
+            [0, "ShowMessage_2", "He was there on the day Surl launched its", []],
+            [0, "ShowMessage_2", "missiles and the Agency counter-attacked!", []],
+            [0, "ControlSwitches", "", [0, 629, 629, 0]],
+            [0, "Teleport", "", [207, 8, 7]]
+          ]
+        }
+      ]
+    }
+  ]
+}

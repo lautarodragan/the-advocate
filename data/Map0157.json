@@ -1,0 +1,412 @@
+{
+  "id": 157,
+  "name": "Bandit Raid",
+  "size": [20, 20],
+  "chipset": [23, "PS4Chipset"],
+  "tiles": "Map0157.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "BanditBowFightsFarmM",
+      "at": [16, 15],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Crown2",
+            "index": 1,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 455
+          },
+          "sprite": {
+            "charset": "Crown6",
+            "index": 0,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Bandit1FightingDrago",
+      "at": [15, 3],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Crown2",
+            "index": 1,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Bandit2FightsFarmGir",
+      "at": [3, 7],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Crown2",
+            "index": 1,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "FarmMan",
+      "at": [15, 15],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Crown3",
+            "index": 1,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 453
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Drago",
+      "at": [15, 11],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "extra2(1)",
+            "index": 1,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "Isabella",
+      "at": [13, 19],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara1",
+            "index": 3,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "Bandit4FightsParsun",
+      "at": [8, 3],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Crown2",
+            "index": 1,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "Sern",
+      "at": [7, 3],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara1",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "FarmGirl",
+      "at": [3, 8],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People1",
+            "index": 3,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "Isabella'sBandit",
+      "at": [12, 10],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Crown2",
+            "index": 1,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 454
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "EV0013",
+      "at": [0, 1],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "PlayBGM", "TF4edit", [0, 60, 100, 50]],
+            [0, "ShowMessage", "DRAGO", []],
+            [0, "ShowMessage_2", "Glad you could make it, Is!", []],
+            [0, "ShowMessage_2", "You certainly took your time!", []],
+            [0, "ShowMessage", "ISABELLA", []],
+            [0, "ShowMessage_2", "I came as fast I could!", []],
+            [0, "ShowMessage", "DRAGO", []],
+            [0, "ShowMessage_2", "I'm glad to see you! These bandits", []],
+            [0, "ShowMessage_2", "aren't gonna know what hit 'em!", []],
+            [0, "MoveEvent", "", [5, 8, 0, 0, 28, 0, 0, 0, 0, 0, 0, 0, 29]],
+            [0, "Wait", "", [8]],
+            [0, "ControlSwitches", "", [0, 460, 460, 0]],
+            [0, "PanScreen", "", [2, 0, 5, 3, 0]],
+            [0, "Wait", "", [20]],
+            [0, "PanScreen", "", [2, 2, 5, 3, 0]],
+            [0, "ShowBattleAnimation", "", [18, 9, 0, 0]],
+            [0, "Wait", "", [3]],
+            [0, "ShowBattleAnimation", "", [14, 8, 0, 0]],
+            [0, "Wait", "", [5]],
+            [0, "ShowBattleAnimation", "", [1, 3, 0, 0]],
+            [0, "Wait", "", [4]],
+            [0, "MoveEvent", "", [6, 8, 0, 0, 28, 3, 0, 0, 0, 0, 0, 0, 0, 0, 29]],
+            [0, "ShowBattleAnimation", "", [6, 10, 0, 0]],
+            [0, "Wait", "", [3]],
+            [0, "MessageOptions", "", [0, 0, 1, 0]],
+            [0, "ShowBattleAnimation", "", [8, 12, 1, 0]],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "Wait", "", [7]],
+            [0, "MoveEvent", "", [12, 8, 0, 0, 24, 25]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "BANDIT", []],
+            [0, "ShowMessage_2", "Grab all the food you can! Hurry!", []],
+            [0, "ShowBattleAnimation", "", [13, 6, 1, 0]],
+            [0, "ShowBattleAnimation", "", [14, 8, 0, 0]],
+            [0, "Wait", "", [5]],
+            [0, "ShowBattleAnimation", "", [1, 3, 0, 0]],
+            [0, "Wait", "", [4]],
+            [0, "ShowBattleAnimation", "", [20, 4, 0, 0]],
+            [0, "Wait", "", [2]],
+            [0, "FlashSprite", "", [4, 31, 0, 0, 31, 3, 1]],
+            [0, "PlaySound", "Blow6", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 453, 453, 0]],
+            [0, "ShowBattleAnimation", "", [18, 9, 0, 0]],
+            [0, "Wait", "", [3]],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 0, 0, 3, 12]],
+            [0, "ShowBattleAnimation", "", [14, 8, 0, 0]],
+            [0, "Wait", "", [5]],
+            [0, "ShowBattleAnimation", "", [1, 3, 0, 0]],
+            [0, "Wait", "", [4]],
+            [0, "ShowBattleAnimation", "", [6, 10, 0, 0]],
+            [0, "Wait", "", [3]],
+            [0, "ShowBattleAnimation", "", [8, 12, 1, 0]],
+            [0, "FlashSprite", "", [12, 31, 0, 0, 31, 5, 1]],
+            [0, "ControlSwitches", "", [0, 454, 454, 0]],
+            [0, "MoveEvent", "", [6, 8, 0, 0, 0, 0, 0, 0]],
+            [0, "Wait", "", [5]],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "ISABELLA", []],
+            [0, "ShowMessage_2", "Drago, I'll help you dispatch these", []],
+            [0, "ShowMessage_2", "lowlifes!", []],
+            [0, "Wait", "", [10]],
+            [0, "ControlSwitches", "", [0, 455, 455, 0]],
+            [0, "FadeOutBGM", "", [1000]],
+            [0, "PlayBGM", "Bells_for_Her_2_CA", [0, 90, 100, 50]],
+            [0, "TintScreen", "", [50, 60, 60, 50, 30, 1]],
+            [0, "Wait", "", [10]],
+            [0, "MessageOptions", "", [1, 0, 0, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "That bandit... has a bow...\\|\\^", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 29, 29, 0, 0]],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 0, 23, 23, 0]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I'm not going to make it - \\|\\^", []],
+            [0, "Wait", "", [8]],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 13]],
+            [0, "Wait", "", [8]],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 14]],
+            [0, "ControlSwitches", "", [0, 456, 456, 0]],
+            [0, "PanScreen", "", [2, 0, 5, 2, 0]],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Drago, look out!\\|\\^", []],
+            [0, "MoveEvent", "", [5, 8, 0, 0, 14]],
+            [0, "MoveEvent", "", [6, 8, 0, 0, 29, 13, 23, 23, 23, 14, 23, 23, 23, 13, 23, 23, 23]],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [15, 8, 0, 0, 29, 29, 0, 0]],
+            [0, "Wait", "", [15]],
+            [0, "ShowMessage", "ISABELLA", []],
+            [0, "ShowMessage_2", "No!\\|\\^", []],
+            [0, "MoveEvent", "", [6, 8, 0, 0, 28, 1, 1, 1]],
+            [0, "MoveEvent", "", [15, 8, 0, 0, 36, 28, 0, 0, 37]],
+            [0, "Wait", "", [10]],
+            [0, "FlashSprite", "", [6, 31, 0, 0, 31, 5, 0]],
+            [0, "PlayBGM", "(OFF)", [0, 50, 100, 50]],
+            [0, "PlaySound", "Absorption1", [100, 50, 50]],
+            [0, "ShowMessage", "DRAGO", []],
+            [0, "ShowMessage_2", "Isabella!!                                                                                         ", []],
+            [0, "ShowMessage_2", "                       \\^", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 28, 28]],
+            [0, "TintScreen", "", [200, 200, 200, 100, 3, 1]],
+            [0, "Wait", "", [10]],
+            [0, "PlayBGM", "cruel", [0, 100, 100, 50]],
+            [0, "Teleport", "", [118, 14, 9]],
+            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]],
+            [0, "ControlSwitches", "", [0, 457, 457, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 457
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start"
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "name": "EV0014",
+      "at": [0, 2],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 460
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "parallel",
+          "script": [
+            [0, "MoveEvent", "", [9, 8, 0, 0, 26, 3, 23, 27]],
+            [0, "MoveEvent", "", [8, 8, 0, 0, 3, 23]],
+            [0, "ShowBattleAnimation", "", [18, 9, 0, 0]],
+            [0, "Wait", "", [7]],
+            [0, "ShowBattleAnimation", "", [14, 8, 0, 0]],
+            [0, "Wait", "", [5]],
+            [0, "MoveEvent", "", [10, 8, 0, 0, 0, 24, 25, 23]],
+            [0, "MoveEvent", "", [3, 8, 0, 0, 26, 0, 27, 23]],
+            [0, "ShowBattleAnimation", "", [1, 3, 0, 0]],
+            [0, "ShowBattleAnimation", "", [8, 2, 0, 0]],
+            [0, "Wait", "", [4]],
+            [0, "ShowBattleAnimation", "", [6, 10, 0, 0]],
+            [0, "ShowBattleAnimation", "", [3, 5, 0, 0]],
+            [0, "Wait", "", [8]],
+            [0, "ShowBattleAnimation", "", [1, 3, 0, 0]],
+            [0, "Wait", "", [7]],
+            [0, "ShowBattleAnimation", "", [18, 9, 0, 0]],
+            [0, "Wait", "", [6]],
+            [0, "ShowBattleAnimation", "", [14, 8, 0, 0]],
+            [0, "MoveEvent", "", [9, 8, 0, 0, 1, 23]],
+            [0, "MoveEvent", "", [8, 8, 0, 0, 26, 1, 23, 27]],
+            [0, "Wait", "", [7]],
+            [0, "ShowBattleAnimation", "", [1, 3, 0, 0]],
+            [0, "Wait", "", [8]],
+            [0, "ShowBattleAnimation", "", [6, 10, 0, 0]],
+            [0, "Wait", "", [6]],
+            [0, "MoveEvent", "", [10, 8, 0, 0, 26, 2, 27, 23]],
+            [0, "MoveEvent", "", [3, 8, 0, 0, 26, 2, 27, 23]],
+            [0, "ShowBattleAnimation", "", [1, 3, 0, 0]],
+            [0, "Wait", "", [1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 455
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "name": "Arrow",
+      "at": [15, 12],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 456
+          },
+          "sprite": {
+            "charset": "Crown7",
+            "index": 0,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,183 @@
+{
+  "id": 132,
+  "name": "Stage",
+  "size": [30, 30],
+  "chipset": [25, "sd3_castle_inside_2"],
+  "tiles": "Map0132.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [14, 29],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [130, 4, 10]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [15, 29],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [130, 4, 10]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [16, 29],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [130, 4, 10]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Lerle",
+      "at": [15, 28],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People3",
+            "index": 2,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 493
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "EV0005",
+      "at": [11, 28],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "PanScreen", "", [2, 0, 10, 5, 1]],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "That looks like it could be a script!", []],
+            [0, "ShowMessage", "LERLE", []],
+            [0, "ShowMessage_2", "Let's go grab it!", []],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "PanScreen", "", [2, 2, 10, 5, 1]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 29, 0, 0, 0, 0, 24, 0, 0, 25, 28]],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 0, 0, 0, 0, 24, 0, 0, 25]],
+            [0, "Wait", "", [20]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 29, 0, 0, 24, 0, 0, 0, 25, 28]],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 28, 0, 0, 24, 0, 0, 0, 25, 23, 15, 29]],
+            [0, "Wait", "", [15]],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 3, 3, 3, 12]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "LERLE", []],
+            [0, "ShowMessage_2", "Let's see... \"The Tragedy of Captain Ellis\"...", []],
+            [0, "ShowMessage_2", "That sounds good!", []],
+            [0, "ShowMessage", "LERLE", []],
+            [0, "ShowMessage_2", "Let's take it and get out of here!", []],
+            [0, "ChangeItems", "", [0, 0, 152, 0, 1]],
+            [0, "PlaySound", "Item1", [90, 100, 50]],
+            [0, "ControlSwitches", "", [0, 421, 421, 0]],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 14, 24, 2, 2, 2, 25, 2, 2]],
+            [0, "FadeOutBGM", "", [2000]],
+            [0, "Wait", "", [10]],
+            [0, "PlaySound", "Dark5", [90, 60, 50]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 24, 25]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Lerle, help!", []],
+            [0, "ControlSwitches", "", [0, 493, 493, 0]],
+            [0, "ChangeEscapeAccess", "", [0]],
+            [0, "ChangeSystemBGM", "KW-robot", [0, 0, 100, 100, 50]],
+            [0, "ChangeSystemBGM", "KW-robot", [1, 0, 100, 100, 50]],
+            [0, "EnemyEncounter", "ABLBackdropSJ07", [0, 181, 1, 0, 0, 0]],
+            [0, "CallEvent", "", [0, 35, 0]],
+            [0, "ChangeSystemBGM", "T_VGFighterMAX_Masako", [0, 0, 100, 100, 50]],
+            [0, "ChangeSystemBGM", "T_VGFighterMAX_Masako", [1, 0, 100, 100, 50]],
+            [0, "ChangeEscapeAccess", "", [1]],
+            [0, "ControlSwitches", "", [0, 422, 422, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 422
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Well, you certainly took your time, Lerle.", []],
+            [0, "ShowMessage", "LERLE", []],
+            [0, "ShowMessage_2", "Ah, you're fine. Let's go show everyone", []],
+            [0, "ShowMessage_2", "this great script we found!", []],
+            [0, "Teleport", "", [130, 4, 10]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "Script",
+      "at": [12, 16],
+      "pages": [
+        {
+          "tile": 71,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 421
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "EV0007",
+      "at": [14, 17],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    }
+  ]
+}

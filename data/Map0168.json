@@ -1,0 +1,122 @@
+{
+  "id": 168,
+  "name": "The Line Narrows",
+  "size": [20, 30],
+  "chipset": [24, "INNER ITEMS SHOP"],
+  "tiles": "Map0168.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "Emily",
+      "at": [6, 18],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "emily",
+            "index": 4,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Pierson",
+      "at": [10, 8],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People1",
+            "index": 6,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ChangeSystemBGM", "hydr", [0, 0, 100, 100, 50]],
+            [0, "ChangeSystemBGM", "hydr", [1, 0, 100, 100, 50]],
+            [0, "ChangePartyMembers", "", [1, 0, 10]],
+            [0, "ChangePartyMembers", "", [0, 0, 14]],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "TintScreen", "", [70, 70, 40, 100, 5, 1]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 15]],
+            [0, "Wait", "", [16]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Emily, what are you doing? We have to", []],
+            [0, "ShowMessage_2", "get out of here!", []],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 24, 25]],
+            [0, "Wait", "", [5]],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 13]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "Talan! I just... have to find my radio! I", []],
+            [0, "ShowMessage_2", "can't leave it here for the Agency to", []],
+            [0, "ShowMessage_2", "destroy!", []],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "I just couldn't live with myself if I lost", []],
+            [0, "ShowMessage_2", "my mother's radio!", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "We don't have the time! The Agency", []],
+            [0, "ShowMessage_2", "Guards could come down here any", []],
+            [0, "ShowMessage_2", "minute!", []],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 3, 0, 0, 1, 23, 14]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Emily, come on!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 0, 3, 3, 3, 3, 3, 12]],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 24, 25]],
+            [0, "Wait", "", [3]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "I found it!", []],
+            [0, "MessageOptions", "", [1, 1, 0, 0]],
+            [0, "PlaySound", "Item1", [80, 100, 50]],
+            [0, "ShowMessage", "EMILY received PRE-SHORTAGE RADIO.", []],
+            [0, "ChangeItems", "", [0, 0, 182, 0, 1]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "Wait", "", [5]],
+            [0, "MessageOptions", "", [0, 2, 1, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Someone's coming!", []],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 13]],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3]],
+            [0, "Wait", "", [45]],
+            [0, "ChangeEventLocation", "", [2, 0, 19, 0]],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 0, 13]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "Is that... Daddy?", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "What's he doing down here?", []],
+            [0, "MoveEvent", "", [1, 8, 0, 1, 28, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3, 29]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Where are you going? Come back!", []],
+            [0, "ShowMessage_2", "We can't stay around here much longer!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 1, 1, 1, 1, 1, 1]],
+            [0, "Wait", "", [10]],
+            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
+            [0, "ChangePartyMembers", "", [1, 0, 14]],
+            [0, "ChangePartyMembers", "", [0, 0, 10]],
+            [0, "Teleport", "", [169, 8, 24]]
+          ]
+        }
+      ]
+    }
+  ]
+}

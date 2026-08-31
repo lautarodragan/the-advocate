@@ -1,0 +1,573 @@
+{
+  "id": 19,
+  "name": "Talan and the Director",
+  "size": [20, 15],
+  "chipset": [18, "Inside"],
+  "tiles": "Map0019.tiles",
+  "parallax": {
+    "name": "OfficeView",
+    "loop_x": false,
+    "loop_y": false,
+    "scroll_x": 0,
+    "scroll_y": 0
+  },
+  "events": [
+    {
+      "id": 1,
+      "name": "Director",
+      "at": [10, 4],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People3",
+            "index": 4,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Sir, c'mon wake up! PLEASE wake up!", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's no use. He's dead.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "RunDirectorScene",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ChangePartyMembers", "", [0, 0, 14]],
+            [0, "ChangePartyMembers", "", [1, 0, 10]],
+            [0, "ControlSwitches", "", [0, 67, 67, 1]],
+            [0, "PlayBGM", "Gaden", [0, 100, 100, 50]],
+            [0, "Wait", "", [30]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
+            [0, "Wait", "", [15]],
+            [0, "MessageOptions", "", [0, 2, 1, 0]],
+            [0, "ShowMessage", "DESSEN", []],
+            [0, "ShowMessage_2", "Talan, you're awake!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Ugh... I had a terrible dream - the", []],
+            [0, "ShowMessage_2", "Director asked to speak to me, and", []],
+            [0, "ShowMessage_2", "then my life turned crappy.", []],
+            [0, "ShowMessage", "DESSEN", []],
+            [0, "ShowMessage_2", "Uh... Talan...", []],
+            [0, "Wait", "", [12]],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 14]],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "That was no dream, Talan.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12, 24, 25]],
+            [0, "MoveEvent", "", [3, 8, 0, 0, 12]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Sir, I didn't mean -", []],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "Don't worry about it. That statement", []],
+            [0, "ShowMessage_2", "may be truer than you know.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "<gulp>", []],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "Dessen, you have been a great help.", []],
+            [0, "ShowMessage_2", "Tell the guards on your way out that", []],
+            [0, "ShowMessage_2", "I will only be a few more minutes.", []],
+            [0, "ShowMessage", "DESSEN", []],
+            [0, "ShowMessage_2", "Yes, Sir.", []],
+            [0, "MoveEvent", "", [3, 8, 0, 0, 15]],
+            [0, "Wait", "", [3]],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "DESSEN", []],
+            [0, "ShowMessage_2", "Good luck, Talan!", []],
+            [0, "ShowMessage_2", "I can't believe the DIRECTOR said", []],
+            [0, "ShowMessage_2", "I was \"a great help!\" Wow!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Shut up, Dess.", []],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "MoveEvent", "", [3, 8, 0, 0, 2, 3, 2, 2, 2]],
+            [0, "Wait", "", [16]],
+            [0, "ControlSwitches", "", [0, 91, 91, 0]],
+            [0, "PlaySound", "Open2", [70, 100, 50]],
+            [0, "ChangeEventLocation", "", [3, 0, 10, 14]],
+            [0, "Wait", "", [6]],
+            [0, "MoveEvent", "", [3, 8, 0, 0, 34, 7, 70, 117, 116, 117, 114, 101, 49, 3]],
+            [0, "ControlSwitches", "", [0, 91, 91, 1]],
+            [0, "PlaySound", "Close1", [80, 100, 50]],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 12]],
+            [0, "Wait", "", [8]],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "Your boss has good taste in furnishings.", []],
+            [0, "ShowMessage_2", "I was expecting his office to be of", []],
+            [0, "ShowMessage_2", "sleek metal and industrial decor.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Where is the boss?", []],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "He has graciously allowed me use of", []],
+            [0, "ShowMessage_2", "his private office for the purposes of", []],
+            [0, "ShowMessage_2", "this interview.", []],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 1, 1, 1, 23, 12]],
+            [0, "Wait", "", [15]],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "Quite nice of him really. Of course,", []],
+            [0, "ShowMessage_2", "most people are so intimidated by", []],
+            [0, "ShowMessage_2", "my status that - well, it doesn't matter.", []],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "There's a nice view of the city from", []],
+            [0, "ShowMessage_2", "up here. Does your boss ever let you", []],
+            [0, "ShowMessage_2", "in here to enjoy it?", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Uh... no, Sir. If you don't mind my", []],
+            [0, "ShowMessage_2", "asking -", []],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 14]],
+            [0, "Wait", "", [4]],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "Go right ahead.", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Sir... why did you ask to speak with me?", []],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 1, 1, 1, 1, 12]],
+            [0, "Wait", "", [40]],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "Ah. So much for small talk. It's a", []],
+            [0, "ShowMessage_2", "vanishing art these days.", []],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 14]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "What did you think of my speech?", []],
+            [0, "ConditionalBranch", "", [0, 68, 0, 0, 0, 1]],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "Truthfully, Sir, I didn't hear all of it.", []],
+            [1, "ShowMessage", "DIRECTOR", []],
+            [1, "ShowMessage_2", "I know, Talan. But what did you think", []],
+            [1, "ShowMessage_2", "of the portion you DID hear?", []],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "It was good, Sir. Very inspirational.", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "It was good, Sir. Very inspirational.", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "Wait", "", [15]],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "It wasn't true. Well, some of it was.", []],
+            [0, "ShowMessage_2", "But most of it - a fabric of falsehoods.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "What?", []],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 2, 2, 2, 2, 2, 15]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "Oh... I meant the bit about Delcentric's", []],
+            [0, "ShowMessage_2", "record of valuable service - THAT", []],
+            [0, "ShowMessage_2", "was from the heart.", []],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "But there's more to the history of", []],
+            [0, "ShowMessage_2", "the Shortage and the construction", []],
+            [0, "ShowMessage_2", "of the Catch Colony than you know.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Sir...", []],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 3, 3, 3, 3, 3, 3, 3, 12]],
+            [0, "Wait", "", [15]],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "The time has come for the truth.", []],
+            [0, "ShowMessage_2", "You will be my champion in this race.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 14]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Sir, I don't understand.", []],
+            [0, "MessageOptions", "", [0, 1, 0, 0]],
+            [0, "ShowMessage", "The DIRECTOR patted TALAN on the", []],
+            [0, "ShowMessage_2", "shoulder.", []],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 2, 2, 2]],
+            [0, "Wait", "", [10]],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "I know you don't understand, Talan.", []],
+            [0, "ShowMessage_2", "I know.", []],
+            [0, "Wait", "", [8]],
+            [0, "PlaySound", "Knock", [100, 100, 50]],
+            [0, "Wait", "", [5]],
+            [0, "MessageOptions", "", [0, 1, 0, 0]],
+            [0, "ShowMessage", "The DIRECTOR locked the door.", []],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 3, 3, 3, 3]],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 14]],
+            [0, "Wait", "", [20]],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "Talan, I'm a politican. I've won dozens", []],
+            [0, "ShowMessage_2", "of races: local positions, Assembly,", []],
+            [0, "ShowMessage_2", "Board, and finally head of the Agency.", []],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 1, 1, 1, 1, 12]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "But of all these races, I've never won", []],
+            [0, "ShowMessage_2", "the race that really matters.", []],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "I want you to win that race for me,", []],
+            [0, "ShowMessage_2", "Talan. The race for truth.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Sir, I -", []],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "My time is almost up. I hope I have", []],
+            [0, "ShowMessage_2", "given you enough of a head-start,", []],
+            [0, "ShowMessage_2", "but...", []],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 14]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "Good luck, Talan. And goodbye.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Sir?", []],
+            [0, "Wait", "", [5]],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 12, 23, 0]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "Seek Paradise, Talan. You will find", []],
+            [0, "ShowMessage_2", "safety there...", []],
+            [0, "Wait", "", [15]],
+            [0, "PlaySound", "Explosion4", [100, 100, 50]],
+            [0, "Wait", "", [3]],
+            [0, "ControlSwitches", "", [0, 92, 92, 0]],
+            [0, "ShowBattleAnimation", "", [137, 6, 0, 0]],
+            [0, "PlaySound", "Glass", [100, 80, 50]],
+            [0, "ShowBattleAnimation", "", [3, 1, 0, 0]],
+            [0, "FlashSprite", "", [1, 31, 0, 0, 31, 1, 1]],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 28, 38, 26, 2, 2, 2, 34, 8, 66, 76, 65, 103, 101, 110, 116, 115, 4, 35, 5, 66, 108, 111, 119, 54, 100, 100, 50]],
+            [0, "Wait", "", [8]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Sir! Oh no!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 3, 0, 13]],
+            [0, "Wait", "", [15]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "He's dead - the Director of the Agency", []],
+            [0, "ShowMessage_2", "is dead!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "Wait", "", [10]],
+            [0, "PlaySound", "Knock", [100, 80, 50]],
+            [0, "Wait", "", [2]],
+            [0, "PlaySound", "Knock", [100, 80, 50]],
+            [0, "Wait", "", [2]],
+            [0, "PlaySound", "Knock", [100, 80, 50]],
+            [0, "Wait", "", [2]],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "VOICE OF AGENCY GUARD", []],
+            [0, "ShowMessage_2", "What's going on in there?!", []],
+            [0, "PlayBGM", "3D-Galax", [0, 100, 100, 50]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 14]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "And I'm in a world of trouble!", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "VOICE OF AGENCY GUARD", []],
+            [0, "ShowMessage_2", "I heard a gunshot. Let's get in there!", []],
+            [0, "PlaySound", "Switch2", [100, 80, 50]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "VOICE OF AGENCY GUARD", []],
+            [0, "ShowMessage_2", "The door is locked!", []],
+            [0, "Wait", "", [8]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I've got to get out of here!", []],
+            [0, "ChangeHeroTitle", "Fugitive", [14]],
+            [0, "ControlSwitches", "", [0, 90, 90, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 90
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Dessen",
+      "at": [11, 8],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future2",
+            "index": 6,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [10, 13],
+      "pages": [
+        {
+          "tile": 32,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I don't think unlocking the door and", []],
+            [0, "ShowMessage_2", "letting in the Agency guards would", []],
+            [0, "ShowMessage_2", "be wise at this juncture!", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I mean it!", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 91
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "DoorLower",
+      "at": [10, 14],
+      "pages": [
+        {
+          "tile": 38,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 91
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "FirstShot",
+      "at": [9, 4],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 92
+          },
+          "tile": 130,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "FirstShot",
+      "at": [10, 2],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 92
+          },
+          "tile": 129,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "FirstShot",
+      "at": [10, 1],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 92
+          },
+          "tile": 123,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "FirstShot",
+      "at": [11, 4],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 92
+          },
+          "tile": 130,
+          "layer": "below",
+          "trigger": "touched"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "EV0011",
+      "at": [0, 1],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 90
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "parallel",
+          "script": [
+            [0, "PlaySound", "Blow4", [100, 100, 50]],
+            [0, "ShowBattleAnimation", "", [1, 5, 0, 0]],
+            [0, "Wait", "", [50]],
+            [0, "PlaySound", "Blow6", [100, 100, 50]],
+            [0, "ShowBattleAnimation", "", [2, 5, 0, 0]],
+            [0, "Wait", "", [40]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "EV0012",
+      "at": [17, 3],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Unfortunately, this bookshelf does", []],
+            [0, "ShowMessage_2", "not hide a secret passage!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "EV0013",
+      "at": [16, 3],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Unfortunately, this bookshelf does", []],
+            [0, "ShowMessage_2", "not hide a secret passage!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "name": "EV0014",
+      "at": [18, 3],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Unfortunately, this bookshelf does", []],
+            [0, "ShowMessage_2", "not hide a secret passage!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "name": "EV0015",
+      "at": [10, 3],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I guess this is the only way. PLEASE", []],
+            [0, "ShowMessage_2", "PLEASE PLEASE let the assassin", []],
+            [0, "ShowMessage_2", "not be looking!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 29, 36, 24, 0, 0, 0, 25, 37, 28]],
+            [0, "Wait", "", [10]],
+            [0, "Teleport", "", [20, 93, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 28, 36, 38, 2, 2, 2, 2, 2, 39, 29, 3, 3, 3, 14, 24, 28, 38, 2, 2, 2, 2, 2, 25, 39, 2, 2, 2, 24, 2, 2, 2, 25, 37]],
+            [0, "Wait", "", [30]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "This is terrible! The Director has been", []],
+            [0, "ShowMessage_2", "assassinated! I can't believe it!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Why am I running?", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I've got nothing to hide! I could just", []],
+            [0, "ShowMessage_2", "tell them what I know, which is...", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "... ... ...", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "The Director was planning to die. He", []],
+            [0, "ShowMessage_2", "set everything up - he even locked", []],
+            [0, "ShowMessage_2", "the door, to give me time...", []],
+            [0, "Wait", "", [5]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 14]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "... to escape.", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Thanks a billion, \"Sir.\"", []],
+            [0, "ChangeSystemBGM", "3D-Galax", [0, 0, 100, 100, 50]],
+            [0, "ChangeSystemBGM", "3D-Galax", [1, 0, 100, 100, 50]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    }
+  ]
+}

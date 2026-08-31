@@ -1,0 +1,404 @@
+{
+  "id": 131,
+  "name": "Floor Two",
+  "size": [30, 40],
+  "chipset": [25, "sd3_castle_inside_2"],
+  "tiles": "Map0131.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [2, 18],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [130, 2, 16]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [3, 18],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [130, 3, 16]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [13, 8],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ControlVars", "", [0, 123, 123, 1, 0, 1, 0]],
+            [0, "ControlSwitches", "", [0, 416, 416, 0]],
+            [0, "Teleport", "", [137, 7, 11]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 416
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [137, 7, 11]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [10, 21],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ControlVars", "", [0, 123, 123, 1, 0, 1, 0]],
+            [0, "ControlSwitches", "", [0, 417, 417, 0]],
+            [0, "Teleport", "", [138, 7, 11]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 417
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [138, 7, 11]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "EV0005",
+      "at": [16, 32],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ControlVars", "", [0, 123, 123, 1, 0, 1, 0]],
+            [0, "ControlSwitches", "", [0, 418, 418, 0]],
+            [0, "Teleport", "", [139, 15, 11]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 418
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [139, 15, 11]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "EV0006",
+      "at": [22, 8],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ControlVars", "", [0, 123, 123, 1, 0, 1, 0]],
+            [0, "ControlSwitches", "", [0, 419, 419, 0]],
+            [0, "Teleport", "", [140, 9, 11]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 419
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [140, 9, 11]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "EV0007",
+      "at": [8, 2],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ChangeEventLocation", "", [8, 0, 8, 2]],
+            [0, "MoveEvent", "", [8, 8, 0, 0, 34, 7, 80, 101, 111, 112, 108, 101, 51, 2, 3]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "LERLE", []],
+            [0, "ShowMessage_2", "This is a strange little hallway.", []],
+            [0, "ShowMessage_2", "I don't remember this from the last", []],
+            [0, "ShowMessage_2", "time I was here.", []],
+            [0, "MoveEvent", "", [8, 8, 0, 0, 36, 1, 37, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3]],
+            [0, "Wait", "", [10]],
+            [0, "ChangeEventLocation", "", [8, 0, 0, 39]],
+            [0, "ControlSwitches", "", [0, 410, 410, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 410
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "Lerle",
+      "at": [0, 39],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "EV0009",
+      "at": [5, 1],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 423,
+            "switch_b": 401
+          },
+          "tile": 133,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [141, 11, 11]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 425
+          },
+          "tile": 0,
+          "layer": "same",
+          "trigger": "touched"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "EV0010",
+      "at": [5, 0],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 423,
+            "switch_b": 401
+          },
+          "tile": 133,
+          "layer": "below",
+          "trigger": "touched"
+        },
+        {
+          "conditions": {
+            "switch_a": 425
+          },
+          "tile": 0,
+          "layer": "same",
+          "trigger": "touched"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "EV0011",
+      "at": [6, 1],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 423,
+            "switch_b": 401
+          },
+          "tile": 118,
+          "layer": "same",
+          "trigger": "touched"
+        },
+        {
+          "conditions": {
+            "switch_a": 425
+          },
+          "tile": 0,
+          "layer": "same",
+          "trigger": "touched"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "EV0012",
+      "at": [6, 0],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 423,
+            "switch_b": 401
+          },
+          "tile": 112,
+          "layer": "same",
+          "trigger": "touched"
+        },
+        {
+          "conditions": {
+            "switch_a": 425
+          },
+          "tile": 0,
+          "layer": "same",
+          "trigger": "touched"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "EV0013",
+      "at": [4, 0],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 423,
+            "switch_b": 401
+          },
+          "tile": 112,
+          "layer": "same",
+          "trigger": "touched"
+        },
+        {
+          "conditions": {
+            "switch_a": 425
+          },
+          "tile": 0,
+          "layer": "same",
+          "trigger": "touched"
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "name": "EV0014",
+      "at": [4, 1],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 423,
+            "switch_b": 401
+          },
+          "tile": 118,
+          "layer": "same",
+          "trigger": "touched"
+        },
+        {
+          "conditions": {
+            "switch_a": 425
+          },
+          "tile": 0,
+          "layer": "same",
+          "trigger": "touched"
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "name": "EV0015",
+      "at": [0, 0],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 498
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "CallEvent", "", [0, 35, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "name": "TheatreRuins.5",
+      "at": [2, 2],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 566, 566, 0]],
+            [0, "ChangeItems", "", [0, 0, 124, 0, 5]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Bag of Chips-HP x5", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 566
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1200 @@
+{
+  "id": 20,
+  "name": "Sector 30 Back Alleys",
+  "size": [100, 100],
+  "chipset": [9, "BLchp1"],
+  "tiles": "Map0020.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [90, 15],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I can't go back up there! The Agency", []],
+            [0, "ShowMessage_2", "guards will be onto me in no time!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [89, 20],
+      "pages": [
+        {
+          "tile": 53,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "MessageOptions", "", [1, 1, 0, 0]],
+            [0, "ShowMessage", "You are trespassing on Delcentric", []],
+            [0, "ShowMessage_2", "property - violaters are subject to", []],
+            [0, "ShowMessage_2", "a 10,000 credit fine and imprisonment.", []],
+            [0, "MessageOptions", "", [0, 2, 1, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "A fine is probably the LEAST of my", []],
+            [0, "ShowMessage_2", "worries at this point!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "SaveInSector30",
+      "at": [88, 27],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "savept",
+            "index": 0,
+            "direction": "up",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "action",
+          "animation": "fixed_continuous",
+          "translucent": true,
+          "script": [
+            [0, "PlaySound", "Holy5", [70, 100, 50]],
+            [0, "OpenSaveMenu", "", []],
+            [0, "ChangeSaveAccess", "", [0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "InnBum",
+      "at": [91, 27],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future3",
+            "index": 1,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "BUM", []],
+            [0, "ShowMessage_2", "Hey there, Mac. I've got a great pile", []],
+            [0, "ShowMessage_2", "of garbage back there you can rest", []],
+            [0, "ShowMessage_2", "in - a real bargain at 5 credits!", []],
+            [0, "ShowInn", "", [0, 5, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Slum30Chest1c",
+      "at": [78, 19],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "TradeEventLocations", "", [5, 6]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       10 credits", []],
+            [0, "ChangeGold", "", [0, 0, 10]],
+            [0, "ControlSwitches", "", [0, 98, 98, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 98
+          },
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "Slum30Chest1o",
+      "at": [0, 0],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "Slum30Chest2c",
+      "at": [86, 35],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "TradeEventLocations", "", [7, 8]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Bent Iron Plating-L", []],
+            [0, "ChangeItems", "", [0, 0, 98, 0, 1]],
+            [0, "ControlSwitches", "", [0, 99, 99, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 99
+          },
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "Slum30Chest2o",
+      "at": [1, 0],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "Slum30Chest3c",
+      "at": [84, 44],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "TradeEventLocations", "", [9, 10]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Cold Sandwich-HP", []],
+            [0, "ChangeItems", "", [0, 0, 97, 0, 1]],
+            [0, "ControlSwitches", "", [0, 101, 101, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 101
+          },
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "Slum30Chest3o",
+      "at": [2, 0],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "Slum30Chest4c",
+      "at": [98, 35],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "TradeEventLocations", "", [11, 12]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Bent Pipe-R", []],
+            [0, "ChangeItems", "", [0, 0, 327, 0, 1]],
+            [0, "ControlSwitches", "", [0, 100, 100, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 100
+          },
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "Slum30Chest4o",
+      "at": [3, 0],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "Slum30Chest5c",
+      "at": [69, 60],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "TradeEventLocations", "", [13, 14]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Cold Sandwich-HP x2", []],
+            [0, "ChangeItems", "", [0, 0, 97, 0, 2]],
+            [0, "ControlSwitches", "", [0, 104, 104, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 104
+          },
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "name": "Slum30Chest5o",
+      "at": [4, 0],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "name": "Slum30Chest6c",
+      "at": [74, 66],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "TradeEventLocations", "", [15, 16]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Torn Flak Vest", []],
+            [0, "ChangeItems", "", [0, 0, 99, 0, 1]],
+            [0, "ControlSwitches", "", [0, 103, 103, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 103
+          },
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "name": "Slum30Chest6o",
+      "at": [5, 0],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "name": "Slum30Chest7c",
+      "at": [37, 24],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "TradeEventLocations", "", [17, 18]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Dirty Headscarf-H", []],
+            [0, "ChangeItems", "", [0, 0, 100, 0, 1]],
+            [0, "ControlSwitches", "", [0, 106, 106, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 106
+          },
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "name": "Slum30Chest7o",
+      "at": [6, 0],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "name": "Slum30Chest8c",
+      "at": [53, 54],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "TradeEventLocations", "", [19, 20]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       75 credits", []],
+            [0, "ChangeGold", "", [0, 0, 75]],
+            [0, "ControlSwitches", "", [0, 105, 105, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 105
+          },
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "name": "Slum30Chest8o",
+      "at": [7, 0],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "name": "BumGuardingEntrance",
+      "at": [48, 33],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future3",
+            "index": 1,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "PANHANDLER", []],
+            [0, "ShowMessage_2", "Hey there, pal. Spare some creds?", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "What did you say?", []],
+            [0, "ShowMessage", "PANHANDLER", []],
+            [0, "ShowMessage_2", "Got any loose credits you wouldn't", []],
+            [0, "ShowMessage_2", "mind parting with, pal?", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "... ... ...", []],
+            [0, "ShowMessage", "PANHANDLER", []],
+            [0, "ShowMessage_2", "What's with you, anyway?", []],
+            [0, "ShowMessage_2", "Listen, I could just use -", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "No, YOU listen!", []],
+            [0, "Wait", "", [2]],
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 24, 25]],
+            [0, "ConditionalBranch", "", [0, 68, 0, 0, 0, 1]],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "I got to work late today, missing half", []],
+            [1, "ShowMessage_2", "of an important speech by the", []],
+            [1, "ShowMessage_2", "most important man in the world,", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "I was nearly late to work today,", []],
+            [1, "ShowMessage_2", "almost missing a speech by the", []],
+            [1, "ShowMessage_2", "most important man in the world,", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "who is now DEAD, and I am the prime", []],
+            [0, "ShowMessage_2", "suspect for his murder! I am hungry,", []],
+            [0, "ShowMessage_2", "I am tired, I am being chased by", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "the best Guards in the Agency, and you", []],
+            [0, "ShowMessage_2", "have the GALL to ask me for money?", []],
+            [0, "PlaySound", "Thunder9", [100, 100, 50]],
+            [0, "FlashScreen", "", [31, 31, 31, 31, 5, 1]],
+            [0, "ControlSwitches", "", [0, 94, 94, 0]],
+            [0, "WeatherEffects", "", [1, 2]],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "And now I'm soaked.", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "PANHANDLER", []],
+            [0, "ShowMessage_2", "Gee, pal. I'm sorry. Looks like you", []],
+            [0, "ShowMessage_2", "need this more than I do.", []],
+            [0, "MessageOptions", "", [1, 1, 0, 0]],
+            [0, "PlaySound", "Item1", [100, 100, 50]],
+            [0, "ChangeGold", "", [0, 0, 20]],
+            [0, "ShowMessage", "PANHANDLER gave TALAN 20 credits.", []],
+            [0, "MessageOptions", "", [0, 2, 1, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Well. Thank you very much.", []],
+            [0, "ShowMessage", "PANHANDLER", []],
+            [0, "ShowMessage_2", "Just a tip, pal. You won't be able to", []],
+            [0, "ShowMessage_2", "use the roads to get out of Sector", []],
+            [0, "ShowMessage_2", "30. The guys after you will have", []],
+            [0, "ShowMessage", "PANHANDLER", []],
+            [0, "ShowMessage_2", "all the exits covered. You're gonna", []],
+            [0, "ShowMessage_2", "need to use the Rat Tracks.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "The Rat Tracks?", []],
+            [0, "ShowMessage", "PANHANDLER", []],
+            [0, "ShowMessage_2", "Yeah, they're a series of tunnels that", []],
+            [0, "ShowMessage_2", "have been carved out beneath a", []],
+            [0, "ShowMessage_2", "couple Sectors.", []],
+            [0, "ShowMessage", "PANHANDLER", []],
+            [0, "ShowMessage_2", "If you follow 'em, they'll lead", []],
+            [0, "ShowMessage_2", "you right out into 27, and you should", []],
+            [0, "ShowMessage_2", "be able to escape the Agency guys.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Thanks for the advice. But, uh...", []],
+            [0, "ShowMessage_2", "these Rat Tracks... what exactly", []],
+            [0, "ShowMessage_2", "made them?", []],
+            [0, "ShowMessage", "PANHANDLER", []],
+            [0, "ShowMessage_2", "Giant Rats that have been infected", []],
+            [0, "ShowMessage_2", "with all the toxins that factory up", []],
+            [0, "ShowMessage_2", "there's been dumping in the ground.", []],
+            [0, "ShowMessage", "PANHANDLER", []],
+            [0, "ShowMessage_2", "They're pretty strong, but if you", []],
+            [0, "ShowMessage_2", "stay alert and use lots of healing", []],
+            [0, "ShowMessage_2", "items, you should be OK.", []],
+            [0, "ShowMessage", "PANHANDLER", []],
+            [0, "ShowMessage_2", "Maybe.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Thanks for the words of encouragement.", []],
+            [0, "ShowMessage", "PANHANDLER", []],
+            [0, "ShowMessage_2", "No sweat, pal! If the Agency Guards", []],
+            [0, "ShowMessage_2", "come by here, I never saw ya!", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 93
+          },
+          "sprite": {
+            "charset": "Future3",
+            "index": 1,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "PANHANDLER", []],
+            [0, "ShowMessage_2", "Keep the change, pal. That ladder", []],
+            [0, "ShowMessage_2", "there will take you down into the", []],
+            [0, "ShowMessage_2", "Rat Tracks.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "name": "EV0022",
+      "at": [50, 34],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ChangeSystemBGM", "T_VGFighterMAX_Masako", [0, 0, 100, 100, 50]],
+            [0, "ChangeSystemBGM", "T_VGFighterMAX_Masako", [1, 0, 100, 100, 50]],
+            [0, "CallEvent", "", [1, 21, 1]],
+            [0, "ControlSwitches", "", [0, 93, 93, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 93
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched"
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "name": "EV0023",
+      "at": [48, 40],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ControlSwitches", "", [0, 94, 94, 1]],
+            [0, "WeatherEffects", "", [0, 1]],
+            [0, "Teleport", "", [21, 46, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 24,
+      "name": "Slum30Chest9c",
+      "at": [92, 46],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "TradeEventLocations", "", [24, 25]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Empty Power Pack", []],
+            [0, "ChangeItems", "", [0, 0, 101, 0, 1]],
+            [0, "ControlSwitches", "", [0, 102, 102, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 102
+          },
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic"
+        }
+      ]
+    },
+    {
+      "id": 25,
+      "name": "Slum30Chest9o",
+      "at": [8, 0],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 26,
+      "name": "EV0026",
+      "at": [89, 21],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "MessageOptions", "", [1, 1, 0, 0]],
+            [0, "ShowMessage", "You are trespassing on Delcentric", []],
+            [0, "ShowMessage_2", "property - violaters are subject to", []],
+            [0, "ShowMessage_2", "a 10,000 credit fine and imprisonment.", []],
+            [0, "MessageOptions", "", [0, 2, 1, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "A fine is probably the LEAST of my", []],
+            [0, "ShowMessage_2", "worries at this point!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 27,
+      "name": "EV0027",
+      "at": [44, 33],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 119
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "WeatherEffects", "", [1, 0]],
+            [0, "Wait", "", [15]],
+            [0, "ShowMessage", "PANHANDLER", []],
+            [0, "ShowMessage_2", "Looks like the rain is clearing up.", []],
+            [0, "ChangeEventLocation", "", [28, 0, 51, 51]],
+            [0, "ChangeEventLocation", "", [29, 0, 52, 52]],
+            [0, "MoveEvent", "", [28, 8, 0, 0, 28, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
+            [0, "MoveEvent", "", [29, 8, 0, 0, 28, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 15]],
+            [0, "Wait", "", [30]],
+            [0, "ShowMessage", "PANHANDLER", []],
+            [0, "ShowMessage_2", "Hey, guys... spare some change?", []],
+            [0, "MoveEvent", "", [29, 8, 0, 0, 3, 3, 3, 3, 3, 0, 13]],
+            [0, "Wait", "", [5]],
+            [0, "MoveEvent", "", [28, 8, 0, 0, 0, 3, 3, 0, 15]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "AGENCY GUARD", []],
+            [0, "ShowMessage_2", "Where did he go?", []],
+            [0, "ShowMessage", "PANHANDLER", []],
+            [0, "ShowMessage_2", "I don't know who you're talking about.", []],
+            [0, "ShowMessage_2", "Are you with the Agency?", []],
+            [0, "WeatherEffects", "", [0, 0]],
+            [0, "PlaySound", "Kill2", [60, 100, 0]],
+            [0, "Wait", "", [2]],
+            [0, "PlaySound", "Kill4", [50, 100, 100]],
+            [0, "ShowBattleAnimation", "", [1, 21, 1, 0]],
+            [0, "FlashSprite", "", [21, 31, 0, 11, 31, 10, 1]],
+            [0, "ShowMessage", "PANHANDLER", []],
+            [0, "ShowMessage_2", "Aaaghh!", []],
+            [0, "ShowMessage", "AGENCY GUARD", []],
+            [0, "ShowMessage_2", "What did he say to you?", []],
+            [0, "ShowMessage", "PANHANDLER", []],
+            [0, "ShowMessage_2", "I don't -", []],
+            [0, "PlaySound", "Kill2", [60, 100, 0]],
+            [0, "Wait", "", [2]],
+            [0, "PlaySound", "Kill4", [60, 100, 100]],
+            [0, "ShowBattleAnimation", "", [1, 21, 1, 0]],
+            [0, "FlashSprite", "", [21, 31, 0, 0, 31, 10, 1]],
+            [0, "ShowMessage", "PANHANDLER", []],
+            [0, "ShowMessage_2", "ughhh.... ladder.... tracks...", []],
+            [0, "ShowMessage", "AGENCY GUARD", []],
+            [0, "ShowMessage_2", "Thank you for your cooperation.", []],
+            [0, "ShowMessage_2", "Have a nice day.", []],
+            [0, "MessageOptions", "", [1, 1, 0, 0]],
+            [0, "MoveEvent", "", [29, 8, 0, 0, 2, 13]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "AGENCY GUARD gave PANHANDLER", []],
+            [0, "ShowMessage_2", "100 credits.", []],
+            [0, "MessageOptions", "", [0, 2, 1, 0]],
+            [0, "MoveEvent", "", [29, 8, 0, 0, 36, 1, 2, 2, 2, 2, 2, 2]],
+            [0, "Wait", "", [10]],
+            [0, "ChangeEventLocation", "", [29, 0, 98, 99]],
+            [0, "MoveEvent", "", [28, 8, 0, 0, 2]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "AGENCY GUARD", []],
+            [0, "ShowMessage_2", "Keep the change.", []],
+            [0, "MoveEvent", "", [28, 8, 0, 0, 36, 3, 2, 2, 2, 2, 2, 2]],
+            [0, "Wait", "", [8]],
+            [0, "ChangeEventLocation", "", [28, 0, 99, 99]],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [21, 8, 0, 0, 29, 29, 38, 2]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "PANHANDLER", []],
+            [0, "ShowMessage_2", "Sorry... man...", []],
+            [0, "Wait", "", [10]],
+            [0, "Teleport", "", [28, 17, 30]],
+            [0, "ChangePartyMembers", "", [1, 0, 10]],
+            [0, "ChangePartyMembers", "", [0, 0, 14]],
+            [0, "ConditionalBranch", "", [0, 54, 1, 0, 0, 1]],
+            [1, "ConditionalBranch", "", [0, 56, 1, 0, 0, 1]],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "Ugh... I'm so cold... what's going on?", []],
+            [2, "Wait", "", [10]],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "... ... ...", []],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "It's passed. My temperature is back", []],
+            [2, "ShowMessage_2", "to normal. What is this?", []],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ConditionalBranch", "", [0, 54, 0, 0, 0, 1]],
+            [1, "ChangePartyMembers", "", [0, 0, 15]],
+            [1, "ShowMessage", "ARDEN", []],
+            [1, "ShowMessage_2", "Talan, what's wrong?", []],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "Nothing... I guess. I just felt cold, for", []],
+            [1, "ShowMessage_2", "a second. It's gone now.", []],
+            [1, "ShowMessage", "ARDEN", []],
+            [1, "ShowMessage_2", "All right. We should keep moving.", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ConditionalBranch", "", [0, 56, 0, 0, 0, 1]],
+            [1, "ChangePartyMembers", "", [0, 0, 17]],
+            [1, "ShowMessage", "SALDRA", []],
+            [1, "ShowMessage_2", "Hey, what's wrong?", []],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "Nothing... I guess. I just felt cold, for", []],
+            [1, "ShowMessage_2", "a second. It's gone now.", []],
+            [1, "ShowMessage", "SALDRA", []],
+            [1, "ShowMessage_2", "Oh. That's weird. We'd better get", []],
+            [1, "ShowMessage_2", "goin', though.", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 0]],
+            [0, "Wait", "", [8]],
+            [0, "PlayBGM", "wb3shop", [0, 100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 120, 120, 0]],
+            [0, "ControlSwitches", "", [0, 119, 119, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 28,
+      "name": "Agent1",
+      "at": [99, 99],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLAgents",
+            "index": 1,
+            "direction": "up",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 29,
+      "name": "Agent2",
+      "at": [98, 99],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLAgents",
+            "index": 1,
+            "direction": "up",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 30,
+      "name": "ResetBattleSwitches",
+      "at": [1, 3],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 145
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ControlSwitches", "", [0, 145, 145, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 142
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ControlSwitches", "", [0, 142, 142, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "variable": [28, "greater_equal", 1]
+          },
+          "tile": 13,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ControlVars", "", [0, 28, 28, 0, 0, 0, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 31,
+      "name": "EV0031",
+      "at": [86, 24],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "parallel",
+          "translucent": true,
+          "script": [
+            [0, "ControlVars", "", [0, 39, 39, 0, 6, 10001, 1]],
+            [0, "ControlVars", "", [0, 40, 40, 0, 6, 10001, 2]],
+            [0, "ControlVars", "", [0, 41, 41, 0, 6, 3, 1]],
+            [0, "ControlVars", "", [0, 42, 42, 0, 6, 3, 2]],
+            [0, "ConditionalBranch", "", [1, 39, 1, 41, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 40, 1, 42, 0, 1]],
+            [2, "ChangeSaveAccess", "", [1]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 32,
+      "name": "EV0032",
+      "at": [82, 43],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "The door is locked.", []],
+            [0, "ConditionalBranch", "", [5, 17, 0, 0, 0, 1]],
+            [1, "ConditionalBranch", "", [5, 17, 4, 152, 0, 1]],
+            [2, "ConditionalBranch", "", [5, 17, 5, 139, 0, 1]],
+            [3, "ShowMessage", "SALDRA", []],
+            [3, "ShowMessage_2", "OK, let's see if I can pick the lock on", []],
+            [3, "ShowMessage_2", "this door... just give me a minute...", []],
+            [3, "END", "", []],
+            [2, "ElseBranch", "", []],
+            [3, "ShowMessage", "SALDRA", []],
+            [3, "ShowMessage_2", "I know how to pick locks, but without", []],
+            [3, "ShowMessage_2", "a set of lockpicks it'll do me no good, man.", []],
+            [3, "END", "", []],
+            [2, "EndBranch", "", []],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "ShowMessage", "SALDRA", []],
+            [2, "ShowMessage_2", "I don't know how to pick locks, man.", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ConditionalBranch", "", [5, 15, 0, 0, 0, 1]],
+            [1, "ConditionalBranch", "", [5, 15, 4, 152, 0, 1]],
+            [2, "ConditionalBranch", "", [5, 15, 5, 139, 0, 1]],
+            [3, "ShowMessage", "ARDEN", []],
+            [3, "ShowMessage_2", "Let me try to pick the lock, Talan...", []],
+            [3, "END", "", []],
+            [2, "ElseBranch", "", []],
+            [3, "ShowMessage", "ARDEN", []],
+            [3, "ShowMessage_2", "I know how to pick locks, but without", []],
+            [3, "ShowMessage_2", "a set of lockpicks it doesn't matter.", []],
+            [3, "END", "", []],
+            [2, "EndBranch", "", []],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "ShowMessage", "ARDEN", []],
+            [2, "ShowMessage_2", "I don't really know how to pick locks.", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 33,
+      "name": "EV0033",
+      "at": [3, 2],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 498
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "CallEvent", "", [0, 35, 0]]
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,53 @@
+{
+  "id": 122,
+  "name": "DreamSequence",
+  "size": [20, 15],
+  "chipset": [21, "PS4Chipset"],
+  "tiles": "Map0122.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "MoveEvent", "", [2, 8, 0, 0, 38, 28, 2, 2, 39, 29]],
+            [0, "Wait", "", [2]],
+            [0, "PlaySound", "Water1", [100, 90, 50]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 28, 36, 38, 2, 2, 2, 2, 2, 2, 39, 37, 35, 5, 66, 108, 111, 119, 54, 100, 100, 0, 23, 35, 5, 66, 108, 111, 119, 51, 60, 90, 0, 29]],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 15]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "Oh my God - he jumped!", []],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 36, 38, 15, 3, 3, 3, 3, 3, 39, 37]],
+            [0, "Wait", "", [10]],
+            [0, "FlashSprite", "", [10001, 31, 0, 0, 31, 8, 1]],
+            [0, "TintScreen", "", [0, 0, 0, 100, 1, 0]],
+            [0, "Teleport", "", [123, 10, 7]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Emily",
+      "at": [12, 8],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "emily",
+            "index": 4,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    }
+  ]
+}

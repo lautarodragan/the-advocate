@@ -1,0 +1,201 @@
+{
+  "id": 172,
+  "name": "Freeing Dalia",
+  "size": [20, 15],
+  "chipset": [1, "Basis"],
+  "tiles": "Map0172.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [4, 5],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People3",
+            "index": 7,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "StopGuard",
+      "at": [4, 8],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People3",
+            "index": 7,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [4, 11],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People3",
+            "index": 7,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [15, 11],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People3",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "EV0005",
+      "at": [15, 8],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People3",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "EV0006",
+      "at": [15, 5],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People3",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "Dalia",
+      "at": [8, 3],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People3",
+            "index": 3,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "Manta",
+      "at": [11, 9],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 479
+          },
+          "sprite": {
+            "charset": "Future1",
+            "index": 4,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "EV0009",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]],
+            [0, "Wait", "", [15]],
+            [0, "ShowMessage", "DALIA", []],
+            [0, "ShowMessage_2", "... ... ...", []],
+            [0, "Wait", "", [20]],
+            [0, "ShowBattleAnimation", "", [72, 8, 1, 0]],
+            [0, "ControlSwitches", "", [0, 479, 479, 0]],
+            [0, "Wait", "", [6]],
+            [0, "MoveEvent", "", [7, 8, 0, 0, 24, 25]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "DALIA", []],
+            [0, "ShowMessage_2", "Who... who are you? You're not part of", []],
+            [0, "ShowMessage_2", "the simulation, are you?", []],
+            [0, "ShowMessage", "?????", []],
+            [0, "ShowMessage_2", "You never completed your mission. I've", []],
+            [0, "ShowMessage_2", "been hired to rescue you and finish what", []],
+            [0, "ShowMessage_2", "you started.", []],
+            [0, "ShowMessage", "?????", []],
+            [0, "ShowMessage_2", "The old man's putting up a good fight, but", []],
+            [0, "ShowMessage_2", "my rerouting scanner program should", []],
+            [0, "ShowMessage_2", "have broken his temporary blocks by now.", []],
+            [0, "MoveEvent", "", [7, 8, 0, 0, 2, 2, 2, 2, 2, 2, 13]],
+            [0, "Wait", "", [15]],
+            [0, "MoveEvent", "", [8, 8, 0, 0, 15]],
+            [0, "ShowMessage", "DALIA", []],
+            [0, "ShowMessage_2", "You're a Slicer, aren't you?", []],
+            [0, "Wait", "", [15]],
+            [0, "ShowMessage", "?????", []],
+            [0, "ShowMessage_2", "The best of the best.", []],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "?????", []],
+            [0, "ShowMessage_2", "My name's Manta.", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
+            [0, "Teleport", "", [173, 17, 8]]
+          ]
+        }
+      ]
+    }
+  ]
+}

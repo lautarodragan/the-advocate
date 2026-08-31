@@ -1,0 +1,407 @@
+{
+  "id": 59,
+  "name": "Outside Recycling Plant",
+  "size": [50, 50],
+  "chipset": [9, "BLchp1"],
+  "tiles": "Map0059.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [20, 49],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I'm not going back to see Stash without", []],
+            [0, "ShowMessage_2", "the Motivator Chip - he's not going to", []],
+            [0, "ShowMessage_2", "get away with swindling me!", []],
+            [0, "ConditionalBranch", "", [0, 56, 0, 0, 0, 1]],
+            [1, "ShowMessage", "SALDRA", []],
+            [1, "ShowMessage_2", "How do you know he hasn't already?", []],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "Hey, watch it!", []],
+            [1, "ShowMessage", "SALDRA", []],
+            [1, "ShowMessage_2", "Just kidding, man... hehehehe...", []],
+            [1, "ControlSwitches", "", [0, 187, 187, 0]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 0]],
+            [0, "Wait", "", [6]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 187
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I need to find the Motivator Chip first!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 0]],
+            [0, "Wait", "", [10]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [21, 22],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [60, 11, 13]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 205
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I've already gotten the Motivator Chip.", []],
+            [0, "ShowMessage_2", "I don't need to go back inside this", []],
+            [0, "ShowMessage_2", "crumbling place!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [0, "Wait", "", [6]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "SaveOutsideRecycle",
+      "at": [20, 43],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "savept",
+            "index": 0,
+            "direction": "up",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "action",
+          "animation": "fixed_continuous",
+          "translucent": true,
+          "script": [
+            [0, "PlaySound", "Holy5", [70, 100, 50]],
+            [0, "OpenSaveMenu", "", []],
+            [0, "ChangeSaveAccess", "", [0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [22, 41],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "parallel",
+          "translucent": true,
+          "script": [
+            [0, "ControlVars", "", [0, 39, 39, 0, 6, 10001, 1]],
+            [0, "ControlVars", "", [0, 40, 40, 0, 6, 10001, 2]],
+            [0, "ControlVars", "", [0, 41, 41, 0, 6, 3, 1]],
+            [0, "ControlVars", "", [0, 42, 42, 0, 6, 3, 2]],
+            [0, "ConditionalBranch", "", [1, 39, 1, 41, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 40, 1, 42, 0, 1]],
+            [2, "ChangeSaveAccess", "", [1]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "EV0005",
+      "at": [19, 23],
+      "pages": [
+        {
+          "tile": 53,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "MessageOptions", "", [1, 0, 1, 0]],
+            [0, "ShowMessage", "   Sector 32 Recycling Plant", []],
+            [0, "ShowMessage_2", "   *** CONDEMNED ***", []],
+            [0, "ShowMessage_2", "Trespassers will be prosecuted", []],
+            [0, "MessageOptions", "", [0, 0, 0, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "EV0006",
+      "at": [26, 36],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 0,
+            "direction": "left",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's a beat-up vending machine, but", []],
+            [0, "ShowMessage_2", "I think it still works! Prices have been", []],
+            [0, "ShowMessage_2", "marked up, though...", []],
+            [0, "OpenShop", "", [1, 1, 0, 0, 124, 125, 127]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "EV0007",
+      "at": [28, 36],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Should I take a nap in this pile of", []],
+            [0, "ShowMessage_2", "junk?", []],
+            [0, "ShowChoice", "Yes - Rest up for a bit/No - I'm in a hurry!", [2]],
+            [0, "ShowChoiceOption", "Yes - Rest up for a bit", [0]],
+            [1, "ShowInn", "", [0, 0, 0]],
+            [1, "END", "", []],
+            [0, "ShowChoiceOption", "No - I'm in a hurry!", [1]],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "I'm not sleeping in any pile of junk!", []],
+            [1, "ShowMessage_2", "If I wanted to do that, I could just", []],
+            [1, "ShowMessage_2", "stay at my apartment!", []],
+            [1, "END", "", []],
+            [0, "ShowChoiceEnd", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "EV0008",
+      "at": [34, 29],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 36, 2, 2, 2, 2, 2, 2, 37]],
+            [0, "Wait", "", [10]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "EV0009",
+      "at": [34, 33],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 36, 0, 0, 0, 0, 0, 0, 37]],
+            [0, "Wait", "", [10]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "OutsidePlant.1",
+      "at": [32, 25],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 222, 222, 0]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Cheap Wine-SP", []],
+            [0, "ChangeItems", "", [0, 0, 103, 0, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 222
+          },
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "OutsidePlant.2",
+      "at": [37, 38],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 223, 223, 0]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Grounded Boots-O", []],
+            [0, "ChangeItems", "", [0, 0, 137, 0, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 223
+          },
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "OutsidePlant.3",
+      "at": [26, 31],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 224, 224, 0]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Fresh Pita-HP", []],
+            [0, "ChangeItems", "", [0, 0, 114, 0, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 224
+          },
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "EV0013",
+      "at": [27, 23],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "The grate is empty. Oh well...", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "name": "EV0014",
+      "at": [0, 0],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 498
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "CallEvent", "", [0, 35, 0]]
+          ]
+        }
+      ]
+    }
+  ]
+}

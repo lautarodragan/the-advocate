@@ -1,0 +1,706 @@
+{
+  "id": 166,
+  "name": "The Lair",
+  "size": [30, 30],
+  "chipset": [12, "Dungeon"],
+  "tiles": "Map0166.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "Drago",
+      "at": [24, 6],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "extra2(1)",
+            "index": 1,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 473
+          },
+          "tile": 104,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12, 26, 2, 2, 2, 2, 27, 14]],
+            [0, "Wait", "", [10]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "The Lair",
+      "at": [24, 11],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Monster1",
+            "index": 7,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 472
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [2, 20],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 36, 28, 2, 2, 2, 2, 2, 29, 37, 35, 6, 69, 97, 114, 116, 104, 55, 80, 100, 50]],
+            [0, "Wait", "", [10]],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "VOICE FROM ABOVE", []],
+            [0, "ShowMessage_2", "Be sure to run around before you die -", []],
+            [0, "ShowMessage_2", "the Lair needs its exercise!", []],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 27, 39, 14]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Sern, we've got to get out of here!", []],
+            [0, "ChangeEventLocation", "", [10005, 0, 1, 25]],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 2]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "SERN", []],
+            [0, "ShowMessage_2", "I want to know where the bandit that", []],
+            [0, "ShowMessage_2", "fell down here has gone - the fewer enemies", []],
+            [0, "ShowMessage_2", "we need to worry about, the better!", []],
+            [0, "PlaySound", "Roar", [80, 70, 100]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 13]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "SERN", []],
+            [0, "ShowMessage_2", "Whatever \"the Lair\" is... it's close.", []],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 36, 0, 37]],
+            [0, "Wait", "", [4]],
+            [0, "ControlSwitches", "", [0, 469, 469, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 469
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Sern",
+      "at": [29, 29],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "extra2(1)",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 469
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 472
+          },
+          "sprite": {
+            "charset": "extra2(1)",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 474
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "EV0005",
+      "at": [5, 28],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [6, 8, 0, 0, 28, 3, 3, 3, 0, 3, 3, 3, 3, 29, 13, 23, 23, 12, 23, 23, 13, 23, 23, 14, 23, 12]],
+            [0, "Wait", "", [20]],
+            [0, "PlaySound", "Monster2", [100, 100, 100]],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 24, 28, 28, 28, 6, 6, 6, 6, 6, 6, 6, 15, 29, 29, 29, 25]],
+            [0, "Wait", "", [8]],
+            [0, "ShowBattleAnimation", "", [38, 6, 0, 0]],
+            [0, "Wait", "", [2]],
+            [0, "ShowBattleAnimation", "", [38, 6, 0, 0]],
+            [0, "Wait", "", [2]],
+            [0, "ShowBattleAnimation", "", [38, 6, 1, 0]],
+            [0, "FlashSprite", "", [6, 31, 0, 9, 31, 10, 1]],
+            [0, "ControlSwitches", "", [0, 470, 470, 0]],
+            [0, "PlaySound", "Roar", [100, 50, 100]],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 28, 24, 4, 4, 4, 4, 4, 4, 4, 25, 29]],
+            [0, "Wait", "", [25]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I... think we can forget about the bandit...", []],
+            [0, "ShowMessage", "SERN", []],
+            [0, "ShowMessage_2", "We just need to be careful. This thing can't", []],
+            [0, "ShowMessage_2", "stand up to two Defenders!", []],
+            [0, "ControlSwitches", "", [0, 471, 471, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 471
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "Ashe",
+      "at": [23, 19],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Crown2",
+            "index": 1,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 470
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "EV0007",
+      "at": [25, 18],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "PanScreen", "", [2, 0, 15, 5, 1]],
+            [0, "PlayBGM", "illusion", [0, 100, 100, 50]],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "SERN", []],
+            [0, "ShowMessage_2", "Drago!", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "He's alive!", []],
+            [0, "ShowMessage", "SERN", []],
+            [0, "ShowMessage_2", "He won't be for long, if we can't get that", []],
+            [0, "ShowMessage_2", "thing's attention...", []],
+            [0, "PlaySound", "Monster2", [100, 70, 50]],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 14]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I think we've got its attention, Sern!", []],
+            [0, "ShowMessage", "SERN", []],
+            [0, "ShowMessage_2", "Drago! Just hang in there! You owe me", []],
+            [0, "ShowMessage_2", "a rematch!", []],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 28, 28, 28, 5, 2, 2, 2, 2, 2, 29, 29, 29]],
+            [0, "Wait", "", [8]],
+            [0, "ControlSwitches", "", [0, 472, 472, 0]],
+            [0, "ChangeSystemBGM", "illusion", [0, 0, 100, 100, 50]],
+            [0, "ChangeSystemBGM", "illusion", [1, 0, 100, 100, 50]],
+            [0, "ChangeEscapeAccess", "", [0]],
+            [0, "EnemyEncounter", "Cave1", [0, 180, 1, 0, 0, 0]],
+            [0, "CallEvent", "", [0, 35, 0]],
+            [0, "ChangeSystemBGM", "hydr", [0, 0, 100, 100, 50]],
+            [0, "ChangeSystemBGM", "hydr", [1, 0, 100, 100, 50]],
+            [0, "ChangeEscapeAccess", "", [1]],
+            [0, "PanScreen", "", [3, 0, 5, 5, 1]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
+            [0, "Wait", "", [10]],
+            [0, "ChangeEventLocation", "", [4, 0, 25, 11]],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 3, 12]],
+            [0, "Wait", "", [5]],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Drago, you're alive!", []],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 24, 36, 0, 25, 23, 23, 14]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "DRAGO", []],
+            [0, "ShowMessage_2", "Sern, Talan... is Isabella... alive?", []],
+            [0, "ShowMessage", "SERN", []],
+            [0, "ShowMessage_2", "She's been badly poisoned... Radin and the", []],
+            [0, "ShowMessage_2", "rest of the Farmers are looking for the", []],
+            [0, "ShowMessage_2", "antidote.", []],
+            [0, "ShowMessage", "DRAGO", []],
+            [0, "ShowMessage_2", "She's alive? Thank God!", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Paradise is in trouble! The bandits made", []],
+            [0, "ShowMessage_2", "a deal with someone - their raid was a", []],
+            [0, "ShowMessage_2", "ruse to leave it defenseless, and -", []],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 24, 25]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "DRAGO", []],
+            [0, "ShowMessage_2", "Pierson didn't send the entire corps of", []],
+            [0, "ShowMessage_2", "Defenders after me, did he?!", []],
+            [0, "ShowMessage", "SERN", []],
+            [0, "ShowMessage_2", "I... I wanted him to... but I'm glad now that", []],
+            [0, "ShowMessage_2", "he didn't listen to me. This two man rescue", []],
+            [0, "ShowMessage_2", "operation was the boy's idea.", []],
+            [0, "ShowMessage", "DRAGO", []],
+            [0, "ShowMessage_2", "So the city has a nearly full complement", []],
+            [0, "ShowMessage_2", "of Defenders... I shouldn't be worried.", []],
+            [0, "ShowMessage_2", "Whoever the bandits made their deal with", []],
+            [0, "ShowMessage", "DRAGO", []],
+            [0, "ShowMessage_2", "won't be able to defeat our entire", []],
+            [0, "ShowMessage_2", "league. But let's hurry back, all the same.", []],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13, 23, 23, 15, 23, 23, 12]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "But how can we get up there?", []],
+            [0, "ShowMessage", "DRAGO", []],
+            [0, "ShowMessage_2", "I'll be right back - maybe I can find a rope,", []],
+            [0, "ShowMessage_2", "or a ladder.", []],
+            [0, "FadeOutBGM", "", [1000]],
+            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
+            [0, "Wait", "", [5]],
+            [0, "PlayBGM", "Wolfchild", [0, 100, 100, 50]],
+            [0, "ChangeEventLocation", "", [1, 0, 24, 6]],
+            [0, "ControlSwitches", "", [0, 473, 473, 0]],
+            [0, "Wait", "", [20]],
+            [0, "TintScreen", "", [50, 50, 30, 100, 10, 1]],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 36, 1, 37]],
+            [0, "Wait", "", [5]],
+            [0, "ChangeEventLocation", "", [4, 0, 29, 29]],
+            [0, "ControlSwitches", "", [0, 474, 474, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 474
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "1",
+      "at": [24, 9],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 473
+          },
+          "tile": 104,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 0, 0, 0, 0]],
+            [0, "Wait", "", [10]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "2",
+      "at": [24, 8],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 473
+          },
+          "tile": 104,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "3",
+      "at": [24, 7],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 473
+          },
+          "tile": 104,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "Drago2",
+      "at": [24, 3],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 473
+          },
+          "sprite": {
+            "charset": "extra2(1)",
+            "index": 1,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "DRAGO", []],
+            [0, "ShowMessage_2", "Let's go home, Talan and Sern.", []],
+            [0, "ChangePartyMembers", "", [0, 0, 29]],
+            [0, "MoveEvent", "", [11, 8, 0, 0, 36, 9, 37, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "Wait", "", [5]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Teleport", "", [165, 29, 48]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "EV0012",
+      "at": [0, 0],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 498
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "CallEvent", "", [0, 35, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "TheLair.1",
+      "at": [2, 15],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 586, 586, 0]],
+            [0, "ChangeItems", "", [0, 0, 127, 0, 1]],
+            [0, "ChangeItems", "", [0, 0, 195, 0, 1]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Sturdy Axe-R", []],
+            [0, "ShowMessage_2", "       Stale Pita-HP", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 586
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "name": "TheLair.2",
+      "at": [15, 16],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 587, 587, 0]],
+            [0, "ChangeItems", "", [0, 0, 257, 0, 3]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Healing Draught-HP x3", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 587
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "name": "TheLair.3",
+      "at": [3, 21],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 588, 588, 0]],
+            [0, "ChangeItems", "", [0, 0, 258, 0, 2]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Recharge Draught-SP x2", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 588
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "name": "TheLair.4",
+      "at": [21, 26],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 589, 589, 0]],
+            [0, "ChangeItems", "", [0, 0, 196, 0, 1]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Large Axe-RL", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 589
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "name": "TheLair.5",
+      "at": [24, 28],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 590, 590, 0]],
+            [0, "ChangeGold", "", [0, 0, 850]],
+            [0, "ChangeItems", "", [0, 0, 174, 0, 1]],
+            [0, "ChangeGold", "", [0, 0, 850]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Fine Staff-RL", []],
+            [0, "ShowMessage_2", "       850 credits", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 590
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "name": "SaveInLair'sLair",
+      "at": [27, 23],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "savept",
+            "index": 0,
+            "direction": "up",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "action",
+          "animation": "fixed_continuous",
+          "translucent": true,
+          "script": [
+            [0, "PlaySound", "Holy5", [70, 100, 50]],
+            [0, "OpenSaveMenu", "", []],
+            [0, "ChangeSaveAccess", "", [0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "name": "EV0019",
+      "at": [25, 22],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "parallel",
+          "translucent": true,
+          "script": [
+            [0, "ControlVars", "", [0, 39, 39, 0, 6, 10001, 1]],
+            [0, "ControlVars", "", [0, 40, 40, 0, 6, 10001, 2]],
+            [0, "ControlVars", "", [0, 41, 41, 0, 6, 18, 1]],
+            [0, "ControlVars", "", [0, 42, 42, 0, 6, 18, 2]],
+            [0, "ConditionalBranch", "", [1, 39, 1, 41, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 40, 1, 42, 0, 1]],
+            [2, "ChangeSaveAccess", "", [1]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,90 @@
+{
+  "id": 300,
+  "name": "Missiles2",
+  "size": [20, 15],
+  "chipset": [15, "crashchp"],
+  "tiles": "Map0300.tiles",
+  "parallax": {
+    "name": "pan2",
+    "loop_x": false,
+    "loop_y": true,
+    "scroll_x": 0,
+    "scroll_y": 8
+  },
+  "events": [
+    {
+      "id": 2,
+      "name": "Missile3",
+      "at": [9, 11],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "ShquaMissiles",
+            "index": 2,
+            "direction": "up",
+            "pattern": "right"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Missile5",
+      "at": [14, 13],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "ShquaMissiles",
+            "index": 2,
+            "direction": "up",
+            "pattern": "right"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Missile1",
+      "at": [3, 13],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "ShquaMissiles",
+            "index": 2,
+            "direction": "up",
+            "pattern": "right"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "EV0006",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "TintScreen", "", [100, 100, 100, 100, 0, 0]],
+            [0, "PlaySound", "misslesnd", [100, 50, 50]],
+            [0, "Wait", "", [10]],
+            [0, "TintScreen", "", [0, 0, 0, 100, 0, 0]],
+            [0, "PlaySound", "Thunder5", [100, 70, 50]],
+            [0, "Teleport", "", [301, 2, 9]]
+          ]
+        }
+      ]
+    }
+  ]
+}

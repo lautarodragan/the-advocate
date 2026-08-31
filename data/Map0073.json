@@ -1,0 +1,163 @@
+{
+  "id": 73,
+  "name": "Yun Mayor's House",
+  "size": [30, 15],
+  "chipset": [44, "ABLForestTownInner"],
+  "tiles": "Map0073.tiles",
+  "events": [
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [15, 14],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [67, 25, 16]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [4, 9],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara2",
+            "index": 1,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "WOMAN", []],
+            [0, "ShowMessage_2", "I'm here to wish the new mayor", []],
+            [0, "ShowMessage_2", "well!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [9, 4],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara4",
+            "index": 0,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "MAN", []],
+            [0, "ShowMessage_2", "I want to get on this new mayor's", []],
+            [0, "ShowMessage_2", "good side - maybe he'll give me a", []],
+            [0, "ShowMessage_2", "tax break!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "EV0006",
+      "at": [3, 3],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [9, 8, 0, 0, 15]],
+            [0, "ShowMessage", "RECEPTIONIST", []],
+            [0, "ShowMessage_2", "I'm sorry, sir, but you need an", []],
+            [0, "ShowMessage_2", "appointment to see the mayor.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Oh, I'm sorry.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [0, "MoveEvent", "", [9, 8, 0, 0, 14]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "EV0007",
+      "at": [22, 8],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara2",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "move": {
+            "type": "vertical",
+            "speed": "half",
+            "frequency": 6
+          },
+          "script": [
+            [0, "ShowMessage", "ADVENTURER", []],
+            [0, "ShowMessage_2", "I've been given a grant by the new", []],
+            [0, "ShowMessage_2", "mayor to hunt Wylden that get too", []],
+            [0, "ShowMessage_2", "close to the town. Jealous?", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Oh. Sure.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "ReceptionistDesk",
+      "at": [15, 9],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "RECEPTIONIST", []],
+            [0, "ShowMessage_2", "I'm sorry, the mayor is very busy", []],
+            [0, "ShowMessage_2", "right now.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "Receptionist",
+      "at": [15, 7],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future3",
+            "index": 6,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "RECEPTIONIST", []],
+            [0, "ShowMessage_2", "I'm sorry, the mayor is very busy", []],
+            [0, "ShowMessage_2", "right now.", []]
+          ]
+        }
+      ]
+    }
+  ]
+}

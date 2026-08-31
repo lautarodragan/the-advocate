@@ -1,0 +1,170 @@
+{
+  "id": 228,
+  "name": "Assassination Memory",
+  "size": [20, 15],
+  "chipset": [18, "Inside"],
+  "tiles": "Map0228.tiles",
+  "parallax": {
+    "name": "OfficeView",
+    "loop_x": false,
+    "loop_y": false,
+    "scroll_x": 0,
+    "scroll_y": 0
+  },
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [10, 8],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLAgents",
+            "index": 4,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "FirstShot",
+      "at": [10, 2],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 92
+          },
+          "tile": 129,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "FirstShot",
+      "at": [10, 1],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 92
+          },
+          "tile": 123,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [10, 13],
+      "pages": [
+        {
+          "tile": 32,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I don't think unlocking the door and", []],
+            [0, "ShowMessage_2", "letting in the Agency guards would", []],
+            [0, "ShowMessage_2", "be wise at this juncture!", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I mean it!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "DoorLower",
+      "at": [10, 14],
+      "pages": [
+        {
+          "tile": 38,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "FirstShot",
+      "at": [9, 4],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 92
+          },
+          "tile": 130,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "FirstShot",
+      "at": [11, 4],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 92
+          },
+          "tile": 130,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "EV0008",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Sir, c'mon wake up! PLEASE wake up!", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's no use. He's dead.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 0, 0, 0, 0, 1, 12, 24, 36, 0, 0, 25, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0, 37]],
+            [0, "Wait", "", [20]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "PlaySound", "Rebirth3", [100, 60, 50]],
+            [0, "Teleport", "", [229, 6, 6]]
+          ]
+        }
+      ]
+    }
+  ]
+}

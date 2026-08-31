@@ -1,0 +1,490 @@
+{
+  "id": 313,
+  "name": "Agency Tram",
+  "size": [20, 15],
+  "chipset": [19, "Ancient(1)"],
+  "tiles": "Map0313.tiles",
+  "parallax": {
+    "name": "woodspan",
+    "loop_x": false,
+    "loop_y": true,
+    "scroll_x": 0,
+    "scroll_y": 3
+  },
+  "events": [
+    {
+      "id": 1,
+      "name": "FirstClosedT",
+      "at": [3, 12],
+      "pages": [
+        {
+          "tile": 4,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 836
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "FirstClosedB",
+      "at": [3, 13],
+      "pages": [
+        {
+          "tile": 10,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 836
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "SecondClosedT",
+      "at": [8, 12],
+      "pages": [
+        {
+          "tile": 4,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 837
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "SecondClosedB",
+      "at": [8, 13],
+      "pages": [
+        {
+          "tile": 10,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 837
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "ThirdClosedT",
+      "at": [9, 12],
+      "pages": [
+        {
+          "tile": 4,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 838
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "ThirdClosedB",
+      "at": [9, 13],
+      "pages": [
+        {
+          "tile": 10,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 838
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "FourthClosedT",
+      "at": [14, 12],
+      "pages": [
+        {
+          "tile": 4,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 839
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "FourthClosedB",
+      "at": [14, 13],
+      "pages": [
+        {
+          "tile": 10,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 839
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "EV0009",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ControlSwitches", "", [0, 840, 840, 0]],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "TintScreen", "", [100, 100, 100, 100, 5, 0]],
+            [0, "MoveEvent", "", [10, 8, 0, 0, 36, 28, 38, 0, 0, 0, 39, 29, 37]],
+            [0, "MoveEvent", "", [11, 8, 0, 0, 36, 28, 38, 0, 0, 0, 39, 29, 37]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "MoveEvent", "", [12, 8, 0, 0, 24, 25, 14]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ShowMessage", "RANKING OFFICER", []],
+            [0, "ShowMessage_2", "What are you doing? Why haven't you", []],
+            [0, "ShowMessage_2", "apprehended him yet?", []],
+            [0, "MoveEvent", "", [10, 8, 0, 0, 13, 23, 23, 23, 12]],
+            [0, "MoveEvent", "", [11, 8, 0, 0, 15, 23, 23, 23, 12]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "RANKING OFFICER", []],
+            [0, "ShowMessage_2", "I see. Then we have no choice", []],
+            [0, "ShowMessage_2", "but to burn him out!", []],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "AGENCY GUARDS", []],
+            [0, "ShowMessage_2", "Yes, sir!", []],
+            [0, "MoveEvent", "", [10, 8, 0, 0, 28, 28, 24, 25, 0, 0, 0, 0, 0, 0, 0, 29, 29]],
+            [0, "MoveEvent", "", [11, 8, 0, 0, 28, 28, 24, 25, 0, 0, 0, 0, 0, 0, 0, 29, 29]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Wait", "", [5]],
+            [0, "MoveEvent", "", [12, 8, 0, 0, 12]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "RANKING OFFICER", []],
+            [0, "ShowMessage_2", "Prepare to deploy liquid fire canisters!", []],
+            [0, "ShowMessage_2", "Open the launch doors!", []],
+            [0, "PlaySound", "Close2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 836, 836, 0]],
+            [0, "Wait", "", [4]],
+            [0, "PlaySound", "Close1", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 837, 837, 0]],
+            [0, "Wait", "", [4]],
+            [0, "PlaySound", "Close2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 838, 838, 0]],
+            [0, "Wait", "", [4]],
+            [0, "PlaySound", "Close1", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 839, 839, 0]],
+            [0, "Wait", "", [4]],
+            [0, "ShowMessage", "RANKING OFFICER", []],
+            [0, "ShowMessage_2", "Let's see you try and escape", []],
+            [0, "ShowMessage_2", "this, Talan!", []],
+            [0, "Wait", "", [5]],
+            [0, "PlaySound", "Fall2", [100, 150, 50]],
+            [0, "ControlSwitches", "", [0, 842, 842, 0]],
+            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Teleport", "", [311, 6, 9]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 845
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ControlSwitches", "", [0, 842, 842, 1]],
+            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "AGENCY GUARD", []],
+            [0, "ShowMessage_2", "I'm picking up a signal by the edge", []],
+            [0, "ShowMessage_2", "of the blast radius, sir!", []],
+            [0, "MoveEvent", "", [12, 8, 0, 0, 24, 25, 13]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "RANKING OFFICER", []],
+            [0, "ShowMessage_2", "What?!", []],
+            [0, "Wait", "", [2]],
+            [0, "ShowMessage", "AGENCY GUARD", []],
+            [0, "ShowMessage_2", "It's definitely him, sir.", []],
+            [0, "MoveEvent", "", [12, 8, 0, 0, 12]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "RANKING OFFICER", []],
+            [0, "ShowMessage_2", "That's it... I'm taking this guy out", []],
+            [0, "ShowMessage_2", "once and for all! We'll be sure to", []],
+            [0, "ShowMessage_2", "get promotions for this one, men!", []],
+            [0, "MoveEvent", "", [12, 8, 0, 0, 15]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ShowMessage", "RANKING OFFICER", []],
+            [0, "ShowMessage_2", "Bring us down to ground level, and", []],
+            [0, "ShowMessage_2", "ready the chaingun! We'll cut him to", []],
+            [0, "ShowMessage_2", "ribbons!", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ControlSwitches", "", [0, 846, 846, 0]],
+            [0, "Teleport", "", [312, 11, 53]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "Agent1",
+      "at": [6, 14],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLAgents",
+            "index": 1,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 845
+          },
+          "sprite": {
+            "charset": "nobodyhere",
+            "index": 0,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "Agent2",
+      "at": [11, 14],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLAgents",
+            "index": 1,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 845
+          },
+          "sprite": {
+            "charset": "nobodyhere",
+            "index": 0,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "Leader",
+      "at": [9, 6],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLAgents",
+            "index": 1,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "EV0013",
+      "at": [3, 14],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 842
+          },
+          "sprite": {
+            "charset": "BLPeople",
+            "index": 1,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic"
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "name": "EV0014",
+      "at": [8, 14],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 842
+          },
+          "sprite": {
+            "charset": "BLPeople",
+            "index": 1,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic"
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "name": "EV0015",
+      "at": [9, 14],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 842
+          },
+          "sprite": {
+            "charset": "BLPeople",
+            "index": 1,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic"
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "name": "EV0016",
+      "at": [14, 14],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 842
+          },
+          "sprite": {
+            "charset": "BLPeople",
+            "index": 1,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic"
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "name": "EV0017",
+      "at": [12, 4],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 845
+          },
+          "sprite": {
+            "charset": "BLAgents",
+            "index": 1,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "name": "EV0018",
+      "at": [5, 4],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 845
+          },
+          "sprite": {
+            "charset": "BLAgents",
+            "index": 1,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    }
+  ]
+}

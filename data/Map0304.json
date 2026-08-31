@@ -1,0 +1,252 @@
+{
+  "id": 304,
+  "name": "Army Marches",
+  "size": [20, 15],
+  "chipset": [37, "shrine1"],
+  "tiles": "Map0304.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [8, 12],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AG717",
+            "index": 4,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [11, 11],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AG717",
+            "index": 4,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [7, 10],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AG717",
+            "index": 4,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [13, 13],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AG717",
+            "index": 4,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "EV0005",
+      "at": [12, 10],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AG717",
+            "index": 4,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "EV0006",
+      "at": [11, 13],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AG717",
+            "index": 4,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "EV0007",
+      "at": [10, 10],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AG717",
+            "index": 4,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "EV0008",
+      "at": [6, 11],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AG717",
+            "index": 4,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "EV0009",
+      "at": [5, 13],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AG717",
+            "index": 4,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "Drago",
+      "at": [11, 3],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "extra2(1)",
+            "index": 1,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "Isabella",
+      "at": [11, 2],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara1",
+            "index": 3,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "Sern",
+      "at": [11, 9],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "extra2(1)",
+            "index": 2,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "EV0013",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "MessageOptions", "", [0, 1, 0, 0]],
+            [0, "ShowMessage", "VOICE", []],
+            [0, "ShowMessage_2", "We've got him, sir.\\|\\^", []],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "VOICE", []],
+            [0, "ShowMessage_2", "Bring him in. He may know...", []],
+            [0, "ShowMessage_2", "something of use to us.\\|\\|\\^", []],
+            [0, "TintScreen", "", [80, 80, 80, 100, 0, 0]],
+            [0, "Wait", "", [7]],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "MoveEvent", "", [12, 8, 0, 0, 0, 0, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ShowMessage", "SERN", []],
+            [0, "ShowMessage_2", "It's the end of the road for us, Drago!\\|\\^", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 0, 0]],
+            [0, "Teleport", "", [305, 4, 30]]
+          ]
+        }
+      ]
+    }
+  ]
+}

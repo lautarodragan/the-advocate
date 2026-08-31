@@ -1,0 +1,94 @@
+{
+  "id": 348,
+  "name": "Small General Store",
+  "size": [20, 15],
+  "chipset": [40, "ABLForestTown"],
+  "tiles": "Map0348.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "Store Owner",
+      "at": [9, 8],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara2",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "STORE OWNER", []],
+            [0, "ShowMessage_2", "I'm sorry, I'm just closing up shop.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Could you just tell me if I'm on the", []],
+            [0, "ShowMessage_2", "right road for Paradise?", []],
+            [0, "Wait", "", [15]],
+            [0, "ShowMessage", "STORE OWNER", []],
+            [0, "ShowMessage_2", "Ah, yep, just stay on the road.", []],
+            [0, "ShowMessage_2", "Winds up into the mountains for a bit.", []],
+            [0, "ShowMessage", "STORE OWNER", []],
+            [0, "ShowMessage_2", "If you're heading to Paradise, maybe you", []],
+            [0, "ShowMessage_2", "want to buy some supplies?", []],
+            [0, "ControlSwitches", "", [0, 975, 975, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 975
+          },
+          "sprite": {
+            "charset": "Chara2",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowChoice", "Would you like to buy something?/Would you like to rest awhile?", [4]],
+            [0, "ShowChoiceOption", "Would you like to buy something?", [0]],
+            [1, "OpenShop", "", [0, 1, 0, 0, 299, 300, 301, 302, 103, 124, 114, 125, 115, 129, 130]],
+            [1, "END", "", []],
+            [0, "ShowChoiceOption", "Would you like to rest awhile?", [1]],
+            [1, "ShowInn", "", [0, 100, 0]],
+            [1, "END", "", []],
+            [0, "ShowChoiceEnd", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [19, 13],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [66, 22, 56]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [0, 13],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [66, 22, 56]]
+          ]
+        }
+      ]
+    }
+  ]
+}

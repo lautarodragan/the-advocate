@@ -1,0 +1,179 @@
+{
+  "id": 293,
+  "name": "Emily's Scenario Pipes",
+  "size": [30, 35],
+  "chipset": [39, "tech5"],
+  "tiles": "Map0293.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [0, 25],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [292, 38, 13]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [11, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [294, 5, 13]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "AfterBattleMint",
+      "at": [29, 0],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 498
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "CallEvent", "", [0, 35, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [26, 7],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "KERSH", []],
+            [0, "ShowMessage_2", "This whole place is familiar.", []],
+            [0, "ShowMessage_2", "Have I been on the other side of", []],
+            [0, "ShowMessage_2", "this locked door?", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "EV0005",
+      "at": [27, 7],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "KERSH", []],
+            [0, "ShowMessage_2", "This whole place is familiar.", []],
+            [0, "ShowMessage_2", "Have I been on the other side of", []],
+            [0, "ShowMessage_2", "this locked door?", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "Refinery.13",
+      "at": [26, 30],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 972, 972, 0]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Liquid Armor-B", []],
+            [0, "ChangeItems", "", [0, 0, 244, 0, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 972
+          },
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "There's nothing inside.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "Refinery.14",
+      "at": [4, 13],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 973, 973, 0]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Recharge Draught-SP x3", []],
+            [0, "ChangeItems", "", [0, 0, 258, 0, 3]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 973
+          },
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "There's nothing inside.", []]
+          ]
+        }
+      ]
+    }
+  ]
+}

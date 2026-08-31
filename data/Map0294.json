@@ -1,0 +1,57 @@
+{
+  "id": 294,
+  "name": "Emily Warehouse Annex",
+  "size": [20, 15],
+  "chipset": [39, "tech5"],
+  "tiles": "Map0294.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [5, 14],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [293, 11, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [19, 6],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [295, 1, 75]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "AfterBattleMint",
+      "at": [19, 0],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 498
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "CallEvent", "", [0, 35, 0]]
+          ]
+        }
+      ]
+    }
+  ]
+}

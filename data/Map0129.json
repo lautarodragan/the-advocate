@@ -1,0 +1,94 @@
+{
+  "id": 129,
+  "name": "Theatre Ruins",
+  "size": [20, 15],
+  "chipset": [26, "tower2"],
+  "tiles": "Map0129.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [7, 8],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 407,
+            "actor": 26
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MessageOptions", "", [0, 2, 1, 0]],
+            [0, "ChangeEventLocation", "", [4, 0, 7, 8]],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 12, 34, 7, 80, 101, 111, 112, 108, 101, 51, 2, 0]],
+            [0, "Wait", "", [8]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "This used to be a theatre?", []],
+            [0, "ShowMessage", "LERLE", []],
+            [0, "ShowMessage_2", "We think so. There's a stage inside, and all", []],
+            [0, "ShowMessage_2", "sorts of scripts, props, and sets. Maybe it", []],
+            [0, "ShowMessage_2", "was something else, first, but it was", []],
+            [0, "ShowMessage", "LERLE", []],
+            [0, "ShowMessage_2", "certainly a theatre at some point during", []],
+            [0, "ShowMessage_2", "its lifetime.", []],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 36, 2, 37, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3]],
+            [0, "Wait", "", [6]],
+            [0, "ChangeEventLocation", "", [4, 0, 19, 0]],
+            [0, "ControlSwitches", "", [0, 408, 408, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 408
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [9, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [130, 10, 38]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [7, 14],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [158, 15, 37]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Lerle",
+      "at": [19, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,295 @@
+{
+  "id": 100,
+  "name": "General's Scheme",
+  "size": [20, 15],
+  "chipset": [16, "ABLTown1"],
+  "tiles": "Map0100.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "General",
+      "at": [10, 9],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara3",
+            "index": 0,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Granddad",
+      "at": [12, 9],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People3",
+            "index": 4,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [8, 7],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLAgents",
+            "index": 1,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [7, 4],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLAgents",
+            "index": 1,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "EV0005",
+      "at": [9, 4],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLAgents",
+            "index": 1,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "EV0006",
+      "at": [11, 5],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLAgents",
+            "index": 1,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "EV0007",
+      "at": [15, 5],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLAgents",
+            "index": 1,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "EV0008",
+      "at": [10, 12],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLAgents",
+            "index": 1,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "EV0009",
+      "at": [10, 14],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLAgents",
+            "index": 1,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "EV0010",
+      "at": [4, 5],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLAgents",
+            "index": 1,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "EV0011",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "GENERAL", []],
+            [0, "ShowMessage_2", "Sir, we should be safe here.", []],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 15]],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "I don't doubt it, General. The missiles", []],
+            [0, "ShowMessage_2", "weren't targetting Tasgarde. I'm just", []],
+            [0, "ShowMessage_2", "worried about our citizens in Lashe and", []],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "Prima cities... they won't know what", []],
+            [0, "ShowMessage_2", "hit them, if Eisen isn't able to get the", []],
+            [0, "ShowMessage_2", "Advocate out of the defense network.", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "GENERAL", []],
+            [0, "ShowMessage_2", "... ... ...", []],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 0, 0, 3]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "GENERAL, whispering", []],
+            [0, "ShowMessage_2", "(Transmit the high priority self-destruct", []],
+            [0, "ShowMessage_2", "code to Tasgarde)", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "AGENCY GUARD, whispering", []],
+            [0, "ShowMessage_2", "(The code is transmitted, General.", []],
+            [0, "ShowMessage_2", "One minute until detonation)", []],
+            [0, "ShowMessage", "GENERAL, whispering", []],
+            [0, "ShowMessage_2", "(The people of Lashe and Prima salute", []],
+            [0, "ShowMessage_2", "you, soldier. Maybe the old man will now", []],
+            [0, "ShowMessage_2", "see that it's better to rely on the military", []],
+            [0, "ShowMessage", "GENERAL, whispering", []],
+            [0, "ShowMessage_2", "if he wants to get things done)", []],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 3, 3, 0, 0, 15]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "What's going on here, General?", []],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 24, 25, 13]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "GENERAL", []],
+            [0, "ShowMessage_2", "N-nothing, Sir.", []],
+            [0, "ControlSwitches", "", [0, 306, 306, 0]],
+            [0, "Teleport", "", [95, 20, 31]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 307
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "VOICE OF EISEN", []],
+            [0, "ShowMessage_2", "Cancel the self-destruct! The missiles", []],
+            [0, "ShowMessage_2", "have been destroyed!", []],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 24, 25]],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "Self destruct sequence?", []],
+            [0, "ShowMessage_2", "General!", []],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 15]],
+            [0, "ShowMessage", "GENERAL", []],
+            [0, "ShowMessage_2", "Cancel the order!", []],
+            [0, "PlaySound", "Flame8", [100, 50, 50]],
+            [0, "TintScreen", "", [200, 200, 200, 100, 20, 1]],
+            [0, "TintScreen", "", [0, 0, 0, 100, 1, 0]],
+            [0, "MessageOptions", "", [1, 1, 0, 0]],
+            [0, "FadeOutBGM", "", [1000]],
+            [0, "PlayBGM", "susan", [0, 100, 100, 50]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "But it was too late. The order had gone", []],
+            [0, "ShowMessage_2", "through, and Tasgarde Military Base", []],
+            [0, "ShowMessage_2", "was exploding from the inside.", []],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "At almost the same time, across the", []],
+            [0, "ShowMessage_2", "globe, Prima City suffered a direct", []],
+            [0, "ShowMessage_2", "impact that killed 50,000 people.", []],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "One of the missiles had dropped below", []],
+            [0, "ShowMessage_2", "the detection range of the defensive", []],
+            [0, "ShowMessage_2", "network, and had not been destroyed.", []],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "I survived Tasgarde's death throes only", []],
+            [0, "ShowMessage_2", "because the Advocate sealed off the", []],
+            [0, "ShowMessage_2", "area where I fell. It saved my life.", []],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "For its trouble, the Advocate was", []],
+            [0, "ShowMessage_2", "deactivated and left to rust in the", []],
+            [0, "ShowMessage_2", "shell that remained of the base.", []],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "Once I was discharged from the Agency", []],
+            [0, "ShowMessage_2", "hospital, I too was confined to the remains", []],
+            [0, "ShowMessage_2", "of Tasgarde.", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "The Advocate and I... memories of a time", []],
+            [0, "ShowMessage_2", "the Agency would rather forget.", []],
+            [0, "ControlSwitches", "", [0, 308, 308, 0]],
+            [0, "ChangePartyMembers", "", [0, 0, 21]],
+            [0, "ChangePartyMembers", "", [1, 0, 10]],
+            [0, "Teleport", "", [101, 7, 20]]
+          ]
+        }
+      ]
+    }
+  ]
+}

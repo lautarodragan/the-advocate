@@ -1,0 +1,63 @@
+{
+  "id": 224,
+  "name": "Overlook Memory",
+  "size": [20, 30],
+  "chipset": [21, "PS4Chipset"],
+  "tiles": "Map0224.tiles",
+  "parallax": {
+    "name": "Night1",
+    "loop_x": false,
+    "loop_y": true,
+    "scroll_x": 0,
+    "scroll_y": 0
+  },
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [3, 12],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 1]],
+            [0, "Wait", "", [4]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Emily",
+      "at": [12, 9],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "emily",
+            "index": 4,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "MEMNOSYNE", []],
+            [0, "ShowMessage_2", "I've never seen anything like this", []],
+            [0, "ShowMessage_2", "before... I need to see further back.", []],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Get out of my head, Memnosyne!!", []],
+            [0, "WeatherEffects", "", [0, 1]],
+            [0, "PlaySound", "Rebirth3", [100, 60, 50]],
+            [0, "Teleport", "", [225, 2, 8]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 1, 1]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    }
+  ]
+}

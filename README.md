@@ -18,11 +18,13 @@ vacío de 20x15 que sólo teletransporta. El primer mapa de verdad es el 1.
 
 ### Piezas
 
-    tools/lcf.py         lector de .lmu/.ldb/.lmt (el formato binario de RM2k)
-    tools/chipset.py     expansión del ChipSet a un atlas de tiles resueltos
-    tools/charset.py     recorte de sprites de personaje
-    tools/render_map.py  el render en sí
-    tools/list_maps.py   inventario de mapas
+    tools/lcf.py          lector de .lmu/.ldb/.lmt (el formato binario de RM2k)
+    tools/chipset.py      expansión del ChipSet a un atlas de tiles resueltos
+    tools/charset.py      recorte de sprites de personaje
+    tools/render_map.py   el render en sí
+    tools/list_maps.py    inventario de mapas
+    tools/export_json.py  volcado a data/
+    tools/event_codes.py  nombres de los opcodes, generado desde liblcf
 
 Los datos salen de dos lados: los `.lmu` están copiados acá en `Maps/`, pero
 `RPG_RT.ldb` (qué chipset usa cada mapa) y `RPG_RT.lmt` (nombres y mapa
@@ -60,6 +62,47 @@ fuerza la página 1 para ver el estado "de autor".
 Cada página trae dirección y frame explícitos, así que no hay que inventar una
 pose. Y un evento **sin** CharSet se dibuja como un tile de la página alta del
 chipset: así están hechas las puertas, los cofres y buena parte del decorado.
+
+## Paso 2: los datos en formato versionable
+
+    just export        # .lmu -> data/, y verifica releyendo
+
+`data/` tiene los mismos datos que los `.lmu` pero en un formato que git puede
+versionar de verdad: se puede ver qué cambió, revisarlo y editarlo a mano.
+
+    data/maps.json       el árbol de mapas y la posición inicial
+    data/chipsets.json   los chipsets con su passability y su terreno
+    data/Map0001.json    metadata, chipset, y los eventos con sus scripts
+    data/Map0001.tiles   las dos capas de tiles, una fila del mapa por línea
+
+Son 9.6 MB para los 328 mapas, 4204 eventos y 46556 comandos.
+
+**Los tiles van en texto, no en binario.** En binario ocuparían la mitad, pero
+serían opacos para git; en texto, cambiar un tile cambia una línea. A 5
+caracteres por tile las columnas quedan alineadas y la grilla se lee como lo
+que es. El costo real son unos pocos MB que comprimen muy bien.
+
+**Los scripts de los eventos van enteros.** El formato de los ~130 comandos de
+RM2k es uniforme — código, sangría, un string y una lista de enteros — así que
+se pueden leer todos sin saber qué hace cada uno. Los nombres de los opcodes
+salen de liblcf, y cada comando ocupa una línea:
+
+    "script": [
+      [0, "ShowMessage", "SHOPKEEPER", []],
+      [0, "ShowMessage_2", "I have a wide range of useful items.", []],
+      [0, "OpenShop", "", [0, 1, 0, 0, 97, 299, 300, 301, 302, 103, 114, 115]]
+    ]
+
+Interpretar los parámetros de cada comando es otro tema, y todavía no está
+hecho. Pero los datos están completos y son fieles: `--verify` relee los
+`.tiles` y los compara contra los `.lmu`.
+
+**Se omite lo que está en su valor por defecto**, para que el diff muestre sólo
+lo que importa. Una página sin condiciones no tiene la clave `conditions`; un
+evento quieto no tiene `move`. Y los enums salen como texto: `"trigger":
+"auto_start"` en vez de `"trigger": 3`.
+
+Por ahora es de ida nomás: `data/` se genera desde los `.lmu`, no al revés.
 
 ### El RTP
 

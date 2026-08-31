@@ -1,0 +1,738 @@
+{
+  "id": 93,
+  "name": "TasgardeIncomingMissiles",
+  "size": [20, 15],
+  "chipset": [19, "Ancient(1)"],
+  "tiles": "Map0093.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "Granddad",
+      "at": [9, 8],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People3",
+            "index": 4,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 294
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Advocate",
+      "at": [9, 3],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 290
+          },
+          "sprite": {
+            "charset": "Men1",
+            "index": 5,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 286,
+            "switch_b": 290
+          },
+          "sprite": {
+            "charset": "Men1",
+            "index": 5,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Eisen",
+      "at": [9, 6],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Eisen",
+            "index": 0,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 294
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "PlayBGM", "jackalstg2", [0, 50, 100, 50]],
+            [0, "Wait", "", [10]],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "At this rate, the Catch Colony should", []],
+            [0, "ShowMessage_2", "be ready several months before the", []],
+            [0, "ShowMessage_2", "Shortage.", []],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "Good work, Professor! I'd hate for", []],
+            [0, "ShowMessage_2", "my grandchildren to have to live in a", []],
+            [0, "ShowMessage_2", "world without energy. Why, just today -", []],
+            [0, "Wait", "", [10]],
+            [0, "ControlSwitches", "", [0, 288, 288, 0]],
+            [0, "MoveEvent", "", [5, 8, 0, 0, 0, 0]],
+            [0, "Wait", "", [8]],
+            [0, "ShowMessage", "AGENCY GUARD", []],
+            [0, "ShowMessage_2", "Sir! We've detected a missile launch", []],
+            [0, "ShowMessage_2", "in the Kingdom of Surl!", []],
+            [0, "PlayBGM", "jackalstg2", [0, 80, 100, 50]],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 24, 25, 14]],
+            [0, "MoveEvent", "", [3, 8, 0, 0, 24, 25]],
+            [0, "Wait", "", [2]],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "What?!", []],
+            [0, "ShowMessage", "AGENCY GUARD", []],
+            [0, "ShowMessage_2", "It's true, Sir! The missiles are on their way!", []],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "Damn! Make this room our command", []],
+            [0, "ShowMessage_2", "center - get the rest of the command staff", []],
+            [0, "ShowMessage_2", "in here at once!", []],
+            [0, "ShowMessage", "AGENCY GUARD", []],
+            [0, "ShowMessage_2", "Yes Sir!", []],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 12]],
+            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
+            [0, "ControlSwitches", "", [0, 289, 289, 0]],
+            [0, "Wait", "", [10]],
+            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "AGENCY GUARD", []],
+            [0, "ShowMessage_2", "The missiles appear to be targetting", []],
+            [0, "ShowMessage_2", "Prima and Lashe Cities. Impact in 15 and", []],
+            [0, "ShowMessage_2", "20 minutes, respectively.", []],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "It looks as if it's time to test the", []],
+            [0, "ShowMessage_2", "Advocate's wartime functionality,", []],
+            [0, "ShowMessage_2", "Professor.", []],
+            [0, "MoveEvent", "", [3, 8, 0, 0, 14]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "Yes, Sir.", []],
+            [0, "MoveEvent", "", [3, 8, 0, 0, 12]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "Advocate, the missiles should be within", []],
+            [0, "ShowMessage_2", "range of the defensive network shortly.", []],
+            [0, "ShowMessage_2", "Destroy them.", []],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "Advocate?", []],
+            [0, "Wait", "", [20]],
+            [0, "MoveEvent", "", [16, 8, 0, 0, 0, 0, 0, 13]],
+            [0, "Wait", "", [8]],
+            [0, "ShowMessage", "GENERAL", []],
+            [0, "ShowMessage_2", "This is ridiculous! Just activate the defense", []],
+            [0, "ShowMessage_2", "network manually! Leave this idiotic", []],
+            [0, "ShowMessage_2", "computer out of it!", []],
+            [0, "MoveEvent", "", [3, 8, 0, 0, 15]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "Uh...", []],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 15]],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "Activate the defensive network manually.", []],
+            [0, "ShowMessage_2", "I don't care how those missiles get destroyed,", []],
+            [0, "ShowMessage_2", "as long as they are.", []],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "AGENCY GUARD", []],
+            [0, "ShowMessage_2", "Yes, Sir.", []],
+            [0, "MoveEvent", "", [6, 8, 0, 0, 0]],
+            [0, "Wait", "", [20]],
+            [0, "MoveEvent", "", [6, 8, 0, 0, 13]],
+            [0, "ShowMessage", "AGENCY GUARD", []],
+            [0, "ShowMessage_2", "No response! The defensive network", []],
+            [0, "ShowMessage_2", "is not responding!", []],
+            [0, "MoveEvent", "", [6, 8, 0, 0, 12]],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 12]],
+            [0, "MoveEvent", "", [3, 8, 0, 0, 24, 25, 12]],
+            [0, "Wait", "", [2]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "Advocate! I demand that you listen to me!", []],
+            [0, "MessageOptions", "", [1, 0, 0, 0]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "... this isn't happening... this isn't happening...", []],
+            [0, "MoveEvent", "", [16, 8, 0, 0, 14]],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "GENERAL", []],
+            [0, "ShowMessage_2", "Why can't we activate the defensive", []],
+            [0, "ShowMessage_2", "system manually? Are you telling me", []],
+            [0, "ShowMessage_2", "we're defenseless?", []],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "Oh no...", []],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "Professor, what is it?", []],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [3, 8, 0, 0, 14]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "We fully integrated the Advocate into", []],
+            [0, "ShowMessage_2", "our entire military industrial complex.", []],
+            [0, "ShowMessage_2", "It's preventing us from using the", []],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "defensive network!", []],
+            [0, "MoveEvent", "", [16, 8, 0, 0, 13]],
+            [0, "ShowMessage", "GENERAL", []],
+            [0, "ShowMessage_2", "What is this foolishness?", []],
+            [0, "MoveEvent", "", [3, 8, 0, 0, 12]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "Advocate!", []],
+            [0, "ChangeScreenTransitions", "", [0, 20]],
+            [0, "Teleport", "", [94, 5, 12]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 291
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "MoveEvent", "", [3, 8, 0, 0, 12]],
+            [0, "Wait", "", [1]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "Advocate, please!", []],
+            [0, "Wait", "", [10]],
+            [0, "ControlSwitches", "", [0, 290, 290, 0]],
+            [0, "MoveEvent", "", [16, 8, 0, 0, 12]],
+            [0, "MoveEvent", "", [3, 8, 0, 0, 12]],
+            [0, "Wait", "", [10]],
+            [0, "ControlSwitches", "", [0, 286, 286, 0]],
+            [0, "ShowMessage", "ADVOCATE", []],
+            [0, "ShowMessage_2", "What do you want?", []],
+            [0, "ControlSwitches", "", [0, 286, 286, 2]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "Advocate... we need you to destroy the", []],
+            [0, "ShowMessage_2", "incoming missiles...", []],
+            [0, "Wait", "", [20]],
+            [0, "ControlSwitches", "", [0, 286, 286, 2]],
+            [0, "ShowMessage", "ADVOCATE", []],
+            [0, "ShowMessage_2", "No.", []],
+            [0, "ControlSwitches", "", [0, 286, 286, 2]],
+            [0, "MoveEvent", "", [16, 8, 0, 0, 24, 25]],
+            [0, "ShowMessage", "GENERAL", []],
+            [0, "ShowMessage_2", "Now listen here, you sorry excuse for -", []],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "Why won't you destroy them, Advocate?", []],
+            [0, "ShowMessage_2", "The people of Prima and Lashe will die!", []],
+            [0, "ControlSwitches", "", [0, 286, 286, 2]],
+            [0, "ShowMessage", "ADVOCATE", []],
+            [0, "ShowMessage_2", "I've never seen a missile explosion before.", []],
+            [0, "ShowMessage_2", "Why have you never shown me a missile", []],
+            [0, "ShowMessage_2", "explosion?", []],
+            [0, "ControlSwitches", "", [0, 286, 286, 2]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "Advocate, listen to me -", []],
+            [0, "ControlSwitches", "", [0, 286, 286, 2]],
+            [0, "ShowMessage", "ADVOCATE", []],
+            [0, "ShowMessage_2", "No. I don't feel like it.", []],
+            [0, "ControlSwitches", "", [0, 290, 290, 1]],
+            [0, "MoveEvent", "", [3, 8, 0, 0, 24, 25]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "Come back!", []],
+            [0, "ControlSwitches", "", [0, 292, 292, 0]],
+            [0, "Teleport", "", [94, 2, 9]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 293
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "Is there any way we can get the Advocate", []],
+            [0, "ShowMessage_2", "out of the defensive network? Then we could", []],
+            [0, "ShowMessage_2", "manually shoot down the missiles, right?", []],
+            [0, "MoveEvent", "", [3, 8, 0, 0, 14]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "Not from here... but I might be able to", []],
+            [0, "ShowMessage_2", "cut off the Advocate's power supply from", []],
+            [0, "ShowMessage_2", "the internal generator...", []],
+            [0, "MoveEvent", "", [17, 8, 0, 0, 14]],
+            [0, "ShowMessage", "GENERAL", []],
+            [0, "ShowMessage_2", "I can't believe that our two largest cities", []],
+            [0, "ShowMessage_2", "are depending on this... this... egghead!", []],
+            [0, "MoveEvent", "", [6, 8, 0, 0, 13]],
+            [0, "ShowMessage", "AGENCY GUARD", []],
+            [0, "ShowMessage_2", "Some of the missiles have begun making", []],
+            [0, "ShowMessage_2", "course corrections, Sir. I estimate the first", []],
+            [0, "ShowMessage_2", "wave will reach Prima in 12 minutes.", []],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 12]],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "Professor, will that be enough time for", []],
+            [0, "ShowMessage_2", "you to shut down the Advocate?", []],
+            [0, "Wait", "", [15]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "I... I think so.", []],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "The Agency is counting on you, Professor.", []],
+            [0, "MoveEvent", "", [17, 8, 0, 0, 2, 2, 13, 23, 15]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "GENERAL", []],
+            [0, "ShowMessage_2", "OK, you heard the Director! It's with the", []],
+            [0, "ShowMessage_2", "egghead now. Move out, men, evacuate!", []],
+            [0, "MoveEvent", "", [17, 8, 0, 0, 13]],
+            [0, "ShowMessage", "GENERAL", []],
+            [0, "ShowMessage_2", "Sir, we need to get you to a safe place.", []],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 15]],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "Of course.", []],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 12]],
+            [0, "ShowMessage", "DIRECTOR", []],
+            [0, "ShowMessage_2", "Good luck, Professor Eisen.", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
+            [0, "ControlSwitches", "", [0, 289, 289, 1]],
+            [0, "ControlSwitches", "", [0, 294, 294, 0]],
+            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]],
+            [0, "ShowMessage", "EISEN", []],
+            [0, "ShowMessage_2", "I guess it's up to me, now. I need to", []],
+            [0, "ShowMessage_2", "shut down the Advocate before it's", []],
+            [0, "ShowMessage_2", "too late!", []],
+            [0, "Wait", "", [10]],
+            [0, "ControlSwitches", "", [0, 295, 295, 0]],
+            [0, "PlaySound", "Earth8", [100, 80, 50]],
+            [0, "Wait", "", [5]],
+            [0, "MoveEvent", "", [18, 8, 0, 0, 0]],
+            [0, "Wait", "", [5]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "Wait", "", [1]],
+            [0, "ChangeItems", "", [1, 0, 81, 0, 1]],
+            [0, "Teleport", "", [95, 10, 48]],
+            [0, "ChangePartyMembers", "", [1, 0, 10]],
+            [0, "ChangePartyMembers", "", [0, 0, 23]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "AgencyGuard1",
+      "at": [9, 14],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 288
+          },
+          "sprite": {
+            "charset": "BLAgents",
+            "index": 1,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 289
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 294
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "NotResponding Guard",
+      "at": [5, 8],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 289
+          },
+          "sprite": {
+            "charset": "BLAgents",
+            "index": 1,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "EV0007",
+      "at": [4, 5],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 289
+          },
+          "sprite": {
+            "charset": "BLAgents",
+            "index": 1,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "EV0008",
+      "at": [13, 5],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 289
+          },
+          "sprite": {
+            "charset": "BLAgents",
+            "index": 1,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "EV0009",
+      "at": [12, 7],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 289
+          },
+          "sprite": {
+            "charset": "BLAgents",
+            "index": 1,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "EV0010",
+      "at": [12, 14],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 289
+          },
+          "sprite": {
+            "charset": "BLAgents",
+            "index": 1,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "EV0011",
+      "at": [13, 14],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 289
+          },
+          "sprite": {
+            "charset": "BLAgents",
+            "index": 1,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "EV0012",
+      "at": [4, 14],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 289
+          },
+          "sprite": {
+            "charset": "BLAgents",
+            "index": 1,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "EV0013",
+      "at": [5, 14],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 289
+          },
+          "sprite": {
+            "charset": "BLAgents",
+            "index": 1,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "name": "EV0014",
+      "at": [7, 7],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 289
+          },
+          "sprite": {
+            "charset": "BLAgents",
+            "index": 1,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "name": "EV0015",
+      "at": [10, 7],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 289
+          },
+          "sprite": {
+            "charset": "BLAgents",
+            "index": 1,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "name": "The General",
+      "at": [8, 9],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 289
+          },
+          "sprite": {
+            "charset": "Chara3",
+            "index": 0,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 291
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "name": "General2",
+      "at": [8, 6],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 291
+          },
+          "sprite": {
+            "charset": "Chara3",
+            "index": 0,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 294
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "name": "EisenGoingIn",
+      "at": [16, 8],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 294
+          },
+          "sprite": {
+            "charset": "Eisen",
+            "index": 0,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "name": "EV0019",
+      "at": [16, 7],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 295
+          },
+          "tile": 12,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    }
+  ]
+}

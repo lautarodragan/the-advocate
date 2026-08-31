@@ -1,0 +1,71 @@
+{
+  "id": 315,
+  "name": "FarmerFail",
+  "size": [20, 15],
+  "chipset": [23, "PS4Chipset"],
+  "tiles": "Map0315.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "Lerle",
+      "at": [14, 9],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People3",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Radin",
+      "at": [13, 9],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "extra2(1)",
+            "index": 0,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "Wait", "", [25]],
+            [0, "ShowMessage", "RADIN", []],
+            [0, "ShowMessage_2", "I've never seen a garden plot die", []],
+            [0, "ShowMessage_2", "so quickly before! Are you sure that", []],
+            [0, "ShowMessage_2", "you followed the directions?", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "LERLE", []],
+            [0, "ShowMessage_2", "... ... ...", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
+            [0, "Wait", "", [10]],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "Teleport", "", [316, 2, 8]]
+          ]
+        }
+      ]
+    }
+  ]
+}

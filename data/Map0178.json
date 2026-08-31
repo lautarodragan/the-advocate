@@ -1,0 +1,366 @@
+{
+  "id": 178,
+  "name": "Bottom of the Pond",
+  "size": [20, 15],
+  "chipset": [49, "ABLTownMountain"],
+  "tiles": "Map0178.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "Murgator",
+      "at": [13, 7],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Crown4",
+            "index": 1,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 489
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "MoveEvent", "", [1, 8, 0, 0, 0, 0, 0, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3]],
+            [0, "Wait", "", [2]],
+            [0, "PlaySound", "Water2", [100, 80, 50]],
+            [0, "MoveEvent", "", [3, 8, 0, 0, 36, 0, 37]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 36, 0, 0, 0, 0, 0, 37, 13]],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Now what?", []],
+            [0, "MoveEvent", "", [3, 8, 0, 0, 15]],
+            [0, "ShowMessage", "RADIN", []],
+            [0, "ShowMessage_2", "We've got to finish it off - Isabella needs that", []],
+            [0, "ShowMessage_2", "antidote!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "But we barely hurt it...", []],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "RADIN", []],
+            [0, "ShowMessage_2", "It ran away, didn't it? It must be hurt!", []],
+            [0, "ShowMessage_2", "Let's go finish it off!", []],
+            [0, "MoveEvent", "", [3, 8, 0, 0, 36, 3, 3, 37]],
+            [0, "Wait", "", [8]],
+            [0, "ChangeEventLocation", "", [3, 0, 15, 10]],
+            [0, "ControlSwitches", "", [0, 489, 489, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 489
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Radin",
+      "at": [15, 10],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "extra2(1)",
+            "index": 0,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 489
+          },
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ChangeSystemBGM", "T_VGFighterMAX_Masako", [0, 0, 100, 100, 50]],
+            [0, "ChangeSystemBGM", "T_VGFighterMAX_Masako", [1, 0, 100, 100, 50]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 36, 24, 2, 2, 25, 37]],
+            [0, "Wait", "", [1]],
+            [0, "PlaySound", "Water1", [100, 100, 50]],
+            [0, "Wait", "", [8]],
+            [0, "TintScreen", "", [100, 100, 100, 100, 1, 0]],
+            [0, "Teleport", "", [159, 47, 12]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 36, 0, 37]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [11, 11],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 489
+          },
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ChangeSystemBGM", "T_VGFighterMAX_Masako", [0, 0, 100, 100, 50]],
+            [0, "ChangeSystemBGM", "T_VGFighterMAX_Masako", [1, 0, 100, 100, 50]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 36, 24, 2, 2, 25, 37]],
+            [0, "Wait", "", [1]],
+            [0, "PlaySound", "Water1", [100, 100, 50]],
+            [0, "Wait", "", [8]],
+            [0, "TintScreen", "", [100, 100, 100, 100, 1, 0]],
+            [0, "Teleport", "", [159, 47, 12]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 36, 0, 37]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "EV0005",
+      "at": [12, 11],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 489
+          },
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ChangeSystemBGM", "T_VGFighterMAX_Masako", [0, 0, 100, 100, 50]],
+            [0, "ChangeSystemBGM", "T_VGFighterMAX_Masako", [1, 0, 100, 100, 50]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 36, 24, 2, 2, 25, 37]],
+            [0, "Wait", "", [1]],
+            [0, "PlaySound", "Water1", [100, 100, 50]],
+            [0, "Wait", "", [8]],
+            [0, "TintScreen", "", [100, 100, 100, 100, 1, 0]],
+            [0, "Teleport", "", [159, 47, 12]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 36, 0, 37]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "EV0006",
+      "at": [13, 3],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [179, 1, 18]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "EV0007",
+      "at": [13, 10],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 489
+          },
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ChangeSystemBGM", "T_VGFighterMAX_Masako", [0, 0, 100, 100, 50]],
+            [0, "ChangeSystemBGM", "T_VGFighterMAX_Masako", [1, 0, 100, 100, 50]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 36, 24, 2, 2, 25, 37]],
+            [0, "Wait", "", [1]],
+            [0, "PlaySound", "Water1", [100, 100, 50]],
+            [0, "Wait", "", [8]],
+            [0, "TintScreen", "", [100, 100, 100, 100, 1, 0]],
+            [0, "Teleport", "", [159, 47, 12]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 36, 0, 37]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "EV0008",
+      "at": [14, 10],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 489
+          },
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ChangeSystemBGM", "T_VGFighterMAX_Masako", [0, 0, 100, 100, 50]],
+            [0, "ChangeSystemBGM", "T_VGFighterMAX_Masako", [1, 0, 100, 100, 50]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 36, 24, 2, 2, 25, 37]],
+            [0, "Wait", "", [1]],
+            [0, "PlaySound", "Water1", [100, 100, 50]],
+            [0, "Wait", "", [8]],
+            [0, "TintScreen", "", [100, 100, 100, 100, 1, 0]],
+            [0, "Teleport", "", [159, 47, 12]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 36, 0, 37]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "EV0009",
+      "at": [10, 12],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 489
+          },
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ChangeSystemBGM", "T_VGFighterMAX_Masako", [0, 0, 100, 100, 50]],
+            [0, "ChangeSystemBGM", "T_VGFighterMAX_Masako", [1, 0, 100, 100, 50]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 36, 24, 2, 2, 25, 37]],
+            [0, "Wait", "", [1]],
+            [0, "PlaySound", "Water1", [100, 100, 50]],
+            [0, "Wait", "", [8]],
+            [0, "TintScreen", "", [100, 100, 100, 100, 1, 0]],
+            [0, "Teleport", "", [159, 47, 12]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 36, 0, 37]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "SaveInPondBottom",
+      "at": [15, 5],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "savept",
+            "index": 0,
+            "direction": "up",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "action",
+          "animation": "fixed_continuous",
+          "translucent": true,
+          "script": [
+            [0, "PlaySound", "Holy5", [70, 100, 50]],
+            [0, "OpenSaveMenu", "", []],
+            [0, "ChangeSaveAccess", "", [0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "EV0011",
+      "at": [17, 2],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "parallel",
+          "translucent": true,
+          "script": [
+            [0, "ControlVars", "", [0, 39, 39, 0, 6, 10001, 1]],
+            [0, "ControlVars", "", [0, 40, 40, 0, 6, 10001, 2]],
+            [0, "ControlVars", "", [0, 41, 41, 0, 6, 10, 1]],
+            [0, "ControlVars", "", [0, 42, 42, 0, 6, 10, 2]],
+            [0, "ConditionalBranch", "", [1, 39, 1, 41, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 40, 1, 42, 0, 1]],
+            [2, "ChangeSaveAccess", "", [1]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "EV0012",
+      "at": [9, 11],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 489
+          },
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ChangeSystemBGM", "T_VGFighterMAX_Masako", [0, 0, 100, 100, 50]],
+            [0, "ChangeSystemBGM", "T_VGFighterMAX_Masako", [1, 0, 100, 100, 50]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 36, 24, 2, 2, 25, 37]],
+            [0, "Wait", "", [1]],
+            [0, "PlaySound", "Water1", [100, 100, 50]],
+            [0, "Wait", "", [8]],
+            [0, "TintScreen", "", [100, 100, 100, 100, 1, 0]],
+            [0, "Teleport", "", [159, 47, 12]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 36, 0, 37]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "EV0013",
+      "at": [19, 14],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 811
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "CallEvent", "", [0, 47, 0]],
+            [0, "ControlSwitches", "", [0, 811, 811, 1]]
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,94 @@
+{
+  "id": 227,
+  "name": "Leaving Lashe Memory",
+  "size": [20, 15],
+  "chipset": [15, "crashchp"],
+  "tiles": "Map0227.tiles",
+  "parallax": {
+    "name": "lashepan",
+    "loop_x": false,
+    "loop_y": false,
+    "scroll_x": 0,
+    "scroll_y": 0
+  },
+  "events": [
+    {
+      "id": 1,
+      "name": "Arden/Saldra",
+      "at": [11, 13],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 54
+          },
+          "sprite": {
+            "charset": "Chara2",
+            "index": 0,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 56,
+            "switch_b": 207
+          },
+          "sprite": {
+            "charset": "Chara3",
+            "index": 6,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ControlSwitches", "", [0, 92, 92, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
+            [0, "Wait", "", [10]],
+            [0, "MessageOptions", "", [0, 1, 0, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I guess this is goodbye, Lashe City.", []],
+            [0, "Wait", "", [5]],
+            [0, "PlaySound", "Rebirth3", [100, 60, 50]],
+            [0, "Teleport", "", [228, 9, 8]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "AG7-17",
+      "at": [12, 13],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 150
+          },
+          "sprite": {
+            "charset": "AG717",
+            "index": 4,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "spin"
+        }
+      ]
+    }
+  ]
+}

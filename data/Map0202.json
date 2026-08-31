@@ -1,0 +1,8 @@
+{
+  "id": 202,
+  "name": "The Flight From Paradise",
+  "size": [20, 15],
+  "chipset": [1, "Basis"],
+  "tiles": "Map0202.tiles",
+  "events": []
+}

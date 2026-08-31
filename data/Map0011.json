@@ -1,0 +1,2559 @@
+{
+  "id": 11,
+  "name": "Lazer Teeth HQ",
+  "size": [100, 100],
+  "chipset": [10, "lasheint"],
+  "tiles": "Map0011.tiles",
+  "events": [
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [15, 51],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [9, 44, 38]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "TheIdol",
+      "at": [11, 38],
+      "pages": [
+        {
+          "tile": 65,
+          "layer": "same",
+          "trigger": "parallel",
+          "script": [
+            [0, "ControlVars", "", [0, 15, 15, 0, 6, 10005, 1]],
+            [0, "ControlVars", "", [0, 16, 16, 0, 6, 10005, 2]],
+            [0, "ControlVars", "", [0, 9, 9, 0, 6, 18, 1]],
+            [0, "ControlVars", "", [0, 10, 10, 0, 6, 18, 2]],
+            [0, "ConditionalBranch", "", [1, 9, 1, 15, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 10, 1, 16, 0, 1]],
+            [2, "ChangeEventLocation", "", [10005, 0, 95, 98]],
+            [2, "PlaySound", "Glass", [100, 100, 50]],
+            [2, "ShowBattleAnimation", "", [101, 10005, 1, 0]],
+            [2, "MoveEvent", "", [32, 8, 0, 0, 24, 25, 3, 3]],
+            [2, "Wait", "", [7]],
+            [2, "ShowMessage", "GANG MEMBER", []],
+            [2, "ShowMessage_2", "The Idol of the Streets!!", []],
+            [2, "MoveEvent", "", [32, 8, 0, 0, 14, 23]],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "Something tells me I shouldn't have", []],
+            [2, "ShowMessage_2", "done that...", []],
+            [2, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [2, "CallEvent", "", [1, 33, 1]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "Light1",
+      "at": [2, 48],
+      "pages": [
+        {
+          "tile": 73,
+          "layer": "same",
+          "trigger": "parallel",
+          "script": [
+            [0, "ControlVars", "", [0, 15, 15, 0, 6, 10005, 1]],
+            [0, "ControlVars", "", [0, 16, 16, 0, 6, 10005, 2]],
+            [0, "ControlVars", "", [0, 9, 9, 0, 6, 18, 1]],
+            [0, "ControlVars", "", [0, 10, 10, 0, 6, 18, 2]],
+            [0, "ConditionalBranch", "", [1, 9, 1, 15, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 10, 1, 16, 0, 1]],
+            [2, "PlaySound", "Holy3", [100, 100, 50]],
+            [2, "ShowBattleAnimation", "", [1, 10005, 1, 0]],
+            [2, "ChangeEventLocation", "", [8, 0, 98, 97]],
+            [2, "ChangeEventLocation", "", [73, 0, 55, 82]],
+            [2, "ChangeEventLocation", "", [74, 0, 55, 82]],
+            [2, "ChangeEventLocation", "", [75, 0, 55, 82]],
+            [2, "ChangeEventLocation", "", [76, 0, 55, 82]],
+            [2, "ControlSwitches", "", [0, 49, 49, 0]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "Light2",
+      "at": [5, 50],
+      "pages": [
+        {
+          "tile": 73,
+          "layer": "same",
+          "trigger": "parallel",
+          "script": [
+            [0, "ControlVars", "", [0, 15, 15, 0, 6, 10005, 1]],
+            [0, "ControlVars", "", [0, 16, 16, 0, 6, 10005, 2]],
+            [0, "ControlVars", "", [0, 9, 9, 0, 6, 18, 1]],
+            [0, "ControlVars", "", [0, 10, 10, 0, 6, 18, 2]],
+            [0, "ConditionalBranch", "", [1, 9, 1, 15, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 10, 1, 16, 0, 1]],
+            [2, "PlaySound", "Holy3", [100, 100, 50]],
+            [2, "ShowBattleAnimation", "", [1, 10005, 1, 0]],
+            [2, "ChangeEventLocation", "", [9, 0, 98, 97]],
+            [2, "ChangeEventLocation", "", [83, 0, 55, 82]],
+            [2, "ChangeEventLocation", "", [82, 0, 55, 82]],
+            [2, "ChangeEventLocation", "", [84, 0, 55, 82]],
+            [2, "ChangeEventLocation", "", [85, 0, 55, 82]],
+            [2, "ChangeEventLocation", "", [86, 0, 55, 82]],
+            [2, "ChangeEventLocation", "", [87, 0, 55, 82]],
+            [2, "ControlSwitches", "", [0, 52, 52, 0]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "Light3",
+      "at": [8, 37],
+      "pages": [
+        {
+          "tile": 73,
+          "layer": "same",
+          "trigger": "parallel",
+          "script": [
+            [0, "ControlVars", "", [0, 15, 15, 0, 6, 10005, 1]],
+            [0, "ControlVars", "", [0, 16, 16, 0, 6, 10005, 2]],
+            [0, "ControlVars", "", [0, 9, 9, 0, 6, 18, 1]],
+            [0, "ControlVars", "", [0, 10, 10, 0, 6, 18, 2]],
+            [0, "ConditionalBranch", "", [1, 9, 1, 15, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 10, 1, 16, 0, 1]],
+            [2, "PlaySound", "Holy3", [100, 100, 50]],
+            [2, "ShowBattleAnimation", "", [1, 10005, 1, 0]],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "Uh oh - the light didn't break!", []],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "Light4",
+      "at": [15, 42],
+      "pages": [
+        {
+          "tile": 73,
+          "layer": "same",
+          "trigger": "parallel",
+          "script": [
+            [0, "ControlVars", "", [0, 15, 15, 0, 6, 10005, 1]],
+            [0, "ControlVars", "", [0, 16, 16, 0, 6, 10005, 2]],
+            [0, "ControlVars", "", [0, 9, 9, 0, 6, 18, 1]],
+            [0, "ControlVars", "", [0, 10, 10, 0, 6, 18, 2]],
+            [0, "ConditionalBranch", "", [1, 9, 1, 15, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 10, 1, 16, 0, 1]],
+            [2, "PlaySound", "Holy3", [100, 100, 50]],
+            [2, "ShowBattleAnimation", "", [1, 10005, 1, 0]],
+            [2, "ChangeEventLocation", "", [11, 0, 98, 97]],
+            [2, "ChangeEventLocation", "", [61, 0, 54, 82]],
+            [2, "ChangeEventLocation", "", [62, 0, 54, 82]],
+            [2, "ChangeEventLocation", "", [63, 0, 54, 82]],
+            [2, "ChangeEventLocation", "", [64, 0, 54, 82]],
+            [2, "ChangeEventLocation", "", [65, 0, 54, 82]],
+            [2, "ChangeEventLocation", "", [66, 0, 54, 82]],
+            [2, "ChangeEventLocation", "", [67, 0, 54, 82]],
+            [2, "ChangeEventLocation", "", [68, 0, 54, 82]],
+            [2, "ChangeEventLocation", "", [69, 0, 54, 82]],
+            [2, "ChangeEventLocation", "", [70, 0, 54, 82]],
+            [2, "ControlSwitches", "", [0, 47, 47, 0]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 47
+          },
+          "tile": 53,
+          "layer": "same",
+          "trigger": "action",
+          "overlap_forbidden": true
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "Light5",
+      "at": [22, 43],
+      "pages": [
+        {
+          "tile": 73,
+          "layer": "same",
+          "trigger": "parallel",
+          "overlap_forbidden": true,
+          "script": [
+            [0, "ControlVars", "", [0, 9, 9, 0, 6, 18, 1]],
+            [0, "ControlVars", "", [0, 10, 10, 0, 6, 18, 2]],
+            [0, "ConditionalBranch", "", [1, 9, 0, 22, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 10, 0, 43, 0, 1]],
+            [2, "PlaySound", "Holy3", [100, 100, 50]],
+            [2, "ShowBattleAnimation", "", [1, 12, 1, 0]],
+            [2, "ChangeEventLocation", "", [12, 0, 26, 37]],
+            [2, "ChangeEventLocation", "", [15, 0, 54, 82]],
+            [2, "ChangeEventLocation", "", [19, 0, 54, 82]],
+            [2, "ChangeEventLocation", "", [20, 0, 54, 82]],
+            [2, "ChangeEventLocation", "", [21, 0, 54, 82]],
+            [2, "ChangeEventLocation", "", [26, 0, 54, 82]],
+            [2, "ChangeEventLocation", "", [25, 0, 54, 82]],
+            [2, "ChangeEventLocation", "", [22, 0, 54, 82]],
+            [2, "ChangeEventLocation", "", [24, 0, 54, 82]],
+            [2, "ChangeEventLocation", "", [23, 0, 54, 82]],
+            [2, "ChangeEventLocation", "", [27, 0, 54, 82]],
+            [2, "ControlSwitches", "", [0, 44, 44, 0]],
+            [2, "ChangeEventLocation", "", [18, 0, 98, 98]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 44
+          },
+          "tile": 53,
+          "layer": "same",
+          "trigger": "action",
+          "overlap_forbidden": true
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "Light6",
+      "at": [20, 39],
+      "pages": [
+        {
+          "tile": 73,
+          "layer": "same",
+          "trigger": "parallel",
+          "script": [
+            [0, "ControlVars", "", [0, 15, 15, 0, 6, 10005, 1]],
+            [0, "ControlVars", "", [0, 16, 16, 0, 6, 10005, 2]],
+            [0, "ControlVars", "", [0, 9, 9, 0, 6, 18, 1]],
+            [0, "ControlVars", "", [0, 10, 10, 0, 6, 18, 2]],
+            [0, "ConditionalBranch", "", [1, 9, 1, 15, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 10, 1, 16, 0, 1]],
+            [2, "PlaySound", "Holy3", [100, 100, 50]],
+            [2, "ShowBattleAnimation", "", [1, 10005, 1, 0]],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "Uh oh - the light didn't break!", []],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "name": "LTSentry1",
+      "at": [7, 48],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara3",
+            "index": 6,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "parallel",
+          "script": [
+            [0, "ControlVars", "", [0, 15, 15, 0, 6, 10005, 1]],
+            [0, "ControlVars", "", [0, 16, 16, 0, 6, 10005, 2]],
+            [0, "ControlVars", "", [0, 9, 9, 0, 6, 18, 1]],
+            [0, "ControlVars", "", [0, 10, 10, 0, 6, 18, 2]],
+            [0, "ConditionalBranch", "", [1, 9, 1, 15, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 10, 1, 16, 0, 1]],
+            [2, "PlaySound", "Blow2", [100, 100, 50]],
+            [2, "ChangeEventLocation", "", [18, 0, 98, 98]],
+            [2, "MoveEvent", "", [10005, 8, 0, 0, 24, 25]],
+            [2, "Wait", "", [3]],
+            [2, "ShowMessage", "GANG MEMBER", []],
+            [2, "ShowMessage_2", "What the %@$#?! Who threw that?!", []],
+            [2, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 9, 29]],
+            [2, "Wait", "", [10]],
+            [2, "ShowMessage", "GANG MEMBER", []],
+            [2, "ShowMessage_2", "You're not going anywhere, man!", []],
+            [2, "ShowMessage_2", "Get back in there!", []],
+            [2, "Wait", "", [2]],
+            [2, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [2, "Wait", "", [2]],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "Maybe if I were closer I could knock him", []],
+            [2, "ShowMessage_2", "out...", []],
+            [2, "CallEvent", "", [1, 33, 1]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 45
+          },
+          "sprite": {
+            "charset": "Chara3",
+            "index": 6,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "How did you get out?! Next time you", []],
+            [0, "ShowMessage_2", "won't be so lucky!", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "<sigh> Next time maybe I won't bump", []],
+            [0, "ShowMessage_2", "into any guards...", []],
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "What was that?!", []],
+            [0, "Wait", "", [2]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "Wait", "", [2]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Nothing...", []],
+            [0, "CallEvent", "", [1, 33, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 1
+          },
+          "sprite": {
+            "charset": "Chara3",
+            "index": 6,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "What was that noise? I'd better go check", []],
+            [0, "ShowMessage_2", "it out...", []],
+            [0, "ControlSwitches", "", [0, 46, 46, 0]],
+            [0, "ControlSwitches", "", [0, 51, 51, 0]],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [14, 8, 0, 0, 28, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 12, 0, 0, 29]],
+            [0, "ControlVars", "", [0, 19, 19, 0, 6, 10001, 1]],
+            [0, "ControlVars", "", [0, 20, 20, 0, 6, 10001, 2]],
+            [0, "ConditionalBranch", "", [1, 19, 0, 18, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 20, 0, 48, 0, 1]],
+            [2, "CallEvent", "", [1, 15, 1]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ConditionalBranch", "", [1, 19, 0, 19, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 20, 0, 48, 0, 1]],
+            [2, "CallEvent", "", [1, 15, 1]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ConditionalBranch", "", [1, 19, 0, 19, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 20, 0, 47, 0, 1]],
+            [2, "CallEvent", "", [1, 15, 1]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ConditionalBranch", "", [1, 19, 0, 20, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 20, 0, 48, 0, 1]],
+            [2, "CallEvent", "", [1, 15, 1]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ConditionalBranch", "", [1, 19, 0, 21, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 20, 0, 48, 0, 1]],
+            [2, "CallEvent", "", [1, 15, 1]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ControlSwitches", "", [0, 51, 51, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 45
+          },
+          "sprite": {
+            "charset": "Chara3",
+            "index": 6,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "How did you get out?! Next time you", []],
+            [0, "ShowMessage_2", "won't be so lucky!", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "<sigh> Next time maybe I won't bump", []],
+            [0, "ShowMessage_2", "into any guards...", []],
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "What was that?!", []],
+            [0, "Wait", "", [2]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "Wait", "", [2]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Nothing...", []],
+            [0, "CallEvent", "", [1, 33, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 53,
+            "switch_b": 1
+          },
+          "sprite": {
+            "charset": "Chara3",
+            "index": 6,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "MoveEvent", "", [14, 8, 0, 0, 28, 15, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9]],
+            [0, "ChangeEventLocation", "", [39, 0, 15, 57]],
+            [0, "MoveEvent", "", [39, 8, 0, 0, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "name": "A1",
+      "at": [21, 48],
+      "pages": [
+        {
+          "tile": 80,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "You're not going anywhere, man!", []],
+            [0, "ShowMessage_2", "Get back in there!", []],
+            [0, "Wait", "", [2]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "Wait", "", [2]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
+            [0, "ShowMessage_2", "the light...", []],
+            [0, "CallEvent", "", [1, 33, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "name": "Grate1",
+      "at": [26, 51],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "There's a bunch of small rocks inside this", []],
+            [0, "ShowMessage_2", "grate. I can... almost...", []],
+            [0, "MessageOptions", "", [0, 1, 0, 0]],
+            [0, "ShowMessage", "TALAN got three small stones.", []],
+            [0, "ShowMessage_2", "    (Press the OK button, followed by a", []],
+            [0, "ShowMessage_2", "      direction, to throw the stones.)", []],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I won't be able to talk to anyone", []],
+            [0, "ShowMessage_2", "or examine anything while I am", []],
+            [0, "ShowMessage_2", "carrying these stones.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I'll have to be careful about pressing", []],
+            [0, "ShowMessage_2", "the OK button... I wouldn't want to", []],
+            [0, "ShowMessage_2", "throw one of these by accident...", []],
+            [0, "ControlVars", "", [0, 4, 4, 0, 0, 3, 0]],
+            [0, "ControlSwitches", "", [0, 43, 43, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 43
+          },
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "There's nothing else within the grate.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "name": "EV0017",
+      "at": [45, 67],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 43,
+            "variable": [4, "greater_equal", 0]
+          },
+          "tile": 13,
+          "layer": "below",
+          "trigger": "parallel",
+          "script": [
+            [0, "ControlVars", "", [0, 4, 4, 2, 0, 1, 0]],
+            [0, "KeyInputProc", "", [5, 1, 0, 1, 0]],
+            [0, "MoveEvent", "", [18, 8, 0, 0, 36]],
+            [0, "ControlVars", "", [0, 6, 6, 0, 6, 10001, 1]],
+            [0, "ControlVars", "", [0, 7, 7, 0, 6, 10001, 2]],
+            [0, "ChangeEventLocation", "", [18, 1, 6, 7]],
+            [0, "ControlVars", "", [0, 11, 11, 0, 6, 10001, 2]],
+            [0, "ControlVars", "", [0, 11, 11, 2, 0, 1, 0]],
+            [0, "ChangeEventLocation", "", [28, 1, 6, 11]],
+            [0, "ControlVars", "", [0, 12, 12, 0, 6, 10001, 2]],
+            [0, "ControlVars", "", [0, 12, 12, 1, 0, 1, 0]],
+            [0, "ChangeEventLocation", "", [29, 1, 6, 12]],
+            [0, "ControlVars", "", [0, 13, 13, 0, 6, 10001, 1]],
+            [0, "ControlVars", "", [0, 13, 13, 2, 0, 1, 0]],
+            [0, "ChangeEventLocation", "", [30, 1, 13, 7]],
+            [0, "ControlVars", "", [0, 14, 14, 0, 6, 10001, 1]],
+            [0, "ControlVars", "", [0, 14, 14, 1, 0, 1, 0]],
+            [0, "ChangeEventLocation", "", [31, 1, 14, 7]],
+            [0, "KeyInputProc", "", [8, 1, 1, 0, 0]],
+            [0, "ConditionalBranch", "", [1, 8, 0, 1, 0, 1]],
+            [1, "MoveEvent", "", [18, 8, 0, 0, 36, 28, 28, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 29, 29]],
+            [1, "Wait", "", [10]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "ConditionalBranch", "", [1, 8, 0, 2, 0, 1]],
+            [2, "MoveEvent", "", [18, 8, 0, 0, 36, 28, 28, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 29, 29]],
+            [2, "Wait", "", [10]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "ConditionalBranch", "", [1, 8, 0, 3, 0, 1]],
+            [3, "MoveEvent", "", [18, 8, 0, 0, 36, 28, 28, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 29, 29]],
+            [3, "Wait", "", [10]],
+            [3, "END", "", []],
+            [2, "ElseBranch", "", []],
+            [3, "ConditionalBranch", "", [1, 8, 0, 4, 0, 1]],
+            [4, "MoveEvent", "", [18, 8, 0, 0, 36, 28, 28, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 29, 29]],
+            [4, "Wait", "", [10]],
+            [4, "END", "", []],
+            [3, "ElseBranch", "", []],
+            [4, "END", "", []],
+            [3, "EndBranch", "", []],
+            [3, "END", "", []],
+            [2, "EndBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ChangeEventLocation", "", [28, 0, 32, 55]],
+            [0, "ChangeEventLocation", "", [29, 0, 32, 56]],
+            [0, "ChangeEventLocation", "", [30, 0, 31, 56]],
+            [0, "ChangeEventLocation", "", [31, 0, 33, 56]],
+            [0, "ChangeEventLocation", "", [18, 0, 95, 97]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "name": "Stone",
+      "at": [45, 75],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object2",
+            "index": 6,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "overlap_forbidden": true,
+          "script": [
+            [0, "MoveEvent", "", [18, 8, 0, 0, 21]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "name": "A2",
+      "at": [21, 47],
+      "pages": [
+        {
+          "tile": 80,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "name": "A3",
+      "at": [21, 46],
+      "pages": [
+        {
+          "tile": 80,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "name": "A4",
+      "at": [21, 45],
+      "pages": [
+        {
+          "tile": 80,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "name": "A7",
+      "at": [22, 45],
+      "pages": [
+        {
+          "tile": 80,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "name": "A9",
+      "at": [23, 45],
+      "pages": [
+        {
+          "tile": 80,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 24,
+      "name": "A8",
+      "at": [23, 46],
+      "pages": [
+        {
+          "tile": 80,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 25,
+      "name": "A6",
+      "at": [22, 46],
+      "pages": [
+        {
+          "tile": 80,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 26,
+      "name": "A5",
+      "at": [22, 47],
+      "pages": [
+        {
+          "tile": 80,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 27,
+      "name": "A10",
+      "at": [24, 45],
+      "pages": [
+        {
+          "tile": 80,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 28,
+      "name": "BlockNorth",
+      "at": [32, 55],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 29,
+      "name": "BlockSouth",
+      "at": [32, 56],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 30,
+      "name": "BlockWest",
+      "at": [31, 56],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 31,
+      "name": "BlockEast",
+      "at": [33, 56],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 32,
+      "name": "LTSentry2",
+      "at": [13, 40],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara3",
+            "index": 6,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "parallel",
+          "move": {
+            "type": "custom",
+            "speed": "half",
+            "frequency": 3
+          },
+          "script": [
+            [0, "ControlVars", "", [0, 15, 15, 0, 6, 10005, 1]],
+            [0, "ControlVars", "", [0, 16, 16, 0, 6, 10005, 2]],
+            [0, "ControlVars", "", [0, 9, 9, 0, 6, 18, 1]],
+            [0, "ControlVars", "", [0, 10, 10, 0, 6, 18, 2]],
+            [0, "ConditionalBranch", "", [1, 9, 1, 15, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 10, 1, 16, 0, 1]],
+            [2, "PlaySound", "Blow2", [100, 100, 50]],
+            [2, "ChangeEventLocation", "", [18, 0, 98, 98]],
+            [2, "MoveEvent", "", [10005, 8, 0, 0, 24, 25]],
+            [2, "Wait", "", [3]],
+            [2, "ShowMessage", "GANG MEMBER", []],
+            [2, "ShowMessage_2", "What the %@$#?! Who threw that?!", []],
+            [2, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 9, 29]],
+            [2, "Wait", "", [10]],
+            [2, "ShowMessage", "GANG MEMBER", []],
+            [2, "ShowMessage_2", "You're not going anywhere, man!", []],
+            [2, "ShowMessage_2", "Get back in there!", []],
+            [2, "Wait", "", [2]],
+            [2, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [2, "Wait", "", [2]],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "Maybe if I were closer I could knock him", []],
+            [2, "ShowMessage_2", "out...", []],
+            [2, "CallEvent", "", [1, 33, 1]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 33,
+      "name": "ResetPuzzle",
+      "at": [45, 72],
+      "pages": [
+        {
+          "tile": 33,
+          "layer": "below",
+          "trigger": "action",
+          "script": [
+            [0, "HaltAllMovement", "", []],
+            [0, "ControlVars", "", [0, 17, 17, 0, 7, 1, 0]],
+            [0, "ControlVars", "", [0, 17, 17, 2, 0, 60, 0]],
+            [0, "TimerOperation", "", [0, 1, 17, 0, 0]],
+            [0, "ShowMessage", "TALAN wasted a minute!", []],
+            [0, "ShowMessage_2", "[conditions in the hideout return", []],
+            [0, "ShowMessage_2", "to normal]", []],
+            [0, "ConditionalBranch", "", [0, 68, 1, 0, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 17, 0, 1, 2, 1]],
+            [2, "ControlSwitches", "", [0, 67, 67, 1]],
+            [2, "TimerOperation", "", [2, 0, 0, 0, 0]],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "Well... it's official. I'm late.", []],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "Maybe if I get there soon I can keep", []],
+            [2, "ShowMessage_2", "my job... <sigh>", []],
+            [2, "ControlSwitches", "", [0, 68, 68, 0]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ControlSwitches", "", [0, 43, 43, 1]],
+            [0, "ControlVars", "", [0, 4, 4, 0, 0, 0, 0]],
+            [0, "ControlSwitches", "", [0, 44, 44, 1]],
+            [0, "ControlSwitches", "", [0, 45, 45, 1]],
+            [0, "ControlSwitches", "", [0, 47, 47, 1]],
+            [0, "ControlSwitches", "", [0, 46, 46, 1]],
+            [0, "ControlSwitches", "", [0, 48, 48, 1]],
+            [0, "ControlSwitches", "", [0, 49, 49, 1]],
+            [0, "ControlSwitches", "", [0, 50, 50, 1]],
+            [0, "ControlSwitches", "", [0, 52, 52, 1]],
+            [0, "ControlSwitches", "", [0, 53, 53, 1]],
+            [0, "ChangeEventLocation", "", [14, 0, 7, 48]],
+            [0, "MoveEvent", "", [14, 8, 0, 0, 13]],
+            [0, "ChangeEventLocation", "", [15, 0, 21, 48]],
+            [0, "ChangeEventLocation", "", [19, 0, 21, 47]],
+            [0, "ChangeEventLocation", "", [20, 0, 21, 46]],
+            [0, "ChangeEventLocation", "", [21, 0, 21, 45]],
+            [0, "ChangeEventLocation", "", [26, 0, 22, 47]],
+            [0, "ChangeEventLocation", "", [25, 0, 22, 46]],
+            [0, "ChangeEventLocation", "", [22, 0, 22, 45]],
+            [0, "ChangeEventLocation", "", [24, 0, 23, 46]],
+            [0, "ChangeEventLocation", "", [23, 0, 23, 45]],
+            [0, "ChangeEventLocation", "", [27, 0, 24, 45]],
+            [0, "ChangeEventLocation", "", [12, 0, 22, 43]],
+            [0, "ChangeEventLocation", "", [39, 0, 22, 70]],
+            [0, "ChangeEventLocation", "", [61, 0, 12, 44]],
+            [0, "ChangeEventLocation", "", [62, 0, 12, 43]],
+            [0, "ChangeEventLocation", "", [63, 0, 12, 42]],
+            [0, "ChangeEventLocation", "", [64, 0, 12, 41]],
+            [0, "ChangeEventLocation", "", [65, 0, 13, 44]],
+            [0, "ChangeEventLocation", "", [66, 0, 13, 43]],
+            [0, "ChangeEventLocation", "", [67, 0, 13, 42]],
+            [0, "ChangeEventLocation", "", [68, 0, 13, 41]],
+            [0, "ChangeEventLocation", "", [69, 0, 14, 43]],
+            [0, "ChangeEventLocation", "", [70, 0, 14, 42]],
+            [0, "ChangeEventLocation", "", [11, 0, 15, 42]],
+            [0, "ChangeEventLocation", "", [8, 0, 2, 48]],
+            [0, "ChangeEventLocation", "", [73, 0, 3, 48]],
+            [0, "ChangeEventLocation", "", [74, 0, 4, 48]],
+            [0, "ChangeEventLocation", "", [75, 0, 5, 48]],
+            [0, "ChangeEventLocation", "", [76, 0, 6, 48]],
+            [0, "ChangeEventLocation", "", [32, 0, 13, 40]],
+            [0, "MoveEvent", "", [32, 8, 0, 0, 14]],
+            [0, "ChangeEventLocation", "", [83, 0, 4, 52]],
+            [0, "ChangeEventLocation", "", [82, 0, 5, 52]],
+            [0, "ChangeEventLocation", "", [84, 0, 6, 52]],
+            [0, "ChangeEventLocation", "", [85, 0, 4, 53]],
+            [0, "ChangeEventLocation", "", [86, 0, 5, 53]],
+            [0, "ChangeEventLocation", "", [87, 0, 6, 53]],
+            [0, "ChangeEventLocation", "", [9, 0, 5, 50]],
+            [0, "ChangeEventLocation", "", [7, 0, 11, 38]],
+            [0, "ChangeEventLocation", "", [89, 0, 89, 97]],
+            [0, "ChangeEventLocation", "", [88, 0, 95, 98]],
+            [0, "ChangeEventLocation", "", [18, 0, 93, 97]],
+            [0, "ChangeEventLocation", "", [71, 0, 11, 53]],
+            [0, "ControlSwitches", "", [0, 51, 51, 1]],
+            [0, "Teleport", "", [11, 26, 47]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 34,
+      "name": "EV0034",
+      "at": [11, 39],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ControlSwitches", "", [0, 74, 74, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's sort of ugly. There's a plaque on it that", []],
+            [0, "ShowMessage_2", "says \"IDOL of the STREETS\".", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Someone has scribbled \"Lazer Teeth Are", []],
+            [0, "ShowMessage_2", "Number One!!!\" on it with red paint.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Well, prisoners can't be choosy,", []],
+            [0, "ShowMessage_2", "I guess. I'll just take this thing", []],
+            [0, "ShowMessage_2", "and get out of here.", []],
+            [0, "ControlSwitches", "", [0, 53, 53, 0]],
+            [0, "ChangeEventLocation", "", [7, 0, 97, 97]],
+            [0, "ChangeItems", "", [0, 0, 90, 0, 1]],
+            [0, "PlaySound", "Item1", [100, 100, 50]],
+            [0, "MessageOptions", "", [1, 1, 0, 0]],
+            [0, "ShowMessage", "TALAN got the IDOL OF THE STREETS!!", []],
+            [0, "FadeOutBGM", "", [2000]],
+            [0, "Wait", "", [20]],
+            [0, "MoveEvent", "", [32, 8, 0, 0, 36, 14]],
+            [0, "ChangeEventLocation", "", [32, 0, 14, 37]],
+            [0, "MoveEvent", "", [32, 8, 0, 0, 2, 2, 15, 24, 25]],
+            [0, "Wait", "", [10]],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "The prisoner is taking the Idol!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13, 23, 23, 23, 14]],
+            [0, "Wait", "", [3]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I think that's my cue to leave!", []],
+            [0, "PlayBGM", "rshinld", [0, 100, 100, 50]],
+            [0, "ChangeEventLocation", "", [88, 0, 15, 37]],
+            [0, "Wait", "", [3]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13, 12, 14]],
+            [0, "Wait", "", [3]],
+            [0, "ChangeEventLocation", "", [89, 0, 14, 37]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2, 2, 24, 2, 2, 25, 2, 2, 2, 13, 1, 1, 1, 1, 2, 2, 2]],
+            [0, "MoveEvent", "", [32, 8, 0, 0, 9, 9, 9, 9, 9, 9, 9]],
+            [0, "MoveEvent", "", [88, 8, 0, 0, 9, 9, 9, 9, 9, 9, 9]],
+            [0, "MoveEvent", "", [89, 8, 0, 0, 9, 9, 9, 9, 9, 9, 9, 9, 9]],
+            [0, "CallEvent", "", [1, 14, 5]],
+            [0, "Wait", "", [16]],
+            [0, "PlaySound", "Blow2", [100, 100, 50]],
+            [0, "ShowBattleAnimation", "", [9, 39, 1, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2]],
+            [0, "MoveEvent", "", [39, 8, 0, 0, 28, 38, 2, 2, 2, 2, 2, 2, 39, 1, 29]],
+            [0, "Wait", "", [10]],
+            [0, "Teleport", "", [9, 44, 38]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 37
+          },
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ControlSwitches", "", [0, 74, 74, 0]],
+            [0, "ControlSwitches", "", [0, 53, 53, 0]],
+            [0, "ChangeEventLocation", "", [7, 0, 97, 97]],
+            [0, "ChangeItems", "", [0, 0, 90, 0, 1]],
+            [0, "PlaySound", "Item1", [100, 100, 50]],
+            [0, "MessageOptions", "", [1, 1, 0, 0]],
+            [0, "ShowMessage", "TALAN got the IDOL OF THE STREETS!!", []],
+            [0, "FadeOutBGM", "", [2000]],
+            [0, "Wait", "", [20]],
+            [0, "MoveEvent", "", [32, 8, 0, 0, 36, 14]],
+            [0, "ChangeEventLocation", "", [32, 0, 14, 37]],
+            [0, "MoveEvent", "", [32, 8, 0, 0, 2, 2, 15, 24, 25]],
+            [0, "Wait", "", [10]],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "The prisoner is taking the Idol!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13, 23, 23, 23, 14]],
+            [0, "Wait", "", [3]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I think that's my cue to leave!", []],
+            [0, "PlayBGM", "rshinld", [0, 100, 100, 50]],
+            [0, "ChangeEventLocation", "", [88, 0, 15, 37]],
+            [0, "Wait", "", [3]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13, 12, 14]],
+            [0, "Wait", "", [3]],
+            [0, "ChangeEventLocation", "", [89, 0, 14, 37]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2, 2, 24, 2, 2, 25, 2, 2, 2, 13, 1, 1, 1, 1, 2, 2, 2]],
+            [0, "MoveEvent", "", [32, 8, 0, 0, 9, 9, 9, 9, 9, 9, 9]],
+            [0, "MoveEvent", "", [88, 8, 0, 0, 9, 9, 9, 9, 9, 9, 9]],
+            [0, "MoveEvent", "", [89, 8, 0, 0, 9, 9, 9, 9, 9, 9, 9, 9, 9]],
+            [0, "CallEvent", "", [1, 14, 5]],
+            [0, "Wait", "", [16]],
+            [0, "PlaySound", "Blow2", [100, 100, 50]],
+            [0, "ShowBattleAnimation", "", [9, 39, 1, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2]],
+            [0, "MoveEvent", "", [39, 8, 0, 0, 28, 38, 2, 2, 2, 2, 2, 2, 39, 1, 29]],
+            [0, "Wait", "", [10]],
+            [0, "Teleport", "", [9, 44, 38]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 35,
+      "name": "LTComputer",
+      "at": [19, 44],
+      "pages": [
+        {
+          "tile": 49,
+          "layer": "same",
+          "trigger": "parallel",
+          "overlap_forbidden": true,
+          "script": [
+            [0, "ControlVars", "", [0, 15, 15, 0, 6, 10005, 1]],
+            [0, "ControlVars", "", [0, 16, 16, 0, 6, 10005, 2]],
+            [0, "ControlVars", "", [0, 9, 9, 0, 6, 18, 1]],
+            [0, "ControlVars", "", [0, 10, 10, 0, 6, 18, 2]],
+            [0, "ConditionalBranch", "", [1, 9, 1, 15, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 10, 1, 16, 0, 1]],
+            [2, "PlaySound", "Holy3", [100, 100, 50]],
+            [2, "ShowBattleAnimation", "", [1, 10005, 1, 0]],
+            [2, "Wait", "", [1]],
+            [2, "PlaySound", "Cursor2", [100, 100, 50]],
+            [2, "Wait", "", [2]],
+            [2, "PlaySound", "Dark1", [100, 100, 50]],
+            [2, "ControlSwitches", "", [0, 45, 45, 0]],
+            [2, "CallEvent", "", [1, 14, 3]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 36,
+      "name": "B1",
+      "at": [17, 48],
+      "pages": [
+        {
+          "tile": 80,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "You're not going anywhere, man!", []],
+            [0, "ShowMessage_2", "Get back in there!", []],
+            [0, "Wait", "", [2]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "Wait", "", [2]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
+            [0, "ShowMessage_2", "the light, or not be seen...", []],
+            [0, "CallEvent", "", [1, 33, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 46
+          },
+          "tile": 80,
+          "layer": "below",
+          "trigger": "touched"
+        },
+        {
+          "conditions": {
+            "switch_a": 51
+          },
+          "tile": 80,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "You're not going anywhere, man!", []],
+            [0, "ShowMessage_2", "Get back in there!", []],
+            [0, "Wait", "", [2]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "Wait", "", [2]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
+            [0, "ShowMessage_2", "being seen...", []],
+            [0, "CallEvent", "", [1, 33, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 37,
+      "name": "B2",
+      "at": [18, 47],
+      "pages": [
+        {
+          "tile": 80,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "You're not going anywhere, man!", []],
+            [0, "ShowMessage_2", "Get back in there!", []],
+            [0, "Wait", "", [2]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "Wait", "", [2]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
+            [0, "ShowMessage_2", "the light, or not be seen...", []],
+            [0, "CallEvent", "", [1, 33, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 46
+          },
+          "tile": 80,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "Something behind me?!", []],
+            [0, "MoveEvent", "", [14, 8, 0, 0, 21]],
+            [0, "CallEvent", "", [1, 15, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 51
+          },
+          "tile": 80,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "You're not going anywhere, man!", []],
+            [0, "ShowMessage_2", "Get back in there!", []],
+            [0, "Wait", "", [2]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "Wait", "", [2]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
+            [0, "ShowMessage_2", "being seen...", []],
+            [0, "CallEvent", "", [1, 33, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 38,
+      "name": "B3",
+      "at": [19, 46],
+      "pages": [
+        {
+          "tile": 80,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "You're not going anywhere, man!", []],
+            [0, "ShowMessage_2", "Get back in there!", []],
+            [0, "Wait", "", [2]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "Wait", "", [2]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
+            [0, "ShowMessage_2", "the light, or not be seen...", []],
+            [0, "CallEvent", "", [1, 33, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 51
+          },
+          "tile": 80,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "You're not going anywhere, man!", []],
+            [0, "ShowMessage_2", "Get back in there!", []],
+            [0, "Wait", "", [2]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "Wait", "", [2]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
+            [0, "ShowMessage_2", "being seen...", []],
+            [0, "CallEvent", "", [1, 33, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 39,
+      "name": "LTSentry3",
+      "at": [22, 70],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara3",
+            "index": 6,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 40,
+      "name": "EV0040",
+      "at": [15, 49],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ConditionalBranch", "", [0, 37, 1, 0, 0, 1]],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "I think I'd like to stay and see what", []],
+            [1, "ShowMessage_2", "this Idol thing is all about, as long", []],
+            [1, "ShowMessage_2", "as I'm here.", []],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "This thing could be worth some", []],
+            [1, "ShowMessage_2", "serious creds...", []],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "Especially if I lose my job for being", []],
+            [1, "ShowMessage_2", "late this morning... those creds could", []],
+            [1, "ShowMessage_2", "come in useful. <sigh>", []],
+            [1, "MoveEvent", "", [10001, 8, 0, 0, 0]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "ChangeEventLocation", "", [39, 0, 15, 57]],
+            [1, "MoveEvent", "", [39, 8, 0, 0, 0, 0, 0, 0, 0]],
+            [1, "Wait", "", [12]],
+            [1, "ShowMessage", "GANG MEMBER", []],
+            [1, "ShowMessage_2", "The prisoner is trying to escape!", []],
+            [1, "CallEvent", "", [1, 15, 1]],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 41,
+      "name": "B3",
+      "at": [18, 46],
+      "pages": [
+        {
+          "tile": 80,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "You're not going anywhere, man!", []],
+            [0, "ShowMessage_2", "Get back in there!", []],
+            [0, "Wait", "", [2]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "Wait", "", [2]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
+            [0, "ShowMessage_2", "the light, or not be seen...", []],
+            [0, "CallEvent", "", [1, 33, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 42,
+      "name": "B3",
+      "at": [18, 45],
+      "pages": [
+        {
+          "tile": 80,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "You're not going anywhere, man!", []],
+            [0, "ShowMessage_2", "Get back in there!", []],
+            [0, "Wait", "", [2]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "Wait", "", [2]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
+            [0, "ShowMessage_2", "the light, or not be seen...", []],
+            [0, "CallEvent", "", [1, 33, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 43,
+      "name": "B3",
+      "at": [17, 45],
+      "pages": [
+        {
+          "tile": 80,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "You're not going anywhere, man!", []],
+            [0, "ShowMessage_2", "Get back in there!", []],
+            [0, "Wait", "", [2]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "Wait", "", [2]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
+            [0, "ShowMessage_2", "the light, or not be seen...", []],
+            [0, "CallEvent", "", [1, 33, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 44,
+      "name": "B3",
+      "at": [17, 46],
+      "pages": [
+        {
+          "tile": 80,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "You're not going anywhere, man!", []],
+            [0, "ShowMessage_2", "Get back in there!", []],
+            [0, "Wait", "", [2]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "Wait", "", [2]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
+            [0, "ShowMessage_2", "the light, or not be seen...", []],
+            [0, "CallEvent", "", [1, 33, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 45,
+      "name": "B3",
+      "at": [16, 46],
+      "pages": [
+        {
+          "tile": 80,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "You're not going anywhere, man!", []],
+            [0, "ShowMessage_2", "Get back in there!", []],
+            [0, "Wait", "", [2]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "Wait", "", [2]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
+            [0, "ShowMessage_2", "the light, or not be seen...", []],
+            [0, "CallEvent", "", [1, 33, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 46,
+      "name": "B3",
+      "at": [16, 45],
+      "pages": [
+        {
+          "tile": 80,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "You're not going anywhere, man!", []],
+            [0, "ShowMessage_2", "Get back in there!", []],
+            [0, "Wait", "", [2]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "Wait", "", [2]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
+            [0, "ShowMessage_2", "the light, or not be seen...", []],
+            [0, "CallEvent", "", [1, 33, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 47,
+      "name": "B3",
+      "at": [15, 45],
+      "pages": [
+        {
+          "tile": 80,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "You're not going anywhere, man!", []],
+            [0, "ShowMessage_2", "Get back in there!", []],
+            [0, "Wait", "", [2]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "Wait", "", [2]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
+            [0, "ShowMessage_2", "the light, or not be seen...", []],
+            [0, "CallEvent", "", [1, 33, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 48,
+      "name": "B3",
+      "at": [14, 45],
+      "pages": [
+        {
+          "tile": 80,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "You're not going anywhere, man!", []],
+            [0, "ShowMessage_2", "Get back in there!", []],
+            [0, "Wait", "", [2]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "Wait", "", [2]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
+            [0, "ShowMessage_2", "the light, or not be seen...", []],
+            [0, "CallEvent", "", [1, 33, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 49,
+      "name": "B3",
+      "at": [15, 46],
+      "pages": [
+        {
+          "tile": 80,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "You're not going anywhere, man!", []],
+            [0, "ShowMessage_2", "Get back in there!", []],
+            [0, "Wait", "", [2]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "Wait", "", [2]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
+            [0, "ShowMessage_2", "the light, or not be seen...", []],
+            [0, "CallEvent", "", [1, 33, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 50,
+      "name": "B3",
+      "at": [14, 46],
+      "pages": [
+        {
+          "tile": 80,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "You're not going anywhere, man!", []],
+            [0, "ShowMessage_2", "Get back in there!", []],
+            [0, "Wait", "", [2]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "Wait", "", [2]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
+            [0, "ShowMessage_2", "the light, or not be seen...", []],
+            [0, "CallEvent", "", [1, 33, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 51,
+      "name": "B2",
+      "at": [17, 47],
+      "pages": [
+        {
+          "tile": 80,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "You're not going anywhere, man!", []],
+            [0, "ShowMessage_2", "Get back in there!", []],
+            [0, "Wait", "", [2]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "Wait", "", [2]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
+            [0, "ShowMessage_2", "the light, or not be seen...", []],
+            [0, "CallEvent", "", [1, 33, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 46
+          },
+          "tile": 80,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "Something behind me?!", []],
+            [0, "MoveEvent", "", [14, 8, 0, 0, 21]],
+            [0, "CallEvent", "", [1, 15, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 52,
+      "name": "B3",
+      "at": [16, 47],
+      "pages": [
+        {
+          "tile": 80,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "You're not going anywhere, man!", []],
+            [0, "ShowMessage_2", "Get back in there!", []],
+            [0, "Wait", "", [2]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "Wait", "", [2]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
+            [0, "ShowMessage_2", "the light, or not be seen...", []],
+            [0, "CallEvent", "", [1, 33, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 53,
+      "name": "B3",
+      "at": [15, 47],
+      "pages": [
+        {
+          "tile": 80,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "You're not going anywhere, man!", []],
+            [0, "ShowMessage_2", "Get back in there!", []],
+            [0, "Wait", "", [2]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "Wait", "", [2]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
+            [0, "ShowMessage_2", "the light, or not be seen...", []],
+            [0, "CallEvent", "", [1, 33, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 54,
+      "name": "B3",
+      "at": [14, 47],
+      "pages": [
+        {
+          "tile": 80,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "You're not going anywhere, man!", []],
+            [0, "ShowMessage_2", "Get back in there!", []],
+            [0, "Wait", "", [2]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "Wait", "", [2]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
+            [0, "ShowMessage_2", "the light, or not be seen...", []],
+            [0, "CallEvent", "", [1, 33, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 55,
+      "name": "B3",
+      "at": [13, 46],
+      "pages": [
+        {
+          "tile": 80,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "You're not going anywhere, man!", []],
+            [0, "ShowMessage_2", "Get back in there!", []],
+            [0, "Wait", "", [2]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "Wait", "", [2]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
+            [0, "ShowMessage_2", "the light, or not be seen...", []],
+            [0, "CallEvent", "", [1, 33, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 56,
+      "name": "B3",
+      "at": [12, 46],
+      "pages": [
+        {
+          "tile": 80,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "You're not going anywhere, man!", []],
+            [0, "ShowMessage_2", "Get back in there!", []],
+            [0, "Wait", "", [2]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "Wait", "", [2]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
+            [0, "ShowMessage_2", "the light, or not be seen...", []],
+            [0, "CallEvent", "", [1, 33, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 57,
+      "name": "B3",
+      "at": [12, 45],
+      "pages": [
+        {
+          "tile": 80,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "You're not going anywhere, man!", []],
+            [0, "ShowMessage_2", "Get back in there!", []],
+            [0, "Wait", "", [2]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "Wait", "", [2]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
+            [0, "ShowMessage_2", "the light, or not be seen...", []],
+            [0, "CallEvent", "", [1, 33, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 58,
+      "name": "B3",
+      "at": [13, 45],
+      "pages": [
+        {
+          "tile": 80,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "You're not going anywhere, man!", []],
+            [0, "ShowMessage_2", "Get back in there!", []],
+            [0, "Wait", "", [2]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "Wait", "", [2]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
+            [0, "ShowMessage_2", "the light, or not be seen...", []],
+            [0, "CallEvent", "", [1, 33, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 59,
+      "name": "B3",
+      "at": [13, 47],
+      "pages": [
+        {
+          "tile": 80,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 29]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "You're not going anywhere, man!", []],
+            [0, "ShowMessage_2", "Get back in there!", []],
+            [0, "Wait", "", [2]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "Wait", "", [2]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
+            [0, "ShowMessage_2", "the light, or not be seen...", []],
+            [0, "CallEvent", "", [1, 33, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 60,
+      "name": "EV0060",
+      "at": [22, 44],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "The light is mounted high up on the wall,", []],
+            [0, "ShowMessage_2", "and I can't reach it.", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 44
+          },
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Well, that certainly took care of the", []],
+            [0, "ShowMessage_2", "light... now I just need to make good", []],
+            [0, "ShowMessage_2", "use of the darkness.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 61,
+      "name": "C1",
+      "at": [12, 44],
+      "pages": [
+        {
+          "tile": 80,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [32, 8, 0, 0, 21]],
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "I see you there! Back to the cell with you!", []],
+            [0, "Wait", "", [2]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "Wait", "", [2]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
+            [0, "ShowMessage_2", "the light, or not be seen...", []],
+            [0, "CallEvent", "", [1, 33, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 62,
+      "name": "C2",
+      "at": [12, 43],
+      "pages": [
+        {
+          "tile": 80,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [32, 8, 0, 0, 21]],
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "I see you there! Back to the cell with you!", []],
+            [0, "Wait", "", [2]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "Wait", "", [2]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
+            [0, "ShowMessage_2", "the light, or not be seen...", []],
+            [0, "CallEvent", "", [1, 33, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 63,
+      "name": "C3",
+      "at": [12, 42],
+      "pages": [
+        {
+          "tile": 80,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [32, 8, 0, 0, 21]],
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "I see you there! Back to the cell with you!", []],
+            [0, "Wait", "", [2]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "Wait", "", [2]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
+            [0, "ShowMessage_2", "the light, or not be seen...", []],
+            [0, "CallEvent", "", [1, 33, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 64,
+      "name": "C4",
+      "at": [12, 41],
+      "pages": [
+        {
+          "tile": 80,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [32, 8, 0, 0, 21]],
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "I see you there! Back to the cell with you!", []],
+            [0, "Wait", "", [2]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "Wait", "", [2]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
+            [0, "ShowMessage_2", "the light, or not be seen...", []],
+            [0, "CallEvent", "", [1, 33, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 65,
+      "name": "C5",
+      "at": [13, 44],
+      "pages": [
+        {
+          "tile": 80,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [32, 8, 0, 0, 21]],
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "I see you there! Back to the cell with you!", []],
+            [0, "Wait", "", [2]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "Wait", "", [2]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
+            [0, "ShowMessage_2", "the light, or not be seen...", []],
+            [0, "CallEvent", "", [1, 33, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 66,
+      "name": "C6",
+      "at": [13, 43],
+      "pages": [
+        {
+          "tile": 80,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [32, 8, 0, 0, 21]],
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "I see you there! Back to the cell with you!", []],
+            [0, "Wait", "", [2]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "Wait", "", [2]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
+            [0, "ShowMessage_2", "the light, or not be seen...", []],
+            [0, "CallEvent", "", [1, 33, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 67,
+      "name": "C7",
+      "at": [13, 42],
+      "pages": [
+        {
+          "tile": 80,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [32, 8, 0, 0, 21]],
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "I see you there! Back to the cell with you!", []],
+            [0, "Wait", "", [2]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "Wait", "", [2]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
+            [0, "ShowMessage_2", "the light, or not be seen...", []],
+            [0, "CallEvent", "", [1, 33, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 68,
+      "name": "C8",
+      "at": [13, 41],
+      "pages": [
+        {
+          "tile": 80,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [32, 8, 0, 0, 21]],
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "I see you there! Back to the cell with you!", []],
+            [0, "Wait", "", [2]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "Wait", "", [2]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
+            [0, "ShowMessage_2", "the light, or not be seen...", []],
+            [0, "CallEvent", "", [1, 33, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 69,
+      "name": "C9",
+      "at": [14, 43],
+      "pages": [
+        {
+          "tile": 80,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [32, 8, 0, 0, 21]],
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "I see you there! Back to the cell with you!", []],
+            [0, "Wait", "", [2]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "Wait", "", [2]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
+            [0, "ShowMessage_2", "the light, or not be seen...", []],
+            [0, "CallEvent", "", [1, 33, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 70,
+      "name": "C10",
+      "at": [14, 42],
+      "pages": [
+        {
+          "tile": 80,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [32, 8, 0, 0, 21]],
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "I see you there! Back to the cell with you!", []],
+            [0, "Wait", "", [2]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "Wait", "", [2]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "If only there was a way I could avoid", []],
+            [0, "ShowMessage_2", "the light, or not be seen...", []],
+            [0, "CallEvent", "", [1, 33, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 71,
+      "name": "NVSpy",
+      "at": [11, 53],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara3",
+            "index": 6,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ConditionalBranch", "", [0, 58, 1, 0, 0, 1]],
+            [1, "ShowMessage", "GANG MEMBER", []],
+            [1, "ShowMessage_2", "Who's there? Is someone there?", []],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "<freeze>", []],
+            [1, "MoveEvent", "", [10001, 3, 0, 0, 0, 0, 14]],
+            [1, "Wait", "", [10]],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "I don't think I'll go into that little room.", []],
+            [1, "ShowMessage_2", "The guard inside has sharp hearing.", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "MessageOptions", "", [0, 0, 0, 0]],
+            [1, "ShowMessage", "GANG MEMBER", []],
+            [1, "ShowMessage_2", "Who's there?", []],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "Uh oh...", []],
+            [1, "MoveEvent", "", [71, 8, 0, 0, 3, 3, 3, 3, 12]],
+            [1, "Wait", "", [10]],
+            [1, "ShowMessage", "GANG MEMBER", []],
+            [1, "ShowMessage_2", "<pssst> Are you the prisoner? Come over", []],
+            [1, "ShowMessage_2", "here...", []],
+            [1, "MoveEvent", "", [71, 8, 0, 0, 1, 1, 1, 1, 15]],
+            [1, "Wait", "", [10]],
+            [1, "MoveEvent", "", [10001, 8, 0, 0, 2, 1, 2, 1]],
+            [1, "Wait", "", [10]],
+            [1, "ShowMessage", "GANG MEMBER", []],
+            [1, "ShowMessage_2", "Don't worry, I won't give you away.", []],
+            [1, "ShowMessage_2", "I'm a spy for the Neon Vipers.", []],
+            [1, "Wait", "", [5]],
+            [1, "MoveEvent", "", [71, 8, 0, 0, 28, 28, 12, 13, 14, 15, 29, 29]],
+            [1, "Wait", "", [2]],
+            [1, "PlaySound", "Jump1", [100, 100, 50]],
+            [1, "MoveEvent", "", [71, 8, 0, 0, 34, 6, 67, 104, 97, 114, 97, 50, 0, 23]],
+            [1, "ShowBattleAnimation", "", [132, 71, 1, 0]],
+            [1, "Wait", "", [7]],
+            [1, "ShowMessage", "SPY", []],
+            [1, "ShowMessage_2", "See?", []],
+            [1, "ShowMessage", "SPY", []],
+            [1, "ShowMessage_2", "Are you trying to steal the Idol?", []],
+            [1, "ShowMessage_2", "Good luck!", []],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "Thanks. Where are they keeping it?", []],
+            [1, "ShowMessage", "SPY", []],
+            [1, "ShowMessage_2", "You'll find it on a stand at the northern", []],
+            [1, "ShowMessage_2", "part of the hideout.", []],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "OK - I'll do my best.", []],
+            [1, "Wait", "", [5]],
+            [1, "MoveEvent", "", [71, 8, 0, 0, 28, 28, 12, 13, 14, 15, 29, 29]],
+            [1, "Wait", "", [2]],
+            [1, "PlaySound", "Jump1", [100, 100, 50]],
+            [1, "MoveEvent", "", [71, 8, 0, 0, 34, 6, 67, 104, 97, 114, 97, 51, 6]],
+            [1, "ShowBattleAnimation", "", [132, 71, 1, 0]],
+            [1, "ControlSwitches", "", [0, 48, 48, 0]],
+            [1, "MoveEvent", "", [10001, 8, 0, 0, 3, 0, 3, 0, 0]],
+            [1, "Wait", "", [10]],
+            [1, "ConditionalBranch", "", [0, 38, 0, 0, 0, 1]],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "I wonder if this is what the Vipers", []],
+            [2, "ShowMessage_2", "wanted me to do?", []],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        },
+        {
+          "sprite": {
+            "charset": "Chara3",
+            "index": 6,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "parallel",
+          "script": [
+            [0, "ControlVars", "", [0, 15, 15, 0, 6, 10005, 1]],
+            [0, "ControlVars", "", [0, 16, 16, 0, 6, 10005, 2]],
+            [0, "ControlVars", "", [0, 9, 9, 0, 6, 18, 1]],
+            [0, "ControlVars", "", [0, 10, 10, 0, 6, 18, 2]],
+            [0, "ConditionalBranch", "", [1, 9, 1, 15, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 10, 1, 16, 0, 1]],
+            [2, "PlaySound", "Blow2", [100, 100, 50]],
+            [2, "ChangeEventLocation", "", [18, 0, 98, 98]],
+            [2, "MoveEvent", "", [10005, 8, 0, 0, 24, 25]],
+            [2, "Wait", "", [3]],
+            [2, "ShowMessage", "GANG MEMBER", []],
+            [2, "ShowMessage_2", "What the %@$#?! Who threw that?!", []],
+            [2, "MoveEvent", "", [14, 8, 0, 0, 28, 9, 9, 9, 9, 9, 9, 9, 29]],
+            [2, "Wait", "", [10]],
+            [2, "ShowMessage", "GANG MEMBER", []],
+            [2, "ShowMessage_2", "You're not going anywhere, man!", []],
+            [2, "ShowMessage_2", "Get back in there!", []],
+            [2, "Wait", "", [2]],
+            [2, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [2, "Wait", "", [2]],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "Maybe if I were closer I could knock him", []],
+            [2, "ShowMessage_2", "out...", []],
+            [2, "CallEvent", "", [1, 33, 1]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 48
+          },
+          "sprite": {
+            "charset": "Chara3",
+            "index": 6,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "SPY", []],
+            [0, "ShowMessage_2", "Good luck! We deserve the Idol of the", []],
+            [0, "ShowMessage_2", "Streets more than the Lazer Teeth do.", []],
+            [0, "ShowMessage_2", "Plus, our outfits are better.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 72,
+      "name": "EV0072",
+      "at": [7, 51],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "CallEvent", "", [1, 71, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 48
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched"
+        }
+      ]
+    },
+    {
+      "id": 73,
+      "name": "D1",
+      "at": [3, 48],
+      "pages": [
+        {
+          "tile": 80,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 74,
+      "name": "D2",
+      "at": [4, 48],
+      "pages": [
+        {
+          "tile": 80,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 75,
+      "name": "D3",
+      "at": [5, 48],
+      "pages": [
+        {
+          "tile": 80,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 76,
+      "name": "D4",
+      "at": [6, 48],
+      "pages": [
+        {
+          "tile": 80,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 77,
+      "name": "EV0077",
+      "at": [11, 44],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 47
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "GANG MEMBER", []],
+            [0, "ShowMessage_2", "Wow - it sure is dark all of a sudden.", []],
+            [0, "ShowMessage_2", "I'd better get a replacement battery", []],
+            [0, "ShowMessage_2", "for that light.", []],
+            [0, "MoveEvent", "", [32, 8, 0, 0, 1, 1, 0, 0, 0]],
+            [0, "Wait", "", [10]],
+            [0, "ChangeEventLocation", "", [32, 0, 98, 99]],
+            [0, "ControlSwitches", "", [0, 50, 50, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 50
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched"
+        }
+      ]
+    },
+    {
+      "id": 78,
+      "name": "EV0078",
+      "at": [3, 51],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "There's nothing in the grate, except", []],
+            [0, "ShowMessage_2", "for a lot of dirt.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 79,
+      "name": "EV0079",
+      "at": [6, 38],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "There's nothing in the grate, except", []],
+            [0, "ShowMessage_2", "for a lot of dirt.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 80,
+      "name": "EV0080",
+      "at": [14, 38],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "No way am I going up there. The rest of", []],
+            [0, "ShowMessage_2", "the Lazer Teeth are probably upstairs.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 81,
+      "name": "EV0081",
+      "at": [15, 38],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "No way am I going up there. The rest of", []],
+            [0, "ShowMessage_2", "the Lazer Teeth are probably upstairs.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 82,
+      "name": "E2",
+      "at": [5, 52],
+      "pages": [
+        {
+          "tile": 80,
+          "layer": "below",
+          "trigger": "touched"
+        }
+      ]
+    },
+    {
+      "id": 83,
+      "name": "E1",
+      "at": [4, 52],
+      "pages": [
+        {
+          "tile": 80,
+          "layer": "below",
+          "trigger": "touched"
+        }
+      ]
+    },
+    {
+      "id": 84,
+      "name": "E3",
+      "at": [6, 52],
+      "pages": [
+        {
+          "tile": 80,
+          "layer": "below",
+          "trigger": "touched"
+        }
+      ]
+    },
+    {
+      "id": 85,
+      "name": "E4",
+      "at": [4, 53],
+      "pages": [
+        {
+          "tile": 80,
+          "layer": "below",
+          "trigger": "touched"
+        }
+      ]
+    },
+    {
+      "id": 86,
+      "name": "E5",
+      "at": [5, 53],
+      "pages": [
+        {
+          "tile": 80,
+          "layer": "below",
+          "trigger": "touched"
+        }
+      ]
+    },
+    {
+      "id": 87,
+      "name": "E6",
+      "at": [6, 53],
+      "pages": [
+        {
+          "tile": 80,
+          "layer": "below",
+          "trigger": "touched"
+        }
+      ]
+    },
+    {
+      "id": 88,
+      "name": "LTCutsceneGuy1",
+      "at": [92, 97],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara3",
+            "index": 6,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 89,
+      "name": "LTCutsceneGuy2",
+      "at": [93, 97],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara3",
+            "index": 6,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    }
+  ]
+}

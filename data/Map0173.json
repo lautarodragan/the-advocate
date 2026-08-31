@@ -1,0 +1,375 @@
+{
+  "id": 173,
+  "name": "Leaving the Tomb",
+  "size": [20, 15],
+  "chipset": [23, "PS4Chipset"],
+  "tiles": "Map0173.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "1",
+      "at": [19, 8],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 480
+          },
+          "tile": 9,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "2",
+      "at": [18, 8],
+      "pages": [
+        {
+          "tile": 9,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 480
+          },
+          "tile": 8,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "3",
+      "at": [19, 7],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 480
+          },
+          "tile": 3,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "4",
+      "at": [18, 7],
+      "pages": [
+        {
+          "tile": 3,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 480
+          },
+          "tile": 2,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "EV0005",
+      "at": [17, 7],
+      "pages": [
+        {
+          "tile": 2,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 480
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "EV0006",
+      "at": [17, 8],
+      "pages": [
+        {
+          "tile": 8,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 480
+          },
+          "tile": 54,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "EV0007",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
+            [0, "TintScreen", "", [80, 0, 20, 100, 5, 1]],
+            [0, "Wait", "", [30]],
+            [0, "PlaySound", "Earth9", [100, 100, 100]],
+            [0, "ControlSwitches", "", [0, 480, 480, 0]],
+            [0, "Wait", "", [10]],
+            [0, "ChangePartyMembers", "", [0, 0, 14]],
+            [0, "ChangePartyMembers", "", [1, 0, 10]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 3, 3, 14]],
+            [0, "Wait", "", [10]],
+            [0, "ControlSwitches", "", [0, 481, 481, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 24, 25]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Emily, let's move!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 3, 0, 3, 3, 3, 3, 14]],
+            [0, "MoveEvent", "", [8, 8, 0, 1, 0, 0, 3, 3, 3, 3, 0, 0]],
+            [0, "Wait", "", [10]],
+            [0, "ControlSwitches", "", [0, 482, 482, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 24, 25, 0, 0, 0, 0, 0]],
+            [0, "MoveEvent", "", [10, 8, 0, 1, 0, 3, 3, 0, 0, 0, 0]],
+            [0, "Wait", "", [10]],
+            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
+            [0, "ChangePartyMembers", "", [1, 0, 14]],
+            [0, "ChangePartyMembers", "", [0, 0, 10]],
+            [0, "Teleport", "", [174, 5, 9]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "1",
+      "at": [16, 14],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 481
+          },
+          "sprite": {
+            "charset": "BLAgents",
+            "index": 1,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "EV0009",
+      "at": [11, 14],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 482
+          },
+          "sprite": {
+            "charset": "BLAgents",
+            "index": 1,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "Guard2",
+      "at": [9, 14],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 482
+          },
+          "sprite": {
+            "charset": "BLAgents",
+            "index": 1,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "EV0011",
+      "at": [0, 8],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 482
+          },
+          "sprite": {
+            "charset": "BLAgents",
+            "index": 1,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "EV0012",
+      "at": [3, 13],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Crown7",
+            "index": 3,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "EV0013",
+      "at": [5, 11],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Crown7",
+            "index": 3,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous"
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "name": "EV0014",
+      "at": [6, 9],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Crown7",
+            "index": 3,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous"
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "name": "EV0015",
+      "at": [12, 12],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Crown7",
+            "index": 3,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous"
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "name": "EV0016",
+      "at": [7, 12],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Crown7",
+            "index": 3,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous"
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "name": "EV0017",
+      "at": [8, 7],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Crown7",
+            "index": 3,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous"
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "name": "EV0018",
+      "at": [14, 14],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Crown7",
+            "index": 3,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous"
+        }
+      ]
+    }
+  ]
+}

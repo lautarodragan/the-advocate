@@ -1,0 +1,359 @@
+{
+  "id": 260,
+  "name": "Surl Highway",
+  "size": [70, 15],
+  "chipset": [15, "crashchp"],
+  "tiles": "Map0260.tiles",
+  "parallax": {
+    "name": "desertpan",
+    "loop_x": false,
+    "loop_y": false,
+    "scroll_x": 0,
+    "scroll_y": 0
+  },
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "MessageOptions", "", [0, 0, 1, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 1, 1, 1, 0, 13]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Wait", "", [4]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "The highway here is in good shape.", []],
+            [0, "ShowMessage_2", "It looks as if the battle touched Surl", []],
+            [0, "ShowMessage_2", "lightly in this region.", []],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "There's something glinting in the sunlight", []],
+            [0, "ShowMessage_2", "to the east - it looks like a huge metal", []],
+            [0, "ShowMessage_2", "building.", []],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 14, 23, 15, 23, 13]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I've got a bad feeling about this place...", []],
+            [0, "ShowMessage_2", "Why would the Agency wipe Surl off", []],
+            [0, "ShowMessage_2", "the map, but leave this building untouched?", []],
+            [0, "Wait", "", [8]],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 12]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Wait", "", [7]],
+            [0, "ShowMessage", "KERSH", []],
+            [0, "ShowMessage_2", "I know this place. I think... I've seen it", []],
+            [0, "ShowMessage_2", "somewhere.", []],
+            [0, "Wait", "", [5]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 15, 23]],
+            [0, "MoveEvent", "", [3, 8, 0, 0, 15]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Wait", "", [3]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Will you keep him quiet?", []],
+            [0, "ShowMessage_2", "I'm trying to think.", []],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "What do you know about this place,", []],
+            [0, "ShowMessage_2", "Kersh?", []],
+            [0, "Wait", "", [5]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 1, 1, 23, 1, 1, 23]],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 13, 23, 23]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ShowMessage", "KERSH", []],
+            [0, "ShowMessage_2", "I think... the people who destroyed", []],
+            [0, "ShowMessage_2", "Surl... came over this highway.", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "KERSH", []],
+            [0, "ShowMessage_2", "That building... wasn't what it was...", []],
+            [0, "ShowMessage_2", "supposed to be.", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "Do you know what it is, Kersh?", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "KERSH", []],
+            [0, "ShowMessage_2", "No... I don't remember.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 3, 3, 3, 3]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I think that building is a refinery of some", []],
+            [0, "ShowMessage_2", "kind - it looks like it was built sometime", []],
+            [0, "ShowMessage_2", "before the Shortage.", []],
+            [0, "Wait", "", [5]],
+            [0, "MoveEvent", "", [3, 8, 0, 0, 13]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "What's wrong?", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "...Nothing.", []],
+            [0, "Wait", "", [8]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Then let's go.", []],
+            [0, "MoveEvent", "", [3, 8, 0, 0, 36, 1, 1, 37]],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 36, 1, 1, 37]],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 36, 1, 1, 37]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 36, 1, 1, 37]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
+            [0, "Teleport", "", [261, 1, 9]],
+            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]],
+            [0, "ControlSwitches", "", [0, 658, 658, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 658
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Kersh",
+      "at": [1, 12],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future1",
+            "index": 5,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 658
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Emily",
+      "at": [2, 12],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "emily",
+            "index": 4,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 658
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "ParadiseChar",
+      "at": [0, 13],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 386
+          },
+          "sprite": {
+            "charset": "extra2(1)",
+            "index": 0,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 385
+          },
+          "sprite": {
+            "charset": "extra2(1)",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 388
+          },
+          "sprite": {
+            "charset": "People3",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 658
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [210, 21, 45]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "EV0005",
+      "at": [0, 12],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [210, 21, 45]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "EV0006",
+      "at": [69, 12],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [210, 24, 45]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "EV0007",
+      "at": [69, 13],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [210, 24, 45]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "AfterBattleMint",
+      "at": [69, 0],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 498
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "CallEvent", "", [0, 35, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "Ruin2.KM5",
+      "at": [53, 12],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 928, 928, 0]],
+            [0, "ChangeItems", "", [0, 0, 402, 0, 1]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Charred Doll House", []],
+            [0, "Wait", "", [2]],
+            [0, "PlaySound", "Dark5", [100, 100, 50]],
+            [0, "ChangeSkills", "", [1, 32, 0, 0, 292]],
+            [0, "ShowMessage", "KERSH has been subjected", []],
+            [0, "ShowMessage_2", "to MEMORIES OF DEATH!", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 928
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "EV0010",
+      "at": [66, 0],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 811
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ShowMessage", "RADIN", []],
+            [0, "ShowMessage_2", "I can't find ingredients here.", []],
+            [0, "ControlSwitches", "", [0, 811, 811, 1]]
+          ]
+        }
+      ]
+    }
+  ]
+}

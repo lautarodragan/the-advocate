@@ -1,0 +1,210 @@
+{
+  "id": 210,
+  "name": "The Kingdom of Surl",
+  "size": [40, 60],
+  "chipset": [31, "worldmapcharlie"],
+  "tiles": "Map0210.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [11, 3],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [246, 7, 13]],
+            [0, "ControlSwitches", "", [0, 236, 236, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [9, 32],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "TintScreen", "", [80, 80, 80, 80, 4, 1]],
+            [0, "Teleport", "", [257, 1, 33]],
+            [0, "ControlSwitches", "", [0, 236, 236, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 665
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [257, 1, 33]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [10, 32],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [270, 18, 4]],
+            [0, "ControlSwitches", "", [0, 236, 236, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [11, 47],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [258, 13, 1]],
+            [0, "ControlSwitches", "", [0, 236, 236, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "EV0005",
+      "at": [11, 48],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [273, 9, 13]],
+            [0, "ControlSwitches", "", [0, 236, 236, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "EV0006",
+      "at": [22, 45],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [260, 1, 13]],
+            [0, "ControlSwitches", "", [0, 236, 236, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "EV0007",
+      "at": [23, 45],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [260, 68, 12]],
+            [0, "ControlSwitches", "", [0, 236, 236, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "EV0008",
+      "at": [31, 45],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [261, 1, 9]],
+            [0, "ControlSwitches", "", [0, 236, 236, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "AfterBattleMint",
+      "at": [39, 0],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 498
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "CallEvent", "", [0, 35, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "EV0010",
+      "at": [39, 59],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 811
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ShowMessage", "RADIN", []],
+            [0, "ShowMessage_2", "The soil here is not very good for", []],
+            [0, "ShowMessage_2", "finding ingredients. I should try", []],
+            [0, "ShowMessage_2", "elsewhere.", []],
+            [0, "ControlSwitches", "", [0, 811, 811, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "WorldMapTurnOnSaving",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "parallel",
+          "script": [
+            [0, "ConditionalBranch", "", [0, 236, 1, 0, 0, 1]],
+            [1, "ControlSwitches", "", [0, 236, 236, 0]],
+            [1, "ChangeSaveAccess", "", [1]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    }
+  ]
+}

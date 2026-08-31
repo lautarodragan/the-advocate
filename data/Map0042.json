@@ -1,0 +1,161 @@
+{
+  "id": 42,
+  "name": "The Vidcasts (Factory)",
+  "size": [20, 15],
+  "chipset": [9, "BLchp1"],
+  "tiles": "Map0042.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "Reporter",
+      "at": [8, 12],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future3",
+            "index": 6,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [19, 14],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "TintScreen", "", [100, 100, 100, 40, 0, 0]],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "REPORTER", []],
+            [0, "ShowMessage_2", "... a terrible tragedy, that would shake", []],
+            [0, "ShowMessage_2", "the very foundation of our faith in human", []],
+            [0, "ShowMessage_2", "nature.", []],
+            [0, "ShowMessage", "REPORTER", []],
+            [0, "ShowMessage_2", "It took place here, at the Delcentric", []],
+            [0, "ShowMessage_2", "factory in Sector 30, mere hours ago.", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "REPORTER", []],
+            [0, "ShowMessage_2", "Zed, are you there?", []],
+            [0, "ChangeScreenTransitions", "", [0, 17]],
+            [0, "ChangeScreenTransitions", "", [1, 17]],
+            [0, "Teleport", "", [43, 10, 8]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 160
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "TIA", []],
+            [0, "ShowMessage_2", "I understand you worked at Delcentric", []],
+            [0, "ShowMessage_2", "with Talan? Did you see him today?", []],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "That's Dess!", []],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "DESSEN", []],
+            [0, "ShowMessage_2", "Yes, Tia, I did.", []],
+            [0, "ConditionalBranch", "", [0, 68, 0, 0, 0, 1]],
+            [1, "ShowMessage", "DESSEN", []],
+            [1, "ShowMessage_2", "He barged in late to work today, and", []],
+            [1, "ShowMessage_2", "interrupted the Director's (may he rest", []],
+            [1, "ShowMessage_2", "in peace) speech.", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "ShowMessage", "DESSEN", []],
+            [1, "ShowMessage_2", "He seemed really low-key about the", []],
+            [1, "ShowMessage_2", "Director's speech - he wasn't excited", []],
+            [1, "ShowMessage_2", "at all! On the outside, anyway...", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ConditionalBranch", "", [0, 25, 1, 0, 0, 1]],
+            [1, "ShowMessage", "DESSEN", []],
+            [1, "ShowMessage_2", "I don't think he shaved this morning.", []],
+            [1, "ShowMessage_2", "He looked really haggard, as if something", []],
+            [1, "ShowMessage_2", "big was troubling him.", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ShowMessage", "TIA", []],
+            [0, "ShowMessage_2", "I see... I understand you have some", []],
+            [0, "ShowMessage_2", "information about his whereabouts?", []],
+            [0, "MoveEvent", "", [3, 8, 0, 0, 13]],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [3, 8, 0, 0, 14]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "DESSEN", []],
+            [0, "ShowMessage_2", "Yes... yes, I do.", []],
+            [0, "MoveEvent", "", [3, 8, 0, 0, 15]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "DESSEN", []],
+            [0, "ShowMessage_2", "Talan's place of residence is", []],
+            [0, "ShowMessage_2", "listed as Sector 15...", []],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Dess... no! Don't -", []],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "DESSEN", []],
+            [0, "ShowMessage_2", " - but he really lives in an apartment in", []],
+            [0, "ShowMessage_2", "Sector 35.", []],
+            [0, "Wait", "", [7]],
+            [0, "ShowMessage", "TIA", []],
+            [0, "ShowMessage_2", "He really lives in Sector 35? Do you", []],
+            [0, "ShowMessage_2", "have any idea why he would list his", []],
+            [0, "ShowMessage_2", "place of residence incorrectly?", []],
+            [0, "MoveEvent", "", [3, 8, 0, 0, 14]],
+            [0, "Wait", "", [7]],
+            [0, "ShowMessage", "DESSEN", []],
+            [0, "ShowMessage_2", "I had never really thought about it before.", []],
+            [0, "ShowMessage_2", "Well, not before today, anyway...", []],
+            [0, "ShowMessage", "TIA", []],
+            [0, "ShowMessage_2", "You heard it here first, folks. I'm sure the", []],
+            [0, "ShowMessage_2", "Agency will find this information most", []],
+            [0, "ShowMessage_2", "helpful, Mr. Dessen.", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "DESSEN", []],
+            [0, "ShowMessage_2", "... ... ...", []],
+            [0, "ShowMessage", "TIA", []],
+            [0, "ShowMessage_2", "We'll be covering this story throughout the", []],
+            [0, "ShowMessage_2", "day, so stay tuned for further developments!", []],
+            [0, "ControlSwitches", "", [0, 161, 161, 0]],
+            [0, "TintScreen", "", [40, 40, 30, 70, 0, 0]],
+            [0, "Teleport", "", [40, 19, 32]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Dessen",
+      "at": [9, 12],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 160
+          },
+          "sprite": {
+            "charset": "Future2",
+            "index": 6,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    }
+  ]
+}

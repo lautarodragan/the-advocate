@@ -1,0 +1,295 @@
+{
+  "id": 242,
+  "name": "Dorm Hallway",
+  "size": [20, 30],
+  "chipset": [19, "Ancient(1)"],
+  "tiles": "Map0242.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [9, 7],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [3, 11],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [16, 11],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [16, 18],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "EV0005",
+      "at": [16, 27],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "EV0006",
+      "at": [3, 27],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "EV0007",
+      "at": [3, 18],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "Drago",
+      "at": [9, 20],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "YoungAgents",
+            "index": 0,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "Sern",
+      "at": [8, 22],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "YoungAgents",
+            "index": 1,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "EV0010",
+      "at": [3, 22],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "ISABELLA", []],
+            [0, "ShowMessage_2", "Drago... what's wrong? Why are you", []],
+            [0, "ShowMessage_2", "so upset?", []],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "SERN", []],
+            [0, "ShowMessage_2", "What did they ask you?", []],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "DRAGO", []],
+            [0, "ShowMessage_2", "I don't think I'm cut out to be part", []],
+            [0, "ShowMessage_2", "of the Agency.", []],
+            [0, "MoveEvent", "", [9, 8, 0, 0, 24, 25]],
+            [0, "MoveEvent", "", [11, 8, 0, 0, 23, 24, 25]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ShowMessage", "ISABELLA", []],
+            [0, "ShowMessage_2", "Drago... what do you mean?", []],
+            [0, "MoveEvent", "", [8, 8, 0, 0, 13]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ShowMessage", "DRAGO", []],
+            [0, "ShowMessage_2", "The examiners told me that you two", []],
+            [0, "ShowMessage_2", "passed the exam with flying colors.", []],
+            [0, "ShowMessage_2", "Not a single penalty.", []],
+            [0, "MoveEvent", "", [9, 8, 0, 0, 24, 25]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ShowMessage", "SERN", []],
+            [0, "ShowMessage_2", "Really? That's great!", []],
+            [0, "Wait", "", [15]],
+            [0, "ShowMessage", "ISABELLA", []],
+            [0, "ShowMessage_2", "Drago... what did they ask you?", []],
+            [0, "ShowMessage_2", "Did you pass too?", []],
+            [0, "MoveEvent", "", [8, 8, 0, 0, 14]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "DRAGO", []],
+            [0, "ShowMessage_2", "They asked me what I would do if", []],
+            [0, "ShowMessage_2", "you two were trapped inside that", []],
+            [0, "ShowMessage_2", "building with a wanted terrorist.", []],
+            [0, "ShowMessage", "DRAGO", []],
+            [0, "ShowMessage_2", "They said the terrorist would remotely", []],
+            [0, "ShowMessage_2", "launch a nuclear device if he was not", []],
+            [0, "ShowMessage_2", "dispatched immediately.", []],
+            [0, "MoveEvent", "", [8, 8, 0, 0, 13]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ShowMessage", "DRAGO", []],
+            [0, "ShowMessage_2", "\"What would you do?\" they asked me.", []],
+            [0, "Wait", "", [30]],
+            [0, "ShowMessage", "SERN", []],
+            [0, "ShowMessage_2", "What did you say? You said you'd take", []],
+            [0, "ShowMessage_2", "out the building and kill the terrorist", []],
+            [0, "ShowMessage_2", "immediately, right?", []],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "DRAGO", []],
+            [0, "ShowMessage_2", "... ... ...", []],
+            [0, "MoveEvent", "", [8, 8, 0, 0, 14]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ShowMessage", "DRAGO", []],
+            [0, "ShowMessage_2", "The Agency doesn't care about its", []],
+            [0, "ShowMessage_2", "individual members. I couldn't sacrifice", []],
+            [0, "ShowMessage_2", "two of my friends for the greater good!", []],
+            [0, "ShowMessage", "DRAGO", []],
+            [0, "ShowMessage_2", "I refuse to be put in that position!", []],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "DRAGO", []],
+            [0, "ShowMessage_2", "I need to leave. I need to leave tonight.", []],
+            [0, "ShowMessage_2", "I'm not sure what the Agency does to", []],
+            [0, "ShowMessage_2", "people who fail the exam -", []],
+            [0, "Wait", "", [2]],
+            [0, "ShowMessage", "ISABELLA", []],
+            [0, "ShowMessage_2", "I'm coming with you. Wherever you", []],
+            [0, "ShowMessage_2", "go. We don't need to join the Agency!", []],
+            [0, "Wait", "", [2]],
+            [0, "MoveEvent", "", [9, 8, 0, 0, 24, 25]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ShowMessage", "SERN", []],
+            [0, "ShowMessage_2", "This is crazy!", []],
+            [0, "MoveEvent", "", [12, 8, 0, 0, 28, 2, 2, 2, 2, 2, 2, 2, 2, 2, 29]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ShowMessage", "DALIA", []],
+            [0, "ShowMessage_2", "Drago! There you are! Can you believe", []],
+            [0, "ShowMessage_2", "how easy the squad leader exam was?", []],
+            [0, "ShowMessage_2", "I thought it would be so much harder!", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
+            [0, "ControlSwitches", "", [0, 934, 934, 0]],
+            [0, "Teleport", "", [222, 10, 11]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "Isabella",
+      "at": [10, 22],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "YoungAgents",
+            "index": 2,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "Dalia",
+      "at": [9, 8],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "YoungAgents",
+            "index": 5,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    }
+  ]
+}

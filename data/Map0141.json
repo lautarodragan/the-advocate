@@ -1,0 +1,144 @@
+{
+  "id": 141,
+  "name": "Storage Room",
+  "size": [20, 15],
+  "chipset": [25, "sd3_castle_inside_2"],
+  "tiles": "Map0141.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "ChairLeft",
+      "at": [8, 7],
+      "pages": [
+        {
+          "tile": 82,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 426
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "ChairRight",
+      "at": [12, 7],
+      "pages": [
+        {
+          "tile": 82,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 426
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "ChairBottom",
+      "at": [7, 11],
+      "pages": [
+        {
+          "tile": 82,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 426
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [4, 2],
+      "pages": [
+        {
+          "tile": 134,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "Wait", "", [10]],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Candles! Just what Auleen wanted!", []],
+            [0, "ShowMessage", "LERLE", []],
+            [0, "ShowMessage_2", "Let's grab a handful and get out of here.", []],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 29, 1, 1, 28]],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 29, 3, 28]],
+            [0, "MoveEvent", "", [3, 8, 0, 0, 29, 4, 4, 0, 0, 28]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "LERLE", []],
+            [0, "ShowMessage_2", "Uh... Talan...", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I see them...", []],
+            [0, "ChangeSystemBGM", "KW-robot", [0, 0, 100, 100, 50]],
+            [0, "ChangeSystemBGM", "KW-robot", [1, 0, 100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 426, 426, 0]],
+            [0, "ChangeEscapeAccess", "", [0]],
+            [0, "EnemyEncounter", "", [0, 186, 0, 1, 0, 0]],
+            [0, "ChangeEscapeAccess", "", [1]],
+            [0, "CallEvent", "", [0, 35, 0]],
+            [0, "ChangeSystemBGM", "T_VGFighterMAX_Masako", [0, 0, 100, 100, 50]],
+            [0, "ChangeSystemBGM", "T_VGFighterMAX_Masako", [1, 0, 100, 100, 50]],
+            [0, "ShowMessage", "LERLE", []],
+            [0, "ShowMessage_2", "Grab those candles!", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
+            [0, "ControlSwitches", "", [0, 425, 425, 0]],
+            [0, "Wait", "", [10]],
+            [0, "PlaySound", "Item1", [90, 70, 50]],
+            [0, "MessageOptions", "", [1, 1, 0, 0]],
+            [0, "ChangeItems", "", [0, 0, 153, 0, 1]],
+            [0, "ShowMessage", "TALAN received THEATRE CANDLES.", []],
+            [0, "Teleport", "", [131, 5, 2]],
+            [0, "PlaySound", "Earth4", [70, 70, 50]],
+            [0, "Wait", "", [10]],
+            [0, "MessageOptions", "", [0, 0, 1, 0]],
+            [0, "ShowMessage", "LERLE", []],
+            [0, "ShowMessage_2", "Look!", []],
+            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 15, 23, 13, 23, 14]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Nothing about this place surprises me", []],
+            [0, "ShowMessage_2", "anymore. Let's get going.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "EV0005",
+      "at": [0, 0],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 498
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "CallEvent", "", [0, 35, 0]]
+          ]
+        }
+      ]
+    }
+  ]
+}

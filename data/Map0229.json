@@ -1,0 +1,101 @@
+{
+  "id": 229,
+  "name": "Work Memory",
+  "size": [20, 15],
+  "chipset": [11, "ChipSet1"],
+  "tiles": "Map0229.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "Worker2",
+      "at": [12, 8],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future2",
+            "index": 6,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Worker2",
+      "at": [2, 10],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future2",
+            "index": 6,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Worker2",
+      "at": [16, 4],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future2",
+            "index": 6,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "TintScreen", "", [0, 0, 0, 100, 3, 1]],
+            [0, "MessageOptions", "", [0, 1, 0, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "TintScreen", "", [0, 0, 0, 100, 3, 1]],
+            [0, "TintScreen", "", [0, 120, 120, 200, 3, 1]],
+            [0, "TintScreen", "", [0, 0, 0, 100, 2, 1]],
+            [0, "TintScreen", "", [0, 120, 120, 200, 2, 1]],
+            [0, "TintScreen", "", [0, 0, 0, 100, 1, 1]],
+            [0, "TintScreen", "", [0, 120, 120, 200, 1, 1]],
+            [0, "TintScreen", "", [0, 0, 0, 100, 0, 1]],
+            [0, "TintScreen", "", [0, 120, 120, 200, 0, 1]],
+            [0, "TintScreen", "", [0, 0, 0, 100, 0, 1]],
+            [0, "TintScreen", "", [0, 120, 120, 200, 0, 1]],
+            [0, "TintScreen", "", [0, 0, 0, 100, 0, 1]],
+            [0, "TintScreen", "", [0, 120, 120, 200, 0, 1]],
+            [0, "TintScreen", "", [0, 0, 0, 100, 0, 1]],
+            [0, "TintScreen", "", [0, 120, 120, 200, 0, 1]],
+            [0, "TintScreen", "", [0, 0, 0, 100, 0, 1]],
+            [0, "TintScreen", "", [0, 120, 120, 200, 0, 1]],
+            [0, "TintScreen", "", [0, 0, 0, 100, 0, 1]],
+            [0, "TintScreen", "", [0, 120, 120, 200, 0, 1]],
+            [0, "TintScreen", "", [0, 0, 0, 100, 0, 1]],
+            [0, "ShowMessage", "MEMNOSYNE", []],
+            [0, "ShowMessage_2", "The sheer drudgery of doing the same", []],
+            [0, "ShowMessage_2", "thing day after day after day...", []],
+            [0, "PlaySound", "Rebirth3", [100, 60, 50]],
+            [0, "Teleport", "", [230, 15, 7]]
+          ]
+        }
+      ]
+    }
+  ]
+}

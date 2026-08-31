@@ -1,0 +1,314 @@
+{
+  "id": 7,
+  "name": "Talan's Pad",
+  "size": [20, 15],
+  "chipset": [9, "BLchp1"],
+  "tiles": "Map0007.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [0, 0],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 1
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ChangeSaveAccess", "", [0]],
+            [0, "PlayBGM", "hzstream", [0, 100, 100, 50]],
+            [0, "ChangePartyMembers", "", [1, 0, 10]],
+            [0, "ChangePartyMembers", "", [0, 0, 14]],
+            [0, "ShowMessage", "Starting Party fixed", []],
+            [0, "ControlSwitches", "", [0, 4, 4, 0]],
+            [0, "ControlSwitches", "", [0, 23, 23, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 28]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 4
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "TalDoorBottom",
+      "at": [9, 13],
+      "pages": [
+        {
+          "tile": 117,
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 24
+          },
+          "tile": 117,
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "TalDoorTop",
+      "at": [9, 12],
+      "pages": [
+        {
+          "tile": 111,
+          "layer": "above",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 24
+          },
+          "tile": 111,
+          "layer": "above",
+          "trigger": "action",
+          "script": [
+            [0, "PlaySound", "Open2", [100, 100, 50]],
+            [0, "ChangeEventLocation", "", [2, 0, 8, 13]],
+            [0, "ChangeEventLocation", "", [3, 0, 8, 12]],
+            [0, "Wait", "", [4]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [0, "Wait", "", [5]],
+            [0, "Teleport", "", [8, 11, 56]],
+            [0, "MessageOptions", "", [0, 0, 1, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Ten minutes... I'm not sure I can make it.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Well, let's see. I could go through Sector 36", []],
+            [0, "ShowMessage_2", "to the Hover-Tram stop...", []],
+            [0, "Wait", "", [4]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "Wait", "", [8]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "...but the Hover-Trams don't always run on", []],
+            [0, "ShowMessage_2", "time, and I might get stuck waiting for one.", []],
+            [0, "Wait", "", [4]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Or, I could head through Sector 34 until I reach", []],
+            [0, "ShowMessage_2", "the factory...", []],
+            [0, "Wait", "", [4]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
+            [0, "Wait", "", [8]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "...but that's four sectors of walking!", []],
+            [0, "Wait", "", [4]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 14]],
+            [0, "Wait", "", [4]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Well, this decision won't get any easier.", []],
+            [0, "ShowMessage_2", "I've got to make up my mind and go!", []],
+            [0, "MessageOptions", "", [0, 2, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [19, 0],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 23
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "TintScreen", "", [100, 100, 100, 40, 10, 1]],
+            [0, "Wait", "", [20]],
+            [0, "ChangeGold", "", [0, 0, 100]],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "... ... ...", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 36, 29, 29, 15, 3, 35, 5, 66, 108, 111, 119, 50, 60, 100, 50]],
+            [0, "Wait", "", [12]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I feel like I've been sleeping for hours.", []],
+            [0, "ShowMessage_2", "I wonder what time it is?", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 3, 3, 3, 0, 0]],
+            [0, "Wait", "", [18]],
+            [0, "PlaySound", "Decision1", [100, 100, 50]],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 24, 25, 37, 28]],
+            [0, "Wait", "", [8]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Oh no! I HAVE been sleeping for hours!", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I've only got ten minutes to get to work!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 14, 2, 2]],
+            [0, "Wait", "", [10]],
+            [0, "ControlSwitches", "", [0, 24, 24, 0]],
+            [0, "TimerOperation", "", [0, 0, 600, 1, 0]],
+            [0, "TimerOperation", "", [1, 0, 0, 1, 0]],
+            [0, "ControlSwitches", "", [0, 67, 67, 0]],
+            [0, "ControlSwitches", "", [0, 23, 23, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "EV0005",
+      "at": [11, 4],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 24
+          },
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's my computer console. If I wasn't in such", []],
+            [0, "ShowMessage_2", "a hurry, I'd complain about how low-end it is.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "EV0006",
+      "at": [6, 4],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 24
+          },
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's my Insta-Shave Unit, complete with", []],
+            [0, "ShowMessage_2", "Teeth-Cleaning Module and deodorant", []],
+            [0, "ShowMessage_2", "spray.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Should I use it?", []],
+            [0, "ShowChoice", "Yes/No", [2]],
+            [0, "ShowChoiceOption", "Yes", [0]],
+            [1, "PlaySound", "Cold9", [60, 100, 50]],
+            [1, "PlaySound", "Cold3", [60, 100, 50]],
+            [1, "PlaySound", "Explosion5", [60, 100, 50]],
+            [1, "PlaySound", "Holy6", [60, 100, 50]],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "Mmmmm.... refreshing! Now I'm all clean", []],
+            [1, "ShowMessage_2", "and well-shaven... but I still need to get", []],
+            [1, "ShowMessage_2", "to work!", []],
+            [1, "ControlSwitches", "", [0, 25, 25, 0]],
+            [1, "END", "", []],
+            [0, "ShowChoiceOption", "No", [1]],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "I've just gotta get to work!", []],
+            [1, "END", "", []],
+            [0, "ShowChoiceEnd", "", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 25
+          },
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I've already used my Insta-Shave today!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "EV0007",
+      "at": [3, 8],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 24
+          },
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "These pipes are ugly.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "EV0008",
+      "at": [3, 10],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 24
+          },
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "These pipes are ugly.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "EV0009",
+      "at": [15, 6],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 24
+          },
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I can't go back to bed - I'm late enough", []],
+            [0, "ShowMessage_2", "as it is!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "EV0010",
+      "at": [15, 7],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 24
+          },
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I can't go back to bed - I'm late enough", []],
+            [0, "ShowMessage_2", "as it is!", []]
+          ]
+        }
+      ]
+    }
+  ]
+}

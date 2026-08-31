@@ -1,0 +1,250 @@
+{
+  "id": 107,
+  "name": "TunnelToParadise",
+  "size": [50, 15],
+  "chipset": [21, "PS4Chipset"],
+  "tiles": "Map0107.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "Isabella",
+      "at": [10, 8],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara1",
+            "index": 3,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 332
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [0, 8],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [106, 10, 4]],
+            [0, "TintScreen", "", [100, 100, 100, 100, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [0, 9],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [106, 10, 4]],
+            [0, "TintScreen", "", [100, 100, 100, 100, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 1, 1, 1, 1, 1, 1]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Wait!", []],
+            [0, "Wait", "", [6]],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 15]],
+            [0, "Wait", "", [6]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I just wanted to thank you...", []],
+            [0, "ShowMessage", "ISABELLA", []],
+            [0, "ShowMessage_2", "You came seeking Paradise - what did you", []],
+            [0, "ShowMessage_2", "expect us to do?", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Actually... I don't really know anything", []],
+            [0, "ShowMessage_2", "about this place. Why did the Agency", []],
+            [0, "ShowMessage_2", "let me go so easily?", []],
+            [0, "ShowMessage", "ISABELLA", []],
+            [0, "ShowMessage_2", "A long time ago, when Paradise was", []],
+            [0, "ShowMessage_2", "founded, the original Council made", []],
+            [0, "ShowMessage_2", "a deal with the Director of the Agency.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "What was the deal?", []],
+            [0, "ShowMessage", "ISABELLA", []],
+            [0, "ShowMessage_2", "I don't know exactly what it was. The", []],
+            [0, "ShowMessage_2", "present Council must know the specifics,", []],
+            [0, "ShowMessage_2", "but for whatever reason, the Agency is", []],
+            [0, "ShowMessage", "ISABELLA", []],
+            [0, "ShowMessage_2", "required to leave us alone. Paradise", []],
+            [0, "ShowMessage_2", "has become a haven for those willing", []],
+            [0, "ShowMessage_2", "to disavow the Agency and its science.", []],
+            [0, "Wait", "", [7]],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 1, 1, 1, 1, 1]],
+            [0, "Wait", "", [5]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 1, 1, 1, 1]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "You know... I'm really innocent. I didn't", []],
+            [0, "ShowMessage_2", "kill the Director.", []],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "ISABELLA", []],
+            [0, "ShowMessage_2", "I need to tell you something, stranger.", []],
+            [0, "ShowMessage_2", "Do not talk about your life before reaching", []],
+            [0, "ShowMessage_2", "Paradise to anyone. That is your own", []],
+            [0, "ShowMessage", "ISABELLA", []],
+            [0, "ShowMessage_2", "business, and no concern of ours.", []],
+            [0, "ShowMessage_2", "It is time for you to start a new life.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "... ... ...", []],
+            [0, "Wait", "", [10]],
+            [0, "ConditionalBranch", "", [0, 150, 0, 0, 0, 1]],
+            [1, "ShowMessage", "ISABELLA", []],
+            [1, "ShowMessage_2", "Oh... your robot will have to stay outside.", []],
+            [1, "ShowMessage_2", "No machines or other forms of high", []],
+            [1, "ShowMessage_2", "technology are allowed past the tunnel.", []],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "But... AG7 is...", []],
+            [1, "ShowMessage", "ISABELLA", []],
+            [1, "ShowMessage_2", "Paradise stands for a way of life without", []],
+            [1, "ShowMessage_2", "technology. I will bring your robot back", []],
+            [1, "ShowMessage_2", "through the tunnel. It must stay outside.", []],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "... ... ...", []],
+            [1, "ShowMessage", "AG7-17", []],
+            [1, "ShowMessage_2", "454vparseresponse = \"why?\";387f3u3e", []],
+            [1, "ShowMessage_2", "Nocomment0897398rcm^%@$%", []],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "<sigh>", []],
+            [1, "ShowMessage_2", "It's OK, AG7. You'll be fine outside.", []],
+            [1, "ChangePartyMembers", "", [1, 0, 18]],
+            [1, "ControlSwitches", "", [0, 357, 357, 0]],
+            [1, "Wait", "", [20]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ShowMessage", "ISABELLA", []],
+            [0, "ShowMessage_2", "Before you can become a part of this", []],
+            [0, "ShowMessage_2", "community, you must meet with the Council", []],
+            [0, "ShowMessage_2", "and pass the Trials.", []],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 24, 25]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Trials?", []],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Isabella, wait! What Trials?", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 1, 1, 1, 1, 1, 1]],
+            [0, "Wait", "", [6]],
+            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
+            [0, "MessageOptions", "", [0, 1, 0, 0]],
+            [0, "Teleport", "", [108, 19, 19]],
+            [0, "ShowMessage", "Would you like to save the game?", []],
+            [0, "ShowChoice", "Yes/No", [2]],
+            [0, "ShowChoiceOption", "Yes", [0]],
+            [1, "TintScreen", "", [70, 70, 70, 70, 5, 1]],
+            [1, "ControlSwitches", "", [0, 332, 332, 0]],
+            [1, "OpenSaveMenu", "", []],
+            [1, "END", "", []],
+            [0, "ShowChoiceOption", "No", [1]],
+            [1, "TintScreen", "", [70, 70, 70, 70, 5, 1]],
+            [1, "ControlSwitches", "", [0, 332, 332, 0]],
+            [1, "END", "", []],
+            [0, "ShowChoiceEnd", "", []],
+            [0, "MessageOptions", "", [0, 2, 0, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 332
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "EV0005",
+      "at": [49, 0],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 811
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "CallEvent", "", [0, 47, 0]],
+            [0, "ControlSwitches", "", [0, 811, 811, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "EV0010",
+      "at": [49, 8],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [108, 4, 6]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 14]],
+            [0, "TintScreen", "", [100, 100, 100, 100, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "EV0011",
+      "at": [49, 9],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [108, 4, 6]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 14]],
+            [0, "TintScreen", "", [100, 100, 100, 100, 1, 0]]
+          ]
+        }
+      ]
+    }
+  ]
+}

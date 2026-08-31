@@ -1,0 +1,520 @@
+{
+  "id": 205,
+  "name": "Beach Scene",
+  "size": [20, 30],
+  "chipset": [49, "ABLTownMountain"],
+  "tiles": "Map0205.tiles",
+  "parallax": {
+    "name": "Night1",
+    "loop_x": false,
+    "loop_y": false,
+    "scroll_x": 0,
+    "scroll_y": 0
+  },
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [6, 3],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Crown7",
+            "index": 3,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [11, 29],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [206, 7, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "PlayBGM", "ocean", [0, 80, 100, 50]],
+            [0, "TintScreen", "", [30, 20, 60, 100, 0, 0]],
+            [0, "PanScreen", "", [2, 2, 7, 2, 0]],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 26, 36, 29, 38, 6, 2, 39, 28, 37, 27]],
+            [0, "MoveEvent", "", [5, 8, 0, 0, 26, 36, 29, 38, 2, 2, 2, 2, 39, 28, 37, 27]],
+            [0, "Wait", "", [30]],
+            [0, "MessageOptions", "", [0, 2, 1, 0]],
+            [0, "ControlSwitches", "", [0, 604, 604, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "<cough, gasp>", []],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 14]],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 13]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "Talan, are you all right?", []],
+            [0, "Wait", "", [1]],
+            [0, "MoveEvent", "", [5, 8, 0, 0, 15]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "<cough> ... I think I swallowed the entire", []],
+            [0, "ShowMessage_2", "river. But I guess that's better than... well,", []],
+            [0, "ShowMessage_2", "vice versa...", []],
+            [0, "Wait", "", [20]],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 12]],
+            [0, "Wait", "", [15]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "I still can't believe it.", []],
+            [0, "PanScreen", "", [3, 2, 7, 3, 1]],
+            [0, "PanScreen", "", [2, 0, 15, 3, 1]],
+            [0, "MoveEvent", "", [5, 8, 0, 0, 12]],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "Do you still have it?", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "The Package? Yeah, I've got it.", []],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "Why would the Agency DO something", []],
+            [0, "ShowMessage_2", "like that? We had never done anything", []],
+            [0, "ShowMessage_2", "to them!", []],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "... ... ...", []],
+            [0, "ChangeEventLocation", "", [4, 0, 7, 19]],
+            [0, "ChangeEventLocation", "", [5, 0, 9, 19]],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 12]],
+            [0, "MoveEvent", "", [5, 8, 0, 0, 12]],
+            [0, "PanScreen", "", [2, 2, 20, 4, 1]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "It's late. Do you think we'll be safe", []],
+            [0, "ShowMessage_2", "here tonight?", []],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I don't think I could move another", []],
+            [0, "ShowMessage_2", "inch if my life depended on it!", []],
+            [0, "Wait", "", [15]],
+            [0, "MoveEvent", "", [5, 8, 0, 0, 13]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Actually, that's not funny...", []],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "Talan, tell me a story.", []],
+            [0, "MoveEvent", "", [5, 8, 0, 0, 15]],
+            [0, "Wait", "", [12]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "What?", []],
+            [0, "Wait", "", [2]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "Anything to take my mind off... that.", []],
+            [0, "ShowMessage_2", "What about those vidcasts you're", []],
+            [0, "ShowMessage_2", "always talking about?", []],
+            [0, "MoveEvent", "", [5, 8, 0, 0, 12]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Flashbang? Well, sure... if you think it", []],
+            [0, "ShowMessage_2", "would help...", []],
+            [0, "Wait", "", [6]],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 13]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "What was the main character's name?", []],
+            [0, "ShowMessage_2", "He had a weird name, didn't he?", []],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Max Powertrain isn't a weird name!", []],
+            [0, "Wait", "", [5]],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 14]],
+            [0, "ShowMessage", "EMILY, smiling", []],
+            [0, "ShowMessage_2", "... ... ...", []],
+            [0, "Wait", "", [15]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Anyway...", []],
+            [0, "FadeOutBGM", "", [2000]],
+            [0, "Wait", "", [20]],
+            [0, "Teleport", "", [209, 9, 13]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 604
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 606
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "MoveEvent", "", [7, 8, 0, 0, 13]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "Talan, thanks... for being here.", []],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [6, 8, 0, 0, 15]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "I feel like I've known you forever.", []],
+            [0, "ShowMessage_2", "I can't imagine having to face this", []],
+            [0, "ShowMessage_2", "without you.", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "I'm not making any sense.", []],
+            [0, "ShowMessage_2", "Goodnight, Talan.", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Goodnight, Emily.", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 10, 1]],
+            [0, "ChangeEventLocation", "", [7, 0, 8, 21]],
+            [0, "MoveEvent", "", [7, 8, 0, 0, 34, 5, 101, 109, 105, 108, 121, 5, 15]],
+            [0, "ChangeEventLocation", "", [6, 0, 9, 21]],
+            [0, "MoveEvent", "", [6, 8, 0, 0, 15]],
+            [0, "Wait", "", [25]],
+            [0, "TintScreen", "", [30, 30, 30, 100, 5, 1]],
+            [0, "Wait", "", [55]],
+            [0, "MoveEvent", "", [7, 8, 0, 0, 34, 5, 101, 109, 105, 108, 121, 6, 13]],
+            [0, "Wait", "", [10]],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "... ... ...", []],
+            [0, "Wait", "", [5]],
+            [0, "MoveEvent", "", [7, 8, 0, 0, 34, 5, 101, 109, 105, 108, 121, 4]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "You're still awake? Haven't you been able", []],
+            [0, "ShowMessage_2", "to sleep?", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I'm fine... I was just... thinking.", []],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "About what?", []],
+            [0, "Wait", "", [30]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "zzz...zzz...", []],
+            [0, "Wait", "", [15]],
+            [0, "MoveEvent", "", [7, 8, 0, 0, 15]],
+            [0, "Wait", "", [15]],
+            [0, "MoveEvent", "", [7, 8, 0, 0, 34, 5, 101, 109, 105, 108, 121, 5]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "I'm not buying it, Talan.", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "zzz...zzz...zzz", []],
+            [0, "Wait", "", [20]],
+            [0, "MoveEvent", "", [6, 8, 0, 0, 14]],
+            [0, "Wait", "", [5]],
+            [0, "MessageOptions", "", [1, 1, 0, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Blast.", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Her home was just destroyed, her father", []],
+            [0, "ShowMessage_2", "and all her friends were probably killed.", []],
+            [0, "ShowMessage_2", "She's a fugitive now, just like me.", []],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "She just wouldn't understand how sleeping", []],
+            [0, "ShowMessage_2", "here beside her, under the stars, with the", []],
+            [0, "ShowMessage_2", "waves crashing on the beach...", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "...could make me so happy.", []],
+            [0, "MoveEvent", "", [6, 8, 0, 0, 13]],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Damn.", []],
+            [0, "Wait", "", [10]],
+            [0, "TintScreen", "", [0, 0, 0, 100, 10, 1]],
+            [0, "Teleport", "", [205, 9, 20]],
+            [0, "ChangePartyMembers", "", [1, 0, 10]],
+            [0, "ChangePartyMembers", "", [0, 0, 14]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 14]],
+            [0, "ControlSwitches", "", [0, 609, 609, 0]],
+            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]],
+            [0, "Wait", "", [20]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 15, 23, 23, 13, 23, 14]],
+            [0, "Wait", "", [5]],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ChangeSystemBGM", "T_VGFighterMAX_Masako", [0, 0, 100, 100, 50]],
+            [0, "ChangeSystemBGM", "T_VGFighterMAX_Masako", [1, 0, 100, 100, 50]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Emily?", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 609
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Emily",
+      "at": [7, 16],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "emily",
+            "index": 4,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 607
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Talan",
+      "at": [12, 15],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future1",
+            "index": 0,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 607
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "Talan2",
+      "at": [9, 20],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 607
+          },
+          "sprite": {
+            "charset": "Future1",
+            "index": 0,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 609
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "Emily2",
+      "at": [7, 20],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 607
+          },
+          "sprite": {
+            "charset": "emily",
+            "index": 4,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 609
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "SaveBySandyCave",
+      "at": [9, 27],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "savept",
+            "index": 0,
+            "direction": "up",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "action",
+          "animation": "fixed_continuous",
+          "translucent": true,
+          "script": [
+            [0, "PlaySound", "Holy5", [70, 100, 50]],
+            [0, "OpenSaveMenu", "", []],
+            [0, "ChangeSaveAccess", "", [0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "EV0009",
+      "at": [5, 26],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "parallel",
+          "translucent": true,
+          "script": [
+            [0, "ControlVars", "", [0, 39, 39, 0, 6, 10001, 1]],
+            [0, "ControlVars", "", [0, 40, 40, 0, 6, 10001, 2]],
+            [0, "ControlVars", "", [0, 41, 41, 0, 6, 8, 1]],
+            [0, "ControlVars", "", [0, 42, 42, 0, 6, 8, 2]],
+            [0, "ConditionalBranch", "", [1, 39, 1, 41, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 40, 1, 42, 0, 1]],
+            [2, "ChangeSaveAccess", "", [1]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "Life Bucket",
+      "at": [7, 27],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "PlaySound", "Recovery4", [100, 100, 50]],
+            [0, "FlashScreen", "", [31, 31, 31, 31, 5, 1]],
+            [0, "MessageOptions", "", [1, 1, 0, 0]],
+            [0, "FullHeal", "", [0, 0]],
+            [0, "ShowMessage", "HP and SP completely recovered!", []],
+            [0, "MessageOptions", "", [0, 2, 1, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "The water in this bucket is amazing!", []],
+            [0, "ShowMessage_2", "I wonder if I could bring some of it", []],
+            [0, "ShowMessage_2", "with me?", []]
+          ]
+        },
+        {
+          "conditions": {
+            "item": 106
+          },
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "PlaySound", "Recovery4", [100, 100, 50]],
+            [0, "FlashScreen", "", [31, 31, 31, 31, 5, 1]],
+            [0, "MessageOptions", "", [1, 1, 0, 0]],
+            [0, "FullHeal", "", [0, 0]],
+            [0, "ShowMessage", "HP and SP completely recovered!", []],
+            [0, "MessageOptions", "", [0, 2, 1, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "The water in this bucket is amazing!", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Should I fill up an empty bottle?", []],
+            [0, "ShowChoice", "Yes/No", [2]],
+            [0, "ShowChoiceOption", "Yes", [0]],
+            [1, "ChangeItems", "", [1, 0, 106, 0, 1]],
+            [1, "ChangeItems", "", [0, 0, 107, 0, 1]],
+            [1, "MessageOptions", "", [1, 1, 0, 0]],
+            [1, "PlaySound", "Water3", [100, 100, 50]],
+            [1, "ShowMessage", "TALAN filled an empty bottle with", []],
+            [1, "ShowMessage_2", "the healing liquid.", []],
+            [1, "MessageOptions", "", [0, 2, 1, 0]],
+            [1, "END", "", []],
+            [0, "ShowChoiceOption", "No", [1]],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "I think I'll hold onto my empty bottle.", []],
+            [1, "END", "", []],
+            [0, "ShowChoiceEnd", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "EV0011",
+      "at": [19, 0],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 811
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ShowMessage", "RADIN", []],
+            [0, "ShowMessage_2", "The soil here is not very good for", []],
+            [0, "ShowMessage_2", "finding ingredients. I should try", []],
+            [0, "ShowMessage_2", "elsewhere.", []],
+            [0, "ControlSwitches", "", [0, 811, 811, 1]]
+          ]
+        }
+      ]
+    }
+  ]
+}

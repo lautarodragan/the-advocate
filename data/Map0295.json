@@ -1,0 +1,574 @@
+{
+  "id": 295,
+  "name": "Emily Lowerlevel Room",
+  "size": [20, 80],
+  "chipset": [39, "tech5"],
+  "tiles": "Map0295.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [0, 71],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 1, 1, 1, 1, 1, 1]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "It's... a transport train?", []],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 1, 0, 0, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ShowMessage", "KERSH", []],
+            [0, "ShowMessage_2", "All these boxes... have labels that", []],
+            [0, "ShowMessage_2", "read, \"Prima City.\"", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 1, 1, 1]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "Why would this building have a rail", []],
+            [0, "ShowMessage_2", "connection to Prima City?", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 14, 23, 13]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "It doesn't look as if the rails have any", []],
+            [0, "ShowMessage_2", "power. If they did, we could ride this", []],
+            [0, "ShowMessage_2", "tram to Prima!", []],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 1, 1]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ShowMessage", "KERSH", []],
+            [0, "ShowMessage_2", "What's at Prima City?", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 14, 23, 23, 15]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "Someone... very bad, Kersh.", []],
+            [0, "ShowMessage_2", "The headquarters of the Agency are", []],
+            [0, "ShowMessage_2", "in Prima.", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "KERSH", []],
+            [0, "ShowMessage_2", "... ... ...", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 14, 23, 13]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "Do you hear something?", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12, 23, 23, 0, 23, 23]],
+            [0, "TintScreen", "", [0, 0, 0, 100, 10, 1]],
+            [0, "ChangePartyMembers", "", [1, 0, 32]],
+            [0, "ChangePartyMembers", "", [1, 0, 25]],
+            [0, "ChangePartyMembers", "", [0, 0, 10]],
+            [0, "FadeOutBGM", "", [1000]],
+            [0, "Wait", "", [10]],
+            [0, "PlayBGM", "md-scene6", [0, 100, 100, 50]],
+            [0, "ShowPicture", "SevDaysPrev", [3, 0, 125, 200, 0, 100, 0, 0, 0, 0, 0, 100, 0, 5497976]],
+            [0, "MovePicture", "", [3, 0, 125, 200, 0, 100, 0, 0, 100, 100, 100, 100, 0, 5497976, 35, 1]],
+            [0, "Wait", "", [20]],
+            [0, "MovePicture", "", [3, 0, 125, 200, 0, 100, 0, 0, 0, 0, 0, 100, 0, 31748228, 20, 1]],
+            [0, "ErasePicture", "", [3]],
+            [0, "Wait", "", [5]],
+            [0, "ChangePartyMembers", "", [1, 0, 18]],
+            [0, "Teleport", "", [253, 7, 37]],
+            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Kersh",
+      "at": [0, 75],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future1",
+            "index": 5,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "AfterBattleMint",
+      "at": [19, 0],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 498
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "CallEvent", "", [0, 35, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "Battledroid",
+      "at": [2, 22],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AG717",
+            "index": 4,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "Battledroid",
+      "at": [8, 22],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AG717",
+            "index": 4,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "Battledroid",
+      "at": [14, 22],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AG717",
+            "index": 4,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "Battledroid",
+      "at": [14, 16],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AG717",
+            "index": 4,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "Battledroid",
+      "at": [11, 16],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AG717",
+            "index": 4,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "Battledroid",
+      "at": [5, 16],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AG717",
+            "index": 4,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "Battledroid",
+      "at": [17, 29],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AG717",
+            "index": 4,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "name": "Battledroid",
+      "at": [14, 29],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AG717",
+            "index": 4,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "name": "Battledroid",
+      "at": [11, 22],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AG717",
+            "index": 4,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "name": "Battledroid",
+      "at": [5, 22],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AG717",
+            "index": 4,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "name": "Battledroid",
+      "at": [17, 22],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AG717",
+            "index": 4,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "name": "Battledroid",
+      "at": [2, 29],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AG717",
+            "index": 4,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "name": "Battledroid",
+      "at": [2, 16],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AG717",
+            "index": 4,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "name": "Battledroid",
+      "at": [17, 16],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AG717",
+            "index": 4,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "name": "Battledroid",
+      "at": [8, 16],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AG717",
+            "index": 4,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "name": "Battledroid",
+      "at": [5, 9],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AG717",
+            "index": 4,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "name": "Battledroid",
+      "at": [11, 9],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AG717",
+            "index": 4,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 24,
+      "name": "Battledroid",
+      "at": [14, 9],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AG717",
+            "index": 4,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 25,
+      "name": "Battledroid",
+      "at": [17, 9],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AG717",
+            "index": 4,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 26,
+      "name": "Battledroid",
+      "at": [8, 2],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AG717",
+            "index": 4,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 27,
+      "name": "Battledroid",
+      "at": [2, 2],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AG717",
+            "index": 4,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 28,
+      "name": "Battledroid",
+      "at": [5, 2],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AG717",
+            "index": 4,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 29,
+      "name": "Battledroid",
+      "at": [8, 9],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AG717",
+            "index": 4,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 30,
+      "name": "Battledroid",
+      "at": [2, 9],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AG717",
+            "index": 4,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 31,
+      "name": "Battledroid",
+      "at": [11, 2],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AG717",
+            "index": 4,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 32,
+      "name": "Battledroid",
+      "at": [14, 2],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AG717",
+            "index": 4,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 33,
+      "name": "Battledroid",
+      "at": [17, 2],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AG717",
+            "index": 4,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    }
+  ]
+}

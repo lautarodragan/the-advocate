@@ -1,0 +1,140 @@
+{
+  "id": 6,
+  "name": "CoreRetro II",
+  "size": [100, 100],
+  "chipset": [8, "ChipSet2"],
+  "tiles": "Map0006.tiles",
+  "parallax": {
+    "name": "Night2",
+    "loop_x": false,
+    "loop_y": false,
+    "scroll_x": 0,
+    "scroll_y": 0
+  },
+  "events": [
+    {
+      "id": 1,
+      "name": "Manta",
+      "at": [0, 10],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future1",
+            "index": 4,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Core",
+      "at": [0, 9],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future1",
+            "index": 1,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [23, 19],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 17
+          },
+          "tile": 120,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "MoveEvent", "", [1, 8, 0, 0, 36, 1, 1]],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 36, 1, 1]],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 12, 23, 15, 23, 13, 23, 14]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "CORE", []],
+            [0, "ShowMessage_2", "Wow, I'd forgotten just how busy", []],
+            [0, "ShowMessage_2", "city-life can be... this is great!", []],
+            [0, "ShowMessage", "CORE", []],
+            [0, "ShowMessage_2", "So, who's the guy we're supposed to meet?", []],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 12]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "MANTA", []],
+            [0, "ShowMessage_2", "I don't know his real name. To be safe,", []],
+            [0, "ShowMessage_2", "I just call him \"Boss.\"", []],
+            [0, "ShowMessage", "MANTA", []],
+            [0, "ShowMessage_2", "Apparently, the guy we're after killed", []],
+            [0, "ShowMessage_2", "the Boss's wife, or something.", []],
+            [0, "ShowMessage", "CORE", []],
+            [0, "ShowMessage_2", "So it's personal.", []],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 13]],
+            [0, "Wait", "", [7]],
+            [0, "ShowMessage", "MANTA", []],
+            [0, "ShowMessage_2", "Yeah... here he comes.", []],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 13]],
+            [0, "Wait", "", [4]],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 36, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]],
+            [0, "Wait", "", [40]],
+            [0, "ShowMessage", "?????", []],
+            [0, "ShowMessage_2", "Core, I presume? I trust you will not", []],
+            [0, "ShowMessage_2", "disappoint me.", []],
+            [0, "ShowMessage", "?????", []],
+            [0, "ShowMessage_2", "But enough dallying. We have work to do.", []],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 12, 0, 23]],
+            [0, "Wait", "", [5]],
+            [0, "ChangeEventLocation", "", [4, 0, 0, 30]],
+            [0, "Wait", "", [20]],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 14]],
+            [0, "ShowMessage", "CORE", []],
+            [0, "ShowMessage_2", "Is this guy for real?", []],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 1, 1, 1, 23, 23, 23, 15]],
+            [0, "Wait", "", [12]],
+            [0, "ShowMessage", "MANTA", []],
+            [0, "ShowMessage_2", "He's the Boss.", []],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 13, 1, 1, 1]],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 1, 1, 1, 1, 0, 0]],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 1, 1, 1]],
+            [0, "Wait", "", [12]],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 1, 12, 0, 23]],
+            [0, "Wait", "", [5]],
+            [0, "ChangeEventLocation", "", [2, 0, 0, 28]],
+            [0, "Teleport", "", [3, 48, 18]],
+            [0, "TintScreen", "", [100, 100, 100, 100, 10, 1]],
+            [0, "ControlSwitches", "", [0, 19, 19, 0]],
+            [0, "ControlSwitches", "", [0, 17, 17, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Kersh",
+      "at": [22, 9],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future1",
+            "index": 5,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    }
+  ]
+}

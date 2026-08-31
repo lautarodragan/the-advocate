@@ -1,0 +1,389 @@
+{
+  "id": 279,
+  "name": "Castle Dungeon",
+  "size": [50, 50],
+  "chipset": [3, "inner"],
+  "tiles": "Map0279.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [5, 4],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
+            [0, "Teleport", "", [278, 10, 7]],
+            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [27, 34],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Crown1",
+            "index": 5,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "COMMENT", []],
+            [0, "ShowMessage_2", "I need to reroute the memory packets", []],
+            [0, "ShowMessage_2", "from address 4365 - right now it's very", []],
+            [0, "ShowMessage_2", "inefficient. - Eisen", []],
+            [0, "Wait", "", [2]],
+            [0, "ShowMessage", "DALIA", []],
+            [0, "ShowMessage_2", "Whatever THAT means.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Eisen",
+      "at": [5, 12],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Eisen",
+            "index": 0,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "EISEN NPC", []],
+            [0, "ShowMessage_2", "Welcome to the dungeon, brave", []],
+            [0, "ShowMessage_2", "adventurer! Monsters have begun", []],
+            [0, "ShowMessage_2", "to spawn within its depths!", []],
+            [0, "ShowMessage", "DALIA", []],
+            [0, "ShowMessage_2", "Wonderful. How long do I have to do", []],
+            [0, "ShowMessage_2", "this?", []],
+            [0, "ShowMessage", "EISEN NPC", []],
+            [0, "ShowMessage_2", "Rumor has it that each room in the", []],
+            [0, "ShowMessage_2", "dungeon possesses untold treasure,", []],
+            [0, "ShowMessage_2", "as well as fiendish monsters and traps!", []],
+            [0, "ShowMessage", "EISEN NPC", []],
+            [0, "ShowMessage_2", "Critical read error at 1037.", []],
+            [0, "ControlSwitches", "", [0, 868, 868, 0]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "DALIA", []],
+            [0, "ShowMessage_2", "Is that so.", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 868
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [1, 19],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
+            [0, "MessageOptions", "", [0, 1, 0, 0]],
+            [0, "FadeOutBGM", "", [2000]],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "AREA 1: CATACOMBS", []],
+            [0, "ShowMessage_2", "Hit the OK button to attack, but stay alert...", []],
+            [0, "ShowMessage_2", "not all enemies will be affected! If you perish,", []],
+            [0, "ShowMessage_2", "you will restart from the entrance.", []],
+            [0, "ControlSwitches", "", [0, 869, 869, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Teleport", "", [281, 7, 12]],
+            [0, "TintScreen", "", [80, 80, 80, 100, 5, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "EV0005",
+      "at": [10, 17],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ConditionalBranch", "", [5, 30, 5, 381, 0, 1]],
+            [1, "ShowMessage", "The WATER WINGS glow with", []],
+            [1, "ShowMessage_2", "magical energy!", []],
+            [1, "MoveEvent", "", [10001, 8, 0, 1, 36, 28, 28, 1, 1, 1, 1, 1, 1, 29, 29, 37]],
+            [1, "ProceedWithMovement", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "ShowMessage", "DALIA", []],
+            [1, "ShowMessage_2", "I can't cross water - even in a simulation.", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "EV0006",
+      "at": [37, 12],
+      "pages": [
+        {
+          "tile": 78,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "COMMENT", []],
+            [0, "ShowMessage_2", "A strange glitch when going back into", []],
+            [0, "ShowMessage_2", "Level 2 will cause instant death. I should", []],
+            [0, "ShowMessage_2", "finish Level 3 before going back in. -Eisen", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "EV0007",
+      "at": [14, 17],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ConditionalBranch", "", [5, 30, 5, 381, 0, 1]],
+            [1, "ShowMessage", "The WATER WINGS glow with", []],
+            [1, "ShowMessage_2", "magical energy!", []],
+            [1, "MoveEvent", "", [10001, 8, 0, 1, 36, 28, 28, 3, 3, 3, 3, 3, 3, 29, 29, 37]],
+            [1, "ProceedWithMovement", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "ShowMessage", "DALIA", []],
+            [1, "ShowMessage_2", "I can't cross water - even in a simulation.", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "EV0008",
+      "at": [1, 23],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "The skeleton is rather shiny and new,", []],
+            [0, "ShowMessage_2", "instead of more realistically decayed.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "EV0009",
+      "at": [17, 10],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ConditionalBranch", "", [5, 30, 5, 381, 0, 1]],
+            [1, "ShowMessage", "The WATER WINGS glow with", []],
+            [1, "ShowMessage_2", "magical energy!", []],
+            [1, "MoveEvent", "", [10001, 8, 0, 1, 36, 28, 28, 0, 0, 0, 0, 3, 3, 3, 0, 0, 0, 29, 29, 37]],
+            [1, "ProceedWithMovement", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "ShowMessage", "DALIA", []],
+            [1, "ShowMessage_2", "I can't cross water - even in a simulation.", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "EV0010",
+      "at": [14, 5],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ConditionalBranch", "", [5, 30, 5, 381, 0, 1]],
+            [1, "ShowMessage", "The WATER WINGS glow with", []],
+            [1, "ShowMessage_2", "magical energy!", []],
+            [1, "MoveEvent", "", [10001, 8, 0, 1, 36, 28, 28, 2, 2, 2, 1, 1, 1, 2, 2, 2, 2, 29, 29, 37]],
+            [1, "ProceedWithMovement", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "ShowMessage", "DALIA", []],
+            [1, "ShowMessage_2", "I can't cross water - even in a simulation.", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "EV0011",
+      "at": [27, 4],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
+            [0, "MessageOptions", "", [0, 1, 0, 0]],
+            [0, "FadeOutBGM", "", [2000]],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "AREA 2: DARK CATACOMBS", []],
+            [0, "ShowMessage_2", "Many rooms in this section of the", []],
+            [0, "ShowMessage_2", "catacombs are as black as midnight!", []],
+            [0, "ShowMessage_2", "Light torches for temporary sight!", []],
+            [0, "ControlSwitches", "", [0, 872, 872, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Teleport", "", [331, 14, 17]],
+            [0, "TintScreen", "", [70, 70, 70, 100, 5, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "EV0012",
+      "at": [35, 12],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
+            [0, "MessageOptions", "", [0, 1, 0, 0]],
+            [0, "FadeOutBGM", "", [2000]],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "AREA 2: DARK CATACOMBS", []],
+            [0, "ShowMessage_2", "Many rooms in this section of the", []],
+            [0, "ShowMessage_2", "catacombs are as black as midnight!", []],
+            [0, "ShowMessage_2", "Light torches for temporary sight!", []],
+            [0, "ControlSwitches", "", [0, 872, 872, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Teleport", "", [340, 21, 12]],
+            [0, "TintScreen", "", [70, 70, 70, 100, 5, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "EV0013",
+      "at": [45, 17],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ConditionalBranch", "", [5, 30, 5, 381, 0, 1]],
+            [1, "ShowMessage", "The WATER WINGS glow with", []],
+            [1, "ShowMessage_2", "magical energy!", []],
+            [1, "MoveEvent", "", [10001, 8, 0, 1, 36, 28, 28, 3, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 29, 29, 37]],
+            [1, "ProceedWithMovement", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "ShowMessage", "DALIA", []],
+            [1, "ShowMessage_2", "I can't cross water - even in a simulation.", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "name": "EV0014",
+      "at": [48, 8],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ConditionalBranch", "", [5, 30, 5, 381, 0, 1]],
+            [1, "ShowMessage", "The WATER WINGS glow with", []],
+            [1, "ShowMessage_2", "magical energy!", []],
+            [1, "MoveEvent", "", [10001, 8, 0, 1, 36, 28, 28, 2, 2, 2, 2, 2, 2, 3, 3, 3, 2, 2, 2, 2, 1, 29, 29, 37]],
+            [1, "ProceedWithMovement", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "ShowMessage", "DALIA", []],
+            [1, "ShowMessage_2", "I can't cross water - even in a simulation.", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "name": "EV0015",
+      "at": [48, 3],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
+            [0, "MessageOptions", "", [0, 1, 0, 0]],
+            [0, "FadeOutBGM", "", [2000]],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "AREA 3: AQUEDUCT", []],
+            [0, "ShowMessage_2", "This area of the dungeon is very damp.", []],
+            [0, "ShowMessage_2", "You won't be able to use your attack here,", []],
+            [0, "ShowMessage_2", "so concentrate on dodging!", []],
+            [0, "ControlSwitches", "", [0, 874, 874, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Teleport", "", [342, 7, 12]],
+            [0, "TintScreen", "", [70, 70, 70, 100, 5, 1]]
+          ]
+        }
+      ]
+    }
+  ]
+}

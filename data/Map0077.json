@@ -1,0 +1,204 @@
+{
+  "id": 77,
+  "name": "Health Spa",
+  "size": [20, 15],
+  "chipset": [18, "Inside"],
+  "tiles": "Map0077.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [9, 14],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [69, 10, 33]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [15, 5],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara3",
+            "index": 5,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [15, 6],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "SARIS", []],
+            [0, "ShowMessage_2", "Welcome to the Sorbe Village Health", []],
+            [0, "ShowMessage_2", "Spa! Just 100 credits for a soothing", []],
+            [0, "ShowMessage_2", "afternoon in our famous hot spring!", []],
+            [0, "ShowChoice", "Pay 100 credits/No thanks", [2]],
+            [0, "ShowChoiceOption", "Pay 100 credits", [0]],
+            [1, "ConditionalBranch", "", [3, 100, 0, 0, 0, 1]],
+            [2, "ChangeGold", "", [1, 0, 100]],
+            [2, "ShowInn", "", [0, 0, 0]],
+            [2, "ShowMessage", "SPA OWNER", []],
+            [2, "ShowMessage_2", "Come again!", []],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "Hmmm... I don't have enough money.", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ShowChoiceOption", "No thanks", [1]],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "Not today, thanks.", []],
+            [1, "END", "", []],
+            [0, "ShowChoiceEnd", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [4, 7],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People7",
+            "index": 5,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "EV0005",
+      "at": [8, 7],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People7",
+            "index": 3,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "EV0006",
+      "at": [3, 8],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People7",
+            "index": 4,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "EV0007",
+      "at": [11, 7],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara3",
+            "index": 4,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "PATRON", []],
+            [0, "ShowMessage_2", "I come to this Spa all the time - it's so", []],
+            [0, "ShowMessage_2", "soothing and relaxing!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "EV0008",
+      "at": [13, 10],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People1",
+            "index": 5,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "WOMAN", []],
+            [0, "ShowMessage_2", "We should come here more often,", []],
+            [0, "ShowMessage_2", "honey! What a terrific vacation this", []],
+            [0, "ShowMessage_2", "is!", []],
+            [0, "ShowMessage", "MAN", []],
+            [0, "ShowMessage_2", "Uh huh.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "EV0009",
+      "at": [15, 10],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People1",
+            "index": 4,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "MAN", []],
+            [0, "ShowMessage_2", "I hope everything back at the office", []],
+            [0, "ShowMessage_2", "is going all right...", []],
+            [0, "ShowMessage", "WOMAN", []],
+            [0, "ShowMessage_2", "Honey, you need to stop worrying about", []],
+            [0, "ShowMessage_2", "your job! This is our vacation, after all!", []]
+          ]
+        }
+      ]
+    }
+  ]
+}

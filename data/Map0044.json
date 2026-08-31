@@ -1,0 +1,237 @@
+{
+  "id": 44,
+  "name": "Talan Stats",
+  "size": [20, 15],
+  "chipset": [9, "BLchp1"],
+  "tiles": "Map0044.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "Talan",
+      "at": [10, 7],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future1",
+            "index": 0,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous"
+        },
+        {
+          "conditions": {
+            "switch_a": 160
+          },
+          "sprite": {
+            "charset": "Future1",
+            "index": 0,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Arden",
+      "at": [12, 7],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLPeople",
+            "index": 3,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous"
+        },
+        {
+          "conditions": {
+            "switch_a": 159
+          },
+          "sprite": {
+            "charset": "Chara2",
+            "index": 0,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous"
+        },
+        {
+          "conditions": {
+            "switch_a": 160
+          },
+          "sprite": {
+            "charset": "BLPeople",
+            "index": 3,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Saldra",
+      "at": [8, 7],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLPeople",
+            "index": 3,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous"
+        },
+        {
+          "conditions": {
+            "switch_a": 158
+          },
+          "sprite": {
+            "charset": "Chara3",
+            "index": 6,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous"
+        },
+        {
+          "conditions": {
+            "switch_a": 160
+          },
+          "sprite": {
+            "charset": "BLPeople",
+            "index": 3,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [19, 14],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "MessageOptions", "", [1, 2, 0, 0]],
+            [0, "ShowMessage", "VOICE OF ZED", []],
+            [0, "ShowMessage_2", "The assassin's name is Talan, and he was", []],
+            [0, "ShowMessage_2", "a worker at the Delcentric Factory for two", []],
+            [0, "ShowMessage_2", "years.", []],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 15]],
+            [0, "ShowMessage", "VOICE OF ZED", []],
+            [0, "ShowMessage_2", "Earlier today, Talan faked a fainting spell", []],
+            [0, "ShowMessage_2", "to earn the sympathy of the Director.", []],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 12]],
+            [0, "ShowMessage", "VOICE OF ZED", []],
+            [0, "ShowMessage_2", "But this sympathy was to be the last", []],
+            [0, "ShowMessage_2", "kindness in the Director's long and", []],
+            [0, "ShowMessage_2", "glorious career as leader of the Agency.", []],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 13]],
+            [0, "ShowMessage", "VOICE OF ZED", []],
+            [0, "ShowMessage_2", "If you have any information concerning", []],
+            [0, "ShowMessage_2", "the whereabouts of this murderer, contact", []],
+            [0, "ShowMessage_2", "the Agency at once.", []],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 14]],
+            [0, "ConditionalBranch", "", [0, 54, 0, 0, 0, 1]],
+            [1, "ShowMessage", "VOICE OF ZED", []],
+            [1, "ShowMessage_2", "But be warned. Our sources indicate that", []],
+            [1, "ShowMessage_2", "Talan has received assistance from lowlife", []],
+            [1, "ShowMessage_2", "street denizens, such as the gang known as", []],
+            [1, "ControlSwitches", "", [0, 159, 159, 0]],
+            [1, "ShowMessage", "VOICE OF ZED", []],
+            [1, "ShowMessage_2", "the Neon Vipers.  They too will face", []],
+            [1, "ShowMessage_2", "prosecution, for aiding and abetting a", []],
+            [1, "ShowMessage_2", "known criminal.", []],
+            [1, "MessageOptions", "", [0, 0, 0, 0]],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "Oh no!", []],
+            [1, "MessageOptions", "", [1, 2, 0, 0]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ConditionalBranch", "", [0, 56, 0, 0, 0, 1]],
+            [1, "ShowMessage", "VOICE OF ZED", []],
+            [1, "ShowMessage_2", "But be warned. Our sources indicate that", []],
+            [1, "ShowMessage_2", "Talan has received assistance from lowlife", []],
+            [1, "ShowMessage_2", "street denizens, such as the gang known as", []],
+            [1, "ControlSwitches", "", [0, 158, 158, 0]],
+            [1, "ShowMessage", "VOICE OF ZED", []],
+            [1, "ShowMessage_2", "the Lazer Teeth.  They too will face", []],
+            [1, "ShowMessage_2", "prosecution, for aiding and abetting a", []],
+            [1, "ShowMessage_2", "known criminal.", []],
+            [1, "MessageOptions", "", [0, 0, 0, 0]],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "Oh no!", []],
+            [1, "MessageOptions", "", [1, 2, 0, 0]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ShowMessage", "VOICE OF ZED", []],
+            [0, "ShowMessage_2", "Oh - I've just been informed that the Agency", []],
+            [0, "ShowMessage_2", "has released security camera footage of", []],
+            [0, "ShowMessage_2", "the incident.", []],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "BOSS WICK", []],
+            [0, "ShowMessage_2", "Hmmm.... this is new.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Maybe this will clear my name! Everyone", []],
+            [0, "ShowMessage_2", "will see that the shot came through the", []],
+            [0, "ShowMessage_2", "window...", []],
+            [0, "ShowMessage", "BOSS WICK", []],
+            [0, "ShowMessage_2", "You put too much faith in the system, Mr.", []],
+            [0, "ShowMessage_2", "Talan. If they want you to suffer, you will", []],
+            [0, "ShowMessage_2", "suffer.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "... ... ...", []],
+            [0, "MessageOptions", "", [1, 2, 0, 0]],
+            [0, "ShowMessage", "VOICE OF ZED", []],
+            [0, "ShowMessage_2", "OK... ladies and gentlemen, I've been", []],
+            [0, "ShowMessage_2", "instructed to tell those of you with young", []],
+            [0, "ShowMessage_2", "children to have them leave the room.", []],
+            [0, "ShowMessage", "VOICE OF ZED", []],
+            [0, "ShowMessage_2", "The following footage is likely to be quite", []],
+            [0, "ShowMessage_2", "graphic. Be advised the camera cannot", []],
+            [0, "ShowMessage_2", "pick up sound.", []],
+            [0, "Wait", "", [20]],
+            [0, "ControlSwitches", "", [0, 90, 90, 1]],
+            [0, "ControlSwitches", "", [0, 91, 91, 1]],
+            [0, "ControlSwitches", "", [0, 92, 92, 1]],
+            [0, "TintScreen", "", [70, 60, 50, 0, 4, 1]],
+            [0, "ChangePartyMembers", "", [1, 0, 10]],
+            [0, "ChangePartyMembers", "", [0, 0, 14]],
+            [0, "Teleport", "", [45, 10, 8]]
+          ]
+        }
+      ]
+    }
+  ]
+}

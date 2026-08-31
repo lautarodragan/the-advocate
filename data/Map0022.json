@@ -1,0 +1,8 @@
+{
+  "id": 22,
+  "name": "The Rat Tracks",
+  "size": [20, 15],
+  "chipset": [1, "Basis"],
+  "tiles": "Map0022.tiles",
+  "events": []
+}

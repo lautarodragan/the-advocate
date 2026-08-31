@@ -1,0 +1,100 @@
+{
+  "id": 306,
+  "name": "Outside Ship",
+  "size": [20, 40],
+  "chipset": [47, "tech5"],
+  "tiles": "Map0306.tiles",
+  "parallax": {
+    "name": "starpan",
+    "loop_x": false,
+    "loop_y": true,
+    "scroll_x": 0,
+    "scroll_y": 7
+  },
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "PlaySound", "Explosion3", [100, 60, 50]],
+            [0, "PanScreen", "", [3, 0, 40, 6, 0]],
+            [0, "TintScreen", "", [100, 100, 100, 100, 0, 0]],
+            [0, "PanScreen", "", [2, 0, 30, 4, 1]],
+            [0, "ShowBattleAnimation", "", [77, 3, 0, 0]],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 29, 26, 38, 36, 2, 2, 28]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ShowBattleAnimation", "", [78, 4, 0, 0]],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "PlaySound", "Explosion3", [100, 60, 50]],
+            [0, "ShowMessage", "DALIA", []],
+            [0, "ShowMessage_2", "Manta... can you hear me...?\\|\\^", []],
+            [0, "ShowBattleAnimation", "", [77, 5, 0, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ShowBattleAnimation", "", [78, 3, 1, 0]],
+            [0, "TintScreen", "", [0, 0, 0, 100, 0, 0]],
+            [0, "Teleport", "", [307, 0, 13]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Dalia",
+      "at": [5, 3],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "ABLDalia",
+            "index": 1,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Target1",
+      "at": [1, 2],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Target2",
+      "at": [3, 4],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Target3",
+      "at": [7, 12],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    }
+  ]
+}

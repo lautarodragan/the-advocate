@@ -1,0 +1,305 @@
+{
+  "id": 235,
+  "name": "Sloping Tunnel Entrance",
+  "size": [20, 15],
+  "chipset": [23, "PS4Chipset"],
+  "tiles": "Map0235.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [8, 14],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MessageOptions", "", [0, 2, 1, 0]],
+            [0, "Teleport", "", [207, 11, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [9, 14],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MessageOptions", "", [0, 2, 1, 0]],
+            [0, "Teleport", "", [207, 11, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [9, 7],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [233, 65, 1]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 14]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [10, 7],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [233, 65, 1]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 14]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Life Bucket",
+      "at": [12, 10],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "PlaySound", "Recovery4", [100, 100, 50]],
+            [0, "FlashScreen", "", [31, 31, 31, 31, 5, 1]],
+            [0, "MessageOptions", "", [1, 1, 0, 0]],
+            [0, "FullHeal", "", [0, 0]],
+            [0, "ShowMessage", "HP and SP completely recovered!", []],
+            [0, "MessageOptions", "", [0, 2, 1, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "The water in this bucket is amazing!", []],
+            [0, "ShowMessage_2", "I wonder if I could bring some of it", []],
+            [0, "ShowMessage_2", "with me?", []]
+          ]
+        },
+        {
+          "conditions": {
+            "item": 106
+          },
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "PlaySound", "Recovery4", [100, 100, 50]],
+            [0, "FlashScreen", "", [31, 31, 31, 31, 5, 1]],
+            [0, "MessageOptions", "", [1, 1, 0, 0]],
+            [0, "FullHeal", "", [0, 0]],
+            [0, "ShowMessage", "HP and SP completely recovered!", []],
+            [0, "MessageOptions", "", [0, 2, 1, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "The water in this bucket is amazing!", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Should I fill up an empty bottle?", []],
+            [0, "ShowChoice", "Yes/No", [2]],
+            [0, "ShowChoiceOption", "Yes", [0]],
+            [1, "ChangeItems", "", [1, 0, 106, 0, 1]],
+            [1, "ChangeItems", "", [0, 0, 107, 0, 1]],
+            [1, "MessageOptions", "", [1, 1, 0, 0]],
+            [1, "PlaySound", "Water3", [100, 100, 50]],
+            [1, "ShowMessage", "TALAN filled an empty bottle with", []],
+            [1, "ShowMessage_2", "the healing liquid.", []],
+            [1, "MessageOptions", "", [0, 2, 1, 0]],
+            [1, "END", "", []],
+            [0, "ShowChoiceOption", "No", [1]],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "I think I'll hold onto my empty bottle.", []],
+            [1, "END", "", []],
+            [0, "ShowChoiceEnd", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "EV0006",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ChangePartyMembers", "", [1, 0, 10]],
+            [0, "ChangePartyMembers", "", [0, 0, 14]],
+            [0, "ChangePartyMembers", "", [0, 0, 25]],
+            [0, "ConditionalBranch", "", [0, 385, 0, 0, 0, 1]],
+            [1, "ChangePartyMembers", "", [0, 0, 28]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "ConditionalBranch", "", [0, 386, 0, 0, 0, 1]],
+            [2, "ChangePartyMembers", "", [0, 0, 27]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "ConditionalBranch", "", [0, 388, 0, 0, 0, 1]],
+            [3, "ChangePartyMembers", "", [0, 0, 26]],
+            [3, "END", "", []],
+            [2, "ElseBranch", "", []],
+            [3, "END", "", []],
+            [2, "EndBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 0, 0, 13]],
+            [0, "Wait", "", [8]],
+            [0, "MoveEvent", "", [7, 8, 0, 0, 15]],
+            [0, "Wait", "", [10]],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "MEMNOSYNE", []],
+            [0, "ShowMessage_2", "This tunnel was built long ago, by", []],
+            [0, "ShowMessage_2", "whatever race of people used to live", []],
+            [0, "ShowMessage_2", "in these mountains.", []],
+            [0, "ShowMessage", "MEMNOSYNE", []],
+            [0, "ShowMessage_2", "I don't know how stable it is anymore,", []],
+            [0, "ShowMessage_2", "but it should lead you in the direction", []],
+            [0, "ShowMessage_2", "you want to go.", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Thank you, Memnosyne.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I know we didn't really get off to", []],
+            [0, "ShowMessage_2", "a good start, but... I understand how", []],
+            [0, "ShowMessage_2", "it feels to carry such a burden.", []],
+            [0, "ShowMessage", "MEMNOSYNE", []],
+            [0, "ShowMessage_2", "I know you do, dearie.", []],
+            [0, "ShowMessage_2", "Good luck.", []],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [7, 8, 0, 0, 2, 3, 2, 2, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3]],
+            [0, "Wait", "", [15]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "ControlSwitches", "", [0, 625, 625, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 625
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "Memnosyne",
+      "at": [10, 11],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "memnosyne",
+            "index": 3,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 625
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "SaveSlopingEntrance",
+      "at": [8, 10],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "savept",
+            "index": 0,
+            "direction": "up",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "action",
+          "animation": "fixed_continuous",
+          "translucent": true,
+          "script": [
+            [0, "PlaySound", "Holy5", [70, 100, 50]],
+            [0, "OpenSaveMenu", "", []],
+            [0, "ChangeSaveAccess", "", [0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "EV0009",
+      "at": [6, 6],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "parallel",
+          "translucent": true,
+          "script": [
+            [0, "ControlVars", "", [0, 39, 39, 0, 6, 10001, 1]],
+            [0, "ControlVars", "", [0, 40, 40, 0, 6, 10001, 2]],
+            [0, "ControlVars", "", [0, 41, 41, 0, 6, 8, 1]],
+            [0, "ControlVars", "", [0, 42, 42, 0, 6, 8, 2]],
+            [0, "ConditionalBranch", "", [1, 39, 1, 41, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 40, 1, 42, 0, 1]],
+            [2, "ChangeSaveAccess", "", [1]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "EV0010",
+      "at": [19, 0],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 811
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ShowMessage", "RADIN", []],
+            [0, "ShowMessage_2", "The soil here is not very good for", []],
+            [0, "ShowMessage_2", "finding ingredients. I should try", []],
+            [0, "ShowMessage_2", "elsewhere.", []],
+            [0, "ControlSwitches", "", [0, 811, 811, 1]]
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,322 @@
+{
+  "id": 71,
+  "name": "Armor Shop",
+  "size": [20, 15],
+  "chipset": [44, "ABLForestTownInner"],
+  "tiles": "Map0071.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [9, 5],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future1",
+            "index": 6,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [9, 14],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [67, 12, 32]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [16, 6],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People5",
+            "index": 4,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "MAN", []],
+            [0, "ShowMessage_2", "How do you feel about the Agency's", []],
+            [0, "ShowMessage_2", "caravan drivers?", []],
+            [0, "ShowChoice", "They're quite fair./They charge way too much.", [0]],
+            [0, "ShowChoiceOption", "They're quite fair.", [0]],
+            [1, "ShowMessage", "MAN", []],
+            [1, "ShowMessage_2", "Oh. Yeah. Whatever.", []],
+            [1, "END", "", []],
+            [0, "ShowChoiceOption", "They charge way too much.", [1]],
+            [1, "ShowMessage", "MAN", []],
+            [1, "ShowMessage_2", "I agree completely! They're going to", []],
+            [1, "ShowMessage_2", "drive us out of business with their", []],
+            [1, "ShowMessage_2", "shipping charges!", []],
+            [1, "ShowMessage", "MAN", []],
+            [1, "ShowMessage_2", "But, if you're willing... you might be able", []],
+            [1, "ShowMessage_2", "to give us a hand, eh?", []],
+            [1, "ShowChoice", "What can I do?/I'm sorry, I can't help you.", [2]],
+            [1, "ShowChoiceOption", "What can I do?", [0]],
+            [2, "ShowMessage", "MAN", []],
+            [2, "ShowMessage_2", "As you probably know, the Agency supplies", []],
+            [2, "ShowMessage_2", "these smaller villages with goods and", []],
+            [2, "ShowMessage_2", "refined materials, in exchange for creds", []],
+            [2, "ShowMessage", "MAN", []],
+            [2, "ShowMessage_2", "and whatever we produce that the big", []],
+            [2, "ShowMessage_2", "cities have in short supply. Problem is,", []],
+            [2, "ShowMessage_2", "the drivers of the caravans that", []],
+            [2, "ShowMessage", "MAN", []],
+            [2, "ShowMessage_2", "bring the goods back and forth often", []],
+            [2, "ShowMessage_2", "tack on \"Carrier Fees\" - so it becomes", []],
+            [2, "ShowMessage_2", "really costly for us.", []],
+            [2, "ShowMessage", "MAN", []],
+            [2, "ShowMessage_2", "Yun Town is known for its high-quality", []],
+            [2, "ShowMessage_2", "armor, but to make it we need Iron from", []],
+            [2, "ShowMessage_2", "the Drust Mountains.", []],
+            [2, "ShowMessage", "MAN", []],
+            [2, "ShowMessage_2", "Since the caravans of Iron are so expensive,", []],
+            [2, "ShowMessage_2", "sometimes we reward travelers who", []],
+            [2, "ShowMessage_2", "talk to our man at the Drust Mines and", []],
+            [2, "ShowMessage", "MAN", []],
+            [2, "ShowMessage_2", "bring back Iron for us. It's illegal, of course,", []],
+            [2, "ShowMessage_2", "but the more Iron you bring us, the better", []],
+            [2, "ShowMessage_2", "we'll reward you!", []],
+            [2, "ControlSwitches", "", [0, 526, 526, 0]],
+            [2, "ControlSwitches", "", [0, 253, 253, 0]],
+            [2, "ControlSwitches", "", [0, 321, 321, 0]],
+            [2, "END", "", []],
+            [1, "ShowChoiceOption", "I'm sorry, I can't help you.", [1]],
+            [2, "ShowMessage", "MAN", []],
+            [2, "ShowMessage_2", "Fine. Maybe you'll change your mind, eh?", []],
+            [2, "END", "", []],
+            [1, "ShowChoiceEnd", "", []],
+            [1, "END", "", []],
+            [0, "ShowChoiceEnd", "", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 253
+          },
+          "sprite": {
+            "charset": "People5",
+            "index": 4,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "MAN", []],
+            [0, "ShowMessage_2", "Talk to our man in the Drust Iron Mines", []],
+            [0, "ShowMessage_2", "and bring back shipments of Iron for", []],
+            [0, "ShowMessage_2", "your rewards!", []]
+          ]
+        },
+        {
+          "conditions": {
+            "item": 149
+          },
+          "sprite": {
+            "charset": "People5",
+            "index": 4,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ChangeItems", "", [1, 0, 149, 0, 1]],
+            [0, "ControlVars", "", [0, 142, 142, 1, 0, 1, 0]],
+            [0, "MessageOptions", "", [1, 1, 0, 0]],
+            [0, "PlaySound", "Item2", [80, 100, 50]],
+            [0, "ShowMessage", "TALAN delivered the IRON SHIPMENT", []],
+            [0, "MessageOptions", "", [0, 2, 1, 0]],
+            [0, "ShowMessage", "MAN", []],
+            [0, "ShowMessage_2", "Great! Thanks for delivering this Iron for us!", []],
+            [0, "ShowMessage_2", "This is much better than relying on the", []],
+            [0, "ShowMessage_2", "Agency Caravans!", []],
+            [0, "ShowMessage", "MAN", []],
+            [0, "ShowMessage_2", "Here's your reward:", []],
+            [0, "ConditionalBranch", "", [1, 142, 0, 1, 0, 1]],
+            [1, "MessageOptions", "", [1, 1, 0, 0]],
+            [1, "PlaySound", "Item1", [100, 100, 50]],
+            [1, "ShowMessage", "TALAN received:", []],
+            [1, "ShowMessage_2", "        200 credits", []],
+            [1, "ShowMessage_2", "        Fresh Pita-HP", []],
+            [1, "ChangeGold", "", [0, 0, 200]],
+            [1, "ChangeItems", "", [0, 0, 114, 0, 1]],
+            [1, "MessageOptions", "", [0, 2, 0, 0]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "ConditionalBranch", "", [1, 142, 0, 2, 0, 1]],
+            [2, "MessageOptions", "", [1, 1, 0, 0]],
+            [2, "PlaySound", "Item1", [100, 100, 50]],
+            [2, "ShowMessage", "TALAN received:", []],
+            [2, "ShowMessage_2", "        300 credits", []],
+            [2, "ShowMessage_2", "        Cheap Wine-SP x2", []],
+            [2, "ChangeGold", "", [0, 0, 300]],
+            [2, "ChangeItems", "", [0, 0, 103, 0, 2]],
+            [2, "MessageOptions", "", [0, 2, 0, 0]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "ConditionalBranch", "", [1, 142, 0, 3, 0, 1]],
+            [3, "MessageOptions", "", [1, 1, 0, 0]],
+            [3, "PlaySound", "Item1", [100, 100, 50]],
+            [3, "ShowMessage", "TALAN received:", []],
+            [3, "ShowMessage_2", "        500 credits", []],
+            [3, "ShowMessage_2", "        Poisoned Knife-R", []],
+            [3, "ChangeGold", "", [0, 0, 500]],
+            [3, "ChangeItems", "", [0, 0, 159, 0, 1]],
+            [3, "MessageOptions", "", [0, 2, 0, 0]],
+            [3, "END", "", []],
+            [2, "ElseBranch", "", []],
+            [3, "END", "", []],
+            [2, "EndBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ControlSwitches", "", [0, 321, 321, 1]],
+            [0, "ControlSwitches", "", [0, 322, 322, 1]],
+            [0, "ControlSwitches", "", [0, 323, 323, 1]],
+            [0, "ControlSwitches", "", [0, 324, 324, 1]],
+            [0, "ControlSwitches", "", [0, 325, 325, 1]],
+            [0, "ControlVars", "", [0, 52, 52, 0, 3, 0, 10]],
+            [0, "ConditionalBranch", "", [1, 52, 0, 0, 1, 1]],
+            [1, "ConditionalBranch", "", [1, 52, 0, 2, 2, 1]],
+            [2, "ControlSwitches", "", [0, 321, 321, 0]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ConditionalBranch", "", [1, 52, 0, 3, 1, 1]],
+            [1, "ConditionalBranch", "", [1, 52, 0, 4, 2, 1]],
+            [2, "ControlSwitches", "", [0, 322, 322, 0]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ConditionalBranch", "", [1, 52, 0, 5, 1, 1]],
+            [1, "ConditionalBranch", "", [1, 52, 0, 6, 2, 1]],
+            [2, "ControlSwitches", "", [0, 323, 323, 0]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ConditionalBranch", "", [1, 52, 0, 7, 1, 1]],
+            [1, "ConditionalBranch", "", [1, 52, 0, 8, 2, 1]],
+            [2, "ControlSwitches", "", [0, 324, 324, 0]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ConditionalBranch", "", [1, 52, 0, 9, 1, 1]],
+            [1, "ConditionalBranch", "", [1, 52, 0, 10, 2, 1]],
+            [2, "ControlSwitches", "", [0, 325, 325, 0]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ConditionalBranch", "", [1, 142, 0, 3, 0, 1]],
+            [1, "ControlSwitches", "", [0, 525, 525, 0]],
+            [1, "ControlSwitches", "", [0, 321, 321, 1]],
+            [1, "ControlSwitches", "", [0, 322, 322, 1]],
+            [1, "ControlSwitches", "", [0, 323, 323, 1]],
+            [1, "ControlSwitches", "", [0, 324, 324, 1]],
+            [1, "ControlSwitches", "", [0, 325, 325, 1]],
+            [1, "ShowMessage", "MAN", []],
+            [1, "ShowMessage_2", "I think we've got enough Iron to last us", []],
+            [1, "ShowMessage_2", "for awhile now, thanks to you!", []],
+            [1, "ShowMessage", "MAN", []],
+            [1, "ShowMessage_2", "You've been a really big help - I can", []],
+            [1, "ShowMessage_2", "sell you some of the equipment we've", []],
+            [1, "ShowMessage_2", "made from these shipments, if you like.", []],
+            [1, "OpenShop", "", [0, 0, 0, 0, 234, 230, 225, 226]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "ShowMessage", "MAN", []],
+            [1, "ShowMessage_2", "Now go back to the Drust Mines and bring", []],
+            [1, "ShowMessage_2", "us another shipment of Iron for even more", []],
+            [1, "ShowMessage_2", "rewards!", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 525
+          },
+          "sprite": {
+            "charset": "People5",
+            "index": 4,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "MAN", []],
+            [0, "ShowMessage_2", "You've been a really big help - I can", []],
+            [0, "ShowMessage_2", "sell you some of the equipment we've", []],
+            [0, "ShowMessage_2", "made from these shipments, if you like.", []],
+            [0, "OpenShop", "", [0, 0, 0, 0, 234, 230, 225, 226]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [9, 6],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "ARMOR SHOP OWNER", []],
+            [0, "ShowMessage_2", "Not much call for armor these days,", []],
+            [0, "ShowMessage_2", "so I sell pots and pans to the chef of", []],
+            [0, "ShowMessage_2", "the Deli. Business isn't so good. <sigh>", []],
+            [0, "OpenShop", "", [0, 2, 0, 0, 137, 112, 228, 221]]
+          ]
+        }
+      ]
+    }
+  ]
+}

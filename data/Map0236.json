@@ -1,0 +1,172 @@
+{
+  "id": 236,
+  "name": "Kersh On The Overlook",
+  "size": [20, 30],
+  "chipset": [21, "PS4Chipset"],
+  "tiles": "Map0236.tiles",
+  "parallax": {
+    "name": "Night1",
+    "loop_x": false,
+    "loop_y": true,
+    "scroll_x": 0,
+    "scroll_y": 0
+  },
+  "events": [
+    {
+      "id": 1,
+      "name": "Kersh",
+      "at": [5, 10],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future1",
+            "index": 5,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "MoveEvent", "", [1, 8, 0, 0, 1, 1, 1, 1, 1, 0, 13]],
+            [0, "Wait", "", [15]],
+            [0, "MoveEvent", "", [5, 8, 0, 0, 0, 14]],
+            [0, "Wait", "", [5]],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 1, 1, 1]],
+            [0, "MoveEvent", "", [5, 8, 0, 0, 13]],
+            [0, "Wait", "", [20]],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "AGENCY GUARD", []],
+            [0, "ShowMessage_2", "Sir... two of the residents escaped. A man", []],
+            [0, "ShowMessage_2", "and a woman jumped from the cliff into", []],
+            [0, "ShowMessage_2", "the river. We couldn't stop them.", []],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 1]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "AGENCY CAPTAIN", []],
+            [0, "ShowMessage_2", "Describe the man.", []],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 14]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "AGENCY GUARD", []],
+            [0, "ShowMessage_2", "He had dark hair and was wearing", []],
+            [0, "ShowMessage_2", "a visor of some sort. He matches the", []],
+            [0, "ShowMessage_2", "description of the Director's assassin.", []],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 14]],
+            [0, "ShowMessage", "AGENCY CAPTAIN", []],
+            [0, "ShowMessage_2", "You found nothing unusual in your", []],
+            [0, "ShowMessage_2", "search of this place?", []],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "AGENCY GUARD", []],
+            [0, "ShowMessage_2", "No, sir.", []],
+            [0, "Wait", "", [8]],
+            [0, "ShowMessage", "AGENCY CAPTAIN", []],
+            [0, "ShowMessage_2", "Hmmm... the old man must have given", []],
+            [0, "ShowMessage_2", "it to him.", []],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "AGENCY GUARD", []],
+            [0, "ShowMessage_2", "Sir? We can have the Hovercraft", []],
+            [0, "ShowMessage_2", "ready to go in minutes, and track them", []],
+            [0, "ShowMessage_2", "before they leave the river -", []],
+            [0, "ShowMessage", "AGENCY CAPTAIN", []],
+            [0, "ShowMessage_2", "No, I will follow the fugitives on foot.", []],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 15, 23, 23, 23, 14]],
+            [0, "Wait", "", [15]],
+            [0, "ShowMessage", "AGENCY GUARD", []],
+            [0, "ShowMessage_2", "Sir?", []],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 13]],
+            [0, "ShowMessage", "AGENCY CAPTAIN", []],
+            [0, "ShowMessage_2", "Take the hovercraft back to Prima.", []],
+            [0, "ShowMessage_2", "Our Slicer should be ready by the", []],
+            [0, "ShowMessage_2", "time you get there.", []],
+            [0, "ShowMessage", "AGENCY CAPTAIN", []],
+            [0, "ShowMessage_2", "I will return to Prima shortly with new", []],
+            [0, "ShowMessage_2", "orders.", []],
+            [0, "Wait", "", [2]],
+            [0, "ShowMessage", "AGENCY GUARD", []],
+            [0, "ShowMessage_2", "Yes, Sir!", []],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 15, 3, 2, 3, 3, 12]],
+            [0, "MoveEvent", "", [5, 8, 0, 0, 14]],
+            [0, "MoveEvent", "", [6, 8, 0, 0, 2, 13]],
+            [0, "Wait", "", [15]],
+            [0, "ShowMessage", "AGENCY CAPTAIN", []],
+            [0, "ShowMessage_2", "It was a good effort, Pierson. But the", []],
+            [0, "ShowMessage_2", "boy can't run forever.", []],
+            [0, "FadeOutBGM", "", [1000]],
+            [0, "TintScreen", "", [0, 0, 0, 100, 10, 1]],
+            [0, "Teleport", "", [205, 10, 14]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Agency Guard1",
+      "at": [14, 8],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 608
+          },
+          "sprite": {
+            "charset": "BLAgents",
+            "index": 1,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Agency Guard2",
+      "at": [11, 9],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 608
+          },
+          "sprite": {
+            "charset": "BLAgents",
+            "index": 1,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "Agency Guard3",
+      "at": [10, 8],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 608
+          },
+          "sprite": {
+            "charset": "BLAgents",
+            "index": 1,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    }
+  ]
+}

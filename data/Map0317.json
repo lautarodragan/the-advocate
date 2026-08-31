@@ -1,0 +1,134 @@
+{
+  "id": 317,
+  "name": "OutsideActing",
+  "size": [20, 15],
+  "chipset": [23, "PS4Chipset"],
+  "tiles": "Map0317.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "Lerle",
+      "at": [9, 6],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People3",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Sewell",
+      "at": [8, 8],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People3",
+            "index": 0,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Auleen",
+      "at": [10, 9],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People3",
+            "index": 3,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Emily",
+      "at": [11, 7],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "emily",
+            "index": 4,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "EV0005",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "LERLE", []],
+            [0, "ShowMessage_2", "I've tried everything else. If I can't", []],
+            [0, "ShowMessage_2", "make it as an Actor...", []],
+            [0, "ShowMessage", "LERLE", []],
+            [0, "ShowMessage_2", "Pierson said he's going to have to make", []],
+            [0, "ShowMessage_2", "me leave Paradise.", []],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 12]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "SEWELL", []],
+            [0, "ShowMessage_2", "There's an easy solution, my boy!", []],
+            [0, "Wait", "", [5]],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "LERLE", []],
+            [0, "ShowMessage_2", "There is?", []],
+            [0, "Wait", "", [5]],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "SEWELL", []],
+            [0, "ShowMessage_2", "Don't screw up the performance", []],
+            [0, "ShowMessage_2", "tonight, and you can stay! Haa! Haa!", []],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 3, 3, 3, 3, 3, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 0, 15]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "I'm sure you'll be fine, Lerle.", []],
+            [0, "ShowMessage_2", "You're a great Actor!", []],
+            [0, "ShowMessage_2", "Just... concentrate!", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
+            [0, "Wait", "", [10]],
+            [0, "MessageOptions", "", [1, 2, 0, 0]],
+            [0, "ShowMessage", "LERLE, asleep", []],
+            [0, "ShowMessage_2", "... concentrate...", []],
+            [0, "Wait", "", [10]],
+            [0, "MessageOptions", "", [1, 1, 0, 0]],
+            [0, "ShowMessage", "MEMNOSYNE", []],
+            [0, "ShowMessage_2", "It's nearly time for him to wake that", []],
+            [0, "ShowMessage_2", "Talan for his shift, but...", []],
+            [0, "ShowMessage", "MEMNOSYNE", []],
+            [0, "ShowMessage_2", "Just a little more...", []],
+            [0, "Teleport", "", [318, 3, 8]]
+          ]
+        }
+      ]
+    }
+  ]
+}

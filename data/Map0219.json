@@ -1,0 +1,204 @@
+{
+  "id": 219,
+  "name": "Emily and Memnosyne",
+  "size": [30, 20],
+  "chipset": [23, "PS4Chipset"],
+  "tiles": "Map0219.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
+            [0, "ChangePartyMembers", "", [1, 0, 26]],
+            [0, "ChangePartyMembers", "", [1, 0, 27]],
+            [0, "ChangePartyMembers", "", [1, 0, 28]],
+            [0, "ChangePartyMembers", "", [1, 0, 25]],
+            [0, "ChangePartyMembers", "", [1, 0, 18]],
+            [0, "ChangePartyMembers", "", [1, 0, 14]],
+            [0, "ChangePartyMembers", "", [0, 0, 10]],
+            [0, "PlayBGM", "nightbg", [0, 40, 80, 50]],
+            [0, "TintScreen", "", [40, 40, 40, 100, 10, 1]],
+            [0, "Wait", "", [25]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "... ... ...", []],
+            [0, "MoveEvent", "", [3, 8, 0, 0, 34, 9, 109, 101, 109, 110, 111, 115, 121, 110, 101, 3, 3, 3, 3, 3, 3, 3, 0, 0, 0, 3, 3, 3, 3, 3, 2, 2, 2, 2, 2, 2]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 12]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "Hello, Memnosyne. Are you having", []],
+            [0, "ShowMessage_2", "trouble sleeping?", []],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "MEMNOSYNE", []],
+            [0, "ShowMessage_2", "I thought you might like some company,", []],
+            [0, "ShowMessage_2", "dear girl.", []],
+            [0, "ShowMessage", "MEMNOSYNE", []],
+            [0, "ShowMessage_2", "Isn't it just like a man to make", []],
+            [0, "ShowMessage_2", "the only girl in the group stay on", []],
+            [0, "ShowMessage_2", "watch while he sleeps?", []],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 15]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "Oh, Talan didn't mean anything by it.", []],
+            [0, "ShowMessage_2", "He just wanted to take the later shift", []],
+            [0, "ShowMessage_2", "for himself, when I'd be more tired.", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "MEMNOSYNE", []],
+            [0, "ShowMessage_2", "How long have you known Talan?", []],
+            [0, "ShowMessage_2", "He told me how you two fled your home,", []],
+            [0, "ShowMessage_2", "but for how long did you know him before?", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "Just for a few months. It seems like forever,", []],
+            [0, "ShowMessage_2", "now - it's amazing how much can happen", []],
+            [0, "ShowMessage_2", "in so short a time...", []],
+            [0, "MoveEvent", "", [3, 8, 0, 0, 15]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "MEMNOSYNE", []],
+            [0, "ShowMessage_2", "Oh, don't I know it, child.", []],
+            [0, "MoveEvent", "", [3, 8, 0, 0, 14]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Wait", "", [4]],
+            [0, "ShowMessage", "MEMNOSYNE", []],
+            [0, "ShowMessage_2", "You look so tired! Here, close your", []],
+            [0, "ShowMessage_2", "eyes... let me keep watch for you", []],
+            [0, "ShowMessage_2", "for a little while. You need your rest.", []],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 12]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "Oh, I couldn't - ", []],
+            [0, "MessageOptions", "", [1, 1, 0, 0]],
+            [0, "ShowMessage", "MEMNOSYNE places her fingertips", []],
+            [0, "ShowMessage_2", "on EMILY's eyelids.", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 0, 0]],
+            [0, "PlaySound", "Holy7", [100, 50, 50]],
+            [0, "Wait", "", [5]],
+            [0, "MessageOptions", "", [1, 1, 0, 0]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "What... what is this?", []],
+            [0, "ShowMessage_2", "Memnosyne! What's going on?!", []],
+            [0, "PlayBGM", "1_-_The_Story_of_a_Lost_Love", [0, 100, 100, 50]],
+            [0, "MessageOptions", "", [1, 2, 0, 0]],
+            [0, "ShowMessage", "MEMNOSYNE", []],
+            [0, "ShowMessage_2", "Relax, child... just let yourself slip away", []],
+            [0, "ShowMessage_2", "into peaceful slumber... that's right...", []],
+            [0, "ShowMessage_2", "let your memories surface as dreams...", []],
+            [0, "MessageOptions", "", [1, 1, 0, 0]],
+            [0, "ShowMessage", "EMILY, asleep", []],
+            [0, "ShowMessage_2", "... dreams...", []],
+            [0, "Teleport", "", [240, 2, 6]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 701
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "PlayBGM", "nightbg", [0, 40, 80, 50]],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "TintScreen", "", [40, 40, 40, 100, 10, 1]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "MEMNOSYNE", []],
+            [0, "ShowMessage_2", "I... I didn't know, Emily.", []],
+            [0, "ShowMessage_2", "I'm sorry my Memory Pathway caused", []],
+            [0, "ShowMessage_2", "you to relive painful memories.", []],
+            [0, "Wait", "", [15]],
+            [0, "ShowMessage", "MEMNOSYNE", []],
+            [0, "ShowMessage_2", "Rest well, Emily.", []],
+            [0, "Wait", "", [5]],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 13, 23, 23, 23]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ShowMessage", "MEMNOSYNE", []],
+            [0, "ShowMessage_2", "... ... ...", []],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 12]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ShowMessage", "MEMNOSYNE", []],
+            [0, "ShowMessage_2", "That Talan will be awake for his shift", []],
+            [0, "ShowMessage_2", "soon... I should get back.", []],
+            [0, "ShowMessage", "MEMNOSYNE", []],
+            [0, "ShowMessage_2", "Then I'll see what happiness his", []],
+            [0, "ShowMessage_2", "memory might hold...", []],
+            [0, "MoveEvent", "", [4, 8, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 10, 1]],
+            [0, "Teleport", "", [232, 5, 11]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Emily",
+      "at": [10, 9],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "emily",
+            "index": 4,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 701
+          },
+          "sprite": {
+            "charset": "emily",
+            "index": 5,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Memnosyne",
+      "at": [21, 5],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Memnosyne2",
+      "at": [10, 8],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 701
+          },
+          "sprite": {
+            "charset": "memnosyne",
+            "index": 3,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1662 @@
+{
+  "id": 38,
+  "name": "Sector 34 With Car",
+  "size": [75, 75],
+  "chipset": [9, "BLchp1"],
+  "tiles": "Map0038.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [49, 67],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 130
+          },
+          "sprite": {
+            "charset": "BLVehicles",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ControlSwitches", "", [0, 148, 148, 1]],
+            [0, "ControlSwitches", "", [0, 149, 149, 0]],
+            [0, "ChangePartyMembers", "", [1, 0, 18]],
+            [0, "ChangePartyMembers", "", [1, 0, 17]],
+            [0, "ChangePartyMembers", "", [1, 0, 15]],
+            [0, "ChangePartyMembers", "", [1, 0, 14]],
+            [0, "ChangePartyMembers", "", [0, 0, 10]],
+            [0, "Teleport", "", [36, 10, 9]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [50, 67],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 131
+          },
+          "sprite": {
+            "charset": "BLVehicles",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ControlSwitches", "", [0, 148, 148, 1]],
+            [0, "ControlSwitches", "", [0, 149, 149, 0]],
+            [0, "ChangePartyMembers", "", [1, 0, 18]],
+            [0, "ChangePartyMembers", "", [1, 0, 17]],
+            [0, "ChangePartyMembers", "", [1, 0, 15]],
+            [0, "ChangePartyMembers", "", [1, 0, 14]],
+            [0, "ChangePartyMembers", "", [0, 0, 10]],
+            [0, "Teleport", "", [36, 10, 9]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [34, 65],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I don't want to get too far away from", []],
+            [0, "ShowMessage_2", "the car... I might need to leave in a hurry.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 1]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [34, 66],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I don't want to get too far away from", []],
+            [0, "ShowMessage_2", "the car... I might need to leave in a hurry.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 1]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "EV0005",
+      "at": [74, 65],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I don't want to get too far away from", []],
+            [0, "ShowMessage_2", "the car... I might need to leave in a hurry.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 3]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "EV0006",
+      "at": [74, 66],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I don't want to get too far away from", []],
+            [0, "ShowMessage_2", "the car... I might need to leave in a hurry.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 3]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "EV0007",
+      "at": [22, 54],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I don't want to get too far away from", []],
+            [0, "ShowMessage_2", "the car... I might need to leave in a hurry.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 1]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "EV0008",
+      "at": [22, 55],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I don't want to get too far away from", []],
+            [0, "ShowMessage_2", "the car... I might need to leave in a hurry.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 1]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "EV0009",
+      "at": [14, 50],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLVehicles",
+            "index": 5,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "EV0010",
+      "at": [12, 50],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLVehicles",
+            "index": 5,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "EV0011",
+      "at": [31, 53],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "MessageOptions", "", [1, 0, 0, 0]],
+            [0, "ShowMessage", "SECTOR 34 DEFENSE", []],
+            [0, "ShowMessage_2", "  \"All sales are final! NO credits back!\"", []],
+            [0, "MessageOptions", "", [0, 0, 0, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "EV0012",
+      "at": [50, 53],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "MessageOptions", "", [1, 0, 0, 0]],
+            [0, "ShowMessage", "SECTOR 34 WEAPONS", []],
+            [0, "MessageOptions", "", [0, 0, 0, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "EV0013",
+      "at": [41, 53],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "There's nothing in the grate.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "name": "EV0014",
+      "at": [25, 50],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I don't want to get too far away from", []],
+            [0, "ShowMessage_2", "the car... plus, the bar draws crowds, and", []],
+            [0, "ShowMessage_2", "that could be dangerous.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "name": "EV0015",
+      "at": [64, 66],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 206
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Looks like the detour has been taken", []],
+            [0, "ShowMessage_2", "down.", []],
+            [0, "ControlSwitches", "", [0, 166, 166, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 166
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched"
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "name": "EV0016",
+      "at": [64, 65],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 206
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Looks like the detour has been taken", []],
+            [0, "ShowMessage_2", "down.", []],
+            [0, "ControlSwitches", "", [0, 166, 166, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 166
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched"
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "name": "EV0017",
+      "at": [48, 53],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [10, 42, 14]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "name": "EV0018",
+      "at": [29, 53],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [10, 42, 45]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "name": "Arden",
+      "at": [73, 0],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara2",
+            "index": 0,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Arden... I'm sure everyone's fine.", []],
+            [0, "ShowMessage_2", "They've just been brought into custody,", []],
+            [0, "ShowMessage_2", "that's all.", []],
+            [0, "ShowMessage", "ARDEN", []],
+            [0, "ShowMessage_2", "... ... ...", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "The Vipers will be OK.", []],
+            [0, "ShowMessage", "ARDEN", []],
+            [0, "ShowMessage_2", "It's just... I can't shake the feeling that", []],
+            [0, "ShowMessage_2", "this is all my fault.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "No... it isn't. I mean, if it's anyone's", []],
+            [0, "ShowMessage_2", "fault -", []],
+            [0, "ShowMessage", "ARDEN", []],
+            [0, "ShowMessage_2", "No, Talan. You didn't want me to come", []],
+            [0, "ShowMessage_2", "with you.", []],
+            [0, "ShowMessage", "ARDEN", []],
+            [0, "ShowMessage_2", "But I did - and by doing so, I endangered", []],
+            [0, "ShowMessage_2", "the Vipers. They're my only family, and it's", []],
+            [0, "ShowMessage_2", "my fault that they're... that they've...", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "... ... ...", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "ARDEN", []],
+            [0, "ShowMessage_2", "Let's go, Talan. I'm going to make the", []],
+            [0, "ShowMessage_2", "Agency pay for this.", []],
+            [0, "ChangePartyMembers", "", [0, 0, 15]],
+            [0, "MoveEvent", "", [19, 8, 0, 0, 36, 9]],
+            [0, "Wait", "", [4]],
+            [0, "ChangeEventLocation", "", [19, 0, 74, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "name": "EV0020",
+      "at": [57, 56],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 54
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ChangeEventLocation", "", [19, 0, 57, 56]],
+            [0, "MoveEvent", "", [19, 8, 0, 0, 36, 3, 13]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "ARDEN", []],
+            [0, "ShowMessage_2", "Let's take the shortcut!", []],
+            [0, "MoveEvent", "", [19, 8, 0, 0, 28, 3, 3, 3, 3, 12, 24, 25, 0, 0, 0, 0, 0, 13, 24, 1, 1, 25, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 29]],
+            [0, "Wait", "", [30]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Arden, wait!", []],
+            [0, "ChangeEventLocation", "", [19, 0, 19, 21]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 3, 3, 3, 3, 3, 12]],
+            [0, "Wait", "", [15]],
+            [0, "Teleport", "", [38, 2, 10]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2, 2, 2]],
+            [0, "Wait", "", [8]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "She must be just ahead.", []],
+            [0, "ChangePartyMembers", "", [1, 0, 15]],
+            [0, "ControlSwitches", "", [0, 167, 167, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 167
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched"
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "name": "EV0021",
+      "at": [57, 57],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 54
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ChangeEventLocation", "", [19, 0, 57, 57]],
+            [0, "MoveEvent", "", [19, 8, 0, 0, 36, 3, 13]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "ARDEN", []],
+            [0, "ShowMessage_2", "Let's take the shortcut!", []],
+            [0, "MoveEvent", "", [19, 8, 0, 0, 28, 3, 3, 3, 3, 0, 24, 25, 0, 0, 0, 0, 0, 13, 24, 1, 1, 25, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 29]],
+            [0, "Wait", "", [30]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Arden, wait!", []],
+            [0, "ChangeEventLocation", "", [19, 0, 19, 21]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 3, 3, 3, 3, 3, 0]],
+            [0, "Wait", "", [15]],
+            [0, "Teleport", "", [38, 2, 10]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2, 2, 2]],
+            [0, "Wait", "", [8]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "She must be just ahead.", []],
+            [0, "ChangePartyMembers", "", [1, 0, 15]],
+            [0, "ControlSwitches", "", [0, 167, 167, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 167
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched"
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "name": "EV0022",
+      "at": [6, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I can't leave without Arden!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [0, "Wait", "", [5]]
+          ]
+        },
+        {
+          "conditions": {
+            "actor": 15
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "ARDEN", []],
+            [0, "ShowMessage_2", "We can't leave this way - neither of us", []],
+            [0, "ShowMessage_2", "will be able to reach the plank.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "name": "EV0023",
+      "at": [7, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I can't leave without Arden!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [0, "Wait", "", [5]]
+          ]
+        },
+        {
+          "conditions": {
+            "actor": 15
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "ARDEN", []],
+            [0, "ShowMessage_2", "We can't leave this way - neither of us", []],
+            [0, "ShowMessage_2", "will be able to reach the plank.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 24,
+      "name": "EV0024",
+      "at": [8, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I can't leave without Arden!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [0, "Wait", "", [5]]
+          ]
+        },
+        {
+          "conditions": {
+            "actor": 15
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "ARDEN", []],
+            [0, "ShowMessage_2", "We can't leave this way - neither of us", []],
+            [0, "ShowMessage_2", "will be able to reach the plank.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 25,
+      "name": "EV0025",
+      "at": [6, 18],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [19, 8, 0, 0, 37]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2, 2, 2, 1, 1, 1, 1, 1, 1]],
+            [0, "Wait", "", [25]],
+            [0, "PlayBGM", "vswar", [0, 100, 100, 50]],
+            [0, "PanScreen", "", [2, 1, 10, 4, 1]],
+            [0, "ShowMessage", "ARDEN", []],
+            [0, "ShowMessage_2", "They're gone...", []],
+            [0, "Wait", "", [12]],
+            [0, "MoveEvent", "", [19, 8, 0, 0, 12, 23, 14, 23, 23, 13]],
+            [0, "Wait", "", [15]],
+            [0, "ShowMessage", "ARDEN", []],
+            [0, "ShowMessage_2", "The Agency has been here.", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I'm sure the Vipers got out first.", []],
+            [0, "ShowMessage_2", "Look, there's no sign of a battle...", []],
+            [0, "Wait", "", [8]],
+            [0, "ShowMessage", "ARDEN", []],
+            [0, "ShowMessage_2", "... ... ...", []],
+            [0, "PanScreen", "", [2, 3, 10, 4, 1]],
+            [0, "ControlSwitches", "", [0, 168, 168, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 168
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ConditionalBranch", "", [5, 15, 0, 0, 0, 1]],
+            [1, "ChangeEventLocation", "", [19, 0, 6, 18]],
+            [1, "MoveEvent", "", [19, 8, 0, 0, 2, 13]],
+            [1, "Wait", "", [10]],
+            [1, "ShowMessage", "ARDEN, whispering", []],
+            [1, "ShowMessage_2", "... snake in the dark... poised to strike...", []],
+            [1, "Wait", "", [10]],
+            [1, "MoveEvent", "", [19, 8, 0, 0, 36, 0, 37]],
+            [1, "Wait", "", [5]],
+            [1, "ChangeEventLocation", "", [19, 0, 74, 0]],
+            [1, "ControlSwitches", "", [0, 169, 169, 0]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 169
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched"
+        }
+      ]
+    },
+    {
+      "id": 26,
+      "name": "EV0026",
+      "at": [1, 21],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I can't leave without Arden!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 0]],
+            [0, "Wait", "", [5]]
+          ]
+        },
+        {
+          "conditions": {
+            "actor": 15
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "ARDEN", []],
+            [0, "ShowMessage_2", "OK, let's get back to the car!", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Are you sure you're OK...?", []],
+            [0, "ShowMessage", "ARDEN", []],
+            [0, "ShowMessage_2", "I'm fine! Worry about yourself... leave", []],
+            [0, "ShowMessage_2", "the Vipers to me...", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "... ... ...", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [0, "Wait", "", [5]],
+            [0, "PlayBGM", "golden_axe-turtlevillage2", [0, 80, 100, 50]],
+            [0, "Teleport", "", [38, 73, 65]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 3, 3, 3, 3, 3, 3, 3]],
+            [0, "Wait", "", [20]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 27,
+      "name": "EV0027",
+      "at": [52, 55],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I'm not climbing up there - I've got", []],
+            [0, "ShowMessage_2", "more important things to worry about!", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 56
+          },
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I'm not climbing up there - I've got", []],
+            [0, "ShowMessage_2", "more important things to worry about!", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 54
+          },
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I don't think we should go back. We", []],
+            [0, "ShowMessage_2", "need to focus on the future.", []],
+            [0, "ShowMessage", "ARDEN", []],
+            [0, "ShowMessage_2", "Yes. That's right.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 28,
+      "name": "EV0028",
+      "at": [52, 54],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I'm not climbing up there - I've got", []],
+            [0, "ShowMessage_2", "more important things to worry about!", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 56
+          },
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I'm not climbing up there - I've got", []],
+            [0, "ShowMessage_2", "more important things to worry about!", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 54
+          },
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I don't think we should go back. We", []],
+            [0, "ShowMessage_2", "need to focus on the future.", []],
+            [0, "ShowMessage", "ARDEN", []],
+            [0, "ShowMessage_2", "Yes. That's right.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 29,
+      "name": "EV0029",
+      "at": [41, 64],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "The door is locked.", []],
+            [0, "ConditionalBranch", "", [5, 17, 0, 0, 0, 1]],
+            [1, "ConditionalBranch", "", [5, 17, 4, 152, 0, 1]],
+            [2, "ConditionalBranch", "", [5, 17, 5, 139, 0, 1]],
+            [3, "ShowMessage", "SALDRA", []],
+            [3, "ShowMessage_2", "OK, let's see if I can pick the lock on", []],
+            [3, "ShowMessage_2", "this door... just give me a minute...", []],
+            [3, "END", "", []],
+            [2, "ElseBranch", "", []],
+            [3, "ShowMessage", "SALDRA", []],
+            [3, "ShowMessage_2", "I know how to pick locks, but without", []],
+            [3, "ShowMessage_2", "a set of lockpicks it'll do me no good, man.", []],
+            [3, "END", "", []],
+            [2, "EndBranch", "", []],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "ShowMessage", "SALDRA", []],
+            [2, "ShowMessage_2", "I don't know how to pick locks, man.", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ConditionalBranch", "", [5, 15, 0, 0, 0, 1]],
+            [1, "ConditionalBranch", "", [5, 15, 4, 152, 0, 1]],
+            [2, "ConditionalBranch", "", [5, 15, 5, 139, 0, 1]],
+            [3, "ShowMessage", "ARDEN", []],
+            [3, "ShowMessage_2", "Let me try to pick the lock, Talan...", []],
+            [3, "END", "", []],
+            [2, "ElseBranch", "", []],
+            [3, "ShowMessage", "ARDEN", []],
+            [3, "ShowMessage_2", "I know how to pick locks, but without", []],
+            [3, "ShowMessage_2", "a set of lockpicks it doesn't matter.", []],
+            [3, "END", "", []],
+            [2, "EndBranch", "", []],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "ShowMessage", "ARDEN", []],
+            [2, "ShowMessage_2", "I don't really know how to pick locks.", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 30,
+      "name": "EV0030",
+      "at": [72, 55],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "The door is locked.", []],
+            [0, "ConditionalBranch", "", [5, 17, 0, 0, 0, 1]],
+            [1, "ConditionalBranch", "", [5, 17, 4, 152, 0, 1]],
+            [2, "ConditionalBranch", "", [5, 17, 5, 139, 0, 1]],
+            [3, "ShowMessage", "SALDRA", []],
+            [3, "ShowMessage_2", "OK, let's see if I can pick the lock on", []],
+            [3, "ShowMessage_2", "this door... just give me a minute...", []],
+            [3, "END", "", []],
+            [2, "ElseBranch", "", []],
+            [3, "ShowMessage", "SALDRA", []],
+            [3, "ShowMessage_2", "I know how to pick locks, but without", []],
+            [3, "ShowMessage_2", "a set of lockpicks it'll do me no good, man.", []],
+            [3, "END", "", []],
+            [2, "EndBranch", "", []],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "ShowMessage", "SALDRA", []],
+            [2, "ShowMessage_2", "I don't know how to pick locks, man.", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ConditionalBranch", "", [5, 15, 0, 0, 0, 1]],
+            [1, "ConditionalBranch", "", [5, 15, 4, 152, 0, 1]],
+            [2, "ConditionalBranch", "", [5, 15, 5, 139, 0, 1]],
+            [3, "ShowMessage", "ARDEN", []],
+            [3, "ShowMessage_2", "Let me try to pick the lock, Talan...", []],
+            [3, "END", "", []],
+            [2, "ElseBranch", "", []],
+            [3, "ShowMessage", "ARDEN", []],
+            [3, "ShowMessage_2", "I know how to pick locks, but without", []],
+            [3, "ShowMessage_2", "a set of lockpicks it doesn't matter.", []],
+            [3, "END", "", []],
+            [2, "EndBranch", "", []],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "ShowMessage", "ARDEN", []],
+            [2, "ShowMessage_2", "I don't really know how to pick locks.", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 31,
+      "name": "EV0031",
+      "at": [66, 55],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "The door is locked.", []],
+            [0, "ConditionalBranch", "", [5, 17, 0, 0, 0, 1]],
+            [1, "ConditionalBranch", "", [5, 17, 4, 152, 0, 1]],
+            [2, "ConditionalBranch", "", [5, 17, 5, 139, 0, 1]],
+            [3, "ShowMessage", "SALDRA", []],
+            [3, "ShowMessage_2", "OK, let's see if I can pick the lock on", []],
+            [3, "ShowMessage_2", "this door... just give me a minute...", []],
+            [3, "END", "", []],
+            [2, "ElseBranch", "", []],
+            [3, "ShowMessage", "SALDRA", []],
+            [3, "ShowMessage_2", "I know how to pick locks, but without", []],
+            [3, "ShowMessage_2", "a set of lockpicks it'll do me no good, man.", []],
+            [3, "END", "", []],
+            [2, "EndBranch", "", []],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "ShowMessage", "SALDRA", []],
+            [2, "ShowMessage_2", "I don't know how to pick locks, man.", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ConditionalBranch", "", [5, 15, 0, 0, 0, 1]],
+            [1, "ConditionalBranch", "", [5, 15, 4, 152, 0, 1]],
+            [2, "ConditionalBranch", "", [5, 15, 5, 139, 0, 1]],
+            [3, "ShowMessage", "ARDEN", []],
+            [3, "ShowMessage_2", "Let me try to pick the lock, Talan...", []],
+            [3, "END", "", []],
+            [2, "ElseBranch", "", []],
+            [3, "ShowMessage", "ARDEN", []],
+            [3, "ShowMessage_2", "I know how to pick locks, but without", []],
+            [3, "ShowMessage_2", "a set of lockpicks it doesn't matter.", []],
+            [3, "END", "", []],
+            [2, "EndBranch", "", []],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "ShowMessage", "ARDEN", []],
+            [2, "ShowMessage_2", "I don't really know how to pick locks.", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 32,
+      "name": "EV0032",
+      "at": [55, 55],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "The door is locked.", []],
+            [0, "ConditionalBranch", "", [5, 17, 0, 0, 0, 1]],
+            [1, "ConditionalBranch", "", [5, 17, 4, 152, 0, 1]],
+            [2, "ConditionalBranch", "", [5, 17, 5, 139, 0, 1]],
+            [3, "ShowMessage", "SALDRA", []],
+            [3, "ShowMessage_2", "OK, let's see if I can pick the lock on", []],
+            [3, "ShowMessage_2", "this door... just give me a minute...", []],
+            [3, "END", "", []],
+            [2, "ElseBranch", "", []],
+            [3, "ShowMessage", "SALDRA", []],
+            [3, "ShowMessage_2", "I know how to pick locks, but without", []],
+            [3, "ShowMessage_2", "a set of lockpicks it'll do me no good, man.", []],
+            [3, "END", "", []],
+            [2, "EndBranch", "", []],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "ShowMessage", "SALDRA", []],
+            [2, "ShowMessage_2", "I don't know how to pick locks, man.", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ConditionalBranch", "", [5, 15, 0, 0, 0, 1]],
+            [1, "ConditionalBranch", "", [5, 15, 4, 152, 0, 1]],
+            [2, "ConditionalBranch", "", [5, 15, 5, 139, 0, 1]],
+            [3, "ShowMessage", "ARDEN", []],
+            [3, "ShowMessage_2", "Let me try to pick the lock, Talan...", []],
+            [3, "END", "", []],
+            [2, "ElseBranch", "", []],
+            [3, "ShowMessage", "ARDEN", []],
+            [3, "ShowMessage_2", "I know how to pick locks, but without", []],
+            [3, "ShowMessage_2", "a set of lockpicks it doesn't matter.", []],
+            [3, "END", "", []],
+            [2, "EndBranch", "", []],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "ShowMessage", "ARDEN", []],
+            [2, "ShowMessage_2", "I don't really know how to pick locks.", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 33,
+      "name": "EV0033",
+      "at": [38, 53],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "The door is locked.", []],
+            [0, "ConditionalBranch", "", [5, 17, 0, 0, 0, 1]],
+            [1, "ConditionalBranch", "", [5, 17, 4, 152, 0, 1]],
+            [2, "ConditionalBranch", "", [5, 17, 5, 139, 0, 1]],
+            [3, "ShowMessage", "SALDRA", []],
+            [3, "ShowMessage_2", "OK, let's see if I can pick the lock on", []],
+            [3, "ShowMessage_2", "this door... just give me a minute...", []],
+            [3, "END", "", []],
+            [2, "ElseBranch", "", []],
+            [3, "ShowMessage", "SALDRA", []],
+            [3, "ShowMessage_2", "I know how to pick locks, but without", []],
+            [3, "ShowMessage_2", "a set of lockpicks it'll do me no good, man.", []],
+            [3, "END", "", []],
+            [2, "EndBranch", "", []],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "ShowMessage", "SALDRA", []],
+            [2, "ShowMessage_2", "I don't know how to pick locks, man.", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ConditionalBranch", "", [5, 15, 0, 0, 0, 1]],
+            [1, "ConditionalBranch", "", [5, 15, 4, 152, 0, 1]],
+            [2, "ConditionalBranch", "", [5, 15, 5, 139, 0, 1]],
+            [3, "ShowMessage", "ARDEN", []],
+            [3, "ShowMessage_2", "Let me try to pick the lock, Talan...", []],
+            [3, "END", "", []],
+            [2, "ElseBranch", "", []],
+            [3, "ShowMessage", "ARDEN", []],
+            [3, "ShowMessage_2", "I know how to pick locks, but without", []],
+            [3, "ShowMessage_2", "a set of lockpicks it doesn't matter.", []],
+            [3, "END", "", []],
+            [2, "EndBranch", "", []],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "ShowMessage", "ARDEN", []],
+            [2, "ShowMessage_2", "I don't really know how to pick locks.", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 34,
+      "name": "EV0034",
+      "at": [69, 60],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ControlSwitches", "", [0, 231, 231, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 35,
+      "name": "EV0035",
+      "at": [41, 65],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Crown3",
+            "index": 1,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 24, 25]],
+            [0, "Wait", "", [3]],
+            [0, "ShowMessage", "MAN", []],
+            [0, "ShowMessage_2", "I locked myself out of my apartment!", []],
+            [0, "ShowMessage_2", "I don't believe this!", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I'm sorry.", []],
+            [0, "ShowMessage", "MAN", []],
+            [0, "ShowMessage_2", "This sucks!", []],
+            [0, "ControlSwitches", "", [0, 232, 232, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 232
+          },
+          "sprite": {
+            "charset": "Crown3",
+            "index": 1,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "MAN", []],
+            [0, "ShowMessage_2", "Where could I have left my keys?", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 36,
+      "name": "EV0036",
+      "at": [11, 45],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara2",
+            "index": 4,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "move": {
+            "type": "horizontal",
+            "speed": "double",
+            "frequency": 5
+          },
+          "animation": "continuous"
+        }
+      ]
+    },
+    {
+      "id": 37,
+      "name": "EV0037",
+      "at": [40, 46],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara4",
+            "index": 1,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "move": {
+            "type": "horizontal",
+            "speed": "half",
+            "frequency": 6
+          },
+          "animation": "continuous"
+        }
+      ]
+    },
+    {
+      "id": 38,
+      "name": "KidB",
+      "at": [44, 54],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People1",
+            "index": 0,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "KID", []],
+            [0, "ShowMessage_2", "The mean man in the Weapon Shop", []],
+            [0, "ShowMessage_2", "always yells at us. He turns all red - it's", []],
+            [0, "ShowMessage_2", "funny!", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "What are you kids doing here, anyway?", []],
+            [0, "ShowMessage_2", "This sector is pretty rough.", []],
+            [0, "ShowMessage", "KID", []],
+            [0, "ShowMessage_2", "We're tough too! I'm a warrior!", []],
+            [0, "ShowMessage", "OTHER KID", []],
+            [0, "ShowMessage_2", "Yeah! You'd better watch out!", []],
+            [0, "ControlSwitches", "", [0, 233, 233, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 233
+          },
+          "sprite": {
+            "charset": "People1",
+            "index": 0,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "KID", []],
+            [0, "ShowMessage_2", "We always play around here. The", []],
+            [0, "ShowMessage_2", "gangs sometimes give us candy.", []],
+            [0, "ConditionalBranch", "", [0, 54, 0, 0, 0, 1]],
+            [1, "ShowMessage", "ARDEN", []],
+            [1, "ShowMessage_2", "I remember you kids now! You", []],
+            [1, "ShowMessage_2", "sold us information on the Lazer", []],
+            [1, "ShowMessage_2", "Teeth once, for two candy pills!", []],
+            [1, "ShowMessage", "OTHER KID", []],
+            [1, "ShowMessage_2", "I told you we're warriors! And spies,", []],
+            [1, "ShowMessage_2", "too!", []],
+            [1, "ShowMessage", "KID", []],
+            [1, "ShowMessage_2", "Yeah!", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ConditionalBranch", "", [0, 56, 0, 0, 0, 1]],
+            [1, "ShowMessage", "SALDRA", []],
+            [1, "ShowMessage_2", "I remember you kids now! You", []],
+            [1, "ShowMessage_2", "sold us information on the Vipers", []],
+            [1, "ShowMessage_2", "once, for two vials of sugar water!", []],
+            [1, "ShowMessage", "OTHER KID", []],
+            [1, "ShowMessage_2", "I told you we're warriors! And spies,", []],
+            [1, "ShowMessage_2", "too!", []],
+            [1, "ShowMessage", "KID", []],
+            [1, "ShowMessage_2", "Yeah!", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ConditionalBranch", "", [0, 150, 0, 0, 0, 1]],
+            [1, "ShowMessage", "KID", []],
+            [1, "ShowMessage_2", "That's a funny looking robot. Can I", []],
+            [1, "ShowMessage_2", "touch it?", []],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "No.", []],
+            [1, "ShowMessage", "KID", []],
+            [1, "ShowMessage_2", "Awwwwww...", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ControlSwitches", "", [0, 234, 234, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 234
+          },
+          "sprite": {
+            "charset": "People1",
+            "index": 0,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "KID", []],
+            [0, "ShowMessage_2", "I'm bored!", []],
+            [0, "ShowMessage", "OTHER KID", []],
+            [0, "ShowMessage_2", "Me too.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 39,
+      "name": "KidB",
+      "at": [45, 54],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People4",
+            "index": 0,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "KID", []],
+            [0, "ShowMessage_2", "The mean man in the Weapon Shop", []],
+            [0, "ShowMessage_2", "always yells at us. He turns all red - it's", []],
+            [0, "ShowMessage_2", "funny!", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "What are you kids doing here, anyway?", []],
+            [0, "ShowMessage_2", "This sector is pretty rough.", []],
+            [0, "ShowMessage", "KID", []],
+            [0, "ShowMessage_2", "We're tough too! I'm a warrior!", []],
+            [0, "ShowMessage", "OTHER KID", []],
+            [0, "ShowMessage_2", "Yeah! You'd better watch out!", []],
+            [0, "ControlSwitches", "", [0, 233, 233, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 233
+          },
+          "sprite": {
+            "charset": "People4",
+            "index": 0,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "KID", []],
+            [0, "ShowMessage_2", "We always play around here. The", []],
+            [0, "ShowMessage_2", "gangs sometimes give us candy.", []],
+            [0, "ConditionalBranch", "", [0, 54, 0, 0, 0, 1]],
+            [1, "ShowMessage", "ARDEN", []],
+            [1, "ShowMessage_2", "I remember you kids now! You", []],
+            [1, "ShowMessage_2", "sold us information on the Lazer", []],
+            [1, "ShowMessage_2", "Teeth once, for two candy pills!", []],
+            [1, "ShowMessage", "OTHER KID", []],
+            [1, "ShowMessage_2", "I told you we're warriors! And spies,", []],
+            [1, "ShowMessage_2", "too!", []],
+            [1, "ShowMessage", "KID", []],
+            [1, "ShowMessage_2", "Yeah!", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ConditionalBranch", "", [0, 56, 0, 0, 0, 1]],
+            [1, "ShowMessage", "SALDRA", []],
+            [1, "ShowMessage_2", "I remember you kids now! You", []],
+            [1, "ShowMessage_2", "sold us information on the Vipers", []],
+            [1, "ShowMessage_2", "once, for two vials of sugar water!", []],
+            [1, "ShowMessage", "OTHER KID", []],
+            [1, "ShowMessage_2", "I told you we're warriors! And spies,", []],
+            [1, "ShowMessage_2", "too!", []],
+            [1, "ShowMessage", "KID", []],
+            [1, "ShowMessage_2", "Yeah!", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ConditionalBranch", "", [0, 150, 0, 0, 0, 1]],
+            [1, "ShowMessage", "KID", []],
+            [1, "ShowMessage_2", "That's a funny looking robot. Can I", []],
+            [1, "ShowMessage_2", "touch it?", []],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "No.", []],
+            [1, "ShowMessage", "KID", []],
+            [1, "ShowMessage_2", "Awwwwww...", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ControlSwitches", "", [0, 234, 234, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 234
+          },
+          "sprite": {
+            "charset": "People4",
+            "index": 0,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "KID", []],
+            [0, "ShowMessage_2", "I'm bored!", []],
+            [0, "ShowMessage", "OTHER KID", []],
+            [0, "ShowMessage_2", "Me too.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 40,
+      "name": "EV0040",
+      "at": [18, 54],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara2",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 41,
+      "name": "EV0041",
+      "at": [19, 55],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara2",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 42,
+      "name": "EV0042",
+      "at": [14, 54],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara2",
+            "index": 2,
+            "direction": "up",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 43,
+      "name": "EV0043",
+      "at": [16, 54],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLVehicles",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 44,
+      "name": "EV0044",
+      "at": [13, 50],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLVehicles",
+            "index": 5,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 45,
+      "name": "TrashDumpChest.1",
+      "at": [35, 17],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 544, 544, 0]],
+            [0, "ChangeItems", "", [0, 0, 157, 0, 1]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Sharp Knife-R", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 544
+          },
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 46,
+      "name": "TrashDumpChest.2",
+      "at": [13, 15],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 545, 545, 0]],
+            [0, "ChangeItems", "", [0, 0, 124, 0, 1]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Bag of Chips-HP", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 545
+          },
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 47,
+      "name": "TrashDumpChest.3",
+      "at": [28, 25],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 546, 546, 0]],
+            [0, "ChangeGold", "", [0, 0, 250]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       250 credits.", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 546
+          },
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    }
+  ]
+}

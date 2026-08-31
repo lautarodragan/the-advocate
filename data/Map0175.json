@@ -1,0 +1,138 @@
+{
+  "id": 175,
+  "name": "Mountain Flashback",
+  "size": [20, 15],
+  "chipset": [21, "PS4Chipset"],
+  "tiles": "Map0175.tiles",
+  "parallax": {
+    "name": "Night1",
+    "loop_x": false,
+    "loop_y": false,
+    "scroll_x": 0,
+    "scroll_y": 0
+  },
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [5, 8],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara2",
+            "index": 3,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [9, 8],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [6, 8],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara2",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [13, 9],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara4",
+            "index": 6,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "EV0005",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ChangePartyMembers", "", [1, 0, 14]],
+            [0, "ChangePartyMembers", "", [0, 0, 10]],
+            [0, "PlayBGM", "human4", [0, 50, 100, 50]],
+            [0, "TintScreen", "", [60, 60, 60, 0, 10, 1]],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "PIERSON", []],
+            [0, "ShowMessage_2", "Many years ago, I and several others came", []],
+            [0, "ShowMessage_2", "to this place amongst the mountains, fleeing", []],
+            [0, "ShowMessage_2", "for our lives.", []],
+            [0, "ShowMessage", "PIERSON", []],
+            [0, "ShowMessage_2", "There was... let us say, \"turmoil,\" within the", []],
+            [0, "ShowMessage_2", "upper ranks of the Agency, and we fled with", []],
+            [0, "ShowMessage_2", "their best troops in hot pursuit.", []],
+            [0, "ShowMessage", "PIERSON", []],
+            [0, "ShowMessage_2", "For weeks we hid among the caves and", []],
+            [0, "ShowMessage_2", "rocky peaks of the mountains, living on", []],
+            [0, "ShowMessage_2", "what we could scavenge.", []],
+            [0, "ShowMessage", "PIERSON", []],
+            [0, "ShowMessage_2", "The Agency troops hunted for us, and although", []],
+            [0, "ShowMessage_2", "we lost one of our number, the rest of us made", []],
+            [0, "ShowMessage_2", "it safely... here.", []],
+            [0, "Wait", "", [15]],
+            [0, "Teleport", "", [176, 4, 7]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "Pierson",
+      "at": [2, 7],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People1",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1631 @@
+{
+  "id": 49,
+  "name": "Escape Lashe City - LV1",
+  "size": [500, 40],
+  "chipset": [13, "BLchp1"],
+  "tiles": "Map0049.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "RaceController1",
+      "at": [2, 21],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 171
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "PlayBGM", "Fire_Mustang_Intro_And_Level_2_By_Luiz_Vasco", [0, 100, 100, 50]],
+            [0, "ControlVars", "", [0, 34, 34, 0, 6, 10001, 2]],
+            [0, "ControlVars", "", [0, 35, 35, 0, 6, 10001, 1]],
+            [0, "PanScreen", "", [2, 1, 7, 4, 1]],
+            [0, "ControlSwitches", "", [0, 130, 130, 0]],
+            [0, "ChangePartyMembers", "", [1, 0, 10]],
+            [0, "ChangePartyMembers", "", [1, 0, 14]],
+            [0, "ChangePartyMembers", "", [1, 0, 15]],
+            [0, "ChangePartyMembers", "", [1, 0, 17]],
+            [0, "ChangePartyMembers", "", [1, 0, 18]],
+            [0, "ChangePartyMembers", "", [1, 0, 19]],
+            [0, "ChangePartyMembers", "", [1, 0, 20]],
+            [0, "ConditionalBranch", "", [0, 130, 0, 0, 0, 1]],
+            [1, "ChangePartyMembers", "", [0, 0, 19]],
+            [1, "MoveEvent", "", [10001, 8, 0, 0, 13, 26]],
+            [1, "Wait", "", [5]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ConditionalBranch", "", [0, 131, 0, 0, 0, 1]],
+            [1, "ChangePartyMembers", "", [0, 0, 20]],
+            [1, "MoveEvent", "", [10001, 8, 0, 0, 14, 26]],
+            [1, "Wait", "", [5]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 28, 28, 28]],
+            [0, "ControlSwitches", "", [0, 170, 170, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 170
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "RaceController2",
+      "at": [3, 21],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 170
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "parallel",
+          "overlap_forbidden": true,
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 28, 1, 29]],
+            [0, "ControlVars", "", [0, 34, 34, 0, 6, 10001, 2]],
+            [0, "ControlVars", "", [0, 35, 35, 0, 6, 10001, 1]],
+            [0, "KeyInputProc", "", [33, 0, 1, 0, 0]],
+            [0, "ConditionalBranch", "", [1, 33, 0, 1, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 34, 0, 27, 2, 1]],
+            [2, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "PlaySound", "Annihilation2", [100, 150, 50]],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ConditionalBranch", "", [1, 33, 0, 4, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 34, 0, 24, 1, 1]],
+            [2, "MoveEvent", "", [10001, 8, 0, 0, 0]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "PlaySound", "Annihilation2", [100, 150, 50]],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 172
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action",
+          "overlap_forbidden": true
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "RaceControllerZERO",
+      "at": [1, 21],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ControlVars", "", [0, 38, 38, 0, 0, 0, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "The Agency vehicles are getting closer...", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "If I can just make it down this road,", []],
+            [0, "ShowMessage_2", "through the tunnel, and then over the", []],
+            [0, "ShowMessage_2", "bridge, I can make it out of the city!", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I think it's time to see how fast this", []],
+            [0, "ShowMessage_2", "baby can go!", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 2, 1]],
+            [0, "Wait", "", [10]],
+            [0, "ChangeMainMenuAccess", "", [0]],
+            [0, "ShowPicture", "EscapeInst", [6, 0, 160, 150, 0, 100, 0, 0, 100, 100, 100, 100, 0, 60]],
+            [0, "KeyInputProc", "", [151, 1, 1, 1, 1]],
+            [0, "PlaySound", "Evasion2", [100, 100, 50]],
+            [0, "ErasePicture", "", [6]],
+            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "Wait", "", [10]],
+            [0, "ControlSwitches", "", [0, 171, 171, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 171
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [97, 24],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLVehicles",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "below",
+          "trigger": "parallel",
+          "move": {
+            "type": "custom",
+            "speed": "half",
+            "frequency": 4
+          },
+          "animation": "fixed_continuous",
+          "script": [
+            [0, "ControlVars", "", [0, 36, 36, 0, 6, 10005, 2]],
+            [0, "ControlVars", "", [0, 37, 37, 0, 6, 10005, 1]],
+            [0, "ConditionalBranch", "", [1, 36, 1, 34, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 37, 1, 35, 0, 1]],
+            [2, "ChangeSpriteAssociation", "Future3", [19, 0, 0]],
+            [2, "ChangeSpriteAssociation", "Future3", [20, 0, 0]],
+            [2, "ShowBattleAnimation", "", [141, 10001, 1, 0]],
+            [2, "ControlSwitches", "", [0, 172, 172, 0]],
+            [2, "Teleport", "", [50, 10, 7]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "EV0005",
+      "at": [101, 26],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLVehicles",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "below",
+          "trigger": "parallel",
+          "animation": "fixed_continuous",
+          "script": [
+            [0, "ControlVars", "", [0, 36, 36, 0, 6, 10005, 2]],
+            [0, "ControlVars", "", [0, 37, 37, 0, 6, 10005, 1]],
+            [0, "ConditionalBranch", "", [1, 36, 1, 34, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 37, 1, 35, 0, 1]],
+            [2, "ChangeSpriteAssociation", "Future3", [19, 0, 0]],
+            [2, "ChangeSpriteAssociation", "Future3", [20, 0, 0]],
+            [2, "ShowBattleAnimation", "", [141, 10001, 1, 0]],
+            [2, "ControlSwitches", "", [0, 172, 172, 0]],
+            [2, "Teleport", "", [50, 10, 7]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "EV0006",
+      "at": [116, 27],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLVehicles",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "below",
+          "trigger": "parallel",
+          "animation": "fixed_continuous",
+          "script": [
+            [0, "ControlVars", "", [0, 36, 36, 0, 6, 10005, 2]],
+            [0, "ControlVars", "", [0, 37, 37, 0, 6, 10005, 1]],
+            [0, "ConditionalBranch", "", [1, 36, 1, 34, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 37, 1, 35, 0, 1]],
+            [2, "ChangeSpriteAssociation", "Future3", [19, 0, 0]],
+            [2, "ChangeSpriteAssociation", "Future3", [20, 0, 0]],
+            [2, "ShowBattleAnimation", "", [141, 10001, 1, 0]],
+            [2, "ControlSwitches", "", [0, 172, 172, 0]],
+            [2, "Teleport", "", [50, 10, 7]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "EV0007",
+      "at": [127, 25],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLVehicles",
+            "index": 5,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "below",
+          "trigger": "parallel",
+          "move": {
+            "type": "custom",
+            "speed": "half",
+            "frequency": 6
+          },
+          "animation": "fixed_continuous",
+          "script": [
+            [0, "ControlVars", "", [0, 36, 36, 0, 6, 10005, 2]],
+            [0, "ControlVars", "", [0, 37, 37, 0, 6, 10005, 1]],
+            [0, "ConditionalBranch", "", [1, 36, 1, 34, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 37, 1, 35, 0, 1]],
+            [2, "ChangeSpriteAssociation", "Future3", [19, 0, 0]],
+            [2, "ChangeSpriteAssociation", "Future3", [20, 0, 0]],
+            [2, "ShowBattleAnimation", "", [141, 10001, 1, 0]],
+            [2, "ControlSwitches", "", [0, 172, 172, 0]],
+            [2, "Teleport", "", [50, 10, 7]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "EV0008",
+      "at": [90, 28],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLVehicles",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "below",
+          "trigger": "parallel",
+          "animation": "fixed_continuous",
+          "script": [
+            [0, "ControlVars", "", [0, 36, 36, 0, 6, 10005, 2]],
+            [0, "ControlVars", "", [0, 37, 37, 0, 6, 10005, 1]],
+            [0, "ConditionalBranch", "", [1, 36, 1, 34, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 37, 1, 35, 0, 1]],
+            [2, "ChangeSpriteAssociation", "Future3", [19, 0, 0]],
+            [2, "ChangeSpriteAssociation", "Future3", [20, 0, 0]],
+            [2, "ShowBattleAnimation", "", [141, 10001, 1, 0]],
+            [2, "ControlSwitches", "", [0, 172, 172, 0]],
+            [2, "Teleport", "", [50, 10, 7]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "EV0009",
+      "at": [79, 25],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLVehicles",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "below",
+          "trigger": "parallel",
+          "move": {
+            "type": "custom",
+            "speed": "half",
+            "frequency": 5
+          },
+          "animation": "fixed_continuous",
+          "script": [
+            [0, "ControlVars", "", [0, 36, 36, 0, 6, 10005, 2]],
+            [0, "ControlVars", "", [0, 37, 37, 0, 6, 10005, 1]],
+            [0, "ConditionalBranch", "", [1, 36, 1, 34, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 37, 1, 35, 0, 1]],
+            [2, "ChangeSpriteAssociation", "Future3", [19, 0, 0]],
+            [2, "ChangeSpriteAssociation", "Future3", [20, 0, 0]],
+            [2, "ShowBattleAnimation", "", [141, 10001, 1, 0]],
+            [2, "ControlSwitches", "", [0, 172, 172, 0]],
+            [2, "Teleport", "", [50, 10, 7]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "EV0010",
+      "at": [70, 27],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLVehicles",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "below",
+          "trigger": "parallel",
+          "animation": "fixed_continuous",
+          "script": [
+            [0, "ControlVars", "", [0, 36, 36, 0, 6, 10005, 2]],
+            [0, "ControlVars", "", [0, 37, 37, 0, 6, 10005, 1]],
+            [0, "ConditionalBranch", "", [1, 36, 1, 34, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 37, 1, 35, 0, 1]],
+            [2, "ChangeSpriteAssociation", "Future3", [19, 0, 0]],
+            [2, "ChangeSpriteAssociation", "Future3", [20, 0, 0]],
+            [2, "ShowBattleAnimation", "", [141, 10001, 1, 0]],
+            [2, "ControlSwitches", "", [0, 172, 172, 0]],
+            [2, "Teleport", "", [50, 10, 7]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "EV0011",
+      "at": [72, 24],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLVehicles",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "below",
+          "trigger": "parallel",
+          "animation": "fixed_continuous",
+          "script": [
+            [0, "ControlVars", "", [0, 36, 36, 0, 6, 10005, 2]],
+            [0, "ControlVars", "", [0, 37, 37, 0, 6, 10005, 1]],
+            [0, "ConditionalBranch", "", [1, 36, 1, 34, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 37, 1, 35, 0, 1]],
+            [2, "ChangeSpriteAssociation", "Future3", [19, 0, 0]],
+            [2, "ChangeSpriteAssociation", "Future3", [20, 0, 0]],
+            [2, "ShowBattleAnimation", "", [141, 10001, 1, 0]],
+            [2, "ControlSwitches", "", [0, 172, 172, 0]],
+            [2, "Teleport", "", [50, 10, 7]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "EV0012",
+      "at": [109, 25],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLVehicles",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "below",
+          "trigger": "parallel",
+          "move": {
+            "type": "custom",
+            "speed": "half",
+            "frequency": 6
+          },
+          "animation": "fixed_continuous",
+          "script": [
+            [0, "ControlVars", "", [0, 36, 36, 0, 6, 10005, 2]],
+            [0, "ControlVars", "", [0, 37, 37, 0, 6, 10005, 1]],
+            [0, "ConditionalBranch", "", [1, 36, 1, 34, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 37, 1, 35, 0, 1]],
+            [2, "ChangeSpriteAssociation", "Future3", [19, 0, 0]],
+            [2, "ChangeSpriteAssociation", "Future3", [20, 0, 0]],
+            [2, "ShowBattleAnimation", "", [141, 10001, 1, 0]],
+            [2, "ControlSwitches", "", [0, 172, 172, 0]],
+            [2, "Teleport", "", [50, 10, 7]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "EV0013",
+      "at": [94, 27],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLVehicles",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "below",
+          "trigger": "parallel",
+          "animation": "fixed_continuous",
+          "script": [
+            [0, "ControlVars", "", [0, 36, 36, 0, 6, 10005, 2]],
+            [0, "ControlVars", "", [0, 37, 37, 0, 6, 10005, 1]],
+            [0, "ConditionalBranch", "", [1, 36, 1, 34, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 37, 1, 35, 0, 1]],
+            [2, "ChangeSpriteAssociation", "Future3", [19, 0, 0]],
+            [2, "ChangeSpriteAssociation", "Future3", [20, 0, 0]],
+            [2, "ShowBattleAnimation", "", [141, 10001, 1, 0]],
+            [2, "ControlSwitches", "", [0, 172, 172, 0]],
+            [2, "Teleport", "", [50, 10, 7]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "name": "EV0014",
+      "at": [121, 23],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLVehicles",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "below",
+          "trigger": "parallel",
+          "animation": "fixed_continuous",
+          "script": [
+            [0, "ControlVars", "", [0, 36, 36, 0, 6, 10005, 2]],
+            [0, "ControlVars", "", [0, 37, 37, 0, 6, 10005, 1]],
+            [0, "ConditionalBranch", "", [1, 36, 1, 34, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 37, 1, 35, 0, 1]],
+            [2, "ChangeSpriteAssociation", "Future3", [19, 0, 0]],
+            [2, "ChangeSpriteAssociation", "Future3", [20, 0, 0]],
+            [2, "ShowBattleAnimation", "", [141, 10001, 1, 0]],
+            [2, "ControlSwitches", "", [0, 172, 172, 0]],
+            [2, "Teleport", "", [50, 10, 7]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "name": "EV0015",
+      "at": [121, 28],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLVehicles",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "below",
+          "trigger": "parallel",
+          "animation": "fixed_continuous",
+          "script": [
+            [0, "ControlVars", "", [0, 36, 36, 0, 6, 10005, 2]],
+            [0, "ControlVars", "", [0, 37, 37, 0, 6, 10005, 1]],
+            [0, "ConditionalBranch", "", [1, 36, 1, 34, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 37, 1, 35, 0, 1]],
+            [2, "ChangeSpriteAssociation", "Future3", [19, 0, 0]],
+            [2, "ChangeSpriteAssociation", "Future3", [20, 0, 0]],
+            [2, "ShowBattleAnimation", "", [141, 10001, 1, 0]],
+            [2, "ControlSwitches", "", [0, 172, 172, 0]],
+            [2, "Teleport", "", [50, 10, 7]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "name": "EV0016",
+      "at": [85, 23],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLVehicles",
+            "index": 5,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "below",
+          "trigger": "parallel",
+          "animation": "fixed_continuous",
+          "script": [
+            [0, "ControlVars", "", [0, 36, 36, 0, 6, 10005, 2]],
+            [0, "ControlVars", "", [0, 37, 37, 0, 6, 10005, 1]],
+            [0, "ConditionalBranch", "", [1, 36, 1, 34, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 37, 1, 35, 0, 1]],
+            [2, "ChangeSpriteAssociation", "Future3", [19, 0, 0]],
+            [2, "ChangeSpriteAssociation", "Future3", [20, 0, 0]],
+            [2, "ShowBattleAnimation", "", [141, 10001, 1, 0]],
+            [2, "ControlSwitches", "", [0, 172, 172, 0]],
+            [2, "Teleport", "", [50, 10, 7]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "name": "EV0017",
+      "at": [144, 24],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLVehicles",
+            "index": 5,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "below",
+          "trigger": "parallel",
+          "animation": "fixed_continuous",
+          "script": [
+            [0, "ControlVars", "", [0, 36, 36, 0, 6, 10005, 2]],
+            [0, "ControlVars", "", [0, 37, 37, 0, 6, 10005, 1]],
+            [0, "ConditionalBranch", "", [1, 36, 1, 34, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 37, 1, 35, 0, 1]],
+            [2, "ChangeSpriteAssociation", "Future3", [19, 0, 0]],
+            [2, "ChangeSpriteAssociation", "Future3", [20, 0, 0]],
+            [2, "ShowBattleAnimation", "", [141, 10001, 1, 0]],
+            [2, "ControlSwitches", "", [0, 172, 172, 0]],
+            [2, "Teleport", "", [50, 10, 7]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "name": "EV0018",
+      "at": [137, 27],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLVehicles",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "below",
+          "trigger": "parallel",
+          "animation": "fixed_continuous",
+          "script": [
+            [0, "ControlVars", "", [0, 36, 36, 0, 6, 10005, 2]],
+            [0, "ControlVars", "", [0, 37, 37, 0, 6, 10005, 1]],
+            [0, "ConditionalBranch", "", [1, 36, 1, 34, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 37, 1, 35, 0, 1]],
+            [2, "ChangeSpriteAssociation", "Future3", [19, 0, 0]],
+            [2, "ChangeSpriteAssociation", "Future3", [20, 0, 0]],
+            [2, "ShowBattleAnimation", "", [141, 10001, 1, 0]],
+            [2, "ControlSwitches", "", [0, 172, 172, 0]],
+            [2, "Teleport", "", [50, 10, 7]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "name": "EV0019",
+      "at": [153, 27],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLVehicles",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "below",
+          "trigger": "parallel",
+          "move": {
+            "type": "custom",
+            "speed": "half",
+            "frequency": 8
+          },
+          "animation": "fixed_continuous",
+          "script": [
+            [0, "ControlVars", "", [0, 36, 36, 0, 6, 10005, 2]],
+            [0, "ControlVars", "", [0, 37, 37, 0, 6, 10005, 1]],
+            [0, "ConditionalBranch", "", [1, 36, 1, 34, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 37, 1, 35, 0, 1]],
+            [2, "ChangeSpriteAssociation", "Future3", [19, 0, 0]],
+            [2, "ChangeSpriteAssociation", "Future3", [20, 0, 0]],
+            [2, "ShowBattleAnimation", "", [141, 10001, 1, 0]],
+            [2, "ControlSwitches", "", [0, 172, 172, 0]],
+            [2, "Teleport", "", [50, 10, 7]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "name": "EV0020",
+      "at": [219, 28],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLVehicles",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "below",
+          "trigger": "parallel",
+          "animation": "fixed_continuous",
+          "script": [
+            [0, "ControlVars", "", [0, 36, 36, 0, 6, 10005, 2]],
+            [0, "ControlVars", "", [0, 37, 37, 0, 6, 10005, 1]],
+            [0, "ConditionalBranch", "", [1, 36, 1, 34, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 37, 1, 35, 0, 1]],
+            [2, "ChangeSpriteAssociation", "Future3", [19, 0, 0]],
+            [2, "ChangeSpriteAssociation", "Future3", [20, 0, 0]],
+            [2, "ShowBattleAnimation", "", [141, 10001, 1, 0]],
+            [2, "ControlSwitches", "", [0, 172, 172, 0]],
+            [2, "Teleport", "", [50, 10, 7]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "name": "EV0021",
+      "at": [219, 25],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLVehicles",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "below",
+          "trigger": "parallel",
+          "animation": "fixed_continuous",
+          "script": [
+            [0, "ControlVars", "", [0, 36, 36, 0, 6, 10005, 2]],
+            [0, "ControlVars", "", [0, 37, 37, 0, 6, 10005, 1]],
+            [0, "ConditionalBranch", "", [1, 36, 1, 34, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 37, 1, 35, 0, 1]],
+            [2, "ChangeSpriteAssociation", "Future3", [19, 0, 0]],
+            [2, "ChangeSpriteAssociation", "Future3", [20, 0, 0]],
+            [2, "ShowBattleAnimation", "", [141, 10001, 1, 0]],
+            [2, "ControlSwitches", "", [0, 172, 172, 0]],
+            [2, "Teleport", "", [50, 10, 7]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "name": "EV0022",
+      "at": [225, 27],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLVehicles",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "below",
+          "trigger": "parallel",
+          "animation": "fixed_continuous",
+          "script": [
+            [0, "ControlVars", "", [0, 36, 36, 0, 6, 10005, 2]],
+            [0, "ControlVars", "", [0, 37, 37, 0, 6, 10005, 1]],
+            [0, "ConditionalBranch", "", [1, 36, 1, 34, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 37, 1, 35, 0, 1]],
+            [2, "ChangeSpriteAssociation", "Future3", [19, 0, 0]],
+            [2, "ChangeSpriteAssociation", "Future3", [20, 0, 0]],
+            [2, "ShowBattleAnimation", "", [141, 10001, 1, 0]],
+            [2, "ControlSwitches", "", [0, 172, 172, 0]],
+            [2, "Teleport", "", [50, 10, 7]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "name": "EV0023",
+      "at": [227, 26],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLVehicles",
+            "index": 7,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "below",
+          "trigger": "parallel",
+          "animation": "fixed_continuous",
+          "script": [
+            [0, "ControlVars", "", [0, 36, 36, 0, 6, 10005, 2]],
+            [0, "ControlVars", "", [0, 37, 37, 0, 6, 10005, 1]],
+            [0, "ConditionalBranch", "", [1, 36, 1, 34, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 37, 1, 35, 0, 1]],
+            [2, "ChangeSpriteAssociation", "Future3", [19, 0, 0]],
+            [2, "ChangeSpriteAssociation", "Future3", [20, 0, 0]],
+            [2, "ShowBattleAnimation", "", [141, 10001, 1, 0]],
+            [2, "ControlSwitches", "", [0, 172, 172, 0]],
+            [2, "Teleport", "", [50, 10, 7]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 24,
+      "name": "EV0024",
+      "at": [167, 25],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLVehicles",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "below",
+          "trigger": "parallel",
+          "animation": "fixed_continuous",
+          "script": [
+            [0, "ControlVars", "", [0, 36, 36, 0, 6, 10005, 2]],
+            [0, "ControlVars", "", [0, 37, 37, 0, 6, 10005, 1]],
+            [0, "ConditionalBranch", "", [1, 36, 1, 34, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 37, 1, 35, 0, 1]],
+            [2, "ChangeSpriteAssociation", "Future3", [19, 0, 0]],
+            [2, "ChangeSpriteAssociation", "Future3", [20, 0, 0]],
+            [2, "ShowBattleAnimation", "", [141, 10001, 1, 0]],
+            [2, "ControlSwitches", "", [0, 172, 172, 0]],
+            [2, "Teleport", "", [50, 10, 7]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 25,
+      "name": "EV0025",
+      "at": [174, 27],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLVehicles",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "below",
+          "trigger": "parallel",
+          "animation": "fixed_continuous",
+          "script": [
+            [0, "ControlVars", "", [0, 36, 36, 0, 6, 10005, 2]],
+            [0, "ControlVars", "", [0, 37, 37, 0, 6, 10005, 1]],
+            [0, "ConditionalBranch", "", [1, 36, 1, 34, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 37, 1, 35, 0, 1]],
+            [2, "ChangeSpriteAssociation", "Future3", [19, 0, 0]],
+            [2, "ChangeSpriteAssociation", "Future3", [20, 0, 0]],
+            [2, "ShowBattleAnimation", "", [141, 10001, 1, 0]],
+            [2, "ControlSwitches", "", [0, 172, 172, 0]],
+            [2, "Teleport", "", [50, 10, 7]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 26,
+      "name": "EV0026",
+      "at": [171, 28],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLVehicles",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "below",
+          "trigger": "parallel",
+          "animation": "fixed_continuous",
+          "script": [
+            [0, "ControlVars", "", [0, 36, 36, 0, 6, 10005, 2]],
+            [0, "ControlVars", "", [0, 37, 37, 0, 6, 10005, 1]],
+            [0, "ConditionalBranch", "", [1, 36, 1, 34, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 37, 1, 35, 0, 1]],
+            [2, "ChangeSpriteAssociation", "Future3", [19, 0, 0]],
+            [2, "ChangeSpriteAssociation", "Future3", [20, 0, 0]],
+            [2, "ShowBattleAnimation", "", [141, 10001, 1, 0]],
+            [2, "ControlSwitches", "", [0, 172, 172, 0]],
+            [2, "Teleport", "", [50, 10, 7]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 27,
+      "name": "EV0027",
+      "at": [172, 23],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLVehicles",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "below",
+          "trigger": "parallel",
+          "animation": "fixed_continuous",
+          "script": [
+            [0, "ControlVars", "", [0, 36, 36, 0, 6, 10005, 2]],
+            [0, "ControlVars", "", [0, 37, 37, 0, 6, 10005, 1]],
+            [0, "ConditionalBranch", "", [1, 36, 1, 34, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 37, 1, 35, 0, 1]],
+            [2, "ChangeSpriteAssociation", "Future3", [19, 0, 0]],
+            [2, "ChangeSpriteAssociation", "Future3", [20, 0, 0]],
+            [2, "ShowBattleAnimation", "", [141, 10001, 1, 0]],
+            [2, "ControlSwitches", "", [0, 172, 172, 0]],
+            [2, "Teleport", "", [50, 10, 7]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 28,
+      "name": "EV0028",
+      "at": [180, 25],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLVehicles",
+            "index": 5,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "below",
+          "trigger": "parallel",
+          "animation": "fixed_continuous",
+          "script": [
+            [0, "ControlVars", "", [0, 36, 36, 0, 6, 10005, 2]],
+            [0, "ControlVars", "", [0, 37, 37, 0, 6, 10005, 1]],
+            [0, "ConditionalBranch", "", [1, 36, 1, 34, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 37, 1, 35, 0, 1]],
+            [2, "ChangeSpriteAssociation", "Future3", [19, 0, 0]],
+            [2, "ChangeSpriteAssociation", "Future3", [20, 0, 0]],
+            [2, "ShowBattleAnimation", "", [141, 10001, 1, 0]],
+            [2, "ControlSwitches", "", [0, 172, 172, 0]],
+            [2, "Teleport", "", [50, 10, 7]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 29,
+      "name": "EV0029",
+      "at": [224, 24],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLVehicles",
+            "index": 5,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "below",
+          "trigger": "parallel",
+          "animation": "fixed_continuous",
+          "script": [
+            [0, "ControlVars", "", [0, 36, 36, 0, 6, 10005, 2]],
+            [0, "ControlVars", "", [0, 37, 37, 0, 6, 10005, 1]],
+            [0, "ConditionalBranch", "", [1, 36, 1, 34, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 37, 1, 35, 0, 1]],
+            [2, "ChangeSpriteAssociation", "Future3", [19, 0, 0]],
+            [2, "ChangeSpriteAssociation", "Future3", [20, 0, 0]],
+            [2, "ShowBattleAnimation", "", [141, 10001, 1, 0]],
+            [2, "ControlSwitches", "", [0, 172, 172, 0]],
+            [2, "Teleport", "", [50, 10, 7]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 30,
+      "name": "EV0030",
+      "at": [227, 23],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLVehicles",
+            "index": 5,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "below",
+          "trigger": "parallel",
+          "animation": "fixed_continuous",
+          "script": [
+            [0, "ControlVars", "", [0, 36, 36, 0, 6, 10005, 2]],
+            [0, "ControlVars", "", [0, 37, 37, 0, 6, 10005, 1]],
+            [0, "ConditionalBranch", "", [1, 36, 1, 34, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 37, 1, 35, 0, 1]],
+            [2, "ChangeSpriteAssociation", "Future3", [19, 0, 0]],
+            [2, "ChangeSpriteAssociation", "Future3", [20, 0, 0]],
+            [2, "ShowBattleAnimation", "", [141, 10001, 1, 0]],
+            [2, "ControlSwitches", "", [0, 172, 172, 0]],
+            [2, "Teleport", "", [50, 10, 7]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 31,
+      "name": "EV0031",
+      "at": [255, 24],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "parallel",
+          "script": [
+            [0, "ControlVars", "", [0, 36, 36, 0, 6, 10005, 2]],
+            [0, "ControlVars", "", [0, 37, 37, 0, 6, 10005, 1]],
+            [0, "ConditionalBranch", "", [1, 36, 1, 34, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 37, 1, 35, 0, 1]],
+            [2, "PanScreen", "", [2, 3, 7, 4, 0]],
+            [2, "ControlSwitches", "", [0, 174, 174, 0]],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "The traffic's getting worse...", []],
+            [2, "Teleport", "", [52, 0, 26]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 32,
+      "name": "EV0032",
+      "at": [199, 27],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLVehicles",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "below",
+          "trigger": "parallel",
+          "animation": "fixed_continuous",
+          "script": [
+            [0, "ControlVars", "", [0, 36, 36, 0, 6, 10005, 2]],
+            [0, "ControlVars", "", [0, 37, 37, 0, 6, 10005, 1]],
+            [0, "ConditionalBranch", "", [1, 36, 1, 34, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 37, 1, 35, 0, 1]],
+            [2, "ChangeSpriteAssociation", "Future3", [19, 0, 0]],
+            [2, "ChangeSpriteAssociation", "Future3", [20, 0, 0]],
+            [2, "ShowBattleAnimation", "", [141, 10001, 1, 0]],
+            [2, "ControlSwitches", "", [0, 172, 172, 0]],
+            [2, "Teleport", "", [50, 10, 7]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 33,
+      "name": "EV0033",
+      "at": [189, 23],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLVehicles",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "below",
+          "trigger": "parallel",
+          "animation": "fixed_continuous",
+          "script": [
+            [0, "ControlVars", "", [0, 36, 36, 0, 6, 10005, 2]],
+            [0, "ControlVars", "", [0, 37, 37, 0, 6, 10005, 1]],
+            [0, "ConditionalBranch", "", [1, 36, 1, 34, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 37, 1, 35, 0, 1]],
+            [2, "ChangeSpriteAssociation", "Future3", [19, 0, 0]],
+            [2, "ChangeSpriteAssociation", "Future3", [20, 0, 0]],
+            [2, "ShowBattleAnimation", "", [141, 10001, 1, 0]],
+            [2, "ControlSwitches", "", [0, 172, 172, 0]],
+            [2, "Teleport", "", [50, 10, 7]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 34,
+      "name": "EV0034",
+      "at": [205, 26],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLVehicles",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "below",
+          "trigger": "parallel",
+          "animation": "fixed_continuous",
+          "script": [
+            [0, "ControlVars", "", [0, 36, 36, 0, 6, 10005, 2]],
+            [0, "ControlVars", "", [0, 37, 37, 0, 6, 10005, 1]],
+            [0, "ConditionalBranch", "", [1, 36, 1, 34, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 37, 1, 35, 0, 1]],
+            [2, "ChangeSpriteAssociation", "Future3", [19, 0, 0]],
+            [2, "ChangeSpriteAssociation", "Future3", [20, 0, 0]],
+            [2, "ShowBattleAnimation", "", [141, 10001, 1, 0]],
+            [2, "ControlSwitches", "", [0, 172, 172, 0]],
+            [2, "Teleport", "", [50, 10, 7]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 35,
+      "name": "EV0035",
+      "at": [202, 24],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLVehicles",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "below",
+          "trigger": "parallel",
+          "animation": "fixed_continuous",
+          "script": [
+            [0, "ControlVars", "", [0, 36, 36, 0, 6, 10005, 2]],
+            [0, "ControlVars", "", [0, 37, 37, 0, 6, 10005, 1]],
+            [0, "ConditionalBranch", "", [1, 36, 1, 34, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 37, 1, 35, 0, 1]],
+            [2, "ChangeSpriteAssociation", "Future3", [19, 0, 0]],
+            [2, "ChangeSpriteAssociation", "Future3", [20, 0, 0]],
+            [2, "ShowBattleAnimation", "", [141, 10001, 1, 0]],
+            [2, "ControlSwitches", "", [0, 172, 172, 0]],
+            [2, "Teleport", "", [50, 10, 7]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 36,
+      "name": "EV0036",
+      "at": [210, 25],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLVehicles",
+            "index": 7,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "below",
+          "trigger": "parallel",
+          "animation": "fixed_continuous",
+          "script": [
+            [0, "ControlVars", "", [0, 36, 36, 0, 6, 10005, 2]],
+            [0, "ControlVars", "", [0, 37, 37, 0, 6, 10005, 1]],
+            [0, "ConditionalBranch", "", [1, 36, 1, 34, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 37, 1, 35, 0, 1]],
+            [2, "ChangeSpriteAssociation", "Future3", [19, 0, 0]],
+            [2, "ChangeSpriteAssociation", "Future3", [20, 0, 0]],
+            [2, "ShowBattleAnimation", "", [141, 10001, 1, 0]],
+            [2, "ControlSwitches", "", [0, 172, 172, 0]],
+            [2, "Teleport", "", [50, 10, 7]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 37,
+      "name": "EV0037",
+      "at": [158, 23],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLVehicles",
+            "index": 7,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "below",
+          "trigger": "parallel",
+          "animation": "fixed_continuous",
+          "script": [
+            [0, "ControlVars", "", [0, 36, 36, 0, 6, 10005, 2]],
+            [0, "ControlVars", "", [0, 37, 37, 0, 6, 10005, 1]],
+            [0, "ConditionalBranch", "", [1, 36, 1, 34, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 37, 1, 35, 0, 1]],
+            [2, "ChangeSpriteAssociation", "Future3", [19, 0, 0]],
+            [2, "ChangeSpriteAssociation", "Future3", [20, 0, 0]],
+            [2, "ShowBattleAnimation", "", [141, 10001, 1, 0]],
+            [2, "ControlSwitches", "", [0, 172, 172, 0]],
+            [2, "Teleport", "", [50, 10, 7]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 38,
+      "name": "EV0038",
+      "at": [182, 28],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLVehicles",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "below",
+          "trigger": "parallel",
+          "animation": "fixed_continuous",
+          "script": [
+            [0, "ControlVars", "", [0, 36, 36, 0, 6, 10005, 2]],
+            [0, "ControlVars", "", [0, 37, 37, 0, 6, 10005, 1]],
+            [0, "ConditionalBranch", "", [1, 36, 1, 34, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 37, 1, 35, 0, 1]],
+            [2, "ChangeSpriteAssociation", "Future3", [19, 0, 0]],
+            [2, "ChangeSpriteAssociation", "Future3", [20, 0, 0]],
+            [2, "ShowBattleAnimation", "", [141, 10001, 1, 0]],
+            [2, "ControlSwitches", "", [0, 172, 172, 0]],
+            [2, "Teleport", "", [50, 10, 7]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 39,
+      "name": "EV0039",
+      "at": [255, 25],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "parallel",
+          "script": [
+            [0, "ControlVars", "", [0, 36, 36, 0, 6, 10005, 2]],
+            [0, "ControlVars", "", [0, 37, 37, 0, 6, 10005, 1]],
+            [0, "ConditionalBranch", "", [1, 36, 1, 34, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 37, 1, 35, 0, 1]],
+            [2, "PanScreen", "", [2, 3, 7, 4, 0]],
+            [2, "ControlSwitches", "", [0, 174, 174, 0]],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "The traffic's getting worse...", []],
+            [2, "Teleport", "", [52, 0, 26]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 40,
+      "name": "EV0040",
+      "at": [255, 26],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "parallel",
+          "script": [
+            [0, "ControlVars", "", [0, 36, 36, 0, 6, 10005, 2]],
+            [0, "ControlVars", "", [0, 37, 37, 0, 6, 10005, 1]],
+            [0, "ConditionalBranch", "", [1, 36, 1, 34, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 37, 1, 35, 0, 1]],
+            [2, "PanScreen", "", [2, 3, 7, 4, 0]],
+            [2, "ControlSwitches", "", [0, 174, 174, 0]],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "The traffic's getting worse...", []],
+            [2, "Teleport", "", [52, 0, 26]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 41,
+      "name": "EV0041",
+      "at": [255, 27],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "parallel",
+          "script": [
+            [0, "ControlVars", "", [0, 36, 36, 0, 6, 10005, 2]],
+            [0, "ControlVars", "", [0, 37, 37, 0, 6, 10005, 1]],
+            [0, "ConditionalBranch", "", [1, 36, 1, 34, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 37, 1, 35, 0, 1]],
+            [2, "PanScreen", "", [2, 3, 7, 4, 0]],
+            [2, "ControlSwitches", "", [0, 174, 174, 0]],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "The traffic's getting worse...", []],
+            [2, "Teleport", "", [52, 0, 26]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 42,
+      "name": "EV0042",
+      "at": [255, 28],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "parallel",
+          "script": [
+            [0, "ControlVars", "", [0, 36, 36, 0, 6, 10005, 2]],
+            [0, "ControlVars", "", [0, 37, 37, 0, 6, 10005, 1]],
+            [0, "ConditionalBranch", "", [1, 36, 1, 34, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 37, 1, 35, 0, 1]],
+            [2, "PanScreen", "", [2, 3, 7, 4, 0]],
+            [2, "ControlSwitches", "", [0, 174, 174, 0]],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "The traffic's getting worse...", []],
+            [2, "Teleport", "", [52, 0, 26]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 43,
+      "name": "EV0043",
+      "at": [255, 23],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "parallel",
+          "script": [
+            [0, "ControlVars", "", [0, 36, 36, 0, 6, 10005, 2]],
+            [0, "ControlVars", "", [0, 37, 37, 0, 6, 10005, 1]],
+            [0, "ConditionalBranch", "", [1, 36, 1, 34, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 37, 1, 35, 0, 1]],
+            [2, "PanScreen", "", [2, 3, 7, 4, 0]],
+            [2, "ControlSwitches", "", [0, 174, 174, 0]],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "The traffic's getting worse...", []],
+            [2, "Teleport", "", [52, 0, 26]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    }
+  ]
+}

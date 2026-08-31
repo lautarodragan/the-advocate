@@ -1,0 +1,695 @@
+{
+  "id": 13,
+  "name": "Hover-Tram",
+  "size": [20, 15],
+  "chipset": [9, "BLchp1"],
+  "tiles": "Map0013.tiles",
+  "parallax": {
+    "name": "Evening2",
+    "loop_x": true,
+    "loop_y": false,
+    "scroll_x": 5,
+    "scroll_y": 0
+  },
+  "events": [
+    {
+      "id": 1,
+      "name": "Jump1",
+      "at": [5, 5],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future1",
+            "index": 6,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [15, 5],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future1",
+            "index": 6,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Leave1",
+      "at": [12, 5],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future1",
+            "index": 6,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [13, 5],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future1",
+            "index": 7,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "EV0005",
+      "at": [6, 5],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future1",
+            "index": 7,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "Jump2",
+      "at": [8, 5],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future1",
+            "index": 7,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "EV0007",
+      "at": [7, 5],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future2",
+            "index": 5,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "EV0008",
+      "at": [4, 5],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future2",
+            "index": 5,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "EV0009",
+      "at": [3, 5],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future3",
+            "index": 5,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "EV0010",
+      "at": [4, 9],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future3",
+            "index": 5,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "EV0011",
+      "at": [7, 9],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future3",
+            "index": 5,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "EV0012",
+      "at": [16, 9],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future3",
+            "index": 5,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "EV0013",
+      "at": [6, 9],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future3",
+            "index": 1,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "name": "EV0014",
+      "at": [14, 9],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future3",
+            "index": 1,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "name": "EV0015",
+      "at": [13, 9],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future1",
+            "index": 4,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "name": "EV0016",
+      "at": [12, 9],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future3",
+            "index": 6,
+            "direction": "right",
+            "pattern": "right"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "name": "EV0017",
+      "at": [15, 9],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future3",
+            "index": 6,
+            "direction": "right",
+            "pattern": "right"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "name": "EV0018",
+      "at": [11, 9],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future3",
+            "index": 6,
+            "direction": "right",
+            "pattern": "right"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "name": "EV0019",
+      "at": [5, 9],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future3",
+            "index": 6,
+            "direction": "right",
+            "pattern": "right"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "name": "EV0020",
+      "at": [3, 9],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future3",
+            "index": 6,
+            "direction": "right",
+            "pattern": "right"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "name": "Leave2",
+      "at": [8, 9],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara2",
+            "index": 4,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "name": "EV0022",
+      "at": [9, 9],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future3",
+            "index": 6,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "name": "Leave3",
+      "at": [11, 5],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future1",
+            "index": 4,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 24,
+      "name": "EV0024",
+      "at": [10, 9],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future1",
+            "index": 6,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 25,
+      "name": "Leave4",
+      "at": [14, 5],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future1",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 26,
+      "name": "EV0026",
+      "at": [16, 5],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future3",
+            "index": 6,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 27,
+      "name": "Stash",
+      "at": [10, 5],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLPeople",
+            "index": 0,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_non_continuous"
+        }
+      ]
+    },
+    {
+      "id": 28,
+      "name": "EV0028",
+      "at": [19, 14],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ChangePBG", "Evening2", [0, 1, 0, 0, 1, 3]],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShakeScreen", "", [1, 1, 999, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 1, 23, 12, 23, 14, 23]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It sure is crowded... at least I'm on my", []],
+            [0, "ShowMessage_2", "way!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 1, 1, 1, 1, 1, 1, 0, 36, 0, 14]],
+            [0, "Wait", "", [18]],
+            [0, "Wait", "", [10]],
+            [0, "ChangePBG", "Evening2", [1, 0, 1, 5, 1, -3]],
+            [0, "MoveEvent", "", [27, 8, 0, 0, 38, 15]],
+            [0, "ShowMessage", "BALD MAN", []],
+            [0, "ShowMessage_2", "Hey there, buddy.", []],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Uh... hello.", []],
+            [0, "Wait", "", [5]],
+            [0, "MoveEvent", "", [27, 8, 0, 0, 14]],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [27, 8, 0, 0, 15]],
+            [0, "ShakeScreen", "", [1, 1, 999, 0]],
+            [0, "ShowMessage", "BALD MAN", []],
+            [0, "ShowMessage_2", "Did you hear that the Agency was", []],
+            [0, "ShowMessage_2", "planning on doubling output from", []],
+            [0, "ShowMessage_2", "the Colony for next season?", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "BALD MAN", []],
+            [0, "ShowMessage_2", "What times we live in, right buddy?", []],
+            [0, "Wait", "", [5]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "What? Yeah, sure.", []],
+            [0, "MoveEvent", "", [27, 8, 0, 0, 14]],
+            [0, "Wait", "", [7]],
+            [0, "ShowMessage", "BALD MAN", []],
+            [0, "ShowMessage_2", "You look like a guy who knows a good", []],
+            [0, "ShowMessage_2", "deal when he sees one. Lemme give", []],
+            [0, "ShowMessage_2", "you my business card...", []],
+            [0, "ChangePBG", "Evening2", [0, 1, 0, 0, 1, -3]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "No, really, that's OK.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 14]],
+            [0, "Wait", "", [3]],
+            [0, "MoveEvent", "", [27, 8, 0, 0, 15]],
+            [0, "Wait", "", [7]],
+            [0, "ShowMessage", "BALD MAN", []],
+            [0, "ShowMessage_2", "There ya go. Now, I'd keep quiet", []],
+            [0, "ShowMessage_2", "about this... my merchandise is only", []],
+            [0, "ShowMessage_2", "for the most... discerning consumers.", []],
+            [0, "ShowMessage", "BALD MAN", []],
+            [0, "ShowMessage_2", "If ya know what I mean... heh, heh.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Ha. Ha.", []],
+            [0, "MessageOptions", "", [1, 1, 0, 0]],
+            [0, "PlaySound", "Item1", [100, 100, 50]],
+            [0, "ChangeItems", "", [0, 0, 91, 0, 1]],
+            [0, "ShowMessage", "TALAN received BUSINESS CARD.", []],
+            [0, "ShakeScreen", "", [1, 1, 5, 1]],
+            [0, "ControlSwitches", "", [0, 70, 70, 0]],
+            [0, "ChangePBG", "Evening2", [0, 0, 0, 0, 1, -3]],
+            [0, "PlaySound", "Cold2", [100, 100, 50]],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "BALD MAN", []],
+            [0, "ShowMessage_2", "Well, this is my stop. See ya round,", []],
+            [0, "ShowMessage_2", "buddy.", []],
+            [0, "MoveEvent", "", [21, 8, 0, 0, 36, 0, 0, 3, 3, 3, 3, 3, 3, 34, 8, 66, 76, 80, 101, 111, 112, 108, 101, 3]],
+            [0, "Wait", "", [5]],
+            [0, "MoveEvent", "", [23, 8, 0, 0, 36, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 34, 8, 66, 76, 80, 101, 111, 112, 108, 101, 3]],
+            [0, "Wait", "", [5]],
+            [0, "MoveEvent", "", [27, 8, 0, 0, 36, 3, 35, 5, 66, 108, 111, 119, 50, 100, 100, 50]],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "BALD MAN", []],
+            [0, "ShowMessage_2", "Excuse me... lost my balance there for", []],
+            [0, "ShowMessage_2", "a second.", []],
+            [0, "MoveEvent", "", [27, 8, 0, 0, 28, 3, 3, 35, 5, 66, 108, 111, 119, 50, 100, 100, 50, 3, 3, 3, 35, 5, 66, 108, 111, 119, 53, 100, 100, 50, 3, 35, 6, 70, 108, 97, 115, 104, 49, 100, 100, 50, 3, 14, 2, 2, 15, 34, 8, 66, 76, 80, 101, 111, 112, 108, 101, 3, 29]],
+            [0, "MoveEvent", "", [25, 8, 0, 0, 28, 28, 36, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 34, 8, 66, 76, 80, 101, 111, 112, 108, 101, 3, 29, 29]],
+            [0, "Wait", "", [5]],
+            [0, "Wait", "", [18]],
+            [0, "ControlSwitches", "", [0, 70, 70, 1]],
+            [0, "PlaySound", "Blow2", [100, 100, 50]],
+            [0, "ShakeScreen", "", [1, 1, 999, 0]],
+            [0, "ChangePBG", "Evening2", [0, 1, 0, 0, 1, 3]],
+            [0, "Wait", "", [12]],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Well... he seemed nice enough.", []],
+            [0, "ChangePBG", "Evening2", [1, 0, 1, 5, 1, -3]],
+            [0, "Wait", "", [12]],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 24, 25]],
+            [0, "Wait", "", [5]],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "TRAM PASSENGER", []],
+            [0, "ShowMessage_2", "All of my creds are gone!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
+            [0, "Wait", "", [5]],
+            [0, "MoveEvent", "", [6, 8, 0, 0, 24, 25]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "TRAM PASSENGER", []],
+            [0, "ShowMessage_2", "Someone's taken my gold and silver", []],
+            [0, "ShowMessage_2", "plated chronometer!", []],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Uh oh. I wonder if...", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 14]],
+            [0, "Wait", "", [13]],
+            [0, "ConditionalBranch", "", [4, 90, 0, 0, 0, 1]],
+            [1, "PlaySound", "Failure1", [100, 100, 50]],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "The Idol! It's gone!!", []],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "I don't believe it... that bald guy must", []],
+            [1, "ShowMessage_2", "have taken it!", []],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "But... he gave me his business card.", []],
+            [1, "ShowMessage_2", "He wouldn't be THAT stupid, would he?", []],
+            [1, "ChangeItems", "", [1, 0, 90, 0, 1]],
+            [1, "ControlSwitches", "", [0, 71, 71, 0]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "ConditionalBranch", "", [3, 0, 0, 0, 0, 1]],
+            [2, "PlaySound", "Failure1", [100, 100, 50]],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "All of MY credits are gone too!", []],
+            [2, "ChangeGold", "", [1, 0, 9999]],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "I don't believe it... that bald guy must", []],
+            [2, "ShowMessage_2", "have taken them!", []],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "But... he gave me his business card.", []],
+            [2, "ShowMessage_2", "He wouldn't be THAT stupid, would he?", []],
+            [2, "ControlSwitches", "", [0, 72, 72, 0]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "Hmm... I don't seem to be missing", []],
+            [2, "ShowMessage_2", "anything.", []],
+            [2, "ControlSwitches", "", [0, 186, 186, 0]],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ChangePBG", "Evening2", [0, 1, 0, 0, 1, -3]],
+            [0, "Wait", "", [20]],
+            [0, "ShakeScreen", "", [1, 1, 5, 1]],
+            [0, "ControlSwitches", "", [0, 70, 70, 0]],
+            [0, "ChangePBG", "Evening2", [0, 0, 0, 0, 1, -3]],
+            [0, "PlaySound", "Cold2", [100, 100, 50]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Looks like this is Sector 30.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2, 3, 3, 3, 3, 3, 3, 3]],
+            [0, "Wait", "", [11]],
+            [0, "ControlSwitches", "", [0, 69, 69, 0]],
+            [0, "Teleport", "", [16, 73, 7]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 69
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start"
+        }
+      ]
+    },
+    {
+      "id": 29,
+      "name": "DoorTop",
+      "at": [1, 6],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 70
+          },
+          "tile": 112,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 30,
+      "name": "DoorBottom",
+      "at": [1, 7],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 70
+          },
+          "tile": 118,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    }
+  ]
+}

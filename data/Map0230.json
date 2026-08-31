@@ -1,0 +1,79 @@
+{
+  "id": 230,
+  "name": "Apartment Memory",
+  "size": [20, 15],
+  "chipset": [9, "BLchp1"],
+  "tiles": "Map0230.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "TintScreen", "", [0, 0, 0, 100, 3, 1]],
+            [0, "MessageOptions", "", [0, 1, 0, 0]],
+            [0, "TintScreen", "", [0, 0, 0, 100, 3, 1]],
+            [0, "TintScreen", "", [0, 120, 120, 200, 3, 1]],
+            [0, "TintScreen", "", [0, 0, 0, 100, 2, 1]],
+            [0, "TintScreen", "", [0, 120, 120, 200, 2, 1]],
+            [0, "TintScreen", "", [0, 0, 0, 100, 1, 1]],
+            [0, "TintScreen", "", [0, 120, 120, 200, 1, 1]],
+            [0, "TintScreen", "", [0, 0, 0, 100, 0, 1]],
+            [0, "TintScreen", "", [0, 120, 120, 200, 0, 1]],
+            [0, "TintScreen", "", [0, 0, 0, 100, 0, 1]],
+            [0, "TintScreen", "", [0, 120, 120, 200, 0, 1]],
+            [0, "TintScreen", "", [0, 0, 0, 100, 0, 1]],
+            [0, "TintScreen", "", [0, 120, 120, 200, 0, 1]],
+            [0, "TintScreen", "", [0, 0, 0, 100, 0, 1]],
+            [0, "TintScreen", "", [0, 120, 120, 200, 0, 1]],
+            [0, "TintScreen", "", [0, 0, 0, 100, 0, 1]],
+            [0, "TintScreen", "", [0, 120, 120, 200, 0, 1]],
+            [0, "TintScreen", "", [0, 0, 0, 100, 0, 1]],
+            [0, "TintScreen", "", [0, 120, 120, 200, 0, 1]],
+            [0, "TintScreen", "", [0, 0, 0, 100, 0, 1]],
+            [0, "ShowMessage", "MEMNOSYNE", []],
+            [0, "ShowMessage_2", "The mindless tedium of returning night", []],
+            [0, "ShowMessage_2", "after night to the same run-down", []],
+            [0, "ShowMessage_2", "apartment...", []],
+            [0, "ShowMessage", "MEMNOSYNE", []],
+            [0, "ShowMessage_2", "This is too much to take - I need to", []],
+            [0, "ShowMessage_2", "see much further back...", []],
+            [0, "Wait", "", [20]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "PlaySound", "Rebirth3", [100, 60, 50]],
+            [0, "Teleport", "", [231, 3, 6]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "TalDoorBottom",
+      "at": [9, 13],
+      "pages": [
+        {
+          "tile": 117,
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "TalDoorTop",
+      "at": [9, 12],
+      "pages": [
+        {
+          "tile": 111,
+          "layer": "above",
+          "trigger": "action"
+        }
+      ]
+    }
+  ]
+}

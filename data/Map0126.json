@@ -1,0 +1,239 @@
+{
+  "id": 126,
+  "name": "OverlookAtDay",
+  "size": [20, 30],
+  "chipset": [21, "PS4Chipset"],
+  "tiles": "Map0126.tiles",
+  "parallax": {
+    "name": "Morning1",
+    "loop_x": true,
+    "loop_y": true,
+    "scroll_x": 1,
+    "scroll_y": 0
+  },
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [10, 29],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [108, 50, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 363
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I can't go back down now!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 0]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [11, 29],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [108, 50, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 363
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I can't go back down now!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 0]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [8, 10],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 376
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 0, 1, 1, 1]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "I hear you there, Talan.", []],
+            [0, "Wait", "", [30]],
+            [0, "MoveEvent", "", [5, 8, 0, 0, 15]],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "So.", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Your father told me you said you were", []],
+            [0, "ShowMessage_2", "picking flowers.", []],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "Well... let's just put this all behind us, OK?", []],
+            [0, "ShowMessage_2", "It's not important.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Emily, it IS important. How do I know", []],
+            [0, "ShowMessage_2", "you're not going to come up here tonight", []],
+            [0, "ShowMessage_2", "and throw yourself off?", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I might not be here the next time!", []],
+            [0, "MoveEvent", "", [5, 8, 0, 0, 13]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "You're crazy, Talan.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "What?", []],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "Here you are telling me to be more careful,", []],
+            [0, "ShowMessage_2", "but you're the one who's been passed out", []],
+            [0, "ShowMessage_2", "for the last four days!", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Heh... you're right.", []],
+            [0, "MoveEvent", "", [5, 8, 0, 0, 3]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "So, tonight's the celebration to welcome you", []],
+            [0, "ShowMessage_2", "to Paradise. You excited?", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 14, 23, 23, 13]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Well, yes, I guess. I need to choose a", []],
+            [0, "ShowMessage_2", "profession, right? I wonder what I should", []],
+            [0, "ShowMessage_2", "choose.", []],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "Choose whatever you think you'd be", []],
+            [0, "ShowMessage_2", "best at.", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Something tells me there isn't a job for", []],
+            [0, "ShowMessage_2", "\"Falling from great heights.\"", []],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "So you do that for every girl you meet?", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Well...", []],
+            [0, "MoveEvent", "", [5, 8, 0, 0, 3]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "I bet you have bruises from cliffs all over the", []],
+            [0, "ShowMessage_2", "world, breaking your bones and the hearts", []],
+            [0, "ShowMessage_2", "of girls everywhere.", []],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [5, 8, 0, 0, 34, 5, 101, 109, 105, 108, 121, 5]],
+            [0, "Wait", "", [20]],
+            [0, "MessageOptions", "", [1, 0, 0, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "She's closed her eyes?", []],
+            [0, "ShowMessage_2", "She's waiting for something...?", []],
+            [0, "Wait", "", [30]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Is she waiting for me to kiss her??", []],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 0]],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [5, 8, 0, 0, 34, 5, 101, 109, 105, 108, 121, 4, 24, 25]],
+            [0, "Wait", "", [5]],
+            [0, "MoveEvent", "", [5, 8, 0, 0, 28, 3, 3, 3, 3, 13]],
+            [0, "Wait", "", [10]],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "Or maybe you really ARE as clueless", []],
+            [0, "ShowMessage_2", "as you seem to be!", []],
+            [0, "MoveEvent", "", [5, 8, 0, 0, 2, 2, 3, 3, 3, 24, 36, 38, 2, 2, 2, 2, 2, 39, 25, 37, 35, 5, 66, 108, 111, 119, 50, 30, 100, 50, 2, 29]],
+            [0, "Wait", "", [20]],
+            [0, "ControlSwitches", "", [0, 380, 380, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "She sounded angry.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I should go find her and apologize...", []],
+            [0, "ShowMessage_2", "...for whatever the heck I've done now.", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Women.", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 380
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [19, 0],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 811
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "CallEvent", "", [0, 47, 0]],
+            [0, "ControlSwitches", "", [0, 811, 811, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Emily",
+      "at": [14, 9],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "emily",
+            "index": 4,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 380
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    }
+  ]
+}

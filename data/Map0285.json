@@ -1,0 +1,2992 @@
+{
+  "id": 285,
+  "name": "Tasgarde Mainframe",
+  "size": [60, 60],
+  "chipset": [42, "Ancient(1)"],
+  "tiles": "Map0285.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [4, 4],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "touched",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "PlaySound", "Cold11", [80, 100, 50]],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]],
+            [0, "ControlVars", "", [0, 147, 147, 1, 0, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [12, 4],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "touched",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "PlaySound", "Cold11", [80, 100, 50]],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]],
+            [0, "ControlVars", "", [0, 147, 147, 1, 0, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [12, 9],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "touched",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "PlaySound", "Cold11", [80, 100, 50]],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]],
+            [0, "ControlVars", "", [0, 147, 147, 1, 0, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [9, 9],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "touched",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "PlaySound", "Cold11", [80, 100, 50]],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]],
+            [0, "ControlVars", "", [0, 147, 147, 1, 0, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "EV0005",
+      "at": [9, 13],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "touched",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "PlaySound", "Cold11", [80, 100, 50]],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]],
+            [0, "ControlVars", "", [0, 147, 147, 1, 0, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "EV0006",
+      "at": [15, 13],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "touched",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "PlaySound", "Cold11", [80, 100, 50]],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]],
+            [0, "ControlVars", "", [0, 147, 147, 1, 0, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "EV0007",
+      "at": [9, 18],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "touched",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "PlaySound", "Cold11", [80, 100, 50]],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]],
+            [0, "ControlVars", "", [0, 147, 147, 1, 0, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "EV0008",
+      "at": [17, 9],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "touched",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "PlaySound", "Cold11", [80, 100, 50]],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]],
+            [0, "ControlVars", "", [0, 147, 147, 1, 0, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "EV0009",
+      "at": [15, 24],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "touched",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "PlaySound", "Cold11", [80, 100, 50]],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]],
+            [0, "ControlVars", "", [0, 147, 147, 1, 0, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "EV0010",
+      "at": [4, 24],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "touched",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "PlaySound", "Cold11", [80, 100, 50]],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]],
+            [0, "ControlVars", "", [0, 147, 147, 1, 0, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "EV0011",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ConditionalBranch", "", [0, 698, 1, 0, 0, 1]],
+            [1, "ChangeMainMenuAccess", "", [0]],
+            [1, "ShowPicture", "AdvoInstr", [6, 0, 160, 150, 0, 100, 0, 0, 100, 100, 100, 100, 0, 5497976]],
+            [1, "Wait", "", [40]],
+            [1, "MovePicture", "", [6, 0, 160, 50, 0, 100, 0, 0, 100, 100, 100, 100, 0, 5497976, 40, 1]],
+            [1, "KeyInputProc", "", [151, 1, 1, 1, 1]],
+            [1, "PlaySound", "Evasion2", [100, 100, 50]],
+            [1, "ErasePicture", "", [6]],
+            [1, "TintScreen", "", [100, 100, 100, 100, 5, 1]],
+            [1, "ControlVars", "", [0, 149, 149, 0, 0, 3, 0]],
+            [1, "ControlSwitches", "", [0, 682, 682, 0]],
+            [1, "ControlSwitches", "", [0, 698, 698, 0]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "TintScreen", "", [100, 100, 100, 100, 5, 1]],
+            [1, "ControlVars", "", [0, 149, 149, 0, 0, 3, 0]],
+            [1, "ControlSwitches", "", [0, 682, 682, 0]],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 682
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "EV0012",
+      "at": [22, 20],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "touched",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "PlaySound", "Cold11", [80, 100, 50]],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]],
+            [0, "ControlVars", "", [0, 147, 147, 1, 0, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "EV0013",
+      "at": [22, 12],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "touched",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "PlaySound", "Cold11", [80, 100, 50]],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]],
+            [0, "ControlVars", "", [0, 147, 147, 1, 0, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "name": "EV0014",
+      "at": [25, 12],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "touched",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "PlaySound", "Cold11", [80, 100, 50]],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]],
+            [0, "ControlVars", "", [0, 147, 147, 1, 0, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "name": "EV0015",
+      "at": [24, 26],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "touched",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "PlaySound", "Cold11", [80, 100, 50]],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]],
+            [0, "ControlVars", "", [0, 147, 147, 1, 0, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "name": "EV0016",
+      "at": [27, 7],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "touched",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "PlaySound", "Cold11", [80, 100, 50]],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]],
+            [0, "ControlVars", "", [0, 147, 147, 1, 0, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "name": "EV0017",
+      "at": [33, 13],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "touched",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "PlaySound", "Cold11", [80, 100, 50]],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]],
+            [0, "ControlVars", "", [0, 147, 147, 1, 0, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "name": "EV0018",
+      "at": [36, 16],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "touched",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "PlaySound", "Cold11", [80, 100, 50]],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]],
+            [0, "ControlVars", "", [0, 147, 147, 1, 0, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "name": "EV0019",
+      "at": [35, 24],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "touched",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "PlaySound", "Cold11", [80, 100, 50]],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]],
+            [0, "ControlVars", "", [0, 147, 147, 1, 0, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "name": "EV0020",
+      "at": [29, 28],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "touched",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "PlaySound", "Cold11", [80, 100, 50]],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]],
+            [0, "ControlVars", "", [0, 147, 147, 1, 0, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "name": "EV0021",
+      "at": [29, 38],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "touched",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "PlaySound", "Cold11", [80, 100, 50]],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]],
+            [0, "ControlVars", "", [0, 147, 147, 1, 0, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "name": "EV0022",
+      "at": [40, 38],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "touched",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "PlaySound", "Cold11", [80, 100, 50]],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]],
+            [0, "ControlVars", "", [0, 147, 147, 1, 0, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "name": "EV0023",
+      "at": [35, 32],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "touched",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "PlaySound", "Cold11", [80, 100, 50]],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]],
+            [0, "ControlVars", "", [0, 147, 147, 1, 0, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 24,
+      "name": "EV0024",
+      "at": [40, 32],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "touched",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "PlaySound", "Cold11", [80, 100, 50]],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]],
+            [0, "ControlVars", "", [0, 147, 147, 1, 0, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 25,
+      "name": "EV0025",
+      "at": [45, 32],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "touched",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "PlaySound", "Cold11", [80, 100, 50]],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]],
+            [0, "ControlVars", "", [0, 147, 147, 1, 0, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 26,
+      "name": "EV0026",
+      "at": [49, 38],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "touched",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "PlaySound", "Cold11", [80, 100, 50]],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]],
+            [0, "ControlVars", "", [0, 147, 147, 1, 0, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 27,
+      "name": "EV0027",
+      "at": [45, 43],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "touched",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "PlaySound", "Cold11", [80, 100, 50]],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]],
+            [0, "ControlVars", "", [0, 147, 147, 1, 0, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 28,
+      "name": "EV0028",
+      "at": [40, 47],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "touched",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "PlaySound", "Cold11", [80, 100, 50]],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]],
+            [0, "ControlVars", "", [0, 147, 147, 1, 0, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 29,
+      "name": "EV0029",
+      "at": [25, 43],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "touched",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "PlaySound", "Cold11", [80, 100, 50]],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]],
+            [0, "ControlVars", "", [0, 147, 147, 1, 0, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 30,
+      "name": "EV0030",
+      "at": [22, 38],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "touched",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "PlaySound", "Cold11", [80, 100, 50]],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]],
+            [0, "ControlVars", "", [0, 147, 147, 1, 0, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 31,
+      "name": "EV0031",
+      "at": [12, 38],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "touched",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "PlaySound", "Cold11", [80, 100, 50]],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]],
+            [0, "ControlVars", "", [0, 147, 147, 1, 0, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 32,
+      "name": "EV0032",
+      "at": [12, 31],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "touched",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "PlaySound", "Cold11", [80, 100, 50]],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]],
+            [0, "ControlVars", "", [0, 147, 147, 1, 0, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 33,
+      "name": "EV0033",
+      "at": [6, 38],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "touched",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "PlaySound", "Cold11", [80, 100, 50]],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]],
+            [0, "ControlVars", "", [0, 147, 147, 1, 0, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 34,
+      "name": "EV0034",
+      "at": [12, 45],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "touched",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "PlaySound", "Cold11", [80, 100, 50]],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]],
+            [0, "ControlVars", "", [0, 147, 147, 1, 0, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 35,
+      "name": "EV0035",
+      "at": [12, 49],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "touched",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "PlaySound", "Cold11", [80, 100, 50]],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]],
+            [0, "ControlVars", "", [0, 147, 147, 1, 0, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 36,
+      "name": "EV0036",
+      "at": [3, 49],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "touched",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "PlaySound", "Cold11", [80, 100, 50]],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]],
+            [0, "ControlVars", "", [0, 147, 147, 1, 0, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 37,
+      "name": "EV0037",
+      "at": [22, 45],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "touched",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "PlaySound", "Cold11", [80, 100, 50]],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]],
+            [0, "ControlVars", "", [0, 147, 147, 1, 0, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 38,
+      "name": "EV0038",
+      "at": [27, 52],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "touched",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "PlaySound", "Cold11", [80, 100, 50]],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]],
+            [0, "ControlVars", "", [0, 147, 147, 1, 0, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 39,
+      "name": "EV0039",
+      "at": [33, 52],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "touched",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "PlaySound", "Cold11", [80, 100, 50]],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]],
+            [0, "ControlVars", "", [0, 147, 147, 1, 0, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 40,
+      "name": "EV0040",
+      "at": [53, 52],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "touched",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "PlaySound", "Cold11", [80, 100, 50]],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]],
+            [0, "ControlVars", "", [0, 147, 147, 1, 0, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 41,
+      "name": "EV0041",
+      "at": [54, 36],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "touched",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "PlaySound", "Cold11", [80, 100, 50]],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]],
+            [0, "ControlVars", "", [0, 147, 147, 1, 0, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 42,
+      "name": "EV0042",
+      "at": [54, 24],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "touched",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "PlaySound", "Cold11", [80, 100, 50]],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]],
+            [0, "ControlVars", "", [0, 147, 147, 1, 0, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 43,
+      "name": "EV0043",
+      "at": [44, 24],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "touched",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "PlaySound", "Cold11", [80, 100, 50]],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]],
+            [0, "ControlVars", "", [0, 147, 147, 1, 0, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 44,
+      "name": "EV0044",
+      "at": [48, 19],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "touched",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "PlaySound", "Cold11", [80, 100, 50]],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]],
+            [0, "ControlVars", "", [0, 147, 147, 1, 0, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 45,
+      "name": "EV0045",
+      "at": [53, 15],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "touched",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "PlaySound", "Cold11", [80, 100, 50]],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]],
+            [0, "ControlVars", "", [0, 147, 147, 1, 0, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 46,
+      "name": "EV0046",
+      "at": [57, 11],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "touched",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "PlaySound", "Cold11", [80, 100, 50]],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]],
+            [0, "ControlVars", "", [0, 147, 147, 1, 0, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 47,
+      "name": "EV0047",
+      "at": [48, 8],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "touched",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "PlaySound", "Cold11", [80, 100, 50]],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]],
+            [0, "ControlVars", "", [0, 147, 147, 1, 0, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 48,
+      "name": "EV0048",
+      "at": [53, 4],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "touched",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "PlaySound", "Cold11", [80, 100, 50]],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]],
+            [0, "ControlVars", "", [0, 147, 147, 1, 0, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 49,
+      "name": "EV0049",
+      "at": [42, 3],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "left"
+          },
+          "layer": "below",
+          "trigger": "touched",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "PlaySound", "Cold11", [80, 100, 50]],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]],
+            [0, "ControlVars", "", [0, 147, 147, 1, 0, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 50,
+      "name": "Skeleton3",
+      "at": [4, 17],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "collision",
+          "move": {
+            "type": "toward",
+            "speed": "normal",
+            "frequency": 8
+          },
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "TintScreen", "", [200, 200, 200, 100, 0, 0]],
+            [0, "PlaySound", "Kill9", [100, 90, 50]],
+            [0, "ControlVars", "", [0, 147, 147, 0, 0, 0, 0]],
+            [0, "MessageOptions", "", [0, 1, 0, 0]],
+            [0, "ShowMessage", "The VIRUS has attacked ADVOCATE's", []],
+            [0, "ShowMessage_2", "energy reserves!", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 0, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Teleport", "", [286, 10, 10]],
+            [0, "ControlSwitches", "", [0, 682, 682, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 683
+          },
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "collision",
+          "move": {
+            "type": "toward",
+            "speed": "normal",
+            "frequency": 8
+          },
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowBattleAnimation", "", [90, 10005, 0, 0]],
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 51,
+      "name": "Skeleton3",
+      "at": [4, 8],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "collision",
+          "move": {
+            "type": "toward",
+            "speed": "normal",
+            "frequency": 8
+          },
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "TintScreen", "", [200, 200, 200, 100, 0, 0]],
+            [0, "PlaySound", "Kill9", [100, 90, 50]],
+            [0, "ControlVars", "", [0, 147, 147, 0, 0, 0, 0]],
+            [0, "MessageOptions", "", [0, 1, 0, 0]],
+            [0, "ShowMessage", "The VIRUS has attacked ADVOCATE's", []],
+            [0, "ShowMessage_2", "energy reserves!", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 0, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Teleport", "", [286, 10, 10]],
+            [0, "ControlSwitches", "", [0, 682, 682, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 683
+          },
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "collision",
+          "move": {
+            "type": "toward",
+            "speed": "normal",
+            "frequency": 8
+          },
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowBattleAnimation", "", [90, 10005, 0, 0]],
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 52,
+      "name": "Skeleton3",
+      "at": [9, 4],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "collision",
+          "move": {
+            "type": "toward",
+            "speed": "normal",
+            "frequency": 8
+          },
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "TintScreen", "", [200, 200, 200, 100, 0, 0]],
+            [0, "PlaySound", "Kill9", [100, 90, 50]],
+            [0, "ControlVars", "", [0, 147, 147, 0, 0, 0, 0]],
+            [0, "MessageOptions", "", [0, 1, 0, 0]],
+            [0, "ShowMessage", "The VIRUS has attacked ADVOCATE's", []],
+            [0, "ShowMessage_2", "energy reserves!", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 0, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Teleport", "", [286, 10, 10]],
+            [0, "ControlSwitches", "", [0, 682, 682, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 683
+          },
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "collision",
+          "move": {
+            "type": "toward",
+            "speed": "normal",
+            "frequency": 8
+          },
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowBattleAnimation", "", [90, 10005, 0, 0]],
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 53,
+      "name": "Skeleton3",
+      "at": [19, 13],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "collision",
+          "move": {
+            "type": "toward",
+            "speed": "normal",
+            "frequency": 8
+          },
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "TintScreen", "", [200, 200, 200, 100, 0, 0]],
+            [0, "PlaySound", "Kill9", [100, 90, 50]],
+            [0, "ControlVars", "", [0, 147, 147, 0, 0, 0, 0]],
+            [0, "MessageOptions", "", [0, 1, 0, 0]],
+            [0, "ShowMessage", "The VIRUS has attacked ADVOCATE's", []],
+            [0, "ShowMessage_2", "energy reserves!", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 0, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Teleport", "", [286, 10, 10]],
+            [0, "ControlSwitches", "", [0, 682, 682, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 683
+          },
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "collision",
+          "move": {
+            "type": "toward",
+            "speed": "normal",
+            "frequency": 8
+          },
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowBattleAnimation", "", [90, 10005, 0, 0]],
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 54,
+      "name": "Skeleton3",
+      "at": [22, 6],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "collision",
+          "move": {
+            "type": "toward",
+            "speed": "normal",
+            "frequency": 8
+          },
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "TintScreen", "", [200, 200, 200, 100, 0, 0]],
+            [0, "PlaySound", "Kill9", [100, 90, 50]],
+            [0, "ControlVars", "", [0, 147, 147, 0, 0, 0, 0]],
+            [0, "MessageOptions", "", [0, 1, 0, 0]],
+            [0, "ShowMessage", "The VIRUS has attacked ADVOCATE's", []],
+            [0, "ShowMessage_2", "energy reserves!", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 0, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Teleport", "", [286, 10, 10]],
+            [0, "ControlSwitches", "", [0, 682, 682, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 683
+          },
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "collision",
+          "move": {
+            "type": "toward",
+            "speed": "normal",
+            "frequency": 8
+          },
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowBattleAnimation", "", [90, 10005, 0, 0]],
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 55,
+      "name": "Skeleton3",
+      "at": [22, 17],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "collision",
+          "move": {
+            "type": "toward",
+            "speed": "normal",
+            "frequency": 8
+          },
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "TintScreen", "", [200, 200, 200, 100, 0, 0]],
+            [0, "PlaySound", "Kill9", [100, 90, 50]],
+            [0, "ControlVars", "", [0, 147, 147, 0, 0, 0, 0]],
+            [0, "MessageOptions", "", [0, 1, 0, 0]],
+            [0, "ShowMessage", "The VIRUS has attacked ADVOCATE's", []],
+            [0, "ShowMessage_2", "energy reserves!", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 0, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Teleport", "", [286, 10, 10]],
+            [0, "ControlSwitches", "", [0, 682, 682, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 683
+          },
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "collision",
+          "move": {
+            "type": "toward",
+            "speed": "normal",
+            "frequency": 8
+          },
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowBattleAnimation", "", [90, 10005, 0, 0]],
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 56,
+      "name": "Skeleton3",
+      "at": [22, 26],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "collision",
+          "move": {
+            "type": "toward",
+            "speed": "normal",
+            "frequency": 8
+          },
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "TintScreen", "", [200, 200, 200, 100, 0, 0]],
+            [0, "PlaySound", "Kill9", [100, 90, 50]],
+            [0, "ControlVars", "", [0, 147, 147, 0, 0, 0, 0]],
+            [0, "MessageOptions", "", [0, 1, 0, 0]],
+            [0, "ShowMessage", "The VIRUS has attacked ADVOCATE's", []],
+            [0, "ShowMessage_2", "energy reserves!", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 0, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Teleport", "", [286, 10, 10]],
+            [0, "ControlSwitches", "", [0, 682, 682, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 683
+          },
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "collision",
+          "move": {
+            "type": "toward",
+            "speed": "normal",
+            "frequency": 8
+          },
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowBattleAnimation", "", [90, 10005, 0, 0]],
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 57,
+      "name": "Skeleton3",
+      "at": [12, 35],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "collision",
+          "move": {
+            "type": "toward",
+            "speed": "normal",
+            "frequency": 8
+          },
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "TintScreen", "", [200, 200, 200, 100, 0, 0]],
+            [0, "PlaySound", "Kill9", [100, 90, 50]],
+            [0, "ControlVars", "", [0, 147, 147, 0, 0, 0, 0]],
+            [0, "MessageOptions", "", [0, 1, 0, 0]],
+            [0, "ShowMessage", "The VIRUS has attacked ADVOCATE's", []],
+            [0, "ShowMessage_2", "energy reserves!", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 0, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Teleport", "", [286, 10, 10]],
+            [0, "ControlSwitches", "", [0, 682, 682, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 683
+          },
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "collision",
+          "move": {
+            "type": "toward",
+            "speed": "normal",
+            "frequency": 8
+          },
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowBattleAnimation", "", [90, 10005, 0, 0]],
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 58,
+      "name": "Skeleton3",
+      "at": [12, 40],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "collision",
+          "move": {
+            "type": "toward",
+            "speed": "normal",
+            "frequency": 8
+          },
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "TintScreen", "", [200, 200, 200, 100, 0, 0]],
+            [0, "PlaySound", "Kill9", [100, 90, 50]],
+            [0, "ControlVars", "", [0, 147, 147, 0, 0, 0, 0]],
+            [0, "MessageOptions", "", [0, 1, 0, 0]],
+            [0, "ShowMessage", "The VIRUS has attacked ADVOCATE's", []],
+            [0, "ShowMessage_2", "energy reserves!", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 0, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Teleport", "", [286, 10, 10]],
+            [0, "ControlSwitches", "", [0, 682, 682, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 683
+          },
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "collision",
+          "move": {
+            "type": "toward",
+            "speed": "normal",
+            "frequency": 8
+          },
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowBattleAnimation", "", [90, 10005, 0, 0]],
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 59,
+      "name": "Skeleton3",
+      "at": [3, 41],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "collision",
+          "move": {
+            "type": "toward",
+            "speed": "normal",
+            "frequency": 8
+          },
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "TintScreen", "", [200, 200, 200, 100, 0, 0]],
+            [0, "PlaySound", "Kill9", [100, 90, 50]],
+            [0, "ControlVars", "", [0, 147, 147, 0, 0, 0, 0]],
+            [0, "MessageOptions", "", [0, 1, 0, 0]],
+            [0, "ShowMessage", "The VIRUS has attacked ADVOCATE's", []],
+            [0, "ShowMessage_2", "energy reserves!", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 0, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Teleport", "", [286, 10, 10]],
+            [0, "ControlSwitches", "", [0, 682, 682, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 683
+          },
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "collision",
+          "move": {
+            "type": "toward",
+            "speed": "normal",
+            "frequency": 8
+          },
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowBattleAnimation", "", [90, 10005, 0, 0]],
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 60,
+      "name": "Skeleton3",
+      "at": [18, 52],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "collision",
+          "move": {
+            "type": "toward",
+            "speed": "normal",
+            "frequency": 8
+          },
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "TintScreen", "", [200, 200, 200, 100, 0, 0]],
+            [0, "PlaySound", "Kill9", [100, 90, 50]],
+            [0, "ControlVars", "", [0, 147, 147, 0, 0, 0, 0]],
+            [0, "MessageOptions", "", [0, 1, 0, 0]],
+            [0, "ShowMessage", "The VIRUS has attacked ADVOCATE's", []],
+            [0, "ShowMessage_2", "energy reserves!", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 0, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Teleport", "", [286, 10, 10]],
+            [0, "ControlSwitches", "", [0, 682, 682, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 683
+          },
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "collision",
+          "move": {
+            "type": "toward",
+            "speed": "normal",
+            "frequency": 8
+          },
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowBattleAnimation", "", [90, 10005, 0, 0]],
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 61,
+      "name": "Skeleton3",
+      "at": [23, 42],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "collision",
+          "move": {
+            "type": "toward",
+            "speed": "normal",
+            "frequency": 8
+          },
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "TintScreen", "", [200, 200, 200, 100, 0, 0]],
+            [0, "PlaySound", "Kill9", [100, 90, 50]],
+            [0, "ControlVars", "", [0, 147, 147, 0, 0, 0, 0]],
+            [0, "MessageOptions", "", [0, 1, 0, 0]],
+            [0, "ShowMessage", "The VIRUS has attacked ADVOCATE's", []],
+            [0, "ShowMessage_2", "energy reserves!", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 0, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Teleport", "", [286, 10, 10]],
+            [0, "ControlSwitches", "", [0, 682, 682, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 683
+          },
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "collision",
+          "move": {
+            "type": "toward",
+            "speed": "normal",
+            "frequency": 8
+          },
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowBattleAnimation", "", [90, 10005, 0, 0]],
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 62,
+      "name": "Skeleton3",
+      "at": [29, 35],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "collision",
+          "move": {
+            "type": "toward",
+            "speed": "normal",
+            "frequency": 8
+          },
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "TintScreen", "", [200, 200, 200, 100, 0, 0]],
+            [0, "PlaySound", "Kill9", [100, 90, 50]],
+            [0, "ControlVars", "", [0, 147, 147, 0, 0, 0, 0]],
+            [0, "MessageOptions", "", [0, 1, 0, 0]],
+            [0, "ShowMessage", "The VIRUS has attacked ADVOCATE's", []],
+            [0, "ShowMessage_2", "energy reserves!", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 0, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Teleport", "", [286, 10, 10]],
+            [0, "ControlSwitches", "", [0, 682, 682, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 683
+          },
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "collision",
+          "move": {
+            "type": "toward",
+            "speed": "normal",
+            "frequency": 8
+          },
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowBattleAnimation", "", [90, 10005, 0, 0]],
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 63,
+      "name": "Skeleton3",
+      "at": [29, 23],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "collision",
+          "move": {
+            "type": "toward",
+            "speed": "normal",
+            "frequency": 8
+          },
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "TintScreen", "", [200, 200, 200, 100, 0, 0]],
+            [0, "PlaySound", "Kill9", [100, 90, 50]],
+            [0, "ControlVars", "", [0, 147, 147, 0, 0, 0, 0]],
+            [0, "MessageOptions", "", [0, 1, 0, 0]],
+            [0, "ShowMessage", "The VIRUS has attacked ADVOCATE's", []],
+            [0, "ShowMessage_2", "energy reserves!", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 0, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Teleport", "", [286, 10, 10]],
+            [0, "ControlSwitches", "", [0, 682, 682, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 683
+          },
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "collision",
+          "move": {
+            "type": "toward",
+            "speed": "normal",
+            "frequency": 8
+          },
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowBattleAnimation", "", [90, 10005, 0, 0]],
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 64,
+      "name": "Skeleton3",
+      "at": [36, 35],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "collision",
+          "move": {
+            "type": "toward",
+            "speed": "normal",
+            "frequency": 8
+          },
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "TintScreen", "", [200, 200, 200, 100, 0, 0]],
+            [0, "PlaySound", "Kill9", [100, 90, 50]],
+            [0, "ControlVars", "", [0, 147, 147, 0, 0, 0, 0]],
+            [0, "MessageOptions", "", [0, 1, 0, 0]],
+            [0, "ShowMessage", "The VIRUS has attacked ADVOCATE's", []],
+            [0, "ShowMessage_2", "energy reserves!", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 0, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Teleport", "", [286, 10, 10]],
+            [0, "ControlSwitches", "", [0, 682, 682, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 683
+          },
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "collision",
+          "move": {
+            "type": "toward",
+            "speed": "normal",
+            "frequency": 8
+          },
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowBattleAnimation", "", [90, 10005, 0, 0]],
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 65,
+      "name": "Skeleton3",
+      "at": [36, 49],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "collision",
+          "move": {
+            "type": "toward",
+            "speed": "normal",
+            "frequency": 8
+          },
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "TintScreen", "", [200, 200, 200, 100, 0, 0]],
+            [0, "PlaySound", "Kill9", [100, 90, 50]],
+            [0, "ControlVars", "", [0, 147, 147, 0, 0, 0, 0]],
+            [0, "MessageOptions", "", [0, 1, 0, 0]],
+            [0, "ShowMessage", "The VIRUS has attacked ADVOCATE's", []],
+            [0, "ShowMessage_2", "energy reserves!", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 0, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Teleport", "", [286, 10, 10]],
+            [0, "ControlSwitches", "", [0, 682, 682, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 683
+          },
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "collision",
+          "move": {
+            "type": "toward",
+            "speed": "normal",
+            "frequency": 8
+          },
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowBattleAnimation", "", [90, 10005, 0, 0]],
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 66,
+      "name": "Skeleton3",
+      "at": [30, 56],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "collision",
+          "move": {
+            "type": "toward",
+            "speed": "normal",
+            "frequency": 8
+          },
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "TintScreen", "", [200, 200, 200, 100, 0, 0]],
+            [0, "PlaySound", "Kill9", [100, 90, 50]],
+            [0, "ControlVars", "", [0, 147, 147, 0, 0, 0, 0]],
+            [0, "MessageOptions", "", [0, 1, 0, 0]],
+            [0, "ShowMessage", "The VIRUS has attacked ADVOCATE's", []],
+            [0, "ShowMessage_2", "energy reserves!", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 0, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Teleport", "", [286, 10, 10]],
+            [0, "ControlSwitches", "", [0, 682, 682, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 683
+          },
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "collision",
+          "move": {
+            "type": "toward",
+            "speed": "normal",
+            "frequency": 8
+          },
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowBattleAnimation", "", [90, 10005, 0, 0]],
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 67,
+      "name": "Skeleton3",
+      "at": [47, 52],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "collision",
+          "move": {
+            "type": "toward",
+            "speed": "normal",
+            "frequency": 8
+          },
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "TintScreen", "", [200, 200, 200, 100, 0, 0]],
+            [0, "PlaySound", "Kill9", [100, 90, 50]],
+            [0, "ControlVars", "", [0, 147, 147, 0, 0, 0, 0]],
+            [0, "MessageOptions", "", [0, 1, 0, 0]],
+            [0, "ShowMessage", "The VIRUS has attacked ADVOCATE's", []],
+            [0, "ShowMessage_2", "energy reserves!", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 0, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Teleport", "", [286, 10, 10]],
+            [0, "ControlSwitches", "", [0, 682, 682, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 683
+          },
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "collision",
+          "move": {
+            "type": "toward",
+            "speed": "normal",
+            "frequency": 8
+          },
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowBattleAnimation", "", [90, 10005, 0, 0]],
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 68,
+      "name": "Skeleton3",
+      "at": [45, 38],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "collision",
+          "move": {
+            "type": "toward",
+            "speed": "normal",
+            "frequency": 8
+          },
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "TintScreen", "", [200, 200, 200, 100, 0, 0]],
+            [0, "PlaySound", "Kill9", [100, 90, 50]],
+            [0, "ControlVars", "", [0, 147, 147, 0, 0, 0, 0]],
+            [0, "MessageOptions", "", [0, 1, 0, 0]],
+            [0, "ShowMessage", "The VIRUS has attacked ADVOCATE's", []],
+            [0, "ShowMessage_2", "energy reserves!", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 0, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Teleport", "", [286, 10, 10]],
+            [0, "ControlSwitches", "", [0, 682, 682, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 683
+          },
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "collision",
+          "move": {
+            "type": "toward",
+            "speed": "normal",
+            "frequency": 8
+          },
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowBattleAnimation", "", [90, 10005, 0, 0]],
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 69,
+      "name": "Skeleton3",
+      "at": [50, 34],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "collision",
+          "move": {
+            "type": "toward",
+            "speed": "normal",
+            "frequency": 8
+          },
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "TintScreen", "", [200, 200, 200, 100, 0, 0]],
+            [0, "PlaySound", "Kill9", [100, 90, 50]],
+            [0, "ControlVars", "", [0, 147, 147, 0, 0, 0, 0]],
+            [0, "MessageOptions", "", [0, 1, 0, 0]],
+            [0, "ShowMessage", "The VIRUS has attacked ADVOCATE's", []],
+            [0, "ShowMessage_2", "energy reserves!", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 0, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Teleport", "", [286, 10, 10]],
+            [0, "ControlSwitches", "", [0, 682, 682, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 683
+          },
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "collision",
+          "move": {
+            "type": "toward",
+            "speed": "normal",
+            "frequency": 8
+          },
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowBattleAnimation", "", [90, 10005, 0, 0]],
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 70,
+      "name": "Skeleton3",
+      "at": [44, 13],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "collision",
+          "move": {
+            "type": "toward",
+            "speed": "normal",
+            "frequency": 8
+          },
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "TintScreen", "", [200, 200, 200, 100, 0, 0]],
+            [0, "PlaySound", "Kill9", [100, 90, 50]],
+            [0, "ControlVars", "", [0, 147, 147, 0, 0, 0, 0]],
+            [0, "MessageOptions", "", [0, 1, 0, 0]],
+            [0, "ShowMessage", "The VIRUS has attacked ADVOCATE's", []],
+            [0, "ShowMessage_2", "energy reserves!", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 0, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Teleport", "", [286, 10, 10]],
+            [0, "ControlSwitches", "", [0, 682, 682, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 683
+          },
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "collision",
+          "move": {
+            "type": "toward",
+            "speed": "normal",
+            "frequency": 8
+          },
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowBattleAnimation", "", [90, 10005, 0, 0]],
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 71,
+      "name": "Skeleton3",
+      "at": [41, 19],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "collision",
+          "move": {
+            "type": "toward",
+            "speed": "normal",
+            "frequency": 8
+          },
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "TintScreen", "", [200, 200, 200, 100, 0, 0]],
+            [0, "PlaySound", "Kill9", [100, 90, 50]],
+            [0, "ControlVars", "", [0, 147, 147, 0, 0, 0, 0]],
+            [0, "MessageOptions", "", [0, 1, 0, 0]],
+            [0, "ShowMessage", "The VIRUS has attacked ADVOCATE's", []],
+            [0, "ShowMessage_2", "energy reserves!", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 0, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Teleport", "", [286, 10, 10]],
+            [0, "ControlSwitches", "", [0, 682, 682, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 683
+          },
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "collision",
+          "move": {
+            "type": "toward",
+            "speed": "normal",
+            "frequency": 8
+          },
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowBattleAnimation", "", [90, 10005, 0, 0]],
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 72,
+      "name": "Skeleton3",
+      "at": [39, 3],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "collision",
+          "move": {
+            "type": "toward",
+            "speed": "normal",
+            "frequency": 8
+          },
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "TintScreen", "", [200, 200, 200, 100, 0, 0]],
+            [0, "PlaySound", "Kill9", [100, 90, 50]],
+            [0, "ControlVars", "", [0, 147, 147, 0, 0, 0, 0]],
+            [0, "MessageOptions", "", [0, 1, 0, 0]],
+            [0, "ShowMessage", "The VIRUS has attacked ADVOCATE's", []],
+            [0, "ShowMessage_2", "energy reserves!", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 0, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Teleport", "", [286, 10, 10]],
+            [0, "ControlSwitches", "", [0, 682, 682, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 683
+          },
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "collision",
+          "move": {
+            "type": "toward",
+            "speed": "normal",
+            "frequency": 8
+          },
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowBattleAnimation", "", [90, 10005, 0, 0]],
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 73,
+      "name": "Skeleton3",
+      "at": [55, 4],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "collision",
+          "move": {
+            "type": "toward",
+            "speed": "normal",
+            "frequency": 8
+          },
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "TintScreen", "", [200, 200, 200, 100, 0, 0]],
+            [0, "PlaySound", "Kill9", [100, 90, 50]],
+            [0, "ControlVars", "", [0, 147, 147, 0, 0, 0, 0]],
+            [0, "MessageOptions", "", [0, 1, 0, 0]],
+            [0, "ShowMessage", "The VIRUS has attacked ADVOCATE's", []],
+            [0, "ShowMessage_2", "energy reserves!", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 0, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Teleport", "", [286, 10, 10]],
+            [0, "ControlSwitches", "", [0, 682, 682, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 683
+          },
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "collision",
+          "move": {
+            "type": "toward",
+            "speed": "normal",
+            "frequency": 8
+          },
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowBattleAnimation", "", [90, 10005, 0, 0]],
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 74,
+      "name": "Skeleton3",
+      "at": [51, 8],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "collision",
+          "move": {
+            "type": "toward",
+            "speed": "normal",
+            "frequency": 8
+          },
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "TintScreen", "", [200, 200, 200, 100, 0, 0]],
+            [0, "PlaySound", "Kill9", [100, 90, 50]],
+            [0, "ControlVars", "", [0, 147, 147, 0, 0, 0, 0]],
+            [0, "MessageOptions", "", [0, 1, 0, 0]],
+            [0, "ShowMessage", "The VIRUS has attacked ADVOCATE's", []],
+            [0, "ShowMessage_2", "energy reserves!", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 0, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Teleport", "", [286, 10, 10]],
+            [0, "ControlSwitches", "", [0, 682, 682, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 683
+          },
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "collision",
+          "move": {
+            "type": "toward",
+            "speed": "normal",
+            "frequency": 8
+          },
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowBattleAnimation", "", [90, 10005, 0, 0]],
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 75,
+      "name": "Skeleton3",
+      "at": [54, 15],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "collision",
+          "move": {
+            "type": "toward",
+            "speed": "normal",
+            "frequency": 8
+          },
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "TintScreen", "", [200, 200, 200, 100, 0, 0]],
+            [0, "PlaySound", "Kill9", [100, 90, 50]],
+            [0, "ControlVars", "", [0, 147, 147, 0, 0, 0, 0]],
+            [0, "MessageOptions", "", [0, 1, 0, 0]],
+            [0, "ShowMessage", "The VIRUS has attacked ADVOCATE's", []],
+            [0, "ShowMessage_2", "energy reserves!", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 0, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Teleport", "", [286, 10, 10]],
+            [0, "ControlSwitches", "", [0, 682, 682, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 683
+          },
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "collision",
+          "move": {
+            "type": "toward",
+            "speed": "normal",
+            "frequency": 8
+          },
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowBattleAnimation", "", [90, 10005, 0, 0]],
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 76,
+      "name": "EV0076",
+      "at": [2, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "parallel",
+          "script": [
+            [0, "KeyInputProc", "", [148, 0, 0, 1, 1]],
+            [0, "ConditionalBranch", "", [1, 148, 0, 5, 0, 1]],
+            [1, "ConditionalBranch", "", [1, 149, 0, 1, 1, 1]],
+            [2, "ControlSwitches", "", [0, 683, 683, 0]],
+            [2, "ControlVars", "", [0, 148, 148, 0, 0, 0, 0]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "ConditionalBranch", "", [1, 148, 0, 6, 0, 1]],
+            [2, "ConditionalBranch", "", [0, 696, 0, 0, 0, 1]],
+            [3, "FlashScreen", "", [31, 31, 31, 31, 5, 1]],
+            [3, "TintScreen", "", [0, 0, 0, 100, 0, 1]],
+            [3, "ControlSwitches", "", [0, 697, 697, 0]],
+            [3, "Teleport", "", [286, 2, 8]],
+            [3, "END", "", []],
+            [2, "ElseBranch", "", []],
+            [3, "PlaySound", "Failure1", [50, 100, 50]],
+            [3, "END", "", []],
+            [2, "EndBranch", "", []],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 77,
+      "name": "EV0077",
+      "at": [4, 0],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 683
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "parallel",
+          "script": [
+            [0, "ControlVars", "", [0, 149, 149, 2, 0, 1, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 34, 6, 65, 100, 118, 111, 67, 77, 5]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Wait", "", [15]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 34, 4, 77, 101, 110, 49, 5]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ControlSwitches", "", [0, 683, 683, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 78,
+      "name": "Skeleton3",
+      "at": [54, 29],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "collision",
+          "move": {
+            "type": "toward",
+            "speed": "normal",
+            "frequency": 8
+          },
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "TintScreen", "", [200, 200, 200, 100, 0, 0]],
+            [0, "PlaySound", "Kill9", [100, 90, 50]],
+            [0, "ControlVars", "", [0, 147, 147, 0, 0, 0, 0]],
+            [0, "MessageOptions", "", [0, 1, 0, 0]],
+            [0, "ShowMessage", "The VIRUS has attacked ADVOCATE's", []],
+            [0, "ShowMessage_2", "energy reserves!", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 0, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Teleport", "", [286, 10, 10]],
+            [0, "ControlSwitches", "", [0, 682, 682, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 683
+          },
+          "sprite": {
+            "charset": "AdvoPower",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "collision",
+          "move": {
+            "type": "toward",
+            "speed": "normal",
+            "frequency": 8
+          },
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowBattleAnimation", "", [90, 10005, 0, 0]],
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ChangeEventLocation", "", [10005, 0, 59, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 80,
+      "name": "EV0080",
+      "at": [6, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "parallel",
+          "script": [
+            [0, "ConditionalBranch", "", [1, 147, 0, 10, 1, 1]],
+            [1, "ShowPicture", "Ready", [4, 0, 80, 225, 0, 100, 0, 0, 100, 100, 100, 100, 0, 60]],
+            [1, "ControlSwitches", "", [0, 696, 696, 0]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 696
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    }
+  ]
+}

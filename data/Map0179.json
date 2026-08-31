@@ -1,0 +1,321 @@
+{
+  "id": 179,
+  "name": "Murgator Cave",
+  "size": [20, 20],
+  "chipset": [49, "ABLTownMountain"],
+  "tiles": "Map0179.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "Murgator",
+      "at": [12, 18],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Crown4",
+            "index": 1,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 490
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [12, 12],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2]],
+            [0, "Wait", "", [5]],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Here it comes!", []],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 28, 0, 0, 0, 0, 29]],
+            [0, "Wait", "", [10]],
+            [0, "ChangeEscapeAccess", "", [0]],
+            [0, "EnemyEncounter", "ABLBackdropSJ09", [0, 183, 1, 0, 0, 0]],
+            [0, "CallEvent", "", [0, 35, 0]],
+            [0, "PlayBGM", "TeramisSong2", [0, 90, 100, 50]],
+            [0, "ChangeSystemBGM", "T_VGFighterMAX_Masako", [0, 0, 100, 100, 50]],
+            [0, "ChangeSystemBGM", "T_VGFighterMAX_Masako", [1, 0, 100, 100, 50]],
+            [0, "ChangeEscapeAccess", "", [1]],
+            [0, "ControlSwitches", "", [0, 490, 490, 0]],
+            [0, "ShowMessage", "RADIN", []],
+            [0, "ShowMessage_2", "We did it, Talan! Let me just cut off the", []],
+            [0, "ShowMessage_2", "tongue...", []],
+            [0, "PlaySound", "Escape", [70, 50, 50]],
+            [0, "Wait", "", [15]],
+            [0, "PlaySound", "Item1", [90, 50, 50]],
+            [0, "MessageOptions", "", [1, 1, 0, 0]],
+            [0, "ChangeItems", "", [0, 0, 214, 0, 1]],
+            [0, "ShowMessage", "RADIN got MURGATOR TONGUE.", []],
+            [0, "Wait", "", [6]],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Now let's get back and give it", []],
+            [0, "ShowMessage_2", "to Isabella - we're running out of time!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "Wait", "", [5]],
+            [0, "TintScreen", "", [0, 0, 0, 100, 10, 1]],
+            [0, "PlayBGM", "WW2_Water", [0, 80, 100, 50]],
+            [0, "Wait", "", [10]],
+            [0, "ChangePartyMembers", "", [1, 0, 27]],
+            [0, "ChangePartyMembers", "", [1, 0, 14]],
+            [0, "ChangePartyMembers", "", [0, 0, 10]],
+            [0, "Teleport", "", [147, 11, 6]],
+            [0, "ControlSwitches", "", [0, 491, 491, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 491
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [1, 19],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [178, 13, 4]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [0, 0],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 498
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "CallEvent", "", [0, 35, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "MurgatorCave.1",
+      "at": [1, 4],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 581, 581, 0]],
+            [0, "ChangeItems", "", [0, 0, 188, 0, 1]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Steeltipped Gloves-RL", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 581
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "MurgatorCave.2",
+      "at": [17, 5],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 582, 582, 0]],
+            [0, "ChangeItems", "", [0, 0, 107, 0, 1]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Bottle of Health", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 582
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "MurgatorCave.3",
+      "at": [4, 16],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 583, 583, 0]],
+            [0, "ChangeItems", "", [0, 0, 109, 0, 2]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Agility Pill-AGL x2", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 583
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "MurgatorCave.4",
+      "at": [16, 18],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "ControlSwitches", "", [0, 584, 584, 0]],
+            [0, "ChangeItems", "", [0, 0, 165, 0, 1]],
+            [0, "ChangeItems", "", [0, 0, 251, 0, 1]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Long-Bladed Knife-R", []],
+            [0, "ShowMessage_2", "       Flame Shield-L", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 584
+          },
+          "sprite": {
+            "charset": "Object1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "EV0009",
+      "at": [19, 19],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 811
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "CallEvent", "", [0, 47, 0]],
+            [0, "ControlSwitches", "", [0, 811, 811, 1]]
+          ]
+        }
+      ]
+    }
+  ]
+}

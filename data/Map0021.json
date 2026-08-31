@@ -1,0 +1,1020 @@
+{
+  "id": 21,
+  "name": "Rat Tracks B1",
+  "size": [50, 50],
+  "chipset": [43, "caveD"],
+  "tiles": "Map0021.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [45, 3],
+      "pages": [
+        {
+          "tile": 46,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "MessageOptions", "", [1, 1, 0, 0]],
+            [0, "ShowMessage", "UPP to SEKTOR 30", []],
+            [0, "ShowMessage_2", "   -Assoshiashun of Bumms", []],
+            [0, "ShowMessage_2", "         and Pannhandlurs", []],
+            [0, "MessageOptions", "", [0, 2, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [46, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ControlSwitches", "", [0, 94, 94, 0]],
+            [0, "WeatherEffects", "", [1, 2]],
+            [0, "ControlSwitches", "", [0, 115, 115, 1]],
+            [0, "Teleport", "", [20, 48, 38]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Boulder1",
+      "at": [17, 17],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object2",
+            "index": 5,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 95
+          },
+          "sprite": {
+            "charset": "Object2",
+            "index": 5,
+            "direction": "down",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I can't get a grip on it anymore.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [18, 17],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action",
+          "script": [
+            [0, "MoveEvent", "", [3, 8, 0, 0, 36, 35, 6, 69, 97, 114, 116, 104, 52, 50, 100, 50, 3, 3, 3, 35, 5, 66, 108, 111, 119, 52, 100, 100, 50, 37]],
+            [0, "Wait", "", [10]],
+            [0, "ChangeEventLocation", "", [5, 0, 0, 1]],
+            [0, "ChangeEventLocation", "", [6, 0, 0, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Oops.", []],
+            [0, "ControlSwitches", "", [0, 95, 95, 0]],
+            [0, "ControlSwitches", "", [0, 113, 113, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 95
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "RatTrackChest1c",
+      "at": [14, 17],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "TradeEventLocations", "", [5, 6]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Serrated Knife-R", []],
+            [0, "ChangeItems", "", [0, 0, 102, 0, 1]],
+            [0, "ControlSwitches", "", [0, 111, 111, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 111
+          },
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "RatTrackChest1o",
+      "at": [0, 0],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "EV0007",
+      "at": [49, 49],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 1
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ChangePartyMembers", "", [1, 0, 10]],
+            [0, "ChangePartyMembers", "", [0, 0, 14]],
+            [0, "ControlSwitches", "", [0, 4, 4, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 4
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "RatTrackChest2c",
+      "at": [20, 17],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "TradeEventLocations", "", [8, 9]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Cheap Wine-SP", []],
+            [0, "ChangeItems", "", [0, 0, 103, 0, 1]],
+            [0, "ControlSwitches", "", [0, 112, 112, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 112
+          },
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "RatTrackChest2o",
+      "at": [1, 0],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "EV0010",
+      "at": [16, 17],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action",
+          "script": [
+            [0, "MoveEvent", "", [3, 8, 0, 0, 36, 35, 6, 69, 97, 114, 116, 104, 52, 50, 100, 50, 1, 1, 1, 35, 5, 66, 108, 111, 119, 52, 100, 100, 50, 37]],
+            [0, "Wait", "", [10]],
+            [0, "ChangeEventLocation", "", [8, 0, 1, 1]],
+            [0, "ChangeEventLocation", "", [9, 0, 1, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Oops.", []],
+            [0, "ControlSwitches", "", [0, 95, 95, 0]],
+            [0, "ControlSwitches", "", [0, 114, 114, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 95
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "RatTrackChest3c",
+      "at": [3, 43],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "TradeEventLocations", "", [11, 12]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Cold Sandwich-HP x2", []],
+            [0, "ChangeItems", "", [0, 0, 97, 0, 2]],
+            [0, "ControlSwitches", "", [0, 110, 110, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 110
+          },
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "RatTrackChest3o",
+      "at": [2, 0],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "EV0013",
+      "at": [48, 47],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Monster1",
+            "index": 4,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "This guy doesn't look so good.", []],
+            [0, "ShowMessage_2", "<nervous laugh>", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "name": "EV0014",
+      "at": [30, 24],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Monster1",
+            "index": 4,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Ick... why am I looking at this?", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "name": "EV0015",
+      "at": [8, 22],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Monster1",
+            "index": 4,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Lookin' a little thin there, fella!", []],
+            [0, "ShowMessage_2", "<nervous laugh>", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "name": "RatTrackChest4c",
+      "at": [48, 27],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "TradeEventLocations", "", [16, 17]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       40 credits", []],
+            [0, "ChangeGold", "", [0, 0, 40]],
+            [0, "ControlSwitches", "", [0, 107, 107, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 107
+          },
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "name": "RatTrackChest4o",
+      "at": [3, 0],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "name": "RatTrackChest5c",
+      "at": [48, 45],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "TradeEventLocations", "", [18, 19]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Broken Bottle-R", []],
+            [0, "ChangeItems", "", [0, 0, 104, 0, 1]],
+            [0, "ControlSwitches", "", [0, 108, 108, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 108
+          },
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "name": "RatTrackChest5o",
+      "at": [4, 0],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "name": "RatTrackChest6c",
+      "at": [22, 35],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "PlaySound", "Monster2", [70, 100, 50]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Oh no! What's that?!", []],
+            [0, "ChangeEscapeAccess", "", [0]],
+            [0, "EnemyEncounter", "ABLBackdropSJ08", [0, 98, 1, 0, 0, 0]],
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "TradeEventLocations", "", [20, 21]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Container Key", []],
+            [0, "ChangeItems", "", [0, 0, 105, 0, 1]],
+            [0, "ControlSwitches", "", [0, 109, 109, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 109
+          },
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "name": "RatTrackChest6o",
+      "at": [5, 0],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "name": "EV0022",
+      "at": [31, 14],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object2",
+            "index": 5,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I could probably roll this boulder", []],
+            [0, "ShowMessage_2", "if I could get behind it...", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "name": "EV0023",
+      "at": [26, 3],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object2",
+            "index": 5,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I could probably roll this boulder", []],
+            [0, "ShowMessage_2", "if I could get behind it...", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 24,
+      "name": "EV0024",
+      "at": [45, 22],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object2",
+            "index": 5,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I could probably roll this boulder", []],
+            [0, "ShowMessage_2", "if I could get behind it...", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 25,
+      "name": "EV0025",
+      "at": [6, 15],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object2",
+            "index": 5,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I could probably roll this boulder", []],
+            [0, "ShowMessage_2", "if I could get behind it...", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 26,
+      "name": "EV0026",
+      "at": [4, 24],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object2",
+            "index": 5,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I could probably roll this boulder", []],
+            [0, "ShowMessage_2", "if I could get behind it...", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 27,
+      "name": "EV0027",
+      "at": [4, 36],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object2",
+            "index": 5,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I could probably roll this boulder", []],
+            [0, "ShowMessage_2", "if I could get behind it...", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 28,
+      "name": "EV0028",
+      "at": [28, 44],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object2",
+            "index": 5,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I could probably roll this boulder", []],
+            [0, "ShowMessage_2", "if I could get behind it...", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 29,
+      "name": "EV0029",
+      "at": [33, 46],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object2",
+            "index": 5,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I could probably roll this boulder", []],
+            [0, "ShowMessage_2", "if I could get behind it...", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 30,
+      "name": "EV0030",
+      "at": [16, 47],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Object2",
+            "index": 5,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I could probably roll this boulder", []],
+            [0, "ShowMessage_2", "if I could get behind it...", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 31,
+      "name": "EV0031",
+      "at": [41, 3],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ControlSwitches", "", [0, 115, 115, 1]],
+            [0, "Teleport", "", [23, 11, 12]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Hmmm.... no one seems to be home.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 32,
+      "name": "EV0032",
+      "at": [20, 2],
+      "pages": [
+        {
+          "tile": 29,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ControlSwitches", "", [0, 115, 115, 1]],
+            [0, "Teleport", "", [26, 13, 48]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 33,
+      "name": "SetBoulderChests",
+      "at": [0, 1],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ChangePartyMembers", "", [1, 0, 10]],
+            [0, "ChangePartyMembers", "", [0, 0, 14]],
+            [0, "ControlSwitches", "", [0, 115, 115, 0]],
+            [0, "ConditionalBranch", "", [0, 113, 0, 0, 0, 1]],
+            [1, "ChangeEventLocation", "", [3, 0, 14, 17]],
+            [1, "ChangeEventLocation", "", [5, 0, 0, 1]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ConditionalBranch", "", [0, 114, 0, 0, 0, 1]],
+            [1, "ChangeEventLocation", "", [3, 0, 20, 17]],
+            [1, "ChangeEventLocation", "", [8, 0, 1, 1]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []],
+            [0, "ControlSwitches", "", [0, 115, 115, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 115
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start"
+        }
+      ]
+    },
+    {
+      "id": 34,
+      "name": "ResetBattleSwitches",
+      "at": [0, 2],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 145
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ControlSwitches", "", [0, 145, 145, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 142
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ControlSwitches", "", [0, 142, 142, 1]]
+          ]
+        },
+        {
+          "conditions": {
+            "variable": [28, "greater_equal", 1]
+          },
+          "tile": 13,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ControlVars", "", [0, 28, 28, 0, 0, 0, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 35,
+      "name": "Vending Machine",
+      "at": [38, 3],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLObjs",
+            "index": 0,
+            "direction": "left",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's an old-fashioned vending machine!", []],
+            [0, "ShowMessage_2", "Looks like it works, although someone's", []],
+            [0, "ShowMessage_2", "raised the prices...", []],
+            [0, "OpenShop", "", [1, 1, 0, 0, 124, 125]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 36,
+      "name": "EV0036",
+      "at": [1, 1],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 498
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "CallEvent", "", [0, 35, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 37,
+      "name": "EV0037",
+      "at": [45, 2],
+      "pages": [
+        {
+          "tile": 40,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "MessageOptions", "", [1, 1, 0, 0]],
+            [0, "ShowMessage", "UPP to SEKTOR 30", []],
+            [0, "ShowMessage_2", "   -Assoshiashun of Bumms", []],
+            [0, "ShowMessage_2", "         and Pannhandlurs", []],
+            [0, "MessageOptions", "", [0, 2, 1, 0]]
+          ]
+        }
+      ]
+    }
+  ]
+}

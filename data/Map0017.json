@@ -1,0 +1,1484 @@
+{
+  "id": 17,
+  "name": "Delcentric Factory",
+  "size": [75, 75],
+  "chipset": [11, "ChipSet1"],
+  "tiles": "Map0017.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "Mech4",
+      "at": [27, 64],
+      "pages": [
+        {
+          "tile": 120,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Mech3",
+      "at": [27, 65],
+      "pages": [
+        {
+          "tile": 126,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Mech2",
+      "at": [27, 66],
+      "pages": [
+        {
+          "tile": 132,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Mech1",
+      "at": [27, 67],
+      "pages": [
+        {
+          "tile": 138,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Mech1b",
+      "at": [31, 67],
+      "pages": [
+        {
+          "tile": 141,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "Mech2b",
+      "at": [31, 66],
+      "pages": [
+        {
+          "tile": 135,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "AnimatePump",
+      "at": [35, 53],
+      "pages": [
+        {
+          "tile": 12,
+          "layer": "below",
+          "trigger": "parallel",
+          "script": [
+            [0, "TradeEventLocations", "", [4, 5]],
+            [0, "TradeEventLocations", "", [6, 3]],
+            [0, "TradeEventLocations", "", [2, 8]],
+            [0, "ChangeEventLocation", "", [1, 0, 31, 64]],
+            [0, "Wait", "", [3]],
+            [0, "TradeEventLocations", "", [4, 5]],
+            [0, "TradeEventLocations", "", [6, 3]],
+            [0, "TradeEventLocations", "", [2, 8]],
+            [0, "ChangeEventLocation", "", [1, 0, 27, 64]],
+            [0, "Wait", "", [3]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "Mech3b",
+      "at": [31, 65],
+      "pages": [
+        {
+          "tile": 129,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "EV0009",
+      "at": [12, 67],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 1
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ChangeSaveAccess", "", [0]],
+            [0, "PlayBGM", "hzstream", [0, 100, 100, 50]],
+            [0, "ChangePartyMembers", "", [1, 0, 10]],
+            [0, "ChangePartyMembers", "", [0, 0, 14]],
+            [0, "ShowMessage", "Starting Party fixed", []],
+            [0, "ControlSwitches", "", [0, 4, 4, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 4
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "EV0010",
+      "at": [41, 36],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "MessageOptions", "", [1, 0, 0, 0]],
+            [0, "ShowMessage", "Payroll Office", []],
+            [0, "MessageOptions", "", [0, 2, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "EV0011",
+      "at": [45, 37],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Men1",
+            "index": 5,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 68
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "EV0012",
+      "at": [44, 37],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "CLERK", []],
+            [0, "ShowMessage_2", "May I help you?", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Uh, yes. I believe I have a paycheck", []],
+            [0, "ShowMessage_2", "I need to pick up.", []],
+            [0, "ShowMessage", "CLERK", []],
+            [0, "ShowMessage_2", "Name?", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Talan.", []],
+            [0, "ShowMessage", "CLERK", []],
+            [0, "ShowMessage_2", "Class and status?", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Worker Division C, Delcentric employee.", []],
+            [0, "ShowMessage_2", "I'm not sure of my status.", []],
+            [0, "ShowMessage", "CLERK", []],
+            [0, "ShowMessage_2", "Just a minute.", []],
+            [0, "PlaySound", "Decision1", [70, 100, 50]],
+            [0, "Wait", "", [1]],
+            [0, "PlaySound", "Decision1", [70, 100, 50]],
+            [0, "Wait", "", [1]],
+            [0, "PlaySound", "Decision1", [70, 100, 50]],
+            [0, "Wait", "", [1]],
+            [0, "PlaySound", "Decision2", [70, 100, 50]],
+            [0, "ShowMessage", "CLERK", []],
+            [0, "ShowMessage_2", "Talan, Worker Division C, for Delcentric.", []],
+            [0, "ShowMessage_2", "Status: Review for dismissal pending.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "What?!", []],
+            [0, "ShowMessage", "CLERK", []],
+            [0, "ShowMessage_2", "I don't make this stuff up. That's what", []],
+            [0, "ShowMessage_2", "the computer says. Here's your", []],
+            [0, "ShowMessage_2", "paycheck.", []],
+            [0, "PlaySound", "Item1", [100, 100, 50]],
+            [0, "MessageOptions", "", [1, 1, 0, 0]],
+            [0, "ShowMessage", "300 credits were deposited into", []],
+            [0, "ShowMessage_2", "TALAN's account.", []],
+            [0, "ChangeGold", "", [0, 0, 300]],
+            [0, "MessageOptions", "", [0, 2, 1, 0]],
+            [0, "ShowMessage", "CLERK", []],
+            [0, "ShowMessage_2", "Have a nice day.", []],
+            [0, "ControlSwitches", "", [0, 78, 78, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 78
+          },
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "CLERK", []],
+            [0, "ShowMessage_2", "Sir, you've already claimed your", []],
+            [0, "ShowMessage_2", "most recent pay.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Yeah, I know. Sorry.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "FactoryChest1c",
+      "at": [16, 47],
+      "pages": [
+        {
+          "tile": 1,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "TradeEventLocations", "", [13, 14]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Cold Sandwich-HP", []],
+            [0, "ChangeItems", "", [0, 0, 97, 0, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "name": "FactoryChest1o",
+      "at": [9, 0],
+      "pages": [
+        {
+          "tile": 2,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "name": "EV0015",
+      "at": [35, 59],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [17, 35, 43]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "name": "EV0016",
+      "at": [35, 44],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [17, 35, 60]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "name": "Worker1",
+      "at": [35, 56],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future2",
+            "index": 6,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "WORKER", []],
+            [0, "ShowMessage_2", "How snazzbanger is it that we only", []],
+            [0, "ShowMessage_2", "have a half-day today?", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Pretty snazzbanger, all right.", []],
+            [0, "ShowMessage", "WORKER", []],
+            [0, "ShowMessage_2", "You bet! I hope these speeches", []],
+            [0, "ShowMessage_2", "are short...", []],
+            [0, "ControlSwitches", "", [0, 79, 79, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 79
+          },
+          "sprite": {
+            "charset": "Future2",
+            "index": 6,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "WORKER", []],
+            [0, "ShowMessage_2", "See you down there, Talan.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "OK.", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 68
+          },
+          "sprite": {
+            "charset": "Future2",
+            "index": 7,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "name": "Worker2",
+      "at": [33, 65],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future2",
+            "index": 6,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "WORKER", []],
+            [0, "ShowMessage_2", "We're only running one set of pumps", []],
+            [0, "ShowMessage_2", "today. Output from the Colony won't", []],
+            [0, "ShowMessage_2", "be increased for another week or so.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "How's the other set doing?", []],
+            [0, "ShowMessage", "WORKER", []],
+            [0, "ShowMessage_2", "Well... ANOTHER reason for running", []],
+            [0, "ShowMessage_2", "only one set is that the other one is", []],
+            [0, "ShowMessage_2", "still busted.", []],
+            [0, "ShowMessage", "WORKER", []],
+            [0, "ShowMessage_2", "We don't want the Director seeing a", []],
+            [0, "ShowMessage_2", "set of broken pumps, now do we?", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "No way!", []],
+            [0, "ShowMessage", "WORKER", []],
+            [0, "ShowMessage_2", "We won't even tell him that a", []],
+            [0, "ShowMessage_2", "certain \"Talan\" was responsible for", []],
+            [0, "ShowMessage_2", "them breaking in the first place...", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Uh... yeah... carry on!", []],
+            [0, "ShowMessage_2", "<nervous laugh>", []],
+            [0, "ControlSwitches", "", [0, 80, 80, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 80
+          },
+          "sprite": {
+            "charset": "Future2",
+            "index": 6,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "WORKER", []],
+            [0, "ShowMessage_2", "Your secret is safe with us, Talan!", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Great.", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 68
+          },
+          "sprite": {
+            "charset": "Future2",
+            "index": 7,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "name": "EV0019",
+      "at": [26, 65],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future1",
+            "index": 0,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 68
+          },
+          "sprite": {
+            "charset": "Future1",
+            "index": 3,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "name": "EV0020",
+      "at": [37, 59],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "MessageOptions", "", [1, 0, 0, 0]],
+            [0, "ShowMessage", "Cafeteria / Payroll / Auditorium", []],
+            [0, "MessageOptions", "", [0, 2, 1, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "name": "FactoryChest2c",
+      "at": [52, 64],
+      "pages": [
+        {
+          "tile": 1,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "PlaySound", "Bow2", [100, 100, 50]],
+            [0, "TradeEventLocations", "", [21, 22]],
+            [0, "ShowMessage", "You found:", []],
+            [0, "ShowMessage_2", "       Wrench-R", []],
+            [0, "ChangeItems", "", [0, 0, 88, 0, 1]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "name": "FactoryChest2o",
+      "at": [10, 0],
+      "pages": [
+        {
+          "tile": 2,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "It's empty. That figures.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "name": "EV0023",
+      "at": [33, 63],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I shouldn't mess with that.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 24,
+      "name": "EV0024",
+      "at": [35, 54],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I shouldn't mess with that.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 25,
+      "name": "EV0025",
+      "at": [39, 65],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I shouldn't mess with that.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 26,
+      "name": "EV0026",
+      "at": [29, 59],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I can't poke around in the grate!", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Not while everyone's looking, anyway.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 27,
+      "name": "EV0027",
+      "at": [46, 59],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I can't poke around in the grate!", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Not while everyone's looking, anyway.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 28,
+      "name": "Dessen",
+      "at": [39, 67],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future2",
+            "index": 6,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "DESSEN", []],
+            [0, "ShowMessage_2", "Talan, it's lucky for you that you got", []],
+            [0, "ShowMessage_2", "here when you did - you don't want to", []],
+            [0, "ShowMessage_2", "miss the Director's speech!", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I hope he's got good news.", []],
+            [0, "ShowMessage", "DESSEN", []],
+            [0, "ShowMessage_2", "I'm... sure it is. Why? Do you know", []],
+            [0, "ShowMessage_2", "something?", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "No, but... why would the Director", []],
+            [0, "ShowMessage_2", "of the Agency come here?", []],
+            [0, "ShowMessage", "DESSEN", []],
+            [0, "ShowMessage_2", "... ... ...", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Don't worry about it, Dess.", []],
+            [0, "ShowMessage_2", "I'm sure he's got good news.", []],
+            [0, "ShowMessage", "DESSEN", []],
+            [0, "ShowMessage_2", "I hope you're right, Talan.", []],
+            [0, "ControlSwitches", "", [0, 84, 84, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 84
+          },
+          "sprite": {
+            "charset": "Future2",
+            "index": 6,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "DESSEN", []],
+            [0, "ShowMessage_2", "We'll know soon enough, I guess.", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 68
+          },
+          "sprite": {
+            "charset": "Future2",
+            "index": 7,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic"
+        }
+      ]
+    },
+    {
+      "id": 29,
+      "name": "Worker3",
+      "at": [47, 60],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future1",
+            "index": 7,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "WORKER", []],
+            [0, "ShowMessage_2", "I wonder what the Director is going to", []],
+            [0, "ShowMessage_2", "talk about?", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Yeah... I wonder...", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 68
+          },
+          "sprite": {
+            "charset": "Future1",
+            "index": 3,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic"
+        }
+      ]
+    },
+    {
+      "id": 30,
+      "name": "Worker4",
+      "at": [18, 37],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future1",
+            "index": 7,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "WORKER", []],
+            [0, "ShowMessage_2", "I heard the Director has a team of", []],
+            [0, "ShowMessage_2", "crack security personnel around", []],
+            [0, "ShowMessage_2", "him at all times!", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Yeah, the Agency Guards are good,", []],
+            [0, "ShowMessage_2", "that's for sure.", []],
+            [0, "ShowMessage", "WORKER", []],
+            [0, "ShowMessage_2", "They have to go through years of", []],
+            [0, "ShowMessage_2", "intense training - I heard a lot of", []],
+            [0, "ShowMessage_2", "people don't survive it!", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "That's apt... a lot of people don't", []],
+            [0, "ShowMessage_2", "survive the Agency Guards", []],
+            [0, "ShowMessage_2", "themselves, either.", []],
+            [0, "ShowMessage", "WORKER", []],
+            [0, "ShowMessage_2", "Good one, Talan! Hehehehehee!", []],
+            [0, "ControlSwitches", "", [0, 129, 129, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 129
+          },
+          "sprite": {
+            "charset": "Future1",
+            "index": 7,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "WORKER", []],
+            [0, "ShowMessage_2", "I wonder if I would have made it", []],
+            [0, "ShowMessage_2", "through training as an Agency", []],
+            [0, "ShowMessage_2", "Guard?", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 68
+          },
+          "sprite": {
+            "charset": "Future1",
+            "index": 3,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic"
+        }
+      ]
+    },
+    {
+      "id": 31,
+      "name": "Worker5",
+      "at": [20, 41],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future2",
+            "index": 6,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "WORKER", []],
+            [0, "ShowMessage_2", "Have you heard the rumors that", []],
+            [0, "ShowMessage_2", "Delcentric might be bought out?", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Who's planning on buying it?", []],
+            [0, "ShowMessage", "WORKER", []],
+            [0, "ShowMessage_2", "I dunno. It's just a rumor, anyway.", []],
+            [0, "ShowMessage_2", "It'll probably never happen.", []],
+            [0, "ControlSwitches", "", [0, 81, 81, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 81
+          },
+          "sprite": {
+            "charset": "Future2",
+            "index": 6,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "WORKER", []],
+            [0, "ShowMessage_2", "I wonder who could buy out the", []],
+            [0, "ShowMessage_2", "most expensive company in the", []],
+            [0, "ShowMessage_2", "world?", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 68
+          },
+          "sprite": {
+            "charset": "Future2",
+            "index": 7,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 32,
+      "name": "EV0032",
+      "at": [36, 74],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I can't leave now!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 0]],
+            [0, "Wait", "", [3]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 33,
+      "name": "EV0033",
+      "at": [35, 74],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I can't leave now!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 0]],
+            [0, "Wait", "", [3]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 34,
+      "name": "EV0034",
+      "at": [34, 74],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I can't leave now!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 0]],
+            [0, "Wait", "", [3]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 35,
+      "name": "EV0035",
+      "at": [33, 74],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I can't leave now!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 0]],
+            [0, "Wait", "", [3]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 36,
+      "name": "EV0036",
+      "at": [32, 74],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I can't leave now!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 0]],
+            [0, "Wait", "", [3]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 37,
+      "name": "EV0037",
+      "at": [37, 74],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I can't leave now!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 0]],
+            [0, "Wait", "", [3]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 38,
+      "name": "EV0038",
+      "at": [38, 74],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I can't leave now!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 0]],
+            [0, "Wait", "", [3]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 39,
+      "name": "EV0039",
+      "at": [39, 74],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I can't leave now!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 0]],
+            [0, "Wait", "", [3]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 40,
+      "name": "Worker6",
+      "at": [28, 36],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future2",
+            "index": 6,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "move": {
+            "type": "custom",
+            "speed": "half",
+            "frequency": 3
+          },
+          "script": [
+            [0, "ShowMessage", "WORKER", []],
+            [0, "ShowMessage_2", "Since I've worked at Delcentric for", []],
+            [0, "ShowMessage_2", "ten years, they're giving me a", []],
+            [0, "ShowMessage_2", "paid holiday!", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "What are you going to do?", []],
+            [0, "ShowMessage", "WORKER", []],
+            [0, "ShowMessage_2", "I don't know. Probably stay at home", []],
+            [0, "ShowMessage_2", "and watch the vidcasts.", []],
+            [0, "ControlSwitches", "", [0, 82, 82, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 82
+          },
+          "sprite": {
+            "charset": "Future2",
+            "index": 6,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "WORKER", []],
+            [0, "ShowMessage_2", "I can't wait for my vacation!", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 68
+          },
+          "sprite": {
+            "charset": "Future2",
+            "index": 7,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 41,
+      "name": "EV0041",
+      "at": [21, 35],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I can't poke around in the grate!", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Not while everyone's looking, anyway.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 42,
+      "name": "EV0042",
+      "at": [16, 36],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "This Distributron never gets my food", []],
+            [0, "ShowMessage_2", "order right. I'm not hungry anyway.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 43,
+      "name": "Worker7",
+      "at": [24, 41],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future2",
+            "index": 6,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "WORKER", []],
+            [0, "ShowMessage_2", "I think there's something wrong with", []],
+            [0, "ShowMessage_2", "the Distributron - my food is cold!", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Yeah, it's been on the fritz for the", []],
+            [0, "ShowMessage_2", "last week.", []],
+            [0, "ShowMessage", "WORKER", []],
+            [0, "ShowMessage_2", "Maybe the Director is going to tell", []],
+            [0, "ShowMessage_2", "us the Agency wants to buy us", []],
+            [0, "ShowMessage_2", "better equipment!", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Maybe. He's probably here for more", []],
+            [0, "ShowMessage_2", "important matters, though.", []],
+            [0, "ShowMessage", "WORKER", []],
+            [0, "ShowMessage_2", "What's more important than my cold", []],
+            [0, "ShowMessage_2", "Gazzerbean Goulash?!", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "That's a good question.", []],
+            [0, "ControlSwitches", "", [0, 83, 83, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 83
+          },
+          "sprite": {
+            "charset": "Future2",
+            "index": 6,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "WORKER", []],
+            [0, "ShowMessage_2", "I hope the Director has good news.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Yeah. I wonder what he's come to", []],
+            [0, "ShowMessage_2", "talk to us about?", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 68
+          },
+          "sprite": {
+            "charset": "Future2",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 44,
+      "name": "FactoryGuard",
+      "at": [35, 33],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "BLPeople",
+            "index": 7,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic",
+          "script": [
+            [0, "ShowMessage", "Do you want to enter the Auditorium?", []],
+            [0, "ShowChoice", "Yes/No", [2]],
+            [0, "ShowChoiceOption", "Yes", [0]],
+            [1, "ShowMessage", "AGENCY GUARD", []],
+            [1, "ShowMessage_2", "Sir - your identification, please.", []],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "Oh, right. Here you go.", []],
+            [1, "Wait", "", [10]],
+            [1, "ShowMessage", "AGENCY GUARD", []],
+            [1, "ShowMessage_2", "Everything checks out.", []],
+            [1, "ShowMessage_2", "You may enter.", []],
+            [1, "Teleport", "", [18, 9, 14]],
+            [1, "END", "", []],
+            [0, "ShowChoiceOption", "No", [1]],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "I've still got a few minutes. Guess", []],
+            [1, "ShowMessage_2", "I'll see what everyone has to say", []],
+            [1, "ShowMessage_2", "about the Director's visit.", []],
+            [1, "END", "", []],
+            [0, "ShowChoiceEnd", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 45,
+      "name": "RunFactoryScene",
+      "at": [12, 68],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 77
+          },
+          "tile": 33,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "Wait", "", [15]],
+            [0, "MoveEvent", "", [28, 8, 0, 0, 14]],
+            [0, "MessageOptions", "", [0, 0, 1, 0]],
+            [0, "ShowMessage", "DESSEN", []],
+            [0, "ShowMessage_2", "Talan! There you are!", []],
+            [0, "MoveEvent", "", [28, 8, 0, 0, 3, 3, 3, 2, 2]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Hey, Dess - how's it going?", []],
+            [0, "ShowMessage", "DESSEN", []],
+            [0, "ShowMessage_2", "What do you mean \"how's it going?\"", []],
+            [0, "ShowMessage_2", "Aren't you excited at ALL?", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Excited? About what?", []],
+            [0, "ShowMessage", "DESSEN", []],
+            [0, "ShowMessage_2", "The Director's visit! The Director of the", []],
+            [0, "ShowMessage_2", "Agency is here! He's giving a speech!", []],
+            [0, "Wait", "", [12]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I totally forgot.", []],
+            [0, "ShowMessage", "DESSEN", []],
+            [0, "ShowMessage_2", "What?! How could you forget? He's", []],
+            [0, "ShowMessage_2", "the single most powerful man in the", []],
+            [0, "ShowMessage_2", "known world. No! The universe!", []],
+            [0, "ShowMessage", "DESSEN", []],
+            [0, "ShowMessage_2", "And he's here! I wonder what he's", []],
+            [0, "ShowMessage_2", "going to say?", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I wonder.", []],
+            [0, "ShowMessage", "DESSEN", []],
+            [0, "ShowMessage_2", "How can you be so relaxed?", []],
+            [0, "ShowMessage_2", "I just don't get you, Talan.", []],
+            [0, "MoveEvent", "", [28, 8, 0, 0, 0, 0, 1, 1, 1, 12]],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 0, 0, 0, 0, 0]],
+            [0, "Wait", "", [12]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 14]],
+            [0, "Wait", "", [8]],
+            [0, "MessageOptions", "", [0, 2, 1, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Good thing I made it on time.", []],
+            [0, "ShowMessage_2", "<wink>", []],
+            [0, "ControlSwitches", "", [0, 85, 85, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 68
+          },
+          "tile": 33,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
+            [0, "Wait", "", [5]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "Wait", "", [5]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Where is everybody? Usually this", []],
+            [0, "ShowMessage_2", "place is crowded!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 0, 0, 0, 0, 0, 0]],
+            [0, "Wait", "", [12]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I mean, I'm late... but I'm not THAT", []],
+            [0, "ShowMessage_2", "late!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0]],
+            [0, "Wait", "", [15]],
+            [0, "Teleport", "", [17, 35, 43]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 0, 0, 0, 0]],
+            [0, "Wait", "", [8]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "There's a guard for the Agency.", []],
+            [0, "ShowMessage_2", "Maybe he'll know what's going on.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 0, 0, 0, 0, 0]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "AGENCY GUARD", []],
+            [0, "ShowMessage_2", "Identification.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Well, you see... I was wondering...", []],
+            [0, "ShowMessage", "AGENCY GUARD", []],
+            [0, "ShowMessage_2", "Now. Or I make you leave.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Eek! Here you go!", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "AGENCY GUARD", []],
+            [0, "ShowMessage_2", "It checks out.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "What... uh... is going on here, exactly?", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "AGENCY GUARD", []],
+            [0, "ShowMessage_2", "The Director is giving a speech to", []],
+            [0, "ShowMessage_2", "the workers of the Delcentric factory.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 24, 25]],
+            [0, "Wait", "", [3]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "The Director? The Director the Agency", []],
+            [0, "ShowMessage_2", "is here?", []],
+            [0, "ShowMessage", "AGENCY GUARD", []],
+            [0, "ShowMessage_2", "He is.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 14]],
+            [0, "Wait", "", [5]],
+            [0, "MessageOptions", "", [1, 2, 0, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Oh, what a SPLENDID day to be late!!", []],
+            [0, "Wait", "", [10]],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "AGENCY GUARD", []],
+            [0, "ShowMessage_2", "Is there a problem?", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "Wait", "", [3]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Uh.... no. Can I go in, or should I", []],
+            [0, "ShowMessage_2", "just go home and save myself the", []],
+            [0, "ShowMessage_2", "humiliation?", []],
+            [0, "ShowMessage", "AGENCY GUARD", []],
+            [0, "ShowMessage_2", "You can go in during the applause.", []],
+            [0, "ShowMessage_2", "I can't let you disrupt the proceedings", []],
+            [0, "ShowMessage_2", "by going in right now.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "OK. I'll wait.", []],
+            [0, "Wait", "", [30]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 15]],
+            [0, "Wait", "", [25]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 13]],
+            [0, "Wait", "", [15]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 14]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "AGENCY GUARD", []],
+            [0, "ShowMessage_2", "Now! Go in now! Hurry!", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Aaaagh!", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 36, 12, 24, 0, 25, 37]],
+            [0, "ControlSwitches", "", [0, 88, 88, 0]],
+            [0, "Teleport", "", [18, 9, 14]],
+            [0, "ControlSwitches", "", [0, 85, 85, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 85
+          },
+          "tile": 33,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 46,
+      "name": "EV0046",
+      "at": [33, 64],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I shouldn't mess with that.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 47,
+      "name": "EV0047",
+      "at": [39, 66],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I shouldn't mess with that.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 48,
+      "name": "EV0048",
+      "at": [35, 55],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I shouldn't mess with that.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 49,
+      "name": "EV0049",
+      "at": [50, 62],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "This is the way to the Database Storage.", []],
+            [0, "ShowMessage_2", "I'm not authorized to enter.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 3]],
+            [0, "Wait", "", [5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 50,
+      "name": "EV0050",
+      "at": [61, 68],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future2",
+            "index": 6,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 51,
+      "name": "EV0051",
+      "at": [60, 62],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future1",
+            "index": 2,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    }
+  ]
+}

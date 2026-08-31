@@ -1,0 +1,208 @@
+{
+  "id": 237,
+  "name": "Humanoid's Lair",
+  "size": [20, 15],
+  "chipset": [37, "shrine1"],
+  "tiles": "Map0237.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [10, 9],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ConditionalBranch", "", [0, 385, 0, 0, 0, 1]],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "Sern? Are you in here?", []],
+            [1, "Wait", "", [5]],
+            [1, "ShowMessage", "EMILY", []],
+            [1, "ShowMessage_2", "There's a hole in the roof... he could have", []],
+            [1, "ShowMessage_2", "fallen down here from up above...", []],
+            [1, "TintScreen", "", [0, 0, 0, 100, 0, 0]],
+            [1, "ShowMessage", "EMILY", []],
+            [1, "ShowMessage_2", "The light! Something's blocking out", []],
+            [1, "ShowMessage_2", "the light!", []],
+            [1, "Wait", "", [5]],
+            [1, "PlaySound", "Roar", [100, 80, 50]],
+            [1, "MoveEvent", "", [10001, 8, 0, 0, 24, 25]],
+            [1, "ProceedWithMovement", "", []],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "What was that?!", []],
+            [1, "ChangeEscapeAccess", "", [0]],
+            [1, "ChangeSystemBGM", "KW-robot", [0, 0, 100, 100, 50]],
+            [1, "ChangeSystemBGM", "KW-robot", [1, 0, 100, 100, 50]],
+            [1, "EnemyEncounter", "Cave1", [0, 218, 1, 0, 0, 0]],
+            [1, "ControlSwitches", "", [0, 626, 626, 0]],
+            [1, "Teleport", "", [235, 9, 11]],
+            [1, "ChangePartyMembers", "", [0, 0, 28]],
+            [1, "ShowMessage", "TALAN", []],
+            [1, "ShowMessage_2", "Here he is! That thing must have", []],
+            [1, "ShowMessage_2", "knocked him out!", []],
+            [1, "Wait", "", [5]],
+            [1, "ShowMessage", "EMILY", []],
+            [1, "ShowMessage_2", "Let's bring him back up to the", []],
+            [1, "ShowMessage_2", "surface... we won't be able to", []],
+            [1, "ShowMessage_2", "use this tunnel after all.", []],
+            [1, "TintScreen", "", [100, 100, 100, 100, 5, 1]],
+            [1, "MessageOptions", "", [0, 0, 0, 0]],
+            [1, "ShowMessage", "SERN", []],
+            [1, "ShowMessage_2", "I'm... I'm all right. I don't know what", []],
+            [1, "ShowMessage_2", "that thing was, but this tunnel isn't safe.", []],
+            [1, "ChangeSystemBGM", "T_VGFighterMAX_Masako", [0, 0, 100, 100, 50]],
+            [1, "ChangeSystemBGM", "T_VGFighterMAX_Masako", [1, 0, 100, 100, 50]],
+            [1, "ChangeEscapeAccess", "", [1]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "ConditionalBranch", "", [0, 386, 0, 0, 0, 1]],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "Radin? Are you in here?", []],
+            [2, "Wait", "", [5]],
+            [2, "ShowMessage", "EMILY", []],
+            [2, "ShowMessage_2", "There's a hole in the roof... he could have", []],
+            [2, "ShowMessage_2", "fallen down here from up above...", []],
+            [2, "TintScreen", "", [0, 0, 0, 100, 0, 0]],
+            [2, "ShowMessage", "EMILY", []],
+            [2, "ShowMessage_2", "The light! Something's blocking out", []],
+            [2, "ShowMessage_2", "the light!", []],
+            [2, "Wait", "", [5]],
+            [2, "PlaySound", "Roar", [100, 80, 50]],
+            [2, "MoveEvent", "", [10001, 8, 0, 0, 24, 25]],
+            [2, "ProceedWithMovement", "", []],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "What was that?!", []],
+            [2, "ChangeEscapeAccess", "", [0]],
+            [2, "ChangeSystemBGM", "KW-robot", [0, 0, 100, 100, 50]],
+            [2, "ChangeSystemBGM", "KW-robot", [1, 0, 100, 100, 50]],
+            [2, "EnemyEncounter", "Cave1", [0, 218, 1, 0, 0, 0]],
+            [2, "ControlSwitches", "", [0, 626, 626, 0]],
+            [2, "Teleport", "", [235, 9, 11]],
+            [2, "ChangePartyMembers", "", [0, 0, 27]],
+            [2, "ShowMessage", "TALAN", []],
+            [2, "ShowMessage_2", "Here he is! That thing must have", []],
+            [2, "ShowMessage_2", "knocked him out!", []],
+            [2, "Wait", "", [5]],
+            [2, "ShowMessage", "EMILY", []],
+            [2, "ShowMessage_2", "Let's bring him back up to the", []],
+            [2, "ShowMessage_2", "surface... we won't be able to", []],
+            [2, "ShowMessage_2", "use this tunnel after all.", []],
+            [2, "TintScreen", "", [100, 100, 100, 100, 5, 1]],
+            [2, "MessageOptions", "", [0, 0, 0, 0]],
+            [2, "ShowMessage", "RADIN", []],
+            [2, "ShowMessage_2", "I'm... I'm all right. I don't know what", []],
+            [2, "ShowMessage_2", "that thing was, but this tunnel isn't safe.", []],
+            [2, "ChangeSystemBGM", "T_VGFighterMAX_Masako", [0, 0, 100, 100, 50]],
+            [2, "ChangeSystemBGM", "T_VGFighterMAX_Masako", [1, 0, 100, 100, 50]],
+            [2, "ChangeEscapeAccess", "", [1]],
+            [2, "END", "", []],
+            [1, "ElseBranch", "", []],
+            [2, "ConditionalBranch", "", [0, 388, 0, 0, 0, 1]],
+            [3, "ShowMessage", "TALAN", []],
+            [3, "ShowMessage_2", "Lerle? Are you in here?", []],
+            [3, "Wait", "", [5]],
+            [3, "ShowMessage", "EMILY", []],
+            [3, "ShowMessage_2", "There's a hole in the roof... he could have", []],
+            [3, "ShowMessage_2", "fallen down here from up above...", []],
+            [3, "TintScreen", "", [0, 0, 0, 100, 0, 0]],
+            [3, "ShowMessage", "EMILY", []],
+            [3, "ShowMessage_2", "The light! Something's blocking out", []],
+            [3, "ShowMessage_2", "the light!", []],
+            [3, "Wait", "", [5]],
+            [3, "PlaySound", "Roar", [100, 80, 50]],
+            [3, "MoveEvent", "", [10001, 8, 0, 0, 24, 25]],
+            [3, "ProceedWithMovement", "", []],
+            [3, "ShowMessage", "TALAN", []],
+            [3, "ShowMessage_2", "What was that?!", []],
+            [3, "ChangeEscapeAccess", "", [0]],
+            [3, "ChangeSystemBGM", "KW-robot", [0, 0, 100, 100, 50]],
+            [3, "ChangeSystemBGM", "KW-robot", [1, 0, 100, 100, 50]],
+            [3, "EnemyEncounter", "Cave1", [0, 218, 1, 0, 0, 0]],
+            [3, "ControlSwitches", "", [0, 626, 626, 0]],
+            [3, "Teleport", "", [235, 9, 11]],
+            [3, "ChangePartyMembers", "", [0, 0, 26]],
+            [3, "ShowMessage", "TALAN", []],
+            [3, "ShowMessage_2", "Here he is! That thing must have", []],
+            [3, "ShowMessage_2", "knocked him out!", []],
+            [3, "Wait", "", [5]],
+            [3, "ShowMessage", "EMILY", []],
+            [3, "ShowMessage_2", "Let's bring him back up to the", []],
+            [3, "ShowMessage_2", "surface... we won't be able to", []],
+            [3, "ShowMessage_2", "use this tunnel after all.", []],
+            [3, "TintScreen", "", [100, 100, 100, 100, 5, 1]],
+            [3, "MessageOptions", "", [0, 0, 0, 0]],
+            [3, "ShowMessage", "LERLE", []],
+            [3, "ShowMessage_2", "I'm... I'm all right. I don't know what", []],
+            [3, "ShowMessage_2", "that thing was, but this tunnel isn't safe.", []],
+            [3, "ChangeSystemBGM", "T_VGFighterMAX_Masako", [0, 0, 100, 100, 50]],
+            [3, "ChangeSystemBGM", "T_VGFighterMAX_Masako", [1, 0, 100, 100, 50]],
+            [3, "ChangeEscapeAccess", "", [1]],
+            [3, "END", "", []],
+            [2, "ElseBranch", "", []],
+            [3, "END", "", []],
+            [2, "EndBranch", "", []],
+            [2, "END", "", []],
+            [1, "EndBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [10, 14],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "Teleport", "", [254, 18, 37]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "AfterBattleMint",
+      "at": [19, 0],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 498
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "CallEvent", "", [0, 35, 0]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [19, 14],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 811
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ShowMessage", "RADIN", []],
+            [0, "ShowMessage_2", "I can't find ingredients here.", []],
+            [0, "ControlSwitches", "", [0, 811, 811, 1]]
+          ]
+        }
+      ]
+    }
+  ]
+}

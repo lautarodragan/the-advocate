@@ -1,0 +1,329 @@
+{
+  "id": 287,
+  "name": "The Advocate Escapes",
+  "size": [20, 15],
+  "chipset": [42, "Ancient(1)"],
+  "tiles": "Map0287.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [8, 1],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 685
+          },
+          "tile": 73,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [9, 1],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 685
+          },
+          "tile": 73,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [10, 1],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 685
+          },
+          "tile": 73,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [11, 1],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 685
+          },
+          "tile": 73,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "EV0005",
+      "at": [7, 6],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 686
+          },
+          "tile": 73,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "EV0006",
+      "at": [8, 6],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 686
+          },
+          "tile": 73,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "EV0007",
+      "at": [9, 6],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 686
+          },
+          "tile": 73,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "EV0008",
+      "at": [10, 6],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 686
+          },
+          "tile": 73,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "EV0009",
+      "at": [8, 11],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 687
+          },
+          "tile": 73,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "EV0010",
+      "at": [9, 11],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 687
+          },
+          "tile": 73,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "EV0011",
+      "at": [10, 11],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 687
+          },
+          "tile": 73,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "EV0012",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "TintScreen", "", [100, 100, 100, 100, 10, 1]],
+            [0, "Wait", "", [15]],
+            [0, "PlaySound", "Thunder7", [100, 60, 50]],
+            [0, "ControlSwitches", "", [0, 685, 685, 0]],
+            [0, "Wait", "", [30]],
+            [0, "PlaySound", "Thunder7", [100, 60, 50]],
+            [0, "ControlSwitches", "", [0, 686, 686, 0]],
+            [0, "Wait", "", [30]],
+            [0, "PlaySound", "Thunder7", [100, 60, 50]],
+            [0, "ControlSwitches", "", [0, 687, 687, 0]],
+            [0, "Wait", "", [30]],
+            [0, "ControlSwitches", "", [0, 688, 688, 0]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "ControlSwitches", "", [0, 679, 679, 1]],
+            [0, "TintScreen", "", [0, 0, 0, 100, 0, 0]],
+            [0, "Teleport", "", [277, 5, 19]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 689
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "TintScreen", "", [100, 100, 100, 100, 5, 0]],
+            [0, "MoveEvent", "", [14, 8, 0, 1, 28, 36, 3, 3, 3, 3, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0, 37, 29]],
+            [0, "MoveEvent", "", [15, 8, 0, 1, 28, 36, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 0, 0, 3, 3, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0, 37, 29]],
+            [0, "MoveEvent", "", [16, 8, 0, 1, 28, 36, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0, 37, 29]],
+            [0, "MoveEvent", "", [13, 8, 0, 1, 36, 28, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "PlaySound", "Thunder7", [100, 60, 50]],
+            [0, "ControlSwitches", "", [0, 685, 685, 1]],
+            [0, "MoveEvent", "", [13, 8, 0, 1, 28, 36, 24, 25, 13, 23, 14, 24, 25, 23, 15, 3, 3, 3, 3, 3, 3, 3, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0, 37, 29]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "PlaySound", "Thunder7", [100, 60, 50]],
+            [0, "ControlSwitches", "", [0, 686, 686, 1]],
+            [0, "Wait", "", [8]],
+            [0, "PlaySound", "Thunder7", [100, 60, 50]],
+            [0, "ControlSwitches", "", [0, 687, 687, 1]],
+            [0, "Wait", "", [5]],
+            [0, "TintScreen", "", [0, 0, 0, 100, 0, 0]],
+            [0, "ControlSwitches", "", [0, 690, 690, 0]],
+            [0, "ChangePartyMembers", "", [1, 0, 10]],
+            [0, "ChangePartyMembers", "", [0, 0, 21]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Teleport", "", [277, 7, 19]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "Advocate1",
+      "at": [19, 1],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 689
+          },
+          "sprite": {
+            "charset": "Men1",
+            "index": 5,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "move": {
+            "type": "custom",
+            "speed": "half",
+            "frequency": 3
+          },
+          "animation": "continuous"
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "name": "Advocate2",
+      "at": [4, 1],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 689
+          },
+          "sprite": {
+            "charset": "Men1",
+            "index": 5,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous"
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "name": "Advocate3",
+      "at": [13, 6],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 689
+          },
+          "sprite": {
+            "charset": "Men1",
+            "index": 5,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous"
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "name": "Advocate4",
+      "at": [12, 11],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 689
+          },
+          "sprite": {
+            "charset": "Men1",
+            "index": 5,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "continuous"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,185 @@
+{
+  "id": 243,
+  "name": "Emily Sick",
+  "size": [20, 15],
+  "chipset": [24, "INNER ITEMS SHOP"],
+  "tiles": "Map0243.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "Emily",
+      "at": [4, 5],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "emily",
+            "index": 5,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        },
+        {
+          "conditions": {
+            "switch_a": 700
+          },
+          "sprite": {
+            "charset": "emily",
+            "index": 5,
+            "direction": "right",
+            "pattern": "left"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic"
+        },
+        {
+          "conditions": {
+            "switch_a": 853
+          },
+          "sprite": {
+            "charset": "emily",
+            "index": 4,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "animation": "fixed_graphic"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "PIERSON, shouting", []],
+            [0, "ShowMessage_2", "Don't say that! She'll be fine!", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "EMILY'S MOTHER, shouting", []],
+            [0, "ShowMessage_2", "How do you know? Her temperature", []],
+            [0, "ShowMessage_2", "hasn't gone down - it's only gotten worse!", []],
+            [0, "ShowMessage_2", "She won't eat!", []],
+            [0, "Wait", "", [15]],
+            [0, "ShowMessage", "PIERSON, shouting", []],
+            [0, "ShowMessage_2", "That crackpot farmer doesn't know", []],
+            [0, "ShowMessage_2", "what he's talking about! She'll be fine!", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "EMILY'S MOTHER", []],
+            [0, "ShowMessage_2", "Vago is a great man! If you had listened", []],
+            [0, "ShowMessage_2", "to him at the beginning, maybe Emily", []],
+            [0, "ShowMessage_2", "wouldn't be so sick now!", []],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 15, 23, 23, 13, 23, 15]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
+            [0, "MessageOptions", "", [1, 0, 0, 0]],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "MEMNOSYNE", []],
+            [0, "ShowMessage_2", "... ... ...", []],
+            [0, "ControlSwitches", "", [0, 700, 700, 0]],
+            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]],
+            [0, "Wait", "", [30]],
+            [0, "MoveEvent", "", [3, 8, 0, 0, 12]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Wait", "", [10]],
+            [0, "PlaySound", "Blow2", [60, 80, 50]],
+            [0, "ControlSwitches", "", [0, 834, 834, 0]],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [3, 8, 0, 1, 28, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 36, 2, 2, 2, 2, 2, 2, 37, 29]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 5, 1]],
+            [0, "ControlSwitches", "", [0, 853, 853, 0]],
+            [0, "Wait", "", [15]],
+            [0, "TintScreen", "", [100, 100, 100, 100, 5, 1]],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 36, 1]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Wait", "", [15]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "...Mom?", []],
+            [0, "Wait", "", [5]],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 1, 23]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 12, 37]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "Wait", "", [10]],
+            [0, "TintScreen", "", [0, 0, 0, 100, 10, 1]],
+            [0, "Wait", "", [15]],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "MEMNOSYNE", []],
+            [0, "ShowMessage_2", "Where did your mother go, Emily?", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "EMILY, asleep", []],
+            [0, "ShowMessage_2", "... away... somewhere far away...", []],
+            [0, "Teleport", "", [104, 10, 5]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Emily's Mom",
+      "at": [6, 5],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 700
+          },
+          "sprite": {
+            "charset": "People1",
+            "index": 5,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "Comment", "Anyone interested enough to delve this", []],
+            [0, "Comment_2", "deeply into ABL deserves to receive a", []],
+            [0, "Comment_2", "SPOILER!!", []],
+            [0, "Comment", "YES this IS Memnosyne!  :)", []],
+            [0, "Comment_2", "", []],
+            [0, "Comment_2", "-Lys", []]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 853
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Radio",
+      "at": [6, 4],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 834
+          },
+          "sprite": {
+            "charset": "radio",
+            "index": 4,
+            "direction": "down",
+            "pattern": "right"
+          },
+          "layer": "below",
+          "trigger": "action",
+          "animation": "fixed_graphic"
+        }
+      ]
+    }
+  ]
+}

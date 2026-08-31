@@ -1,0 +1,46 @@
+{
+  "id": 265,
+  "name": "Kersh Tampering",
+  "size": [20, 15],
+  "chipset": [36, "townQ"],
+  "tiles": "Map0265.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "Kersh",
+      "at": [12, 13],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Future1",
+            "index": 5,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 34, 10, 110, 111, 98, 111, 100, 121, 104, 101, 114, 101, 0]],
+            [0, "ProceedWithMovement", "", []],
+            [0, "TintScreen", "", [100, 100, 100, 0, 5, 1]],
+            [0, "Wait", "", [10]],
+            [0, "TintScreen", "", [0, 0, 0, 0, 5, 1]],
+            [0, "Teleport", "", [266, 0, 2]]
+          ]
+        }
+      ]
+    }
+  ]
+}

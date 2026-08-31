@@ -1,0 +1,417 @@
+{
+  "id": 113,
+  "name": "Emily's House",
+  "size": [20, 15],
+  "chipset": [24, "INNER ITEMS SHOP"],
+  "tiles": "Map0113.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [9, 14],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "ConditionalBranch", "", [0, 350, 0, 0, 0, 1]],
+            [1, "TintScreen", "", [0, 0, 0, 70, 2, 1]],
+            [1, "Teleport", "", [108, 37, 22]],
+            [1, "TintScreen", "", [70, 70, 70, 70, 2, 1]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "Teleport", "", [108, 37, 22]],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [0, 0],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 350
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Whoever lives here doesn't seem to be home.", []],
+            [0, "ControlSwitches", "", [0, 352, 352, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 350,
+            "switch_b": 352
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "EV0003",
+      "at": [16, 7],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [17, 7],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "EV0005",
+      "at": [18, 7],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "Emily",
+      "at": [5, 5],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 380,
+            "switch_b": 376
+          },
+          "sprite": {
+            "charset": "emily",
+            "index": 4,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "What do you want?", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I just... wanted to apologize... for whatever", []],
+            [0, "ShowMessage_2", "happened up on the overlook.", []],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "You really are something, Talan, you know", []],
+            [0, "ShowMessage_2", "that? What makes you think your apologies", []],
+            [0, "ShowMessage_2", "even mean anything to me?", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I... well... uh...", []],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "For someone who jumps off cliffs so easily,", []],
+            [0, "ShowMessage_2", "you sure are insecure.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Uh...", []],
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 12]],
+            [0, "MessageOptions", "", [1, 2, 0, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "This isn't going as well as it should.", []],
+            [0, "ShowMessage_2", "Why can I never be debonaire when", []],
+            [0, "ShowMessage_2", "I need to be?", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Hmmmm... what would Max Powertrain", []],
+            [0, "ShowMessage_2", "from Flashbang IV say?", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "... ... ...", []],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "If you were the last woman on the planet,", []],
+            [0, "ShowMessage_2", "and the Griznarcs were descending upon", []],
+            [0, "ShowMessage_2", "us, and we had ten minutes left to live...", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "... I'd go with the Griznarcs!", []],
+            [0, "Wait", "", [10]],
+            [0, "MoveEvent", "", [10005, 8, 0, 0, 21]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "I beg your pardon?", []],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Uh... I mean...", []],
+            [0, "MessageOptions", "", [1, 2, 0, 0]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "I didn't seriously just say that, did I?", []],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "Let me guess... another line from one of those", []],
+            [0, "ShowMessage_2", "vidcasts?", []],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Uh... yeah.", []],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "Get out of here, Talan.", []],
+            [0, "ControlSwitches", "", [0, 381, 381, 0]]
+          ]
+        },
+        {
+          "conditions": {
+            "switch_a": 376,
+            "switch_b": 381
+          },
+          "sprite": {
+            "charset": "emily",
+            "index": 4,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "I told you to leave, Talan.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "EV0007",
+      "at": [9, 13],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 381,
+            "switch_b": 376
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "touched",
+          "script": [
+            [0, "MoveEvent", "", [6, 8, 0, 0, 14]],
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "MoveEvent", "", [6, 8, 0, 0, 2]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "Talan, wait a second.", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 12]],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "What is it?", []],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "You're sort of cute, in a \"look at me, I'm", []],
+            [0, "ShowMessage_2", "totally helpless and out of my depth\" sort", []],
+            [0, "ShowMessage_2", "of way.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Um... thanks. I think.", []],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "I'm going to give you a chance to redeem", []],
+            [0, "ShowMessage_2", "yourself from your typical insensitivity. You", []],
+            [0, "ShowMessage_2", "owe me a dance tonight at the celebration.", []],
+            [0, "ShowMessage", "TALAN", []],
+            [0, "ShowMessage_2", "Uh, OK, Emily. A dance. Yeah.", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "Oh, and Talan - wear something nice?", []],
+            [0, "ShowMessage_2", "<laugh>", []],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 2, 34, 8, 65, 66, 76, 68, 97, 108, 105, 97, 3]],
+            [0, "Wait", "", [15]],
+            [0, "MoveEvent", "", [6, 8, 0, 0, 12, 0]],
+            [0, "Wait", "", [10]],
+            [0, "MessageOptions", "", [0, 2, 0, 0]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "He seems like such an honest person.", []],
+            [0, "ShowMessage_2", "I really should tell him the truth about the", []],
+            [0, "ShowMessage_2", "whole cliff thing...", []],
+            [0, "Wait", "", [20]],
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "Tonight. Sure.", []],
+            [0, "Wait", "", [10]],
+            [0, "ChangePartyMembers", "", [1, 0, 14]],
+            [0, "ChangePartyMembers", "", [0, 0, 10]],
+            [0, "Teleport", "", [108, 35, 22]],
+            [0, "MoveEvent", "", [10001, 8, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]],
+            [0, "Wait", "", [20]],
+            [0, "Teleport", "", [114, 12, 9]],
+            [0, "ChangePartyMembers", "", [1, 0, 10]],
+            [0, "ChangePartyMembers", "", [0, 0, 14]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "EmilyMonth2Actor",
+      "at": [13, 6],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 427,
+            "switch_b": 388
+          },
+          "sprite": {
+            "charset": "emily",
+            "index": 4,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "EMILY", []],
+            [0, "ShowMessage_2", "Good morning, Talan. Tell Sewell I'll be", []],
+            [0, "ShowMessage_2", "at rehearsal in a minute - I'm just reviewing", []],
+            [0, "ShowMessage_2", "my notes for Lady Beth.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "EV0009",
+      "at": [13, 7],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 427,
+            "switch_b": 388
+          },
+          "tile": 122,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "EMILY'S NOTES", []],
+            [0, "ShowMessage_2", "Lady Beth is always right. Anything she says", []],
+            [0, "ShowMessage_2", "is the law, and if it's not, she takes steps to", []],
+            [0, "ShowMessage_2", "make it that way. Her gaze is evil!!!!", []],
+            [0, "ShowMessage", "SCRIBBLE IN THE MARGIN", []],
+            [0, "ShowMessage_2", "      just like Emily! ;)", []],
+            [0, "ShowMessage", "EMILY'S NOTES", []],
+            [0, "ShowMessage_2", "Stop writing in my notes, Talan!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "EV0010",
+      "at": [11, 6],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 427,
+            "switch_b": 388
+          },
+          "tile": 122,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "EMILY'S NOTES", []],
+            [0, "ShowMessage_2", "Lady Beth killed her first husband by", []],
+            [0, "ShowMessage_2", "pushing him down the stairs, but no", []],
+            [0, "ShowMessage_2", "one knows about it. Actually, she isn't", []],
+            [0, "ShowMessage", "EMILY'S NOTES", []],
+            [0, "ShowMessage_2", "even a suspect in his murder. Everyone", []],
+            [0, "ShowMessage_2", "just thinks he tripped and fell on his own", []],
+            [0, "ShowMessage_2", "knife.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "EV0011",
+      "at": [15, 5],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 427,
+            "switch_b": 388
+          },
+          "tile": 122,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ShowMessage", "EMILY'S NOTES", []],
+            [0, "ShowMessage_2", "Lady Beth doesn't like servants, and never", []],
+            [0, "ShowMessage_2", "will. She pretends they don't exist. She", []],
+            [0, "ShowMessage_2", "doesn't take cheek from anyone.", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "EV0012",
+      "at": [16, 8],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "EV0013",
+      "at": [17, 8],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "name": "EV0014",
+      "at": [18, 8],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "name": "EV0015",
+      "at": [19, 0],
+      "pages": [
+        {
+          "conditions": {
+            "switch_a": 811
+          },
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "ShowMessage", "RADIN", []],
+            [0, "ShowMessage_2", "I can't find ingredients here.", []],
+            [0, "ControlSwitches", "", [0, 811, 811, 1]]
+          ]
+        }
+      ]
+    }
+  ]
+}

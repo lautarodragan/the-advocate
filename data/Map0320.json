@@ -1,0 +1,41 @@
+{
+  "id": 320,
+  "name": "PortableConsole Test",
+  "size": [20, 15],
+  "chipset": [1, "Basis"],
+  "tiles": "Map0320.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [12, 11],
+      "pages": [
+        {
+          "tile": 6,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ChangeItems", "", [0, 0, 81, 0, 1]],
+            [0, "ShowMessage", "Acquired PORTABLE CONSOLE!", []]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [4, 8],
+      "pages": [
+        {
+          "tile": 1,
+          "layer": "same",
+          "trigger": "action",
+          "script": [
+            [0, "ChangeItems", "", [0, 0, 340, 0, 1]],
+            [0, "ChangeItems", "", [0, 0, 341, 0, 1]]
+          ]
+        }
+      ]
+    }
+  ]
+}

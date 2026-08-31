@@ -1,0 +1,109 @@
+{
+  "id": 176,
+  "name": "Overlook",
+  "size": [20, 15],
+  "chipset": [22, "Minechips"],
+  "tiles": "Map0176.tiles",
+  "parallax": {
+    "name": "Night1",
+    "loop_x": false,
+    "loop_y": false,
+    "scroll_x": 0,
+    "scroll_y": 0
+  },
+  "events": [
+    {
+      "id": 1,
+      "name": "EV0001",
+      "at": [11, 11],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara2",
+            "index": 3,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "EV0002",
+      "at": [16, 9],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara1",
+            "index": 7,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "EV0004",
+      "at": [10, 11],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara4",
+            "index": 6,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "EV0005",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "MessageOptions", "", [0, 0, 0, 0]],
+            [0, "ShowMessage", "PIERSON", []],
+            [0, "ShowMessage_2", "Coming around  one of the tallest peaks, we", []],
+            [0, "ShowMessage_2", "beheld an amazing sight: far below us, in the", []],
+            [0, "ShowMessage_2", "valley, were buildings.", []],
+            [0, "ShowMessage", "PIERSON", []],
+            [0, "ShowMessage_2", "My thought was that we had drifted too far", []],
+            [0, "ShowMessage_2", "south in our journey through the mountains,", []],
+            [0, "ShowMessage_2", "and had ended up in Surl, but...", []],
+            [0, "Wait", "", [10]],
+            [0, "Teleport", "", [177, 2, 3]]
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "Pierson",
+      "at": [8, 12],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "People1",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    }
+  ]
+}

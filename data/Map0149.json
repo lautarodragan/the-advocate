@@ -1,0 +1,143 @@
+{
+  "id": 149,
+  "name": "DefendersOffDuty",
+  "size": [20, 15],
+  "chipset": [23, "PS4Chipset"],
+  "tiles": "Map0149.tiles",
+  "events": [
+    {
+      "id": 1,
+      "name": "StorageDefender",
+      "at": [4, 8],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara1",
+            "index": 2,
+            "direction": "down",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Defender2",
+      "at": [7, 8],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara1",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Defender3",
+      "at": [7, 10],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara1",
+            "index": 2,
+            "direction": "left",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Defender4",
+      "at": [2, 9],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara1",
+            "index": 2,
+            "direction": "right",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Defender5",
+      "at": [4, 12],
+      "pages": [
+        {
+          "sprite": {
+            "charset": "Chara1",
+            "index": 2,
+            "direction": "up",
+            "pattern": "middle"
+          },
+          "layer": "same",
+          "trigger": "action"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "EV0006",
+      "at": [0, 0],
+      "pages": [
+        {
+          "tile": 0,
+          "layer": "below",
+          "trigger": "auto_start",
+          "script": [
+            [0, "TintScreen", "", [30, 30, 80, 100, 5, 1]],
+            [0, "ShowMessage", "DEFENDER", []],
+            [0, "ShowMessage_2", "You know, sometimes I wish I hadn't", []],
+            [0, "ShowMessage_2", "chosen to be a Defender. We always", []],
+            [0, "ShowMessage_2", "miss out on all the good activities.", []],
+            [0, "ShowMessage", "DEFENDERS", []],
+            [0, "ShowMessage_2", "Yeah... that's the truth.", []],
+            [0, "Wait", "", [10]],
+            [0, "ShowMessage", "DEFENDER", []],
+            [0, "ShowMessage_2", "Aren't you guys supposed to be guarding", []],
+            [0, "ShowMessage_2", "the tunnel? I hate that shift.", []],
+            [0, "ShowMessage", "DEFENDERS", []],
+            [0, "ShowMessage_2", "Yeah. We just play cards, usually. We", []],
+            [0, "ShowMessage_2", "should probably head back soon.", []],
+            [0, "Wait", "", [15]],
+            [0, "PlaySound", "Explosion2", [100, 50, 0]],
+            [0, "ShakeScreen", "", [7, 7, 7, 0]],
+            [0, "MoveEvent", "", [1, 8, 0, 0, 24, 25]],
+            [0, "MoveEvent", "", [2, 8, 0, 0, 24, 25]],
+            [0, "MoveEvent", "", [3, 8, 0, 0, 24, 25]],
+            [0, "MoveEvent", "", [4, 8, 0, 0, 24, 25]],
+            [0, "MoveEvent", "", [5, 8, 0, 0, 24, 25]],
+            [0, "Wait", "", [5]],
+            [0, "ShowMessage", "DEFENDERS", []],
+            [0, "ShowMessage_2", "What was that?!", []],
+            [0, "TintScreen", "", [0, 0, 0, 100, 7, 1]],
+            [0, "ConditionalBranch", "", [0, 388, 0, 0, 0, 1]],
+            [1, "MoveEvent", "", [10001, 8, 0, 0, 14]],
+            [1, "ChangePartyMembers", "", [1, 0, 10]],
+            [1, "ChangePartyMembers", "", [0, 0, 14]],
+            [1, "Teleport", "", [145, 18, 16]],
+            [1, "END", "", []],
+            [0, "ElseBranch", "", []],
+            [1, "END", "", []],
+            [0, "EndBranch", "", []]
+          ]
+        }
+      ]
+    }
+  ]
+}
