@@ -61,8 +61,17 @@ md map_id="127":
   just md-shot U tope "Right Down" 6
   just md-compare U tope "max max"
 
-# La ROM en una ventana de verdad, para moverla con el teclado. Necesita X y un
-# `xhost +local:` antes.
-md-play:
-  podman run --rm -e DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix \
-      --mount=type=bind,src=.,dst=/abl abl-md blastem -r E /abl/md/build/abl.bin
+# La ROM en una ventana de verdad, para moverla con las flechas. Necesita un
+# `xhost +local:` antes; en Wayland sale por XWayland.
+#
+# SDL_AUDIODRIVER=dummy porque el contenedor no tiene tarjeta de sonido y
+# blastem aborta si no puede abrir audio. -g apaga OpenGL: sin /dev/dri adentro
+# no hay driver, y para 320x240 el render por software sobra. Si querés GL,
+# agregale --device /dev/dri y sacale el -g.
+md-play region="E":
+  podman run --rm \
+      -e DISPLAY \
+      -e SDL_AUDIODRIVER=dummy \
+      -v /tmp/.X11-unix:/tmp/.X11-unix \
+      --mount=type=bind,src=.,dst=/abl \
+      abl-md blastem -g -r {{region}} /abl/md/build/abl.bin

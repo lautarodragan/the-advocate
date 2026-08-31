@@ -131,6 +131,7 @@ Por ahora es de ida nomás: `data/` se genera desde los `.lmu`, no al revés.
     just md            # convierte, compila, emula y compara
     just md 7          # otro mapa
     just md-play       # la ROM en una ventana, para moverla con las flechas
+                       # (necesita un `xhost +local:` antes)
 
 Sale una ROM que muestra el mapa en el VDP y deja mover la cámara con la
 cruceta, más los screenshots del emulador y los `md/shots/comparacion-*.png`
