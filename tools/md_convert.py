@@ -29,6 +29,13 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import lcf
 from render_map import GAME_DIR, REPO, RTP_DIR, Renderer
 
+# El plano del VDP admite como máximo 64x64 celdas de 8x8, o sea 32x32 tiles de
+# RM2k. Un mapa más grande necesita ir redibujando filas y columnas a medida que
+# se scrollea, que es otro problema.
+PLANE_CELLS = 64
+# Los tiles viven entre 0x0000 y 0x7FFF de la VRAM, a 32 bytes cada uno.
+MAX_TILES = 1024
+
 PALETTES = 4
 COLORS_PER_PALETTE = 16
 USABLE_COLORS = COLORS_PER_PALETTE - 1   # el 0 es transparente
@@ -150,6 +157,12 @@ def pack_tile(indices):
     return bytes(data)
 
 
+# El índice 0 de cada paleta es transparente y ningún tile lo usa, así que ahí
+# va el color de fondo. Magenta, que no aparece en ningún mapa: si se ve dentro
+# de la pantalla, algún tile está usando el índice 0 y hay un bug.
+BACKDROP = 0x0E0E
+
+
 def cram_word(color):
     """Palabra de CRAM: 0000 BBB0 GGG0 RRR0."""
     red, green, blue = color
@@ -195,12 +208,13 @@ def convert(image):
     cram = []
     for i in range(PALETTES):
         colors = palettes[i] if i < len(palettes) else []
-        cram.append([0] + [cram_word(c) for c in colors]
+        cram.append([BACKDROP] + [cram_word(c) for c in colors]
                     + [0] * (COLORS_PER_PALETTE - 1 - len(colors)))
 
     lost = sum(pixels for _, _, pixels in merged)
     total = sum(counts.values())
-    stats = {"merged": merged, "lost": lost, "total": total}
+    stats = {"merged": merged, "lost": lost, "total": total,
+             "palettes": [len(p) for p in palettes]}
     return tile_data, cram, tilemap, len(grid[0]), len(grid), stats
 
 
@@ -263,13 +277,23 @@ def main():
         sys.exit("Falta el chipset del mapa %d" % args.map_id)
 
     tile_data, cram, tilemap, width, height, stats = convert(image)
+    palette_sizes = stats["palettes"]
     name = renderer.tree.map_names.get(args.map_id, "Map%04d" % args.map_id)
+
+    if width > PLANE_CELLS or height > PLANE_CELLS:
+        sys.exit("El mapa mide %dx%d celdas y el plano del VDP llega a %dx%d. "
+                 "Para uno más grande hay que redibujar el plano al scrollear."
+                 % (width, height, PLANE_CELLS, PLANE_CELLS))
+    if len(tile_data) > MAX_TILES:
+        sys.exit("%d tiles distintos: no entran en los %d que hay de VRAM."
+                 % (len(tile_data), MAX_TILES))
     emit(args.output, name, tile_data, cram, tilemap, width, height)
 
     print("Mapa %d %r: %dx%d celdas de 8x8" % (args.map_id, name, width, height))
-    print("  %d tiles distintos de %d (%.0f%% de la VRAM de tiles)"
-          % (len(tile_data), width * height, 100.0 * len(tile_data) / 2048))
-    print("  paletas: %s colores" % [sum(1 for c in p[1:] if c) for p in cram])
+    print("  %dx%d px, %d tiles distintos de %d (%.0f%% de la VRAM de tiles)"
+          % (width * CELL, height * CELL, len(tile_data), width * height,
+             100.0 * len(tile_data) / MAX_TILES))
+    print("  paletas: %s colores de %d" % (palette_sizes, USABLE_COLORS))
     print("  colores fusionados: %d (%d px de %d, %.3f%%)"
           % (len(stats["merged"]), stats["lost"], stats["total"],
              100.0 * stats["lost"] / stats["total"]))

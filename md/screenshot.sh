@@ -7,10 +7,13 @@
 # pantalla, xdotool para apretarle la tecla, y listo.
 set -euo pipefail
 
-rom=${1:?uso: screenshot.sh ROM SALIDA.png [segundos]}
-out=${2:?uso: screenshot.sh ROM SALIDA.png [segundos]}
+usage="uso: screenshot.sh ROM SALIDA.png [warmup] [region] [teclas] [segundos]"
+rom=${1:?$usage}
+out=${2:?$usage}
 warmup=${3:-3}
 region=${4:-E}   # E = Europa/PAL: 240 renglones, que es lo que mide el mapa
+keys=${5:-}      # teclas a mantener apretadas antes de capturar (las flechas
+hold=${6:-4}     # son la cruceta del control 1 en blastem)
 
 mkdir -p "$HOME/.config/blastem" /shots
 sed -e 's|^\(\s*\)screenshot_path .*|\1screenshot_path /shots|' \
@@ -43,6 +46,14 @@ fi
 # tecla por XTEST.
 win=$(xdotool search --sync --onlyvisible --class blastem | head -1)
 xdotool windowfocus --sync "$win"
+
+if [ -n "$keys" ]; then
+    for key in $keys; do xdotool keydown --clearmodifiers "$key"; done
+    sleep "$hold"
+    for key in $keys; do xdotool keyup --clearmodifiers "$key"; done
+    sleep 0.5
+fi
+
 xdotool key --clearmodifiers p
 for _ in $(seq 50); do [ -s /shots/shot.png ] && break; sleep 0.1; done
 

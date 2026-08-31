@@ -87,12 +87,36 @@ def main():
     parser.add_argument("reference")
     parser.add_argument("original")
     parser.add_argument("-o", "--output", help="PNG lado a lado")
+    parser.add_argument("--camera", nargs=2, default=("0", "0"),
+                        metavar=("X", "Y"),
+                        help="dónde debería estar la cámara, en píxeles. "
+                             "'max' = contra el tope del mapa, que es donde la "
+                             "deja el clamp si se mantiene la cruceta apretada")
     args = parser.parse_args()
 
     shot, box = crop_active(Image.open(args.screenshot))
     reference = Image.open(args.reference).convert("RGB")
     original = Image.open(args.original).convert("RGB")
     print("Área activa del screenshot: %dx%d en %s" % (shot.width, shot.height, box))
+
+    # La pantalla es una ventana del mapa: se recorta donde debería estar la
+    # cámara y se compara contra eso.
+    # 'max' es la posición contra la que topa la cámara: el mapa menos la
+    # pantalla. Depende de la región, porque en NTSC se ven 16 renglones menos.
+    cam_x = (reference.width - shot.width if args.camera[0] == "max"
+             else int(args.camera[0]))
+    cam_y = (reference.height - shot.height if args.camera[1] == "max"
+             else int(args.camera[1]))
+    if (cam_x, cam_y) != (0, 0) or reference.size != shot.size:
+        window = (cam_x, cam_y, cam_x + shot.width, cam_y + shot.height)
+        if window[2] > reference.width or window[3] > reference.height:
+            print("La ventana %s se sale del mapa de %dx%d"
+                  % (window, reference.width, reference.height))
+            return 1
+        print("Cámara en (%d, %d): se compara la ventana %s del mapa"
+              % (cam_x, cam_y, window))
+        reference = reference.crop(window)
+        original = original.crop(window)
 
     if shot.width != reference.width:
         print("El ancho del área activa no coincide: %d vs %d"

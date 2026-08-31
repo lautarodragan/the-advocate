@@ -129,9 +129,17 @@ Por ahora es de ida nomás: `data/` se genera desde los `.lmu`, no al revés.
 
     just md-image      # una sola vez: arma el contenedor con el toolchain
     just md            # convierte, compila, emula y compara
+    just md 7          # otro mapa
+    just md-play       # la ROM en una ventana, para moverla con las flechas
 
-Sale una ROM que muestra Map0007 en el VDP, un screenshot del emulador y un
-`md/shots/comparacion.png` con el render de Python al lado.
+Sale una ROM que muestra el mapa en el VDP y deja mover la cámara con la
+cruceta, más los screenshots del emulador y los `md/shots/comparacion-*.png`
+con el render de Python al lado.
+
+La cámara es un par `x,y` en píxeles que los botones suben y bajan, con un
+clamp contra los bordes del mapa, y que va directo a los registros de scroll:
+el horizontal a la tabla de hscroll en VRAM y el vertical a VSRAM. Se escriben
+en vblank para que no se parta la imagen.
 
     md/Containerfile     el cross-compiler de m68k y blastem, aislados
     md/screenshot.sh     corre la ROM sin pantalla y captura el framebuffer
@@ -143,6 +151,18 @@ Sale una ROM que muestra Map0007 en el VDP, un screenshot del emulador y un
 **Nada se instala en el sistema.** El cross-compiler y el emulador viven en un
 contenedor con la imagen base pinneada por digest. `md/src/mapdata.c` es
 generado y no está en git.
+
+### Qué mapas entran
+
+El plano del VDP admite como máximo **64x64 celdas de 8x8**, o sea 32x32 tiles
+de RM2k: un mapa de 480x480 píxeles. El default es el 127, "ParadiseFarmland",
+que es justo de ese tamaño y scrollea 160 píxeles a lo ancho y 240 a lo alto.
+
+Para algo más grande —Lashe City es 75x75— hay que ir redibujando la fila o la
+columna del plano que entra en pantalla a medida que se scrollea. Eso todavía
+no está; el conversor avisa si el mapa no entra en vez de generar algo roto.
+Los tiles no son el problema: 146 distintos para las 3600 celdas del 127, un
+14% de la VRAM.
 
 ### Las tres restricciones del hardware
 
@@ -198,11 +218,18 @@ El costo real de la conversión se mide aparte, entre la referencia y el render
 de Python: error promedio de 13.5/255 (la cuantización a 9 bits) y sólo 21
 píxeles de 76800 con error mayor a 32 (los colores fusionados).
 
-Para recortar el área activa, la ROM pinta el fondo de magenta, un color que
-ningún tile usa. El framebuffer que guarda blastem incluye el overscan, y el
-hueco que dejan las bandas magenta es exactamente la pantalla de 320x240. De
-paso sirve de canario: si aparece magenta adentro de la imagen, algún tile está
-usando el índice 0 y hay un bug.
+El scroll se verifica mandándole teclas al emulador con xdotool: se mantiene la
+cruceta apretada el tiempo suficiente para que la cámara tope contra el borde,
+que es una posición determinista, y se compara contra esa ventana del mapa. Se
+prueban las dos regiones, que topan distinto porque NTSC muestra 16 renglones
+menos.
+
+Para recortar el área activa, el conversor pone magenta en el **índice 0 de las
+cuatro paletas**, que es el color transparente y que ningún tile usa, y la ROM
+lo elige como color de fondo. El framebuffer que guarda blastem incluye el
+overscan, y el hueco que dejan las bandas magenta es exactamente la pantalla.
+De paso sirve de canario: si aparece magenta adentro de la imagen, algún tile
+está usando el índice 0 y hay un bug.
 
 ### El RTP
 
