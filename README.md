@@ -153,17 +153,28 @@ en vblank para que no se parta la imagen.
 contenedor con la imagen base pinneada por digest. `md/src/mapdata.c` es
 generado y no está en git.
 
-### Qué mapas entran
+### El plano como ventana móvil
 
-El plano del VDP admite como máximo **64x64 celdas de 8x8**, o sea 32x32 tiles
-de RM2k: un mapa de 480x480 píxeles. El default es el 127, "ParadiseFarmland",
-que es justo de ese tamaño y scrollea 160 píxeles a lo ancho y 240 a lo alto.
+El plano del VDP mide **64x64 celdas de 8x8** y se repite cada 512 píxeles, así
+que un mapa grande no entra de una: Lashe City son 1200x1200. Lo que se hace es
+tenerlo poblado sólo alrededor de la cámara —41 columnas por 31 filas, una más
+que lo visible en cada eje por el scroll sub-celda— y redibujar la columna o la
+fila que va entrando a medida que la cámara se mueve.
 
-Para algo más grande —Lashe City es 75x75— hay que ir redibujando la fila o la
-columna del plano que entra en pantalla a medida que se scrollea. Eso todavía
-no está; el conversor avisa si el mapa no entra en vez de generar algo roto.
-Los tiles no son el problema: 146 distintos para las 3600 celdas del 127, un
-14% de la VRAM.
+El plano se comporta como un anillo: la celda del mapa `(x, y)` siempre cae en
+la posición `(x mod 64, y mod 64)`, y el registro de scroll se encarga del
+resto — no hay que corregir nada, `-cam_x` y `cam_y` alcanzan. Redibujar una
+columna son 31 escrituras y una fila 41, que entran de sobra en el vblank.
+
+Para escribir una columna de corrido se le pone al VDP el **autoincremento en
+una fila entera del plano** (128 bytes) en vez de reposicionarlo celda por
+celda. Las tiras se parten en dos cuando cruzan el borde del plano, que es
+donde el anillo da la vuelta.
+
+Lo único que sigue acotado es la VRAM de tiles: 1024. No es problema, porque
+los mapas de RM2k repiten muchísimo — Lashe City son 363 tiles distintos para
+22500 celdas, y el mapa de la persecución, de 8000x640 píxeles, son 173 para
+80000 celdas.
 
 ### Las tres restricciones del hardware
 
@@ -224,7 +235,10 @@ El scroll se verifica mandándole teclas al emulador con xdotool: se mantiene la
 cruceta apretada el tiempo suficiente para que la cámara tope contra el borde,
 que es una posición determinista, y se compara contra esa ventana del mapa. Se
 prueban las dos regiones, que topan distinto porque NTSC muestra 16 renglones
-menos.
+menos, y además un viaje de ida y vuelta al origen, que ejercita el streaming
+en los dos sentidos. En Lashe City eso son cinco chequeos y todos dan idéntico;
+el mapa de la persecución cruza 7680 píxeles, quince vueltas enteras del plano,
+y aterriza exacto.
 
 Para recortar el área activa, el conversor pone magenta en el **índice 0 de las
 cuatro paletas**, que es el color transparente y que ningún tile usa, y la ROM

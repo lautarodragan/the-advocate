@@ -29,11 +29,9 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import lcf
 from render_map import GAME_DIR, REPO, RTP_DIR, Renderer
 
-# El plano del VDP admite como máximo 64x64 celdas de 8x8, o sea 32x32 tiles de
-# RM2k. Un mapa más grande necesita ir redibujando filas y columnas a medida que
-# se scrollea, que es otro problema.
-PLANE_CELLS = 64
-# Los tiles viven entre 0x0000 y 0x7FFF de la VRAM, a 32 bytes cada uno.
+# Los tiles viven entre 0x0000 y 0x7FFF de la VRAM, a 32 bytes cada uno. El
+# tamaño del mapa no está acotado: la ROM va redibujando las filas y columnas
+# del plano a medida que la cámara se mueve.
 MAX_TILES = 1024
 
 PALETTES = 4
@@ -100,25 +98,30 @@ def luma_distance(a, b):
 def reduce_colors(grid):
     """Fusiona colores hasta que los tiles entren en las 4 paletas del VDP.
 
-    Map0007 usa 32 colores de 9 bits y necesitaría 6 paletas, porque el límite
-    real no es la cantidad de colores sino cómo se reparten entre los tiles.
-    La cola de la distribución son colores de uno o dos píxeles: fusionar el
-    menos usado con su vecino más cercano, y repetir, cuesta casi nada.
+    El límite real no es la cantidad de colores sino cómo se reparten: un tile
+    con 14 colores obliga a que esos 14 estén en la misma paleta. La cola de la
+    distribución suele ser colores de uno o dos píxeles, así que fusionar el
+    menos usado con su vecino más cercano y reintentar cuesta muy poco.
+
+    El trabajo se hace sobre los tiles únicos, que son unos cientos, y no sobre
+    las celdas del mapa, que en Lashe City son 22500.
     """
     counts = collections.Counter(p for row in grid for tile in row
                                  for line in tile for p in line)
     mapping = {c: c for c in counts}
     merged = []
+    unique = {tile for row in grid for tile in row}
 
     while True:
-        remapped = [[tuple(tuple(mapping[p] for p in line) for line in tile)
-                     for tile in row] for row in grid]
-        _, sets = color_sets(remapped)
+        remap = {tile: tuple(tuple(mapping[p] for p in line) for line in tile)
+                 for tile in unique}
+        sets = {frozenset(p for line in t for p in line) for t in remap.values()}
         groups = try_pack(sets)
         if groups is not None:
-            return remapped, groups, merged, counts
+            return ([[remap[tile] for tile in row] for row in grid],
+                    groups, merged, counts)
 
-        alive = {mapping[c] for c in mapping}
+        alive = set(mapping.values())
         if len(alive) <= 1:
             sys.exit("No se pudo reducir la paleta lo suficiente.")
 
@@ -280,10 +283,6 @@ def main():
     palette_sizes = stats["palettes"]
     name = renderer.tree.map_names.get(args.map_id, "Map%04d" % args.map_id)
 
-    if width > PLANE_CELLS or height > PLANE_CELLS:
-        sys.exit("El mapa mide %dx%d celdas y el plano del VDP llega a %dx%d. "
-                 "Para uno más grande hay que redibujar el plano al scrollear."
-                 % (width, height, PLANE_CELLS, PLANE_CELLS))
     if len(tile_data) > MAX_TILES:
         sys.exit("%d tiles distintos: no entran en los %d que hay de VRAM."
                  % (len(tile_data), MAX_TILES))

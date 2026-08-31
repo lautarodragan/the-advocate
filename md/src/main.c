@@ -6,9 +6,13 @@
  * píxeles que los botones suben y bajan, y que se traduce directo a los
  * registros de scroll del VDP.
  *
- * El mapa entero entra en el plano A, que mide 64x64 celdas de 8x8 (512x512
- * píxeles). Un mapa más grande que eso necesita ir redibujando filas y
- * columnas del plano a medida que se scrollea; el conversor avisa si no entra.
+ * El plano A mide 64x64 celdas de 8x8 y se repite cada 512 píxeles, así que un
+ * mapa más grande no entra de una. Lo que se hace es tenerlo poblado sólo
+ * alrededor de la cámara —41 columnas por 31 filas, una más que lo visible en
+ * cada eje por el scroll sub-celda— y redibujar la columna o la fila que va
+ * entrando a medida que la cámara se mueve. El plano se comporta como un
+ * anillo: la celda del mapa (x, y) siempre cae en la posición (x mod 64,
+ * y mod 64), y el registro de scroll se encarga del resto.
  *
  * El modo de video se elige según la consola: V30 (240 renglones) sólo funciona
  * a 50 Hz, así que en NTSC se usan los 224 de siempre y se ve un poco menos.
@@ -44,11 +48,17 @@ typedef signed short   s16;
 #define PLANE_CELLS_W 64
 #define PLANE_CELLS_H 64
 
+/* Una columna y una fila más de lo que se ve, porque la cámara se mueve de a
+ * píxeles y casi siempre hay media celda asomando de cada lado. En NTSC se ven
+ * dos filas menos y sobran, que no molesta. */
+#define VIEW_W       41
+#define VIEW_H       31
+
 #define SCREEN_W     320
 #define WORLD_W      (MAP_CELLS_W * 8)
 #define WORLD_H      (MAP_CELLS_H * 8)
 
-#define CAMERA_SPEED 2          /* píxeles por cuadro */
+#define CAMERA_SPEED 4          /* píxeles por cuadro */
 
 #define BTN_UP    0x01
 #define BTN_DOWN  0x02
@@ -117,13 +127,102 @@ static void load_tiles(void)
         VDP_DATA_L = md_tiles[i];
 }
 
-static void load_tilemap(void)
+/* --- el plano como ventana móvil sobre el mapa -----------------------------
+ * top_x, top_y son las coordenadas, en celdas del mapa, de la esquina de
+ * arriba a la izquierda de lo que está poblado en el plano.
+ */
+static s16 top_x;
+static s16 top_y;
+
+static u16 cell_at(s16 x, s16 y)
 {
-    u16 x, y;
-    for (y = 0; y < MAP_CELLS_H; y++) {
-        vdp_addr(VRAM_WRITE, (u16)(PLANE_A + y * PLANE_CELLS_W * 2));
-        for (x = 0; x < MAP_CELLS_W; x++)
-            VDP_DATA_W = md_tilemap[y * MAP_CELLS_W + x];
+    if (x < 0 || y < 0 || x >= MAP_CELLS_W || y >= MAP_CELLS_H)
+        return 0;               /* fuera del mapa: celda en blanco */
+    return md_tilemap[(u32)y * MAP_CELLS_W + (u32)x];
+}
+
+static u16 plane_addr(u16 col, u16 row)
+{
+    return (u16)(PLANE_A + row * (PLANE_CELLS_W * 2) + col * 2);
+}
+
+/* Las dos escriben una tira de celdas y la parten en dos cuando se pasa del
+ * borde del plano, que es donde el anillo da la vuelta. */
+
+static void draw_column(s16 map_x, s16 map_y)
+{
+    u16 col = (u16)map_x & (PLANE_CELLS_W - 1);
+    u16 row = (u16)map_y & (PLANE_CELLS_H - 1);
+    s16 left = VIEW_H;
+    s16 y = map_y;
+    s16 run, i;
+
+    /* Con el autoincremento en una fila entera del plano, una columna se
+     * escribe de corrido en vez de reposicionar el VDP en cada celda. */
+    vdp_reg(15, PLANE_CELLS_W * 2);
+    while (left > 0) {
+        run = (s16)(PLANE_CELLS_H - row);
+        if (run > left)
+            run = left;
+        vdp_addr(VRAM_WRITE, plane_addr(col, row));
+        for (i = 0; i < run; i++)
+            VDP_DATA_W = cell_at(map_x, (s16)(y + i));
+        left -= run;
+        y += run;
+        row = 0;
+    }
+    vdp_reg(15, 2);
+}
+
+static void draw_row(s16 map_y, s16 map_x)
+{
+    u16 col = (u16)map_x & (PLANE_CELLS_W - 1);
+    u16 row = (u16)map_y & (PLANE_CELLS_H - 1);
+    s16 left = VIEW_W;
+    s16 x = map_x;
+    s16 run, i;
+
+    while (left > 0) {
+        run = (s16)(PLANE_CELLS_W - col);
+        if (run > left)
+            run = left;
+        vdp_addr(VRAM_WRITE, plane_addr(col, row));
+        for (i = 0; i < run; i++)
+            VDP_DATA_W = cell_at((s16)(x + i), map_y);
+        left -= run;
+        x += run;
+        col = 0;
+    }
+}
+
+static void fill_plane(s16 x, s16 y)
+{
+    s16 i;
+    top_x = x;
+    top_y = y;
+    for (i = 0; i < VIEW_W; i++)
+        draw_column((s16)(x + i), y);
+}
+
+/* Mueve la ventana hasta donde la quiere la cámara, redibujando sólo lo que
+ * entra. Normalmente es una columna, una fila, o ninguna. */
+static void stream_to(s16 want_x, s16 want_y)
+{
+    while (top_x < want_x) {
+        draw_column((s16)(top_x + VIEW_W), top_y);
+        top_x++;
+    }
+    while (top_x > want_x) {
+        top_x--;
+        draw_column(top_x, top_y);
+    }
+    while (top_y < want_y) {
+        draw_row((s16)(top_y + VIEW_H), top_x);
+        top_y++;
+    }
+    while (top_y > want_y) {
+        top_y--;
+        draw_row(top_y, top_x);
     }
 }
 
@@ -183,7 +282,7 @@ int main(void)
     vram_clear();
     load_palette();
     load_tiles();
-    load_tilemap();
+    fill_plane(0, 0);
     set_scroll(cam_x, cam_y);
 
     PAD1_CTRL = 0x40;    /* TH como salida, el resto entradas */
@@ -194,6 +293,9 @@ int main(void)
 
     for (;;) {
         wait_vblank();
+        /* Primero se pone al día el plano y después se mueve el scroll, así no
+         * llega a verse una columna que todavía no se dibujó. */
+        stream_to((s16)(cam_x >> 3), (s16)(cam_y >> 3));
         set_scroll(cam_x, cam_y);
 
         pad = read_pad();

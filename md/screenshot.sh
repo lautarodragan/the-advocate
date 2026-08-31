@@ -12,8 +12,9 @@ rom=${1:?$usage}
 out=${2:?$usage}
 warmup=${3:-3}
 region=${4:-E}   # E = Europa/PAL: 240 renglones, que es lo que mide el mapa
-keys=${5:-}      # teclas a mantener apretadas antes de capturar (las flechas
-hold=${6:-4}     # son la cruceta del control 1 en blastem)
+keys=${5:-}      # teclas a mantener apretadas antes de capturar; las flechas
+hold=${6:-4}     # son la cruceta del control 1. Se pueden encadenar fases
+                 # separándolas con ";", p.ej. "Right Down;Left Up"
 
 mkdir -p "$HOME/.config/blastem" /shots
 sed -e 's|^\(\s*\)screenshot_path .*|\1screenshot_path /shots|' \
@@ -48,10 +49,13 @@ win=$(xdotool search --sync --onlyvisible --class blastem | head -1)
 xdotool windowfocus --sync "$win"
 
 if [ -n "$keys" ]; then
-    for key in $keys; do xdotool keydown --clearmodifiers "$key"; done
-    sleep "$hold"
-    for key in $keys; do xdotool keyup --clearmodifiers "$key"; done
-    sleep 0.5
+    while IFS= read -r phase; do
+        [ -z "$phase" ] && continue
+        for key in $phase; do xdotool keydown --clearmodifiers "$key"; done
+        sleep "$hold"
+        for key in $phase; do xdotool keyup --clearmodifiers "$key"; done
+        sleep 0.5
+    done <<< "${keys//;/$'\n'}"
 fi
 
 xdotool key --clearmodifiers p
