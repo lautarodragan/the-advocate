@@ -194,7 +194,8 @@ la ROM lee el bit 6 del registro de versión (`0xA10001`) al arrancar y elige el
 modo según la consola en la que está: en PAL entra el mapa entero, en NTSC se
 ven los primeros 224 renglones. `just md` verifica las dos regiones.
 
-Lo demás que hace falta para que ande en un cartucho de verdad:
+Probado en una consola de verdad con un EverDrive, además del emulador. Lo que
+hace falta para que ande ahí:
 
 * **TMSS.** Las consolas modelo 1 tardías y el modelo 2 no dejan tocar el VDP
   hasta que el cartucho escribe "SEGA" en `0xA14000`.
