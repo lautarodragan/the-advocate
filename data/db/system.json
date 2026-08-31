@@ -1,0 +1,118 @@
+{
+  "boat_name": "vehicle",
+  "ship_name": "vehicle",
+  "airship_name": "vehicle",
+  "ship_index": 1,
+  "airship_index": 7,
+  "title_name": "ABL20Title",
+  "gameover_name": "GameOver",
+  "system_name": "ablskin",
+  "party": [10],
+  "title_music": {
+    "name": "Fantasia_Of_The_Wind",
+    "volume": 90,
+    "tempo": 130
+  },
+  "battle_music": {
+    "name": "T_VGFighterMAX_Masako"
+  },
+  "battle_end_music": {
+    "name": "T_VGFighterMAX_Masako"
+  },
+  "inn_music": {
+    "name": "(OFF)"
+  },
+  "boat_music": {
+    "name": "Ride1"
+  },
+  "ship_music": {
+    "name": "Ride2"
+  },
+  "airship_music": {
+    "name": "Ride3"
+  },
+  "gameover_music": {
+    "name": "GameOver3"
+  },
+  "cursor_se": {
+    "name": "Cursor1",
+    "volume": 70
+  },
+  "decision_se": {
+    "name": "Key",
+    "volume": 70
+  },
+  "cancel_se": {
+    "name": "Cansel1",
+    "volume": 70
+  },
+  "buzzer_se": {
+    "name": "Fog1",
+    "volume": 70
+  },
+  "battle_se": {
+    "name": "(OFF)",
+    "volume": 70,
+    "tempo": 50
+  },
+  "escape_se": {
+    "name": "Escape",
+    "volume": 70
+  },
+  "enemy_attack_se": {
+    "name": "Attack2",
+    "volume": 70
+  },
+  "enemy_damaged_se": {
+    "name": "Damage1",
+    "volume": 70
+  },
+  "actor_damaged_se": {
+    "name": "Bite",
+    "volume": 70
+  },
+  "dodge_se": {
+    "name": "Evasion1",
+    "volume": 70
+  },
+  "enemy_death_se": {
+    "name": "Monster1",
+    "volume": 70
+  },
+  "item_se": {
+    "name": "Item2",
+    "volume": 70
+  },
+  "transition_out": 0,
+  "transition_in": 0,
+  "battle_start_fadeout": 16,
+  "battle_start_fadein": 17,
+  "battle_end_fadeout": 17,
+  "battle_end_fadein": 16,
+  "font_id": 1,
+  "selected_condition": 5,
+  "selected_hero": 1,
+  "battletest_background": "waste3",
+  "battletest_data": [
+    {
+      "id": 1,
+      "actor_id": 14,
+      "level": 3,
+      "weapon_id": 88,
+      "shield_id": 5832704,
+      "armor_id": 6553689,
+      "helmet_id": 100
+    },
+    {
+      "id": 2,
+      "actor_id": 26,
+      "level": 10,
+      "weapon_id": 15204552,
+      "shield_id": 17301736,
+      "armor_id": 17236232,
+      "helmet_id": 17170695,
+      "accessory_id": 262
+    }
+  ],
+  "save_count": 3234
+}

@@ -13,6 +13,8 @@ Encoding del archivo:
 
 import struct
 
+from lcf_schema import FLAGS, SCHEMA, SKIP
+
 
 class Reader:
     def __init__(self, data):
@@ -81,7 +83,21 @@ def to_bool(payload):
 
 
 def to_string(payload):
-    return payload.decode("cp1252", errors="replace")
+    """El texto del juego es cp1252, pero quedan restos del RTP japonés.
+
+    ABL se hizo con el RPG Maker 2000 de Don Miguel, así que casi todo es
+    cp1252; un par de mensajes que el autor nunca tocó siguen en Shift-JIS. Los
+    bytes que cp1252 no define (0x81, 0x8D, 0x8F, 0x90, 0x9D) son la señal para
+    reintentar: no aparecen en texto occidental y sí en Shift-JIS.
+    """
+    try:
+        return payload.decode("cp1252")
+    except UnicodeDecodeError:
+        pass
+    try:
+        return payload.decode("shift_jis")
+    except UnicodeDecodeError:
+        return payload.decode("cp1252", errors="replace")
 
 
 def to_u16_array(payload):
@@ -319,6 +335,125 @@ def _passability(payload, default):
     return payload + default[len(payload):]
 
 
+# --- Decodificador genérico, guiado por el esquema -------------------------
+#
+# Los formatos LCF son todos el mismo mecanismo: structs de chunks tipados. Con
+# el esquema que tools/gen_schema.py saca de liblcf se puede decodificar
+# cualquiera de los 63 structs sin escribir una clase por cada uno. Es lo que
+# usa el volcado de la base de datos, que tiene cientos de campos.
+
+MOVE_COMMANDS = {
+    32: "switch_on", 33: "switch_off", 34: "change_graphic", 35: "play_sound_effect",
+}
+
+
+def read_move_commands(payload):
+    """Las órdenes de una ruta de movimiento. Casi todas son sólo un código."""
+    reader = Reader(payload)
+    commands = []
+    while not reader.eof():
+        code = reader.read_int()
+        command = {"command": MOVE_COMMANDS.get(code, code)}
+        if code in (32, 33):                       # switch_on / switch_off
+            command["switch"] = reader.read_int()
+        elif code == 34:                           # change_graphic
+            command["charset"] = reader.read_string(reader.read_int())
+            command["index"] = reader.read_int()
+        elif code == 35:                           # play_sound_effect
+            command["sound"] = reader.read_string(reader.read_int())
+            command["volume"] = reader.read_int()
+            command["tempo"] = reader.read_int()
+            command["balance"] = reader.read_int()
+        commands.append(command)
+    return commands
+
+
+def _unpack(fmt, payload, size):
+    return list(struct.unpack("<%d%s" % (len(payload) // size, fmt), payload))
+
+
+def decode_value(payload, kind, unknown):
+    """Un chunk, según el tipo que le da el esquema."""
+    if kind == "int":
+        return to_int(payload)
+    if kind == "bool":
+        return to_int(payload) > 0
+    if kind == "string":
+        return to_string(payload)
+    if kind == "u8":
+        return payload[0] if payload else 0
+    if kind == "i8":
+        return struct.unpack("<b", payload[:1])[0] if payload else 0
+    if kind == "u32":
+        return struct.unpack("<I", payload)[0]
+    if kind == "double":
+        return struct.unpack("<d", payload)[0]
+    if kind == "bits":
+        return [bool(b) for b in payload]
+    if kind == "u8array":
+        return list(payload)
+    if kind == "i16array":
+        return to_i16_array(payload)
+    if kind == "i32array":
+        return _unpack("i", payload, 4)
+    if kind == "u32array":
+        return _unpack("I", payload, 4)
+    if kind == "rect":
+        return dict(zip(("l", "t", "r", "b"), _unpack("I", payload, 4)))
+    if kind == "equipment":
+        return dict(zip(("weapon", "shield", "armor", "helmet", "accessory"),
+                        to_i16_array(payload)))
+    if kind == "parameters":
+        # Seis curvas de estadística por nivel, una atrás de la otra.
+        levels = len(payload) // 12
+        values = to_i16_array(payload)
+        names = ("maxhp", "maxsp", "attack", "defense", "spirit", "agility")
+        return {n: values[i * levels:(i + 1) * levels] for i, n in enumerate(names)}
+    if kind == "commands":
+        return [{"indent": c.indent, "code": c.code,
+                 "string": c.string, "parameters": c.parameters}
+                for c in read_commands(payload)]
+    if kind == "movecommands":
+        return read_move_commands(payload)
+    if kind.startswith("flags:"):
+        # Sólo los bits prendidos. Listar los ocho con su false no agrega nada
+        # y llena el JSON de ruido: qué flags existen es cosa del esquema.
+        names = FLAGS.get(kind[6:], [])
+        return [n for i, n in enumerate(names)
+                if i // 8 < len(payload) and payload[i // 8] & (1 << (i % 8))]
+    if kind.startswith("struct:"):
+        return decode_struct(Reader(payload).read_struct(), kind[7:], unknown)
+    if kind.startswith("array:"):
+        return {i: decode_struct(f, kind[6:], unknown)
+                for i, f in Reader(payload).read_struct_array().items()}
+
+    unknown.add(kind)
+    return payload.hex()
+
+
+def decode_struct(fields, struct_name, unknown=None):
+    """Un struct entero como dict, con los nombres de campo de liblcf."""
+    if unknown is None:
+        unknown = set()
+    schema = SCHEMA.get(struct_name, {})
+    skip = SKIP.get(struct_name, ())
+
+    result = {}
+    for chunk_id, payload in fields.items():
+        if chunk_id in skip:
+            continue
+        entry = schema.get(chunk_id)
+        if entry is None:
+            # Nada se pierde en silencio: los chunks que el esquema no conoce
+            # quedan en hexa, con su ID a la vista.
+            unknown.add("%s:0x%02X" % (struct_name, chunk_id))
+            result["unknown_0x%02X" % chunk_id] = payload.hex()
+            continue
+        name, kind = entry
+        result[name] = decode_value(payload, kind, unknown)
+    return result
+
+
 class Chipset:
     def __init__(self, fields):
         self.name = to_string(fields.get(CHIPSET_NAME, b""))
@@ -339,12 +474,13 @@ class Database:
         if header != "LcfDataBase":
             raise ValueError("%s no es una base LCF (header %r)" % (path, header))
 
-        self.chipsets = {}
-        for chunk_id, payload in reader.chunks():
-            if chunk_id == DB_CHIPSETS:
-                self.chipsets = {i: Chipset(f) for i, f
-                                 in Reader(payload).read_struct_array().items()}
-                break
+        self.fields = reader.read_struct()
+        self.chipsets = {i: Chipset(f) for i, f in Reader(
+            self.fields.get(DB_CHIPSETS, b"\x00")).read_struct_array().items()}
+
+    def decode(self, unknown=None):
+        """La base entera como dicts, para volcarla a JSON."""
+        return decode_struct(self.fields, "Database", unknown)
 
 
 class TreeMap:

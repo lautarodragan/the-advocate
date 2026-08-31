@@ -1,0 +1,6555 @@
+[
+  {
+    "id": 1,
+    "name": "Poison",
+    "description": "Poisons the enemy",
+    "using_message1": " uses poison",
+    "failure_message": 3,
+    "type": 0,
+    "sp_cost": 5,
+    "scope": 0,
+    "animation_id": 24,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "physical_rate": 10,
+    "magical_rate": 0,
+    "affect_hp": true,
+    "state_effects": [false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 2,
+    "name": "Dark Strike",
+    "description": "Dark strike at an enemy",
+    "using_message1": " uses dark strike",
+    "failure_message": 3,
+    "type": 0,
+    "sp_cost": 9,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "physical_rate": 10,
+    "magical_rate": 0,
+    "affect_hp": true,
+    "state_effects": [false, false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 3,
+    "name": "Sleep",
+    "description": "Causes an enemy to go into deep sleep",
+    "using_message1": " chants sleep",
+    "failure_message": 3,
+    "type": 0,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "physical_rate": 10,
+    "magical_rate": 0,
+    "affect_hp": true,
+    "state_effects": [false, false, false, false, false, false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 4,
+    "name": "Paralysis",
+    "description": "Paralyze's an enemy",
+    "using_message1": " chants Paralysis",
+    "failure_message": 3,
+    "type": 0,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "physical_rate": 10,
+    "magical_rate": 0,
+    "affect_hp": true,
+    "state_effects": [false, false, false, false, false, false, false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 5,
+    "name": "Flame Field",
+    "description": "Creates a flame field around all enemys",
+    "using_message1": " calls flame field",
+    "type": 0,
+    "scope": 1,
+    "animation_id": 22,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "physical_rate": 5,
+    "magical_rate": 0,
+    "power": 20,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, true]
+  },
+  {
+    "id": 6,
+    "name": "Snow Storm",
+    "description": "Causes a Snow storm to hit all the enemies",
+    "using_message1": " calls a snow storm",
+    "type": 0,
+    "scope": 1,
+    "animation_id": 23,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "physical_rate": 5,
+    "magical_rate": 0,
+    "power": 20,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, true]
+  },
+  {
+    "id": 7,
+    "name": "Electric Shock",
+    "description": "Calls an eletric shock to hit all enemies",
+    "using_message1": " calls eletric shock",
+    "type": 0,
+    "scope": 1,
+    "animation_id": 93,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "physical_rate": 5,
+    "magical_rate": 0,
+    "power": 20,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, true]
+  },
+  {
+    "id": 8,
+    "name": "Tidal Wave",
+    "description": "Calls a tidal wave to hit all enemies",
+    "using_message1": " calls tidal wave",
+    "type": 0,
+    "scope": 1,
+    "animation_id": 99,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "physical_rate": 5,
+    "magical_rate": 0,
+    "power": 20,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 9,
+    "name": "Earth",
+    "description": "Calls the elemental earth to damage all enemies",
+    "using_message1": " uses earth",
+    "type": 0,
+    "scope": 1,
+    "animation_id": 104,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "physical_rate": 5,
+    "magical_rate": 0,
+    "power": 20,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 10,
+    "name": "Trick",
+    "description": "A unknown spell suposedly damages all enemys",
+    "using_message1": " casts trick",
+    "type": 0,
+    "scope": 1,
+    "animation_id": 110,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "physical_rate": 5,
+    "magical_rate": 0,
+    "power": 20,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 11,
+    "name": "Ultra Poison",
+    "description": "A stronger spell of Poison",
+    "using_message1": " casts ultra poison",
+    "failure_message": 3,
+    "type": 0,
+    "scope": 1,
+    "animation_id": 24,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "magical_rate": 0,
+    "hit": 80,
+    "state_effects": [false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 12,
+    "name": "Ultra Sleep",
+    "description": "A stronger spell of sleep",
+    "using_message1": " casts ultra sleep",
+    "failure_message": 2,
+    "type": 0,
+    "scope": 1,
+    "animation_id": 25,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "magical_rate": 0,
+    "hit": 80,
+    "state_effects": [false, false, false, false, false, false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 13,
+    "name": "Poison dust",
+    "description": "A spell of dust that causes poison",
+    "using_message1": " casts posion dust",
+    "type": 0,
+    "scope": 1,
+    "animation_id": 26,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "magical_rate": 0,
+    "hit": 80,
+    "state_effects": [false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 14,
+    "name": "Blind Dust",
+    "description": "A spell of dust that causes blindness",
+    "using_message1": " casts blind dust",
+    "type": 0,
+    "scope": 1,
+    "animation_id": 26,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "magical_rate": 0,
+    "hit": 80,
+    "state_effects": [false, false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 15,
+    "name": "Berserk Dust",
+    "description": "A spell of dust that causes beserk",
+    "using_message1": " casts beserk dust",
+    "type": 0,
+    "scope": 1,
+    "animation_id": 26,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "magical_rate": 0,
+    "hit": 80,
+    "state_effects": [false, false, false, false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 16,
+    "name": "Chaos Pollen",
+    "description": "Causes chaos to all enemies ",
+    "using_message1": " cast chaos pollen",
+    "failure_message": 1,
+    "type": 0,
+    "scope": 1,
+    "animation_id": 27,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "magical_rate": 0,
+    "hit": 80,
+    "state_effects": [false, false, false, false, false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 17,
+    "name": "Paralysis Pollen",
+    "description": "Paralyzes all enemies",
+    "using_message1": " casts paralysis pollen",
+    "type": 0,
+    "scope": 1,
+    "animation_id": 27,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "magical_rate": 0,
+    "hit": 80,
+    "state_effects": [false, false, false, false, false, false, false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 18,
+    "name": "Sound Wave",
+    "description": "Loud sound spell that makes all enemies go beserk",
+    "using_message1": " casts sound wave",
+    "failure_message": 1,
+    "type": 0,
+    "scope": 1,
+    "animation_id": 28,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "magical_rate": 0,
+    "hit": 80,
+    "state_effects": [false, false, false, false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 19,
+    "name": "Super Sound Wave",
+    "description": "Loud sound spell that makes all enemies confused",
+    "using_message1": " supersonic waves go!",
+    "failure_message": 1,
+    "type": 0,
+    "scope": 1,
+    "animation_id": 29,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "magical_rate": 0,
+    "hit": 80,
+    "state_effects": [false, false, false, false, false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 20,
+    "name": "Sleep Sound",
+    "description": "Loud sound scausing all enemies to go to sleep",
+    "using_message1": " casts sleep sound",
+    "failure_message": 2,
+    "type": 0,
+    "scope": 1,
+    "animation_id": 29,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "magical_rate": 0,
+    "hit": 80,
+    "state_effects": [false, false, false, false, false, false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 21,
+    "name": "Mist of Silence",
+    "description": "Causes silence to all enimies",
+    "using_message1": " casts mist of silence",
+    "type": 0,
+    "scope": 1,
+    "animation_id": 30,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "magical_rate": 0,
+    "hit": 80,
+    "state_effects": [false, false, false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 22,
+    "name": "Sleep Fog",
+    "description": "A fog that puts all enemies to sleep",
+    "using_message1": " calls sleep fog",
+    "failure_message": 2,
+    "type": 0,
+    "scope": 1,
+    "animation_id": 31,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "magical_rate": 0,
+    "hit": 80,
+    "state_effects": [false, false, false, false, false, false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 23,
+    "name": "Silence Song",
+    "description": "A song that makes all enemies silenced",
+    "using_message1": " sings silence song",
+    "type": 0,
+    "scope": 1,
+    "animation_id": 32,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "magical_rate": 0,
+    "hit": 80,
+    "state_effects": [false, false, false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 24,
+    "name": "Childs Song",
+    "description": "A song that makes all enemies sleep",
+    "using_message1": " sings childs song",
+    "failure_message": 2,
+    "type": 0,
+    "scope": 1,
+    "animation_id": 33,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "magical_rate": 0,
+    "hit": 80,
+    "state_effects": [false, false, false, false, false, false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 25,
+    "name": "Lure Song",
+    "description": "A song that makes all enemies confused",
+    "using_message1": " sings lure song",
+    "type": 0,
+    "scope": 1,
+    "animation_id": 34,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "magical_rate": 0,
+    "hit": 80,
+    "state_effects": [false, false, false, false, false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 26,
+    "name": "Sand Flash",
+    "description": "A sand attack damages all enemies",
+    "using_message1": "does Sand Flash",
+    "failure_message": 1,
+    "type": 0,
+    "scope": 1,
+    "animation_id": 35,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "magical_rate": 0,
+    "hit": 70,
+    "state_effects": [false, false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 27,
+    "name": "Radiant Ray",
+    "description": "The whole of the enemy is made darkness condition.",
+    "using_message1": " emitted glaring light!",
+    "failure_message": 1,
+    "type": 0,
+    "scope": 1,
+    "animation_id": 36,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "magical_rate": 0,
+    "hit": 70,
+    "state_effects": [false, false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 28,
+    "name": "Stun Weed",
+    "description": "Causes Paralysis to an enemy",
+    "using_message1": " casts stun weed",
+    "type": 0,
+    "scope": 0,
+    "animation_id": 37,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "magical_rate": 0,
+    "hit": 70,
+    "state_effects": [false, false, false, false, false, false, false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 29,
+    "name": "Paralysis",
+    "description": "Causes Paralysis to an enemy",
+    "using_message1": "casts paralysis",
+    "failure_message": 1,
+    "type": 0,
+    "scope": 0,
+    "animation_id": 40,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "magical_rate": 0,
+    "hit": 70,
+    "state_effects": [false, false, false, false, false, false, false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 30,
+    "name": "Blood Suck",
+    "description": "Absorbs hp from a single enemy",
+    "using_message1": " uses blood suck",
+    "type": 0,
+    "scope": 0,
+    "animation_id": 38,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "physical_rate": 6,
+    "magical_rate": 0,
+    "variance": 8,
+    "affect_hp": true,
+    "absorb_damage": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 31,
+    "name": "Weird Dance",
+    "description": "Absorbs Mp from all enemies",
+    "using_message1": " uses wierd dance",
+    "type": 0,
+    "scope": 1,
+    "animation_id": 39,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "physical_rate": 4,
+    "magical_rate": 0,
+    "variance": 8,
+    "affect_sp": true,
+    "absorb_damage": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 32,
+    "name": "Body Blow",
+    "description": "Causes Hp damage and surprise to a single enemy",
+    "using_message1": "does a body blow",
+    "failure_message": 3,
+    "type": 0,
+    "scope": 0,
+    "animation_id": 41,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "physical_rate": 8,
+    "magical_rate": 0,
+    "hit": 80,
+    "affect_hp": true,
+    "state_effects": [false, false, false, false, false, false, false, false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 33,
+    "name": "Fast Move",
+    "description": "Causes surprise to a single enemy",
+    "using_message1": " does a fast move",
+    "failure_message": 3,
+    "type": 0,
+    "scope": 0,
+    "animation_id": 42,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "magical_rate": 0,
+    "hit": 80,
+    "state_effects": [false, false, false, false, false, false, false, false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 34,
+    "name": "Roar",
+    "description": "Causes MindBlow to all enemies",
+    "using_message1": " does a loud roar",
+    "failure_message": 1,
+    "type": 0,
+    "scope": 1,
+    "animation_id": 43,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "magical_rate": 0,
+    "hit": 50,
+    "state_effects": [false, false, false, false, false, false, false, false, false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 35,
+    "name": "--------------------",
+    "type": 0,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 36,
+    "name": "Heal",
+    "description": "Raises hp by 30",
+    "using_message1": " casts heal",
+    "type": 0,
+    "sp_cost": 3,
+    "scope": 3,
+    "animation_id": 45,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "magical_rate": 1,
+    "power": 30,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 37,
+    "name": "Advanced Heal",
+    "description": "Raises hp by 120",
+    "using_message1": "casts advanced heal",
+    "type": 0,
+    "sp_cost": 6,
+    "scope": 3,
+    "animation_id": 46,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "magical_rate": 1,
+    "power": 120,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 38,
+    "name": "Restore",
+    "description": "Cures 480 hp of a single ally",
+    "using_message1": "casts restore",
+    "type": 0,
+    "sp_cost": 12,
+    "scope": 3,
+    "animation_id": 47,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "magical_rate": 1,
+    "power": 480,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 39,
+    "name": "Cure",
+    "description": "Restores 20 hp to the whole party",
+    "using_message1": "casts cure",
+    "type": 0,
+    "sp_cost": 5,
+    "scope": 4,
+    "animation_id": 48,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "magical_rate": 1,
+    "power": 20,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 40,
+    "name": "Recover",
+    "description": "Restores 80 hp to the whole party",
+    "using_message1": "casts recover",
+    "type": 0,
+    "sp_cost": 10,
+    "scope": 4,
+    "animation_id": 49,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "magical_rate": 1,
+    "power": 80,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 41,
+    "name": "Savior",
+    "description": "Restores 320 hp to all members ",
+    "using_message1": "casts savior",
+    "type": 0,
+    "sp_cost": 20,
+    "scope": 4,
+    "animation_id": 50,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "magical_rate": 1,
+    "power": 320,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 42,
+    "name": "Antidote",
+    "description": "Cures Poison",
+    "using_message1": " casts antidote",
+    "type": 0,
+    "sp_cost": 2,
+    "scope": 3,
+    "animation_id": 48,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 43,
+    "name": "Medicine",
+    "description": "Cures Poison,Blind,Silence,and Sleep",
+    "using_message1": "cast medicine",
+    "type": 0,
+    "sp_cost": 4,
+    "scope": 3,
+    "animation_id": 49,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [false, true, true, true, false, false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 44,
+    "name": "Miracle",
+    "description": "Cures any status ailment",
+    "using_message1": "casts miracle",
+    "type": 0,
+    "sp_cost": 8,
+    "scope": 3,
+    "animation_id": 50,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [false, true, true, true, true, true, true, true, false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 45,
+    "name": "Raise",
+    "description": "Revives a dead ally and restores 10 hp",
+    "using_message1": " casts Raise",
+    "type": 0,
+    "sp_cost": 7,
+    "scope": 3,
+    "animation_id": 51,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "magical_rate": 1,
+    "variance": 0,
+    "power": 10,
+    "state_effects": [true],
+    "attribute_effects": []
+  },
+  {
+    "id": 46,
+    "name": "Phoenix",
+    "description": "Revives a dead ally and restores 50 hp",
+    "using_message1": "casts phoenix",
+    "type": 0,
+    "sp_cost": 14,
+    "scope": 3,
+    "animation_id": 52,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "magical_rate": 1,
+    "variance": 0,
+    "power": 50,
+    "state_effects": [true],
+    "attribute_effects": []
+  },
+  {
+    "id": 47,
+    "name": "Revive",
+    "description": "Revives a dead ally and restores 100 hp",
+    "using_message1": "casts revive",
+    "type": 0,
+    "sp_cost": 28,
+    "scope": 3,
+    "animation_id": 53,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "magical_rate": 1,
+    "variance": 0,
+    "power": 100,
+    "state_effects": [true],
+    "attribute_effects": []
+  },
+  {
+    "id": 48,
+    "name": "--------------------",
+    "type": 0,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 49,
+    "name": "Knockout",
+    "description": "Causes all enemys to die",
+    "using_message1": "attempts a knockout",
+    "failure_message": 1,
+    "type": 0,
+    "sp_cost": 9,
+    "scope": 1,
+    "animation_id": 123,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [true],
+    "attribute_effects": []
+  },
+  {
+    "id": 50,
+    "name": "Poison",
+    "description": "Causes all enemies to be poisioned",
+    "using_message1": " casts poison",
+    "type": 0,
+    "sp_cost": 2,
+    "scope": 1,
+    "animation_id": 101,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 51,
+    "name": "Blind",
+    "description": "Causes all enemies to be blinded",
+    "using_message1": " casts blind",
+    "type": 0,
+    "sp_cost": 2,
+    "scope": 1,
+    "animation_id": 57,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [false, false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 52,
+    "name": "Silence",
+    "description": "Causes all enemies to be silenced",
+    "using_message1": " casts silence",
+    "type": 0,
+    "sp_cost": 3,
+    "scope": 1,
+    "animation_id": 58,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [false, false, false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 53,
+    "name": "WildRun",
+    "description": "Causes all enemies to become berserk",
+    "using_message1": " casts beserk",
+    "type": 0,
+    "sp_cost": 4,
+    "scope": 1,
+    "animation_id": 59,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [false, false, false, false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 54,
+    "name": "Confusion",
+    "description": "Causes all enemies to be confused",
+    "using_message1": " casts confusion",
+    "type": 0,
+    "sp_cost": 6,
+    "scope": 1,
+    "animation_id": 60,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [false, false, false, false, false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 55,
+    "name": "Sleep",
+    "description": "Causes all enemies to fall asleep",
+    "using_message1": " casts sleep",
+    "failure_message": 2,
+    "type": 0,
+    "sp_cost": 5,
+    "scope": 1,
+    "animation_id": 61,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [false, false, false, false, false, false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 56,
+    "name": "Paralyze",
+    "description": "Causes all enemies to be paralyzed",
+    "using_message1": " casts paralyze",
+    "type": 0,
+    "sp_cost": 7,
+    "scope": 1,
+    "animation_id": 62,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [false, false, false, false, false, false, false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 57,
+    "name": "--------------------",
+    "type": 0,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 58,
+    "name": "Attack Up",
+    "description": "Causes attack power to increase",
+    "using_message1": "casts attack up",
+    "type": 0,
+    "sp_cost": 5,
+    "scope": 3,
+    "animation_id": 64,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "magical_rate": 4,
+    "power": 10,
+    "affect_attack": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 59,
+    "name": "Attack Down",
+    "description": "Decrease all enemies attack power",
+    "using_message1": "casts attack down",
+    "type": 0,
+    "sp_cost": 5,
+    "scope": 1,
+    "animation_id": 65,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "magical_rate": 4,
+    "power": 10,
+    "affect_attack": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 60,
+    "name": "Defense Up",
+    "description": "Causes defense power to increase",
+    "using_message1": "casts defense up",
+    "type": 0,
+    "sp_cost": 5,
+    "scope": 3,
+    "animation_id": 66,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "magical_rate": 4,
+    "power": 10,
+    "affect_defense": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 61,
+    "name": "Defense Down",
+    "description": "Decrease all enemies defense power",
+    "using_message1": "casts defense down",
+    "type": 0,
+    "sp_cost": 5,
+    "scope": 1,
+    "animation_id": 67,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "magical_rate": 4,
+    "power": 10,
+    "affect_defense": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 62,
+    "name": "Spirit Up",
+    "description": "Causes mind force to rise",
+    "using_message1": "casts Spirit Up",
+    "type": 0,
+    "sp_cost": 5,
+    "scope": 3,
+    "animation_id": 68,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "magical_rate": 4,
+    "power": 10,
+    "affect_spirit": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 63,
+    "name": "Spirit Down",
+    "description": "Decrease all enemies mind force power",
+    "using_message1": "casts spirit down",
+    "type": 0,
+    "sp_cost": 5,
+    "scope": 1,
+    "animation_id": 69,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "magical_rate": 4,
+    "power": 10,
+    "affect_spirit": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 64,
+    "name": "Speed Up",
+    "description": "Causes speed to rise",
+    "using_message1": "casts speed up",
+    "type": 0,
+    "sp_cost": 5,
+    "scope": 3,
+    "animation_id": 70,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "magical_rate": 4,
+    "power": 10,
+    "affect_agility": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 65,
+    "name": "Speed Down",
+    "description": "Causes all enemies speed to go down",
+    "using_message1": "casts speed down",
+    "type": 0,
+    "sp_cost": 5,
+    "scope": 1,
+    "animation_id": 71,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "magical_rate": 4,
+    "power": 10,
+    "affect_agility": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 66,
+    "name": "Heat Barrier",
+    "description": "Protects The whole party against fire attacks",
+    "using_message1": "casts heat barrier",
+    "type": 0,
+    "sp_cost": 8,
+    "scope": 4,
+    "animation_id": 72,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, true],
+    "affect_attr_defence": true
+  },
+  {
+    "id": 67,
+    "name": "Cold Barrier",
+    "description": "Protects The whole party against ice attacks",
+    "using_message1": "casts cold barrier",
+    "type": 0,
+    "sp_cost": 8,
+    "scope": 4,
+    "animation_id": 73,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, true],
+    "affect_attr_defence": true
+  },
+  {
+    "id": 68,
+    "name": "Hp Absorb",
+    "description": "Absorbs 20 hp from an enemy",
+    "using_message1": "casts hp absorb",
+    "type": 0,
+    "sp_cost": 10,
+    "scope": 0,
+    "animation_id": 74,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "magical_rate": 5,
+    "power": 20,
+    "affect_hp": true,
+    "absorb_damage": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 69,
+    "name": "Mp Absorb",
+    "description": "Absorbs 20 mp from an enemy",
+    "using_message1": "casts mp absorb",
+    "type": 0,
+    "sp_cost": 10,
+    "scope": 0,
+    "animation_id": 75,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "magical_rate": 5,
+    "power": 20,
+    "affect_sp": true,
+    "absorb_damage": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 70,
+    "name": "--------------------",
+    "type": 0,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 71,
+    "name": "Teleport",
+    "description": "Teleports to a visited place",
+    "using_message1": "はテレポートを唱えた！",
+    "type": 1,
+    "sp_cost": 1,
+    "scope": 0,
+    "sound_effect": {
+      "name": "Item1"
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 72,
+    "name": "Escape",
+    "description": "Escapes from a dungeon",
+    "using_message1": "はエスケープを唱えた！",
+    "type": 2,
+    "sp_cost": 1,
+    "scope": 0,
+    "sound_effect": {
+      "name": "Item2"
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 73,
+    "name": "--------------------",
+    "type": 0,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 74,
+    "name": "Fire",
+    "description": "An attack with the elemental power of fire",
+    "using_message1": "casts flame",
+    "type": 0,
+    "sp_cost": 4,
+    "scope": 0,
+    "animation_id": 77,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 15,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, true]
+  },
+  {
+    "id": 75,
+    "name": "Flame",
+    "description": "An attack with the elemental power of fire",
+    "using_message1": "casts flame",
+    "type": 0,
+    "sp_cost": 8,
+    "scope": 0,
+    "animation_id": 78,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 45,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, true]
+  },
+  {
+    "id": 76,
+    "name": "Fire Ball",
+    "description": "An attack with the elemental power of fire",
+    "using_message1": "casts fire ball",
+    "type": 0,
+    "sp_cost": 16,
+    "scope": 0,
+    "animation_id": 79,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 120,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, true]
+  },
+  {
+    "id": 77,
+    "name": "Flame Line",
+    "description": "A fire attack that damages all enemies",
+    "using_message1": "cast flame line",
+    "type": 0,
+    "sp_cost": 6,
+    "scope": 1,
+    "animation_id": 80,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 15,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, true]
+  },
+  {
+    "id": 78,
+    "name": "Flame Blast",
+    "description": "A fire attack that damages all enemies",
+    "using_message1": "casts flame blast",
+    "type": 0,
+    "sp_cost": 12,
+    "scope": 1,
+    "animation_id": 81,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 45,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, true]
+  },
+  {
+    "id": 79,
+    "name": "Brush Fire",
+    "description": "A fire attack that damages all enemies",
+    "using_message1": "casts brush fire",
+    "type": 0,
+    "sp_cost": 24,
+    "scope": 1,
+    "animation_id": 82,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 120,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, true]
+  },
+  {
+    "id": 80,
+    "name": "Ice",
+    "description": "An attack with the elemental power of ice",
+    "using_message1": "casts ice",
+    "type": 0,
+    "sp_cost": 4,
+    "scope": 0,
+    "animation_id": 83,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 15,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, true]
+  },
+  {
+    "id": 81,
+    "name": "Ice Crystal",
+    "description": "An attack with the elemental power of ice",
+    "using_message1": "casts ice crystal",
+    "type": 0,
+    "sp_cost": 8,
+    "scope": 0,
+    "animation_id": 84,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 45,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, true]
+  },
+  {
+    "id": 82,
+    "name": "Frost",
+    "description": "An attack with the elemental power of ice",
+    "using_message1": "casts frost",
+    "type": 0,
+    "sp_cost": 16,
+    "scope": 0,
+    "animation_id": 85,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 120,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, true]
+  },
+  {
+    "id": 83,
+    "name": "Frost Wave",
+    "description": "A ice attack that damages all enemies",
+    "using_message1": "casts frost wave",
+    "type": 0,
+    "sp_cost": 6,
+    "scope": 1,
+    "animation_id": 86,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 15,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, true]
+  },
+  {
+    "id": 84,
+    "name": "Icicle",
+    "description": "A ice attack that damages all enemies",
+    "using_message1": "casts icicle",
+    "type": 0,
+    "sp_cost": 12,
+    "scope": 1,
+    "animation_id": 87,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 45,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, true]
+  },
+  {
+    "id": 85,
+    "name": "Winter",
+    "description": "A ice attack that damages all enemies",
+    "using_message1": "casts winter",
+    "type": 0,
+    "sp_cost": 24,
+    "scope": 1,
+    "animation_id": 88,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 120,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, true]
+  },
+  {
+    "id": 86,
+    "name": "Thunder",
+    "description": "An attack with the elemental power of thunder",
+    "using_message1": "casts thunder",
+    "type": 0,
+    "sp_cost": 4,
+    "scope": 0,
+    "animation_id": 89,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 15,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, true]
+  },
+  {
+    "id": 87,
+    "name": "Flash",
+    "description": "An attack with the elemental power of thunder",
+    "using_message1": "uses flash",
+    "type": 0,
+    "sp_cost": 8,
+    "scope": 0,
+    "animation_id": 90,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 45,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, true]
+  },
+  {
+    "id": 88,
+    "name": "Lightning",
+    "description": "An attack with the elemental power of thunder",
+    "using_message1": "casts lightning",
+    "type": 0,
+    "sp_cost": 16,
+    "scope": 0,
+    "animation_id": 91,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 120,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, true]
+  },
+  {
+    "id": 89,
+    "name": "Sparkle",
+    "description": "A thunder attack that damages all enemies",
+    "using_message1": "casts sparkle",
+    "type": 0,
+    "sp_cost": 6,
+    "scope": 1,
+    "animation_id": 92,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 15,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, true]
+  },
+  {
+    "id": 90,
+    "name": "Lightning Dance",
+    "description": "A thunder attack that damages all enemies",
+    "using_message1": "  casts lightning dance",
+    "type": 0,
+    "sp_cost": 12,
+    "scope": 1,
+    "animation_id": 93,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 45,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, true]
+  },
+  {
+    "id": 91,
+    "name": "Blast",
+    "description": "A thunder attack that damages all enemies",
+    "using_message1": "casts blast",
+    "type": 0,
+    "sp_cost": 24,
+    "scope": 1,
+    "animation_id": 94,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 120,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, true]
+  },
+  {
+    "id": 92,
+    "name": "Water Tunnel",
+    "description": "An attack with the elemental power of water",
+    "using_message1": "casts water tunnel",
+    "type": 0,
+    "sp_cost": 4,
+    "scope": 0,
+    "animation_id": 95,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 15,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 93,
+    "name": "Water  Beam",
+    "description": "An attack with the elemental power of water",
+    "using_message1": "casts water beam",
+    "type": 0,
+    "sp_cost": 8,
+    "scope": 0,
+    "animation_id": 96,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 45,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 94,
+    "name": "Bubbles",
+    "description": "An attack with the elemental power of water",
+    "using_message1": "casts bubbles",
+    "type": 0,
+    "sp_cost": 16,
+    "scope": 0,
+    "animation_id": 97,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 120,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 95,
+    "name": "Water Smash",
+    "description": "A water attack that damages all enemies",
+    "using_message1": "cast water smash",
+    "type": 0,
+    "sp_cost": 6,
+    "scope": 1,
+    "animation_id": 98,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 15,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 96,
+    "name": "Massive Bubbles",
+    "description": "A water attack that damages all enemies",
+    "using_message1": "casts massive bubbles",
+    "type": 0,
+    "sp_cost": 12,
+    "scope": 1,
+    "animation_id": 99,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 45,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 97,
+    "name": "Tidal Wave",
+    "description": "A water attack that damages all enemies",
+    "using_message1": "calls a tidal wave",
+    "type": 0,
+    "sp_cost": 24,
+    "scope": 1,
+    "animation_id": 100,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 120,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 98,
+    "name": "Earth",
+    "description": "An attack with the elemental power of earth",
+    "using_message1": "casts stone egg!",
+    "type": 0,
+    "sp_cost": 4,
+    "scope": 0,
+    "animation_id": 101,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 15,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 99,
+    "name": "Rock throw",
+    "description": "An attack with the elemental power of earth",
+    "using_message1": "casts rock throw",
+    "type": 0,
+    "sp_cost": 8,
+    "scope": 0,
+    "animation_id": 102,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 45,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 100,
+    "name": "Quake",
+    "description": "An attack with the elemental power of earth",
+    "using_message1": "casts quake",
+    "type": 0,
+    "sp_cost": 16,
+    "scope": 0,
+    "animation_id": 103,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 120,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 101,
+    "name": "Earth Smash",
+    "description": "An earth attack that damages all enemies",
+    "using_message1": "casts earth smash",
+    "type": 0,
+    "sp_cost": 6,
+    "scope": 1,
+    "animation_id": 104,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 15,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 102,
+    "name": "Stone Thorn",
+    "description": "An earth attack that damages all enemies",
+    "using_message1": "casts stone thorn",
+    "type": 0,
+    "sp_cost": 12,
+    "scope": 1,
+    "animation_id": 105,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 45,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 103,
+    "name": "Earth Quake",
+    "description": "An earth attack that damages all enemies",
+    "using_message1": "casts earth quake",
+    "type": 0,
+    "sp_cost": 24,
+    "scope": 1,
+    "animation_id": 106,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 120,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 104,
+    "name": "Wind",
+    "description": "An attack with the elemental power of wind",
+    "using_message1": "casts wind",
+    "type": 0,
+    "sp_cost": 4,
+    "scope": 0,
+    "animation_id": 107,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 15,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 105,
+    "name": "Gust",
+    "description": "An attack with the elemental power of wind",
+    "using_message1": "casts gust",
+    "type": 0,
+    "sp_cost": 8,
+    "scope": 0,
+    "animation_id": 108,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 45,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 106,
+    "name": "Wind Tunnel",
+    "description": "An attack with the elemental power of wind",
+    "using_message1": "casts wind tunnel",
+    "type": 0,
+    "sp_cost": 16,
+    "scope": 0,
+    "animation_id": 109,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 120,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 107,
+    "name": "Hurricane",
+    "description": "A strong wind attack",
+    "using_message1": "casts hurricane",
+    "type": 0,
+    "sp_cost": 6,
+    "scope": 1,
+    "animation_id": 110,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 15,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 108,
+    "name": "Tornado",
+    "description": "A strong wind attack",
+    "using_message1": "casts tornado",
+    "type": 0,
+    "sp_cost": 12,
+    "scope": 1,
+    "animation_id": 111,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 45,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 109,
+    "name": "Wind Blast",
+    "description": "A strong wind attack",
+    "using_message1": "cast wind blast",
+    "type": 0,
+    "sp_cost": 24,
+    "scope": 1,
+    "animation_id": 112,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 120,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 110,
+    "name": "Holy",
+    "description": "An attack with a holy attribute",
+    "using_message1": "casts holy",
+    "type": 0,
+    "sp_cost": 6,
+    "scope": 0,
+    "animation_id": 113,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 18,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 111,
+    "name": "Chat",
+    "description": "An attack with a holy attribute",
+    "using_message1": "does a chant",
+    "type": 0,
+    "sp_cost": 12,
+    "scope": 0,
+    "animation_id": 114,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 55,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 112,
+    "name": "Prayer",
+    "description": "An attack with a holy attribute",
+    "using_message1": "does a prayer",
+    "type": 0,
+    "sp_cost": 24,
+    "scope": 0,
+    "animation_id": 115,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 140,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 113,
+    "name": "Star Light",
+    "description": "A holy attack that damages all enemies",
+    "using_message1": "casts star light",
+    "type": 0,
+    "sp_cost": 8,
+    "scope": 1,
+    "animation_id": 116,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 18,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 114,
+    "name": "Holy Flash",
+    "description": "A holy attack that damages all enemies",
+    "using_message1": "casts holy flash",
+    "type": 0,
+    "sp_cost": 16,
+    "scope": 1,
+    "animation_id": 117,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 55,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 115,
+    "name": "Preist Light",
+    "description": "A holy attack that damages all enemies",
+    "using_message1": "casts priest light",
+    "type": 0,
+    "sp_cost": 32,
+    "scope": 1,
+    "animation_id": 118,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 140,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 116,
+    "name": "Dark Bolt",
+    "description": "A bolt of darkness",
+    "using_message1": "casts dark bolt",
+    "type": 0,
+    "sp_cost": 6,
+    "scope": 0,
+    "animation_id": 119,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 18,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 117,
+    "name": "Dark Wave",
+    "description": "A wave of darkness",
+    "using_message1": "cast dark wave",
+    "type": 0,
+    "sp_cost": 12,
+    "scope": 0,
+    "animation_id": 120,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 55,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 118,
+    "name": "Dark Smash",
+    "description": "A smash of darkness",
+    "using_message1": "casts dark smash",
+    "type": 0,
+    "sp_cost": 24,
+    "scope": 0,
+    "animation_id": 121,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 140,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 119,
+    "name": "Dark Flash",
+    "description": "A dark flash",
+    "using_message1": "casts dark flash",
+    "type": 0,
+    "sp_cost": 8,
+    "scope": 1,
+    "animation_id": 122,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 18,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 120,
+    "name": "Dark Ghosts",
+    "description": "A wave of ghosts",
+    "using_message1": "casts dark ghosts",
+    "type": 0,
+    "sp_cost": 16,
+    "scope": 1,
+    "animation_id": 123,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 55,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 121,
+    "name": "Darkness",
+    "description": "A overwhelming force of Darkness",
+    "using_message1": "casts darkness",
+    "type": 0,
+    "sp_cost": 32,
+    "scope": 1,
+    "animation_id": 124,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 140,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 122,
+    "name": "Holy Sound",
+    "description": "A holy sound",
+    "using_message1": "casts holy sound",
+    "type": 0,
+    "sp_cost": 8,
+    "scope": 0,
+    "animation_id": 125,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 18,
+    "affect_hp": true,
+    "ignore_defense": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 123,
+    "name": "Holy Cross",
+    "description": "A holy attack",
+    "using_message1": "casts holy cross",
+    "type": 0,
+    "sp_cost": 16,
+    "scope": 0,
+    "animation_id": 126,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 55,
+    "affect_hp": true,
+    "ignore_defense": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 124,
+    "name": "Holy Sparkle",
+    "description": "A holy attack",
+    "using_message1": "casts holy sparkle",
+    "type": 0,
+    "sp_cost": 32,
+    "scope": 0,
+    "animation_id": 127,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 140,
+    "affect_hp": true,
+    "ignore_defense": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 125,
+    "name": "Holy Savior",
+    "description": "A holy savior spell",
+    "using_message1": "casts holy savior",
+    "type": 0,
+    "sp_cost": 12,
+    "scope": 1,
+    "animation_id": 128,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 18,
+    "affect_hp": true,
+    "ignore_defense": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 126,
+    "name": "Creation",
+    "description": "A holy spell of creation",
+    "using_message1": "casts creation",
+    "type": 0,
+    "sp_cost": 24,
+    "scope": 1,
+    "animation_id": 129,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 55,
+    "affect_hp": true,
+    "ignore_defense": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 127,
+    "name": "Ultima",
+    "description": "The holy spell of ultima",
+    "using_message1": "casts ultima",
+    "type": 0,
+    "sp_cost": 48,
+    "scope": 1,
+    "animation_id": 130,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 140,
+    "affect_hp": true,
+    "ignore_defense": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 128,
+    "name": "--------------------",
+    "failure_message": 3,
+    "type": 0,
+    "sp_cost": 1,
+    "scope": 0,
+    "animation_id": 44,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "physical_rate": 1,
+    "power": 125,
+    "state_effects": [false, false, false, false, false, false, false, false, false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 129,
+    "name": "Fury Punch",
+    "description": "Damage to a single enemy.",
+    "using_message1": " channeled the power of rage",
+    "using_message2": "into his fists... FURY PUNCH!!!",
+    "type": 0,
+    "sp_cost": 15,
+    "scope": 0,
+    "animation_id": 78,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "physical_rate": 3,
+    "power": 500,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, true]
+  },
+  {
+    "id": 130,
+    "name": "Mental Hack",
+    "description": "Breaks a single enemy's mental defense.",
+    "using_message1": " hacks into the enemy's mind!",
+    "type": 0,
+    "sp_cost": 12,
+    "scope": 0,
+    "animation_id": 69,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 200,
+    "affect_defense": true,
+    "affect_spirit": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 131,
+    "name": "Healing Syringe",
+    "description": "A contraband healing drug.",
+    "using_message1": " pulls the syringe of healing",
+    "using_message2": "fluid from the depths of his coat.",
+    "type": 0,
+    "sp_cost": 10,
+    "scope": 3,
+    "animation_id": 154,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 75,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 132,
+    "name": "RoyalRatBite",
+    "description": "Attack used by KingRat",
+    "using_message1": " bares its mighty jaws!",
+    "failure_message": 3,
+    "type": 0,
+    "sp_cost": 5,
+    "scope": 0,
+    "animation_id": 38,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "physical_rate": 1,
+    "variance": 2,
+    "power": 25,
+    "hit": 70,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 133,
+    "name": "Detect Aura",
+    "description": "Perceive the aura given off by the enemies.",
+    "using_message1": " has perceived the enemy aura.",
+    "type": 3,
+    "scope": 0,
+    "switch_id": 134,
+    "sound_effect": {
+      "name": "Holy5",
+      "tempo": 50,
+      "balance": 0
+    },
+    "occasion_field": false,
+    "occasion_battle": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 134,
+    "name": "Absorb Aura",
+    "description": "Absorb the aura given off by the enemies.",
+    "using_message1": " has absorbed the enemy aura!",
+    "type": 3,
+    "scope": 0,
+    "switch_id": 135,
+    "sound_effect": {
+      "name": "Absorption2",
+      "tempo": 50
+    },
+    "occasion_field": false,
+    "occasion_battle": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 135,
+    "name": "SingleCure1",
+    "description": "Restores 30 HP / single party member",
+    "using_message1": " utilized SingleCure1",
+    "type": 0,
+    "sp_cost": 3,
+    "scope": 3,
+    "animation_id": 45,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 30,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 136,
+    "name": "AllCure1",
+    "description": "Restores 30 HP / all party members",
+    "using_message1": " utilized AllCure1",
+    "type": 0,
+    "sp_cost": 5,
+    "scope": 4,
+    "animation_id": 45,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 30,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 137,
+    "name": "RainDrop1",
+    "description": "The weakest rain attack / single enemy",
+    "using_message1": " utilized RainDrop1",
+    "type": 0,
+    "sp_cost": 4,
+    "scope": 0,
+    "animation_id": 95,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 40,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 138,
+    "name": "GatheringWaves1",
+    "description": "Increase Attack Power / single party member",
+    "using_message1": " utilized GatheringWaves2",
+    "type": 0,
+    "sp_cost": 10,
+    "scope": 3,
+    "animation_id": 64,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 20,
+    "affect_attack": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 139,
+    "name": "Taunt",
+    "description": "The best taunt of the Vipers - lowers enemy def.",
+    "using_message1": " taunted the enemy!",
+    "type": 0,
+    "sp_cost": 5,
+    "scope": 0,
+    "animation_id": 67,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 25,
+    "hit": 85,
+    "affect_defense": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 140,
+    "name": "Lurk In Shadows",
+    "description": "If they can't see you, they can't avoid you.",
+    "using_message1": " faded into the shadows.",
+    "type": 0,
+    "sp_cost": 6,
+    "scope": 2,
+    "animation_id": 70,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 20,
+    "affect_agility": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 141,
+    "name": "Trip",
+    "description": "One swipe, and they haven't got a leg to stand on.",
+    "using_message1": " sneakily tripped the enemy!",
+    "type": 0,
+    "sp_cost": 5,
+    "scope": 0,
+    "animation_id": 42,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "physical_rate": 2,
+    "power": 20,
+    "affect_hp": true,
+    "affect_agility": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 142,
+    "name": "Not the Face!",
+    "description": "This is hardly playing fair!",
+    "using_message1": " aimed carefully, and BANG!",
+    "type": 0,
+    "sp_cost": 12,
+    "scope": 0,
+    "animation_id": 3,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "physical_rate": 4,
+    "magical_rate": 0,
+    "variance": 0,
+    "power": 80,
+    "hit": 80,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 143,
+    "name": "MindShield",
+    "description": "Build a wall around your mind to protect skills.",
+    "using_message1": " set up a MindShield.",
+    "type": 3,
+    "sp_cost": 10,
+    "scope": 0,
+    "switch_id": 136,
+    "sound_effect": {
+      "name": "Rebirth2",
+      "tempo": 50,
+      "balance": 0
+    },
+    "occasion_field": false,
+    "occasion_battle": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 144,
+    "name": "MindProbe",
+    "description": "Probe the enemy's mind and master their skills.",
+    "using_message1": " began to telepathically probe",
+    "using_message2": "the enemy's mind, in search of unguarded secrets..",
+    "type": 3,
+    "sp_cost": 20,
+    "scope": 0,
+    "switch_id": 144,
+    "animation_id": 39,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "occasion_field": false,
+    "occasion_battle": true,
+    "magical_rate": 6,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 145,
+    "name": "xxxxxxxxxxxxxxx",
+    "description": "Use powers of Telepathy to attack an enemy.",
+    "using_message1": " focused his mental powers!",
+    "type": 3,
+    "sp_cost": 14,
+    "scope": 0,
+    "switch_id": 143,
+    "animation_id": 43,
+    "sound_effect": {
+      "name": "Kill6",
+      "tempo": 50
+    },
+    "occasion_field": false,
+    "occasion_battle": true,
+    "magical_rate": 6,
+    "affect_hp": true,
+    "affect_spirit": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 146,
+    "name": "Agency Badge",
+    "description": "The badge of an Agency Captain is intimidating!",
+    "using_message1": " shouted \"Freeze!\" and",
+    "using_message2": "flashed his Agency badge at the enemy.",
+    "type": 0,
+    "sp_cost": 20,
+    "scope": 0,
+    "animation_id": 153,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 75,
+    "affect_attack": true,
+    "affect_defense": true,
+    "affect_agility": true,
+    "state_effects": [false, false, false, false, false, false, false, false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 147,
+    "name": "Gamble for Credits",
+    "description": "Put some money down, watch the wheel go round...",
+    "using_message1": " initiated a round of Gambling",
+    "type": 3,
+    "sp_cost": 5,
+    "scope": 1,
+    "switch_id": 138,
+    "animation_id": 26,
+    "sound_effect": {
+      "name": "Cold8",
+      "tempo": 70
+    },
+    "occasion_field": false,
+    "occasion_battle": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 148,
+    "name": "Pickpocket",
+    "description": "Patented Neon Viper pickpocketing technique.",
+    "using_message1": " attempted to steal an item.",
+    "type": 3,
+    "sp_cost": 8,
+    "scope": 0,
+    "switch_id": 141,
+    "sound_effect": {
+      "name": "Open1",
+      "volume": 70,
+      "tempo": 50
+    },
+    "occasion_field": false,
+    "occasion_battle": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 149,
+    "name": "Escape",
+    "description": "The ball of dust shields your party's escape.",
+    "type": 2,
+    "scope": 0,
+    "sound_effect": {
+      "name": "Escape",
+      "volume": 70
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 150,
+    "name": "MindBlast",
+    "description": "A concentrated attack on the enemy's mind.",
+    "using_message1": " focused his mental powers!",
+    "type": 3,
+    "sp_cost": 16,
+    "scope": 0,
+    "switch_id": 143,
+    "animation_id": 39,
+    "sound_effect": {
+      "name": "(OFF)",
+      "volume": 80
+    },
+    "occasion_field": false,
+    "occasion_battle": true,
+    "magical_rate": 6,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 151,
+    "name": "Loot",
+    "description": "Stealing items, the Lazer Teeth way!",
+    "using_message1": " attempted to loot the enemy!",
+    "type": 3,
+    "sp_cost": 10,
+    "scope": 0,
+    "switch_id": 146,
+    "animation_id": 11,
+    "sound_effect": {
+      "name": "Buzzer1",
+      "balance": 80
+    },
+    "occasion_field": false,
+    "occasion_battle": true,
+    "power": 12,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 152,
+    "name": "Pick Locks",
+    "description": "The art of opening locks you aren't supposed to.",
+    "type": 3,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "occasion_field": false,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 153,
+    "name": "LINE NARROWS skills",
+    "type": 0,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 154,
+    "name": "SingleCure",
+    "description": "Restores 30 HP for one ally.",
+    "using_message1": " casts SingleCure.",
+    "type": 0,
+    "sp_cost": 4,
+    "scope": 3,
+    "animation_id": 45,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 30,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 155,
+    "name": "RainDrop",
+    "description": "Low damage liquid attack against one enemy.",
+    "using_message1": " casts RainDrop.",
+    "type": 0,
+    "sp_cost": 6,
+    "scope": 0,
+    "animation_id": 95,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 30,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 156,
+    "name": "GatheringWaves",
+    "description": "The power of the waves raises one ally's attack.",
+    "using_message1": " casts GatheringWaves.",
+    "type": 0,
+    "sp_cost": 12,
+    "scope": 3,
+    "animation_id": 96,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 10,
+    "affect_attack": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 157,
+    "name": "CureAll",
+    "description": "Restores 25 HP for all allies.",
+    "using_message1": " casts CureAll.",
+    "type": 0,
+    "sp_cost": 8,
+    "scope": 4,
+    "animation_id": 46,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 25,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 158,
+    "name": "WallOfWater",
+    "description": "Create a magical wall of water.",
+    "using_message1": " summons a Wall of Water.",
+    "type": 3,
+    "sp_cost": 25,
+    "scope": 4,
+    "switch_id": 727,
+    "animation_id": 99,
+    "sound_effect": {
+      "name": "Water5",
+      "tempo": 50
+    },
+    "occasion_field": false,
+    "occasion_battle": true,
+    "power": 65,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 159,
+    "name": "CleansingRain",
+    "description": "Pure rain washes away some status ailments.",
+    "using_message1": " casts CleansingRain.",
+    "type": 0,
+    "sp_cost": 14,
+    "scope": 3,
+    "animation_id": 100,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [false, true, true, true, false, false, false, false, false, false, false, false, true, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 160,
+    "name": "FocusedCure",
+    "description": "Restores 75 HP for one ally.",
+    "using_message1": " casts FocusedCure.",
+    "type": 0,
+    "sp_cost": 12,
+    "scope": 3,
+    "animation_id": 46,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 75,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 161,
+    "name": "SummonDeepLord",
+    "description": "Call upon the DeepLord to do your bidding!",
+    "using_message1": " summons the DeepLord!",
+    "type": 3,
+    "sp_cost": 65,
+    "scope": 0,
+    "switch_id": 524,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "occasion_field": false,
+    "occasion_battle": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 162,
+    "name": "CandleFlame",
+    "description": "Tiny point of light cures darkness.",
+    "using_message1": " casts CandleFlame.",
+    "type": 0,
+    "sp_cost": 3,
+    "scope": 3,
+    "animation_id": 77,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [false, false, true, false, false, false, false, false, false, false, false, false, false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 163,
+    "name": "MinorFire",
+    "description": "Low damage flame attack against one enemy.",
+    "using_message1": " casts MinorFire.",
+    "type": 0,
+    "sp_cost": 6,
+    "scope": 0,
+    "animation_id": 78,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 30,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 164,
+    "name": "Cauterize",
+    "description": "Cures bleeding.",
+    "using_message1": " casts Cauterize.",
+    "type": 0,
+    "sp_cost": 8,
+    "scope": 3,
+    "animation_id": 77,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 165,
+    "name": "FlamingWeapon",
+    "description": "Raises the caster's attack power.",
+    "using_message1": " casts FlamingWeapon.",
+    "type": 0,
+    "sp_cost": 12,
+    "scope": 2,
+    "animation_id": 77,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 30,
+    "affect_attack": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 166,
+    "name": "WallOfFlame",
+    "description": "Create a magical wall of flame.",
+    "using_message1": " summons a Wall of Flame.",
+    "type": 3,
+    "sp_cost": 25,
+    "scope": 1,
+    "switch_id": 728,
+    "animation_id": 22,
+    "sound_effect": {
+      "name": "Flame7",
+      "volume": 70
+    },
+    "occasion_field": false,
+    "occasion_battle": true,
+    "power": 60,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 167,
+    "name": "Thermometer",
+    "description": "Adjust the temperature of the battle.",
+    "using_message1": " turns the heat up!",
+    "type": 0,
+    "sp_cost": 28,
+    "scope": 1,
+    "animation_id": 72,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "occasion_field": false,
+    "occasion_battle": true,
+    "state_effects": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 168,
+    "name": "Explosion",
+    "description": "A massive explosion does medium damage to enemies.",
+    "using_message1": " casts Explosion.",
+    "type": 0,
+    "sp_cost": 18,
+    "scope": 1,
+    "animation_id": 82,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 100,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 169,
+    "name": "SummonFireDrake",
+    "description": "Call upon the FireDrake to do your bidding!",
+    "using_message1": " summons the FireDrake!",
+    "type": 3,
+    "sp_cost": 65,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "occasion_field": false,
+    "occasion_battle": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 170,
+    "name": "Antidote",
+    "description": "A spell to cure poison.",
+    "using_message1": " casts Antidote.",
+    "type": 0,
+    "sp_cost": 4,
+    "scope": 3,
+    "animation_id": 48,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [false, false, false, false, false, false, false, false, false, false, false, false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 171,
+    "name": "Poison",
+    "description": "A spell that poisons an enemy for minor damage.",
+    "using_message1": " casts Poison.",
+    "type": 0,
+    "sp_cost": 5,
+    "scope": 0,
+    "animation_id": 24,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 12,
+    "hit": 65,
+    "affect_hp": true,
+    "state_effects": [false, false, false, false, false, false, false, false, false, false, false, false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 172,
+    "name": "Brambles",
+    "description": "A bramble thicket entangles the enemies.",
+    "using_message1": " casts Brambles.",
+    "type": 0,
+    "sp_cost": 8,
+    "scope": 1,
+    "animation_id": 71,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 15,
+    "affect_agility": true,
+    "state_effects": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 173,
+    "name": "TurtleShell",
+    "description": "The shell raises defense.",
+    "using_message1": " casts TurtleShell.",
+    "type": 0,
+    "sp_cost": 12,
+    "scope": 3,
+    "animation_id": 66,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "occasion_field": false,
+    "occasion_battle": true,
+    "power": 15,
+    "affect_defense": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 174,
+    "name": "WallOfBark",
+    "description": "Create a magical wall of wood.",
+    "using_message1": " summons a Wall of Bark.",
+    "type": 3,
+    "sp_cost": 25,
+    "scope": 2,
+    "switch_id": 729,
+    "animation_id": 35,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "occasion_field": false,
+    "occasion_battle": true,
+    "power": 40,
+    "affect_defense": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 175,
+    "name": "MightOfRedwoods",
+    "description": "Increases an ally's attack power.",
+    "using_message1": " casts MightOfRedwoods.",
+    "type": 0,
+    "sp_cost": 18,
+    "scope": 3,
+    "animation_id": 64,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 40,
+    "affect_attack": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 176,
+    "name": "LifeFromDecay",
+    "description": "Brings an ally back to life.",
+    "using_message1": " casts LifeFromDecay.",
+    "type": 0,
+    "sp_cost": 16,
+    "scope": 3,
+    "animation_id": 51,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 45,
+    "affect_hp": true,
+    "state_effects": [true],
+    "attribute_effects": []
+  },
+  {
+    "id": 177,
+    "name": "SummonGorillaMonarch",
+    "description": "Call upon the Gorilla Monarch to do your bidding!",
+    "using_message1": " summons the Gorilla Monarch!",
+    "type": 3,
+    "sp_cost": 65,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "occasion_field": false,
+    "occasion_battle": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 178,
+    "name": "StingingPebbles",
+    "description": "A whirlwind of tiny stones pelts all enemies.",
+    "using_message1": " casts StingingPebbles.",
+    "type": 0,
+    "sp_cost": 5,
+    "scope": 1,
+    "animation_id": 102,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 25,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 179,
+    "name": "TurnToStone",
+    "description": "Traps an enemy in a solid block of rock.",
+    "using_message1": " casts TurnToStone.",
+    "type": 0,
+    "sp_cost": 8,
+    "scope": 0,
+    "animation_id": 55,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 180,
+    "name": "FallingBoulder",
+    "description": "A stone falls onto the enemy for medium damage.",
+    "using_message1": " casts FallingBoulder.",
+    "type": 0,
+    "sp_cost": 14,
+    "scope": 0,
+    "animation_id": 101,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 65,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 181,
+    "name": "EarthShake",
+    "description": "Tectonic plate movements cause medium damage.",
+    "using_message1": " casts EarthShake.",
+    "type": 0,
+    "sp_cost": 22,
+    "scope": 1,
+    "animation_id": 104,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 55,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 182,
+    "name": "WallOfStone",
+    "description": "Create a magical wall of stone.",
+    "using_message1": " summons a Wall of Stone.",
+    "type": 3,
+    "sp_cost": 25,
+    "scope": 0,
+    "switch_id": 730,
+    "animation_id": 106,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "occasion_field": false,
+    "occasion_battle": true,
+    "power": 120,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 183,
+    "name": "SharpAsDiamonds",
+    "description": "Increases the attack power of an ally's weapon.",
+    "using_message1": " casts SharpAsDiamonds.",
+    "type": 0,
+    "sp_cost": 18,
+    "scope": 3,
+    "animation_id": 64,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 40,
+    "affect_attack": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 184,
+    "name": "Inscribe",
+    "description": "Inscribe a glyph of power on a created wall.",
+    "using_message1": " thinks of a rune to inscribe.",
+    "type": 3,
+    "sp_cost": 25,
+    "scope": 0,
+    "switch_id": 799,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "occasion_field": false,
+    "occasion_battle": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 185,
+    "name": "SummonOriginalGolem",
+    "type": 0,
+    "sp_cost": 65,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 186,
+    "name": "PowerDrain",
+    "description": "Low level damage to a single enemy.",
+    "using_message1": " casts PowerDrain.",
+    "type": 0,
+    "sp_cost": 6,
+    "scope": 0,
+    "animation_id": 57,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 30,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 187,
+    "name": "Infect",
+    "description": "Causes sickness.",
+    "using_message1": " casts Infect.",
+    "type": 0,
+    "sp_cost": 8,
+    "scope": 0,
+    "animation_id": 30,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "hit": 65,
+    "state_effects": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 188,
+    "name": "ShortCircuit",
+    "description": "Low level mechanical damage to a single enemy.",
+    "using_message1": " casts ShortCircuit.",
+    "type": 0,
+    "sp_cost": 12,
+    "scope": 0,
+    "animation_id": 62,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 28,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 189,
+    "name": "LifeForStrength",
+    "description": "Give up your own life to damage the enemy.",
+    "using_message1": " casts LifeForStrength.",
+    "type": 3,
+    "sp_cost": 18,
+    "scope": 2,
+    "switch_id": 801,
+    "sound_effect": {
+      "name": "Dark2"
+    },
+    "occasion_field": false,
+    "occasion_battle": true,
+    "power": 20,
+    "affect_attack": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 190,
+    "name": "WallOfMetal",
+    "description": "Create a magical wall of metal.",
+    "using_message1": " summons a Wall of Metal.",
+    "type": 3,
+    "sp_cost": 25,
+    "scope": 4,
+    "switch_id": 731,
+    "animation_id": 57,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "occasion_field": false,
+    "occasion_battle": true,
+    "power": 40,
+    "affect_attack": true,
+    "affect_defense": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 191,
+    "name": "Sacrifice",
+    "description": "Caster dies so that allies will be given life.",
+    "using_message1": " casts Sacrifice.",
+    "type": 3,
+    "sp_cost": 24,
+    "scope": 3,
+    "switch_id": 802,
+    "animation_id": 56,
+    "sound_effect": {
+      "name": "Dark5",
+      "volume": 90
+    },
+    "occasion_field": false,
+    "occasion_battle": true,
+    "magical_rate": 0,
+    "variance": 0,
+    "power": 1,
+    "affect_hp": true,
+    "state_effects": [true],
+    "attribute_effects": []
+  },
+  {
+    "id": 192,
+    "name": "ControlMachines",
+    "description": "Take remote control of machines for one battle.",
+    "using_message1": " attempts to Control Machines.",
+    "type": 3,
+    "sp_cost": 12,
+    "scope": 0,
+    "switch_id": 803,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "occasion_field": false,
+    "occasion_battle": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 193,
+    "name": "SummonFinalLich",
+    "type": 0,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 194,
+    "name": "Invigorate",
+    "description": "Low HP recovery for all allies.",
+    "using_message1": " casts Invigorate.",
+    "type": 0,
+    "sp_cost": 10,
+    "scope": 4,
+    "animation_id": 45,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 45,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 195,
+    "name": "BlindingFlash",
+    "description": "Causes darkness.",
+    "using_message1": " casts BlindingFlash.",
+    "type": 0,
+    "sp_cost": 8,
+    "scope": 0,
+    "animation_id": 36,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "hit": 65,
+    "state_effects": [false, false, false, false, false, false, false, false, false, false, false, false, false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 196,
+    "name": "LifeFromDeath",
+    "description": "Brings an ally back to life.",
+    "using_message1": " casts LifeFromDeath.",
+    "type": 0,
+    "sp_cost": 20,
+    "scope": 3,
+    "animation_id": 52,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 50,
+    "affect_hp": true,
+    "state_effects": [true],
+    "attribute_effects": []
+  },
+  {
+    "id": 197,
+    "name": "HighCure",
+    "description": "High HP recovery for one ally.",
+    "using_message1": " casts HighCure.",
+    "type": 0,
+    "sp_cost": 24,
+    "scope": 3,
+    "animation_id": 47,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 150,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 198,
+    "name": "WallOfLight",
+    "description": "Create a magical wall of light.",
+    "using_message1": " summons a Wall of Light.",
+    "type": 3,
+    "sp_cost": 45,
+    "scope": 0,
+    "switch_id": 732,
+    "animation_id": 116,
+    "sound_effect": {
+      "name": "Flash2"
+    },
+    "occasion_field": false,
+    "occasion_battle": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 199,
+    "name": "TotalCleanse",
+    "type": 0,
+    "scope": 3,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 200,
+    "name": "HighCureAll",
+    "type": 0,
+    "scope": 4,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 201,
+    "name": "SummonArchangel",
+    "type": 0,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 202,
+    "name": "GreatFlood",
+    "type": 0,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 203,
+    "name": "HealingBrine",
+    "type": 0,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 204,
+    "name": "ForestForTheTrees",
+    "type": 0,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 205,
+    "name": "CallingUponTheLand",
+    "type": 0,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 206,
+    "name": "NuclearMeltdown",
+    "type": 0,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 207,
+    "name": "WhirlingFire",
+    "type": 0,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 208,
+    "name": "DarkSurge",
+    "type": 0,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 209,
+    "name": "GetTheeGone",
+    "type": 0,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 210,
+    "name": "DivineSecondChance",
+    "type": 0,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 211,
+    "name": "DivineGrantOfPower",
+    "type": 0,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 212,
+    "type": 0,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 213,
+    "name": "Long Monologue",
+    "description": "Lerle's monologue lulls the enemies to sleep.",
+    "using_message1": " begins reciting a monologue!",
+    "type": 0,
+    "sp_cost": 8,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [false, false, false, false, false, false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 214,
+    "name": "Revenge Vow",
+    "description": "Lerle dramatically vows revenge, attack power up.",
+    "type": 0,
+    "sp_cost": 14,
+    "scope": 2,
+    "animation_id": 64,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 20,
+    "affect_attack": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 215,
+    "name": "Fancy Swordplay",
+    "description": "Lerle slices an enemy, lowering its defense power.",
+    "type": 0,
+    "sp_cost": 12,
+    "scope": 0,
+    "animation_id": 7,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 35,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [],
+    "affect_attr_defence": true
+  },
+  {
+    "id": 216,
+    "name": "MemorizeSTRUCK",
+    "description": "Not yet available.",
+    "type": 3,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "occasion_field": false,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 217,
+    "name": "Stage Lighting",
+    "description": "Light glints off Lerle's teeth, blinding an enemy.",
+    "type": 0,
+    "sp_cost": 14,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [false, false, false, false, false, false, false, false, false, false, false, false, false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 218,
+    "name": "Standing Ovation",
+    "description": "Lerle regains medium HP.",
+    "type": 0,
+    "sp_cost": 12,
+    "scope": 2,
+    "animation_id": 45,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 40,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 219,
+    "type": 0,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 220,
+    "name": "Chemistry",
+    "description": "Not yet available.",
+    "type": 3,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "occasion_field": false,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 221,
+    "name": "Mild Healing",
+    "description": "Radin uses his potions to restore one ally's HP.",
+    "using_message1": " whips up a little health.",
+    "type": 0,
+    "sp_cost": 4,
+    "scope": 3,
+    "animation_id": 45,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 40,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 222,
+    "name": "Medium Healing",
+    "description": "Radin uses his potions to restore one ally's HP.",
+    "using_message1": " whips up some health.",
+    "type": 0,
+    "sp_cost": 8,
+    "scope": 3,
+    "animation_id": 46,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 80,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 223,
+    "name": "Major Healing",
+    "description": "Radin uses his potions to restore one ally's HP.",
+    "using_message1": " whips up a lot of health.",
+    "type": 0,
+    "sp_cost": 12,
+    "scope": 3,
+    "animation_id": 47,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 150,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 224,
+    "name": "Bandage",
+    "description": "Radin makes a turniquet and stops the bleeding.",
+    "using_message1": " staunches the bloodflow.",
+    "type": 0,
+    "sp_cost": 6,
+    "scope": 3,
+    "animation_id": 49,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 225,
+    "name": "Destoner",
+    "description": "Restores a stoned ally.",
+    "using_message1": " gets out his Destoner Kit.",
+    "type": 0,
+    "sp_cost": 6,
+    "scope": 3,
+    "animation_id": 48,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 226,
+    "type": 0,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 227,
+    "name": "Solid Strike",
+    "description": "Attacks with the power of solids.",
+    "using_message1": " attacks with finesse!",
+    "type": 0,
+    "sp_cost": 8,
+    "scope": 0,
+    "animation_id": 7,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 60,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 228,
+    "name": "Liquid Strike",
+    "description": "Attacks with the power of liquids.",
+    "using_message1": " attacks with finesse!",
+    "type": 0,
+    "sp_cost": 8,
+    "scope": 0,
+    "animation_id": 7,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 60,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 229,
+    "name": "Flame Strike",
+    "description": "Attacks with the power of flame.",
+    "using_message1": " attacks with finesse!",
+    "type": 0,
+    "sp_cost": 8,
+    "scope": 0,
+    "animation_id": 7,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 60,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 230,
+    "name": "Electric Strike",
+    "description": "Attacks with the power of electricity.",
+    "using_message1": " attacks with finesse!",
+    "type": 0,
+    "sp_cost": 8,
+    "scope": 0,
+    "animation_id": 7,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 60,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 231,
+    "name": "Wide Slash",
+    "description": "Attacks all enemies with a single blow.",
+    "using_message1": " dashes toward the enemies!",
+    "type": 0,
+    "sp_cost": 12,
+    "scope": 1,
+    "animation_id": 17,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 55,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 232,
+    "type": 0,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 233,
+    "name": "Practiced Swing",
+    "description": "Drago deals major damage to an enemy.",
+    "using_message1": " calmly focuses, and strikes!",
+    "type": 0,
+    "sp_cost": 14,
+    "scope": 0,
+    "animation_id": 8,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 85,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 234,
+    "name": "Morale Booster",
+    "description": "A stirring speech raises all allies' attack power.",
+    "using_message1": " gives a stirring speech!",
+    "type": 0,
+    "sp_cost": 16,
+    "scope": 4,
+    "animation_id": 64,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 30,
+    "affect_attack": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 235,
+    "type": 0,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 236,
+    "name": "TillTheyGlow",
+    "description": "Massive nuclear damage to all enemies.",
+    "using_message1": " activates the PortableNuke.",
+    "type": 0,
+    "sp_cost": 60,
+    "scope": 1,
+    "animation_id": 118,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "physical_rate": 1,
+    "power": 150,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 237,
+    "name": "ConcentratedSpray",
+    "description": "A spray of bullets strikes one enemy.",
+    "using_message1": " fires a spray of bullets!",
+    "type": 0,
+    "sp_cost": 6,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "physical_rate": 2,
+    "power": 40,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 238,
+    "name": "ArmMissile",
+    "description": "A high-powered missile strikes one enemy.",
+    "using_message1": " fires the ArmLauncher.",
+    "type": 0,
+    "sp_cost": 14,
+    "scope": 0,
+    "animation_id": 145,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "physical_rate": 2,
+    "power": 70,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 239,
+    "name": "FireBlast",
+    "description": "A surge of flame deals low damage to one enemy.",
+    "using_message1": " fires the FlameThrower.",
+    "type": 0,
+    "sp_cost": 6,
+    "scope": 0,
+    "animation_id": 78,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "physical_rate": 2,
+    "power": 35,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 240,
+    "name": "SwingingCut",
+    "description": "A wide slash deals damage to all enemies.",
+    "using_message1": " swings the BuzzSaw in an arc.",
+    "type": 0,
+    "sp_cost": 8,
+    "scope": 1,
+    "animation_id": 8,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "physical_rate": 1,
+    "power": 45,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 241,
+    "name": "WaterBlast",
+    "description": "A stream of water deals low damage to one enemy.",
+    "using_message1": " aims the WaterCannon.",
+    "type": 0,
+    "sp_cost": 6,
+    "scope": 0,
+    "animation_id": 95,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "physical_rate": 1,
+    "power": 35,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 242,
+    "name": "Shock",
+    "description": "An electric bolt deals low damage to one enemy.",
+    "using_message1": " thrusts with the CattleProd.",
+    "type": 0,
+    "sp_cost": 6,
+    "scope": 0,
+    "animation_id": 62,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "physical_rate": 1,
+    "power": 35,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 243,
+    "name": "ArmLaser",
+    "description": "A piercing laser does medium damage to one enemy.",
+    "using_message1": " fires the ArmMountedLaser.",
+    "type": 0,
+    "sp_cost": 12,
+    "scope": 0,
+    "animation_id": 119,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "physical_rate": 1,
+    "power": 65,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 244,
+    "name": "BioWarfare",
+    "description": "A canister of deadly toxins poisons all enemies.",
+    "using_message1": " fires the BioWeaponArm.",
+    "type": 0,
+    "sp_cost": 10,
+    "scope": 1,
+    "animation_id": 30,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "physical_rate": 2,
+    "state_effects": [false, false, false, false, false, false, false, false, false, false, false, false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 245,
+    "name": "BombsAway",
+    "description": "Multiple grenades do medium damage to all enemies.",
+    "using_message1": " fires the GrenadeLauncher.",
+    "type": 0,
+    "sp_cost": 16,
+    "scope": 1,
+    "animation_id": 93,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "physical_rate": 2,
+    "power": 60,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 246,
+    "name": "FlingNet",
+    "description": "A strong net traps an enemy, lowering its agility.",
+    "using_message1": " fires the NetLauncher.",
+    "type": 0,
+    "sp_cost": 10,
+    "scope": 0,
+    "animation_id": 60,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "physical_rate": 1,
+    "power": 20,
+    "affect_agility": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 247,
+    "name": "HeadButt",
+    "description": "Impales an enemy, causes bleeding.",
+    "using_message1": " runs with the SpikedHelmet.",
+    "type": 0,
+    "sp_cost": 16,
+    "scope": 0,
+    "animation_id": 38,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "physical_rate": 1,
+    "power": 60,
+    "affect_hp": true,
+    "state_effects": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 248,
+    "name": "LowRepair",
+    "description": "Low-level repair kit for an AG7-17 battle droid.",
+    "using_message1": " activates the Repair System.",
+    "type": 0,
+    "sp_cost": 12,
+    "scope": 2,
+    "animation_id": 115,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "physical_rate": 1,
+    "power": 40,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 249,
+    "name": "MediumRepair",
+    "description": "Medium-level repair kit for AG7-17 battle droids.",
+    "using_message1": " activates the Repair System.",
+    "type": 0,
+    "sp_cost": 18,
+    "scope": 2,
+    "animation_id": 115,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "physical_rate": 2,
+    "power": 75,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 250,
+    "name": "HighRepair",
+    "description": "High-level repair kit for AG7-17 battle droids.",
+    "using_message1": " activates the Repair System.",
+    "type": 0,
+    "sp_cost": 26,
+    "scope": 2,
+    "animation_id": 115,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "physical_rate": 3,
+    "power": 150,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 251,
+    "name": "MultiMissiles",
+    "description": "Several missiles deal medium damage to all enemies",
+    "using_message1": " fires the MissilePack.",
+    "type": 0,
+    "sp_cost": 20,
+    "scope": 1,
+    "animation_id": 151,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "physical_rate": 2,
+    "power": 70,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 252,
+    "type": 0,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 253,
+    "name": "RemoveStatus",
+    "description": "Removes the status afflictions from one ally.",
+    "using_message1": " activates the Medkit.",
+    "type": 0,
+    "sp_cost": 10,
+    "scope": 3,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false, true, true, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 254,
+    "type": 0,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 255,
+    "name": "Poisonous Syringe",
+    "description": "Attack the enemy with a syringe full of poison.",
+    "using_message1": " lunged with the syringe.",
+    "type": 0,
+    "sp_cost": 8,
+    "scope": 0,
+    "animation_id": 24,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "physical_rate": 1,
+    "power": 20,
+    "hit": 85,
+    "affect_hp": true,
+    "state_effects": [false, false, false, false, false, false, false, false, false, false, false, false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 256,
+    "name": "Blackmarket Remedy",
+    "description": "An illegal remedy for whatever ails you.",
+    "using_message1": " uses a Blackmarket Remedy.",
+    "type": 0,
+    "sp_cost": 16,
+    "scope": 3,
+    "animation_id": 48,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 25,
+    "affect_hp": true,
+    "state_effects": [false, false, false, false, false, false, false, false, false, false, false, false, true, true, false, false, false, true, true, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 257,
+    "name": "Backstab",
+    "description": "A deadly strike causes bleeding, lowers defense.",
+    "using_message1": " stabs from the rear!",
+    "type": 0,
+    "sp_cost": 22,
+    "scope": 0,
+    "animation_id": 38,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 55,
+    "hit": 70,
+    "affect_hp": true,
+    "state_effects": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true],
+    "attribute_effects": [],
+    "affect_attr_defence": true
+  },
+  {
+    "id": 258,
+    "type": 0,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 259,
+    "name": "ABL 2.0 SKILLS",
+    "type": 0,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 260,
+    "name": "Mix Formula",
+    "description": "Combine ingredients to form potions and bombs.",
+    "type": 3,
+    "scope": 0,
+    "switch_id": 734,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 261,
+    "name": "Change Tape",
+    "description": "Select a different tape for Emily's radio.",
+    "type": 3,
+    "scope": 0,
+    "switch_id": 805,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 262,
+    "name": "Play Radio",
+    "description": "Play random songs for various effects in battle.",
+    "using_message1": " activates the power of radio!",
+    "type": 3,
+    "sp_cost": 8,
+    "scope": 0,
+    "switch_id": 809,
+    "sound_effect": {
+      "name": "Clock",
+      "tempo": 70
+    },
+    "occasion_field": false,
+    "occasion_battle": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 263,
+    "name": "First Aid",
+    "description": "Radin's knowledge of first aid can heal an ally.",
+    "using_message1": " opens his first aid kit.",
+    "type": 0,
+    "sp_cost": 6,
+    "scope": 3,
+    "animation_id": 45,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 40,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 264,
+    "name": "Dig Ingredients",
+    "description": "Search for ingredients in outdoor areas.",
+    "using_message1": " searches for ingredients.",
+    "type": 3,
+    "sp_cost": 4,
+    "scope": 0,
+    "switch_id": 811,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 265,
+    "name": "Memorize",
+    "description": "Memorize the attack patterns of a single enemy.",
+    "using_message1": " poses dramatically!",
+    "type": 3,
+    "sp_cost": 5,
+    "scope": 0,
+    "switch_id": 813,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "occasion_field": false,
+    "occasion_battle": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 266,
+    "name": "Weapon Forging",
+    "description": "Use enemy data to forge powerful weapons.",
+    "type": 3,
+    "scope": 0,
+    "switch_id": 859,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 267,
+    "name": "MEMORIZABLES",
+    "type": 0,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 268,
+    "name": "Droid",
+    "description": "Lerle does his best impression of a droid.",
+    "using_message1": " goes into character!",
+    "type": 3,
+    "sp_cost": 10,
+    "scope": 0,
+    "switch_id": 814,
+    "sound_effect": {
+      "name": "Evasion1",
+      "tempo": 130
+    },
+    "occasion_field": false,
+    "occasion_battle": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 269,
+    "name": "Wolf",
+    "description": "Lerle does his best impression of a wolf.",
+    "using_message1": " goes into character!",
+    "type": 3,
+    "sp_cost": 10,
+    "scope": 0,
+    "switch_id": 815,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "occasion_field": false,
+    "occasion_battle": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 270,
+    "name": "Gogre",
+    "description": "Lerle does his best impression of a gogre.",
+    "using_message1": " goes into character!",
+    "type": 3,
+    "sp_cost": 10,
+    "scope": 0,
+    "switch_id": 816,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "occasion_field": false,
+    "occasion_battle": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 271,
+    "name": "Dirt Dweller",
+    "description": "Lerle does his best impression of a dirt dweller.",
+    "using_message1": " goes into character!",
+    "type": 3,
+    "sp_cost": 10,
+    "scope": 0,
+    "switch_id": 817,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "occasion_field": false,
+    "occasion_battle": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 272,
+    "name": "Bandit",
+    "description": "Lerle does his best impression of a bandit.",
+    "using_message1": " goes into character!",
+    "type": 3,
+    "sp_cost": 10,
+    "scope": 0,
+    "switch_id": 818,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "occasion_field": false,
+    "occasion_battle": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 273,
+    "name": "Clinger",
+    "description": "Lerle does his best impression of a wall clinger.",
+    "using_message1": " goes into character!",
+    "type": 3,
+    "sp_cost": 10,
+    "scope": 0,
+    "switch_id": 819,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "occasion_field": false,
+    "occasion_battle": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 274,
+    "name": "Giant",
+    "description": "Lerle does his best impression of a giant.",
+    "using_message1": " goes into character!",
+    "type": 3,
+    "sp_cost": 10,
+    "scope": 0,
+    "switch_id": 820,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "occasion_field": false,
+    "occasion_battle": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 275,
+    "name": "Wylden",
+    "description": "Lerle does his best impression of a wylden.",
+    "using_message1": " goes into character!",
+    "type": 3,
+    "sp_cost": 10,
+    "scope": 0,
+    "switch_id": 821,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "occasion_field": false,
+    "occasion_battle": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 276,
+    "name": "Obling",
+    "description": "Lerle does his best impression of an obling.",
+    "using_message1": " goes into character!",
+    "type": 3,
+    "sp_cost": 10,
+    "scope": 0,
+    "switch_id": 822,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "occasion_field": false,
+    "occasion_battle": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 277,
+    "name": "Slime Coater",
+    "description": "Lerle does his best impression of a slime coater.",
+    "using_message1": " goes into character!",
+    "type": 3,
+    "sp_cost": 10,
+    "scope": 0,
+    "switch_id": 823,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "occasion_field": false,
+    "occasion_battle": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 278,
+    "name": "Snake",
+    "description": "Lerle does his best impression of a snake.",
+    "using_message1": " goes into character!",
+    "type": 3,
+    "sp_cost": 10,
+    "scope": 0,
+    "switch_id": 824,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "occasion_field": false,
+    "occasion_battle": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 279,
+    "name": "Marshile",
+    "description": "Lerle does his best impression of a marshile.",
+    "using_message1": " goes into character!",
+    "type": 3,
+    "sp_cost": 10,
+    "scope": 0,
+    "switch_id": 825,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "occasion_field": false,
+    "occasion_battle": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 280,
+    "name": "Toad",
+    "description": "Lerle does his best impression of a toad.",
+    "using_message1": " goes into character!",
+    "type": 3,
+    "sp_cost": 10,
+    "scope": 0,
+    "switch_id": 826,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "occasion_field": false,
+    "occasion_battle": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 281,
+    "name": "Mantis",
+    "description": "Lerle does his best impression of a mantis.",
+    "using_message1": " goes into character!",
+    "type": 3,
+    "sp_cost": 10,
+    "scope": 0,
+    "switch_id": 827,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "occasion_field": false,
+    "occasion_battle": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 282,
+    "name": "Skeleton",
+    "description": "Lerle does his best impression of a skeleton.",
+    "using_message1": " goes into character!",
+    "type": 3,
+    "sp_cost": 10,
+    "scope": 0,
+    "switch_id": 828,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "occasion_field": false,
+    "occasion_battle": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 283,
+    "name": "Ghost",
+    "description": "Lerle does his best impression of a ghost.",
+    "using_message1": " goes into character!",
+    "type": 3,
+    "sp_cost": 10,
+    "scope": 0,
+    "switch_id": 829,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "occasion_field": false,
+    "occasion_battle": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 284,
+    "name": "Beast",
+    "description": "Lerle does his best impression of a beast.",
+    "using_message1": " goes into character!",
+    "type": 3,
+    "sp_cost": 10,
+    "scope": 0,
+    "switch_id": 830,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "occasion_field": false,
+    "occasion_battle": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 285,
+    "name": "Bear",
+    "description": "Lerle does his best impression of a bear.",
+    "using_message1": " goes into character!",
+    "type": 3,
+    "sp_cost": 10,
+    "scope": 0,
+    "switch_id": 831,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "occasion_field": false,
+    "occasion_battle": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 286,
+    "type": 0,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 287,
+    "name": "Learn From Enemy",
+    "description": "Study enemies in order to increase Forging skill.",
+    "using_message1": " studies the opposition.",
+    "type": 3,
+    "sp_cost": 2,
+    "scope": 0,
+    "switch_id": 860,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "occasion_field": false,
+    "occasion_battle": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 288,
+    "name": "Self-Preservation",
+    "description": "Forget your allies, and save yourself!",
+    "using_message1": " saves his own hide!",
+    "type": 0,
+    "sp_cost": 8,
+    "scope": 2,
+    "animation_id": 46,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 60,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 289,
+    "name": "Field/Battery Repair",
+    "description": "Repair broken field devices and batteries.",
+    "using_message1": " looks through his inventory.",
+    "type": 3,
+    "scope": 0,
+    "switch_id": 979,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 290,
+    "name": "*Kersh/Surl Skills*",
+    "type": 0,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 291,
+    "name": "Memory of Pain",
+    "description": "Kersh unleashes the pain of Surl on all enemies.",
+    "using_message1": " cries out in anguish!",
+    "type": 0,
+    "sp_cost": 8,
+    "scope": 1,
+    "animation_id": 123,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 200,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 292,
+    "name": "Memory of Death",
+    "description": "Kersh unleashes death upon all the enemies!",
+    "using_message1": " cries out in anguish!",
+    "type": 0,
+    "sp_cost": 20,
+    "scope": 1,
+    "animation_id": 124,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [true],
+    "attribute_effects": []
+  },
+  {
+    "id": 293,
+    "name": "Memory of Fear",
+    "description": "Kersh instills intense fear in all the enemies!",
+    "using_message1": " cries out in anguish!",
+    "type": 0,
+    "sp_cost": 6,
+    "scope": 1,
+    "animation_id": 129,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 100,
+    "affect_defense": true,
+    "affect_agility": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 294,
+    "name": "Memory of Sorrow",
+    "description": "Kersh unleashes the power of sorrow on every enemy",
+    "using_message1": " cries out in anguish!",
+    "type": 0,
+    "sp_cost": 8,
+    "scope": 1,
+    "animation_id": 57,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 90,
+    "affect_attack": true,
+    "affect_defense": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 295,
+    "name": "Memory of Hate",
+    "description": "Kersh unleashes the hatred of Surl on every enemy!",
+    "using_message1": " cries out in anguish!",
+    "type": 0,
+    "sp_cost": 12,
+    "scope": 1,
+    "animation_id": 122,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 220,
+    "affect_hp": true,
+    "affect_sp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 296,
+    "name": "Memory of Loss",
+    "description": "Kersh unleashes the memories of all Surl has lost!",
+    "using_message1": " cries out in anguish!",
+    "type": 0,
+    "sp_cost": 22,
+    "scope": 1,
+    "animation_id": 118,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 100,
+    "affect_hp": true,
+    "affect_sp": true,
+    "affect_attack": true,
+    "affect_defense": true,
+    "affect_spirit": true,
+    "affect_agility": true,
+    "absorb_damage": true,
+    "ignore_defense": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 297,
+    "name": "Memory of Despair",
+    "description": "Kersh unleashes the despair of Surl on one enemy!",
+    "using_message1": " cries out in anguish!",
+    "type": 0,
+    "sp_cost": 10,
+    "scope": 0,
+    "animation_id": 129,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 400,
+    "affect_attack": true,
+    "affect_defense": true,
+    "affect_spirit": true,
+    "affect_agility": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 298,
+    "type": 0,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 299,
+    "name": "Groin Hit",
+    "description": "Strike below the belt, reducing enemy defenses!",
+    "using_message1": " aims carefully, and strikes!",
+    "type": 0,
+    "sp_cost": 8,
+    "scope": 0,
+    "animation_id": 10,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "occasion_field": false,
+    "occasion_battle": true,
+    "power": 20,
+    "affect_defense": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 300,
+    "name": "Sneaky Move",
+    "description": "A sneaky move that makes you move more quickly!",
+    "using_message1": " sneakily feints one way!",
+    "type": 0,
+    "sp_cost": 5,
+    "scope": 2,
+    "animation_id": 70,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "occasion_field": false,
+    "occasion_battle": true,
+    "power": 25,
+    "affect_agility": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 301,
+    "name": "False Promises",
+    "description": "Promise the enemy mercy, but lie!",
+    "using_message1": " promises an awful lot!",
+    "type": 0,
+    "sp_cost": 16,
+    "scope": 0,
+    "animation_id": 60,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "occasion_field": false,
+    "occasion_battle": true,
+    "power": 28,
+    "affect_attack": true,
+    "affect_defense": true,
+    "affect_spirit": true,
+    "affect_agility": true,
+    "absorb_damage": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 302,
+    "description": "Strike below the belt! Who cares if it's not fair?",
+    "type": 3,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "occasion_field": false,
+    "occasion_battle": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 303,
+    "name": "Rejuve Field",
+    "description": "Heals all allies for medium HP.",
+    "using_message1": " activates the field device!",
+    "type": 0,
+    "scope": 4,
+    "animation_id": 45,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 40,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 304,
+    "name": "Force Field",
+    "description": "Raises defense of all allies.",
+    "using_message1": " activates the field device!",
+    "type": 0,
+    "scope": 4,
+    "animation_id": 66,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 15,
+    "affect_defense": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 305,
+    "name": "Rapidity Field",
+    "description": "Raises speed of all allies.",
+    "using_message1": " activates the field device!",
+    "type": 0,
+    "scope": 4,
+    "animation_id": 70,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 10,
+    "affect_agility": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 306,
+    "name": "Volt Battery",
+    "description": "Use the power of electricity against one enemy.",
+    "using_message1": " triggers the battery release!",
+    "type": 0,
+    "scope": 0,
+    "animation_id": 90,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 55,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 307,
+    "name": "Flame Battery",
+    "description": "Use the power of flame against one enemy.",
+    "using_message1": " triggers the battery release!",
+    "type": 0,
+    "scope": 0,
+    "animation_id": 78,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 55,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 308,
+    "name": "Water Battery",
+    "description": "Use the power of water against one enemy.",
+    "using_message1": " triggers the battery release!",
+    "type": 0,
+    "scope": 0,
+    "animation_id": 96,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 55,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 309,
+    "name": "Carbon Battery",
+    "description": "Use the power of carbon against one enemy.",
+    "using_message1": " triggers the battery release!",
+    "type": 0,
+    "scope": 0,
+    "animation_id": 102,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 55,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 310,
+    "name": "Minor Bomb",
+    "description": "Standard destructive power",
+    "using_message1": " throws the bomb at the enemy!",
+    "type": 0,
+    "scope": 1,
+    "animation_id": 93,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 80,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 311,
+    "name": "Major Bomb",
+    "description": "Great destructive power",
+    "using_message1": " throws the bomb at the enemy!",
+    "type": 0,
+    "scope": 1,
+    "animation_id": 93,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 140,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 312,
+    "name": "Geddon Bomb",
+    "description": "Huge destructive power",
+    "using_message1": " throws the bomb at the enemy!",
+    "type": 0,
+    "scope": 1,
+    "animation_id": 93,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 190,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 313,
+    "name": "Heavy Potion",
+    "description": "Raises drinker's defense by a lot.",
+    "using_message1": " produces one of his potions!",
+    "type": 0,
+    "scope": 3,
+    "animation_id": 66,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 35,
+    "affect_defense": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 314,
+    "name": "Thick Potion",
+    "description": "Raises drinker's defense by a little.",
+    "using_message1": " produces one of his potions!",
+    "type": 0,
+    "scope": 3,
+    "animation_id": 66,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 15,
+    "affect_defense": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 315,
+    "name": "Brownian Potion",
+    "description": "Raises drinker's speed by a lot.",
+    "using_message1": " produces one of his potions!",
+    "type": 0,
+    "scope": 3,
+    "animation_id": 70,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 35,
+    "affect_agility": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 316,
+    "name": "Swirly Potion",
+    "description": "Raises drinker's speed by a little.",
+    "using_message1": " produces one of his potions!",
+    "type": 0,
+    "scope": 3,
+    "animation_id": 70,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 15,
+    "affect_agility": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 317,
+    "name": "Opaque Potion",
+    "description": "Heals a large amount of HP.",
+    "using_message1": " produces one of his potions!",
+    "type": 0,
+    "scope": 3,
+    "animation_id": 138,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 180,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 318,
+    "name": "Milky Potion",
+    "description": "Heals a medium amount of HP.",
+    "using_message1": " produces one of his potions!",
+    "type": 0,
+    "scope": 3,
+    "animation_id": 138,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 90,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 319,
+    "name": "Cloudy Potion",
+    "description": "Heals a small amount of HP.",
+    "using_message1": " produces one of his potions!",
+    "type": 0,
+    "scope": 3,
+    "animation_id": 138,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 50,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 320,
+    "type": 0,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 321,
+    "name": "Electric Current",
+    "description": "Zap a single enemy for low electrical damage.",
+    "using_message1": " creates an electric current.",
+    "type": 0,
+    "sp_cost": 6,
+    "scope": 0,
+    "animation_id": 90,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 45,
+    "hit": 70,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 322,
+    "name": "Electron Spray",
+    "description": "Zap all enemies for medium  electrical damage.",
+    "using_message1": " sprays electrons everywhere!",
+    "type": 0,
+    "sp_cost": 14,
+    "scope": 1,
+    "animation_id": 92,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 55,
+    "hit": 65,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 323,
+    "name": "Static Shielding",
+    "description": "Creates a small electrical shield.",
+    "using_message1": " engages its static shield.",
+    "type": 0,
+    "sp_cost": 4,
+    "scope": 2,
+    "animation_id": 89,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 15,
+    "affect_defense": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 324,
+    "name": "Strong Jaws",
+    "description": "A ferocious biting attack!",
+    "using_message1": " gnashes its powerful jaws!",
+    "failure_message": 3,
+    "type": 0,
+    "sp_cost": 6,
+    "scope": 0,
+    "animation_id": 38,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "variance": 5,
+    "power": 40,
+    "hit": 75,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 325,
+    "name": "Wolfish Speed",
+    "description": "Increase speed tremendously.",
+    "using_message1": " gains momentum!",
+    "type": 0,
+    "sp_cost": 4,
+    "scope": 2,
+    "animation_id": 70,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 30,
+    "affect_agility": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 326,
+    "name": "Chilling Howl",
+    "description": "Lower the mental state of all opponents.",
+    "using_message1": " emits a bone-chilling howl!",
+    "type": 0,
+    "sp_cost": 4,
+    "scope": 1,
+    "animation_id": 69,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 12,
+    "hit": 90,
+    "affect_spirit": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 327,
+    "name": "Mad Rush",
+    "description": "The massive bulk of a gogre makes charges deadly.",
+    "using_message1": " lumbers foward in a charge!",
+    "failure_message": 3,
+    "type": 0,
+    "sp_cost": 14,
+    "scope": 0,
+    "animation_id": 4,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 85,
+    "hit": 55,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 328,
+    "name": "Thick Skin",
+    "description": "A gogre's thick skin can toughen on command.",
+    "using_message1": " wills itself more resistant.",
+    "type": 0,
+    "sp_cost": 8,
+    "scope": 2,
+    "animation_id": 66,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 20,
+    "affect_defense": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 329,
+    "name": "Wallow",
+    "description": "A gogre can wallow in mud to restore its health.",
+    "using_message1": " wallows happily.",
+    "type": 0,
+    "sp_cost": 6,
+    "scope": 2,
+    "animation_id": 138,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 50,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 330,
+    "name": "Burrow",
+    "description": "Burrow deep within the earth for protection and HP",
+    "using_message1": " burrows into the ground.",
+    "type": 0,
+    "sp_cost": 6,
+    "scope": 2,
+    "animation_id": 102,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 15,
+    "affect_hp": true,
+    "affect_defense": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 331,
+    "name": "Sandstorm",
+    "description": "Pummel all enemies with blinding sand.",
+    "using_message1": " spins up a raging sandstorm!",
+    "type": 0,
+    "sp_cost": 8,
+    "scope": 1,
+    "animation_id": 35,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 20,
+    "hit": 80,
+    "affect_hp": true,
+    "state_effects": [false, false, false, false, false, false, false, false, false, false, false, false, false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 332,
+    "name": "Solidify",
+    "description": "Harden your body into defensive rock.",
+    "using_message1": " increases its solidity.",
+    "type": 0,
+    "sp_cost": 8,
+    "scope": 2,
+    "animation_id": 66,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 15,
+    "affect_defense": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 333,
+    "name": "Surprise Attack",
+    "description": "Startle all enemies into lowering their defenses.",
+    "using_message1": " surprises his opponents!",
+    "type": 0,
+    "sp_cost": 6,
+    "scope": 1,
+    "animation_id": 67,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 12,
+    "hit": 80,
+    "affect_defense": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 334,
+    "name": "Nimble Leap",
+    "description": "A skilled leap increases both speed and defense.",
+    "using_message1": " leaps over the enemy's head!",
+    "type": 0,
+    "sp_cost": 8,
+    "scope": 2,
+    "animation_id": 70,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 12,
+    "affect_defense": true,
+    "affect_agility": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 335,
+    "name": "Aimed Attack",
+    "description": "This aimed attack ignores one enemy's defense.",
+    "using_message1": " aims carefully, and strikes!",
+    "type": 0,
+    "sp_cost": 12,
+    "scope": 0,
+    "animation_id": 6,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "physical_rate": 2,
+    "power": 40,
+    "affect_hp": true,
+    "ignore_defense": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 336,
+    "name": "Poison Vine",
+    "description": "Barbs on the end of a vine poison one enemy.",
+    "using_message1": " flings out a vine protrusion.",
+    "failure_message": 3,
+    "type": 0,
+    "sp_cost": 4,
+    "scope": 0,
+    "animation_id": 24,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 12,
+    "hit": 70,
+    "affect_hp": true,
+    "state_effects": [false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 337,
+    "name": "Sapping Vine",
+    "description": "Suckers on the end of a vine drain an enemy's HP.",
+    "using_message1": " flings out a vine protrusion.",
+    "failure_message": 3,
+    "type": 0,
+    "sp_cost": 10,
+    "scope": 0,
+    "animation_id": 74,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 30,
+    "hit": 70,
+    "affect_hp": true,
+    "absorb_damage": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 338,
+    "name": "Magic Vine",
+    "description": "This vine attacks the MP reserves of one enemy.",
+    "using_message1": " flings out a vine protrusion.",
+    "failure_message": 3,
+    "type": 0,
+    "scope": 0,
+    "animation_id": 75,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 20,
+    "hit": 70,
+    "affect_sp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 339,
+    "name": "Powerful Swing",
+    "description": "Tremendous damage to a single enemy.",
+    "using_message1": " swings his club with power!",
+    "failure_message": 3,
+    "type": 0,
+    "sp_cost": 6,
+    "scope": 0,
+    "animation_id": 12,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 90,
+    "hit": 50,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 340,
+    "name": "Giant Rage",
+    "description": "Rage to match your size increases your ferocity!",
+    "using_message1": " swings his club with power!",
+    "failure_message": 3,
+    "type": 0,
+    "sp_cost": 10,
+    "scope": 0,
+    "animation_id": 64,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 40,
+    "hit": 60,
+    "affect_attack": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 341,
+    "name": "No Man Hurts Me!",
+    "description": "Lower the mental defense of all enemies.",
+    "using_message1": " cries \"No man hurts me!\"",
+    "type": 0,
+    "sp_cost": 6,
+    "scope": 1,
+    "animation_id": 69,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 30,
+    "affect_spirit": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 342,
+    "name": "Wylden Toughness",
+    "description": "Shear force of life cleanses the body of ailments.",
+    "using_message1": " draws on its vitality.",
+    "type": 0,
+    "sp_cost": 4,
+    "scope": 2,
+    "animation_id": 46,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, false, false, true, false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 343,
+    "name": "Poisonous Spear",
+    "description": "Strike with a spear coated with poison.",
+    "using_message1": " strikes with its poison!",
+    "failure_message": 3,
+    "type": 0,
+    "sp_cost": 4,
+    "scope": 0,
+    "animation_id": 11,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 18,
+    "hit": 80,
+    "affect_hp": true,
+    "state_effects": [false, false, false, false, false, false, false, false, false, false, false, false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 344,
+    "name": "Pelt With Rocks",
+    "description": "Furiously throw rocks at your enemies.",
+    "using_message1": " unleashes a stony barrage!",
+    "failure_message": 3,
+    "type": 0,
+    "sp_cost": 2,
+    "scope": 1,
+    "animation_id": 102,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 35,
+    "hit": 90,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 345,
+    "name": "Strength in Numbers",
+    "description": "Oblings fight en masse, providing strength to all.",
+    "using_message1": " chants a battlecry!",
+    "type": 0,
+    "sp_cost": 8,
+    "scope": 4,
+    "animation_id": 64,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 25,
+    "affect_attack": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 346,
+    "name": "Obling Brew",
+    "description": "A jug of foul-smelling Obling ale. Restores MP.",
+    "using_message1": " takes a swig.",
+    "type": 0,
+    "scope": 2,
+    "animation_id": 138,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 15,
+    "affect_sp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 347,
+    "name": "Obling Tenacity",
+    "description": "Fight! Fight! And keep on fighting! Am I wrong?",
+    "using_message1": " throws itself into battle!",
+    "type": 0,
+    "sp_cost": 4,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "variance": 6,
+    "power": 30,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 348,
+    "name": "Poisonous Ooze",
+    "description": "Goop with a low chance of poisoning an enemy.",
+    "using_message1": " fires a glob of poison!",
+    "failure_message": 3,
+    "type": 0,
+    "sp_cost": 2,
+    "scope": 0,
+    "animation_id": 24,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "hit": 50,
+    "state_effects": [false, true, false, false, false, false, false, false, false, false, false, false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 349,
+    "name": "Sticky Ooze",
+    "description": "Adhesive goop lowers the speed of all enemies.",
+    "using_message1": " secretes sticky ooze!",
+    "type": 0,
+    "sp_cost": 6,
+    "scope": 1,
+    "animation_id": 71,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 15,
+    "hit": 80,
+    "affect_agility": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 350,
+    "name": "Flammable Blast",
+    "description": "Ignite toxic gases with explosive effect!",
+    "using_message1": " fires an explosive volley!",
+    "type": 0,
+    "scope": 1,
+    "animation_id": 93,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "variance": 8,
+    "power": 70,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 351,
+    "name": "Tighten Coils",
+    "description": "Coils around its prey, lowering defense and speed.",
+    "using_message1": " wraps itself around its prey!",
+    "type": 0,
+    "sp_cost": 6,
+    "scope": 0,
+    "animation_id": 42,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 15,
+    "affect_defense": true,
+    "affect_agility": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 352,
+    "name": "Rattle",
+    "description": "The snake's rattle raises its attack power.",
+    "type": 0,
+    "sp_cost": 4,
+    "scope": 2,
+    "animation_id": 64,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 18,
+    "affect_attack": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 353,
+    "name": "Snake Strike",
+    "description": "A poisonous strike at extreme speed!",
+    "using_message1": " darts foward and strikes!",
+    "failure_message": 3,
+    "type": 0,
+    "sp_cost": 8,
+    "scope": 0,
+    "animation_id": 38,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 55,
+    "hit": 90,
+    "affect_hp": true,
+    "state_effects": [false, false, false, false, false, false, false, false, false, false, false, false, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 354,
+    "name": "Natural Selection",
+    "description": "Tap evolutionary power to increase ATK, DEF, AGL.",
+    "using_message1": " evolves!",
+    "type": 0,
+    "sp_cost": 12,
+    "scope": 2,
+    "animation_id": 64,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 20,
+    "affect_attack": true,
+    "affect_defense": true,
+    "affect_agility": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 355,
+    "name": "Marshile Blade",
+    "description": "Some Marshile have developed bone sword-arms.",
+    "using_message1": " attacks with its sword-arm!",
+    "failure_message": 3,
+    "type": 0,
+    "sp_cost": 8,
+    "scope": 0,
+    "animation_id": 5,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "variance": 5,
+    "power": 65,
+    "hit": 80,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 356,
+    "name": "Absorption Trait",
+    "description": "Marshile can absorb the HP and MP of their prey.",
+    "using_message1": " activates absorbing gene!",
+    "type": 0,
+    "sp_cost": 8,
+    "scope": 0,
+    "animation_id": 75,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 20,
+    "hit": 80,
+    "affect_hp": true,
+    "affect_sp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 357,
+    "name": "Whipping Tongue",
+    "description": "A gross tongue-whip that does medium damage.",
+    "using_message1": " whips its tongue out!",
+    "failure_message": 3,
+    "type": 0,
+    "sp_cost": 4,
+    "scope": 0,
+    "animation_id": 10,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "variance": 6,
+    "power": 55,
+    "hit": 80,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 358,
+    "name": "Warts",
+    "description": "Heals an ally of all conditions.",
+    "using_message1": " is covered in helpful warts!",
+    "type": 0,
+    "sp_cost": 4,
+    "scope": 3,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [false, false, false, false, false, false, false, false, false, false, false, false, true, true, false, false, false, true, true, true],
+    "attribute_effects": []
+  },
+  {
+    "id": 359,
+    "name": "Lilypad",
+    "description": "Regain some HP just by sitting on your lilypad.",
+    "using_message1": " just sits there.",
+    "type": 0,
+    "scope": 2,
+    "animation_id": 45,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "variance": 3,
+    "power": 30,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 360,
+    "name": "Raid",
+    "description": "Raid all the enemies for medium damage.",
+    "using_message1": " attacks en masse!",
+    "failure_message": 3,
+    "type": 0,
+    "sp_cost": 8,
+    "scope": 1,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 50,
+    "hit": 80,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 361,
+    "name": "Tough Carapace",
+    "description": "The tough mantis carapace raises defense.",
+    "using_message1": " braces itself for defense.",
+    "type": 0,
+    "sp_cost": 4,
+    "scope": 2,
+    "animation_id": 66,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 13,
+    "affect_defense": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 362,
+    "name": "Many Legs",
+    "description": "Increase speed by making use of its many legs.",
+    "using_message1": " scuttles even more rapidly!",
+    "type": 0,
+    "sp_cost": 6,
+    "scope": 2,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 18,
+    "affect_agility": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 363,
+    "name": "Touch of the Undead",
+    "description": "The skeletal touch lowers an enemy's defense.",
+    "using_message1": " reaches out a bony hand.",
+    "failure_message": 3,
+    "type": 0,
+    "sp_cost": 6,
+    "scope": 0,
+    "animation_id": 121,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 22,
+    "affect_defense": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 364,
+    "name": "Grave Circumstance",
+    "description": "Lowers the MP and HP of all enemies.",
+    "using_message1": " cackles hollowly.",
+    "type": 0,
+    "sp_cost": 12,
+    "scope": 1,
+    "animation_id": 124,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "variance": 5,
+    "power": 15,
+    "affect_hp": true,
+    "affect_sp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 365,
+    "name": "Death Comes For All",
+    "description": "An attack from beyond the tomb.",
+    "using_message1": " strikes with deadly force!",
+    "type": 0,
+    "sp_cost": 18,
+    "scope": 0,
+    "animation_id": 123,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 75,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 366,
+    "name": "Drain Magic",
+    "description": "Spirits have the ability to drain MP from victims.",
+    "using_message1": " drains magic potential!",
+    "type": 0,
+    "sp_cost": 8,
+    "scope": 0,
+    "animation_id": 75,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 24,
+    "affect_sp": true,
+    "absorb_damage": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 367,
+    "name": "Immobilize With Fear",
+    "description": "Fear can immobilize you, lowering your chances.",
+    "using_message1": " instills terror!",
+    "type": 0,
+    "sp_cost": 10,
+    "scope": 0,
+    "animation_id": 124,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 15,
+    "affect_defense": true,
+    "affect_spirit": true,
+    "affect_agility": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 368,
+    "name": "Unearthly Strike",
+    "description": "Strike a single target with deathly cold.",
+    "using_message1": " invokes chilly death!",
+    "type": 0,
+    "sp_cost": 8,
+    "scope": 0,
+    "animation_id": 85,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 70,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true]
+  },
+  {
+    "id": 369,
+    "name": "Impale",
+    "description": "Gore an enemy on your horn for serious damage.",
+    "using_message1": " lunges forward with its horn!",
+    "failure_message": 3,
+    "type": 0,
+    "sp_cost": 12,
+    "scope": 0,
+    "animation_id": 11,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 87,
+    "hit": 60,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 370,
+    "name": "Unafraid",
+    "description": "Beasts are known for their resistance to fear.",
+    "using_message1": " is unafraid!",
+    "type": 0,
+    "sp_cost": 6,
+    "scope": 2,
+    "animation_id": 64,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 17,
+    "affect_attack": true,
+    "affect_defense": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 371,
+    "name": "Unusual Metabolism",
+    "description": "Beasts can redigest their food, providing more HP.",
+    "using_message1": " eats its second breakfast.",
+    "type": 0,
+    "sp_cost": 10,
+    "scope": 2,
+    "animation_id": 46,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 30,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 372,
+    "name": "Claw Swipe",
+    "description": "A tremendous swipe of your sharp claws!",
+    "using_message1": " swipes its sharp claws!",
+    "failure_message": 3,
+    "type": 0,
+    "sp_cost": 12,
+    "scope": 0,
+    "animation_id": 18,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 82,
+    "hit": 60,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 373,
+    "name": "Bear Smash",
+    "description": "A powerful charge knocks the opponent down.",
+    "using_message1": " breaks into a run!",
+    "failure_message": 3,
+    "type": 0,
+    "sp_cost": 12,
+    "scope": 0,
+    "animation_id": 4,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 60,
+    "hit": 50,
+    "affect_defense": true,
+    "affect_agility": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 374,
+    "name": "Protect Young",
+    "description": "Bears often go berserk when defending their young.",
+    "using_message1": " roars defiance and rage!",
+    "type": 0,
+    "sp_cost": 12,
+    "scope": 2,
+    "animation_id": 64,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 50,
+    "affect_attack": true,
+    "affect_defense": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 375,
+    "type": 0,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 376,
+    "name": "Air Support",
+    "description": "Rain fire down from the Agency Tram",
+    "using_message1": " calls on air support!",
+    "type": 0,
+    "sp_cost": 10,
+    "scope": 1,
+    "animation_id": 81,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 25,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 377,
+    "name": "Sharpshooter",
+    "description": "Skilled shot ignores defense!",
+    "using_message1": " takes aim, and fires!",
+    "failure_message": 3,
+    "type": 0,
+    "sp_cost": 8,
+    "scope": 0,
+    "animation_id": 3,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 80,
+    "affect_hp": true,
+    "ignore_defense": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 378,
+    "name": "Healing Syringe",
+    "description": "Massi ve HP gain.",
+    "using_message1": " injects healing fluid.",
+    "type": 0,
+    "sp_cost": 5,
+    "scope": 2,
+    "animation_id": 138,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 125,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 379,
+    "name": "Hail of Gunfire",
+    "description": "Bullets rain down on every partymember!",
+    "using_message1": " fires a hail of bullets!",
+    "failure_message": 3,
+    "type": 0,
+    "sp_cost": 12,
+    "scope": 1,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 50,
+    "affect_hp": true,
+    "state_effects": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 380,
+    "name": "Defensive Training",
+    "description": "Agency defensive training.",
+    "using_message1": " draws on Agency training.",
+    "type": 0,
+    "sp_cost": 8,
+    "scope": 2,
+    "animation_id": 66,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 40,
+    "affect_defense": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 381,
+    "name": "Flame Grenade",
+    "description": "Flame damage to all enemies",
+    "using_message1": " tosses a flame grenade!",
+    "type": 0,
+    "scope": 1,
+    "animation_id": 81,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 45,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 382,
+    "type": 0,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 383,
+    "name": "Berserking Rage",
+    "description": "Attack up!",
+    "using_message1": " enters a berserk rage!",
+    "type": 0,
+    "scope": 2,
+    "animation_id": 64,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 30,
+    "affect_attack": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 384,
+    "name": "Rope Maneuver",
+    "description": "Swing on the rope to increase agility",
+    "using_message1": " gains momentum from the rope!",
+    "type": 0,
+    "scope": 2,
+    "animation_id": 70,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 20,
+    "affect_agility": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 385,
+    "name": "Chain Gun",
+    "description": "Bullet damage to all enemies",
+    "using_message1": " fires its chaingun.",
+    "failure_message": 3,
+    "type": 0,
+    "scope": 1,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 45,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 386,
+    "name": "Flame Canister",
+    "description": "Flame damage to one enemy.",
+    "using_message1": " drops a flame canister!",
+    "type": 0,
+    "scope": 0,
+    "animation_id": 78,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 45,
+    "affect_hp": true,
+    "state_effects": [],
+    "attribute_effects": [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true]
+  },
+  {
+    "id": 387,
+    "name": "Fly By",
+    "description": "Lowers agility and defense.",
+    "using_message1": " flies by overhead!",
+    "type": 0,
+    "scope": 1,
+    "animation_id": 110,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "power": 20,
+    "affect_defense": true,
+    "affect_agility": true,
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 388,
+    "type": 0,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 389,
+    "type": 0,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 390,
+    "type": 0,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 391,
+    "type": 0,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 392,
+    "type": 0,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 393,
+    "type": 0,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 394,
+    "type": 0,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 395,
+    "type": 0,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 396,
+    "type": 0,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 397,
+    "type": 0,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 398,
+    "type": 0,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 399,
+    "type": 0,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  },
+  {
+    "id": 400,
+    "type": 0,
+    "scope": 0,
+    "sound_effect": {
+      "name": "(OFF)"
+    },
+    "state_effects": [],
+    "attribute_effects": []
+  }
+]

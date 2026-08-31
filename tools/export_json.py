@@ -35,13 +35,18 @@ TILE_WIDTH = 5  # los IDs llegan a 10143, y alineados en columnas se leen mejor
 
 # --- JSON con listas de una sola línea ------------------------------------
 
-class Inline(list):
-    """Lista que se serializa en una línea, aunque el resto vaya indentado.
+class Inline:
+    """Valor que se serializa en una línea, aunque el resto vaya indentado.
 
     Un comando de evento por línea es lo que hace que un diff de git sea
     legible; con la indentación normal de json cada parámetro ocuparía su
     propia línea y no se entendería nada.
     """
+
+    __slots__ = ("value",)
+
+    def __init__(self, value):
+        self.value = value
 
 
 def dumps(obj):
@@ -49,9 +54,19 @@ def dumps(obj):
     inlines = []
     token = "@@inline-%s-%%d@@" % uuid.uuid4().hex
 
+    def unwrap(node):
+        """Un Inline dentro de otro ya está en la misma línea: no hace falta marcarlo."""
+        if isinstance(node, Inline):
+            return unwrap(node.value)
+        if isinstance(node, dict):
+            return {k: unwrap(v) for k, v in node.items()}
+        if isinstance(node, list):
+            return [unwrap(v) for v in node]
+        return node
+
     def replace(node):
         if isinstance(node, Inline):
-            inlines.append(json.dumps(list(node), ensure_ascii=False))
+            inlines.append(json.dumps(unwrap(node.value), ensure_ascii=False))
             return token % (len(inlines) - 1)
         if isinstance(node, dict):
             return {k: replace(v) for k, v in node.items()}
@@ -68,6 +83,11 @@ def dumps(obj):
 def write(path, text):
     with open(path, "w", encoding="utf-8") as handle:
         handle.write(text)
+
+
+def tree_size(directory):
+    return sum(os.path.getsize(os.path.join(root, name))
+               for root, _, names in os.walk(directory) for name in names)
 
 
 # --- Conversión a estructuras JSON ----------------------------------------
@@ -198,7 +218,55 @@ def parse_tiles(text):
     return layers
 
 
-# --- Los dos archivos compartidos -----------------------------------------
+# --- La base de datos ------------------------------------------------------
+
+def script_json(commands):
+    """Los comandos de un evento común, en el mismo formato que los de un mapa."""
+    return [Inline([c["indent"], EVENT_CODES.get(c["code"], c["code"]),
+                    c["string"], Inline(c["parameters"])])
+            for c in commands]
+
+
+def normalize(value, key=None):
+    """Acomoda lo que sale del decodificador genérico para que el JSON se lea.
+
+    Las listas de structs vienen como {id: campos}; las pasamos a listas con el
+    id adentro. Las listas de números planos van en una línea. Y los scripts,
+    un comando por línea, igual que en los mapas.
+    """
+    if key == "event_commands":
+        return script_json(value)
+
+    if isinstance(value, dict):
+        if value and all(isinstance(k, int) for k in value):
+            return [normalize(dict(id=i, **entry) if isinstance(entry, dict)
+                              else {"id": i, "value": entry})
+                    for i, entry in sorted(value.items())]
+        return {k: normalize(v, k) for k, v in value.items()}
+
+    if isinstance(value, list):
+        if all(isinstance(v, (int, float, bool, str)) for v in value):
+            return Inline(value)
+        return [normalize(v) for v in value]
+
+    return value
+
+
+def database_json(database, unknown):
+    """Cada sección de la LDB en su propio archivo, para que los diffs sirvan."""
+    decoded = database.decode(unknown)
+    sections = {}
+    for name, section in decoded.items():
+        value = normalize(section, name)
+        # switches y variables son sólo nombres: 1200 entradas de un campo cada
+        # una son 4800 líneas de ruido si no se aplastan.
+        if name in ("switches", "variables") and isinstance(value, list):
+            value = [Inline(entry) for entry in value]
+        sections[name] = value
+    return sections
+
+
+# --- Los archivos compartidos ---------------------------------------------
 
 def tree_json(tree, exported):
     # tree_order (el orden de los nodos en el árbol del editor) no se exporta:
@@ -213,18 +281,6 @@ def tree_json(tree, exported):
                   "file": "Map%04d.json" % i if i in exported else None}
                  for i in sorted(tree.map_names) if i != 0],
     }
-
-
-def chipsets_json(database):
-    return [{"id": i,
-             "name": c.name,
-             "file": c.filename,
-             # Passability: bits de paso por abajo/izq/der/arriba, más 0x10 y
-             # 0x20 que deciden si el tile se dibuja por encima del héroe.
-             "passable_lower": Inline(list(c.passable_lower)),
-             "passable_upper": Inline(list(c.passable_upper)),
-             "terrain": Inline(c.terrain)}
-            for i, c in sorted(database.chipsets.items())]
 
 
 def main():
@@ -257,23 +313,57 @@ def main():
               tiles_text(map_id, game_map, chipset))
 
     write(os.path.join(args.out_dir, "maps.json"), dumps(tree_json(tree, exported)))
-    write(os.path.join(args.out_dir, "chipsets.json"), dumps(chipsets_json(database)))
+
+    # La base de datos: una sección por archivo. Junta son 15 listas que no
+    # tienen nada que ver entre sí; separadas, un cambio en los ítems no
+    # ensucia el diff de las animaciones.
+    unknown = set()
+    db_dir = os.path.join(args.out_dir, "db")
+    os.makedirs(db_dir, exist_ok=True)
+    sections = database_json(database, unknown)
+    for name, section in sorted(sections.items()):
+        write(os.path.join(db_dir, "%s.json" % name), dumps(section))
 
     events = sum(len(m.events) for m in exported.values())
     commands = sum(len(p.commands) for m in exported.values()
                    for e in m.events for p in e.pages)
-    size = sum(os.path.getsize(os.path.join(args.out_dir, f))
-               for f in os.listdir(args.out_dir))
-    print("%d mapas, %d eventos, %d comandos -> %s (%.1f MB)"
-          % (len(exported), events, commands, args.out_dir, size / 1e6))
+    print("%d mapas, %d eventos, %d comandos" % (len(exported), events, commands))
+    print("base de datos: %s" % ", ".join(
+        "%s %d" % (n, len(s)) for n, s in sorted(sections.items())
+        if isinstance(s, (list, dict))))
+    print("-> %s (%.1f MB)" % (args.out_dir, tree_size(args.out_dir) / 1e6))
+
+    if unknown:
+        print("Chunks o tipos que el esquema no cubre: %s" % sorted(unknown))
 
     if args.verify:
         return verify(args.out_dir, exported)
     return 0
 
 
+def bad_strings(node, path="", found=None):
+    """Strings con caracteres de control o de reemplazo.
+
+    Es el síntoma de un parseo desfasado: si el decodificador se corre unos
+    bytes, los nombres y diálogos salen con basura. Con el esquema bien, no
+    tiene que aparecer ninguno.
+    """
+    if found is None:
+        found = []
+    if isinstance(node, str):
+        if any(c < " " or c == "�" for c in node):
+            found.append((path, node[:40]))
+    elif isinstance(node, dict):
+        for key, value in node.items():
+            bad_strings(value, "%s.%s" % (path, key), found)
+    elif isinstance(node, list):
+        for i, value in enumerate(node):
+            bad_strings(value, "%s[%d]" % (path, i), found)
+    return found
+
+
 def verify(out_dir, exported):
-    """Releer los .tiles y comparar contra los datos originales."""
+    """Releer los .tiles y revisar que lo exportado tenga sentido."""
     bad = []
     for map_id, game_map in exported.items():
         with open(os.path.join(out_dir, "Map%04d.tiles" % map_id)) as handle:
@@ -281,9 +371,17 @@ def verify(out_dir, exported):
         if (layers.get("lower") != game_map.lower_layer
                 or layers.get("upper") != game_map.upper_layer):
             bad.append(map_id)
-
     print("Verificación de tiles: %s" % (bad or "los %d coinciden" % len(exported)))
-    return 1 if bad else 0
+
+    garbage = []
+    for root, _, names in os.walk(out_dir):
+        for name in sorted(names):
+            if name.endswith(".json"):
+                with open(os.path.join(root, name), encoding="utf-8") as handle:
+                    garbage += bad_strings(json.load(handle), name)
+    print("Strings con basura: %s" % (garbage[:5] or "ninguno"))
+
+    return 1 if bad or garbage else 0
 
 
 if __name__ == "__main__":

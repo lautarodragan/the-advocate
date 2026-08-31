@@ -1,0 +1,193 @@
+[
+  {
+    "id": 1,
+    "name": "Grass",
+    "background_name": "Galaxy",
+    "bush_depth": 0
+  },
+  {
+    "id": 2,
+    "name": "Forest",
+    "encounter_rate": 250,
+    "background_name": "Forest1",
+    "airship_land": false,
+    "bush_depth": 1
+  },
+  {
+    "id": 3,
+    "name": "Desert",
+    "encounter_rate": 200,
+    "background_name": "Desert",
+    "bush_depth": 0
+  },
+  {
+    "id": 4,
+    "name": "Waste Land",
+    "encounter_rate": 200,
+    "background_name": "WasteLand",
+    "bush_depth": 0
+  },
+  {
+    "id": 5,
+    "name": "Poison Swamp",
+    "damage": 1,
+    "encounter_rate": 200,
+    "background_name": "Swamp",
+    "airship_land": false,
+    "bush_depth": 0
+  },
+  {
+    "id": 6,
+    "name": "Snow",
+    "background_name": "Snow",
+    "bush_depth": 0
+  },
+  {
+    "id": 7,
+    "name": "SnowForest",
+    "encounter_rate": 250,
+    "background_name": "Snow",
+    "airship_land": false,
+    "bush_depth": 1
+  },
+  {
+    "id": 8,
+    "name": "Alcove Damage",
+    "damage": 2,
+    "encounter_rate": 0,
+    "background_name": "BrickCave5",
+    "airship_land": false,
+    "bush_depth": 0
+  },
+  {
+    "id": 9,
+    "name": "Sea : Beach",
+    "encounter_rate": 20,
+    "background_name": "SeaBeach",
+    "boat_pass": true,
+    "ship_pass": true,
+    "airship_land": false,
+    "bush_depth": 0
+  },
+  {
+    "id": 10,
+    "name": "Sea : Coast",
+    "encounter_rate": 20,
+    "background_name": "Sea",
+    "ship_pass": true,
+    "airship_land": false,
+    "bush_depth": 0
+  },
+  {
+    "id": 11,
+    "name": "BL TERRAIN",
+    "bush_depth": 0
+  },
+  {
+    "id": 12,
+    "name": "Lashe City",
+    "background_name": "LasheBat",
+    "bush_depth": 0
+  },
+  {
+    "id": 13,
+    "name": "The Rat Track",
+    "background_name": "Cave4",
+    "bush_depth": 0
+  },
+  {
+    "id": 14,
+    "name": "SwampPoisonFloor",
+    "damage": 2,
+    "background_name": "Swamp",
+    "bush_depth": 0
+  },
+  {
+    "id": 15,
+    "name": "WorldmapMountain",
+    "background_name": "mroad2",
+    "bush_depth": 0
+  },
+  {
+    "id": 16,
+    "name": "WorldmapLtForest",
+    "background_name": "forest5",
+    "bush_depth": 0
+  },
+  {
+    "id": 17,
+    "name": "WorldmapDkForest",
+    "background_name": "forest6",
+    "bush_depth": 0
+  },
+  {
+    "id": 18,
+    "name": "WorldmapBridge",
+    "background_name": "river4",
+    "bush_depth": 0
+  },
+  {
+    "id": 19,
+    "name": "WorldmapDesert",
+    "background_name": "desert1",
+    "bush_depth": 0
+  },
+  {
+    "id": 20,
+    "name": "WorldmapGrasslnd",
+    "background_name": "plains5",
+    "bush_depth": 0
+  },
+  {
+    "id": 21,
+    "name": "WorldmapOcean",
+    "background_name": "river5",
+    "bush_depth": 0
+  },
+  {
+    "id": 22,
+    "name": "WorldmapBeach",
+    "background_name": "beach3",
+    "bush_depth": 0
+  },
+  {
+    "id": 23,
+    "name": "WorldmapSnow",
+    "background_name": "Snow",
+    "bush_depth": 0
+  },
+  {
+    "id": 24,
+    "name": "WorldmapSwamp",
+    "background_name": "Swamp",
+    "bush_depth": 0
+  },
+  {
+    "id": 25,
+    "name": "WorldmapRocky",
+    "background_name": "plains6",
+    "bush_depth": 0
+  },
+  {
+    "id": 26,
+    "name": "WorldmapRuins",
+    "background_name": "waste3",
+    "bush_depth": 0
+  },
+  {
+    "id": 27,
+    "bush_depth": 0
+  },
+  {
+    "id": 28,
+    "bush_depth": 0
+  },
+  {
+    "id": 29,
+    "bush_depth": 0
+  },
+  {
+    "id": 30,
+    "bush_depth": 0
+  }
+]
