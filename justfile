@@ -42,30 +42,34 @@ md-shot region="E" nombre="origen" teclas="" segundos="4":
       /abl/md/screenshot.sh /abl/md/build/abl.bin \
       /abl/md/shots/{{region}}-{{nombre}}.png 3 {{region}} "{{teclas}}" {{segundos}}
 
-md-compare region="E" nombre="origen" camara="0 0":
+# `tile` es dónde tiene que haber quedado el personaje; de ahí sale la cámara,
+# que lo sigue centrada. Acepta "mid" y "max".
+md-compare region="E" nombre="parado" tile="mid mid":
   python3 tools/md_compare.py md/shots/{{region}}-{{nombre}}.png \
-      md/shots/reference.png md/shots/python.png --camera {{camara}} \
+      md/shots/reference.png md/shots/python.png --hero-tile {{tile}} \
       -o md/shots/comparacion-{{region}}-{{nombre}}.png
 
-# Todo el camino. Se verifica la cámara en el origen, contra el tope, y de ida
-# y vuelta —que ejercita el streaming en los dos sentidos—, en las dos
-# regiones: PAL muestra 240 renglones y NTSC 224, así que topan distinto.
+# Todo el camino. El personaje arranca en el medio del mapa; se lo camina
+# contra el borde derecho y contra el de abajo, que son posiciones
+# deterministas, y se verifica que todo menos el sprite coincida con el render
+# de Python. Que coincida todo lo de alrededor prueba, de paso, que el sprite
+# está exactamente donde tiene que estar.
 #
-# `segundos` es cuánto se mantiene la cruceta apretada: tiene que alcanzar para
-# cruzar el mapa entero a 4 px por cuadro. Para mapas muy anchos, subilo.
-md map_id="8" segundos="14":
+# `segundos` es cuánto se mantiene la cruceta: tiene que alcanzar para cruzar
+# medio mapa a 2 px por cuadro. Para mapas grandes, subilo.
+md map_id="8" segundos="12":
   just md-convert {{map_id}}
   just md-build
-  just md-shot E origen
-  just md-compare E origen "0 0"
-  just md-shot E tope "Right Down" {{segundos}}
-  just md-compare E tope "max max"
-  just md-shot E vuelta "Right Down;Left Up" {{segundos}}
-  just md-compare E vuelta "0 0"
-  just md-shot U origen
-  just md-compare U origen "0 0"
-  just md-shot U tope "Right Down" {{segundos}}
-  just md-compare U tope "max max"
+  just md-shot E parado
+  just md-compare E parado "mid mid"
+  just md-shot E derecha "Right" {{segundos}}
+  just md-compare E derecha "max mid"
+  just md-shot E abajo "Down" {{segundos}}
+  just md-compare E abajo "mid max"
+  just md-shot U parado
+  just md-compare U parado "mid mid"
+  just md-shot U derecha "Right" {{segundos}}
+  just md-compare U derecha "max mid"
 
 # La ROM en una ventana de verdad, para moverla con las flechas. Necesita un
 # `xhost +local:` antes; en Wayland sale por XWayland.

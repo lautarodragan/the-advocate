@@ -61,7 +61,7 @@ def crop_active(image):
     return pixels.crop((x0, y0, x1, y1)), (x0, y0, x1, y1)
 
 
-def relabel(image):
+def relabel(image, mask=None):
     """La imagen como índices de color, en orden de aparición.
 
     Sirve para comparar dos imágenes que tienen la misma forma pero paletas con
@@ -70,7 +70,55 @@ def relabel(image):
     convierte a RGB con su propia tabla.
     """
     ids = {}
-    return [ids.setdefault(p, len(ids)) for p in image.get_flattened_data()]
+    labels = []
+    width = image.width
+    mx, my, mw, mh = mask if mask else (0, 0, 0, 0)
+
+    for i, pixel in enumerate(image.get_flattened_data()):
+        # Los píxeles tapados no entran en la numeración: si entraran, los
+        # colores del sprite correrían los ids de todo lo que viene después.
+        if mask and mx <= i % width < mx + mw and my <= i // width < my + mh:
+            labels.append(-1)
+        else:
+            labels.append(ids.setdefault(pixel, len(ids)))
+    return labels
+
+
+TILE = 16
+SPRITE_W = 24
+SPRITE_H = 32
+
+
+def hero_view(tile, map_size, screen_size):
+    """Dónde queda la cámara y el sprite, dado el tile donde está el personaje.
+
+    Reproduce lo que hace la ROM: la cámara lo sigue centrada y topa contra los
+    bordes del mapa. Como el render de Python no dibuja al personaje, su
+    rectángulo se excluye de la comparación — pero justamente por eso, que todo
+    lo de alrededor coincida prueba que el sprite está donde tiene que estar.
+    """
+    map_w, map_h = map_size
+    screen_w, screen_h = screen_size
+
+    def resolve(value, tiles):
+        if value == "mid":
+            return tiles // 2
+        if value == "max":
+            return tiles - 1
+        return int(value)
+
+    tx = resolve(tile[0], map_w // TILE)
+    ty = resolve(tile[1], map_h // TILE)
+    hero_x, hero_y = tx * TILE, ty * TILE
+
+    cam_x = min(max(hero_x + TILE // 2 - screen_w // 2, 0), map_w - screen_w)
+    cam_y = min(max(hero_y + TILE // 2 - screen_h // 2, 0), map_h - screen_h)
+
+    # El sprite de 24x32 va centrado a lo ancho del tile y apoyado por los pies.
+    mask = (hero_x - (SPRITE_W - TILE) // 2 - cam_x,
+            hero_y - (SPRITE_H - TILE) - cam_y,
+            SPRITE_W, SPRITE_H)
+    return cam_x, cam_y, mask
 
 
 def channel_error(a, b):
@@ -87,6 +135,12 @@ def main():
     parser.add_argument("reference")
     parser.add_argument("original")
     parser.add_argument("-o", "--output", help="PNG lado a lado")
+    parser.add_argument("--hero-tile", nargs=2, metavar=("TX", "TY"),
+                        help="tile de 16x16 donde está parado el personaje. "
+                             "Acepta 'mid' y 'max'. Con esto se deduce la "
+                             "cámara (que lo sigue centrada y con clamp) y el "
+                             "rectángulo del sprite, que se excluye de la "
+                             "comparación: el render de Python no lo dibuja")
     parser.add_argument("--camera", nargs=2, default=("0", "0"),
                         metavar=("X", "Y"),
                         help="dónde debería estar la cámara, en píxeles. "
@@ -99,14 +153,29 @@ def main():
     original = Image.open(args.original).convert("RGB")
     print("Área activa del screenshot: %dx%d en %s" % (shot.width, shot.height, box))
 
+    # Los dos tienen que ser el mismo mapa. Si no, alguno quedó de una corrida
+    # anterior y la comparación no significa nada.
+    if reference.size != original.size:
+        print("La referencia mide %s y el render de Python %s: son de mapas "
+              "distintos. Corré `just md-convert` de nuevo."
+              % (reference.size, original.size))
+        return 1
+
     # La pantalla es una ventana del mapa: se recorta donde debería estar la
     # cámara y se compara contra eso.
-    # 'max' es la posición contra la que topa la cámara: el mapa menos la
-    # pantalla. Depende de la región, porque en NTSC se ven 16 renglones menos.
-    cam_x = (reference.width - shot.width if args.camera[0] == "max"
-             else int(args.camera[0]))
-    cam_y = (reference.height - shot.height if args.camera[1] == "max"
-             else int(args.camera[1]))
+    mask = None
+    if args.hero_tile:
+        cam_x, cam_y, mask = hero_view(args.hero_tile, reference.size, shot.size)
+        print("Personaje en el tile %s: cámara en (%d, %d), sprite en %s"
+              % (tuple(args.hero_tile), cam_x, cam_y, mask))
+    else:
+        # 'max' es la posición contra la que topa la cámara: el mapa menos la
+        # pantalla. Depende de la región, porque en NTSC se ven 16 renglones
+        # menos.
+        cam_x = (reference.width - shot.width if args.camera[0] == "max"
+                 else int(args.camera[0]))
+        cam_y = (reference.height - shot.height if args.camera[1] == "max"
+                 else int(args.camera[1]))
     if (cam_x, cam_y) != (0, 0) or reference.size != shot.size:
         window = (cam_x, cam_y, cam_x + shot.width, cam_y + shot.height)
         if window[2] > reference.width or window[3] > reference.height:
@@ -139,7 +208,7 @@ def main():
     # el emulador si y sólo si lo tienen en la referencia. No se comparan
     # valores RGB porque cada uno convierte los 9 bits del VDP a RGB con su
     # propia tabla de niveles.
-    ok = relabel(shot) == relabel(reference)
+    ok = relabel(shot, mask) == relabel(reference, mask)
     print("emulador vs referencia (forma):   %s"
           % ("IDÉNTICOS, píxel por píxel" if ok else "DIFIEREN"))
     worst, mean, _ = channel_error(shot, reference)

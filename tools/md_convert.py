@@ -27,7 +27,8 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import lcf
-from render_map import GAME_DIR, REPO, RTP_DIR, Renderer
+from render_map import (GAME_DIR, REPO, RTP_DIR, Renderer, find_resource,
+                        load_image)
 
 # Los tiles viven entre 0x0000 y 0x7FFF de la VRAM, a 32 bytes cada uno. El
 # tamaño del mapa no está acotado: la ROM va redibujando las filas y columnas
@@ -35,6 +36,9 @@ from render_map import GAME_DIR, REPO, RTP_DIR, Renderer
 MAX_TILES = 1024
 
 PALETTES = 4
+# La última paleta queda para el sprite del personaje: un sprite usa una sola,
+# y los 24 colores del CharSet no tienen nada que ver con los del mapa.
+MAP_PALETTES = PALETTES - 1
 COLORS_PER_PALETTE = 16
 USABLE_COLORS = COLORS_PER_PALETTE - 1   # el 0 es transparente
 CELL = 8
@@ -66,7 +70,7 @@ def color_sets(grid):
     return unique, {frozenset(p for row in t for p in row) for t in unique}
 
 
-def try_pack(sets):
+def try_pack(sets, limit=None):
     """Reparte los colores en paletas de forma que cada tile use una sola.
 
     Los colores pueden repetirse entre paletas: lo que hay que lograr es que el
@@ -82,7 +86,7 @@ def try_pack(sets):
                 best = (index, size)
         if best is not None:
             groups[best[0]] |= colors
-        elif len(groups) < PALETTES:
+        elif len(groups) < (limit or MAP_PALETTES):
             groups.append(set(colors))
         else:
             return None
@@ -93,6 +97,40 @@ def luma_distance(a, b):
     """Distancia entre colores de 9 bits, pesada como la percibe el ojo."""
     return (0.30 * (a[0] - b[0]) ** 2 + 0.59 * (a[1] - b[1]) ** 2
             + 0.11 * (a[2] - b[2]) ** 2)
+
+
+def merge_least_used(counts, keep, accept=None):
+    """Fusiona el color menos usado con su vecino más cercano, hasta que pase.
+
+    `accept` decide cuándo parar: para el mapa es "los tiles entran en las
+    paletas", para el sprite es "quedan 15 colores o menos". Devuelve el mapeo
+    de color viejo a color nuevo y la lista de fusiones hechas.
+    """
+    mapping = {c: c for c in counts}
+    merged = []
+
+    while True:
+        if accept is None:
+            if len(set(mapping.values())) <= keep:
+                return mapping, merged
+        else:
+            result = accept(mapping)
+            if result is not None:
+                return mapping, merged, result
+
+        alive = set(mapping.values())
+        if len(alive) <= 1:
+            sys.exit("No se pudo reducir la paleta lo suficiente.")
+
+        weight = collections.Counter()
+        for original, current in mapping.items():
+            weight[current] += counts[original]
+        victim = min(alive, key=lambda c: (weight[c], c))
+        target = min(alive - {victim}, key=lambda c: (luma_distance(c, victim), c))
+        for original, current in mapping.items():
+            if current == victim:
+                mapping[original] = target
+        merged.append((victim, target, weight[victim]))
 
 
 def reduce_colors(grid):
@@ -108,33 +146,18 @@ def reduce_colors(grid):
     """
     counts = collections.Counter(p for row in grid for tile in row
                                  for line in tile for p in line)
-    mapping = {c: c for c in counts}
-    merged = []
     unique = {tile for row in grid for tile in row}
 
-    while True:
+    def accept(mapping):
         remap = {tile: tuple(tuple(mapping[p] for p in line) for line in tile)
                  for tile in unique}
         sets = {frozenset(p for line in t for p in line) for t in remap.values()}
         groups = try_pack(sets)
-        if groups is not None:
-            return ([[remap[tile] for tile in row] for row in grid],
-                    groups, merged, counts)
+        return (remap, groups) if groups is not None else None
 
-        alive = set(mapping.values())
-        if len(alive) <= 1:
-            sys.exit("No se pudo reducir la paleta lo suficiente.")
-
-        # El color vivo menos usado se va con su vecino más cercano.
-        weight = collections.Counter()
-        for original, current in mapping.items():
-            weight[current] += counts[original]
-        victim = min(alive, key=lambda c: (weight[c], c))
-        target = min(alive - {victim}, key=lambda c: (luma_distance(c, victim), c))
-        for original, current in mapping.items():
-            if current == victim:
-                mapping[original] = target
-        merged.append((victim, target, weight[victim]))
+    mapping, merged, (remap, groups) = merge_least_used(counts, 0, accept)
+    return ([[remap[tile] for tile in row] for row in grid],
+            groups, merged, counts)
 
 
 def to_indices(tile, palette):
@@ -170,6 +193,70 @@ def cram_word(color):
     """Palabra de CRAM: 0000 BBB0 GGG0 RRR0."""
     red, green, blue = color
     return (blue << 9) | (green << 5) | (red << 1)
+
+
+# --- el sprite del personaje ----------------------------------------------
+#
+# Un CharSet de RM2k son 4 personajes de ancho por 2 de alto; cada uno ocupa
+# 72x128 y tiene 12 poses: 3 columnas de caminata por 4 direcciones. Cada pose
+# mide 24x32, o sea 3x4 celdas del VDP, que es un tamaño legal de sprite.
+
+SPRITE_CELLS_W = 3
+SPRITE_CELLS_H = 4
+SPRITE_POSES = 12
+POSE_W = SPRITE_CELLS_W * CELL
+POSE_H = SPRITE_CELLS_H * CELL
+
+
+def sprite_palette(image, index):
+    """Los colores del personaje, reducidos a los 15 que entran en una paleta.
+
+    El índice 0 de la paleta es transparente —para un sprite eso significa que
+    se ve el fondo— así que quedan 15 para el dibujo.
+    """
+    base_x = (index % 4) * POSE_W * 3
+    base_y = (index // 4) * POSE_H * 4
+
+    counts = collections.Counter()
+    for y in range(POSE_H * 4):
+        for x in range(POSE_W * 3):
+            red, green, blue, alpha = image.getpixel((base_x + x, base_y + y))
+            if alpha:
+                counts[(red >> 5, green >> 5, blue >> 5)] += 1
+
+    mapping, merged = merge_least_used(counts, USABLE_COLORS)
+    return (base_x, base_y), sorted(set(mapping.values())), mapping, merged
+
+
+def sprite_tiles(image, index, origin, palette, mapping):
+    """Las 12 poses, cada una en 12 tiles del VDP.
+
+    El VDP lee las celdas de un sprite por columnas, de arriba a abajo, así que
+    hay que emitirlas en ese orden y no por filas como el fondo.
+    """
+    base_x, base_y = origin
+    lookup = {color: i + 1 for i, color in enumerate(palette)}
+    tiles = []
+
+    for pose in range(SPRITE_POSES):
+        pose_x = base_x + (pose % 3) * POSE_W
+        pose_y = base_y + (pose // 3) * POSE_H
+        for col in range(SPRITE_CELLS_W):
+            for row in range(SPRITE_CELLS_H):
+                indices = []
+                for y in range(CELL):
+                    line = []
+                    for x in range(CELL):
+                        red, green, blue, alpha = image.getpixel(
+                            (pose_x + col * CELL + x, pose_y + row * CELL + y))
+                        if not alpha:
+                            line.append(0)      # transparente
+                        else:
+                            line.append(lookup[mapping[(red >> 5, green >> 5,
+                                                        blue >> 5)]])
+                    indices.append(tuple(line))
+                tiles.append(pack_tile(tuple(indices)))
+    return tiles
 
 
 def convert(image):
@@ -213,6 +300,7 @@ def convert(image):
         colors = palettes[i] if i < len(palettes) else []
         cram.append([BACKDROP] + [cram_word(c) for c in colors]
                     + [0] * (COLORS_PER_PALETTE - 1 - len(colors)))
+    # La última paleta la llena el sprite; acá queda vacía.
 
     lost = sum(pixels for _, _, pixels in merged)
     total = sum(counts.values())
@@ -221,7 +309,8 @@ def convert(image):
     return tile_data, cram, tilemap, len(grid[0]), len(grid), stats
 
 
-def emit(path, name, tile_data, cram, tilemap, width, height):
+def emit(path, name, tile_data, cram, tilemap, width, height, sprite):
+    tiles_per_pose = SPRITE_CELLS_W * SPRITE_CELLS_H
     with open(path + ".h", "w") as handle:
         handle.write(
             "/* Generado por tools/md_convert.py. No editar. */\n"
@@ -229,13 +318,25 @@ def emit(path, name, tile_data, cram, tilemap, width, height):
             "#define MAP_NAME       \"%s\"\n"
             "#define MAP_CELLS_W    %d\n"
             "#define MAP_CELLS_H    %d\n"
+            "/* Los tiles de RM2k son de 16x16, o sea 2x2 celdas del VDP. */\n"
+            "#define MAP_TILES_W    %d\n"
+            "#define MAP_TILES_H    %d\n"
             "#define MAP_TILE_COUNT %d\n\n"
+            "#define SPRITE_POSES     %d\n"
+            "#define SPRITE_CELLS_W   %d\n"
+            "#define SPRITE_CELLS_H   %d\n"
+            "#define SPRITE_POSE_TILES %d\n"
+            "#define SPRITE_PALETTE   %d\n\n"
             "extern const unsigned short md_palette[%d];\n"
             "extern const unsigned int   md_tiles[%d * 8];\n"
-            "extern const unsigned short md_tilemap[%d];\n\n"
+            "extern const unsigned short md_tilemap[%d];\n"
+            "extern const unsigned int   md_sprite_tiles[%d * 8];\n\n"
             "#endif\n"
-            % (name, width, height, len(tile_data),
-               PALETTES * COLORS_PER_PALETTE, len(tile_data), width * height))
+            % (name, width, height, width // 2, height // 2, len(tile_data),
+               SPRITE_POSES, SPRITE_CELLS_W, SPRITE_CELLS_H, tiles_per_pose,
+               PALETTES - 1,
+               PALETTES * COLORS_PER_PALETTE, len(tile_data), width * height,
+               len(sprite)))
 
     with open(path + ".c", "w") as handle:
         handle.write("/* Generado por tools/md_convert.py. No editar. */\n"
@@ -247,18 +348,23 @@ def emit(path, name, tile_data, cram, tilemap, width, height):
             handle.write("    " + " ".join("0x%04X," % c for c in palette) + "\n")
         handle.write("};\n\n")
 
-        handle.write("const unsigned int md_tiles[%d * 8] = {\n" % len(tile_data))
-        for i, data in enumerate(tile_data):
-            longs = ["0x%08X," % int.from_bytes(data[j:j + 4], "big")
-                     for j in range(0, 32, 4)]
-            handle.write("    " + " ".join(longs) + "  /* %d */\n" % i)
-        handle.write("};\n\n")
+        def write_tiles(name, data):
+            handle.write("const unsigned int %s[%d * 8] = {\n" % (name, len(data)))
+            for i, tile in enumerate(data):
+                longs = ["0x%08X," % int.from_bytes(tile[j:j + 4], "big")
+                         for j in range(0, 32, 4)]
+                handle.write("    " + " ".join(longs) + "  /* %d */\n" % i)
+            handle.write("};\n\n")
+
+        write_tiles("md_tiles", tile_data)
 
         handle.write("const unsigned short md_tilemap[%d] = {\n" % len(tilemap))
         for y in range(height):
             row = tilemap[y * width:(y + 1) * width]
             handle.write("    " + " ".join("0x%04X," % c for c in row) + "\n")
-        handle.write("};\n")
+        handle.write("};\n\n")
+
+        write_tiles("md_sprite_tiles", sprite)
 
 
 def main():
@@ -270,6 +376,10 @@ def main():
     parser.add_argument("--rtp-dir", default=RTP_DIR)
     parser.add_argument("-o", "--output", default=os.path.join(REPO, "md/src/mapdata"),
                         help="base de los archivos .c/.h a generar")
+    parser.add_argument("--charset", default="Future1",
+                        help="CharSet del personaje (default: el de Talan)")
+    parser.add_argument("--charset-index", type=int, default=0,
+                        help="cuál de los 8 personajes del CharSet")
     parser.add_argument("--reference", help="PNG con lo que el VDP debería mostrar")
     args = parser.parse_args()
 
@@ -286,7 +396,18 @@ def main():
     if len(tile_data) > MAX_TILES:
         sys.exit("%d tiles distintos: no entran en los %d que hay de VRAM."
                  % (len(tile_data), MAX_TILES))
-    emit(args.output, name, tile_data, cram, tilemap, width, height)
+    # El personaje: su paleta va en la última, que el mapa dejó libre.
+    charset_path = find_resource(renderer.search_dirs, "CharSet", args.charset)
+    if not charset_path:
+        sys.exit("No encuentro el CharSet %r" % args.charset)
+    charset = load_image(charset_path)
+    origin, palette, mapping, sprite_merged = sprite_palette(charset,
+                                                             args.charset_index)
+    sprite = sprite_tiles(charset, args.charset_index, origin, palette, mapping)
+    cram[PALETTES - 1] = ([BACKDROP] + [cram_word(c) for c in palette]
+                          + [0] * (COLORS_PER_PALETTE - 1 - len(palette)))
+
+    emit(args.output, name, tile_data, cram, tilemap, width, height, sprite)
 
     print("Mapa %d %r: %dx%d celdas de 8x8" % (args.map_id, name, width, height))
     print("  %dx%d px, %d tiles distintos de %d (%.0f%% de la VRAM de tiles)"
@@ -296,6 +417,9 @@ def main():
     print("  colores fusionados: %d (%d px de %d, %.3f%%)"
           % (len(stats["merged"]), stats["lost"], stats["total"],
              100.0 * stats["lost"] / stats["total"]))
+    print("  sprite %s[%d]: %d tiles, %d colores, %d fusionados"
+          % (args.charset, args.charset_index, len(sprite), len(palette),
+             len(sprite_merged)))
     print("  -> %s.c / %s.h" % (args.output, args.output))
 
     if args.reference:

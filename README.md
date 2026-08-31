@@ -133,14 +133,29 @@ Por ahora es de ida nomás: `data/` se genera desde los `.lmu`, no al revés.
     just md-play       # la ROM en una ventana, para moverla con las flechas
                        # (necesita un `xhost +local:` antes)
 
-Sale una ROM que muestra el mapa en el VDP y deja mover la cámara con la
-cruceta, más los screenshots del emulador y los `md/shots/comparacion-*.png`
-con el render de Python al lado.
+Sale una ROM donde se camina por el mapa con Talan, más los screenshots del
+emulador y los `md/shots/comparacion-*.png` con el render de Python al lado.
+Todavía sin colisión: se camina sobre cualquier cosa y sólo frena el borde del
+mapa.
 
-La cámara es un par `x,y` en píxeles que los botones suben y bajan, con un
-clamp contra los bordes del mapa, y que va directo a los registros de scroll:
-el horizontal a la tabla de hscroll en VRAM y el vertical a VSRAM. Se escriben
-en vblank para que no se parta la imagen.
+### Cómo se mueve el personaje
+
+RM2k no mueve a los personajes en píxeles: la posición "real" es **el tile
+destino**, que se fija apenas arranca el paso, y un contador de 256 unidades
+por tile dice cuánto falta para llegar. El sprite se dibuja interpolado entre
+el tile anterior y el destino, y hasta que no llega no se acepta otra
+dirección. Por eso en RM2k no se puede parar a mitad de camino entre dos tiles.
+
+Los números salen de EasyRPG (`game_character.cpp`): el contador baja
+`1 << (1 + velocidad)` por cuadro, así que a la velocidad 4 —la normal— son 32
+por cuadro, o sea ocho cuadros por tile, 2 px por cuadro. La animación avanza
+cada 6 cuadros, y son **cuatro fases sobre tres columnas del CharSet: 0, 1, 2,
+1** — la del medio se usa dos veces por ciclo. Parado se queda en la del medio,
+y contra un borde sigue moviendo las piernas aunque no avance, como en RM2k.
+
+La cámara lo sigue centrada, con clamp contra los bordes, y va directo a los
+registros de scroll: el horizontal a la tabla de hscroll en VRAM y el vertical
+a VSRAM. Se escriben en vblank para que no se parta la imagen.
 
     md/Containerfile     el cross-compiler de m68k y blastem, aislados
     md/screenshot.sh     corre la ROM sin pantalla y captura el framebuffer
@@ -181,7 +196,11 @@ los mapas de RM2k repiten muchísimo — Lashe City son 363 tiles distintos para
 **El color es de 9 bits**, 3 por canal. Los 74 colores del render de Map0007
 quedan en 33.
 
-**Hay 4 paletas de 16 colores y cada tile de 8x8 usa una sola.** El índice 0 es
+**Hay 4 paletas de 16 colores y cada tile de 8x8 usa una sola.** La última
+queda para el personaje, porque un sprite también usa una sola y los colores
+del CharSet no tienen nada que ver con los del mapa. Sale barato: a Lashe City
+le alcanza con dos. El sprite sí paga: tiene 24 colores y entran 15, así que se
+fusionan 9. El índice 0 es
 transparente, así que quedan 15 útiles. Esto es lo que aprieta de verdad: no es
 la cantidad de colores sino cómo se reparten. Con 32 colores, Map0007 necesita
 6 paletas, porque un tile con 14 colores obliga a que esos 14 estén juntos.
@@ -231,14 +250,21 @@ El costo real de la conversión se mide aparte, entre la referencia y el render
 de Python: error promedio de 13.5/255 (la cuantización a 9 bits) y sólo 21
 píxeles de 76800 con error mayor a 32 (los colores fusionados).
 
-El scroll se verifica mandándole teclas al emulador con xdotool: se mantiene la
-cruceta apretada el tiempo suficiente para que la cámara tope contra el borde,
-que es una posición determinista, y se compara contra esa ventana del mapa. Se
-prueban las dos regiones, que topan distinto porque NTSC muestra 16 renglones
-menos, y además un viaje de ida y vuelta al origen, que ejercita el streaming
-en los dos sentidos. En Lashe City eso son cinco chequeos y todos dan idéntico;
-el mapa de la persecución cruza 7680 píxeles, quince vueltas enteras del plano,
-y aterriza exacto.
+El movimiento se verifica mandándole teclas al emulador con xdotool. El
+personaje arranca en el medio del mapa y se lo camina contra el borde derecho y
+contra el de abajo, que son posiciones deterministas por más que el emulador
+corra rápido o lento. De ahí se deduce dónde tiene que estar la cámara y dónde
+el sprite.
+
+El sprite se **excluye** de la comparación, porque el render de Python no lo
+dibuja. Pero eso no debilita el chequeo: que todo lo de alrededor coincida
+píxel por píxel prueba que el sprite ocupa exactamente ese rectángulo y ninguno
+de al lado, o sea que está donde tiene que estar. La pose sí queda sin
+verificar automáticamente; para eso, mirar el screenshot.
+
+Son cinco chequeos por mapa entre las dos regiones. Probado en Lashe City, en
+ParadiseFarmland y en Talan's Pad, que es del tamaño exacto de la pantalla y
+por lo tanto el caso donde la cámara no se puede mover.
 
 Para recortar el área activa, el conversor pone magenta en el **índice 0 de las
 cuatro paletas**, que es el color transparente y que ningún tile usa, y la ROM
