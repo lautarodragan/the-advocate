@@ -1,0 +1,23 @@
+# Toolchain para el port a Mega Drive, aislado en un contenedor.
+#
+# Nada de esto se instala en el sistema: el cross-compiler de m68k y el
+# emulador viven acá adentro. La imagen base va pinneada por digest.
+FROM docker.io/library/debian@sha256:5ae3c39ebd15e229dcedd5cee596b2497182493d41ff162e824ba13fc1b2b867
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        binutils-m68k-linux-gnu \
+        gcc-m68k-linux-gnu \
+        make \
+        python3-minimal \
+        blastem \
+        xvfb \
+        x11-utils \
+        xdotool \
+        fontconfig \
+        fonts-dejavu-core \
+        imagemagick \
+    && rm -rf /var/lib/apt/lists/*
+
+# blastem se instala en /usr/games, que no está en el PATH por defecto.
+ENV PATH=/usr/games:$PATH
+WORKDIR /abl

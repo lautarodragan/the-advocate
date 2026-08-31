@@ -4,3 +4,7 @@ __pycache__/
 # RTP de Don Miguel, extraído de RTPE.EXE. No es nuestro para redistribuir;
 # ver README para reponerlo.
 RTP/
+md/build/
+md/shots/
+md/src/mapdata.c
+md/src/mapdata.h

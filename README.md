@@ -125,6 +125,85 @@ evento quieto no tiene `move`. Y los enums salen como texto: `"trigger":
 
 Por ahora es de ida nomás: `data/` se genera desde los `.lmu`, no al revés.
 
+## Paso 3: el mapa corriendo en una Mega Drive
+
+    just md-image      # una sola vez: arma el contenedor con el toolchain
+    just md            # convierte, compila, emula y compara
+
+Sale una ROM que muestra Map0007 en el VDP, un screenshot del emulador y un
+`md/shots/comparacion.png` con el render de Python al lado.
+
+    md/Containerfile     el cross-compiler de m68k y blastem, aislados
+    md/screenshot.sh     corre la ROM sin pantalla y captura el framebuffer
+    md/src/boot.S        vectores, cabecera de cartucho y arranque
+    md/src/main.c        init del VDP y carga de paletas, tiles y tilemap
+    tools/md_convert.py  ChipSet + mapa -> tiles 4bpp, paletas y tilemap
+    tools/md_compare.py  screenshot del emulador vs render de Python
+
+**Nada se instala en el sistema.** El cross-compiler y el emulador viven en un
+contenedor con la imagen base pinneada por digest. `md/src/mapdata.c` es
+generado y no está en git.
+
+### Las tres restricciones del hardware
+
+**El color es de 9 bits**, 3 por canal. Los 74 colores del render de Map0007
+quedan en 33.
+
+**Hay 4 paletas de 16 colores y cada tile de 8x8 usa una sola.** El índice 0 es
+transparente, así que quedan 15 útiles. Esto es lo que aprieta de verdad: no es
+la cantidad de colores sino cómo se reparten. Con 32 colores, Map0007 necesita
+6 paletas, porque un tile con 14 colores obliga a que esos 14 estén juntos.
+Los colores sí pueden repetirse entre paletas, así que el problema es agrupar
+de forma que el conjunto de cada tile caiga entero en algún grupo. El conversor
+hace best-fit y, si no entra, fusiona el color menos usado con su vecino más
+cercano y reintenta. Para Map0007 alcanza con fusionar 9 colores, que entre
+todos son 68 píxeles de 76800: **0.089%**. Quedan 3 paletas usadas y una libre.
+
+**Los tiles son de 8x8**, no de 16x16 como los de RM2k, y se pueden reusar
+espejados. Map0007 son 1200 celdas de 8x8 que se reducen a **88 tiles
+distintos**: 4% de la VRAM de tiles.
+
+### El modo de video, y correrlo en hardware real
+
+Map0007 mide 20x15 celdas de RM2k, o sea 320x240 píxeles exactos. Eso no entra
+en los 224 renglones del modo NTSC, pero sí en los 240 del modo V30 de PAL.
+
+**V30 sólo funciona a 50 Hz**: en una consola NTSC el VDP no lo muestra. Así que
+la ROM lee el bit 6 del registro de versión (`0xA10001`) al arrancar y elige el
+modo según la consola en la que está: en PAL entra el mapa entero, en NTSC se
+ven los primeros 224 renglones. `just md` verifica las dos regiones.
+
+Lo demás que hace falta para que ande en un cartucho de verdad:
+
+* **TMSS.** Las consolas modelo 1 tardías y el modelo 2 no dejan tocar el VDP
+  hasta que el cartucho escribe "SEGA" en `0xA14000`.
+* **Callar el PSG.** En un emulador los canales arrancan en silencio; una
+  consola de verdad puede zumbar apenas se enciende si nadie les pone la
+  atenuación al máximo.
+* **Sin bloqueo de región.** La cabecera dice `JUE` y la ROM no chequea la
+  consola, así que bootea en cualquiera.
+* **Display apagado mientras se carga**, para no mostrar la VRAM sin
+  inicializar. De paso el VDP acepta escrituras más rápido.
+
+### Cómo se verifica
+
+El screenshot y el render de Python **no** se comparan por valores RGB: el
+emulador y nosotros convertimos los 9 bits del VDP a RGB con tablas de niveles
+distintas (blastem usa 49 donde nosotros 52). Lo que se compara es la forma:
+dos píxeles tienen el mismo color en el emulador si y sólo si lo tienen en la
+referencia. Eso da **idénticos, píxel por píxel** — la ROM dibuja exactamente
+lo que el conversor calculó.
+
+El costo real de la conversión se mide aparte, entre la referencia y el render
+de Python: error promedio de 13.5/255 (la cuantización a 9 bits) y sólo 21
+píxeles de 76800 con error mayor a 32 (los colores fusionados).
+
+Para recortar el área activa, la ROM pinta el fondo de magenta, un color que
+ningún tile usa. El framebuffer que guarda blastem incluye el overscan, y el
+hueco que dejan las bandas magenta es exactamente la pantalla de 320x240. De
+paso sirve de canario: si aparece magenta adentro de la imagen, algún tile está
+usando el índice 0 y hay un bug.
+
 ### El RTP
 
 ABL usa recursos que no vienen con el juego: 5 chipsets (`ChipSet1/2/3`,
