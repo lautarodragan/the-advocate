@@ -27,8 +27,8 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import lcf
-from render_map import (GAME_DIR, REPO, RTP_DIR, Renderer, find_resource,
-                        load_image)
+from render_map import (GAME_DIR, REPO, RTP_DIR, Renderer, build_passability,
+                        find_resource, load_image)
 
 # Los tiles viven entre 0x0000 y 0x7FFF de la VRAM, a 32 bytes cada uno. El
 # tamaño del mapa no está acotado: la ROM va redibujando las filas y columnas
@@ -195,6 +195,96 @@ def cram_word(color):
     return (blue << 9) | (green << 5) | (red << 1)
 
 
+# --- colisión ---------------------------------------------------------------
+#
+# Cada tile de RM2k tiene cuatro bits que dicen por qué lados se lo puede
+# cruzar. Moverse de un tile al de al lado pide permiso a los dos: el de origen
+# tiene que dejar salir por ese lado y el destino dejar entrar por el opuesto.
+#
+# La capa alta manda sobre la baja, salvo que tenga el bit "Above" —que
+# significa "se dibuja por encima del héroe", o sea decorado— en cuyo caso la
+# que decide es la baja. Puerto de Game_Map::IsPassableTile de EasyRPG.
+
+PASS_DOWN = 0x01
+PASS_LEFT = 0x02
+PASS_RIGHT = 0x04
+PASS_UP = 0x08
+PASS_ABOVE = 0x10
+PASS_WALL = 0x20
+PASS_ALL = PASS_DOWN | PASS_LEFT | PASS_RIGHT | PASS_UP
+
+# Las combinaciones de un autotile de terreno que son la cara de una pared.
+# Con el bit Wall puesto, esas se cruzan siempre.
+WALL_FACES = frozenset(list(range(20, 24)) + list(range(33, 38))
+                       + [42, 43, 45, 46])
+
+
+def lower_passable(flags, raw, bit):
+    if 4000 <= raw < 5000 and (flags[raw] & PASS_WALL):
+        if (raw - 4000) % 50 in WALL_FACES:
+            return True
+    return bool(flags[raw] & bit)
+
+
+def passability_map(game_map, flags):
+    """Un byte por tile del mapa con los cuatro bits de dirección ya resueltos.
+
+    Toda la lógica de RM2k se resuelve acá; la ROM sólo mira la tabla.
+    """
+    result = bytearray(game_map.width * game_map.height)
+    for i in range(len(result)):
+        lower = game_map.lower_layer[i]
+        upper = game_map.upper_layer[i]
+        byte = 0
+        for bit in (PASS_DOWN, PASS_LEFT, PASS_RIGHT, PASS_UP):
+            if not (flags[upper] & bit):
+                continue                       # la capa alta bloquea
+            if not (flags[upper] & PASS_ABOVE):
+                byte |= bit                    # la capa alta manda, y deja
+            elif lower_passable(flags, lower, bit):
+                byte |= bit                    # es decorado: manda la baja
+        result[i] = byte
+    return bytes(result)
+
+
+def hero_start(passable, width, height):
+    """El tile abierto por los cuatro lados más cercano al centro del mapa."""
+    cx, cy = width // 2, height // 2
+    best = None
+    for y in range(height):
+        for x in range(width):
+            if passable[y * width + x] & PASS_ALL == PASS_ALL:
+                distance = (x - cx) ** 2 + (y - cy) ** 2
+                if best is None or distance < best[0]:
+                    best = (distance, x, y)
+    if best is None:
+        sys.exit("El mapa no tiene ningún tile abierto por los cuatro lados.")
+    return best[1], best[2]
+
+
+def walk(passable, width, height, start, dx, dy):
+    """Hasta dónde llega el personaje caminando en una dirección sin soltar.
+
+    Mismas reglas que la ROM, para poder predecir dónde va a terminar y
+    comparar contra eso.
+    """
+    leaving = {(1, 0): PASS_RIGHT, (-1, 0): PASS_LEFT,
+               (0, 1): PASS_DOWN, (0, -1): PASS_UP}[(dx, dy)]
+    entering = {(1, 0): PASS_LEFT, (-1, 0): PASS_RIGHT,
+                (0, 1): PASS_UP, (0, -1): PASS_DOWN}[(dx, dy)]
+
+    x, y = start
+    while True:
+        nx, ny = x + dx, y + dy
+        if not (0 <= nx < width and 0 <= ny < height):
+            return x, y
+        if not passable[y * width + x] & leaving:
+            return x, y
+        if not passable[ny * width + nx] & entering:
+            return x, y
+        x, y = nx, ny
+
+
 # --- el sprite del personaje ----------------------------------------------
 #
 # Un CharSet de RM2k son 4 personajes de ancho por 2 de alto; cada uno ocupa
@@ -309,7 +399,8 @@ def convert(image):
     return tile_data, cram, tilemap, len(grid[0]), len(grid), stats
 
 
-def emit(path, name, tile_data, cram, tilemap, width, height, sprite):
+def emit(path, name, tile_data, cram, tilemap, width, height, sprite,
+         passable, start):
     tiles_per_pose = SPRITE_CELLS_W * SPRITE_CELLS_H
     with open(path + ".h", "w") as handle:
         handle.write(
@@ -327,16 +418,20 @@ def emit(path, name, tile_data, cram, tilemap, width, height, sprite):
             "#define SPRITE_CELLS_H   %d\n"
             "#define SPRITE_POSE_TILES %d\n"
             "#define SPRITE_PALETTE   %d\n\n"
+            "/* Bits de paso: 1 abajo, 2 izquierda, 4 derecha, 8 arriba. */\n"
+            "#define HERO_START_TX  %d\n"
+            "#define HERO_START_TY  %d\n\n"
             "extern const unsigned short md_palette[%d];\n"
             "extern const unsigned int   md_tiles[%d * 8];\n"
             "extern const unsigned short md_tilemap[%d];\n"
-            "extern const unsigned int   md_sprite_tiles[%d * 8];\n\n"
+            "extern const unsigned int   md_sprite_tiles[%d * 8];\n"
+            "extern const unsigned char  md_passable[%d];\n\n"
             "#endif\n"
             % (name, width, height, width // 2, height // 2, len(tile_data),
                SPRITE_POSES, SPRITE_CELLS_W, SPRITE_CELLS_H, tiles_per_pose,
-               PALETTES - 1,
+               PALETTES - 1, start[0], start[1],
                PALETTES * COLORS_PER_PALETTE, len(tile_data), width * height,
-               len(sprite)))
+               len(sprite), len(passable)))
 
     with open(path + ".c", "w") as handle:
         handle.write("/* Generado por tools/md_convert.py. No editar. */\n"
@@ -365,6 +460,12 @@ def emit(path, name, tile_data, cram, tilemap, width, height, sprite):
         handle.write("};\n\n")
 
         write_tiles("md_sprite_tiles", sprite)
+
+        handle.write("const unsigned char md_passable[%d] = {\n" % len(passable))
+        for y in range(height // 2):
+            row = passable[y * (width // 2):(y + 1) * (width // 2)]
+            handle.write("    " + " ".join("0x%02X," % c for c in row) + "\n")
+        handle.write("};\n")
 
 
 def main():
@@ -407,7 +508,13 @@ def main():
     cram[PALETTES - 1] = ([BACKDROP] + [cram_word(c) for c in palette]
                           + [0] * (COLORS_PER_PALETTE - 1 - len(palette)))
 
-    emit(args.output, name, tile_data, cram, tilemap, width, height, sprite)
+    # Colisión: se resuelve acá y la ROM sólo mira la tabla.
+    flags = build_passability(renderer.database.chipsets[game_map.chipset_id])
+    passable = passability_map(game_map, flags)
+    start = hero_start(passable, game_map.width, game_map.height)
+
+    emit(args.output, name, tile_data, cram, tilemap, width, height, sprite,
+         passable, start)
 
     print("Mapa %d %r: %dx%d celdas de 8x8" % (args.map_id, name, width, height))
     print("  %dx%d px, %d tiles distintos de %d (%.0f%% de la VRAM de tiles)"
@@ -417,6 +524,11 @@ def main():
     print("  colores fusionados: %d (%d px de %d, %.3f%%)"
           % (len(stats["merged"]), stats["lost"], stats["total"],
              100.0 * stats["lost"] / stats["total"]))
+    blocked = sum(1 for b in passable if b & PASS_ALL != PASS_ALL)
+    print("  colisión: %d de %d tiles con algún lado cerrado (%.0f%%), "
+          "arranca en (%d, %d)"
+          % (blocked, len(passable), 100.0 * blocked / len(passable),
+             start[0], start[1]))
     print("  sprite %s[%d]: %d tiles, %d colores, %d fusionados"
           % (args.charset, args.charset_index, len(sprite), len(palette),
              len(sprite_merged)))

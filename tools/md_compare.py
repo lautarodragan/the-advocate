@@ -16,9 +16,14 @@ Uso:
 """
 
 import argparse
+import os
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 from PIL import Image
+
+from render_map import REPO
 
 BACKDROP = (255, 0, 255)   # el color de fondo que pone la ROM, fuera del área activa
 
@@ -89,6 +94,33 @@ SPRITE_W = 24
 SPRITE_H = 32
 
 
+DIRECTIONS = {"none": (0, 0), "right": (1, 0), "left": (-1, 0),
+              "up": (0, -1), "down": (0, 1)}
+
+
+def simulate(map_id, direction):
+    """Dónde termina el personaje, con las mismas reglas que la ROM.
+
+    Si la simulación y la ROM no coinciden en la colisión, el personaje va a
+    quedar en otro tile y la comparación falla. O sea que esto no sólo ubica al
+    sprite: verifica la colisión.
+    """
+    import lcf
+    from render_map import Renderer, build_passability
+    from md_convert import hero_start, passability_map, walk
+
+    renderer = Renderer()
+    game_map = lcf.Map(os.path.join(REPO, "Maps", "Map%04d.lmu" % map_id))
+    flags = build_passability(renderer.database.chipsets[game_map.chipset_id])
+    passable = passability_map(game_map, flags)
+    start = hero_start(passable, game_map.width, game_map.height)
+
+    dx, dy = DIRECTIONS[direction]
+    if (dx, dy) == (0, 0):
+        return start
+    return walk(passable, game_map.width, game_map.height, start, dx, dy)
+
+
 def hero_view(tile, map_size, screen_size):
     """Dónde queda la cámara y el sprite, dado el tile donde está el personaje.
 
@@ -135,12 +167,16 @@ def main():
     parser.add_argument("reference")
     parser.add_argument("original")
     parser.add_argument("-o", "--output", help="PNG lado a lado")
+    parser.add_argument("--map-id", type=int,
+                        help="mapa, para poder calcular la colisión")
+    parser.add_argument("--walk", default="none",
+                        choices=("none", "right", "left", "up", "down"),
+                        help="hacia dónde se caminó sin soltar la cruceta. Se "
+                             "simula con las mismas reglas que la ROM para "
+                             "saber en qué tile tuvo que frenar")
     parser.add_argument("--hero-tile", nargs=2, metavar=("TX", "TY"),
-                        help="tile de 16x16 donde está parado el personaje. "
-                             "Acepta 'mid' y 'max'. Con esto se deduce la "
-                             "cámara (que lo sigue centrada y con clamp) y el "
-                             "rectángulo del sprite, que se excluye de la "
-                             "comparación: el render de Python no lo dibuja")
+                        help="tile donde está el personaje, si se sabe de "
+                             "antemano. Alternativa a --map-id/--walk")
     parser.add_argument("--camera", nargs=2, default=("0", "0"),
                         metavar=("X", "Y"),
                         help="dónde debería estar la cámara, en píxeles. "
@@ -164,7 +200,12 @@ def main():
     # La pantalla es una ventana del mapa: se recorta donde debería estar la
     # cámara y se compara contra eso.
     mask = None
-    if args.hero_tile:
+    if args.map_id is not None:
+        tile = simulate(args.map_id, args.walk)
+        cam_x, cam_y, mask = hero_view(tile, reference.size, shot.size)
+        print("Caminando hacia %s: frena en el tile %s, cámara en (%d, %d), "
+              "sprite en %s" % (args.walk, tile, cam_x, cam_y, mask))
+    elif args.hero_tile:
         cam_x, cam_y, mask = hero_view(args.hero_tile, reference.size, shot.size)
         print("Personaje en el tile %s: cámara en (%d, %d), sprite en %s"
               % (tuple(args.hero_tile), cam_x, cam_y, mask))

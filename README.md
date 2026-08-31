@@ -133,10 +133,9 @@ Por ahora es de ida nomás: `data/` se genera desde los `.lmu`, no al revés.
     just md-play       # la ROM en una ventana, para moverla con las flechas
                        # (necesita un `xhost +local:` antes)
 
-Sale una ROM donde se camina por el mapa con Talan, más los screenshots del
-emulador y los `md/shots/comparacion-*.png` con el render de Python al lado.
-Todavía sin colisión: se camina sobre cualquier cosa y sólo frena el borde del
-mapa.
+Sale una ROM donde se camina por el mapa con Talan, con colisión, más los
+screenshots del emulador y los `md/shots/comparacion-*.png` con el render de
+Python al lado.
 
 ### Cómo se mueve el personaje
 
@@ -152,6 +151,20 @@ por cuadro, o sea ocho cuadros por tile, 2 px por cuadro. La animación avanza
 cada 6 cuadros, y son **cuatro fases sobre tres columnas del CharSet: 0, 1, 2,
 1** — la del medio se usa dos veces por ciclo. Parado se queda en la del medio,
 y contra un borde sigue moviendo las piernas aunque no avance, como en RM2k.
+
+### Colisión
+
+Cada tile de RM2k tiene cuatro bits que dicen por qué lados se lo puede cruzar,
+y moverse pide permiso a los dos tiles: el de origen tiene que dejar salir por
+ese lado y el destino dejar entrar por el opuesto. La capa alta manda sobre la
+baja, salvo que tenga el bit `Above` —que significa "se dibuja por encima del
+héroe", o sea decorado— en cuyo caso decide la baja. Hay además un caso
+especial: los autotiles de terreno con el bit `Wall` son siempre transitables
+en las combinaciones que son la cara de una pared.
+
+Todo eso se resuelve en el conversor y sale como **un byte por tile**; la ROM
+sólo mira la tabla. En Lashe City son 5625 bytes y el 73% de los tiles tiene
+algún lado cerrado.
 
 La cámara lo sigue centrada, con clamp contra los bordes, y va directo a los
 registros de scroll: el horizontal a la tabla de hscroll en VRAM y el vertical
@@ -200,7 +213,13 @@ quedan en 33.
 queda para el personaje, porque un sprite también usa una sola y los colores
 del CharSet no tienen nada que ver con los del mapa. Sale barato: a Lashe City
 le alcanza con dos. El sprite sí paga: tiene 24 colores y entran 15, así que se
-fusionan 9. El índice 0 es
+fusionan 9, y eso son el 2.8% de sus píxeles.
+
+Esto se va a poner feo cuando haya varios personajes en pantalla, porque cada
+sprite usa una sola paleta y sólo hay cuatro en total. Los 6 CharSets que se
+ven al empezar en Lashe City suman 103 colores: meterlos en una paleta cambia
+el 45% de sus píxeles, y aun repartidos en dos paletas, el 31%. Sigue sin
+resolver. El índice 0 es
 transparente, así que quedan 15 útiles. Esto es lo que aprieta de verdad: no es
 la cantidad de colores sino cómo se reparten. Con 32 colores, Map0007 necesita
 6 paletas, porque un tile con 14 colores obliga a que esos 14 estén juntos.
@@ -251,10 +270,13 @@ de Python: error promedio de 13.5/255 (la cuantización a 9 bits) y sólo 21
 píxeles de 76800 con error mayor a 32 (los colores fusionados).
 
 El movimiento se verifica mandándole teclas al emulador con xdotool. El
-personaje arranca en el medio del mapa y se lo camina contra el borde derecho y
-contra el de abajo, que son posiciones deterministas por más que el emulador
-corra rápido o lento. De ahí se deduce dónde tiene que estar la cámara y dónde
-el sprite.
+personaje arranca en el tile abierto más cercano al centro y se lo camina en
+cada dirección sin soltar, hasta que choca. **Dónde frena se calcula en Python
+con las mismas reglas de colisión**, así que si la ROM y la simulación no
+coinciden, el personaje queda en otro tile y la comparación falla: esto
+verifica la colisión, no sólo el render. Y es determinista por más que el
+emulador corra rápido o lento, porque lo que importa es contra qué choca, no
+cuánto tardó.
 
 El sprite se **excluye** de la comparación, porque el render de Python no lo
 dibuja. Pero eso no debilita el chequeo: que todo lo de alrededor coincida

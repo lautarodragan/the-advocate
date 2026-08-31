@@ -7,8 +7,9 @@
  * dice cuánto falta para llegar. El sprite se dibuja interpolado entre el tile
  * anterior y el destino. La cámara lo sigue, centrada y con clamp.
  *
- * Sin colisión: se puede caminar sobre cualquier cosa, sólo se frena en el
- * borde del mapa.
+ * La colisión sale de una tabla que el conversor deja resuelta: un byte por
+ * tile con los cuatro bits de dirección. Moverse pide permiso a los dos tiles,
+ * el de origen para salir y el destino para entrar.
  *
  * El plano A mide 64x64 celdas de 8x8 y se repite cada 512 píxeles, así que un
  * mapa más grande no entra de una. Lo que se hace es tenerlo poblado sólo
@@ -80,6 +81,12 @@ typedef signed short   s16;
 
 /* Los tiles del personaje van en la VRAM justo después de los del mapa. */
 #define SPRITE_TILE_BASE (1 + MAP_TILE_COUNT)
+
+/* Los bits de paso de RM2k, uno por lado del tile. */
+#define PASS_DOWN  0x01
+#define PASS_LEFT  0x02
+#define PASS_RIGHT 0x04
+#define PASS_UP    0x08
 
 /* Las filas del CharSet de RM2k, en ese orden. */
 #define FACE_UP    0
@@ -314,6 +321,21 @@ static void set_scroll(s16 x, s16 y)
 static const s16 dir_dx[4] = {  0, 1, 0, -1 };
 static const s16 dir_dy[4] = { -1, 0, 1,  0 };
 
+/* Por qué lado se sale del tile de origen, y por cuál se entra al destino. */
+static const u8 leave_bit[4] = { PASS_UP, PASS_RIGHT, PASS_DOWN, PASS_LEFT };
+static const u8 enter_bit[4] = { PASS_DOWN, PASS_LEFT, PASS_UP, PASS_RIGHT };
+
+static u8 can_step(s16 tx, s16 ty, s16 nx, s16 ny, u8 dir)
+{
+    if (nx < 0 || ny < 0 || nx >= MAP_TILES_W || ny >= MAP_TILES_H)
+        return 0;
+    if (!(md_passable[(u32)ty * MAP_TILES_W + (u32)tx] & leave_bit[dir]))
+        return 0;
+    if (!(md_passable[(u32)ny * MAP_TILES_W + (u32)nx] & enter_bit[dir]))
+        return 0;
+    return 1;
+}
+
 int main(void)
 {
     /* En PAL entran 240 renglones; en NTSC, 224. */
@@ -323,8 +345,8 @@ int main(void)
     s16 max_cam_y = (s16)(WORLD_H - screen_h);
 
     /* El tile destino: se fija apenas arranca el paso, como en RM2k. */
-    s16 hero_tx = MAP_TILES_W / 2;
-    s16 hero_ty = MAP_TILES_H / 2;
+    s16 hero_tx = HERO_START_TX;
+    s16 hero_ty = HERO_START_TY;
     s16 hero_step = 0;              /* lo que falta para llegar, 256 a 0 */
     u8 facing = FACE_DOWN;
     u8 anim_frame = 1;              /* la del medio es la pose parada */
@@ -392,8 +414,7 @@ int main(void)
             if (walking) {
                 s16 nx = (s16)(hero_tx + dx);
                 s16 ny = (s16)(hero_ty + dy);
-                /* Sin colisión: lo único que frena es el borde del mapa. */
-                if (nx >= 0 && ny >= 0 && nx < MAP_TILES_W && ny < MAP_TILES_H) {
+                if (can_step(hero_tx, hero_ty, nx, ny, facing)) {
                     hero_tx = nx;
                     hero_ty = ny;
                     hero_step = TILE_UNITS;
