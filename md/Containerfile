@@ -16,7 +16,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         fontconfig \
         fonts-dejavu-core \
         imagemagick \
+        mono-complete \
     && rm -rf /var/lib/apt/lists/*
+
+# edlink es el utilitario de krikzz para hablarle al EverDrive por USB. Es un
+# .exe de .NET, así que corre con mono.
+COPY edlink.exe /opt/edlink/edlink.exe
 
 # blastem se instala en /usr/games, que no está en el PATH por defecto.
 ENV PATH=/usr/games:$PATH

@@ -114,24 +114,49 @@ static void vdp_addr(u32 kind, u16 addr)
     VDP_CTRL_L = kind | ((u32)(addr & 0x3FFF) << 16) | ((addr >> 14) & 3);
 }
 
+/* Los 24 registros del VDP, todos, en orden.
+ *
+ * Escribirlos todos no es prolijidad: los que no se tocan quedan como los dejó
+ * el encendido, y en hardware real eso es basura. El 14 en particular define
+ * dónde busca el VDP los patrones de los planos, así que si arranca en
+ * cualquier cosa no se dibuja nada. Un emulador los arranca en cero y el
+ * problema no se ve nunca.
+ */
+static const u8 vdp_regs[24] = {
+    0x04,                   /*  0  modo 1: MODE5, sin interrupción de línea   */
+    0x04,                   /*  1  modo 2: display OFF hasta terminar         */
+    PLANE_A >> 10,          /*  2  base del plano A                           */
+    PLANE_W >> 10,          /*  3  base de la ventana                         */
+    PLANE_B >> 13,          /*  4  base del plano B                           */
+    SPRITE_TAB >> 9,        /*  5  base de la tabla de sprites                */
+    0x00,                   /*  6  base de patrones de sprites (modo 128K)    */
+    0x00,                   /*  7  color de fondo: paleta 0, índice 0         */
+    0x00,                   /*  8  sin uso en Mega Drive (es del Master)      */
+    0x00,                   /*  9  sin uso en Mega Drive                      */
+    0xFF,                   /* 10  contador de HINT, sin uso                  */
+    0x00,                   /* 11  modo 3: scroll de pantalla completa        */
+    0x81,                   /* 12  modo 4: H40 (320 px), sin entrelazado      */
+    HSCROLL_TAB >> 10,      /* 13  base de la tabla de hscroll                */
+    0x00,                   /* 14  base de patrones de los planos (modo 128K) */
+    0x02,                   /* 15  autoincremento de 2 bytes por escritura    */
+    0x11,                   /* 16  tamaño de los planos: 64x64 celdas         */
+    0x00,                   /* 17  posición horizontal de la ventana          */
+    0x00,                   /* 18  posición vertical de la ventana            */
+    0x00, 0x00,             /* 19-20  largo del DMA                           */
+    0x00, 0x00, 0x00        /* 21-23  origen del DMA                          */
+};
+
 static void vdp_init(void)
 {
-    vdp_reg(0,  0x04);   /* modo 1: MODE5, sin interrupción de línea        */
-    vdp_reg(1,  0x04);   /* modo 2: display OFF hasta terminar de cargar    */
-    vdp_reg(2,  PLANE_A >> 10);
-    vdp_reg(3,  PLANE_W >> 10);
-    vdp_reg(4,  PLANE_B >> 13);
-    vdp_reg(5,  SPRITE_TAB >> 9);
-    vdp_reg(6,  0x00);
-    vdp_reg(7,  0x00);   /* color de fondo: paleta 0, índice 0              */
-    vdp_reg(10, 0xFF);   /* contador de HINT, sin uso                       */
-    vdp_reg(11, 0x00);   /* scroll de pantalla completa, sin trucos         */
-    vdp_reg(12, 0x81);   /* modo 4: H40 (320 px), sin entrelazado           */
-    vdp_reg(13, HSCROLL_TAB >> 10);
-    vdp_reg(15, 0x02);   /* autoincremento de 2 bytes por escritura         */
-    vdp_reg(16, 0x11);   /* tamaño de los planos: 64x64 celdas              */
-    vdp_reg(17, 0x00);
-    vdp_reg(18, 0x00);
+    u8 i;
+
+    /* Una lectura del puerto de control descarta cualquier primera mitad de
+     * comando que haya quedado colgada, por ejemplo del BIOS de TMSS. Sin
+     * esto, la primera escritura se interpretaría como la segunda mitad. */
+    (void)VDP_CTRL_W;
+
+    for (i = 0; i < 24; i++)
+        vdp_reg(i, vdp_regs[i]);
 }
 
 static void vram_clear(void)

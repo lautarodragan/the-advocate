@@ -21,7 +21,12 @@ export:
 # El cross-compiler de m68k y el emulador viven en un contenedor: no se instala
 # nada en el sistema. La imagen base va pinneada por digest.
 
+# edlink es de krikzz y vive en el repo de recursos del EverDrive; no lo
+# copiamos a git, se toma de ahí al armar la imagen.
+edlink := "/home/taro/git/gaming/mega-ed-pub/edlink.exe"
+
 md-image:
+  cp {{edlink}} md/edlink.exe
   podman build -t abl-md md
 
 # ChipSet + mapa -> tiles de 8x8 a 4bpp, paletas de 9 bits y tilemap, más el
@@ -75,6 +80,26 @@ md map_id="8" segundos="12":
   just md-compare U parado {{map_id}} none
   just md-shot U derecha "Right" {{segundos}}
   just md-compare U derecha {{map_id}} right
+
+# --- EverDrive por USB -----------------------------------------------------
+# El cartucho aparece como un puerto serie. Si no es /dev/ttyACM0, pasale otro.
+# Hace falta permiso sobre el dispositivo: normalmente, estar en el grupo
+# `uucp` o `dialout`.
+
+# Sube la ROM al EverDrive y la arranca. Sin sacar la SD.
+md-upload dev="/dev/ttyACM0":
+  podman run --rm --device {{dev}} --mount=type=bind,src=.,dst=/abl \
+      abl-md mono /opt/edlink/edlink.exe run --file /abl/md/build/abl.bin
+
+# Escucha lo que la ROM escriba en el FIFO del cartucho: un printf por USB.
+md-usb dev="/dev/ttyACM0":
+  podman run --rm --device {{dev}} \
+      abl-md mono /opt/edlink/edlink.exe usbrd --len -1 --tout -1 --print
+
+# Datos del cartucho, para verificar que el USB conecta.
+md-devinfo dev="/dev/ttyACM0":
+  podman run --rm --device {{dev}} \
+      abl-md mono /opt/edlink/edlink.exe devinf
 
 # La ROM en una ventana de verdad, para moverla con las flechas. Necesita un
 # `xhost +local:` antes; en Wayland sale por XWayland.
