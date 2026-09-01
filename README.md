@@ -272,8 +272,22 @@ pidió el conversor. Los primeros bytes de la grabación son el volcado del esta
 del chip, así que lo que se busca es dónde encaja el resto. Con 12 segundos
 grabados: 410 bytes, idénticos.
 
-Falta el YM2612, que es donde está el sonido de verdad de la consola; el PSG
-solo suena a Master System. Y falta que los eventos puedan cambiar el tema.
+**Suena mal, y no es culpa de la consola.** La Mega Drive tiene dos chips de
+sonido y esto usa el chico: el PSG es el mismo del Master System. El grande es
+el YM2612, seis canales de síntesis FM, que es de donde sale el sonido con el
+que uno se acuerda de la consola.
+
+Con tres voces se reproduce, en promedio sobre los 224 MIDIs del juego, el
+**56% del tiempo-nota**: más de la mitad de lo que suena a la vez se descarta.
+Con seis sube al 85%, y con las seis del FM más las tres del PSG, al 95%. La
+polifonía mediana de estos MIDIs es 9 notas simultáneas.
+
+Así que el techo está muy por encima de lo que se escucha ahora, pero el camino
+—mapear los instrumentos de General MIDI a parches FM— es bastante más
+artesanal que ajustar una paleta.
+
+Falta también que los eventos puedan cambiar el tema, que es como ABL lo hace en
+la mayoría de los mapas.
 
 ### El plano como ventana móvil
 

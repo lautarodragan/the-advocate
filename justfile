@@ -112,11 +112,21 @@ md-music map_id="8" segundos="12":
 # La ROM en una ventana de verdad, para moverla con las flechas. Necesita un
 # `xhost +local:` antes; en Wayland sale por XWayland.
 #
-# SDL_AUDIODRIVER=dummy porque el contenedor no tiene tarjeta de sonido y
-# blastem aborta si no puede abrir audio. -g apaga OpenGL: sin /dev/dri adentro
-# no hay driver, y para 320x240 el render por software sobra. Si querés GL,
-# agregale --device /dev/dri y sacale el -g.
-md-play region="E":
+# El audio sale por el socket de compatibilidad PulseAudio de PipeWire. -g apaga
+# OpenGL: sin /dev/dri adentro no hay driver, y para 320x240 el render por
+# software sobra. Si querés GL, agregale --device /dev/dri y sacale el -g.
+md-play region="E" audio="/run/user/1000/pulse":
+  podman run --rm \
+      -e DISPLAY \
+      -e SDL_AUDIODRIVER=pulseaudio \
+      -e PULSE_SERVER=unix:{{audio}}/native \
+      -v /tmp/.X11-unix:/tmp/.X11-unix \
+      -v {{audio}}:{{audio}} \
+      --mount=type=bind,src=.,dst=/abl \
+      abl-md blastem -g -r {{region}} /abl/md/build/abl.bin
+
+# Lo mismo pero mudo, por si el socket de audio no está donde md-play espera.
+md-play-mudo region="E":
   podman run --rm \
       -e DISPLAY \
       -e SDL_AUDIODRIVER=dummy \
