@@ -109,37 +109,29 @@ md-music map_id="8" segundos="12":
       /abl/md/vgmlog.sh /abl/md/build/abl.bin /abl/md/shots/musica.vgm {{segundos}}
   python3 tools/md_music_check.py md/shots/musica.vgm --map-id {{map_id}}
 
-# La ROM en una ventana de verdad, para moverla con las flechas. Necesita un
-# `xhost +local:` antes; en Wayland sale por XWayland.
+# La ROM en una ventana de verdad, para moverla con las flechas.
 #
-# OJO con esto: compartir /tmp/.X11-unix le da al contenedor un cliente X con
-# acceso al servidor entero, o sea que puede leer el teclado de todas las
-# ventanas e inyectar eventos en otras. Es un escape efectivo del aislamiento.
-# Se acepta acá porque mirar el emulador lo pide, y se compensa con --network=none
-# y el repo montado de sólo lectura. Para verificar sin GUI están md-shot y
-# snes-check, que corren headless y no comparten ningún socket.
+# Esta corre en el host, no en un contenedor, y es a propósito. Para abrir una
+# ventana había que compartirle /tmp/.X11-unix, y eso le da al contenedor un
+# cliente X con acceso al servidor entero: puede leer el teclado de todas las
+# ventanas e inyectar eventos en otras. Con ese agujero abierto el contenedor ya
+# no aislaba nada, así que no valía lo que costaba.
 #
-# El audio sale por el socket de compatibilidad PulseAudio de PipeWire. -g apaga
-# OpenGL: sin /dev/dri adentro no hay driver, y para 320x240 el render por
-# software sobra. Si querés GL, agregale --device /dev/dri y sacale el -g.
-md-play region="E" audio="/run/user/1000/pulse":
-  podman run --rm --network=none \
-      -e DISPLAY \
-      -e SDL_AUDIODRIVER=pulseaudio \
-      -e PULSE_SERVER=unix:{{audio}}/native \
-      -v /tmp/.X11-unix:/tmp/.X11-unix \
-      -v {{audio}}:{{audio}} \
-      --mount=type=bind,src=.,dst=/abl,ro=true \
-      abl-md blastem -g -r {{region}} /abl/md/build/abl.bin
+# El emulador es mednafen, de pacman. blastem sería más fiel para Mega Drive,
+# pero el único que hay es un binario precompilado bajado de la web en 2019, y
+# eso no se corre en el host. Sigue usándose para verificar (md-shot, md-music),
+# donde va adentro del contenedor, sin red y sin sockets.
+#
+# -sound.driver sdl es obligatorio: el driver ALSA propio de mednafen abre el
+# dispositivo crudo hw:0, que PipeWire tiene tomado en exclusiva, y falla con
+# "Device or resource busy". Por SDL sale por PipeWire y convive con todo.
+md-play region="overseas_pal":
+  mednafen -force_module md -md.region {{region}} -sound.driver sdl \
+      md/build/abl.bin
 
-# Lo mismo pero mudo, por si el socket de audio no está donde md-play espera.
-md-play-mudo region="E":
-  podman run --rm --network=none \
-      -e DISPLAY \
-      -e SDL_AUDIODRIVER=dummy \
-      -v /tmp/.X11-unix:/tmp/.X11-unix \
-      --mount=type=bind,src=.,dst=/abl,ro=true \
-      abl-md blastem -g -r {{region}} /abl/md/build/abl.bin
+# Lo mismo pero mudo.
+md-play-mudo region="overseas_pal":
+  mednafen -force_module md -md.region {{region}} -sound 0 md/build/abl.bin
 
 # --- Super Nintendo --------------------------------------------------------
 # Rama aparte, para ver si la SNES se acerca más al original que la Mega Drive.
@@ -168,17 +160,6 @@ snes-check mapa="67" segundos="60":
 # Todo junto: convertir, compilar y verificar.
 snes mapa="67": (snes-music mapa) snes-build (snes-check mapa)
 
-# La ROM en una ventana, con sonido.
-#
-# -sound.driver sdl es obligatorio: el driver ALSA propio de mednafen abre el
-# dispositivo crudo hw:0, que PipeWire tiene tomado en exclusiva, y falla con
-# "Device or resource busy". Por SDL sale por PipeWire y convive con todo.
-snes-play audio="/run/user/1000/pulse":
-  podman run --rm --network=none \
-      -e DISPLAY \
-      -e SDL_AUDIODRIVER=pulseaudio \
-      -e PULSE_SERVER=unix:{{audio}}/native \
-      -v /tmp/.X11-unix:/tmp/.X11-unix \
-      -v {{audio}}:{{audio}} \
-      --mount=type=bind,src=.,dst=/abl,ro=true \
-      abl-snes mednafen -sound.driver sdl /abl/snes/build/abl.sfc
+# La ROM en una ventana, con sonido. Corre en el host por lo mismo que md-play.
+snes-play:
+  mednafen -sound.driver sdl snes/build/abl.sfc

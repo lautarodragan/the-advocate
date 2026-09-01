@@ -131,7 +131,6 @@ Por ahora es de ida nomás: `data/` se genera desde los `.lmu`, no al revés.
     just md            # convierte, compila, emula y compara
     just md 7          # otro mapa
     just md-play       # la ROM en una ventana, para moverla con las flechas
-                       # (necesita un `xhost +local:` antes)
 
 Sale una ROM donde se camina por el mapa con Talan, con colisión y con los NPCs
 del mapa en sus puestos, más los screenshots del emulador y los
@@ -279,6 +278,14 @@ minutos en 27 KB.
 El stream se genera a 60 cuadros por segundo y la ROM lo avanza con un
 acumulador de punto fijo: 1.0 pasos por cuadro en NTSC y 1.2 en PAL, así dura lo
 mismo en las dos.
+
+Una excepción: **el emulador con ventana corre en el host, no en contenedor.**
+Para abrir una ventana había que compartirle `/tmp/.X11-unix`, y un cliente X con
+acceso al servidor puede leer el teclado de todas las ventanas e inyectar eventos
+en otras. Con ese agujero abierto el contenedor ya no aislaba nada. Se usa
+mednafen, que viene de pacman y emula las dos consolas; blastem sería más fiel
+para Mega Drive, pero el único que hay es un binario precompilado bajado de la
+web, así que queda para verificar dentro del contenedor, sin red y sin sockets.
 
 **Se verifica igual que la imagen.** blastem graba un VGM, que es exactamente un
 log de escrituras a los chips, así que se compara evento a evento contra lo que

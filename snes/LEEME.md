@@ -70,6 +70,13 @@ Todo de paquetes de Debian, dentro del contenedor: `cc65` para el 65816 y
 revisar**: para el SPC700, que no tiene ensamblador empaquetado, el de
 `tools/spc700.py` es código propio y revisable, con los opcodes anotados.
 
+Los contenedores corren con `--network=none`: ninguna receta necesita red, y así
+un paquete comprometido del toolchain no puede bajar un payload ni mandar nada
+afuera. `just snes-play` es la excepción y corre en el host, con el mednafen de
+pacman: abrir una ventana pedía compartir el socket de X11, que deja leer el
+teclado de todas las ventanas e inyectar eventos en otras, y con eso abierto el
+contenedor ya no aislaba nada.
+
 ## Cómo se verifica
 
 `mednafen -soundrecord` vuelca lo que sale del DSP a un WAV. Sobre eso hay dos
