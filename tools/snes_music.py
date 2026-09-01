@@ -31,6 +31,7 @@ import lcf
 import md_music
 import midi
 import sdsp
+import snes_samples
 import spc700
 from render_map import GAME_DIR, REPO, find_resource
 
@@ -88,22 +89,24 @@ espera:
 
 # --- muestras ---------------------------------------------------------------
 
-def build_samples(sounds):
+def build_samples(voices):
     """El directorio y las muestras en BRR, tal como van en el SPC700.
 
-    El directorio es lo primero: cuatro bytes por muestra, la dirección donde
-    empieza y la dirección del loop. Como son ondas de un ciclo, las dos son la
-    misma: al llegar al final vuelve al principio y sigue sonando.
+    El directorio va primero: cuatro bytes por muestra, la dirección donde
+    empieza y la dirección a la que vuelve. Con grabaciones las dos difieren —
+    el ataque se toca una sola vez y el loop es la parte sostenida—, y por eso
+    el punto de loop tenía que caer justo en un bloque: la dirección se cuenta
+    de a nueve bytes y no hay forma de apuntar a media muestra.
     """
-    encoded = [brr.encode(sdsp.waveform(sound["harmonics"])) for sound in sounds]
-
     directory = bytearray()
-    address = SAMPLES_ADDR + 4 * len(sounds)
-    for data in encoded:
-        directory += address.to_bytes(2, "little") * 2
-        address += len(data)
+    address = SAMPLES_ADDR + 4 * len(voices)
+    for voice in voices:
+        loop = address + voice.loop_block * brr.BLOCK_BYTES
+        directory += address.to_bytes(2, "little")
+        directory += loop.to_bytes(2, "little")
+        address += len(voice.data)
 
-    return bytes(directory) + b"".join(encoded)
+    return bytes(directory) + b"".join(v.data for v in voices)
 
 
 # --- reparto de voces -------------------------------------------------------
@@ -165,14 +168,14 @@ def build_events(notes, voices, programs, drum_voice):
     y lo mismo que ya hacíamos en la Mega Drive.
     """
     frames = collections.defaultdict(Frame)
-    sounds = {c: sdsp.for_program(programs.get(c, 0)) for c in voices}
-    order = sorted(set(id(s) for s in sounds.values()))
-    index_of = {}
-    bank = []
-    for channel, sound in sounds.items():
-        if sound["name"] not in index_of:
-            index_of[sound["name"]] = len(bank)
-            bank.append(sound)
+
+    # Un instrumento del banco por cada programa distinto que pida el MIDI. Se
+    # comparte entre canales: si dos tocan piano, usan la misma muestra, que en
+    # 64 KB de ARAM no es un detalle.
+    wanted = sorted({programs.get(c, 0) for c in voices
+                     if c != midi.DRUM_CHANNEL})
+    bank = snes_samples.build_bank(wanted)
+    index_of = {voice.program: index for index, voice in enumerate(bank)}
 
     busy = {}
     for note in sorted(notes, key=lambda n: n.start):
@@ -186,7 +189,7 @@ def build_events(notes, voices, programs, drum_voice):
 
         start, end = frames[note.start], frames[note.end]
         base = voice * 0x10
-        sound = sounds[note.channel]
+        program = programs.get(note.channel, 0)
 
         if voice == drum_voice:
             # El ruido no tiene altura: lo único que se elige es qué tan agudo
@@ -198,14 +201,18 @@ def build_events(notes, voices, programs, drum_voice):
                             (base + sdsp.V_ADSR1, 0x8F),
                             (base + sdsp.V_ADSR2, 0x1C)]
         else:
-            step = sdsp.pitch(note.pitch)
+            source = index_of.get(program)
+            if source is None:
+                continue                # el SoundFont no trae ese programa
+            instrument = bank[source]
+            step = sdsp.pitch_for(note.pitch, instrument.root, instrument.rate)
             level = sdsp.volume(note.velocity)
-            adsr1, adsr2 = sdsp.adsr(sound)
+            adsr1, adsr2 = sdsp.adsr(sdsp.for_program(program))
             start.setup += [(base + sdsp.V_VOL_L, level),
                             (base + sdsp.V_VOL_R, level),
                             (base + sdsp.V_PITCH_L, step & 0xFF),
                             (base + sdsp.V_PITCH_H, step >> 8),
-                            (base + sdsp.V_SRCN, index_of[sound["name"]]),
+                            (base + sdsp.V_SRCN, source),
                             (base + sdsp.V_ADSR1, adsr1),
                             (base + sdsp.V_ADSR2, adsr2)]
 
@@ -316,7 +323,7 @@ def build(map_id, game_dir=GAME_DIR):
     driver = spc700.assemble(DRIVER, DRIVER_ADDR)
 
     if not path or not path.lower().endswith(".mid"):
-        return name, driver, build_samples([sdsp.PIANO]), bytes([OP_END]), 0.0, {}
+        return name, driver, build_samples([]), bytes([OP_END]), 0.0, {}
 
     notes, tempos, division, programs = midi.read(path)
     length = md_music.timeline(notes, tempos, division)
@@ -332,9 +339,10 @@ def build(map_id, game_dir=GAME_DIR):
     total = sum(sum(a * b for a, b in spans[c].items()) for c in spans)
     summary = {
         "voices": {c: v for c, v in sorted(voices.items())},
-        "sounds": {c: sdsp.for_program(programs.get(c, 0))["name"]
+        "sounds": {c: programs.get(c, 0)
                    for c in sorted(voices) if c != midi.DRUM_CHANNEL},
-        "bank": [s["name"] for s in bank],
+        "bank": ["%s (%.0f Hz, %d B)" % (v.name.strip(), v.rate, len(v.data))
+                 for v in bank],
         "coverage": sum(md_music.coverage(spans[c], len(voices.get(c, [])))
                         * sum(a * b for a, b in spans[c].items())
                         for c in spans) / max(1, total),

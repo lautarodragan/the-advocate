@@ -43,20 +43,48 @@ son **20 bytes**.
     tools/snes_check.py  compara lo que suena contra el MIDI
     tools/wavtone.py     mide la frecuencia de un WAV, para un tono suelto
 
-## El banco de timbres
+## El banco de muestras
 
 Que la SNES reproduzca muestras cambia el problema por completo. En el YM2612
 cada timbre había que construirlo con cuatro operadores y nueve parámetros cada
-uno, a ciegas; acá el timbre **es** la forma de onda, y una forma de onda se
-describe diciendo cuánto pesa cada armónico — que es como se suele describir un
-instrumento.
+uno, a ciegas. Acá el timbre **es** una grabación, y las grabaciones salen de
+**FluidR3**, un SoundFont de General MIDI que viene en `pacman` con licencia MIT.
 
-Por eso `sdsp.py` define cada uno como una lista de pesos: las cuerdas son un
-diente de sierra (todos los armónicos cayendo como 1/n), la caña una cuadrada
-(sólo los impares), el órgano unas pocas barras. Son ondas de un ciclo de 32
-muestras, 18 bytes cada una en BRR: **las ocho entran en 144 bytes** de los 64 KB
-del SPC700. Suenan a sintetizador, no a instrumento grabado, pero el espacio
-para muestrear de verdad está entero sin usar.
+Eso encaja exacto con el problema: los MIDIs de ABL especifican programas de
+General MIDI, y el SoundFont tiene una grabación por programa. Es un mapeo
+directo, sin elegir nada a ojo. Ripear muestras de un decomp de SNES habría
+significado decidir a mano qué instrumento de *ese* juego se parece a "piano
+acústico" —adivinar dos veces— y meter audio con dueño en la ROM.
+
+La restricción es el espacio: el SPC700 tiene 64 KB para todo y una sola muestra
+de piano de FluidR3 son 17 KB antes de comprimir. La palanca es la tasa de
+muestreo, porque el DSP remuestrea igual para cambiar la altura de la nota:
+guardar a 10 kHz no cuesta nada en tiempo de ejecución, sólo cuesta agudos. Es
+exactamente lo que hacían los juegos de la consola.
+
+    P200 Piano D5(L)     19116 B  a 10471 Hz
+    Harp C#4(L)           9630 B  a 24369 Hz
+    Strings C#5L         19125 B  a 15770 Hz
+
+Tres detalles que deciden si suena bien o suena mal:
+
+* **El loop tiene que caer justo en un bloque de BRR.** El DSP vuelve al
+  principio de un bloque de nueve bytes, o sea cada 16 muestras. No se redondea
+  y se espera: se elige primero cuántas muestras va a tener el loop y de ahí sale
+  la tasa real.
+* **El loop no se acorta.** FluidR3 los elige largos (casi un segundo en el
+  piano) porque adentro hay batido entre cuerdas. Cortarlo mete una periodicidad
+  audible, así que cuando falta lugar se baja la tasa, no el largo.
+* **Los cuatro filtros de predicción del BRR**, que con las ondas de un ciclo
+  daban igual y con audio real no:
+
+        instrumento     sólo filtro 0        los cuatro
+        piano          12,2% / 0,6%        10,4% / 0,3%
+        arpa           12,6% / 2,1%         1,7% / 0,0%
+        cuerdas        15,5% / 1,5%         3,6% / 0,4%
+
+  (error de pico y medio, en porcentaje de la amplitud). Al piano lo que le
+  queda es el ataque, que por definición no se predice.
 
 Ocho voces, todas iguales, contra las nueve de la Mega Drive —seis de FM
 decentes y tres de onda cuadrada—. Con el reparto de voces por cobertura, que es
@@ -120,11 +148,19 @@ que además se mide un **señuelo** un cuarto de tono más arriba, que no cae en
 ninguna nota: si el mapeo de alturas estuviera mal, el señuelo tendría tanta
 energía como la nota buena.
 
-    tema 11h035: 57 de 60 ventanas con la nota por encima de su señuelo (95%)
+    tema 11h035: 53 de 60 ventanas con la nota por encima de su señuelo (88%)
 
 La medida es ciega en los graves, y conviene saberlo: a 87 Hz el señuelo cae a
 1,3 Hz de la nota y la ventana de análisis resuelve 11,7 Hz, así que ahí empatan.
 Sirve de los medios para arriba.
+
+Y hay un corrimiento que no se puede suponer: la ROM tarda **1,31 s** en
+arrancar, porque sube el banco entero al SPC700 por el protocolo de la ROM
+interna, que va byte por byte con acuse. Con 48 KB eso es más de un segundo de
+silencio. La primera vez que se midió con muestras reales el puntaje bajó a 80%,
+y no era el audio: era la búsqueda de corrimiento, que sólo miraba el primer
+segundo y alineaba las ventanas con las notas equivocadas. Ahora se busca dónde
+empieza a haber señal y se afina alrededor.
 
 También se controla el pico del WAV. El DSP suma las ocho voces y recién después
 aplica el volumen general, sin limitar en el medio: la primera versión saturaba
@@ -134,11 +170,12 @@ pican juntas y en fase y eso no pasa nunca.
 
 ## Lo que falta
 
-* **Muestras de verdad.** Es lo único que separa esto de sonar parecido al
-  original, y es donde está toda la ventaja de la consola. Las de ahora son
-  ondas de un ciclo generadas en Python y ocupan 144 bytes de los 64 KB.
-* Mejorar el BRR: hoy usa el filtro 0, sin predicción, y pierde un 10%. Los
-  filtros con predicción bajan bastante eso.
-* El stream del tema son 19 KB en una ROM de 32. El puntero de música no sabe
-  cruzar de banco, así que para temas más largos —o para varios— hay que
-  resolver eso antes de agrandar la ROM.
+* **La batería.** Es lo que peor suena: sigue siendo el generador de ruido del
+  DSP con la frecuencia cambiada por golpe. FluidR3 trae los kits de percusión
+  de General MIDI (banco 128), así que es el mismo camino que ya está hecho.
+* **Las envolventes.** Salen de las ocho familias de `sdsp.py`, elegidas a ojo
+  cuando el banco era sintético. El SoundFont trae las suyas por instrumento y
+  todavía no se leen.
+* **Una muestra por instrumento.** Un piano real está multi-muestreado cada
+  pocas notas; nosotros tomamos la del do central y transponemos. En los
+  extremos del teclado eso se nota.

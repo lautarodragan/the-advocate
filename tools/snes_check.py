@@ -142,17 +142,31 @@ def main():
         print("SATURA: la suma de las voces se pasa de escala.")
 
     sounding, length = expected_notes(args.map_id, args.game_dir)
-    recorded = int(len(samples) / rate * md_music.TICKS_PER_SECOND)
-    length = min(length, recorded - 30)
 
-    # La ROM tarda en arrancar: carga el driver y las muestras antes de la
-    # primera nota. Se busca el corrimiento que mejor alinea en vez de suponerlo.
-    best = (0, 0, 0)
-    for offset_frames in range(0, 60, 4):
-        offset = int(offset_frames * rate / md_music.TICKS_PER_SECOND)
+    # La ROM tarda en arrancar, y bastante: sube el driver y todas las muestras
+    # al SPC700 por el protocolo de la ROM interna, que va byte por byte con
+    # acuse. Con un banco de 48 KB eso es más de un segundo de silencio, así que
+    # el corrimiento no se puede suponer ni buscar a ciegas en un rango chico.
+    # Se busca dónde empieza a haber señal y se afina alrededor de ahí.
+    quiet = max(400, peak // 20)
+    first = next((i for i, s in enumerate(samples) if abs(s) > quiet), 0)
+    print("silencio inicial: %.2f s (la subida al SPC700)" % (first / rate))
+
+    recorded = int((len(samples) - first) / rate * md_music.TICKS_PER_SECOND)
+    length = min(length, recorded - 30)
+    if length <= 0:
+        print("la grabación es más corta que el arranque")
+        return 1
+
+    base = int(first / rate * md_music.TICKS_PER_SECOND)
+    best = (0.0, first, base)
+    for delta in range(-20, 21, 2):
+        offset = int((base + delta) * rate / md_music.TICKS_PER_SECOND)
+        if offset < 0:
+            continue
         wins, total, _ = score(samples, rate, sounding, offset, 20, length)
         if total and wins / total > best[0]:
-            best = (wins / total, offset, offset_frames)
+            best = (wins / total, offset, base + delta)
     print("corrimiento del arranque: %d cuadros" % best[2])
 
     wins, total, detail = score(samples, rate, sounding, best[1],

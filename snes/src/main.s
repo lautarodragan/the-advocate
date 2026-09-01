@@ -165,9 +165,15 @@ wait_byte:
 
     inx
     dey
+    ; El mismo salto de banco que en `advance`: las muestras pasan de 32 KB,
+    ; así que la subida al SPC700 también cruza de un banco de LoROM al otro.
     inc source
     bne send
     inc source + 1
+    bne send
+    lda #$80
+    sta source + 1
+    inc source + 2
     bra send
 
 done:
@@ -211,10 +217,7 @@ OP_END  = $FF
 
 run:
     lda [music]
-    inc music
-    bne :+
-    inc music + 1
-:
+    jsr advance
     cmp #OP_END
     bne check_wait
     jsr music_start             ; se terminó: de nuevo desde arriba
@@ -247,13 +250,26 @@ wait_ack:
 .endproc
 
 ; Avanza el puntero de música un byte, devolviendo en A lo que ya se leyó.
+;
+; En LoROM cada banco expone sólo su mitad alta, $8000-$FFFF, así que el byte
+; que sigue a $00FFFF no es $010000 sino $018000. Un incremento común de 24 bits
+; caería en la RAM del banco 1 y leería basura. Con el tema entero más las
+; muestras pasando los 64 KB, esto no es teórico: se cruza sí o sí.
 .proc advance
 .a8
 .i16
+; El acumulador trae el byte que el llamador acaba de leer, así que hay que
+; devolverlo intacto: por eso el pha/pla en la rama del salto de banco.
     inc music
-    bne :+
+    bne done
     inc music + 1
-:
+    bne done                    ; si la parte alta no dio la vuelta, listo
+    pha
+    lda #$80                    ; dio la vuelta: al banco siguiente, en $8000
+    sta music + 1
+    pla
+    inc music + 2
+done:
     rts
 .endproc
 
@@ -262,7 +278,7 @@ wait_ack:
     .byte "ABL SNES MUSIC POC   "  ; 21 caracteres
     .byte $20                      ; LoROM, velocidad lenta
     .byte $00                      ; sólo ROM, sin RAM ni chips extra
-    .byte $05                      ; tamaño: 32 KB
+    .byte $07                      ; tamaño: 128 KB (el byte es log2 de los KB)
     .byte $00                      ; sin SRAM
     .byte $01                      ; región
     .byte $00                      ; desarrollador

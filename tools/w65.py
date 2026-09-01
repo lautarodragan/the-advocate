@@ -29,20 +29,40 @@ import sys
 
 
 # --- el mapa de memoria -----------------------------------------------------
-# Equivale a snes.cfg, que deja de hacer falta. Un LoROM de 32 KB: un solo banco
-# en $8000-$FFFF, con la cabecera y los vectores al final.
+# LoROM de 128 KB: cuatro bancos de 32 KB, cada uno mapeado en $8000-$FFFF del
+# banco que le toca. La cabecera y los vectores van al final del primero.
 #
-# Los segmentos se concatenan dentro de su área en el orden de esta tabla, que
-# es lo que hace ld65 con el orden del archivo de configuración.
+# Lo cómodo de LoROM es que el archivo es lineal aunque las direcciones no lo
+# sean: el byte que sigue a $007FFF en el archivo es $018000. Así que las piezas
+# se ubican por desplazamiento dentro del archivo, que es contiguo, y la
+# dirección se calcula después. Un bloque de datos grande puede cruzar de banco
+# sin que haya que partirlo.
+#
+# Lo que sí paga el precio es el 65816: un puntero de 24 bits no avanza solo de
+# $00FFFF a $018000, hay que ayudarlo. Está en `advance`, en main.s.
+BANK_SIZE = 0x8000
+ROM_BANKS = 4
+
 AREAS = [
-    ("ROM",  0x8000, 0x7FC0, ["CODE", "RODATA"], True),
-    ("HEAD", 0xFFC0, 0x0020, ["HEADER"],         True),
-    ("VECT", 0xFFE0, 0x0020, ["VECTORS"],        True),
-    ("ZP",   0x0000, 0x0100, ["ZEROPAGE"],       False),
-    ("RAM",  0x0100, 0x1F00, ["BSS"],            False),
+    ("ROM",  0x00000, 0x07FC0, ["CODE"]),
+    ("HEAD", 0x07FC0, 0x00020, ["HEADER"]),
+    ("VECT", 0x07FE0, 0x00020, ["VECTORS"]),
+    ("DATA", 0x08000, 0x18000, ["RODATA"]),
 ]
-SEGMENTS = [name for _, _, _, names, _ in AREAS for name in names]
+# La RAM no sale en el archivo: se ubica por dirección, no por desplazamiento.
+RAM_AREAS = [
+    ("ZP",  0x0000, 0x0100, ["ZEROPAGE"]),
+    ("RAM", 0x0100, 0x1F00, ["BSS"]),
+]
+
+SEGMENTS = ([n for _, _, _, names in AREAS for n in names]
+            + [n for _, _, _, names in RAM_AREAS for n in names])
 ZP_SEGMENT = "ZEROPAGE"
+
+
+def lorom_address(offset):
+    """La dirección que el 65816 ve para un byte del archivo."""
+    return ((offset // BANK_SIZE) << 16) | 0x8000 | (offset % BANK_SIZE)
 
 
 # --- los opcodes ------------------------------------------------------------
@@ -497,7 +517,23 @@ class Assembler:
     def place(self):
         """Le da una dirección a cada pieza y con eso a cada etiqueta."""
         self.addresses = {}
-        for _, start, _, names, _ in AREAS:
+        self.offsets = {}
+
+        for _, start, size, names in AREAS:
+            offset = start
+            for segment in names:
+                for index, item in enumerate(self.items[segment]):
+                    self.offsets[(segment, index)] = offset
+                    self.addresses[(segment, index)] = lorom_address(offset)
+                    offset += item.size
+                self.offsets[(segment, len(self.items[segment]))] = offset
+                self.addresses[(segment, len(self.items[segment]))] = \
+                    lorom_address(offset)
+            if offset > start + size:
+                raise Error("el área no entra: %d bytes en %d"
+                            % (offset - start, size))
+
+        for _, start, _, names in RAM_AREAS:
             address = start
             for segment in names:
                 for index, item in enumerate(self.items[segment]):
@@ -540,21 +576,15 @@ class Assembler:
         return expression.value(self.symbols)
 
     def emit(self):
-        """Los bytes de la ROM, área por área."""
-        rom = bytearray()
-        for _, start, size, names, into_rom in AREAS:
-            if not into_rom:
-                continue
-            block = bytearray()
-            address = start
+        """Los bytes de la ROM, ubicando cada pieza por su desplazamiento."""
+        rom = bytearray(BANK_SIZE * ROM_BANKS)
+        for _, start, size, names in AREAS:
+            offset = start
             for segment in names:
                 for index, item in enumerate(self.items[segment]):
-                    block += self.emit_item(item, address)
-                    address += item.size
-            if len(block) > size:
-                raise Error("el área no entra: %d bytes en %d"
-                            % (len(block), size))
-            rom += block + b"\x00" * (size - len(block))
+                    data = self.emit_item(item, self.addresses[(segment, index)])
+                    rom[offset:offset + len(data)] = data
+                    offset += item.size
         return bytes(rom)
 
     def emit_item(self, item, address):

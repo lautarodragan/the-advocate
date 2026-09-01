@@ -7,13 +7,14 @@ velocidad de lectura, así que una sola muestra sirve para todas las notas.
 
 Eso cambia por completo el problema respecto del YM2612. Allá el timbre había
 que construirlo con cuatro operadores y nueve parámetros cada uno, a ciegas.
-Acá el timbre *es* la forma de onda, y una forma de onda se describe diciendo
-cuánto pesa cada armónico — que es como suele describirse un instrumento.
+Acá el timbre es la muestra, y las muestras salen de un SoundFont de General
+MIDI: las arma snes_samples.py.
 
-El banco son ondas de un ciclo: 32 muestras que se repiten en loop. Ocupan 18
-bytes cada una en BRR, así que las ocho entran en 144 bytes de los 64 KB del
-SPC700. Suenan a sintetizador, no a instrumento grabado; el paso siguiente
-sería muestrear de verdad, y espacio sobra.
+Lo que queda acá de aquel banco sintético son las envolventes. `for_program`
+sigue devolviendo una familia por programa de General MIDI, y de ella se usan
+sólo el ataque, el decaimiento y el sostenido, que el DSP aplica encima de la
+muestra. Las ondas de `waveform` ya no van a la ROM; se dejan porque siguen
+sirviendo para generar un tono de prueba de frecuencia conocida.
 """
 
 import math
@@ -141,6 +142,27 @@ def pitch(note, length=CYCLE):
         note -= 12
 
 
+def pitch_for(note, root, rate, length=None):
+    """El paso de lectura para tocar una nota con una muestra grabada.
+
+    Con las ondas de un ciclo la cuenta salía del largo del ciclo. Con una
+    grabación sale de otro lado: la muestra suena en su afinación original
+    cuando el DSP la lee a la misma tasa a la que se grabó, y de ahí se
+    transpone por la diferencia de semitonos contra su nota de referencia.
+
+    El registro tiene 14 bits, o sea cuatro veces la tasa base como máximo.
+    Guardando a 10 kHz eso da unas dos octavas y media por encima de la nota
+    grabada, de sobra; cuando no alcanza se baja una octava, que desafina menos
+    que quedarse en el tope.
+    """
+    while True:
+        step = rate * 4096.0 / SAMPLE_RATE * 2.0 ** ((note - root) / 12.0)
+        value = int(round(step))
+        if value <= MAX_PITCH:
+            return max(1, value)
+        note -= 12
+
+
 def adsr(sound):
     """Los dos registros de envolvente de un timbre."""
     return (0x80 | ((sound["decay"] & 0x07) << 4) | (sound["attack"] & 0x0F),
@@ -154,8 +176,8 @@ def adsr(sound):
 # grabado, no de la teoría: la teoría supone que todas las voces pican juntas y
 # en fase, que no pasa nunca.
 MASTER = 0x60
-CEILING = 72
-CEILING_NOISE = 60
+CEILING = 96
+CEILING_NOISE = 72
 
 
 def volume(velocity, ceiling=CEILING):
