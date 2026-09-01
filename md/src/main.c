@@ -114,13 +114,27 @@ static void vdp_addr(u32 kind, u16 addr)
     VDP_CTRL_L = kind | ((u32)(addr & 0x3FFF) << 16) | ((addr >> 14) & 3);
 }
 
+/* Qué partes del init se aplican.
+ *
+ * Los 16 registros de siempre son los que escribía el build de la cámara, que
+ * es el último que funcionó en una consola de verdad. Después agregué los ocho
+ * que faltaban y la lectura del puerto de control, convencido de que dejar
+ * registros sin escribir era lo que rompía en hardware — y fue exactamente al
+ * revés: con eso dejó de andar. Hasta saber cuál de las cuatro cosas es, el
+ * default es no escribir ninguna.
+ */
+#define VDP_STATUS_READ 1
+#define VDP_REGS_8_9    2
+#define VDP_REG_14      4
+#define VDP_REGS_DMA    8
+
+#ifndef VDP_EXTRA
+#define VDP_EXTRA 0
+#endif
+
 /* Los 24 registros del VDP, todos, en orden.
  *
- * Escribirlos todos no es prolijidad: los que no se tocan quedan como los dejó
- * el encendido, y en hardware real eso es basura. El 14 en particular define
- * dónde busca el VDP los patrones de los planos, así que si arranca en
- * cualquier cosa no se dibuja nada. Un emulador los arranca en cero y el
- * problema no se ve nunca.
+ * La tabla los tiene todos; VDP_EXTRA decide cuáles se escriben.
  */
 static const u8 vdp_regs[24] = {
     0x04,                   /*  0  modo 1: MODE5, sin interrupción de línea   */
@@ -168,20 +182,19 @@ static void vdp_init(void)
     /* Una lectura del puerto de control descarta cualquier primera mitad de
      * comando que haya quedado colgada, por ejemplo del BIOS de TMSS. Sin
      * esto, la primera escritura se interpretaría como la segunda mitad. */
-#ifdef OLD_VDP_INIT
-    /* Sólo los 16 registros que escribía el build de la cámara, el último que
-     * funcionó en la consola: sin el 8, el 9, el 14 ni los de DMA, y sin la
-     * lectura del puerto de control. Para aislar si el init completo es el
-     * problema. */
-    for (i = 0; i < 24; i++)
-        if (i != 8 && i != 9 && i != 14 && i < 19)
-            vdp_reg(i, vdp_regs[i]);
-#else
+#if VDP_EXTRA & VDP_STATUS_READ
     (void)VDP_CTRL_W;
-
-    for (i = 0; i < 24; i++)
-        vdp_reg(i, vdp_regs[i]);
 #endif
+
+    for (i = 0; i < 24; i++) {
+        if ((i == 8 || i == 9) && !(VDP_EXTRA & VDP_REGS_8_9))
+            continue;
+        if (i == 14 && !(VDP_EXTRA & VDP_REG_14))
+            continue;
+        if (i >= 19 && !(VDP_EXTRA & VDP_REGS_DMA))
+            continue;
+        vdp_reg(i, vdp_regs[i]);
+    }
 }
 
 static void vram_clear(void)

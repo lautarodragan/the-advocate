@@ -288,6 +288,10 @@ hace falta para que ande ahí:
 
 * **TMSS.** Las consolas modelo 1 tardías y el modelo 2 no dejan tocar el VDP
   hasta que el cartucho escribe "SEGA" en `0xA14000`.
+* **Escribir sólo 16 de los 24 registros del VDP.** Suena mal y lo "arreglé"
+  escribiéndolos todos; en la consola dejó de andar. Cuál de los ocho que
+  agregué es el que rompe está en bisección — hasta saberlo, el default escribe
+  los mismos que el último build que funcionó.
 * **Callar el PSG.** En un emulador los canales arrancan en silencio; una
   consola de verdad puede zumbar apenas se enciende si nadie les pone la
   atenuación al máximo.
