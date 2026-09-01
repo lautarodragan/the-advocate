@@ -159,6 +159,28 @@ class Renderer:
             self.atlases[chipset.filename] = ChipsetAtlas(load_image(path)) if path else None
         return self.atlases[chipset.filename]
 
+    def render_layers(self, game_map):
+        """El mapa en dos capas separadas, como las ordena RM2k.
+
+        La de abajo es opaca y va detrás del héroe; la de arriba lleva sólo los
+        tiles marcados como "por encima del héroe" y es transparente en todo lo
+        demás. En el VDP van a planos distintos: la de abajo al B sin prioridad
+        y la de arriba al A con prioridad, que es justo el orden del hardware.
+        """
+        chipset = self.database.chipsets[game_map.chipset_id]
+        atlas = self.atlas(chipset)
+        if atlas is None:
+            return None, None
+
+        flags = build_passability(chipset)
+        size = (game_map.width * TILE, game_map.height * TILE)
+
+        base = Image.new("RGBA", size, (0, 0, 0, 255))
+        draw_tiles(base, atlas, game_map, flags, pass_upper=False)
+        above = Image.new("RGBA", size, (0, 0, 0, 0))
+        draw_tiles(above, atlas, game_map, flags, pass_upper=True)
+        return base, above
+
     def render(self, game_map, draw_events_too=True, first_page=False):
         """El orden del motor: tiles bajos, los eventos que van debajo del héroe
         y a su altura, los tiles altos que tapan, y por último los eventos que

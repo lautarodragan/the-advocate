@@ -43,9 +43,14 @@ CELL = 8
 
 
 def quantize(image):
-    """La imagen como filas de colores de 9 bits, que es lo que el VDP muestra."""
-    pixels = list(image.convert("RGB").get_flattened_data())
-    quantized = [(r >> 5, g >> 5, b >> 5) for r, g, b in pixels]
+    """La imagen como filas de colores de 9 bits, que es lo que el VDP muestra.
+
+    Un píxel transparente queda como None: en la capa de arriba eso es lo
+    normal, y va a parar al índice 0 de la paleta, que el VDP no dibuja.
+    """
+    pixels = list(image.convert("RGBA").get_flattened_data())
+    quantized = [None if a == 0 else (r >> 5, g >> 5, b >> 5)
+                 for r, g, b, a in pixels]
     return [quantized[y * image.width:(y + 1) * image.width]
             for y in range(image.height)]
 
@@ -63,9 +68,14 @@ def cut_tiles(rows):
     return grid
 
 
+def tile_colors(tile):
+    """Los colores de un tile, sin contar los píxeles transparentes."""
+    return frozenset(p for row in tile for p in row if p is not None)
+
+
 def color_sets(grid):
     unique = {tile for row in grid for tile in row}
-    return unique, {frozenset(p for row in t for p in row) for t in unique}
+    return unique, {tile_colors(t) for t in unique}
 
 
 def try_pack(sets, limit):
@@ -143,13 +153,15 @@ def reduce_colors(grid, budget):
     las celdas del mapa, que en Lashe City son 22500.
     """
     counts = collections.Counter(p for row in grid for tile in row
-                                 for line in tile for p in line)
+                                 for line in tile for p in line
+                                 if p is not None)
     unique = {tile for row in grid for tile in row}
 
     def accept(mapping):
-        remap = {tile: tuple(tuple(mapping[p] for p in line) for line in tile)
+        remap = {tile: tuple(tuple(mapping.get(p) for p in line)
+                             for line in tile)
                  for tile in unique}
-        sets = {frozenset(p for line in t for p in line) for t in remap.values()}
+        sets = {tile_colors(t) for t in remap.values()}
         groups = try_pack(sets, budget)
         return (remap, groups) if groups is not None else None
 
@@ -159,8 +171,13 @@ def reduce_colors(grid, budget):
 
 
 def to_indices(tile, palette):
-    """El tile como índices dentro de su paleta. El 0 queda sin usar."""
+    """El tile como índices dentro de su paleta.
+
+    El 0 es el transparente: en la capa de abajo no se usa nunca —de ahí que
+    sirva de canario— y en la de arriba es todo lo que no es el tile.
+    """
     lookup = {color: i + 1 for i, color in enumerate(palette)}
+    lookup[None] = 0
     return tuple(tuple(lookup[p] for p in row) for row in tile)
 
 
@@ -449,7 +466,7 @@ def collect_npcs(game_map):
     return npcs
 
 
-def allocate(image, counters):
+def allocate(grid, counters):
     """Decide cuántas de las 4 paletas se lleva el fondo y cuántas los sprites.
 
     Se prueban todos los repartos y gana el que minimiza el peor de los dos
@@ -460,7 +477,6 @@ def allocate(image, counters):
     El fondo suele usar menos paletas de las que se le dan —a Lashe City le
     alcanza con dos— y lo que sobra se lo quedan los sprites.
     """
-    grid = cut_tiles(quantize(image))
     sprite_pixels = sum(sum(c.values()) for c in counters)
     options = []
 
@@ -492,26 +508,36 @@ def allocate(image, counters):
     return min(options, key=lambda o: o[0])
 
 
-def convert(image, counters):
-    """Del render del mapa a lo que consume el VDP, con las paletas ya repartidas."""
-    (_, map_palettes, sprite_palettes, grid, groups, merged, counts,
-     assignment, palettes, mappings) = allocate(image, counters)
+def convert(base_image, above_image, counters):
+    """Del render del mapa a lo que consume el VDP.
+
+    Salen dos tilemaps: el de abajo, opaco, que va al plano B sin prioridad, y
+    el de arriba, que lleva sólo los tiles marcados como "por encima del héroe"
+    y va al plano A con prioridad. Los dos comparten el pool de tiles y las
+    paletas del fondo.
+    """
+    base_grid = cut_tiles(quantize(base_image))
+    above_grid = cut_tiles(quantize(above_image))
+    height = len(base_grid)
+
+    # La reducción de colores mira las dos capas juntas: comparten paletas.
+    (_, map_palettes, sprite_palettes, reduced, groups, merged, counts,
+     assignment, palettes, mappings) = allocate(base_grid + above_grid, counters)
+    base_grid, above_grid = reduced[:height], reduced[height:]
 
     background = [sorted(group) for group in groups]
-    unique, _ = color_sets(grid)
+    blank = tuple(tuple(None for _ in range(CELL)) for _ in range(CELL))
 
-    tile_palette = {}
-    for tile in unique:
-        colors = {p for row in tile for p in row}
-        tile_palette[tile] = next(i for i, g in enumerate(groups) if colors <= g)
-
-    # Cada tile único ya tiene paleta; ahora se deduplican también los
-    # espejados, que el VDP puede dibujar dados vuelta sin gastar VRAM.
     catalogue = {}
     tile_data = []
-    entries = {}
-    for tile in sorted(unique):
-        palette_index = tile_palette[tile]
+    entries = {blank: None}          # el tile vacío no ocupa VRAM
+
+    def slot_for(tile):
+        """Índice, espejado y paleta de un tile, reusando los ya emitidos."""
+        if tile in entries:
+            return entries[tile]
+        colors = tile_colors(tile)
+        palette_index = next(i for i, g in enumerate(groups) if colors <= g)
         indices = to_indices(tile, background[palette_index])
         for variant, hflip, vflip in flips(indices):
             key = (palette_index, variant)
@@ -522,16 +548,26 @@ def convert(image, counters):
             catalogue[(palette_index, indices)] = len(tile_data)
             entries[tile] = (len(tile_data), 0, 0, palette_index)
             tile_data.append(pack_tile(indices))
+        return entries[tile]
 
-    tilemap = []
-    for row in grid:
-        for tile in row:
-            index, hflip, vflip, palette_index = entries[tile]
-            # El tile 0 de la VRAM se deja en blanco, así que todo corre uno.
-            tilemap.append((palette_index << 13) | (vflip << 12) | (hflip << 11)
-                           | (index + 1))
+    def build(grid, priority):
+        cells = []
+        for row in grid:
+            for tile in row:
+                slot = slot_for(tile)
+                if slot is None:
+                    cells.append(0)     # el tile 0 de la VRAM está en blanco
+                    continue
+                index, hflip, vflip, palette_index = slot
+                cells.append(priority | (palette_index << 13) | (vflip << 12)
+                             | (hflip << 11) | (index + 1))
+        return cells
 
-    # Las paletas del fondo van primero y las de los sprites después.
+    # Los tiles del fondo se emiten primero para que el pool arranque con los
+    # que más se repiten.
+    tilemap = build(base_grid, 0)
+    overlay = build(above_grid, 0x8000)
+
     cram = []
     for i in range(PALETTES):
         colors = background[i] if i < len(background) else (
@@ -544,8 +580,9 @@ def convert(image, counters):
              "palettes": [len(p) for p in background],
              "map_palettes": map_palettes, "sprite_palettes": sprite_palettes,
              "assignment": assignment, "sprite_colors": palettes,
-             "sprite_mappings": mappings}
-    return tile_data, cram, tilemap, len(grid[0]), len(grid), stats
+             "sprite_mappings": mappings,
+             "overlay": sum(1 for c in overlay if c)}
+    return (tile_data, cram, tilemap, overlay, len(base_grid[0]), height, stats)
 
 
 def npc_table(npcs, hero_tiles, sprite_base):
@@ -566,14 +603,17 @@ def npc_table(npcs, hero_tiles, sprite_base):
         entries.append({
             "x": npc["x"] * 16 - (SPRITE_CELLS_W * CELL - 16) // 2,
             "y": npc["y"] * 16 - (SPRITE_CELLS_H * CELL - 16),
-            "attr": (npc["palette"] << 13) | tile,
+            # Los eventos de capa "above" van con el bit de prioridad, que en
+            # el VDP los pone delante del plano que tapa al héroe.
+            "attr": ((0x8000 if npc["layer"] == LAYER_ABOVE else 0)
+                     | (npc["palette"] << 13) | tile),
             "layer": npc["layer"],
             "tx": npc["x"], "ty": npc["y"], "blocks": npc["blocks"],
         })
     return entries
 
 
-def emit(path, name, tile_data, cram, tilemap, width, height, sprite,
+def emit(path, name, tile_data, cram, tilemap, overlay, width, height, sprite,
          passable, start, hero_palette, npc_tiles, npcs):
     tiles_per_pose = SPRITE_CELLS_W * SPRITE_CELLS_H
     with open(path + ".h", "w") as handle:
@@ -595,6 +635,9 @@ def emit(path, name, tile_data, cram, tilemap, width, height, sprite,
             "/* Bits de paso: 1 abajo, 2 izquierda, 4 derecha, 8 arriba. */\n"
             "#define HERO_START_TX  %d\n"
             "#define HERO_START_TY  %d\n\n"
+            "/* La capa que va por encima del héroe. Casi ningún mapa la usa,\n"
+            "   así que cuando está vacía no se emite ni se dibuja. */\n"
+            "#define MAP_OVERLAY    %d\n\n"
             "#define NPC_COUNT      %d\n"
             "#define NPC_BLOCKS     %d\n\n"
             "/* Un NPC ya listo para la tabla de sprites del VDP. */\n"
@@ -606,6 +649,7 @@ def emit(path, name, tile_data, cram, tilemap, width, height, sprite,
             "extern const unsigned short md_palette[%d];\n"
             "extern const unsigned int   md_tiles[%d * 8];\n"
             "extern const unsigned short md_tilemap[%d];\n"
+            "extern const unsigned short md_overlay[%d];\n"
             "extern const unsigned int   md_sprite_tiles[%d * 8];\n"
             "extern const unsigned char  md_passable[%d];\n"
             "extern const unsigned int   md_npc_tiles[%d * 8];\n"
@@ -615,8 +659,10 @@ def emit(path, name, tile_data, cram, tilemap, width, height, sprite,
             % (name, width, height, width // 2, height // 2, len(tile_data),
                SPRITE_POSES, SPRITE_CELLS_W, SPRITE_CELLS_H, tiles_per_pose,
                hero_palette, start[0], start[1],
+               1 if any(overlay) else 0,
                len(npcs), sum(1 for n in npcs if n["blocks"]),
                PALETTES * COLORS_PER_PALETTE, len(tile_data), width * height,
+               len(overlay) if any(overlay) else 1,
                len(sprite), len(passable), max(1, len(npc_tiles)),
                max(1, len(npcs)), max(1, sum(1 for n in npcs if n["blocks"]))))
 
@@ -644,6 +690,16 @@ def emit(path, name, tile_data, cram, tilemap, width, height, sprite,
         for y in range(height):
             row = tilemap[y * width:(y + 1) * width]
             handle.write("    " + " ".join("0x%04X," % c for c in row) + "\n")
+        handle.write("};\n\n")
+
+        handle.write("const unsigned short md_overlay[%d] = {\n"
+                     % (len(overlay) if any(overlay) else 1))
+        if any(overlay):
+            for y in range(height):
+                row = overlay[y * width:(y + 1) * width]
+                handle.write("    " + " ".join("0x%04X," % c for c in row) + "\n")
+        else:
+            handle.write("    0x0000,\n")
         handle.write("};\n\n")
 
         write_tiles("md_sprite_tiles", sprite)
@@ -690,8 +746,8 @@ def main():
 
     renderer = Renderer(args.game_dir, args.rtp_dir)
     game_map = lcf.Map(os.path.join(args.maps_dir, "Map%04d.lmu" % args.map_id))
-    image, _ = renderer.render(game_map, draw_events_too=False)
-    if image is None:
+    base_image, above_image = renderer.render_layers(game_map)
+    if base_image is None:
         sys.exit("Falta el chipset del mapa %d" % args.map_id)
 
     # Los personajes que van a aparecer: Talan primero y después los CharSets
@@ -716,7 +772,8 @@ def main():
         origins.append(origin)
         counters.append(counter)
 
-    tile_data, cram, tilemap, width, height, stats = convert(image, counters)
+    (tile_data, cram, tilemap, overlay, width, height,
+     stats) = convert(base_image, above_image, counters)
     palette_sizes = stats["palettes"]
     name = renderer.tree.map_names.get(args.map_id, "Map%04d" % args.map_id)
 
@@ -762,8 +819,8 @@ def main():
              else hero_start(passable, game_map.width, game_map.height, blocked))
 
     entries = npc_table(npcs, len(sprite), 1 + len(tile_data))
-    emit(args.output, name, tile_data, cram, tilemap, width, height, sprite,
-         passable, start, hero_palette, npc_tiles, entries)
+    emit(args.output, name, tile_data, cram, tilemap, overlay, width, height,
+         sprite, passable, start, hero_palette, npc_tiles, entries)
 
     print("Mapa %d %r: %dx%d celdas de 8x8" % (args.map_id, name, width, height))
     print("  %dx%d px, %d tiles distintos de %d (%.0f%% de la VRAM de tiles)"
@@ -774,6 +831,10 @@ def main():
     print("  colores fusionados: %d (%d px de %d, %.3f%%)"
           % (len(stats["merged"]), stats["lost"], stats["total"],
              100.0 * stats["lost"] / stats["total"]))
+    if stats["overlay"]:
+        print("  capa por encima del héroe: %d celdas de %d (%.1f%%)"
+              % (stats["overlay"], width * height,
+                 100.0 * stats["overlay"] / (width * height)))
     blocked = sum(1 for b in passable if b & PASS_ALL != PASS_ALL)
     print("  colisión: %d de %d tiles con algún lado cerrado (%.0f%%), "
           "arranca en (%d, %d)"
@@ -803,13 +864,13 @@ def main():
                                             * SPRITE_CELLS_H),
             "layer": LAYER_SAME,
         }]
-        write_reference(args.reference, image, tile_data, cram, tilemap,
-                        width, height, with_hero, sprite + npc_tiles,
+        write_reference(args.reference, base_image, tile_data, cram, tilemap,
+                        overlay, width, height, with_hero, sprite + npc_tiles,
                         1 + len(tile_data))
 
 
-def write_reference(path, image, tile_data, cram, tilemap, width, height,
-                    npcs=(), npc_tiles=(), npc_base=0):
+def write_reference(path, image, tile_data, cram, tilemap, overlay, width,
+                    height, npcs=(), npc_tiles=(), npc_base=0):
     """Reconstruye desde los datos generados lo que el VDP tiene que mostrar.
 
     Es la referencia contra la que se compara el screenshot del emulador: si
@@ -823,27 +884,41 @@ def write_reference(path, image, tile_data, cram, tilemap, width, height,
     out = Image.new("RGB", (width * CELL, height * CELL))
     pixels = out.load()
 
-    for cell in range(width * height):
-        entry = tilemap[cell]
-        palette = cram[(entry >> 13) & 3]
-        vflip, hflip = (entry >> 12) & 1, (entry >> 11) & 1
-        data = tile_data[(entry & 0x7FF) - 1]
-        base_x, base_y = (cell % width) * CELL, (cell // width) * CELL
+    def draw_plane(cells, transparent):
+        """Un plano entero. El de arriba saltea el índice 0, que no se dibuja."""
+        for cell in range(width * height):
+            entry = cells[cell]
+            if transparent and not entry:
+                continue
+            palette = cram[(entry >> 13) & 3]
+            vflip, hflip = (entry >> 12) & 1, (entry >> 11) & 1
+            data = tile_data[(entry & 0x7FF) - 1]
+            base_x, base_y = (cell % width) * CELL, (cell // width) * CELL
 
-        for y in range(CELL):
-            for x in range(CELL):
-                sx = CELL - 1 - x if hflip else x
-                sy = CELL - 1 - y if vflip else y
-                byte = data[sy * 4 + sx // 2]
-                index = (byte >> 4) if sx % 2 == 0 else (byte & 0x0F)
-                word = palette[index]
-                pixels[base_x + x, base_y + y] = (
-                    levels[(word >> 1) & 7], levels[(word >> 5) & 7],
-                    levels[(word >> 9) & 7])
+            for y in range(CELL):
+                for x in range(CELL):
+                    sx = CELL - 1 - x if hflip else x
+                    sy = CELL - 1 - y if vflip else y
+                    byte = data[sy * 4 + sx // 2]
+                    index = (byte >> 4) if sx % 2 == 0 else (byte & 0x0F)
+                    if transparent and index == 0:
+                        continue
+                    word = palette[index]
+                    pixels[base_x + x, base_y + y] = (
+                        levels[(word >> 1) & 7], levels[(word >> 5) & 7],
+                        levels[(word >> 9) & 7])
 
-    # Mismo orden que en la ROM pero al revés, porque acá se dibuja de atrás
-    # hacia adelante: primero por capa y después por Y.
-    for npc in sorted(npcs, key=lambda n: (n["layer"], n["y"], n["x"])):
+    draw_plane(tilemap, False)
+
+    # El orden de RM2k, de atrás hacia adelante: el mapa, los eventos que van
+    # debajo del héroe y a su altura, los tiles que tapan, y por último los
+    # eventos de capa "above". Es el mismo que aplica el hardware.
+    def draw_npcs(layers):
+        for npc in sorted((n for n in npcs if n["layer"] in layers),
+                          key=lambda n: (n["layer"], n["y"], n["x"])):
+            draw_npc(npc)
+
+    def draw_npc(npc):
         palette = cram[(npc["attr"] >> 13) & 3]
         first = (npc["attr"] & 0x7FF) - npc_base
         for cell in range(SPRITE_CELLS_W * SPRITE_CELLS_H):
@@ -863,6 +938,10 @@ def write_reference(path, image, tile_data, cram, tilemap, width, height,
                         pixels[px, py] = (
                             levels[(word >> 1) & 7], levels[(word >> 5) & 7],
                             levels[(word >> 9) & 7])
+
+    draw_npcs((LAYER_BELOW, LAYER_SAME))
+    draw_plane(overlay, True)
+    draw_npcs((LAYER_ABOVE,))
 
     out.save(path)
     print("  referencia -> %s" % path)

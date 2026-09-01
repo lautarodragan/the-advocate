@@ -184,6 +184,32 @@ en pantalla, pero como máximo 11 comparten scanline, más el héroe. Entra.
 Y la VRAM no es problema porque cada NPC estático necesita una sola pose, no
 las 12: los 34 del Auditorium usan 6 poses distintas, 72 tiles.
 
+### Las dos capas del mapa, y qué tapa a quién
+
+RM2k tiene una capa baja y una alta, y algunos tiles de la alta están marcados
+como "por encima del héroe": el borde de un techo, la copa de un árbol, un
+poste. Hay que poder caminar por detrás de ellos.
+
+En el VDP eso son los dos planos. El orden que aplica el hardware, de atrás
+hacia adelante, resulta ser **exactamente** el de RM2k:
+
+    plano B sin prioridad   ←  el mapa            (RM2k: TilesetBelow)
+    sprites sin prioridad   ←  el héroe y los NPCs de capa "below" y "same"
+    plano A con prioridad   ←  lo que tapa        (RM2k: TilesetAbove)
+    sprites con prioridad   ←  los NPCs de capa "above"
+
+Así que se mapea sin trucos: el mapa va al plano B, los tiles que tapan al
+plano A con el bit de prioridad, y los eventos de capa "above" son sprites con
+ese mismo bit.
+
+Los dos planos comparten el pool de tiles y las paletas. La capa de arriba usa
+el índice 0 como transparente —que en la capa de abajo no se usa nunca, y por
+eso sirve de canario— y las celdas vacías van al tile 0, que queda en blanco.
+
+Casi ningún mapa la usa: **1.78% de los tiles del juego**, y 0% en Lashe City y
+en el Auditorium. Cuando el mapa no tiene ninguno, el tilemap de arriba no se
+emite y el código que lo dibuja no se compila.
+
 ### Colisión
 
 Cada tile de RM2k tiene cuatro bits que dicen por qué lados se lo puede cruzar,

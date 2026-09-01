@@ -44,8 +44,13 @@ typedef signed short   s16;
  * todo: hay lugar para 1024, que a 32 bytes son los primeros 32 KB.
  */
 #define TILESET_ADDR 0x0020     /* el tile 0 se deja en blanco */
-#define PLANE_A      0x8000
-#define PLANE_B      0xA000
+/* El plano B lleva el mapa y el A los tiles que van por encima del héroe, con
+ * el bit de prioridad puesto. El orden del hardware —plano B sin prioridad,
+ * sprites, plano A con prioridad— es exactamente el de RM2k. */
+#define PLANE_OVER   0x8000
+#define PLANE_BASE   0xA000
+#define PLANE_A      PLANE_OVER
+#define PLANE_B      PLANE_BASE
 #define PLANE_W      0xD000
 #define SPRITE_TAB   0xF000
 #define HSCROLL_TAB  0xFC00
@@ -234,9 +239,6 @@ static void load_tiles(void)
     for (i = 0; i < MAP_TILE_COUNT * 8; i++)
         VDP_DATA_L = md_tiles[i];
 
-#ifdef NO_SPRITES
-    return;
-#endif
     /* Las 12 poses del héroe y, atrás, una pose por cada NPC distinto. */
     vdp_addr(VRAM_WRITE, (u16)(TILESET_ADDR + MAP_TILE_COUNT * 32));
     for (i = 0; i < SPRITE_POSES * SPRITE_POSE_TILES * 8; i++)
@@ -268,11 +270,14 @@ static void draw_sprites(s16 cam_x, s16 cam_y, s16 screen_h,
     u16 i;
     u8 hero_placed = 0;
 
+    (void)screen_h;   /* sólo se usa para recortar, y sin NPCs no hay qué recortar */
+
     /* Los NPCs vienen ordenados como los dibuja RM2k: primero por capa y
      * después por Y. El héroe está en la capa 1, la suya, y se mete donde le
      * toca por su Y dentro de esa banda. Así un evento de capa 0 —un punto de
      * guardado en el piso, una alfombra— queda siempre debajo, aunque esté más
      * adelante en la pantalla, y uno de capa 2 lo tapa siempre. */
+#if NPC_COUNT
     for (i = 0; i < NPC_COUNT && count < MAX_SPRITES; i++) {
         s16 x = md_npcs[i].x - cam_x;
         s16 y = md_npcs[i].y - cam_y;
@@ -293,6 +298,7 @@ static void draw_sprites(s16 cam_x, s16 cam_y, s16 screen_h,
             continue;
         sprite_order[count++] = (s16)i;
     }
+#endif
     if (!hero_placed && count < MAX_SPRITES)
         sprite_order[count++] = -1;
 
@@ -325,16 +331,16 @@ static void draw_sprites(s16 cam_x, s16 cam_y, s16 screen_h,
 static s16 top_x;
 static s16 top_y;
 
-static u16 cell_at(s16 x, s16 y)
+static u16 cell_at(const u16 *cells, s16 x, s16 y)
 {
     if (x < 0 || y < 0 || x >= MAP_CELLS_W || y >= MAP_CELLS_H)
         return 0;               /* fuera del mapa: celda en blanco */
-    return md_tilemap[(u32)y * MAP_CELLS_W + (u32)x];
+    return cells[(u32)y * MAP_CELLS_W + (u32)x];
 }
 
-static u16 plane_addr(u16 col, u16 row)
+static u16 plane_addr(u16 plane, u16 col, u16 row)
 {
-    return (u16)(PLANE_A + row * (PLANE_CELLS_W * 2) + col * 2);
+    return (u16)(plane + row * (PLANE_CELLS_W * 2) + col * 2);
 }
 
 /* Las dos escriben una tira de celdas y la parten en dos cuando se pasa del
@@ -350,33 +356,27 @@ static void draw_column(s16 map_x, s16 map_y)
 
     /* Con el autoincremento en una fila entera del plano, una columna se
      * escribe de corrido en vez de reposicionar el VDP en cada celda. */
-#ifdef SLOW_COLUMNS
-    /* Variante que no toca nunca el autoincremento: reposiciona el VDP en cada
-     * celda. Es más lenta pero sirve para descartar el registro 15. */
-    (void)col;
-    for (i = 0; i < VIEW_H; i++) {
-        vdp_addr(VRAM_WRITE, plane_addr((u16)map_x & (PLANE_CELLS_W - 1),
-                                        (u16)(map_y + i) & (PLANE_CELLS_H - 1)));
-        VDP_DATA_W = cell_at(map_x, (s16)(map_y + i));
-    }
-    (void)left; (void)y; (void)run; (void)row;
-#else
     vdp_wait_fifo();
     vdp_reg(15, PLANE_CELLS_W * 2);
     while (left > 0) {
         run = (s16)(PLANE_CELLS_H - row);
         if (run > left)
             run = left;
-        vdp_addr(VRAM_WRITE, plane_addr(col, row));
+
+        vdp_addr(VRAM_WRITE, plane_addr(PLANE_BASE, col, row));
         for (i = 0; i < run; i++)
-            VDP_DATA_W = cell_at(map_x, (s16)(y + i));
+            VDP_DATA_W = cell_at(md_tilemap, map_x, (s16)(y + i));
+#if MAP_OVERLAY
+        vdp_addr(VRAM_WRITE, plane_addr(PLANE_OVER, col, row));
+        for (i = 0; i < run; i++)
+            VDP_DATA_W = cell_at(md_overlay, map_x, (s16)(y + i));
+#endif
         left -= run;
         y += run;
         row = 0;
     }
     vdp_wait_fifo();
     vdp_reg(15, 2);
-#endif
 }
 
 static void draw_row(s16 map_y, s16 map_x)
@@ -391,9 +391,15 @@ static void draw_row(s16 map_y, s16 map_x)
         run = (s16)(PLANE_CELLS_W - col);
         if (run > left)
             run = left;
-        vdp_addr(VRAM_WRITE, plane_addr(col, row));
+
+        vdp_addr(VRAM_WRITE, plane_addr(PLANE_BASE, col, row));
         for (i = 0; i < run; i++)
-            VDP_DATA_W = cell_at((s16)(x + i), map_y);
+            VDP_DATA_W = cell_at(md_tilemap, (s16)(x + i), map_y);
+#if MAP_OVERLAY
+        vdp_addr(VRAM_WRITE, plane_addr(PLANE_OVER, col, row));
+        for (i = 0; i < run; i++)
+            VDP_DATA_W = cell_at(md_overlay, (s16)(x + i), map_y);
+#endif
         left -= run;
         x += run;
         col = 0;
@@ -485,10 +491,14 @@ static const u8 enter_bit[4] = { PASS_DOWN, PASS_LEFT, PASS_UP, PASS_RIGHT };
  * "above" no. */
 static u8 npc_blocks(s16 tx, s16 ty)
 {
+#if NPC_BLOCKS
     u16 i;
     for (i = 0; i < NPC_BLOCKS; i++)
         if (md_npc_blocks[i][0] == tx && md_npc_blocks[i][1] == ty)
             return 1;
+#else
+    (void)tx; (void)ty;
+#endif
     return 0;
 }
 
@@ -559,13 +569,11 @@ int main(void)
          * llega a verse una columna que todavía no se dibujó. */
         stream_to((s16)(cam_x >> 3), (s16)(cam_y >> 3));
         set_scroll(cam_x, cam_y);
-#ifndef NO_SPRITES
         draw_sprites(cam_x, cam_y, screen_h,
                      (s16)(hero_x + SPRITE_OFFSET_X),
                      (s16)(hero_y + SPRITE_OFFSET_Y),
                      (u16)((SPRITE_PALETTE << 13) | (SPRITE_TILE_BASE
                            + (facing * 3 + column) * SPRITE_POSE_TILES)));
-#endif
 
         /* --- y para dónde va ------------------------------------------- */
         if (hero_step <= 0) {
