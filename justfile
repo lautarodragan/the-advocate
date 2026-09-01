@@ -149,11 +149,20 @@ snes-build:
 
 # --- verificación del ensamblador ------------------------------------------
 # w65.py reemplaza a ca65 y ld65. Que se pueda confiar en él no es una promesa:
-# se ensambla el mismo fuente con las dos cadenas y se comparan los 32.768
-# bytes. Correr esto cada vez que se toquen las tablas de opcodes.
+# se genera un fuente con cada mnemónico en cada modo de direccionamiento que la
+# tabla declara, se ensambla con las dos cadenas y se comparan los bytes.
 #
-# snes/snes.cfg y snes/Makefile existen sólo para esto. El build normal no los
-# usa.
+# Correr esto cada vez que se toquen las tablas de opcodes. Necesita podman, así
+# que va desde el host, no desde adentro del contenedor.
+#
+# Lo que valida es la codificación de instrucciones, que es lo que se puede
+# equivocar en silencio. El layout de la ROM —banqueo LoROM, 128 KB, checksum—
+# ya no se compara: ca65 necesitaría una configuración bastante más compleja
+# para expresarlo, y main.s dejó de entrar en los 32 KB de snes.cfg cuando el
+# banco de muestras creció. A cambio, el layout sí se verifica de punta a punta
+# cada vez que la ROM arranca y suena en el emulador.
+#
+# snes/snes.cfg y snes/Makefile existen sólo para esto.
 
 snes-image:
   podman build -t abl-snes snes
@@ -161,11 +170,9 @@ snes-image:
 snes-validar:
   python3 tools/w65_coverage.py -o snes/build/cobertura.s
   podman run --rm --network=none --mount=type=bind,src=.,dst=/abl -w /abl/snes abl-snes \
-      sh -c 'make && ca65 --cpu 65816 -o build/cobertura.o build/cobertura.s \
+      sh -c 'ca65 --cpu 65816 -o build/cobertura.o build/cobertura.s \
              && ld65 -C snes.cfg -o build/cobertura-ca65.sfc build/cobertura.o'
-  python3 tools/w65.py snes/src/main.s -o snes/build/abl.sfc
-  python3 tools/w65_check.py snes/build/abl.sfc snes/build/abl-ca65.sfc
-  python3 tools/w65.py snes/build/cobertura.s -o snes/build/cobertura-w65.sfc
+  python3 tools/w65.py --sin-checksum snes/build/cobertura.s -o snes/build/cobertura-w65.sfc
   python3 tools/w65_check.py snes/build/cobertura-w65.sfc snes/build/cobertura-ca65.sfc
 
 # El MIDI del mapa a muestras BRR y un stream para el DSP.

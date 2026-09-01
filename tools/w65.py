@@ -313,7 +313,8 @@ OPERAND = re.compile(r"^(?P<mnemonic>[A-Za-z]+)(?:\s+(?P<operand>.*))?$")
 
 class Assembler:
 
-    def __init__(self):
+    def __init__(self, checksum=True):
+        self.checksum = checksum
         self.items = {name: [] for name in SEGMENTS}
         self.segment = "CODE"
         self.symbols = {}
@@ -585,6 +586,8 @@ class Assembler:
                     data = self.emit_item(item, self.addresses[(segment, index)])
                     rom[offset:offset + len(data)] = data
                     offset += item.size
+        if self.checksum:
+            checksum(rom)
         return bytes(rom)
 
     def emit_item(self, item, address):
@@ -611,6 +614,34 @@ class Assembler:
         return item.emit(self.symbols, address)
 
 
+CHECKSUM_OFFSET = 0x07FDE        # $FFDE del banco 0
+COMPLEMENT_OFFSET = 0x07FDC      # $FFDC
+
+
+def checksum(rom):
+    """Completa el checksum de la cabecera, en el lugar.
+
+    Es la suma de todos los bytes de la ROM módulo 65536, y al lado va su
+    complemento. mednafen no lo mira, pero el menú del EverDrive lee la cabecera
+    para deducir el mapeo y el tamaño del cartucho, y con basura ahí puede
+    adivinar mal. Sale gratis dejarlo bien.
+
+    Los valores del fuente son $FFFF y $0000 a propósito: como el complemento es
+    el checksum invertido, los cuatro bytes siempre suman 510 —255+255+0+0 antes,
+    y (255-a)+(255-b)+a+b después—, así que la suma no cambia al escribirlos y
+    no hace falta iterar.
+    """
+    before = sum(rom) & 0xFFFF
+    rom[CHECKSUM_OFFSET:CHECKSUM_OFFSET + 2] = before.to_bytes(2, "little")
+    rom[COMPLEMENT_OFFSET:COMPLEMENT_OFFSET + 2] = (
+        before ^ 0xFFFF).to_bytes(2, "little")
+
+    after = sum(rom) & 0xFFFF
+    if after != before:
+        raise Error("el checksum no cerró: %04X contra %04X" % (after, before))
+    return before
+
+
 def split_commas(text):
     """Parte por comas sin romper las que están adentro de comillas."""
     parts, current, quoted = [], "", False
@@ -632,9 +663,12 @@ def main():
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("source")
     parser.add_argument("-o", "--output", required=True)
+    parser.add_argument("--sin-checksum", action="store_true",
+                        help="no completar el checksum de la cabecera, para "
+                             "poder comparar contra ca65, que no lo escribe")
     args = parser.parse_args()
 
-    assembler = Assembler()
+    assembler = Assembler(checksum=not args.sin_checksum)
     try:
         rom = assembler.assemble(args.source)
     except Error as error:
