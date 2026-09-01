@@ -10,6 +10,8 @@ CFLAGS  = -m68000 -Os -fomit-frame-pointer -fno-builtin -ffreestanding \
           -fno-pic -Wall -Wextra -Isrc -MMD -MP
 LDFLAGS = -T md.ld -nostdlib --no-warn-rwx-segments
 
+PAD ?= 0
+
 OBJS = build/boot.o build/main.o build/mapdata.o
 
 all: build/abl.bin
@@ -28,7 +30,7 @@ build/abl.elf: $(OBJS) md.ld
 
 build/abl.bin: build/abl.elf
 	$(OBJCOPY) -O binary $< $@
-	python3 ../tools/md_fixrom.py $@
+	python3 ../tools/md_fixrom.py $@ --pad $(PAD)
 
 clean:
 	rm -rf build
