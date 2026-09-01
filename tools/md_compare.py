@@ -66,7 +66,12 @@ def crop_active(image):
     return pixels.crop((x0, y0, x1, y1)), (x0, y0, x1, y1)
 
 
-def relabel(image, mask=None):
+def in_rects(x, y, rects):
+    return any(rx <= x < rx + rw and ry <= y < ry + rh
+               for rx, ry, rw, rh in rects)
+
+
+def relabel(image, rects=()):
     """La imagen como índices de color, en orden de aparición.
 
     Sirve para comparar dos imágenes que tienen la misma forma pero paletas con
@@ -77,12 +82,11 @@ def relabel(image, mask=None):
     ids = {}
     labels = []
     width = image.width
-    mx, my, mw, mh = mask if mask else (0, 0, 0, 0)
 
     for i, pixel in enumerate(image.get_flattened_data()):
         # Los píxeles tapados no entran en la numeración: si entraran, los
         # colores del sprite correrían los ids de todo lo que viene después.
-        if mask and mx <= i % width < mx + mw and my <= i // width < my + mh:
+        if in_rects(i % width, i // width, rects):
             labels.append(-1)
         else:
             labels.append(ids.setdefault(pixel, len(ids)))
@@ -92,6 +96,19 @@ def relabel(image, mask=None):
 TILE = 16
 SPRITE_W = 24
 SPRITE_H = 32
+
+
+def npc_rects(map_id, cam_x, cam_y):
+    """Dónde cae cada NPC en pantalla, para poder excluirlos."""
+    if map_id is None:
+        return []
+    import lcf
+    from md_convert import collect_npcs
+
+    game_map = lcf.Map(os.path.join(REPO, "Maps", "Map%04d.lmu" % map_id))
+    return [(n["x"] * TILE - (SPRITE_W - TILE) // 2 - cam_x,
+             n["y"] * TILE - (SPRITE_H - TILE) - cam_y, SPRITE_W, SPRITE_H)
+            for n in collect_npcs(game_map)]
 
 
 DIRECTIONS = {"none": (0, 0), "right": (1, 0), "left": (-1, 0),
@@ -107,18 +124,21 @@ def simulate(map_id, direction):
     """
     import lcf
     from render_map import Renderer, build_passability
-    from md_convert import hero_start, passability_map, walk
+    from md_convert import collect_npcs, hero_start, passability_map, walk
 
     renderer = Renderer()
     game_map = lcf.Map(os.path.join(REPO, "Maps", "Map%04d.lmu" % map_id))
     flags = build_passability(renderer.database.chipsets[game_map.chipset_id])
     passable = passability_map(game_map, flags)
-    start = hero_start(passable, game_map.width, game_map.height)
+    # Los NPCs que están en capa "same" también tapan el paso.
+    blocked = {(n["x"], n["y"]) for n in collect_npcs(game_map) if n["blocks"]}
+    start = hero_start(passable, game_map.width, game_map.height, blocked)
 
     dx, dy = DIRECTIONS[direction]
     if (dx, dy) == (0, 0):
         return start
-    return walk(passable, game_map.width, game_map.height, start, dx, dy)
+    return walk(passable, game_map.width, game_map.height, start, dx, dy,
+                blocked)
 
 
 def hero_view(tile, map_size, screen_size):
@@ -153,10 +173,12 @@ def hero_view(tile, map_size, screen_size):
     return cam_x, cam_y, mask
 
 
-def channel_error(a, b):
-    """Diferencia de color entre dos imágenes: máxima, promedio y por píxel."""
+def channel_error(a, b, rects=()):
+    """Diferencia de color entre dos imágenes, salteando los rectángulos tapados."""
     pa, pb = list(a.get_flattened_data()), list(b.get_flattened_data())
-    deltas = [max(abs(x - y) for x, y in zip(p, q)) for p, q in zip(pa, pb)]
+    deltas = [max(abs(x - y) for x, y in zip(p, q))
+              for i, (p, q) in enumerate(zip(pa, pb))
+              if not in_rects(i % a.width, i // a.width, rects)]
     return max(deltas), sum(deltas) / len(deltas), deltas
 
 
@@ -249,15 +271,20 @@ def main():
     # el emulador si y sólo si lo tienen en la referencia. No se comparan
     # valores RGB porque cada uno convierte los 9 bits del VDP a RGB con su
     # propia tabla de niveles.
-    ok = relabel(shot, mask) == relabel(reference, mask)
+    hero_rects = [mask] if mask else []
+    ok = relabel(shot, hero_rects) == relabel(reference, hero_rects)
     print("emulador vs referencia (forma):   %s"
           % ("IDÉNTICOS, píxel por píxel" if ok else "DIFIEREN"))
-    worst, mean, _ = channel_error(shot, reference)
+    worst, mean, _ = channel_error(shot, reference, hero_rects)
     print("emulador vs referencia (niveles): máx %d/255, prom %.1f"
           % (worst, mean))
     print("  (sólo la tabla con que cada uno convierte los 9 bits del VDP a RGB)")
 
-    worst, mean, deltas = channel_error(reference, original)
+    # El render de Python no dibuja los NPCs, así que se los saltea acá: lo que
+    # se está midiendo es el costo de bajar el color a 9 bits, no los sprites.
+    worst, mean, deltas = channel_error(reference, original,
+                                        hero_rects + npc_rects(args.map_id,
+                                                               cam_x, cam_y))
     heavy = sum(1 for d in deltas if d > 32)
     print("referencia vs render original:    máx %d/255, prom %.1f, %d px con "
           "más de 32 (%.3f%%)" % (worst, mean, heavy, 100.0 * heavy / len(deltas)))

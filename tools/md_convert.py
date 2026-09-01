@@ -245,13 +245,14 @@ def passability_map(game_map, flags):
     return bytes(result)
 
 
-def hero_start(passable, width, height):
+def hero_start(passable, width, height, blocked=()):
     """El tile abierto por los cuatro lados más cercano al centro del mapa."""
     cx, cy = width // 2, height // 2
     best = None
     for y in range(height):
         for x in range(width):
-            if passable[y * width + x] & PASS_ALL == PASS_ALL:
+            if (passable[y * width + x] & PASS_ALL == PASS_ALL
+                    and (x, y) not in blocked):
                 distance = (x - cx) ** 2 + (y - cy) ** 2
                 if best is None or distance < best[0]:
                     best = (distance, x, y)
@@ -260,7 +261,7 @@ def hero_start(passable, width, height):
     return best[1], best[2]
 
 
-def walk(passable, width, height, start, dx, dy):
+def walk(passable, width, height, start, dx, dy, blocked=()):
     """Hasta dónde llega el personaje caminando en una dirección sin soltar.
 
     Mismas reglas que la ROM, para poder predecir dónde va a terminar y
@@ -280,6 +281,8 @@ def walk(passable, width, height, start, dx, dy):
             return x, y
         if not passable[ny * width + nx] & entering:
             return x, y
+        if (nx, ny) in blocked:
+            return x, y             # hay un NPC parado ahí
         x, y = nx, ny
 
 
@@ -367,35 +370,73 @@ def pack_charsets(counters, budget):
     return assignment, palettes, mappings
 
 
-def sprite_tiles(image, index, origin, palette, mapping):
-    """Las 12 poses, cada una en 12 tiles del VDP.
+def pose_tiles(image, origin, pose, palette, mapping):
+    """Los 12 tiles de una pose.
 
     El VDP lee las celdas de un sprite por columnas, de arriba a abajo, así que
     hay que emitirlas en ese orden y no por filas como el fondo.
     """
     base_x, base_y = origin
     lookup = {color: i + 1 for i, color in enumerate(palette)}
+    pose_x = base_x + (pose % 3) * POSE_W
+    pose_y = base_y + (pose // 3) * POSE_H
     tiles = []
 
-    for pose in range(SPRITE_POSES):
-        pose_x = base_x + (pose % 3) * POSE_W
-        pose_y = base_y + (pose // 3) * POSE_H
-        for col in range(SPRITE_CELLS_W):
-            for row in range(SPRITE_CELLS_H):
-                indices = []
-                for y in range(CELL):
-                    line = []
-                    for x in range(CELL):
-                        red, green, blue, alpha = image.getpixel(
-                            (pose_x + col * CELL + x, pose_y + row * CELL + y))
-                        if not alpha:
-                            line.append(0)      # transparente
-                        else:
-                            line.append(lookup[mapping[(red >> 5, green >> 5,
-                                                        blue >> 5)]])
-                    indices.append(tuple(line))
-                tiles.append(pack_tile(tuple(indices)))
+    for col in range(SPRITE_CELLS_W):
+        for row in range(SPRITE_CELLS_H):
+            indices = []
+            for y in range(CELL):
+                line = []
+                for x in range(CELL):
+                    red, green, blue, alpha = image.getpixel(
+                        (pose_x + col * CELL + x, pose_y + row * CELL + y))
+                    if not alpha:
+                        line.append(0)      # transparente: se ve el fondo
+                    else:
+                        line.append(lookup[mapping[(red >> 5, green >> 5,
+                                                    blue >> 5)]])
+                indices.append(tuple(line))
+            tiles.append(pack_tile(tuple(indices)))
     return tiles
+
+
+def sprite_tiles(image, index, origin, palette, mapping):
+    """Las 12 poses de un personaje, una atrás de la otra."""
+    tiles = []
+    for pose in range(SPRITE_POSES):
+        tiles += pose_tiles(image, origin, pose, palette, mapping)
+    return tiles
+
+
+# --- los NPCs ---------------------------------------------------------------
+#
+# Son los eventos del mapa que tienen CharSet, en la página que el motor
+# mostraría al empezar una partida: la de número más alto sin condiciones. No se
+# evalúan sus scripts, así que cada uno se queda quieto en la pose que declara
+# su página. Los eventos sin CharSet —puertas, cofres, disparadores— quedan
+# afuera por ahora.
+
+LAYER_SAME = 1     # la única capa de evento que le choca al héroe
+
+
+def collect_npcs(game_map):
+    """Los eventos visibles, con su pose y si bloquean el paso."""
+    npcs = []
+    for event in game_map.events:
+        page = event.active_page()
+        if page is None or not page.character_name:
+            continue
+        # La caminata son cuatro fases sobre tres columnas: la del medio va dos
+        # veces, así que la cuarta dibuja la misma que la segunda.
+        column = 1 if page.character_pattern == 3 else page.character_pattern
+        npcs.append({
+            "x": event.x, "y": event.y,
+            "charset": page.character_name,
+            "index": page.character_index,
+            "pose": page.character_direction * 3 + column,
+            "blocks": page.layer == LAYER_SAME,
+        })
+    return npcs
 
 
 def allocate(image, counters):
@@ -497,8 +538,32 @@ def convert(image, counters):
     return tile_data, cram, tilemap, len(grid[0]), len(grid), stats
 
 
+def npc_table(npcs, hero_tiles, sprite_base):
+    """Los NPCs listos para el VDP, ordenados de adelante hacia atrás.
+
+    El VDP dibuja los sprites en el orden de la lista y los primeros tapan a
+    los últimos, así que van de mayor a menor Y: el que está más abajo en
+    pantalla se ve adelante, como en RM2k.
+
+    La posición ya viene en píxeles y con el ancla del sprite aplicada: mide
+    24x32 sobre una celda de 16x16, o sea centrado a lo ancho y apoyado por los
+    pies.
+    """
+    entries = []
+    for npc in sorted(npcs, key=lambda n: -n["y"]):
+        tile = sprite_base + hero_tiles + npc["slot"] * (SPRITE_CELLS_W
+                                                         * SPRITE_CELLS_H)
+        entries.append({
+            "x": npc["x"] * 16 - (SPRITE_CELLS_W * CELL - 16) // 2,
+            "y": npc["y"] * 16 - (SPRITE_CELLS_H * CELL - 16),
+            "attr": (npc["palette"] << 13) | tile,
+            "tx": npc["x"], "ty": npc["y"], "blocks": npc["blocks"],
+        })
+    return entries
+
+
 def emit(path, name, tile_data, cram, tilemap, width, height, sprite,
-         passable, start, hero_palette):
+         passable, start, hero_palette, npc_tiles, npcs):
     tiles_per_pose = SPRITE_CELLS_W * SPRITE_CELLS_H
     with open(path + ".h", "w") as handle:
         handle.write(
@@ -519,17 +584,29 @@ def emit(path, name, tile_data, cram, tilemap, width, height, sprite,
             "/* Bits de paso: 1 abajo, 2 izquierda, 4 derecha, 8 arriba. */\n"
             "#define HERO_START_TX  %d\n"
             "#define HERO_START_TY  %d\n\n"
+            "#define NPC_COUNT      %d\n"
+            "#define NPC_BLOCKS     %d\n\n"
+            "/* Un NPC ya listo para la tabla de sprites del VDP. */\n"
+            "typedef struct {\n"
+            "    short x, y;            /* esquina del sprite, en píxeles */\n"
+            "    unsigned short attr;   /* paleta y primer tile */\n"
+            "} Npc;\n\n"
             "extern const unsigned short md_palette[%d];\n"
             "extern const unsigned int   md_tiles[%d * 8];\n"
             "extern const unsigned short md_tilemap[%d];\n"
             "extern const unsigned int   md_sprite_tiles[%d * 8];\n"
-            "extern const unsigned char  md_passable[%d];\n\n"
+            "extern const unsigned char  md_passable[%d];\n"
+            "extern const unsigned int   md_npc_tiles[%d * 8];\n"
+            "extern const Npc            md_npcs[%d];\n"
+            "extern const short          md_npc_blocks[%d][2];\n\n"
             "#endif\n"
             % (name, width, height, width // 2, height // 2, len(tile_data),
                SPRITE_POSES, SPRITE_CELLS_W, SPRITE_CELLS_H, tiles_per_pose,
                hero_palette, start[0], start[1],
+               len(npcs), sum(1 for n in npcs if n["blocks"]),
                PALETTES * COLORS_PER_PALETTE, len(tile_data), width * height,
-               len(sprite), len(passable)))
+               len(sprite), len(passable), max(1, len(npc_tiles)),
+               max(1, len(npcs)), max(1, sum(1 for n in npcs if n["blocks"]))))
 
     with open(path + ".c", "w") as handle:
         handle.write("/* Generado por tools/md_convert.py. No editar. */\n"
@@ -563,6 +640,20 @@ def emit(path, name, tile_data, cram, tilemap, width, height, sprite,
         for y in range(height // 2):
             row = passable[y * (width // 2):(y + 1) * (width // 2)]
             handle.write("    " + " ".join("0x%02X," % c for c in row) + "\n")
+        handle.write("};\n\n")
+
+        write_tiles("md_npc_tiles", npc_tiles or [bytes(32)])
+
+        handle.write("const Npc md_npcs[%d] = {\n" % max(1, len(npcs)))
+        for npc in npcs or [{"x": 0, "y": -64, "attr": 0}]:
+            handle.write("    { %d, %d, 0x%04X },\n"
+                         % (npc["x"], npc["y"], npc["attr"]))
+        handle.write("};\n\n")
+
+        blocks = [n for n in npcs if n["blocks"]] or [{"tx": -1, "ty": -1}]
+        handle.write("const short md_npc_blocks[%d][2] = {\n" % len(blocks))
+        for npc in blocks:
+            handle.write("    { %d, %d },\n" % (npc["tx"], npc["ty"]))
         handle.write("};\n")
 
 
@@ -588,15 +679,29 @@ def main():
     if image is None:
         sys.exit("Falta el chipset del mapa %d" % args.map_id)
 
-    # Los personajes que van a aparecer. Por ahora sólo Talan; cuando estén los
-    # NPCs, esta lista se arma con los CharSets de los eventos del mapa.
-    charset_path = find_resource(renderer.search_dirs, "CharSet", args.charset)
-    if not charset_path:
-        sys.exit("No encuentro el CharSet %r" % args.charset)
-    charset = load_image(charset_path)
-    origin, counter = charset_colors(charset, args.charset_index)
+    # Los personajes que van a aparecer: Talan primero y después los CharSets
+    # de los eventos del mapa. Todos entran en el reparto de paletas.
+    npcs = collect_npcs(game_map)
+    actors = [(args.charset, args.charset_index)]
+    for npc in npcs:
+        key = (npc["charset"], npc["index"])
+        if key not in actors:
+            actors.append(key)
 
-    tile_data, cram, tilemap, width, height, stats = convert(image, [counter])
+    images = {}
+    origins = []
+    counters = []
+    for name, index in actors:
+        if name not in images:
+            path = find_resource(renderer.search_dirs, "CharSet", name)
+            if not path:
+                sys.exit("No encuentro el CharSet %r" % name)
+            images[name] = load_image(path)
+        origin, counter = charset_colors(images[name], index)
+        origins.append(origin)
+        counters.append(counter)
+
+    tile_data, cram, tilemap, width, height, stats = convert(image, counters)
     palette_sizes = stats["palettes"]
     name = renderer.tree.map_names.get(args.map_id, "Map%04d" % args.map_id)
 
@@ -604,20 +709,45 @@ def main():
         sys.exit("%d tiles distintos: no entran en los %d que hay de VRAM."
                  % (len(tile_data), MAX_TILES))
 
-    hero_palette = stats["map_palettes"] + stats["assignment"][0]
-    palette = stats["sprite_colors"][stats["assignment"][0]]
-    mapping = stats["sprite_mappings"][stats["assignment"][0]]
-    sprite = sprite_tiles(charset, args.charset_index, origin, palette, mapping)
-    sprite_lost = sum(n for color, n in counter.items()
-                      if mapping[color] != color)
+    def palette_of(actor):
+        """En qué paleta del VDP quedó cada personaje, y con qué colores."""
+        group = stats["assignment"][actor]
+        return (stats["map_palettes"] + group,
+                stats["sprite_colors"][group], stats["sprite_mappings"][group])
+
+    # Talan necesita sus 12 poses porque camina; cada NPC, sólo la que declara.
+    hero_palette, palette, mapping = palette_of(0)
+    sprite = sprite_tiles(images[args.charset], args.charset_index, origins[0],
+                          palette, mapping)
+
+    npc_tiles = []
+    pose_slot = {}
+    for npc in npcs:
+        actor = actors.index((npc["charset"], npc["index"]))
+        key = (actor, npc["pose"])
+        if key not in pose_slot:
+            pose_slot[key] = len(npc_tiles) // (SPRITE_CELLS_W * SPRITE_CELLS_H)
+            _, colors, remap = palette_of(actor)
+            npc_tiles += pose_tiles(images[npc["charset"]], origins[actor],
+                                    npc["pose"], colors, remap)
+        npc["slot"] = pose_slot[key]
+        npc["palette"] = palette_of(actor)[0]
+
+    sprite_lost = sum(
+        n for actor, counter in enumerate(counters)
+        for color, n in counter.items()
+        if stats["sprite_mappings"][stats["assignment"][actor]][color] != color)
+    sprite_pixels = sum(sum(c.values()) for c in counters)
 
     # Colisión: se resuelve acá y la ROM sólo mira la tabla.
     flags = build_passability(renderer.database.chipsets[game_map.chipset_id])
     passable = passability_map(game_map, flags)
-    start = hero_start(passable, game_map.width, game_map.height)
+    blocked = {(n["x"], n["y"]) for n in npcs if n["blocks"]}
+    start = hero_start(passable, game_map.width, game_map.height, blocked)
 
+    entries = npc_table(npcs, len(sprite), 1 + len(tile_data))
     emit(args.output, name, tile_data, cram, tilemap, width, height, sprite,
-         passable, start, hero_palette)
+         passable, start, hero_palette, npc_tiles, entries)
 
     print("Mapa %d %r: %dx%d celdas de 8x8" % (args.map_id, name, width, height))
     print("  %dx%d px, %d tiles distintos de %d (%.0f%% de la VRAM de tiles)"
@@ -633,18 +763,24 @@ def main():
           "arranca en (%d, %d)"
           % (blocked, len(passable), 100.0 * blocked / len(passable),
              start[0], start[1]))
-    print("  sprite %s[%d]: %d tiles, %d colores en la paleta %d, "
+    print("  %d personajes (%s en la paleta %d) en %d paletas: %d tiles, "
           "%d px de %d fusionados (%.1f%%)"
-          % (args.charset, args.charset_index, len(sprite), len(palette),
-             hero_palette, sprite_lost, sum(counter.values()),
-             100.0 * sprite_lost / sum(counter.values())))
+          % (len(actors), args.charset, hero_palette, stats["sprite_palettes"],
+             len(sprite) + len(npc_tiles), sprite_lost, sprite_pixels,
+             100.0 * sprite_lost / sprite_pixels))
+    blocking = sum(1 for n in npcs if n["blocks"])
+    print("  %d NPCs, %d bloquean el paso, %d poses distintas"
+          % (len(npcs), blocking, len(pose_slot)))
     print("  -> %s.c / %s.h" % (args.output, args.output))
 
     if args.reference:
-        write_reference(args.reference, image, tile_data, cram, tilemap, width, height)
+        write_reference(args.reference, image, tile_data, cram, tilemap,
+                        width, height, entries, npc_tiles,
+                        1 + len(tile_data) + len(sprite))
 
 
-def write_reference(path, image, tile_data, cram, tilemap, width, height):
+def write_reference(path, image, tile_data, cram, tilemap, width, height,
+                    npcs=(), npc_tiles=(), npc_base=0):
     """Reconstruye desde los datos generados lo que el VDP tiene que mostrar.
 
     Es la referencia contra la que se compara el screenshot del emulador: si
@@ -675,6 +811,28 @@ def write_reference(path, image, tile_data, cram, tilemap, width, height):
                 pixels[base_x + x, base_y + y] = (
                     levels[(word >> 1) & 7], levels[(word >> 5) & 7],
                     levels[(word >> 9) & 7])
+
+    # Los NPCs, de menor a mayor Y: el que está más abajo se dibuja encima.
+    for npc in sorted(npcs, key=lambda n: n["y"]):
+        palette = cram[(npc["attr"] >> 13) & 3]
+        first = (npc["attr"] & 0x7FF) - npc_base
+        for cell in range(SPRITE_CELLS_W * SPRITE_CELLS_H):
+            data = npc_tiles[first + cell]
+            # El VDP ordena las celdas de un sprite por columnas.
+            base_x = npc["x"] + (cell // SPRITE_CELLS_H) * CELL
+            base_y = npc["y"] + (cell % SPRITE_CELLS_H) * CELL
+            for y in range(CELL):
+                for x in range(CELL):
+                    byte = data[y * 4 + x // 2]
+                    index = (byte >> 4) if x % 2 == 0 else (byte & 0x0F)
+                    if index == 0:
+                        continue            # transparente
+                    px, py = base_x + x, base_y + y
+                    if 0 <= px < out.width and 0 <= py < out.height:
+                        word = palette[index]
+                        pixels[px, py] = (
+                            levels[(word >> 1) & 7], levels[(word >> 5) & 7],
+                            levels[(word >> 9) & 7])
 
     out.save(path)
     print("  referencia -> %s" % path)

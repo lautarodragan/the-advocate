@@ -133,9 +133,9 @@ Por ahora es de ida nomás: `data/` se genera desde los `.lmu`, no al revés.
     just md-play       # la ROM en una ventana, para moverla con las flechas
                        # (necesita un `xhost +local:` antes)
 
-Sale una ROM donde se camina por el mapa con Talan, con colisión, más los
-screenshots del emulador y los `md/shots/comparacion-*.png` con el render de
-Python al lado.
+Sale una ROM donde se camina por el mapa con Talan, con colisión y con los NPCs
+del mapa en sus puestos, más los screenshots del emulador y los
+`md/shots/comparacion-*.png` con el render de Python al lado.
 
 ### Cómo se mueve el personaje
 
@@ -151,6 +151,32 @@ por cuadro, o sea ocho cuadros por tile, 2 px por cuadro. La animación avanza
 cada 6 cuadros, y son **cuatro fases sobre tres columnas del CharSet: 0, 1, 2,
 1** — la del medio se usa dos veces por ciclo. Parado se queda en la del medio,
 y contra un borde sigue moviendo las piernas aunque no avance, como en RM2k.
+
+### Los NPCs
+
+Son los eventos del mapa que tienen CharSet, en la página que el motor
+mostraría al empezar una partida: la de número más alto sin condiciones, el
+mismo criterio que usa el renderer de Python. **No se evalúan sus scripts**, así
+que cada uno se queda quieto en la pose que declara su página — dirección y
+frame vienen de ahí, no hay que inventarlos. Los eventos sin CharSet (puertas,
+cofres, disparadores) quedan afuera por ahora.
+
+Un evento le tapa el paso al héroe si su página está en la capa "same", que es
+la del héroe; los de capa "below" —alfombras, marcas en el piso— y los de
+"above" no.
+
+El VDP admite 80 sprites encadenados en una lista, y los primeros tapan a los
+últimos. Los NPCs se emiten ya ordenados de mayor a menor Y y el héroe se mete
+donde le toca por el suyo, así el que está más abajo se dibuja adelante, como
+en RM2k. Lo que queda fuera de pantalla se descarta y no gasta entrada.
+
+El límite que aprieta no es el de 80 sino **20 sprites por scanline, o 320
+píxeles, lo que llegue primero**: con personajes de 24 px de ancho son 13. El
+peor caso del juego es el Auditorium, donde el Director da su discurso: 34 NPCs
+en pantalla, pero como máximo 11 comparten scanline, más el héroe. Entra.
+
+Y la VRAM no es problema porque cada NPC estático necesita una sola pose, no
+las 12: los 34 del Auditorium usan 6 poses distintas, 72 tiles.
 
 ### Colisión
 
@@ -286,11 +312,12 @@ verifica la colisión, no sólo el render. Y es determinista por más que el
 emulador corra rápido o lento, porque lo que importa es contra qué choca, no
 cuánto tardó.
 
-El sprite se **excluye** de la comparación, porque el render de Python no lo
-dibuja. Pero eso no debilita el chequeo: que todo lo de alrededor coincida
-píxel por píxel prueba que el sprite ocupa exactamente ese rectángulo y ninguno
-de al lado, o sea que está donde tiene que estar. La pose sí queda sin
-verificar automáticamente; para eso, mirar el screenshot.
+Los NPCs **sí** se verifican: la referencia los dibuja, con sus tiles, su
+paleta y su orden, así que la comparación los cubre píxel por píxel. Lo único
+que se excluye es el héroe, porque su posición depende de la caminata. Y eso no
+debilita el chequeo: que todo lo de alrededor coincida exactamente prueba que
+su sprite ocupa ese rectángulo y ninguno de al lado. La pose del héroe queda
+sin verificar automáticamente; para eso, mirar el screenshot.
 
 Son cinco chequeos por mapa entre las dos regiones. Probado en Lashe City, en
 ParadiseFarmland y en Talan's Pad, que es del tamaño exacto de la pantalla y

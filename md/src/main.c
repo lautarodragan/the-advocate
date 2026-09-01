@@ -185,21 +185,76 @@ static void load_tiles(void)
     for (i = 0; i < MAP_TILE_COUNT * 8; i++)
         VDP_DATA_L = md_tiles[i];
 
-    /* Las 12 poses del personaje, una atrás de la otra. */
+    /* Las 12 poses del héroe y, atrás, una pose por cada NPC distinto. */
     vdp_addr(VRAM_WRITE, (u16)(TILESET_ADDR + MAP_TILE_COUNT * 32));
     for (i = 0; i < SPRITE_POSES * SPRITE_POSE_TILES * 8; i++)
         VDP_DATA_L = md_sprite_tiles[i];
+    for (i = 0; i < sizeof(md_npc_tiles) / sizeof(md_npc_tiles[0]); i++)
+        VDP_DATA_L = md_npc_tiles[i];
 }
 
-/* Una sola entrada en la tabla de sprites: 3x4 celdas, sin enlace a otra.
- * El VDP suma 128 a las coordenadas, así que un sprite en 0,0 va en 128,128. */
-static void set_sprite(s16 x, s16 y, u16 tile)
+/* El VDP admite 80 sprites, encadenados en una lista: cada entrada apunta a la
+ * siguiente y el enlace 0 la termina. Los primeros de la lista tapan a los
+ * últimos.
+ *
+ * Por scanline el límite es de 20 sprites o 320 píxeles, lo que llegue primero.
+ * Con personajes de 24 px de ancho eso son 13; en el Auditorium, que es el
+ * mapa más cargado, se juntan 11 más el héroe.
+ */
+#define MAX_SPRITES 80
+
+static s16 sprite_order[MAX_SPRITES];   /* índice de NPC, o -1 para el héroe */
+
+/* El VDP suma 128 a las coordenadas, así que un sprite en 0,0 va en 128,128. */
+static void draw_sprites(s16 cam_x, s16 cam_y, s16 screen_h,
+                         s16 hero_x, s16 hero_y, u16 hero_attr)
 {
+    u16 count = 0;
+    u16 i;
+    u8 hero_placed = 0;
+
+    /* Los NPCs vienen ordenados de mayor a menor Y; el héroe se mete donde le
+     * toca por el suyo, y así el que está más abajo se dibuja adelante. */
+    for (i = 0; i < NPC_COUNT && count < MAX_SPRITES; i++) {
+        s16 x = md_npcs[i].x - cam_x;
+        s16 y = md_npcs[i].y - cam_y;
+
+        if (!hero_placed && hero_y > md_npcs[i].y) {
+            sprite_order[count++] = -1;
+            hero_placed = 1;
+            if (count >= MAX_SPRITES)
+                break;
+        }
+        /* Fuera de pantalla no gasta entrada ni presupuesto de scanline. */
+        if (x <= -(SPRITE_CELLS_W * 8) || x >= SCREEN_W)
+            continue;
+        if (y <= -(SPRITE_CELLS_H * 8) || y >= screen_h)
+            continue;
+        sprite_order[count++] = (s16)i;
+    }
+    if (!hero_placed && count < MAX_SPRITES)
+        sprite_order[count++] = -1;
+
     vdp_addr(VRAM_WRITE, SPRITE_TAB);
-    VDP_DATA_W = (u16)(y + 128);
-    VDP_DATA_W = (u16)(((SPRITE_CELLS_W - 1) << 10) | ((SPRITE_CELLS_H - 1) << 8));
-    VDP_DATA_W = (u16)((SPRITE_PALETTE << 13) | tile);
-    VDP_DATA_W = (u16)(x + 128);
+    for (i = 0; i < count; i++) {
+        s16 x, y;
+        u16 attr;
+
+        if (sprite_order[i] < 0) {
+            x = hero_x; y = hero_y; attr = hero_attr;
+        } else {
+            x = md_npcs[sprite_order[i]].x;
+            y = md_npcs[sprite_order[i]].y;
+            attr = md_npcs[sprite_order[i]].attr;
+        }
+
+        VDP_DATA_W = (u16)(y - cam_y + 128);
+        VDP_DATA_W = (u16)(((SPRITE_CELLS_W - 1) << 10)
+                           | ((SPRITE_CELLS_H - 1) << 8)
+                           | (i + 1 < count ? i + 1 : 0));
+        VDP_DATA_W = attr;
+        VDP_DATA_W = (u16)(x - cam_x + 128);
+    }
 }
 
 /* --- el plano como ventana móvil sobre el mapa -----------------------------
@@ -350,9 +405,23 @@ static const s16 dir_dy[4] = { -1, 0, 1,  0 };
 static const u8 leave_bit[4] = { PASS_UP, PASS_RIGHT, PASS_DOWN, PASS_LEFT };
 static const u8 enter_bit[4] = { PASS_DOWN, PASS_LEFT, PASS_UP, PASS_RIGHT };
 
+/* Un evento le tapa el paso al héroe si su página está en la capa "same", que
+ * es la del héroe. Los de capa "below" —alfombras, marcas en el piso— y los de
+ * "above" no. */
+static u8 npc_blocks(s16 tx, s16 ty)
+{
+    u16 i;
+    for (i = 0; i < NPC_BLOCKS; i++)
+        if (md_npc_blocks[i][0] == tx && md_npc_blocks[i][1] == ty)
+            return 1;
+    return 0;
+}
+
 static u8 can_step(s16 tx, s16 ty, s16 nx, s16 ny, u8 dir)
 {
     if (nx < 0 || ny < 0 || nx >= MAP_TILES_W || ny >= MAP_TILES_H)
+        return 0;
+    if (npc_blocks(nx, ny))
         return 0;
     if (!(md_passable[(u32)ty * MAP_TILES_W + (u32)tx] & leave_bit[dir]))
         return 0;
@@ -414,10 +483,11 @@ int main(void)
          * llega a verse una columna que todavía no se dibujó. */
         stream_to((s16)(cam_x >> 3), (s16)(cam_y >> 3));
         set_scroll(cam_x, cam_y);
-        set_sprite((s16)(hero_x + SPRITE_OFFSET_X - cam_x),
-                   (s16)(hero_y + SPRITE_OFFSET_Y - cam_y),
-                   (u16)(SPRITE_TILE_BASE
-                         + (facing * 3 + column) * SPRITE_POSE_TILES));
+        draw_sprites(cam_x, cam_y, screen_h,
+                     (s16)(hero_x + SPRITE_OFFSET_X),
+                     (s16)(hero_y + SPRITE_OFFSET_Y),
+                     (u16)((SPRITE_PALETTE << 13) | (SPRITE_TILE_BASE
+                           + (facing * 3 + column) * SPRITE_POSE_TILES)));
 
         /* --- y para dónde va ------------------------------------------- */
         if (hero_step <= 0) {
