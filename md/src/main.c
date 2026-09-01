@@ -146,6 +146,21 @@ static const u8 vdp_regs[24] = {
     0x00, 0x00, 0x00        /* 21-23  origen del DMA                          */
 };
 
+/* En hardware real el autoincremento se aplica cuando el VDP saca la escritura
+ * de la FIFO, no cuando el 68000 la mete. Si se cambia el registro 15 con la
+ * FIFO todavía cargada, las escrituras que están esperando se guardan con el
+ * incremento nuevo y terminan en cualquier lado. Los emuladores aplican el
+ * incremento en el momento de la escritura, así que esto no se ve nunca ahí.
+ *
+ * El bit 9 del registro de estado dice que la FIFO está vacía. */
+static void vdp_wait_fifo(void)
+{
+#ifndef NO_FIFO_WAIT
+    while (!(VDP_CTRL_W & 0x0200))
+        ;
+#endif
+}
+
 static void vdp_init(void)
 {
     u8 i;
@@ -185,6 +200,9 @@ static void load_tiles(void)
     for (i = 0; i < MAP_TILE_COUNT * 8; i++)
         VDP_DATA_L = md_tiles[i];
 
+#ifdef NO_SPRITES
+    return;
+#endif
     /* Las 12 poses del héroe y, atrás, una pose por cada NPC distinto. */
     vdp_addr(VRAM_WRITE, (u16)(TILESET_ADDR + MAP_TILE_COUNT * 32));
     for (i = 0; i < SPRITE_POSES * SPRITE_POSE_TILES * 8; i++)
@@ -298,6 +316,18 @@ static void draw_column(s16 map_x, s16 map_y)
 
     /* Con el autoincremento en una fila entera del plano, una columna se
      * escribe de corrido en vez de reposicionar el VDP en cada celda. */
+#ifdef SLOW_COLUMNS
+    /* Variante que no toca nunca el autoincremento: reposiciona el VDP en cada
+     * celda. Es más lenta pero sirve para descartar el registro 15. */
+    (void)col;
+    for (i = 0; i < VIEW_H; i++) {
+        vdp_addr(VRAM_WRITE, plane_addr((u16)map_x & (PLANE_CELLS_W - 1),
+                                        (u16)(map_y + i) & (PLANE_CELLS_H - 1)));
+        VDP_DATA_W = cell_at(map_x, (s16)(map_y + i));
+    }
+    (void)left; (void)y; (void)run; (void)row;
+#else
+    vdp_wait_fifo();
     vdp_reg(15, PLANE_CELLS_W * 2);
     while (left > 0) {
         run = (s16)(PLANE_CELLS_H - row);
@@ -310,7 +340,9 @@ static void draw_column(s16 map_x, s16 map_y)
         y += run;
         row = 0;
     }
+    vdp_wait_fifo();
     vdp_reg(15, 2);
+#endif
 }
 
 static void draw_row(s16 map_y, s16 map_x)
@@ -474,6 +506,7 @@ int main(void)
 
     /* Recién ahora se prende el display, así no se ve la VRAM sin inicializar
      * mientras se carga. 0x4C = V30 (240 renglones), 0x44 = V28 (224). */
+    vdp_wait_fifo();
     vdp_reg(1, pal ? 0x4C : 0x44);
 
     for (;;) {
@@ -492,11 +525,13 @@ int main(void)
          * llega a verse una columna que todavía no se dibujó. */
         stream_to((s16)(cam_x >> 3), (s16)(cam_y >> 3));
         set_scroll(cam_x, cam_y);
+#ifndef NO_SPRITES
         draw_sprites(cam_x, cam_y, screen_h,
                      (s16)(hero_x + SPRITE_OFFSET_X),
                      (s16)(hero_y + SPRITE_OFFSET_Y),
                      (u16)((SPRITE_PALETTE << 13) | (SPRITE_TILE_BASE
                            + (facing * 3 + column) * SPRITE_POSE_TILES)));
+#endif
 
         /* --- y para dónde va ------------------------------------------- */
         if (hero_step <= 0) {
