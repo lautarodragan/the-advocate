@@ -168,10 +168,20 @@ static void vdp_init(void)
     /* Una lectura del puerto de control descarta cualquier primera mitad de
      * comando que haya quedado colgada, por ejemplo del BIOS de TMSS. Sin
      * esto, la primera escritura se interpretaría como la segunda mitad. */
+#ifdef OLD_VDP_INIT
+    /* Sólo los 16 registros que escribía el build de la cámara, el último que
+     * funcionó en la consola: sin el 8, el 9, el 14 ni los de DMA, y sin la
+     * lectura del puerto de control. Para aislar si el init completo es el
+     * problema. */
+    for (i = 0; i < 24; i++)
+        if (i != 8 && i != 9 && i != 14 && i < 19)
+            vdp_reg(i, vdp_regs[i]);
+#else
     (void)VDP_CTRL_W;
 
     for (i = 0; i < 24; i++)
         vdp_reg(i, vdp_regs[i]);
+#endif
 }
 
 static void vram_clear(void)

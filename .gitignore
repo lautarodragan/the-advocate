@@ -10,3 +10,4 @@ md/src/mapdata.c
 md/src/mapdata.h
 md/edlink.exe
 md/bisect/
+wt/
