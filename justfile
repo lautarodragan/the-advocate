@@ -183,10 +183,10 @@ snes-check mapa="67" segundos="60":
 # El mismo MIDI tocado por FluidSynth en la PC, con el mismo SoundFont del que
 # salen nuestras muestras, y medido con la misma vara. Es el techo: dice cuánto
 # de lo que falta es culpa nuestra y cuánto es de la medición.
-snes-referencia mapa="67":
+snes-referencia mapa="67" banco="/extras/soundfonts/Microsoft GS Wavetable Synth.sf2":
   mkdir -p snes/shots
   fluidsynth -F snes/shots/referencia.wav -r 48000 \
-      /usr/share/soundfonts/FluidR3_GM.sf2 \
+      "{{banco}}" \
       "$(python3 tools/midi_path.py --map-id {{mapa}})"
   python3 tools/snes_check.py snes/shots/referencia.wav --map-id {{mapa}}
 

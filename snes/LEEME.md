@@ -47,29 +47,30 @@ son **20 bytes**.
 
 Que la SNES reproduzca muestras cambia el problema por completo. En el YM2612
 cada timbre había que construirlo con cuatro operadores y nueve parámetros cada
-uno, a ciegas. Acá el timbre **es** una grabación, y las grabaciones salen de
-**FluidR3**, un SoundFont de General MIDI que viene en `pacman` con licencia MIT.
+uno, a ciegas. Acá el timbre **es** una grabación.
+
+Y las grabaciones salen del **Microsoft GS Wavetable Synth**, que es el
+sintetizador con el que este juego se compuso y se escuchó. Microsoft le licenció
+a Roland un subconjunto reducido del Sound Canvas en 1996; no es un SC-55, es
+exactamente esto. O sea que el port no se aproxima a un banco parecido: muestrea
+del que produjo el sonido original.
 
 Eso encaja exacto con el problema: los MIDIs de ABL especifican programas de
-General MIDI, y el SoundFont tiene una grabación por programa. Es un mapeo
-directo, sin elegir nada a ojo. Ripear muestras de un decomp de SNES habría
-significado decidir a mano qué instrumento de *ese* juego se parece a "piano
-acústico" —adivinar dos veces— y meter audio con dueño en la ROM.
+General MIDI y el SoundFont tiene una grabación por programa. Mapeo directo, sin
+elegir nada a ojo.
 
-La restricción es el espacio: el SPC700 tiene 64 KB para todo y una sola muestra
-de piano de FluidR3 son 17 KB antes de comprimir. La palanca es la tasa de
-muestreo, porque el DSP remuestrea igual para cambiar la altura de la nota:
-guardar a 10 kHz no cuesta nada en tiempo de ejecución, sólo cuesta agudos. Es
-exactamente lo que hacían los juegos de la consola.
+Y que sea un banco *reducido* resulta ser una ventaja técnica grande. Sus
+muestras son diez veces más cortas que las de un SoundFont completo como FluidR3
+y ya vienen a 22 kHz, así que **el banco entero entra en ARAM sin remuestrear
+nada** — y remuestrear era, por lejos, lo que más calidad costaba. Con FluidR3
+el piano había que bajarlo de 32 kHz a 8230; ahora no se toca.
 
-    P200 Piano D5(L)     15030 B  a  8230 Hz
-    Harp C#4(L)           9630 B  a 24369 Hz
-    Strings C#5L         15012 B  a 12383 Hz
-    Std Kick(L)             630 B  a  4000 Hz
-    Hi-Hat Closed(L)       4779 B  a 17002 Hz
-    Ride1(L)               4149 B  a 14780 Hz
-    Cabasa(L)              1809 B  a 18448 Hz
-    Maracas(L)             1044 B  a 17807 Hz
+    PIANO64      5940 B      STRNG71B     6417 B      RDCYM60B     5076 B
+    HARP_57A     2142 B      SOLKK60A     1386 B      CHH__60A       756 B
+    CABA_60       621 B      MARCS60        648 B
+
+Los ocho a 22 kHz, su tasa original. En total **23 KB de los 64**, con 42 libres.
+El banco anterior usaba 52 KB y remuestreaba todo.
 
 Tres detalles que deciden si suena bien o suena mal:
 
@@ -215,12 +216,12 @@ Cuánto de lo que falta es culpa nuestra lo dice `just snes-referencia`, que
 toca el mismo MIDI con FluidSynth en la PC —el mismo SoundFont del que salen
 nuestras muestras— y lo mide con la misma vara:
 
-    FluidSynth en la PC:  60 de 60 ventanas (100%)
-    nuestra SNES:         57 de 60 ventanas ( 95%)
+    FluidSynth en la PC:  59 de 60 ventanas (98%)
+    nuestra SNES:         57 de 59 ventanas (97%)
 
-O sea que el techo de la métrica es 100% y las tres ventanas que perdemos son
-reales, no ruido de la medición. Sin ese número, un 95% no significa nada: podría
-ser el máximo alcanzable.
+O sea que estamos **a una ventana de la referencia**, contra el mismo
+sintetizador y con el mismo banco. Sin ese número un 97% no significa nada:
+podría ser el máximo alcanzable o podría faltar mucho.
 
 La medida es ciega en los graves, y conviene saberlo: a 87 Hz el señuelo cae a
 1,3 Hz de la nota y la ventana de análisis resuelve 11,7 Hz, así que ahí empatan.
@@ -228,8 +229,8 @@ Sirve de los medios para arriba.
 
 Y hay un corrimiento que no se puede suponer: la ROM tarda **1,31 s** en
 arrancar, porque sube el banco entero al SPC700 por el protocolo de la ROM
-interna, que va byte por byte con acuse. Con 48 KB eso es más de un segundo de
-silencio. La primera vez que se midió con muestras reales el puntaje bajó a 80%,
+interna, que va byte por byte con acuse. Hoy son 0,64 s con el banco de 23 KB;
+con el de 48 KB que usábamos antes era 1,40. La primera vez que se midió con muestras reales el puntaje bajó a 80%,
 y no era el audio: era la búsqueda de corrimiento, que sólo miraba el primer
 segundo y alineaba las ventanas con las notas equivocadas. Ahora se busca dónde
 empieza a haber señal y se afina alrededor.

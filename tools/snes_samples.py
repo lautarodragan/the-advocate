@@ -3,13 +3,17 @@
 
 Reemplaza las ondas de un ciclo de sdsp.py por grabaciones reales. El problema
 deja de ser inventar un timbre y pasa a ser uno de presupuesto: el SPC700 tiene
-64 KB para todo, y una sola muestra de piano de FluidR3 son 17 KB antes de
-comprimir.
+64 KB para todo.
 
 La palanca es la tasa de muestreo. El DSP remuestrea igual para cambiar la
 altura de la nota, así que guardar a 8 o 12 kHz no cuesta nada extra en tiempo
 de ejecución: sólo cuesta agudos. Es exactamente lo que hacían los juegos de la
 consola, y por eso suenan como suenan.
+
+Con el banco de Windows, sin embargo, la palanca casi no se usa: sus muestras ya
+vienen a 22 kHz y son cortas, así que el banco entero entra sin remuestrear
+nada. Eso importa porque acá se remuestrea sin filtrar antes, y bajar la tasa
+así mete replegado. La regla es no tocar la tasa mientras haya lugar.
 
 Tres restricciones mandan en el resultado:
 
@@ -38,7 +42,18 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import brr
 import sf2
 
-SOUNDFONT = "/usr/share/soundfonts/FluidR3_GM.sf2"
+# El sintetizador por software de Windows, que es con el que se compuso y se
+# escuchó este juego. Microsoft le licenció a Roland un subconjunto reducido del
+# Sound Canvas, así que no es un SC-55: es exactamente esto y nada más.
+#
+# Que sea reducido nos viene bien por dos lados. Sus muestras son diez veces más
+# cortas que las de FluidR3 y ya vienen a 22 kHz, así que el banco entero entra
+# en ARAM sin remuestrear nada — y remuestrear era, por lejos, lo que más
+# calidad costaba. Y de paso dejamos de aproximarnos a un banco parecido para
+# muestrear del que produjo el sonido original.
+SOUNDFONT = os.environ.get(
+    "ABL_SOUNDFONT",
+    "/extras/soundfonts/Microsoft GS Wavetable Synth.sf2")
 BLOCK = brr.BLOCK_SAMPLES          # 16 muestras por bloque de BRR
 REFERENCE_KEY = 60                 # do central: con qué nota se elige la zona
 PEAK = 0x6800                      # a cuánto se normaliza cada muestra
@@ -46,8 +61,8 @@ PEAK = 0x6800                      # a cuánto se normaliza cada muestra
 # El SPC700 tiene 64 KB y no todo es nuestro: el driver, el directorio de
 # muestras y el buffer de eco viven ahí también. El reparto entre melódicos y
 # percusión deja 8 KB de aire.
-ARAM_BUDGET = 44 * 1024
-DRUM_BUDGET = 12 * 1024
+ARAM_BUDGET = 40 * 1024
+DRUM_BUDGET = 16 * 1024
 
 # La percusión de General MIDI: banco 128, kit estándar, y cada tecla es un
 # instrumento distinto en vez de una altura distinta.
@@ -257,14 +272,24 @@ def build_drum_bank(notes, budget=DRUM_BUDGET, soundfont=SOUNDFONT):
     def cost(rate, frames, source_rate):
         return frames * (rate / source_rate) * brr.BLOCK_BYTES / BLOCK
 
-    total = sum(cost(*wanted[n]) for n in wanted) or 1
-    scale = min(1.0, budget / total)
+    # Primero la pregunta simple: ¿entran todos a su tasa original? Bajar la
+    # tasa sin filtrar antes mete replegado, así que si hay lugar no se toca
+    # nada. Con el banco de Windows, que ya viene a 22 kHz, la respuesta suele
+    # ser que sí.
+    native = sum(cost(r, f, r) for _, f, r in wanted.values())
+    if native <= budget:
+        scale = None
+    else:
+        # Y si no entran, el brillo decide quién cede: el bombo no tiene un
+        # solo agudo y el plato es todo agudo.
+        scale = budget / (sum(cost(*wanted[n]) for n in wanted) or 1)
 
     drums = []
     for note in sorted(wanted):
         rate, frames, source_rate = wanted[note]
-        share = int(cost(rate * scale, frames, source_rate))
-        drum = build_drum(font, note, max(512, share))
+        share = (cost(source_rate, frames, source_rate) if scale is None
+                 else cost(rate * scale, frames, source_rate))
+        drum = build_drum(font, note, max(512, int(share)))
         if drum is not None:
             drums.append(drum)
     return drums
