@@ -135,14 +135,38 @@ md-play-mudo region="overseas_pal":
 
 # --- Super Nintendo --------------------------------------------------------
 # Rama aparte, para ver si la SNES se acerca más al original que la Mega Drive.
-# No toca nada del port a Mega Drive. Todo el toolchain sale de paquetes de
-# Debian: cc65 para el 65816 y mednafen para emular.
+# No toca nada del port a Mega Drive.
+#
+# Ya no hace falta ningún contenedor acá. El ensamblador de 65816 es nuestro
+# (tools/w65.py) y el emulador es mednafen, que está en pacman. Todo el
+# toolchain son dos cosas: python y mednafen.
+#
+# El contenedor sigue existiendo para una sola cosa, snes-validar, que compara
+# w65.py contra ca65. No se necesita para compilar.
+
+snes-build:
+  python3 tools/w65.py snes/src/main.s -o snes/build/abl.sfc
+
+# --- verificación del ensamblador ------------------------------------------
+# w65.py reemplaza a ca65 y ld65. Que se pueda confiar en él no es una promesa:
+# se ensambla el mismo fuente con las dos cadenas y se comparan los 32.768
+# bytes. Correr esto cada vez que se toquen las tablas de opcodes.
+#
+# snes/snes.cfg y snes/Makefile existen sólo para esto. El build normal no los
+# usa.
 
 snes-image:
   podman build -t abl-snes snes
 
-snes-build:
-  podman run --rm --network=none --mount=type=bind,src=.,dst=/abl -w /abl/snes abl-snes make
+snes-validar:
+  python3 tools/w65_coverage.py -o snes/build/cobertura.s
+  podman run --rm --network=none --mount=type=bind,src=.,dst=/abl -w /abl/snes abl-snes \
+      sh -c 'make && ca65 --cpu 65816 -o build/cobertura.o build/cobertura.s \
+             && ld65 -C snes.cfg -o build/cobertura-ca65.sfc build/cobertura.o'
+  python3 tools/w65.py snes/src/main.s -o snes/build/abl.sfc
+  python3 tools/w65_check.py snes/build/abl.sfc snes/build/abl-ca65.sfc
+  python3 tools/w65.py snes/build/cobertura.s -o snes/build/cobertura-w65.sfc
+  python3 tools/w65_check.py snes/build/cobertura-w65.sfc snes/build/cobertura-ca65.sfc
 
 # El MIDI del mapa a muestras BRR y un stream para el DSP.
 snes-music mapa="67":
@@ -153,8 +177,7 @@ snes-music mapa="67":
 # sonando se mide su energía y la de un señuelo un cuarto de tono más arriba.
 snes-check mapa="67" segundos="60":
   mkdir -p snes/shots
-  podman run --rm --network=none --mount=type=bind,src=.,dst=/abl abl-snes \
-      /abl/snes/record.sh /abl/snes/build/abl.sfc /abl/snes/shots/tema.wav {{segundos}}
+  snes/record.sh snes/build/abl.sfc snes/shots/tema.wav {{segundos}}
   python3 tools/snes_check.py snes/shots/tema.wav --map-id {{mapa}}
 
 # Todo junto: convertir, compilar y verificar.

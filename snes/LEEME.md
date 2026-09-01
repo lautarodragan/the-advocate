@@ -65,19 +65,44 @@ tema de prueba contra el 95% de la Mega Drive.
 
 ## Toolchain
 
-Todo de paquetes de Debian, dentro del contenedor: `cc65` para el 65816 y
-`mednafen` para emular. **Nada clonado de internet ni compilado de fuentes sin
-revisar**: para el SPC700, que no tiene ensamblador empaquetado, el de
-`tools/spc700.py` es código propio y revisable, con los opcodes anotados.
+**Dos cosas: `python` y `mednafen`.** Las dos están en pacman y en apt. No hace
+falta ningún contenedor para compilar ni para verificar.
 
-Los contenedores corren con `--network=none`: ninguna receta necesita red, y así
-un paquete comprometido del toolchain no puede bajar un payload ni mandar nada
-afuera. `just snes-play` es la excepción y corre en el host, con el mednafen de
-pacman: abrir una ventana pedía compartir el socket de X11, que deja leer el
-teclado de todas las ventanas e inyectar eventos en otras, y con eso abierto el
-contenedor ya no aislaba nada.
+Llegar ahí costó escribir dos ensambladores propios, y por la misma razón las
+dos veces: **nada clonado de internet ni compilado de fuentes sin revisar.**
 
-## Cómo se verifica
+    tools/spc700.py   el SPC700 no tiene ensamblador empaquetado en ningún lado
+    tools/w65.py      el 65816 sí (cc65), pero no en los repos de Arch
+
+El segundo es el interesante, porque había alternativa: clonar cc65 y
+compilarlo. Se descartó porque eso mete código sin auditar en la misma caja
+donde viven el repo y las credenciales, que es justo lo que se quería evitar.
+`w65.py` reemplaza a `ca65` **y** a `ld65` — el layout de la ROM es fijo, así
+que emite el binario directo, sin enlazador.
+
+Que se pueda confiar en él no es una promesa. Ver más abajo.
+
+## Cómo se verifica el ensamblador
+
+`just snes-validar` ensambla el mismo fuente con las dos cadenas y compara los
+32.768 bytes. Es la única cosa que todavía usa el contenedor, y sólo para eso:
+`ca65` es el patrón contra el que se mide.
+
+    main.s:     271 bytes de instrucciones — idénticas
+    cobertura:  281 bytes de instrucciones — idénticas
+
+Lo segundo hace falta porque lo primero no alcanza. La ROM del proyecto tiene
+271 bytes de instrucciones y 32 KB de datos y relleno: un empate ahí prueba poco,
+y sobre todo no toca las sesenta entradas de la tabla de opcodes que `main.s`
+nunca usa. Una entrada sin probar es una trampa para el día que alguien la use.
+Así que `tools/w65_coverage.py` genera un fuente sintético con **cada mnemónico
+en cada modo de direccionamiento que la tabla declara** — 71 mnemónicos, 143
+instrucciones — y se compara eso también.
+
+Correrlo cada vez que se toquen las tablas. Mientras dé idéntico, `w65.py` es
+correcto para todo lo que el proyecto puede expresar.
+
+## Cómo se verifica la ROM
 
 `mednafen -soundrecord` vuelca lo que sale del DSP a un WAV. Sobre eso hay dos
 medidas, ninguna de las cuales necesita escuchar.
