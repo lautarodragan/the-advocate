@@ -35,6 +35,7 @@ md-convert map_id="8":
   mkdir -p md/shots
   python3 tools/md_convert.py --map-id {{map_id}} -o md/src/mapdata \
       --reference md/shots/reference.png
+  python3 tools/md_music.py --map-id {{map_id}} -o md/src/musicdata
   python3 tools/render_map.py --map-id {{map_id}} --no-events -o md/shots/python.png
 
 md-build:
@@ -100,6 +101,13 @@ md-usb dev="/dev/ttyACM0":
 md-devinfo dev="/dev/ttyACM0":
   podman run --rm --device {{dev}} \
       abl-md mono /opt/edlink/edlink.exe devinf
+
+# Graba lo que la ROM le escribe al PSG y lo compara con lo que pidió el
+# conversor de música. Si coinciden, suena exactamente lo que se generó.
+md-music map_id="8" segundos="12":
+  podman run --rm --mount=type=bind,src=.,dst=/abl abl-md \
+      /abl/md/vgmlog.sh /abl/md/build/abl.bin /abl/md/shots/musica.vgm {{segundos}}
+  python3 tools/md_music_check.py md/shots/musica.vgm --map-id {{map_id}}
 
 # La ROM en una ventana de verdad, para moverla con las flechas. Necesita un
 # `xhost +local:` antes; en Wayland sale por XWayland.

@@ -190,6 +190,14 @@ START_PARTY_X = 0x02
 START_PARTY_Y = 0x03
 
 MAPINFO_NAME = 0x01
+MAPINFO_MUSIC_TYPE = 0x0B   # 0 = heredar del padre, 1 = del evento, 2 = el de acá
+MAPINFO_MUSIC = 0x0C
+
+MUSIC_NAME = 0x01
+MUSIC_FADEIN = 0x02
+MUSIC_VOLUME = 0x03
+MUSIC_TEMPO = 0x04
+MUSIC_BALANCE = 0x05
 MAPINFO_PARENT = 0x02
 MAPINFO_INDENTATION = 0x03
 MAPINFO_TYPE = 0x04
@@ -505,6 +513,16 @@ class TreeMap:
                           for i, f in infos.items()}
 
         count = reader.read_int()
+        self.music = {}
+        for i, f in infos.items():
+            kind = to_int(f.get(MAPINFO_MUSIC_TYPE, b"\x00"))
+            fields = Reader(f.get(MAPINFO_MUSIC, b"\x00")).read_struct()
+            self.music[i] = (kind, {
+                "name": to_string(fields.get(MUSIC_NAME, b"")),
+                "volume": to_int(fields.get(MUSIC_VOLUME, b"\x64")),
+                "tempo": to_int(fields.get(MUSIC_TEMPO, b"\x64")),
+            })
+
         self.tree_order = [reader.read_int() for _ in range(count)]
         reader.read_int()                   # active_node, cosa del editor
 
@@ -512,3 +530,20 @@ class TreeMap:
         self.start_map_id = to_int(start[START_PARTY_MAP_ID])
         self.start_x = to_int(start[START_PARTY_X])
         self.start_y = to_int(start[START_PARTY_Y])
+
+    def map_music(self, map_id):
+        """El tema de un mapa, siguiendo la herencia hacia el padre.
+
+        music_type 0 significa "el del padre"; 2, el que trae el mapa. El 1 es
+        "lo pone un evento", que sin interpretar scripts es lo mismo que nada.
+        """
+        seen = set()
+        while map_id and map_id not in seen:
+            seen.add(map_id)
+            kind, music = self.music.get(map_id, (0, None))
+            if kind == 2 and music["name"]:
+                return music
+            if kind == 1:
+                return None
+            map_id = self.map_parents.get(map_id, 0)
+        return None

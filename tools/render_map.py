@@ -35,7 +35,7 @@ RTP_DIR = os.path.join(REPO, "RTP")
 DEFAULT_MAP_ID = 1
 
 
-def find_resource(dirs, folder, name):
+def find_resource(dirs, folder, name, extensions=(".png", ".bmp")):
     """Busca <dir>/<folder>/<name>.<ext> sin distinguir mayúsculas.
 
     RM2k guarda los nombres sin extensión y el juego original corría en
@@ -48,7 +48,7 @@ def find_resource(dirs, folder, name):
             subdir = os.path.join(directory, entry)
             for filename in os.listdir(subdir):
                 base, ext = os.path.splitext(filename)
-                if base.lower() == name.lower() and ext.lower() in (".png", ".bmp"):
+                if base.lower() == name.lower() and ext.lower() in extensions:
                     return os.path.join(subdir, filename)
     return None
 

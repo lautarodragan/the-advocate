@@ -11,3 +11,5 @@ md/src/mapdata.h
 md/edlink.exe
 md/bisect/
 wt/
+md/src/musicdata.c
+md/src/musicdata.h

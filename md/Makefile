@@ -13,7 +13,7 @@ LDFLAGS = -T md.ld -nostdlib --no-warn-rwx-segments
 PAD ?= 0
 EXTRA ?=
 
-OBJS = build/boot.o build/main.o build/mapdata.o
+OBJS = build/boot.o build/main.o build/mapdata.o build/musicdata.o
 
 all: build/abl.bin
 

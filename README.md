@@ -239,6 +239,42 @@ a VSRAM. Se escriben en vblank para que no se parta la imagen.
 contenedor con la imagen base pinneada por digest. `md/src/mapdata.c` es
 generado y no está en git.
 
+### La música
+
+    just md 67          # Yun Town, que tiene tema propio
+    just md-music 67    # graba lo que suena y lo compara
+
+ABL trae 224 MIDIs. El mapa dice cuál le toca en el árbol de mapas, con
+herencia: `music_type` 0 significa "el del padre", 2 el que trae el mapa, y 1
+"lo pone un evento". 77 mapas tienen tema propio; Lashe City no, así que sale
+mudo.
+
+El PSG de la Mega Drive tiene **tres canales de onda cuadrada y uno de ruido**,
+sin envolventes y sin polifonía por canal. Un MIDI de RM2k trae cuatro o cinco
+canales con acordes, así que hay que reducir: cada canal del MIDI va a una voz
+del PSG según su altura promedio —el más agudo lleva la melodía, el más grave el
+bajo, los del medio comparten— y de las notas que suenan a la vez en una voz se
+toca **la última que arrancó**, que es lo que hace un sintetizador monofónico.
+La percusión va al canal de ruido, con un golpe que se apaga solo.
+
+Lo que sale es un **log de escrituras al PSG a resolución de cuadro**, parecido
+a un VGM: cuántos bytes escribir, los bytes, y cuántos cuadros esperar. Toda la
+complejidad queda en Python y el reproductor de la ROM son veinte líneas. El
+tema de Yun Town son dos minutos en **7539 bytes**.
+
+El stream se genera a 60 cuadros por segundo y la ROM lo avanza con un
+acumulador de punto fijo: 1.0 pasos por cuadro en NTSC y 1.2 en PAL, así dura
+lo mismo en las dos.
+
+**Se verifica igual que la imagen.** blastem graba un VGM, que es exactamente un
+log de escrituras a los chips, así que se compara byte a byte contra lo que
+pidió el conversor. Los primeros bytes de la grabación son el volcado del estado
+del chip, así que lo que se busca es dónde encaja el resto. Con 12 segundos
+grabados: 410 bytes, idénticos.
+
+Falta el YM2612, que es donde está el sonido de verdad de la consola; el PSG
+solo suena a Master System. Y falta que los eventos puedan cambiar el tema.
+
 ### El plano como ventana móvil
 
 El plano del VDP mide **64x64 celdas de 8x8** y se repite cada 512 píxeles, así

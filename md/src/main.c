@@ -23,6 +23,7 @@
  * a 50 Hz, así que en NTSC se usan los 224 de siempre y se ve un poco menos.
  * --------------------------------------------------------------------------- */
 #include "mapdata.h"
+#include "musicdata.h"
 
 typedef unsigned char  u8;
 typedef unsigned short u16;
@@ -38,6 +39,7 @@ typedef signed short   s16;
 #define VERSION_REG  (*(volatile u8 *)0xA10001)
 #define PAD1_DATA    (*(volatile u8 *)0xA10003)
 #define PAD1_CTRL    (*(volatile u8 *)0xA10009)
+#define PSG_PORT     (*(volatile u8 *)0xC00011)
 
 /* --- mapa de la VRAM ------------------------------------------------------
  * Con los planos de 64x64 celdas cada uno ocupa 8 KB. Los tiles van abajo de
@@ -476,6 +478,64 @@ static void set_scroll(s16 x, s16 y)
     VDP_DATA_W = (u16)y;
 }
 
+/* --- música ---------------------------------------------------------------
+ *
+ * El PSG tiene tres canales de onda cuadrada y uno de ruido, y no hay
+ * envolventes ni polifonía: todo el trabajo lo hizo el conversor, que dejó un
+ * log de escrituras con el tiempo entre medio. Acá sólo hay que escupir bytes
+ * al puerto cuando toca.
+ *
+ * Formato: cuántos bytes escribir, los bytes, y cuántos cuadros esperar
+ * después. Un 0xFF en la cantidad marca el final y vuelve a empezar.
+ */
+static const u8 *music_at;
+static u8 music_wait;
+static u16 music_accum;
+
+static void music_start(void)
+{
+    music_at = md_music;
+    music_wait = 0;
+    music_accum = 0;
+}
+
+static void music_step(void)
+{
+#if MUSIC_BYTES > 1
+    u8 count;
+
+    if (music_wait) {
+        music_wait--;
+        return;
+    }
+    do {
+        count = *music_at++;
+        if (count == 0xFF) {
+            music_at = md_music;        /* se terminó: de nuevo desde arriba */
+            count = *music_at++;
+        }
+        while (count--)
+            PSG_PORT = *music_at++;
+        music_wait = *music_at++;
+    } while (music_wait == 0);
+    music_wait--;
+#endif
+}
+
+/* El stream se generó a 60 cuadros por segundo. En PAL hay 50, así que se
+ * avanza 1.2 pasos por cuadro para que la música dure lo mismo. */
+#define MUSIC_STEP_NTSC 256
+#define MUSIC_STEP_PAL  307
+
+static void music_update(u16 step)
+{
+    music_accum += step;
+    while (music_accum >= 256) {
+        music_accum -= 256;
+        music_step();
+    }
+}
+
 /* Los deltas de cada dirección, en el orden de las filas del CharSet. */
 static const s16 dir_dx[4] = {  0, 1, 0, -1 };
 static const s16 dir_dy[4] = { -1, 0, 1,  0 };
@@ -538,6 +598,7 @@ int main(void)
     load_palette();
     load_tiles();
     PAD1_CTRL = 0x40;    /* TH como salida, el resto entradas */
+    music_start();
 
     hero_x = (s16)(hero_tx * 16);
     hero_y = (s16)(hero_ty * 16);
@@ -563,6 +624,7 @@ int main(void)
         column = (u8)(anim_frame == 3 ? 1 : anim_frame);
 
         wait_vblank();
+        music_update(pal ? MUSIC_STEP_PAL : MUSIC_STEP_NTSC);
         /* Primero se pone al día el plano y después se mueve el scroll, así no
          * llega a verse una columna que todavía no se dibujó. */
         stream_to((s16)(cam_x >> 3), (s16)(cam_y >> 3));
