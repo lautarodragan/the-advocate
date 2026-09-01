@@ -133,3 +133,33 @@ md-play-mudo region="E":
       -v /tmp/.X11-unix:/tmp/.X11-unix \
       --mount=type=bind,src=.,dst=/abl \
       abl-md blastem -g -r {{region}} /abl/md/build/abl.bin
+
+# --- Super Nintendo --------------------------------------------------------
+# Rama aparte, para ver si la SNES se acerca más al original que la Mega Drive.
+# No toca nada del port a Mega Drive. Todo el toolchain sale de paquetes de
+# Debian: cc65 para el 65816 y mednafen para emular.
+
+snes-image:
+  podman build -t abl-snes snes
+
+snes-build:
+  podman run --rm --mount=type=bind,src=.,dst=/abl -w /abl/snes abl-snes make
+
+# Corre la ROM sin pantalla, graba el audio y le mide la frecuencia. Sirve para
+# verificar sin escuchar: si se pidió un La de 440, tiene que dar 440.
+snes-check hz="440" segundos="5":
+  mkdir -p snes/shots
+  podman run --rm --mount=type=bind,src=.,dst=/abl abl-snes \
+      /abl/snes/record.sh /abl/snes/build/abl.sfc /abl/snes/shots/tono.wav {{segundos}}
+  python3 tools/wavtone.py snes/shots/tono.wav {{hz}}
+
+# La ROM en una ventana, con sonido.
+snes-play audio="/run/user/1000/pulse":
+  podman run --rm \
+      -e DISPLAY \
+      -e SDL_AUDIODRIVER=pulseaudio \
+      -e PULSE_SERVER=unix:{{audio}}/native \
+      -v /tmp/.X11-unix:/tmp/.X11-unix \
+      -v {{audio}}:{{audio}} \
+      --mount=type=bind,src=.,dst=/abl \
+      abl-snes mednafen /abl/snes/build/abl.sfc

@@ -13,3 +13,6 @@ md/bisect/
 wt/
 md/src/musicdata.c
 md/src/musicdata.h
+snes/build/
+snes/shots/
+snes/src/musicdata.inc
