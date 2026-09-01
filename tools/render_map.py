@@ -25,7 +25,11 @@ import lcf
 from chipset import ChipsetAtlas, TILE, UPPER
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-GAME_DIR = "/home/taro/git/gaming/abl-rm"
+# El proyecto RM2k original. Es una copia dentro del contenedor, no un montaje
+# del host: así el directorio original ni siquiera es alcanzable desde acá, que
+# protege más que un montaje de sólo lectura. Todas las herramientas aceptan
+# --game-dir para apuntar a otro lado.
+GAME_DIR = os.environ.get("ABL_GAME_DIR", "/extras/abl-rm")
 # El RTP de Don Miguel (junio de 2000), extraído de RTPE.EXE. No es el RTP
 # "oficial": el RPG Maker 2000 que se usaba fuera de Japón era su traducción, y
 # de paso le agregó archivos propios (Future1-3, entre otros) que ABL usa. El
