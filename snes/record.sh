@@ -3,6 +3,11 @@
 #
 # mednafen tiene -soundrecord, que vuelca lo que sale del DSP. Con eso se puede
 # medir qué está sonando en vez de confiar en el oído.
+#
+# El driver de sonido va en dummy: no hace falta que suene por parlante para
+# grabar, y así no depende de que haya un dispositivo libre. Para escucharlo de
+# verdad hay que usar -sound.driver sdl, porque el ALSA propio de mednafen abre
+# hw:0, que PipeWire tiene tomado.
 set -euo pipefail
 
 usage="uso: record.sh ROM SALIDA.wav [segundos]"

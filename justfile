@@ -145,15 +145,27 @@ snes-image:
 snes-build:
   podman run --rm --mount=type=bind,src=.,dst=/abl -w /abl/snes abl-snes make
 
-# Corre la ROM sin pantalla, graba el audio y le mide la frecuencia. Sirve para
-# verificar sin escuchar: si se pidió un La de 440, tiene que dar 440.
-snes-check hz="440" segundos="5":
+# El MIDI del mapa a muestras BRR y un stream para el DSP.
+snes-music mapa="67":
+  python3 tools/snes_music.py --map-id {{mapa}}
+
+# Corre la ROM sin pantalla, graba el audio y compara lo que suena contra el
+# MIDI. Sirve para verificar sin escuchar: para cada nota que debería estar
+# sonando se mide su energía y la de un señuelo un cuarto de tono más arriba.
+snes-check mapa="67" segundos="60":
   mkdir -p snes/shots
   podman run --rm --mount=type=bind,src=.,dst=/abl abl-snes \
-      /abl/snes/record.sh /abl/snes/build/abl.sfc /abl/snes/shots/tono.wav {{segundos}}
-  python3 tools/wavtone.py snes/shots/tono.wav {{hz}}
+      /abl/snes/record.sh /abl/snes/build/abl.sfc /abl/snes/shots/tema.wav {{segundos}}
+  python3 tools/snes_check.py snes/shots/tema.wav --map-id {{mapa}}
+
+# Todo junto: convertir, compilar y verificar.
+snes mapa="67": (snes-music mapa) snes-build (snes-check mapa)
 
 # La ROM en una ventana, con sonido.
+#
+# -sound.driver sdl es obligatorio: el driver ALSA propio de mednafen abre el
+# dispositivo crudo hw:0, que PipeWire tiene tomado en exclusiva, y falla con
+# "Device or resource busy". Por SDL sale por PipeWire y convive con todo.
 snes-play audio="/run/user/1000/pulse":
   podman run --rm \
       -e DISPLAY \
@@ -162,4 +174,4 @@ snes-play audio="/run/user/1000/pulse":
       -v /tmp/.X11-unix:/tmp/.X11-unix \
       -v {{audio}}:{{audio}} \
       --mount=type=bind,src=.,dst=/abl \
-      abl-snes mednafen /abl/snes/build/abl.sfc
+      abl-snes mednafen -sound.driver sdl /abl/snes/build/abl.sfc

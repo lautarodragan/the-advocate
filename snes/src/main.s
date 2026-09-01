@@ -231,10 +231,10 @@ check_wait:
     rts
 
 write_dsp:
-    lda (music)                 ; registro del DSP
+    lda [music]                 ; registro del DSP
     jsr advance
     sta APUIO0
-    lda (music)                 ; valor
+    lda [music]                 ; valor
     jsr advance
     sta APUIO1
     inc token                   ; el testigo le avisa al SPC700 que hay algo

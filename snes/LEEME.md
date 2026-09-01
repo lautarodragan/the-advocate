@@ -32,7 +32,30 @@ son **20 bytes**.
     snes/record.sh       corre la ROM sin pantalla y graba el audio a WAV
     tools/spc700.py      ensamblador de SPC700, porque no hay uno empaquetado
     tools/brr.py         codificador del formato de muestras de la SNES
-    tools/wavtone.py     mide la frecuencia de un WAV, para verificar
+    tools/sdsp.py        registros del DSP y el banco de timbres
+    tools/snes_music.py  el MIDI del mapa a muestras y stream
+    tools/snes_check.py  compara lo que suena contra el MIDI
+    tools/wavtone.py     mide la frecuencia de un WAV, para un tono suelto
+
+## El banco de timbres
+
+Que la SNES reproduzca muestras cambia el problema por completo. En el YM2612
+cada timbre había que construirlo con cuatro operadores y nueve parámetros cada
+uno, a ciegas; acá el timbre **es** la forma de onda, y una forma de onda se
+describe diciendo cuánto pesa cada armónico — que es como se suele describir un
+instrumento.
+
+Por eso `sdsp.py` define cada uno como una lista de pesos: las cuerdas son un
+diente de sierra (todos los armónicos cayendo como 1/n), la caña una cuadrada
+(sólo los impares), el órgano unas pocas barras. Son ondas de un ciclo de 32
+muestras, 18 bytes cada una en BRR: **las ocho entran en 144 bytes** de los 64 KB
+del SPC700. Suenan a sintetizador, no a instrumento grabado, pero el espacio
+para muestrear de verdad está entero sin usar.
+
+Ocho voces, todas iguales, contra las nueve de la Mega Drive —seis de FM
+decentes y tres de onda cuadrada—. Con el reparto de voces por cobertura, que es
+el mismo código de `md_music.py`, se reproduce el **90%** del tiempo-nota del
+tema de prueba contra el 95% de la Mega Drive.
 
 ## Toolchain
 
@@ -43,16 +66,41 @@ revisar**: para el SPC700, que no tiene ensamblador empaquetado, el de
 
 ## Cómo se verifica
 
-`mednafen -soundrecord` vuelca lo que sale del DSP a un WAV, y `wavtone.py` le
-mide la frecuencia por autocorrelación. No hace falta escuchar: si se pidió un
-La de 440 y lo grabado tiene su período en 440, la cadena funcionó.
+`mednafen -soundrecord` vuelca lo que sale del DSP a un WAV. Sobre eso hay dos
+medidas, ninguna de las cuales necesita escuchar.
+
+Para un tono suelto alcanza con la frecuencia: `wavtone.py` la saca por
+autocorrelación, y si se pidió un La de 440 tiene que dar 440.
 
     tono de prueba: 440.4 Hz medidos contra 440 pedidos, 1 cent de diferencia
 
+Para un tema entero eso no sirve, porque suenan varias notas a la vez. Así que
+`snes_check.py` lo hace al revés: del MIDI ya sabemos qué notas deberían estar
+sonando en cada momento, así que en vez de preguntarle al audio qué frecuencia
+tiene se le pregunta cuánta energía tiene en esa frecuencia. La prueba está en
+que además se mide un **señuelo** un cuarto de tono más arriba, que no cae en
+ninguna nota: si el mapeo de alturas estuviera mal, el señuelo tendría tanta
+energía como la nota buena.
+
+    tema 11h035: 57 de 60 ventanas con la nota por encima de su señuelo (95%)
+
+La medida es ciega en los graves, y conviene saberlo: a 87 Hz el señuelo cae a
+1,3 Hz de la nota y la ventana de análisis resuelve 11,7 Hz, así que ahí empatan.
+Sirve de los medios para arriba.
+
+También se controla el pico del WAV. El DSP suma las ocho voces y recién después
+aplica el volumen general, sin limitar en el medio: la primera versión saturaba
+(pico 32768 clavado) y hubo que bajar el techo por voz. Los números de `sdsp.py`
+salen de medir, no de la teoría, porque la teoría supone que todas las voces
+pican juntas y en fase y eso no pasa nunca.
+
 ## Lo que falta
 
-* Convertir un MIDI entero, no un tono suelto.
+* **Muestras de verdad.** Es lo único que separa esto de sonar parecido al
+  original, y es donde está toda la ventaja de la consola. Las de ahora son
+  ondas de un ciclo generadas en Python y ocupan 144 bytes de los 64 KB.
 * Mejorar el BRR: hoy usa el filtro 0, sin predicción, y pierde un 10%. Los
   filtros con predicción bajan bastante eso.
-* Muestras de verdad. Las de ahora son formas de onda de un ciclo generadas en
-  Python; entran los 64 KB de ARAM de sobra, pero suenan a sintetizador básico.
+* El stream del tema son 19 KB en una ROM de 32. El puntero de música no sabe
+  cruzar de banco, así que para temas más largos —o para varios— hay que
+  resolver eso antes de agrandar la ROM.
