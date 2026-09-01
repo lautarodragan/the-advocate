@@ -21,6 +21,7 @@ Uso:
 
 import argparse
 import collections
+import itertools
 import os
 import sys
 
@@ -36,9 +37,6 @@ from render_map import (GAME_DIR, REPO, RTP_DIR, Renderer, build_passability,
 MAX_TILES = 1024
 
 PALETTES = 4
-# La última paleta queda para el sprite del personaje: un sprite usa una sola,
-# y los 24 colores del CharSet no tienen nada que ver con los del mapa.
-MAP_PALETTES = PALETTES - 1
 COLORS_PER_PALETTE = 16
 USABLE_COLORS = COLORS_PER_PALETTE - 1   # el 0 es transparente
 CELL = 8
@@ -70,7 +68,7 @@ def color_sets(grid):
     return unique, {frozenset(p for row in t for p in row) for t in unique}
 
 
-def try_pack(sets, limit=None):
+def try_pack(sets, limit):
     """Reparte los colores en paletas de forma que cada tile use una sola.
 
     Los colores pueden repetirse entre paletas: lo que hay que lograr es que el
@@ -86,7 +84,7 @@ def try_pack(sets, limit=None):
                 best = (index, size)
         if best is not None:
             groups[best[0]] |= colors
-        elif len(groups) < (limit or MAP_PALETTES):
+        elif len(groups) < limit:
             groups.append(set(colors))
         else:
             return None
@@ -133,7 +131,7 @@ def merge_least_used(counts, keep, accept=None):
         merged.append((victim, target, weight[victim]))
 
 
-def reduce_colors(grid):
+def reduce_colors(grid, budget):
     """Fusiona colores hasta que los tiles entren en las 4 paletas del VDP.
 
     El límite real no es la cantidad de colores sino cómo se reparten: un tile
@@ -152,7 +150,7 @@ def reduce_colors(grid):
         remap = {tile: tuple(tuple(mapping[p] for p in line) for line in tile)
                  for tile in unique}
         sets = {frozenset(p for line in t for p in line) for t in remap.values()}
-        groups = try_pack(sets)
+        groups = try_pack(sets, budget)
         return (remap, groups) if groups is not None else None
 
     mapping, merged, (remap, groups) = merge_least_used(counts, 0, accept)
@@ -298,24 +296,75 @@ POSE_W = SPRITE_CELLS_W * CELL
 POSE_H = SPRITE_CELLS_H * CELL
 
 
-def sprite_palette(image, index):
-    """Los colores del personaje, reducidos a los 15 que entran en una paleta.
-
-    El índice 0 de la paleta es transparente —para un sprite eso significa que
-    se ve el fondo— así que quedan 15 para el dibujo.
-    """
+def charset_colors(image, index):
+    """Los colores de un personaje del CharSet, con cuántos píxeles usa cada uno."""
     base_x = (index % 4) * POSE_W * 3
     base_y = (index // 4) * POSE_H * 4
-
     counts = collections.Counter()
     for y in range(POSE_H * 4):
         for x in range(POSE_W * 3):
             red, green, blue, alpha = image.getpixel((base_x + x, base_y + y))
             if alpha:
                 counts[(red >> 5, green >> 5, blue >> 5)] += 1
+    return (base_x, base_y), counts
 
-    mapping, merged = merge_least_used(counts, USABLE_COLORS)
-    return (base_x, base_y), sorted(set(mapping.values())), mapping, merged
+
+def pack_charsets(counters, budget):
+    """Reparte varios personajes en `budget` paletas de 15 colores.
+
+    Cada sprite del VDP usa una sola paleta, así que los personajes que
+    comparten paleta tienen que compartir colores. Con pocos personajes se
+    prueban todos los repartos; con muchos, uno por uno al grupo que menos
+    crezca.
+
+    Devuelve, por personaje, en qué paleta cayó, y por paleta, sus colores y el
+    mapeo de color original a color final.
+    """
+    count = len(counters)
+    if count == 0:
+        return [], [], []
+
+    def cost(group):
+        merged_total = collections.Counter()
+        for index in group:
+            merged_total.update(counters[index])
+        if not merged_total:
+            return 0, {}, []
+        mapping, merged = merge_least_used(merged_total, USABLE_COLORS)
+        return sum(px for _, _, px in merged), mapping, merged
+
+    if count <= 8 and budget > 1:
+        best = None
+        for assignment in itertools.product(range(budget), repeat=count):
+            if len(set(assignment)) != min(budget, count):
+                continue                   # no dejar paletas sin usar de gusto
+            groups = [[i for i, g in enumerate(assignment) if g == p]
+                      for p in range(budget)]
+            total = sum(cost(g)[0] for g in groups if g)
+            if best is None or total < best[0]:
+                best = (total, assignment)
+        assignment = best[1]
+    else:
+        # Greedy: cada personaje al grupo con el que más colores comparte.
+        assignment = [0] * count
+        groups = [[] for _ in range(budget)]
+        for index in sorted(range(count), key=lambda i: -len(counters[i])):
+            pick = min(range(budget),
+                       key=lambda p: cost(groups[p] + [index])[0])
+            groups[pick].append(index)
+            assignment[index] = pick
+
+    palettes = []
+    mappings = []
+    merged_all = []
+    for palette_index in range(budget):
+        members = [i for i, g in enumerate(assignment) if g == palette_index]
+        lost, mapping, merged = cost(members)
+        palettes.append(sorted(set(mapping.values())) if mapping else [])
+        mappings.append(mapping)
+        merged_all.append(merged)
+        del lost
+    return assignment, palettes, mappings
 
 
 def sprite_tiles(image, index, origin, palette, mapping):
@@ -349,15 +398,61 @@ def sprite_tiles(image, index, origin, palette, mapping):
     return tiles
 
 
-def convert(image):
-    grid, groups, merged, counts = reduce_colors(cut_tiles(quantize(image)))
-    palettes = [sorted(group) for group in groups]
+def allocate(image, counters):
+    """Decide cuántas de las 4 paletas se lleva el fondo y cuántas los sprites.
+
+    Se prueban todos los repartos y gana el que minimiza el peor de los dos
+    errores. Se compara la *fracción* de píxeles que cambia de cada lado, no la
+    cantidad: el fondo tiene mil veces más píxeles que un sprite, y sumar
+    píxeles pelados haría que los sprites nunca importaran.
+
+    El fondo suele usar menos paletas de las que se le dan —a Lashe City le
+    alcanza con dos— y lo que sobra se lo quedan los sprites.
+    """
+    grid = cut_tiles(quantize(image))
+    sprite_pixels = sum(sum(c.values()) for c in counters)
+    options = []
+
+    for budget in range(1, PALETTES):
+        reduced, groups, merged, counts = reduce_colors(grid, budget)
+        used = len(groups)
+        for_sprites = PALETTES - used
+        if for_sprites < 1 and counters:
+            continue
+
+        map_error = sum(px for _, _, px in merged) / sum(counts.values())
+        assignment, palettes, mappings = pack_charsets(counters, for_sprites)
+
+        sprite_error = 0.0
+        if counters:
+            lost = 0
+            for index, counter in enumerate(counters):
+                mapping = mappings[assignment[index]]
+                lost += sum(n for color, n in counter.items()
+                            if mapping[color] != color)
+            sprite_error = lost / sprite_pixels
+
+        options.append(((max(map_error, sprite_error), map_error + sprite_error),
+                        used, for_sprites, reduced, groups, merged, counts,
+                        assignment, palettes, mappings))
+
+    if not options:
+        sys.exit("No hay reparto de paletas posible.")
+    return min(options, key=lambda o: o[0])
+
+
+def convert(image, counters):
+    """Del render del mapa a lo que consume el VDP, con las paletas ya repartidas."""
+    (_, map_palettes, sprite_palettes, grid, groups, merged, counts,
+     assignment, palettes, mappings) = allocate(image, counters)
+
+    background = [sorted(group) for group in groups]
     unique, _ = color_sets(grid)
 
-    assignment = {}
+    tile_palette = {}
     for tile in unique:
         colors = {p for row in tile for p in row}
-        assignment[tile] = next(i for i, g in enumerate(groups) if colors <= g)
+        tile_palette[tile] = next(i for i, g in enumerate(groups) if colors <= g)
 
     # Cada tile único ya tiene paleta; ahora se deduplican también los
     # espejados, que el VDP puede dibujar dados vuelta sin gastar VRAM.
@@ -365,8 +460,8 @@ def convert(image):
     tile_data = []
     entries = {}
     for tile in sorted(unique):
-        palette_index = assignment[tile]
-        indices = to_indices(tile, palettes[palette_index])
+        palette_index = tile_palette[tile]
+        indices = to_indices(tile, background[palette_index])
         for variant, hflip, vflip in flips(indices):
             key = (palette_index, variant)
             if key in catalogue:
@@ -385,22 +480,25 @@ def convert(image):
             tilemap.append((palette_index << 13) | (vflip << 12) | (hflip << 11)
                            | (index + 1))
 
+    # Las paletas del fondo van primero y las de los sprites después.
     cram = []
     for i in range(PALETTES):
-        colors = palettes[i] if i < len(palettes) else []
+        colors = background[i] if i < len(background) else (
+            palettes[i - map_palettes] if i - map_palettes < len(palettes) else [])
         cram.append([BACKDROP] + [cram_word(c) for c in colors]
                     + [0] * (COLORS_PER_PALETTE - 1 - len(colors)))
-    # La última paleta la llena el sprite; acá queda vacía.
 
     lost = sum(pixels for _, _, pixels in merged)
-    total = sum(counts.values())
-    stats = {"merged": merged, "lost": lost, "total": total,
-             "palettes": [len(p) for p in palettes]}
+    stats = {"merged": merged, "lost": lost, "total": sum(counts.values()),
+             "palettes": [len(p) for p in background],
+             "map_palettes": map_palettes, "sprite_palettes": sprite_palettes,
+             "assignment": assignment, "sprite_colors": palettes,
+             "sprite_mappings": mappings}
     return tile_data, cram, tilemap, len(grid[0]), len(grid), stats
 
 
 def emit(path, name, tile_data, cram, tilemap, width, height, sprite,
-         passable, start):
+         passable, start, hero_palette):
     tiles_per_pose = SPRITE_CELLS_W * SPRITE_CELLS_H
     with open(path + ".h", "w") as handle:
         handle.write(
@@ -429,7 +527,7 @@ def emit(path, name, tile_data, cram, tilemap, width, height, sprite,
             "#endif\n"
             % (name, width, height, width // 2, height // 2, len(tile_data),
                SPRITE_POSES, SPRITE_CELLS_W, SPRITE_CELLS_H, tiles_per_pose,
-               PALETTES - 1, start[0], start[1],
+               hero_palette, start[0], start[1],
                PALETTES * COLORS_PER_PALETTE, len(tile_data), width * height,
                len(sprite), len(passable)))
 
@@ -490,23 +588,28 @@ def main():
     if image is None:
         sys.exit("Falta el chipset del mapa %d" % args.map_id)
 
-    tile_data, cram, tilemap, width, height, stats = convert(image)
+    # Los personajes que van a aparecer. Por ahora sólo Talan; cuando estén los
+    # NPCs, esta lista se arma con los CharSets de los eventos del mapa.
+    charset_path = find_resource(renderer.search_dirs, "CharSet", args.charset)
+    if not charset_path:
+        sys.exit("No encuentro el CharSet %r" % args.charset)
+    charset = load_image(charset_path)
+    origin, counter = charset_colors(charset, args.charset_index)
+
+    tile_data, cram, tilemap, width, height, stats = convert(image, [counter])
     palette_sizes = stats["palettes"]
     name = renderer.tree.map_names.get(args.map_id, "Map%04d" % args.map_id)
 
     if len(tile_data) > MAX_TILES:
         sys.exit("%d tiles distintos: no entran en los %d que hay de VRAM."
                  % (len(tile_data), MAX_TILES))
-    # El personaje: su paleta va en la última, que el mapa dejó libre.
-    charset_path = find_resource(renderer.search_dirs, "CharSet", args.charset)
-    if not charset_path:
-        sys.exit("No encuentro el CharSet %r" % args.charset)
-    charset = load_image(charset_path)
-    origin, palette, mapping, sprite_merged = sprite_palette(charset,
-                                                             args.charset_index)
+
+    hero_palette = stats["map_palettes"] + stats["assignment"][0]
+    palette = stats["sprite_colors"][stats["assignment"][0]]
+    mapping = stats["sprite_mappings"][stats["assignment"][0]]
     sprite = sprite_tiles(charset, args.charset_index, origin, palette, mapping)
-    cram[PALETTES - 1] = ([BACKDROP] + [cram_word(c) for c in palette]
-                          + [0] * (COLORS_PER_PALETTE - 1 - len(palette)))
+    sprite_lost = sum(n for color, n in counter.items()
+                      if mapping[color] != color)
 
     # Colisión: se resuelve acá y la ROM sólo mira la tabla.
     flags = build_passability(renderer.database.chipsets[game_map.chipset_id])
@@ -514,13 +617,14 @@ def main():
     start = hero_start(passable, game_map.width, game_map.height)
 
     emit(args.output, name, tile_data, cram, tilemap, width, height, sprite,
-         passable, start)
+         passable, start, hero_palette)
 
     print("Mapa %d %r: %dx%d celdas de 8x8" % (args.map_id, name, width, height))
     print("  %dx%d px, %d tiles distintos de %d (%.0f%% de la VRAM de tiles)"
           % (width * CELL, height * CELL, len(tile_data), width * height,
              100.0 * len(tile_data) / MAX_TILES))
-    print("  paletas: %s colores de %d" % (palette_sizes, USABLE_COLORS))
+    print("  paletas: %d para el fondo %s, %d para sprites"
+          % (stats["map_palettes"], palette_sizes, stats["sprite_palettes"]))
     print("  colores fusionados: %d (%d px de %d, %.3f%%)"
           % (len(stats["merged"]), stats["lost"], stats["total"],
              100.0 * stats["lost"] / stats["total"]))
@@ -529,9 +633,11 @@ def main():
           "arranca en (%d, %d)"
           % (blocked, len(passable), 100.0 * blocked / len(passable),
              start[0], start[1]))
-    print("  sprite %s[%d]: %d tiles, %d colores, %d fusionados"
+    print("  sprite %s[%d]: %d tiles, %d colores en la paleta %d, "
+          "%d px de %d fusionados (%.1f%%)"
           % (args.charset, args.charset_index, len(sprite), len(palette),
-             len(sprite_merged)))
+             hero_palette, sprite_lost, sum(counter.values()),
+             100.0 * sprite_lost / sum(counter.values())))
     print("  -> %s.c / %s.h" % (args.output, args.output))
 
     if args.reference:

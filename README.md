@@ -209,17 +209,25 @@ los mapas de RM2k repiten muchísimo — Lashe City son 363 tiles distintos para
 **El color es de 9 bits**, 3 por canal. Los 74 colores del render de Map0007
 quedan en 33.
 
-**Hay 4 paletas de 16 colores y cada tile de 8x8 usa una sola.** La última
-queda para el personaje, porque un sprite también usa una sola y los colores
-del CharSet no tienen nada que ver con los del mapa. Sale barato: a Lashe City
-le alcanza con dos. El sprite sí paga: tiene 24 colores y entran 15, así que se
-fusionan 9, y eso son el 2.8% de sus píxeles.
+**Hay 4 paletas de 16 colores y cada tile de 8x8 usa una sola.** Los sprites
+también: uno usa una paleta entera para sus 12 celdas. Así que las cuatro se
+reparten entre el fondo y los personajes, y **el reparto se decide por mapa**.
 
-Esto se va a poner feo cuando haya varios personajes en pantalla, porque cada
-sprite usa una sola paleta y sólo hay cuatro en total. Los 6 CharSets que se
-ven al empezar en Lashe City suman 103 colores: meterlos en una paleta cambia
-el 45% de sus píxeles, y aun repartidos en dos paletas, el 31%. Sigue sin
-resolver. El índice 0 es
+Se prueban todos los repartos y gana el que minimiza el peor de los dos
+errores. Se comparan *fracciones* de píxeles, no cantidades: el fondo tiene mil
+veces más píxeles que un sprite, y sumar píxeles pelados haría que los sprites
+nunca pesaran en la decisión. Además, el fondo suele usar menos paletas de las
+que se le permiten, y lo que sobra se lo quedan los sprites.
+
+El resultado varía mucho y es justo donde hace falta:
+
+    Lashe City        2 para el fondo, 2 para sprites
+    ParadiseFarmland  3 para el fondo, 1 para sprites
+    Auditorium        1 para el fondo, 3 para sprites
+
+El Auditorium es el que importa: su fondo usa 11 colores y entra en una sola
+paleta sin fusionar nada, y es justamente el mapa con 34 NPCs. Para sus 6
+CharSets, pasar de una paleta a tres baja el error del 23% al 11.9%. El índice 0 es
 transparente, así que quedan 15 útiles. Esto es lo que aprieta de verdad: no es
 la cantidad de colores sino cómo se reparten. Con 32 colores, Map0007 necesita
 6 paletas, porque un tile con 14 colores obliga a que esos 14 estén juntos.
