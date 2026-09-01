@@ -177,7 +177,7 @@ def adsr(sound):
 # en fase, que no pasa nunca.
 MASTER = 0x60
 CEILING = 96
-CEILING_NOISE = 72
+CEILING_DRUM = 84       # la percusión pega fuerte y dura poco: aguanta más
 
 
 def volume(velocity, ceiling=CEILING):

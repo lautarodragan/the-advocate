@@ -126,12 +126,12 @@ md-music map_id="8" segundos="12":
 # dispositivo crudo hw:0, que PipeWire tiene tomado en exclusiva, y falla con
 # "Device or resource busy". Por SDL sale por PipeWire y convive con todo.
 md-play region="overseas_pal":
-  mednafen -force_module md -md.region {{region}} -sound.driver sdl \
+  mednafen -command.exit "keyboard 0x0 20+ctrl" -force_module md -md.region {{region}} -sound.driver sdl \
       md/build/abl.bin
 
 # Lo mismo pero mudo.
 md-play-mudo region="overseas_pal":
-  mednafen -force_module md -md.region {{region}} -sound 0 md/build/abl.bin
+  mednafen -command.exit "keyboard 0x0 20+ctrl" -force_module md -md.region {{region}} -sound 0 md/build/abl.bin
 
 # --- Super Nintendo --------------------------------------------------------
 # Rama aparte, para ver si la SNES se acerca más al original que la Mega Drive.
@@ -185,4 +185,4 @@ snes mapa="67": (snes-music mapa) snes-build (snes-check mapa)
 
 # La ROM en una ventana, con sonido. Corre en el host por lo mismo que md-play.
 snes-play:
-  mednafen -sound.driver sdl snes/build/abl.sfc
+  mednafen -command.exit "keyboard 0x0 20+ctrl" -sound.driver sdl snes/build/abl.sfc

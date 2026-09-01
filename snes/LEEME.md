@@ -62,9 +62,14 @@ muestreo, porque el DSP remuestrea igual para cambiar la altura de la nota:
 guardar a 10 kHz no cuesta nada en tiempo de ejecución, sólo cuesta agudos. Es
 exactamente lo que hacían los juegos de la consola.
 
-    P200 Piano D5(L)     19116 B  a 10471 Hz
+    P200 Piano D5(L)     15030 B  a  8230 Hz
     Harp C#4(L)           9630 B  a 24369 Hz
-    Strings C#5L         19125 B  a 15770 Hz
+    Strings C#5L         15012 B  a 12383 Hz
+    Std Kick(L)             630 B  a  4000 Hz
+    Hi-Hat Closed(L)       4779 B  a 17002 Hz
+    Ride1(L)               4149 B  a 14780 Hz
+    Cabasa(L)              1809 B  a 18448 Hz
+    Maracas(L)             1044 B  a 17807 Hz
 
 Tres detalles que deciden si suena bien o suena mal:
 
@@ -85,6 +90,39 @@ Tres detalles que deciden si suena bien o suena mal:
 
   (error de pico y medio, en porcentaje de la amplitud). Al piano lo que le
   queda es el ataque, que por definición no se predice.
+
+## La percusión
+
+Era lo que peor sonaba, y por lejos: el generador de ruido del DSP con la
+frecuencia cambiada por golpe. Ahora cada golpe tiene su grabación, del kit
+estándar de General MIDI —banco 128 del SoundFont, donde cada tecla es un
+instrumento distinto en vez de una altura distinta—. El tema de prueba usa
+cinco: bombo, charles cerrado, ride, cabasa y maracas.
+
+Dos decisiones acá:
+
+**Se recorta a medio segundo.** El ride de FluidR3 dura 2,6 segundos y el
+charles cerrado 0,7, casi todo cola que se apaga. Enteros costarían más que
+todos los melódicos juntos; se cortan y el resto lo hace la envolvente del DSP,
+que es para lo que sirve.
+
+**El presupuesto se reparte por brillo, no por uso.** El primer intento repartió
+por cuántas veces suena cada golpe, y salió al revés de lo que hacía falta: el
+bombo suena cien veces y no tiene un solo agudo, se llevó 24 kHz; el ride suena
+dieciséis y es todo agudo, quedó en 4 kHz y sonaba a lata. Ahora se le mide el
+centroide espectral a cada muestra —la energía de las diferencias entre muestras
+consecutivas contra la energía total, que es la misma cuenta sin necesidad de
+una FFT— y la tasa sale de ahí:
+
+    bombo       brillo    473 Hz  ->   4000 Hz
+    charles     brillo   9218 Hz  ->  17002 Hz
+    ride        brillo   8012 Hz  ->  14780 Hz
+    cabasa      brillo  11012 Hz  ->  18448 Hz
+
+Con el mismo total de bytes. La percusión se lleva además una segunda voz del
+DSP: con una sola, un bombo y un charles que caen en el mismo cuadro se pisan, y
+en un patrón de batería eso pasa todo el tiempo. Cuesta un punto de cobertura
+melódica (90% a 89%) y se nota mucho menos que perder la mitad de los golpes.
 
 Ocho voces, todas iguales, contra las nueve de la Mega Drive —seis de FM
 decentes y tres de onda cuadrada—. Con el reparto de voces por cobertura, que es
@@ -148,7 +186,7 @@ que además se mide un **señuelo** un cuarto de tono más arriba, que no cae en
 ninguna nota: si el mapeo de alturas estuviera mal, el señuelo tendría tanta
 energía como la nota buena.
 
-    tema 11h035: 53 de 60 ventanas con la nota por encima de su señuelo (88%)
+    tema 11h035: 57 de 60 ventanas con la nota por encima de su señuelo (95%)
 
 La medida es ciega en los graves, y conviene saberlo: a 87 Hz el señuelo cae a
 1,3 Hz de la nota y la ventana de análisis resuelve 11,7 Hz, así que ahí empatan.
@@ -170,9 +208,6 @@ pican juntas y en fase y eso no pasa nunca.
 
 ## Lo que falta
 
-* **La batería.** Es lo que peor suena: sigue siendo el generador de ruido del
-  DSP con la frecuencia cambiada por golpe. FluidR3 trae los kits de percusión
-  de General MIDI (banco 128), así que es el mismo camino que ya está hecho.
 * **Las envolventes.** Salen de las ocho familias de `sdsp.py`, elegidas a ojo
   cuando el banco era sintético. El SoundFont trae las suyas por instrumento y
   todavía no se leen.

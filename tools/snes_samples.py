@@ -29,6 +29,7 @@ Uso:
 """
 
 import argparse
+import math
 import os
 import sys
 
@@ -43,9 +44,16 @@ REFERENCE_KEY = 60                 # do central: con qué nota se elige la zona
 PEAK = 0x6800                      # a cuánto se normaliza cada muestra
 
 # El SPC700 tiene 64 KB y no todo es nuestro: el driver, el directorio de
-# muestras y el buffer de eco viven ahí también. 56 KB para el banco deja aire
-# de sobra y todavía es cuarenta veces lo que usábamos con las ondas sintéticas.
-ARAM_BUDGET = 56 * 1024
+# muestras y el buffer de eco viven ahí también. El reparto entre melódicos y
+# percusión deja 8 KB de aire.
+ARAM_BUDGET = 44 * 1024
+DRUM_BUDGET = 12 * 1024
+
+# La percusión de General MIDI: banco 128, kit estándar, y cada tecla es un
+# instrumento distinto en vez de una altura distinta.
+DRUM_BANK = 128
+DRUM_PROGRAM = 0
+DRUM_SECONDS = 0.5
 
 MIN_RATE = 4000
 MAX_RATE = 24000
@@ -173,6 +181,93 @@ def build_voice(font, program, budget, key=REFERENCE_KEY):
     data = brr.encode(audio, loop_block=attack_out // BLOCK if looped else None)
     return Voice(program, sample.name, data, rate * 2.0 ** (-cents / 1200.0),
                  root, attack_out // BLOCK if looped else 0, len(audio))
+
+
+def build_drum(font, note, budget, seconds=DRUM_SECONDS):
+    """Un golpe de percusión del kit estándar.
+
+    En General MIDI la percusión vive en el banco 128 y cada tecla es un
+    instrumento distinto: el 36 es el bombo, el 42 el charles. No se transpone
+    nada, así que la muestra se guarda para sonar a su tasa original.
+
+    Se recorta, y bastante: el plato ride de FluidR3 dura 2,6 segundos y el
+    charles cerrado 0,7, casi todo cola que se apaga. Guardarla entera costaría
+    más que todos los instrumentos melódicos juntos. Se corta y el resto lo hace
+    la envolvente del DSP, que es justamente para lo que sirve.
+    """
+    zone, sample = font.zone_for(DRUM_PROGRAM, note, bank=DRUM_BANK)
+    if sample is None:
+        return None
+
+    frames = min(sample.frames, int(seconds * sample.rate))
+    rate = plan_rate(frames, 0, sample.rate, budget)
+    out = int(round(frames * rate / float(sample.rate)) / BLOCK) * BLOCK
+    if out < BLOCK:
+        return None
+
+    audio = normalize(resample(font.pcm(sample.start, sample.start + frames),
+                               out))
+    data = brr.encode(audio, loop_block=None)
+    root = zone.get(sf2.GEN_ROOT_KEY)
+    if root is None or root > 127:
+        root = sample.root_key
+    return Voice(note, sample.name, data, rate, root, 0, out)
+
+
+def brightness(samples, rate):
+    """Dónde está el centro de gravedad del espectro, en Hz.
+
+    Es la cuenta clásica del centroide espectral, hecha en el dominio del
+    tiempo: la energía de las diferencias entre muestras consecutivas contra la
+    energía de la señal da cuánto pesa lo agudo, sin necesidad de una FFT.
+
+    Sirve para repartir el presupuesto entre golpes de percusión. Repartir por
+    cuántas veces suena cada uno es exactamente el criterio equivocado: el
+    bombo suena cien veces y no tiene un solo agudo, y el plato suena dieciséis
+    y es todo agudo. Medir el brillo pone la resolución donde hace falta.
+    """
+    energy = sum(s * s for s in samples)
+    if not energy:
+        return rate / 4.0
+    diff = sum((samples[i] - samples[i - 1]) ** 2
+               for i in range(1, len(samples)))
+    return rate / (2.0 * math.pi) * math.sqrt(diff / energy)
+
+
+def build_drum_bank(notes, budget=DRUM_BUDGET, soundfont=SOUNDFONT):
+    """Un golpe por cada nota de percusión que el MIDI use.
+
+    A cada uno se le pide la tasa que su brillo justifica —un poco más del
+    doble del centroide, que deja lugar para lo que hay por encima— y recién si
+    la suma no entra se bajan todas en la misma proporción.
+    """
+    font = sf2.SoundFont(soundfont)
+
+    wanted = {}
+    for note in notes:
+        zone, sample = font.zone_for(DRUM_PROGRAM, note, bank=DRUM_BANK)
+        if sample is None:
+            continue
+        frames = min(sample.frames, int(DRUM_SECONDS * sample.rate))
+        audio = font.pcm(sample.start, sample.start + min(frames, 8192))
+        rate = 2.4 * brightness(audio, sample.rate)
+        wanted[note] = (max(MIN_RATE, min(MAX_RATE, rate)), frames, sample.rate)
+
+    # Lo que costaría darle a cada uno lo que pide, en bytes de BRR.
+    def cost(rate, frames, source_rate):
+        return frames * (rate / source_rate) * brr.BLOCK_BYTES / BLOCK
+
+    total = sum(cost(*wanted[n]) for n in wanted) or 1
+    scale = min(1.0, budget / total)
+
+    drums = []
+    for note in sorted(wanted):
+        rate, frames, source_rate = wanted[note]
+        share = int(cost(rate * scale, frames, source_rate))
+        drum = build_drum(font, note, max(512, share))
+        if drum is not None:
+            drums.append(drum)
+    return drums
 
 
 def build_bank(programs, budget=ARAM_BUDGET, soundfont=SOUNDFONT,

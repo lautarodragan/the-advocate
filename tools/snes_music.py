@@ -47,23 +47,11 @@ OP_DSP = 0x00
 OP_WAIT = 0x01
 OP_END = 0xFF
 
-# El ruido del DSP tiene una sola frecuencia global, elegida con los cinco bits
-# bajos de FLG. No alcanza para hacer una batería, pero sí para que el bombo
-# suene más grave que el charles. Los números son las notas de General MIDI.
-NOISE_CLOCK = [
-    (36, 10),       # bombo
-    (40, 20),       # redoblante
-    (48, 15),       # toms
-    (56, 27),       # charles
-    (127, 24),      # platillos
-]
-
-
-def noise_clock(note):
-    for limit, clock in NOISE_CLOCK:
-        if note <= limit:
-            return clock
-    return NOISE_CLOCK[-1][1]
+# La percusión se lleva dos voces. Con una sola, un bombo y un charles que caen
+# en el mismo cuadro se pisan, y en un patrón de batería eso pasa todo el
+# tiempo. Cuesta una voz melódica y se nota menos que perder la mitad de los
+# golpes.
+DRUM_VOICES = 2
 
 
 # --- el driver del SPC700 ---------------------------------------------------
@@ -114,9 +102,9 @@ def build_samples(voices):
 def assign(notes):
     """Qué voz del DSP le toca a cada canal del MIDI.
 
-    La percusión se lleva una voz fija, puesta en modo ruido. Las demás se
-    reparten entre los canales melódicos por la misma cuenta que en la Mega
-    Drive: de a una, siempre a la que más tiempo-nota agregue.
+    La percusión se lleva un par de voces fijas al final. Las demás se reparten
+    entre los canales melódicos por la misma cuenta que en la Mega Drive: de a
+    una, siempre a la que más tiempo-nota agregue.
     """
     melodic = collections.defaultdict(list)
     for note in notes:
@@ -124,7 +112,7 @@ def assign(notes):
             melodic[note.channel].append(note)
 
     drums = any(n.channel == midi.DRUM_CHANNEL for n in notes)
-    budget = sdsp.VOICES - (1 if drums else 0)
+    budget = sdsp.VOICES - (DRUM_VOICES if drums else 0)
 
     spans = {channel: md_music.note_time(ns) for channel, ns in melodic.items()}
     busiest = sorted(spans, key=lambda c: -sum(a * b for a, b in spans[c].items()))
@@ -137,7 +125,8 @@ def assign(notes):
         next_voice += count
 
     if drums:
-        voices[midi.DRUM_CHANNEL] = [sdsp.VOICES - 1]
+        voices[midi.DRUM_CHANNEL] = list(range(sdsp.VOICES - DRUM_VOICES,
+                                               sdsp.VOICES))
     return voices
 
 
@@ -159,7 +148,7 @@ class Frame:
         self.kof = 0
 
 
-def build_events(notes, voices, programs, drum_voice):
+def build_events(notes, voices, programs, drum_voices):
     """Las escrituras al DSP, cuadro por cuadro.
 
     Cada canal tiene su grupo de voces; una nota que arranca toma la que lleve
@@ -177,6 +166,15 @@ def build_events(notes, voices, programs, drum_voice):
     bank = snes_samples.build_bank(wanted)
     index_of = {voice.program: index for index, voice in enumerate(bank)}
 
+    # Y una muestra por cada golpe de percusión que aparezca. Van al final del
+    # mismo banco, así que el DSP no distingue percusión de nada más: para él
+    # son todas voces leyendo una muestra.
+    hits = collections.Counter(n.pitch for n in notes
+                               if n.channel == midi.DRUM_CHANNEL)
+    drums = snes_samples.build_drum_bank(dict(hits)) if hits else []
+    drum_index = {drum.program: len(bank) + i for i, drum in enumerate(drums)}
+    bank = bank + drums
+
     busy = {}
     for note in sorted(notes, key=lambda n: n.start):
         group = voices.get(note.channel)
@@ -191,15 +189,26 @@ def build_events(notes, voices, programs, drum_voice):
         base = voice * 0x10
         program = programs.get(note.channel, 0)
 
-        if voice == drum_voice:
-            # El ruido no tiene altura: lo único que se elige es qué tan agudo
-            # es el siseo, y eso es un registro global.
-            level = sdsp.volume(note.velocity, sdsp.CEILING_NOISE)
-            start.setup.append((sdsp.FLG, sdsp.FLG_BASE | noise_clock(note.pitch)))
+        if voice in drum_voices:
+            # En General MIDI la nota elige el instrumento, no la altura, así
+            # que cada golpe tiene su propia muestra y se toca a su tasa
+            # original: transponerla convertiría un bombo en otra cosa.
+            source = drum_index.get(note.pitch)
+            if source is None:
+                continue
+            drum = bank[source]
+            step = sdsp.pitch_for(drum.root, drum.root, drum.rate)
+            level = sdsp.volume(note.velocity, sdsp.CEILING_DRUM)
             start.setup += [(base + sdsp.V_VOL_L, level),
                             (base + sdsp.V_VOL_R, level),
+                            (base + sdsp.V_PITCH_L, step & 0xFF),
+                            (base + sdsp.V_PITCH_H, step >> 8),
+                            (base + sdsp.V_SRCN, source),
+                            # Ataque instantáneo y sin decaimiento: el golpe ya
+                            # trae su propia forma, la envolvente sólo lo apaga
+                            # al final para que no siga leyendo memoria.
                             (base + sdsp.V_ADSR1, 0x8F),
-                            (base + sdsp.V_ADSR2, 0x1C)]
+                            (base + sdsp.V_ADSR2, 0xE0)]
         else:
             source = index_of.get(program)
             if source is None:
@@ -226,7 +235,7 @@ def build_events(notes, voices, programs, drum_voice):
     return frames, bank
 
 
-def init_writes(bank_size, drum_voice):
+def init_writes(bank_size, drum_voices):
     """El estado del DSP antes de la primera nota."""
     writes = [
         (sdsp.FLG, sdsp.FLG_BASE),          # sin eco, sin mute
@@ -234,7 +243,8 @@ def init_writes(bank_size, drum_voice):
         (sdsp.EVOL_L, 0x00), (sdsp.EVOL_R, 0x00),
         (sdsp.EON, 0x00),                   # ninguna voz manda al eco
         (sdsp.PMON, 0x00),                  # sin modulación entre voces
-        (sdsp.NON, (1 << drum_voice) if drum_voice is not None else 0),
+        (sdsp.NON, 0x00),                   # ya no se usa el ruido: la
+                                            # percusión tiene muestras propias
         (sdsp.DIR, SAMPLES_ADDR >> 8),      # dónde está el directorio
         (sdsp.KON, 0x00), (sdsp.KOF, 0x00),
     ]
@@ -328,11 +338,10 @@ def build(map_id, game_dir=GAME_DIR):
     notes, tempos, division, programs = midi.read(path)
     length = md_music.timeline(notes, tempos, division)
     voices = assign(notes)
-    drum_voice = (voices[midi.DRUM_CHANNEL][0]
-                  if midi.DRUM_CHANNEL in voices else None)
+    drum_voices = set(voices.get(midi.DRUM_CHANNEL, []))
 
-    frames, bank = build_events(notes, voices, programs, drum_voice)
-    stream = pack(frames, length, init_writes(len(bank), drum_voice))
+    frames, bank = build_events(notes, voices, programs, drum_voices)
+    stream = pack(frames, length, init_writes(len(bank), drum_voices))
 
     spans = {c: md_music.note_time([n for n in notes if n.channel == c])
              for c in {n.channel for n in notes}}

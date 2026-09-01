@@ -25,10 +25,26 @@ from render_map import GAME_DIR, find_resource
 
 SOUNDFONT = "/usr/share/soundfonts/FluidR3_GM.sf2"
 REFERENCE_KEY = 60      # do central: la nota con la que se elige la zona
+DRUM_BANK = 128         # donde General MIDI guarda los kits de percusión
+DRUM_PROGRAM = 0        # el kit estándar
 
 LOOP_NAMES = {sf2.LOOP_NONE: "sin loop",
               sf2.LOOP_CONTINUOUS: "loop",
               sf2.LOOP_UNTIL_RELEASE: "loop hasta soltar"}
+
+
+def drums_of_map(map_id, game_dir):
+    """Qué notas de percusión usa el MIDI, y cuántas veces cada una."""
+    tree = lcf.TreeMap(os.path.join(game_dir, "RPG_RT.lmt"))
+    music = tree.map_music(map_id)
+    path = find_resource([game_dir], "Music", music["name"], (".mid", ".wav"))
+    if not path or not path.lower().endswith(".mid"):
+        return {}
+
+    notes, _tempos, _division, _programs = midi.read(path)
+    hits = collections.Counter(n.pitch for n in notes
+                               if n.channel == midi.DRUM_CHANNEL)
+    return dict(hits.most_common())
 
 
 def programs_of_map(map_id, game_dir):
@@ -45,6 +61,25 @@ def programs_of_map(map_id, game_dir):
         if note.channel != midi.DRUM_CHANNEL:
             used.setdefault(note.channel, programs.get(note.channel, 0))
     return used, music["name"]
+
+
+def report_drum(font, note, hits):
+    """La percusión vive en el banco 128, y ahí cada nota es un instrumento.
+
+    Un kit no está multi-muestreado por altura como un piano: cada tecla trae su
+    propia grabación —el bombo, el charles, el plato— y por eso hay que pedir
+    una zona por cada nota que el MIDI use, no una por preset.
+    """
+    zone, sample = font.zone_for(DRUM_PROGRAM, note, bank=DRUM_BANK)
+    if sample is None:
+        print("  nota %3d (%4d golpes)  SIN MUESTRA" % (note, hits))
+        return None
+
+    modes = zone.get(sf2.GEN_SAMPLE_MODES, sf2.LOOP_NONE)
+    print("  nota %3d (%4d golpes)  %-26s %6d cuadros a %5d Hz, %s"
+          % (note, hits, sample.name[:26], sample.frames, sample.rate,
+             LOOP_NAMES.get(modes, "?")))
+    return sample
 
 
 def report(font, program, label=""):
@@ -71,6 +106,8 @@ def main():
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--map-id", type=int, default=67)
     parser.add_argument("--programs", type=int, nargs="*")
+    parser.add_argument("--drums", action="store_true",
+                        help="la percusión del mapa en vez de los melódicos")
     parser.add_argument("--game-dir", default=GAME_DIR)
     parser.add_argument("--soundfont", default=SOUNDFONT)
     args = parser.parse_args()
@@ -86,6 +123,21 @@ def main():
         print("Programas pedidos:")
         for program in args.programs:
             report(font, program)
+        return
+
+    if args.drums:
+        hits = drums_of_map(args.map_id, args.game_dir)
+        print("Percusión del mapa %d, banco %d preset %d (%s):"
+              % (args.map_id, DRUM_BANK, DRUM_PROGRAM,
+                 font.preset_name(font.find_preset(DRUM_PROGRAM, DRUM_BANK))
+                 if font.find_preset(DRUM_PROGRAM, DRUM_BANK) is not None
+                 else "no está"))
+        total = 0
+        for note, count in hits.items():
+            sample = report_drum(font, note, count)
+            if sample:
+                total += sample.frames
+        print("  %d cuadros en total antes de remuestrear" % total)
         return
 
     used, name = programs_of_map(args.map_id, args.game_dir)
