@@ -30,6 +30,15 @@ V_VOL_L, V_VOL_R = 0x00, 0x01
 V_PITCH_L, V_PITCH_H = 0x02, 0x03
 V_SRCN = 0x04
 V_ADSR1, V_ADSR2 = 0x05, 0x06
+V_GAIN = 0x07
+
+# El release del ADSR del DSP no se puede configurar: al escribir KOF la
+# envolvente cae a cero en unos 8 ms, que se oye como un corte seco. Por eso
+# soltar una nota no se hace con KOF sino apagando el bit de ADSR —con lo que
+# manda GAIN— y pidiéndole una caída exponencial, cuya velocidad sí se elige.
+# La envolvente sigue desde donde estaba, así que la nota se apaga en vez de
+# cortarse.
+GAIN_EXP_DECREASE = 0xA0        # bit 7: modo propio; bits 5-6: exponencial
 
 # Los globales viven en las columnas $x C y $x D.
 MVOL_L, MVOL_R = 0x0C, 0x1C
@@ -48,34 +57,40 @@ def voice_register(voice, register):
 
 # --- el banco ---------------------------------------------------------------
 
-def instrument(name, harmonics, attack, decay, sustain, release):
+def instrument(name, harmonics, attack, decay, sustain, release, fade):
     """Un timbre: los pesos de sus armónicos más la envolvente.
 
     `harmonics[0]` es el fundamental. La envolvente va en las unidades del DSP:
     ataque y decaimiento son 0-15 y 0-7 (más alto = más rápido), el sostenido
-    0-7 es a qué nivel se queda, y el release 0-31 cuánto tarda en caer desde
-    ahí (0 = se queda para siempre).
+    0-7 es a qué nivel se queda, y `release` 0-31 cuánto sigue cayendo mientras
+    la nota se mantiene apretada (0 = se queda para siempre).
+
+    `fade` es otra cosa y es la que importa acá: la velocidad de GAIN con la que
+    la nota se apaga al soltarla. Decide si el instrumento resuena o corta. En
+    la tabla del DSP los números chicos son lentos — unos 320 ms en 12, unos
+    130 ms en 16— y se eligen de oído, como el resto del banco.
     """
     return {"name": name, "harmonics": harmonics, "attack": attack,
-            "decay": decay, "sustain": sustain, "release": release}
+            "decay": decay, "sustain": sustain, "release": release,
+            "fade": fade}
 
 
 # Con 32 muestras por ciclo, del armónico 16 para arriba ya no queda nada que
 # muestrear: se replegaría sobre los graves. Por eso ninguno pasa de 12.
-PIANO = instrument("piano", [1.0, .60, .35, .20, .12, .08, .05], 15, 5, 3, 16)
-BASS = instrument("bajo", [1.0, .35, .12, .05], 15, 4, 4, 14)
+PIANO = instrument("piano", [1.0, .60, .35, .20, .12, .08, .05], 15, 5, 3, 16, 11)
+BASS = instrument("bajo", [1.0, .35, .12, .05], 15, 4, 4, 14, 14)
 # Órgano de barras: armónicos impares y nada en los pares.
-ORGAN = instrument("órgano", [1.0, 0, .50, 0, .30, 0, .20], 14, 0, 7, 0)
+ORGAN = instrument("órgano", [1.0, 0, .50, 0, .30, 0, .20], 14, 0, 7, 0, 17)
 # Diente de sierra: todos los armónicos cayendo como 1/n. Es el punto de
 # partida de casi cualquier instrumento de cuerda frotada.
-STRINGS = instrument("cuerdas", [1.0 / n for n in range(1, 11)], 10, 2, 6, 4)
-BRASS = instrument("metales", [.70, 1.0, .90, .70, .50, .35, .25, .15], 12, 3, 6, 6)
+STRINGS = instrument("cuerdas", [1.0 / n for n in range(1, 11)], 10, 2, 6, 4, 12)
+BRASS = instrument("metales", [.70, 1.0, .90, .70, .50, .35, .25, .15], 12, 3, 6, 6, 15)
 # Onda cuadrada: impares cayendo como 1/n.
-REED = instrument("caña", [1.0, 0, .33, 0, .20, 0, .14, 0, .11], 13, 3, 6, 5)
-LEAD = instrument("solista", [1.0, 0, .33, 0, .20, 0, .14, 0, .11, 0, .09], 15, 4, 6, 8)
+REED = instrument("caña", [1.0, 0, .33, 0, .20, 0, .14, 0, .11], 13, 3, 6, 5, 15)
+LEAD = instrument("solista", [1.0, 0, .33, 0, .20, 0, .14, 0, .11, 0, .09], 15, 4, 6, 8, 14)
 # Campana: los parciales no son múltiplos enteros del fundamental, y con una
 # onda periódica eso no se puede hacer del todo. Se aproxima salteando.
-BELL = instrument("campana", [1.0, 0, 0, .70, 0, 0, .45, 0, 0, .30], 15, 7, 2, 20)
+BELL = instrument("campana", [1.0, 0, 0, .70, 0, 0, .45, 0, 0, .30], 15, 7, 2, 20, 9)
 
 # Las 16 familias de General MIDI, de a 8 programas cada una. Mismo reparto que
 # el banco del YM2612, para poder comparar las dos consolas con lo mismo.
@@ -167,6 +182,11 @@ def adsr(sound):
     """Los dos registros de envolvente de un timbre."""
     return (0x80 | ((sound["decay"] & 0x07) << 4) | (sound["attack"] & 0x0F),
             ((sound["sustain"] & 0x07) << 5) | (sound["release"] & 0x1F))
+
+
+def fade(sound):
+    """Con qué valor de GAIN se apaga la nota al soltarla."""
+    return GAIN_EXP_DECREASE | (sound["fade"] & 0x1F)
 
 
 # El DSP suma las ocho voces y recién después aplica el volumen general, sin

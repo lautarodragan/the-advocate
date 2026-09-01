@@ -91,6 +91,29 @@ Tres detalles que deciden si suena bien o suena mal:
   (error de pico y medio, en porcentaje de la amplitud). Al piano lo que le
   queda es el ataque, que por definición no se predice.
 
+## Cómo se suelta una nota
+
+El release del ADSR del DSP **no se puede configurar**: al escribir KOF la
+envolvente cae a cero en unos 8 ms. Eso se oye como un corte seco, y era lo que
+más llamaba la atención una vez que las muestras fueron reales — sobre todo en
+el piano, que debería resonar.
+
+Así que las notas no se sueltan con KOF. Se apaga el bit de ADSR del registro
+$x5, con lo que pasa a mandar GAIN, y a GAIN se le pide una caída exponencial
+cuya velocidad sí se elige. La envolvente sigue desde donde estaba, así que la
+nota se apaga en vez de cortarse. Es la técnica estándar de la consola.
+
+El valor por familia está en `sdsp.py` y se elige de oído, como el resto del
+banco: el piano y la campana resuenan (11 y 9, unos 300-400 ms), el órgano y los
+vientos cortan casi con la nota (17, unos 130 ms).
+
+El orden en el stream es lo que evita un caso especial: el release se escribe
+**antes** que la preparación de la nota siguiente. Si en el mismo cuadro la voz
+vuelve a arrancar, su setup pisa el ADSR1 y el GAIN queda sin efecto, que es
+exactamente lo que corresponde.
+
+KOF queda usado una sola vez en todo el tema: para callar todo al final.
+
 ## La percusión
 
 Era lo que peor sonaba, y por lejos: el generador de ruido del DSP con la
@@ -208,9 +231,9 @@ pican juntas y en fase y eso no pasa nunca.
 
 ## Lo que falta
 
-* **Las envolventes.** Salen de las ocho familias de `sdsp.py`, elegidas a ojo
-  cuando el banco era sintético. El SoundFont trae las suyas por instrumento y
-  todavía no se leen.
+* **El ataque y el decaimiento** siguen saliendo de las ocho familias de
+  `sdsp.py`, elegidas a ojo cuando el banco era sintético. El SoundFont trae los
+  suyos por instrumento y todavía no se leen. (El release ya no: ver arriba.)
 * **Una muestra por instrumento.** Un piano real está multi-muestreado cada
   pocas notas; nosotros tomamos la del do central y transponemos. En los
   extremos del teclado eso se nota.

@@ -140,9 +140,10 @@ class Frame:
     al revés, la nota arrancaría con los valores de la anterior.
     """
 
-    __slots__ = ("setup", "kon", "kof")
+    __slots__ = ("release", "setup", "kon", "kof")
 
     def __init__(self):
+        self.release = []       # las notas que se sueltan en este cuadro
         self.setup = []
         self.kon = 0
         self.kof = 0
@@ -226,12 +227,9 @@ def build_events(notes, voices, programs, drum_voices):
                             (base + sdsp.V_ADSR2, adsr2)]
 
         start.kon |= 1 << voice
-        end.kof |= 1 << voice
+        if voice not in drum_voices:
+            end.release.append((base, sdsp.fade(sdsp.for_program(program))))
 
-    # Una voz que arranca de nuevo en el mismo cuadro en que se apagaba no
-    # necesita el apagado: KON ya reinicia la envolvente desde cero.
-    for frame in frames.values():
-        frame.kof &= ~frame.kon
     return frames, bank
 
 
@@ -293,7 +291,7 @@ def pack(frames, length, init):
         if at > length:
             break
         frame = frames[at]
-        if not (frame.setup or frame.kon or frame.kof):
+        if not (frame.release or frame.setup or frame.kon or frame.kof):
             continue
 
         wait_until(at, previous)
@@ -303,6 +301,9 @@ def pack(frames, length, init):
             stream.extend([OP_DSP, sdsp.KON, 0x00])
             sounding = 0
         write(sdsp.KOF, 0x00)
+        for base, gain in frame.release:
+            write(base + sdsp.V_ADSR1, 0x00)    # apagar ADSR: manda GAIN
+            write(base + sdsp.V_GAIN, gain)
         for register, value in frame.setup:
             write(register, value)
         if frame.kof:
