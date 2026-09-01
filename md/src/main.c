@@ -126,7 +126,10 @@ static void vdp_addr(u32 kind, u16 addr)
 #define VDP_STATUS_READ 1
 #define VDP_REGS_8_9    2
 #define VDP_REG_14      4
-#define VDP_REGS_DMA    8
+#define VDP_REGS_DMA    8    /* 19 a 23, los de DMA: rompen en la consola */
+#define VDP_DMA_SOURCE  16   /* sólo el 19 al 22: largo y origen */
+#define VDP_DMA_TYPE    32   /* sólo el 23, en 0x00 */
+#define VDP_DMA_TYPE_80 64   /* sólo el 23, en 0x80, que es el valor habitual */
 
 #ifndef VDP_EXTRA
 #define VDP_EXTRA 0
@@ -191,8 +194,16 @@ static void vdp_init(void)
             continue;
         if (i == 14 && !(VDP_EXTRA & VDP_REG_14))
             continue;
-        if (i >= 19 && !(VDP_EXTRA & VDP_REGS_DMA))
+        if (i >= 19 && i <= 22
+            && !(VDP_EXTRA & (VDP_REGS_DMA | VDP_DMA_SOURCE)))
             continue;
+        if (i == 23
+            && !(VDP_EXTRA & (VDP_REGS_DMA | VDP_DMA_TYPE | VDP_DMA_TYPE_80)))
+            continue;
+        if (i == 23 && (VDP_EXTRA & VDP_DMA_TYPE_80)) {
+            vdp_reg(23, 0x80);   /* el valor que usa todo el mundo */
+            continue;
+        }
         vdp_reg(i, vdp_regs[i]);
     }
 }
