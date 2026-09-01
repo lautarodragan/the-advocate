@@ -15,6 +15,12 @@ que el problema deja de ser "imitar un piano con cuatro operadores" y pasa a ser
 De paso: 15 bits de color contra 9, y 8 paletas contra 4. Los 108 colores de los
 seis CharSets del Auditorium entran sin fusionar ninguno.
 
+## Veredicto
+
+Probado en emulador: **suena mucho mejor que la Mega Drive y cerca del
+original**, con muestras que todavía son ondas de un ciclo generadas en Python.
+Esa era la pregunta que motivaba la rama, y la contesta a favor de la SNES.
+
 ## Cómo está armado
 
 El audio lo maneja el **SPC700**, un procesador aparte con sus propios 64 KB. El
