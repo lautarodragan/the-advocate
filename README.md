@@ -314,20 +314,25 @@ hace falta para que ande ahí:
 
 * **TMSS.** Las consolas modelo 1 tardías y el modelo 2 no dejan tocar el VDP
   hasta que el cartucho escribe "SEGA" en `0xA14000`.
-* **No escribir los registros 19 a 23 del VDP, los de DMA.** Escribirlos —aun
-  con el bit de DMA apagado y sin disparar ninguna— deja la consola en negro,
-  aunque en el emulador no cambie nada. El resto de los registros que faltaban
-  (el 8, el 9, el 14) y leer el puerto de control antes de empezar son
-  inofensivos: se probaron uno por uno en hardware. `VDP_EXTRA` en `main.c`
-  deja volver a activarlos si algún día hace falta usar DMA.
+* **Nunca escribir `0x00` en el registro 23 del VDP.** Sus dos bits de arriba
+  eligen el tipo de DMA, y `00` es "transferencia del 68000 al VDP". Escribir
+  ese valor deja la consola en negro **aunque el bit que habilita DMA esté
+  apagado y no se dispare ninguna transferencia**. Con `0x80` —"relleno de
+  VRAM"— no pasa nada, así que DMA sigue disponible cuando lo necesitemos para
+  subir tiles rápido. Ningún emulador reproduce esto.
 
-  Esto costó cinco tandas de bisección y vale la pena decir por qué: lo agregué
-  yo, convencido de que dejar registros sin escribir era lo peligroso, y era al
-  revés. Peor: como todas las ROMs de las primeras tandas llevaban ese init,
-  "descarté" el tamaño de la ROM, la FIFO del VDP y los sprites cuando en
-  realidad fallaban todas por la misma causa oculta. La lección de método es
-  incluir siempre un control conocido-bueno en cada tanda; en cuanto lo puse, la
-  respuesta salió en una ronda.
+  Los otros siete registros que faltaban (el 8, el 9, el 14, el 19 al 22) y leer
+  el puerto de control antes de empezar se probaron uno por uno en hardware y
+  son inofensivos. La tabla de `main.c` lleva `0x80` en el 23 para que el valor
+  peligroso no esté escrito en ningún lado.
+
+  Esto costó cinco tandas de bisección y vale la pena decir por qué: el init
+  completo lo agregué yo, convencido de que dejar registros sin escribir era lo
+  peligroso, y era al revés. Peor: como todas las ROMs de las primeras tandas
+  llevaban ese init, "descarté" el tamaño de la ROM, la FIFO del VDP y los
+  sprites cuando en realidad fallaban todas por la misma causa oculta. La
+  lección de método es incluir siempre un control conocido-bueno en cada tanda;
+  en cuanto lo puse, la respuesta salió en una ronda.
 * **Callar el PSG.** En un emulador los canales arrancan en silencio; una
   consola de verdad puede zumbar apenas se enciende si nadie les pone la
   atenuación al máximo.

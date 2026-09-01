@@ -121,20 +121,25 @@ static void vdp_addr(u32 kind, u16 addr)
 
 /* Qué partes del init se aplican.
  *
- * Los 16 registros de siempre son los que escribía el build de la cámara, que
- * es el último que funcionó en una consola de verdad. Después agregué los ocho
- * que faltaban y la lectura del puerto de control, convencido de que dejar
- * registros sin escribir era lo que rompía en hardware — y fue exactamente al
- * revés: con eso dejó de andar. Hasta saber cuál de las cuatro cosas es, el
- * default es no escribir ninguna.
+ * El default son los 16 registros que escribía el primer build que funcionó en
+ * una consola de verdad. Después agregué los ocho que faltaban, convencido de
+ * que dejar registros sin escribir era lo que rompía en hardware, y fue al
+ * revés: con eso dejó de andar.
+ *
+ * Bisecando en la consola resultó ser **el registro 23 con el valor 0x00**. Sus
+ * dos bits de arriba eligen el tipo de DMA, y 00 es "transferencia del 68000 al
+ * VDP"; con 0x80, que es "relleno de VRAM", no pasa nada. Los otros siete
+ * registros y la lectura del puerto de control se probaron uno por uno en
+ * hardware y son inofensivos. Ningún emulador reproduce esto.
+ *
+ * Por eso la tabla lleva 0x80 en el 23: el valor peligroso no está escrito en
+ * ningún lado. El default igual no toca los de DMA, porque no los necesitamos
+ * todavía y lo que anda, anda.
  */
 #define VDP_STATUS_READ 1
 #define VDP_REGS_8_9    2
 #define VDP_REG_14      4
-#define VDP_REGS_DMA    8    /* 19 a 23, los de DMA: rompen en la consola */
-#define VDP_DMA_SOURCE  16   /* sólo el 19 al 22: largo y origen */
-#define VDP_DMA_TYPE    32   /* sólo el 23, en 0x00 */
-#define VDP_DMA_TYPE_80 64   /* sólo el 23, en 0x80, que es el valor habitual */
+#define VDP_REGS_DMA    8    /* los cinco de DMA, 19 a 23 */
 
 #ifndef VDP_EXTRA
 #define VDP_EXTRA 0
@@ -165,7 +170,8 @@ static const u8 vdp_regs[24] = {
     0x00,                   /* 17  posición horizontal de la ventana          */
     0x00,                   /* 18  posición vertical de la ventana            */
     0x00, 0x00,             /* 19-20  largo del DMA                           */
-    0x00, 0x00, 0x00        /* 21-23  origen del DMA                          */
+    0x00, 0x00,             /* 21-22  origen del DMA                          */
+    0x80                    /* 23  tipo de DMA. NUNCA 0x00: cuelga la consola */
 };
 
 /* En hardware real el autoincremento se aplica cuando el VDP saca la escritura
@@ -199,16 +205,8 @@ static void vdp_init(void)
             continue;
         if (i == 14 && !(VDP_EXTRA & VDP_REG_14))
             continue;
-        if (i >= 19 && i <= 22
-            && !(VDP_EXTRA & (VDP_REGS_DMA | VDP_DMA_SOURCE)))
+        if (i >= 19 && !(VDP_EXTRA & VDP_REGS_DMA))
             continue;
-        if (i == 23
-            && !(VDP_EXTRA & (VDP_REGS_DMA | VDP_DMA_TYPE | VDP_DMA_TYPE_80)))
-            continue;
-        if (i == 23 && (VDP_EXTRA & VDP_DMA_TYPE_80)) {
-            vdp_reg(23, 0x80);   /* el valor que usa todo el mundo */
-            continue;
-        }
         vdp_reg(i, vdp_regs[i]);
     }
 }
