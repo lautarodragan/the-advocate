@@ -16,3 +16,21 @@ md/src/musicdata.h
 snes/build/
 snes/shots/
 snes/src/musicdata.inc
+
+# El sandbox de Claude Code tapa los archivos de configuración que podrían
+# ejecutar algo, montándoles /dev/null encima. Como acá no existían, quedan como
+# nodos de dispositivo en la raíz del repo y `git add -A` se corta con
+# "can only add regular files, symbolic links or git-directories".
+#
+# Están montados mientras dure la sesión: no se borran, se ignoran.
+# Cuidado si algún día el repo usa submódulos: .gitmodules es de git, no basura.
+.bash_profile
+.bashrc
+.profile
+.zprofile
+.zshrc
+.gitconfig
+.gitmodules
+.mcp.json
+.ripgreprc
+.vscode
