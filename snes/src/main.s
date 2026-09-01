@@ -25,11 +25,42 @@ APUIO1   = $2141
 APUIO2   = $2142
 APUIO3   = $2143
 
+; --- el PPU ----------------------------------------------------------------
+BGMODE   = $2105        ; qué modo gráfico y con cuántos bits por pixel
+BG1SC    = $2107        ; dónde vive el tilemap de BG1 y de qué tamaño es
+BG12NBA  = $210B        ; dónde viven los tiles de BG1 y BG2
+BG1HOFS  = $210D        ; scroll horizontal de BG1 (se escribe dos veces)
+BG1VOFS  = $210E        ; scroll vertical
+VMAIN    = $2115        ; cómo avanza el puntero de VRAM tras cada escritura
+VMADDL   = $2116        ; dirección de VRAM, en palabras
+CGADD    = $2121        ; índice de CGRAM
+TM       = $212C        ; qué capas se ven en la pantalla principal
+
+; --- DMA, canal 0 ----------------------------------------------------------
+DMAP0    = $4300        ; modo de transferencia
+BBAD0    = $4301        ; registro del PPU al que va
+A1T0L    = $4302        ; origen: dirección y banco
+A1B0     = $4304
+DAS0L    = $4305        ; cuántos bytes
+MDMAEN   = $420B        ; arrancar
+
+; La VRAM se direcciona por palabras. Los tiles arrancan en la 0 y el tilemap
+; en la $6000, que deja 24K palabras para tiles: mucho más de las 1024 que el
+; tilemap puede nombrar.
+VRAM_TILES = $0000
+VRAM_MAP   = $6000
+
+; Filas visibles. La pantalla muestra 28 de las 32 del tilemap.
+SCREEN_ROWS = 28
+
 .include "musicdata.inc"
+.include "mapdata.inc"
 
 .segment "ZEROPAGE"
 source:     .res 3      ; puntero al bloque que estamos subiendo
 music:      .res 3      ; puntero dentro del stream de música
+origen:     .res 2      ; al copiar el tilemap: de dónde
+destino:    .res 2      ; y a dónde
 wait_frames: .res 1     ; cuántos cuadros faltan para el próximo evento
 token:      .res 1      ; testigo del handshake con el SPC700
 
@@ -48,11 +79,20 @@ token:      .res 1      ; testigo del handshake con el SPC700
 
     sep #$20
 .a8
-    lda #$8F
-    sta INIDISP                 ; pantalla apagada: este PoC no dibuja nada
+    lda #$80
+    sta INIDISP                 ; blanking forzado: la VRAM sólo se toca así
     lda #$00
     sta NMITIMEN
 
+    jsr ppu_init
+    jsr load_map
+
+    lda #$0F
+    sta INIDISP                 ; pantalla encendida, brillo al máximo
+
+    ; La subida al SPC700 va después de prender la pantalla, no antes: son casi
+    ; siete décimas de segundo, y así el mapa aparece de entrada en vez de
+    ; hacerte mirar una pantalla negra hasta que termine.
     jsr spc_upload
     jsr music_start
 
@@ -74,6 +114,130 @@ out:
 in:
     lda HVBJOY
     bpl in
+    rts
+.endproc
+
+; --- el PPU ----------------------------------------------------------------
+; Modo 3: BG1 con 8 bits por pixel. Ahí cada pixel es un índice directo a CGRAM
+; y no hay paleta por tile, así que el mapa entra con sus 60 colores sin
+; fusionar ninguno. Cuesta el doble de VRAM por tile y sobra lugar de todas
+; formas.
+.proc ppu_init
+.a8
+.i16
+    lda #$03
+    sta BGMODE
+    ; BG1SC lleva la dirección del tilemap en el byte alto y el tamaño en los
+    ; dos bits bajos; con VRAM_MAP en $6000 y tamaño 0 queda $60.
+    lda #>VRAM_MAP
+    sta BG1SC                   ; tilemap acá, de 32x32 celdas
+    ; BG12NBA lleva la dirección de los tiles de BG1 en el nibble bajo, en
+    ; unidades de 4K palabras. Con VRAM_TILES en la 0, es 0.
+    lda #$00
+    sta BG12NBA
+    stz BG1HOFS                 ; el scroll es de dos escrituras, byte bajo
+    stz BG1HOFS                 ; y byte alto
+    ; El PPU muestra la línea vofs+1 en el primer scanline visible, no la vofs.
+    ; Con 0 el mapa queda corrido una línea hacia arriba; con -1 cae en su
+    ; lugar. Lo destapó la comparación pixel a pixel contra el render de Python:
+    ; a ojo las dos imágenes se veían idénticas.
+    lda #$FF
+    sta BG1VOFS
+    sta BG1VOFS
+    lda #$01
+    sta TM                      ; sólo BG1 en la pantalla principal
+    rts
+.endproc
+
+; --- volcado del mapa a la VRAM --------------------------------------------
+; Todo por DMA y con la pantalla apagada, que es cuando se puede escribir la
+; VRAM sin pelearle al PPU.
+.proc load_map
+.a8
+.i16
+    ; --- los tiles ---
+    lda #$80
+    sta VMAIN                   ; avanzar una palabra tras el byte alto
+    ldx #VRAM_TILES
+    stx VMADDL
+    ldx #.loword(map_tiles)
+    stx A1T0L
+    lda #^map_tiles
+    sta A1B0
+    ldy #(MAP_TILES * 64)
+    sty DAS0L
+    lda #$01
+    sta DMAP0                   ; dos registros, de a palabras
+    lda #$18
+    sta BBAD0                   ; destino: VMDATAL
+    lda #$01
+    sta MDMAEN
+
+    ; --- los colores ---
+    stz CGADD
+    ldx #.loword(map_cgram)
+    stx A1T0L
+    lda #^map_cgram
+    sta A1B0
+    ldy #(MAP_CGRAM * 2)
+    sty DAS0L
+    lda #$00
+    sta DMAP0                   ; un registro, de a bytes
+    lda #$22
+    sta BBAD0                   ; destino: CGDATA
+    lda #$01
+    sta MDMAEN
+
+    ; --- el tilemap, fila por fila ---
+    ; El mapa es más ancho que el tilemap del PPU —40 celdas contra 32—, así que
+    ; no se puede mandar de una sola vez: hay que copiar 32 celdas por fila y
+    ; saltear el resto. Es también lo que va a hacer falta para la cámara.
+    lda #^map_tilemap
+    sta A1B0
+    lda #$01
+    sta DMAP0
+    lda #$18
+    sta BBAD0
+
+    rep #$20
+.a16
+    lda #.loword(map_tilemap)
+    sta origen
+    lda #VRAM_MAP
+    sta destino
+    sep #$20
+.a8
+
+    ldx #SCREEN_ROWS
+fila:
+    rep #$20
+.a16
+    lda origen
+    sta A1T0L
+    lda destino
+    sta VMADDL
+    lda #64                     ; 32 celdas de dos bytes
+    sta DAS0L
+    sep #$20
+.a8
+    lda #$01
+    sta MDMAEN
+
+    rep #$20
+.a16
+    lda origen
+    clc
+    adc #(MAP_WIDTH * 2)        ; la fila siguiente del mapa
+    sta origen
+    lda destino
+    clc
+    adc #32                     ; la fila siguiente del tilemap
+    sta destino
+    sep #$20
+.a8
+
+    dex
+    bne fila
     rts
 .endproc
 

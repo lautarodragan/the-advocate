@@ -34,3 +34,4 @@ snes/src/musicdata.inc
 .mcp.json
 .ripgreprc
 .vscode
+snes/src/mapdata.inc

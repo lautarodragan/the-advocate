@@ -190,11 +190,22 @@ class Expression:
         return result
 
     def _sum(self, symbols, pos):
-        value, pos = self._term(symbols, pos)
+        value, pos = self._product(symbols, pos)
         while pos < len(self.tokens) and self.tokens[pos][1] in "+-":
             operator = self.tokens[pos][1]
-            right, pos = self._term(symbols, pos + 1)
+            right, pos = self._product(symbols, pos + 1)
             value = value + right if operator == "+" else value - right
+        return value, pos
+
+    def _product(self, symbols, pos):
+        """Multiplicación y división, que atan más fuerte que la suma."""
+        value, pos = self._term(symbols, pos)
+        while pos < len(self.tokens) and self.tokens[pos][1] in "*/":
+            operator = self.tokens[pos][1]
+            right, pos = self._term(symbols, pos + 1)
+            if operator == "/" and not right:
+                raise Error("división por cero en %r" % self.text)
+            value = value * right if operator == "*" else value // right
         return value, pos
 
     def _term(self, symbols, pos):

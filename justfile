@@ -144,8 +144,27 @@ md-play-mudo region="overseas_pal":
 # El contenedor sigue existiendo para una sola cosa, snes-validar, que compara
 # w65.py contra ca65. No se necesita para compilar.
 
+# ChipSet + mapa -> tiles de 8x8 a 8bpp, paleta de 15 bits y tilemap, más el
+# render de Python contra el que se compara después.
+snes-convert mapa="7":
+  mkdir -p snes/shots
+  python3 tools/snes_convert.py --map-id {{mapa}} --reference snes/shots/python.png
+
 snes-build:
   python3 tools/w65.py snes/src/main.s -o snes/build/abl.sfc
+
+# Corre la ROM sin pantalla y captura lo que dibuja. Las teclas se mantienen
+# apretadas mientras corre, para capturar con la cámara movida.
+snes-shot nombre="mapa" segundos="4" teclas="":
+  snes/screenshot.sh snes/build/abl.sfc snes/shots/{{nombre}}.png {{segundos}} "{{teclas}}"
+
+# La captura contra el render de Python, pixel por pixel y a 15 bits.
+snes-compare nombre="mapa":
+  python3 tools/snes_compare.py snes/shots/{{nombre}}.png snes/shots/python.png \
+      -o snes/shots/comparacion-{{nombre}}.png
+
+# Todo el camino del mapa: convertir, compilar, capturar y comparar.
+snes-mapa mapa="7": (snes-convert mapa) snes-build snes-shot snes-compare
 
 # --- verificación del ensamblador ------------------------------------------
 # w65.py reemplaza a ca65 y ld65. Que se pueda confiar en él no es una promesa:

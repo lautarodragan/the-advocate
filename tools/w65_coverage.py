@@ -91,6 +91,10 @@ def lines():
         "    .i8",
         "    lda abs_sym + 2",
         "    lda zp_sym + 1",
+        "    lda #zp_sym * 2",
+        "    lda #zp_sym * 2 + 1",
+        "    lda #(zp_sym + 1) * 2",
+        "    lda #abs_sym / 256",
         "    rts",
     ]
 

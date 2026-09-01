@@ -1,8 +1,8 @@
-# PoC de audio en Super Nintendo
+# El port a Super Nintendo
 
-Reproduce un tema en loop, sin dibujar nada ni leer el control. No reemplaza
-nada del port a Mega Drive: es una rama aparte para ver si la SNES se acerca
-más al original.
+Dibuja el mapa y reproduce su tema. No reemplaza nada del port a Mega Drive: es
+una rama aparte que se abrió para ver si la SNES se acerca más al original, y la
+respuesta fue que sí.
 
 ## Por qué
 
@@ -20,6 +20,33 @@ seis CharSets del Auditorium entran sin fusionar ninguno.
 Probado en emulador: **suena mucho mejor que la Mega Drive y cerca del
 original**, con muestras que todavía son ondas de un ciclo generadas en Python.
 Esa era la pregunta que motivaba la rama, y la contesta a favor de la SNES.
+
+## El mapa
+
+Va en **modo 3, con 8 bits por pixel**. Ahí cada pixel del fondo es un índice
+directo a CGRAM y no hay paleta por tile, así que el problema que dominaba el
+conversor de la Mega Drive —repartir los colores en grupos tales que ningún tile
+necesite dos— simplemente no existe.
+
+    modo 1 (4bpp, 8 paletas):  60 colores -> 28
+    modo 3 (8bpp):             60 colores -> 60, sin fusionar
+
+No era evitable de otra forma: Map0007 tiene tiles de 16, 17 y 19 colores, y
+ésos no entran en una paleta de 15 por más paletas que haya. Cuesta el doble de
+VRAM por tile, 64 bytes en vez de 32; con 92 tiles son 5,8 KB de los 64.
+
+El resultado se verifica pixel por pixel contra el render de Python, a 15 bits,
+que es la profundidad real de la consola:
+
+    Map0007: 0 pixeles distintos de 57344
+
+En la Mega Drive esto no se podía hacer: los 9 bits obligaban a fusionar
+colores, así que sólo se podía comparar por forma. Acá la comparación es exacta.
+
+Eso destapó un detalle del hardware que a ojo era invisible: **el PPU muestra la
+línea `vofs+1` en el primer scanline**, no la `vofs`. Con el scroll en 0 el mapa
+quedaba corrido una línea. Las dos imágenes se veían idénticas y diferían en el
+50% de los pixeles.
 
 ## Cómo está armado
 
