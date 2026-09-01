@@ -203,6 +203,9 @@ static void load_tiles(void)
  */
 #define MAX_SPRITES 80
 
+/* El héroe va en la capa "same": la 1. */
+#define HERO_LAYER 1
+
 static s16 sprite_order[MAX_SPRITES];   /* índice de NPC, o -1 para el héroe */
 
 /* El VDP suma 128 a las coordenadas, así que un sprite en 0,0 va en 128,128. */
@@ -213,13 +216,19 @@ static void draw_sprites(s16 cam_x, s16 cam_y, s16 screen_h,
     u16 i;
     u8 hero_placed = 0;
 
-    /* Los NPCs vienen ordenados de mayor a menor Y; el héroe se mete donde le
-     * toca por el suyo, y así el que está más abajo se dibuja adelante. */
+    /* Los NPCs vienen ordenados como los dibuja RM2k: primero por capa y
+     * después por Y. El héroe está en la capa 1, la suya, y se mete donde le
+     * toca por su Y dentro de esa banda. Así un evento de capa 0 —un punto de
+     * guardado en el piso, una alfombra— queda siempre debajo, aunque esté más
+     * adelante en la pantalla, y uno de capa 2 lo tapa siempre. */
     for (i = 0; i < NPC_COUNT && count < MAX_SPRITES; i++) {
         s16 x = md_npcs[i].x - cam_x;
         s16 y = md_npcs[i].y - cam_y;
 
-        if (!hero_placed && hero_y > md_npcs[i].y) {
+        if (!hero_placed
+            && (md_npcs[i].layer < HERO_LAYER
+                || (md_npcs[i].layer == HERO_LAYER
+                    && md_npcs[i].y < hero_y))) {
             sprite_order[count++] = -1;
             hero_placed = 1;
             if (count >= MAX_SPRITES)

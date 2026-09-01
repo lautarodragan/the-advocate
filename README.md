@@ -166,9 +166,15 @@ la del héroe; los de capa "below" —alfombras, marcas en el piso— y los de
 "above" no.
 
 El VDP admite 80 sprites encadenados en una lista, y los primeros tapan a los
-últimos. Los NPCs se emiten ya ordenados de mayor a menor Y y el héroe se mete
-donde le toca por el suyo, así el que está más abajo se dibuja adelante, como
-en RM2k. Lo que queda fuera de pantalla se descarta y no gasta entrada.
+últimos. **El orden de RM2k es primero por capa y recién después por Y**: un
+evento de capa "below" —un punto de guardado en el piso, una alfombra— queda
+siempre debajo del héroe aunque esté más adelante en pantalla, y uno de capa
+"above" lo tapa siempre. Sale de `Game_Character::GetScreenZ`, donde el z es
+`L- YY XX II` con la capa en el byte más alto.
+
+Los NPCs se emiten ya ordenados así, y el héroe —que está en la capa "same"— se
+mete donde le toca por su Y dentro de esa banda. Lo que queda fuera de pantalla
+se descarta y no gasta entrada.
 
 El límite que aprieta no es el de 80 sino **20 sprites por scanline, o 320
 píxeles, lo que llegue primero**: con personajes de 24 px de ancho son 13. El
@@ -313,11 +319,18 @@ emulador corra rápido o lento, porque lo que importa es contra qué choca, no
 cuánto tardó.
 
 Los NPCs **sí** se verifican: la referencia los dibuja, con sus tiles, su
-paleta y su orden, así que la comparación los cubre píxel por píxel. Lo único
-que se excluye es el héroe, porque su posición depende de la caminata. Y eso no
-debilita el chequeo: que todo lo de alrededor coincida exactamente prueba que
-su sprite ocupa ese rectángulo y ninguno de al lado. La pose del héroe queda
-sin verificar automáticamente; para eso, mirar el screenshot.
+paleta y su orden, así que la comparación los cubre píxel por píxel.
+
+El héroe también, cuando no se caminó: la referencia lo dibuja en su tile de
+arranque con su pose parada, así que el chequeo compara la pantalla entera sin
+enmascarar nada — **incluido en qué orden se dibuja respecto de los NPCs**. En
+los chequeos con caminata su pose depende de cuántos cuadros corrió el
+emulador, así que ahí se tapan los dos lugares donde puede estar.
+
+Esa cobertura no estaba y costó un bug: el punto de guardado del sector 30 se
+dibujaba encima del héroe en vez de debajo. Con el héroe enmascarado, ningún
+chequeo podía verlo. Ahora el chequeo sin caminata falla con el código viejo:
+157 píxeles de diferencia.
 
 Son cinco chequeos por mapa entre las dos regiones. Probado en Lashe City, en
 ParadiseFarmland y en Talan's Pad, que es del tamaño exacto de la pantalla y

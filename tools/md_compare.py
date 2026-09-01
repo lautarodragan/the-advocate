@@ -165,12 +165,18 @@ def hero_view(tile, map_size, screen_size):
 
     cam_x = min(max(hero_x + TILE // 2 - screen_w // 2, 0), map_w - screen_w)
     cam_y = min(max(hero_y + TILE // 2 - screen_h // 2, 0), map_h - screen_h)
+    return cam_x, cam_y, hero_rect((tx, ty), cam_x, cam_y)
 
-    # El sprite de 24x32 va centrado a lo ancho del tile y apoyado por los pies.
-    mask = (hero_x - (SPRITE_W - TILE) // 2 - cam_x,
-            hero_y - (SPRITE_H - TILE) - cam_y,
+
+def hero_rect(tile, cam_x, cam_y):
+    """Dónde cae el sprite del héroe en pantalla, con la cámara dada.
+
+    Mide 24x32 sobre una celda de 16x16: va centrado a lo ancho y apoyado por
+    los pies.
+    """
+    return (tile[0] * TILE - (SPRITE_W - TILE) // 2 - cam_x,
+            tile[1] * TILE - (SPRITE_H - TILE) - cam_y,
             SPRITE_W, SPRITE_H)
-    return cam_x, cam_y, mask
 
 
 def channel_error(a, b, rects=()):
@@ -271,7 +277,16 @@ def main():
     # el emulador si y sólo si lo tienen en la referencia. No se comparan
     # valores RGB porque cada uno convierte los 9 bits del VDP a RGB con su
     # propia tabla de niveles.
-    hero_rects = [mask] if mask else []
+    # La referencia dibuja al héroe en su tile de arranque. Si no se caminó,
+    # está en el mismo lugar en las dos imágenes y se compara entero, orden de
+    # dibujado incluido. Si se caminó, hay que tapar los dos lugares: donde lo
+    # pone la referencia y donde quedó en el emulador.
+    hero_rects = []
+    if mask and args.walk != "none":
+        # Los dos rectángulos van con la cámara final, que es la del
+        # screenshot: donde quedó el héroe y donde lo dibuja la referencia.
+        hero_rects = [mask, hero_rect(simulate(args.map_id, "none"),
+                                      cam_x, cam_y)]
     ok = relabel(shot, hero_rects) == relabel(reference, hero_rects)
     print("emulador vs referencia (forma):   %s"
           % ("IDÉNTICOS, píxel por píxel" if ok else "DIFIEREN"))

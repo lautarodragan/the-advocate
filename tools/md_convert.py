@@ -416,7 +416,16 @@ def sprite_tiles(image, index, origin, palette, mapping):
 # su página. Los eventos sin CharSet —puertas, cofres, disparadores— quedan
 # afuera por ahora.
 
-LAYER_SAME = 1     # la única capa de evento que le choca al héroe
+# Las tres capas de un evento. El orden de dibujado de RM2k es primero por
+# capa y recién después por Y: un evento "below" queda debajo del héroe aunque
+# esté más adelante en la pantalla, y uno "above" lo tapa siempre. Sale de
+# Game_Character::GetScreenZ, donde el z es L- YY XX II con la capa en el byte
+# más alto.
+FACE_DOWN = 2      # la fila del CharSet con la que arranca el héroe
+
+LAYER_BELOW = 0
+LAYER_SAME = 1     # la del héroe, y la única que le choca
+LAYER_ABOVE = 2
 
 
 def collect_npcs(game_map):
@@ -434,6 +443,7 @@ def collect_npcs(game_map):
             "charset": page.character_name,
             "index": page.character_index,
             "pose": page.character_direction * 3 + column,
+            "layer": page.layer,
             "blocks": page.layer == LAYER_SAME,
         })
     return npcs
@@ -550,13 +560,14 @@ def npc_table(npcs, hero_tiles, sprite_base):
     pies.
     """
     entries = []
-    for npc in sorted(npcs, key=lambda n: -n["y"]):
+    for npc in sorted(npcs, key=lambda n: (-n["layer"], -n["y"], -n["x"])):
         tile = sprite_base + hero_tiles + npc["slot"] * (SPRITE_CELLS_W
                                                          * SPRITE_CELLS_H)
         entries.append({
             "x": npc["x"] * 16 - (SPRITE_CELLS_W * CELL - 16) // 2,
             "y": npc["y"] * 16 - (SPRITE_CELLS_H * CELL - 16),
             "attr": (npc["palette"] << 13) | tile,
+            "layer": npc["layer"],
             "tx": npc["x"], "ty": npc["y"], "blocks": npc["blocks"],
         })
     return entries
@@ -590,6 +601,7 @@ def emit(path, name, tile_data, cram, tilemap, width, height, sprite,
             "typedef struct {\n"
             "    short x, y;            /* esquina del sprite, en píxeles */\n"
             "    unsigned short attr;   /* paleta y primer tile */\n"
+            "    short layer;           /* 0 debajo, 1 a la altura, 2 encima */\n"
             "} Npc;\n\n"
             "extern const unsigned short md_palette[%d];\n"
             "extern const unsigned int   md_tiles[%d * 8];\n"
@@ -645,9 +657,9 @@ def emit(path, name, tile_data, cram, tilemap, width, height, sprite,
         write_tiles("md_npc_tiles", npc_tiles or [bytes(32)])
 
         handle.write("const Npc md_npcs[%d] = {\n" % max(1, len(npcs)))
-        for npc in npcs or [{"x": 0, "y": -64, "attr": 0}]:
-            handle.write("    { %d, %d, 0x%04X },\n"
-                         % (npc["x"], npc["y"], npc["attr"]))
+        for npc in npcs or [{"x": 0, "y": -64, "attr": 0, "layer": 1}]:
+            handle.write("    { %d, %d, 0x%04X, %d },\n"
+                         % (npc["x"], npc["y"], npc["attr"], npc["layer"]))
         handle.write("};\n\n")
 
         blocks = [n for n in npcs if n["blocks"]] or [{"tx": -1, "ty": -1}]
@@ -670,6 +682,9 @@ def main():
                         help="CharSet del personaje (default: el de Talan)")
     parser.add_argument("--charset-index", type=int, default=0,
                         help="cuál de los 8 personajes del CharSet")
+    parser.add_argument("--hero-tile", nargs=2, type=int, metavar=("TX", "TY"),
+                        help="arrancar al héroe en este tile en vez del centro; "
+                             "para mirar situaciones puntuales")
     parser.add_argument("--reference", help="PNG con lo que el VDP debería mostrar")
     args = parser.parse_args()
 
@@ -743,7 +758,8 @@ def main():
     flags = build_passability(renderer.database.chipsets[game_map.chipset_id])
     passable = passability_map(game_map, flags)
     blocked = {(n["x"], n["y"]) for n in npcs if n["blocks"]}
-    start = hero_start(passable, game_map.width, game_map.height, blocked)
+    start = (tuple(args.hero_tile) if args.hero_tile
+             else hero_start(passable, game_map.width, game_map.height, blocked))
 
     entries = npc_table(npcs, len(sprite), 1 + len(tile_data))
     emit(args.output, name, tile_data, cram, tilemap, width, height, sprite,
@@ -774,9 +790,22 @@ def main():
     print("  -> %s.c / %s.h" % (args.output, args.output))
 
     if args.reference:
+        # El héroe también va en la referencia, en su tile y su pose de
+        # arranque: mirando abajo y con el frame del medio. Así la comparación
+        # cubre en qué orden se dibuja respecto de los NPCs, que es justo lo
+        # que se escapaba cuando quedaba enmascarado.
+        hero_pose = FACE_DOWN * 3 + 1
+        with_hero = entries + [{
+            "x": start[0] * 16 - (SPRITE_CELLS_W * CELL - 16) // 2,
+            "y": start[1] * 16 - (SPRITE_CELLS_H * CELL - 16),
+            "attr": (hero_palette << 13) | (1 + len(tile_data)
+                                            + hero_pose * SPRITE_CELLS_W
+                                            * SPRITE_CELLS_H),
+            "layer": LAYER_SAME,
+        }]
         write_reference(args.reference, image, tile_data, cram, tilemap,
-                        width, height, entries, npc_tiles,
-                        1 + len(tile_data) + len(sprite))
+                        width, height, with_hero, sprite + npc_tiles,
+                        1 + len(tile_data))
 
 
 def write_reference(path, image, tile_data, cram, tilemap, width, height,
@@ -812,8 +841,9 @@ def write_reference(path, image, tile_data, cram, tilemap, width, height,
                     levels[(word >> 1) & 7], levels[(word >> 5) & 7],
                     levels[(word >> 9) & 7])
 
-    # Los NPCs, de menor a mayor Y: el que está más abajo se dibuja encima.
-    for npc in sorted(npcs, key=lambda n: n["y"]):
+    # Mismo orden que en la ROM pero al revés, porque acá se dibuja de atrás
+    # hacia adelante: primero por capa y después por Y.
+    for npc in sorted(npcs, key=lambda n: (n["layer"], n["y"], n["x"])):
         palette = cram[(npc["attr"] >> 13) & 3]
         first = (npc["attr"] & 0x7FF) - npc_base
         for cell in range(SPRITE_CELLS_W * SPRITE_CELLS_H):
