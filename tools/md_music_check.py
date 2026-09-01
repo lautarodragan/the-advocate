@@ -15,6 +15,7 @@ Uso:
 """
 
 import argparse
+import collections
 import os
 import struct
 import sys
@@ -24,22 +25,30 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import md_music
 
 
-def vgm_psg_writes(path):
-    """Los bytes que el VGM escribe al PSG, en orden, y cuánto duró."""
+def vgm_writes(path):
+    """Las escrituras a los chips que hay en un VGM, en orden, y cuánto duró.
+
+    Cada una queda como ("psg", byte) o ("ym", parte, registro, valor), que es
+    lo mismo que produce el conversor.
+    """
     data = open(path, "rb").read()
     if data[:4] != b"Vgm ":
         sys.exit("%s no es un VGM" % path)
 
     offset = struct.unpack("<I", data[0x34:0x38])[0]
     pos = 0x34 + offset if offset else 0x40
-    writes = bytearray()
+    writes = []
     samples = 0
 
     while pos < len(data):
         command = data[pos]
-        if command == 0x50:                     # escritura al PSG
-            writes.append(data[pos + 1])
+        if command == 0x50:                     # PSG
+            writes.append(("psg", data[pos + 1]))
             pos += 2
+        elif command in (0x52, 0x53):           # YM2612, parte 1 y parte 2
+            writes.append(("ym", 1 if command == 0x52 else 2,
+                           data[pos + 1], data[pos + 2]))
+            pos += 3
         elif command == 0x61:
             samples += struct.unpack("<H", data[pos + 1:pos + 3])[0]
             pos += 3
@@ -54,25 +63,29 @@ def vgm_psg_writes(path):
             pos += 1
         elif command == 0x66:
             break
-        elif command in (0x52, 0x53):           # YM2612, que no usamos
-            pos += 3
         else:
             pos += 1
-    return bytes(writes), samples / 44100.0
+    return writes, samples / 44100.0
 
 
-def stream_psg_writes(stream):
-    """Los bytes del stream del conversor, sin los contadores ni las esperas."""
-    writes = bytearray()
+def stream_writes(stream):
+    """Las escrituras del stream del conversor, sin las esperas."""
+    writes = []
     pos = 0
     while pos < len(stream):
-        count = stream[pos]
-        pos += 1
-        if count == 0xFF:
+        op = stream[pos]
+        if op == md_music.OP_END:
             break
-        writes += stream[pos:pos + count]
-        pos += count + 1        # los bytes, y después la espera
-    return bytes(writes)
+        if op == md_music.OP_WAIT:
+            pos += 2
+        elif op == md_music.OP_PSG:
+            writes.append(("psg", stream[pos + 1]))
+            pos += 2
+        else:
+            writes.append(("ym", 1 if op == md_music.OP_YM1 else 2,
+                           stream[pos + 1], stream[pos + 2]))
+            pos += 3
+    return writes
 
 
 def main():
@@ -84,16 +97,20 @@ def main():
     args = parser.parse_args()
 
     name, stream, _, _ = md_music.build_stream(args.map_id, args.game_dir)
-    captured, seconds = vgm_psg_writes(args.vgm)
-    expected = stream_psg_writes(stream)
+    captured, seconds = vgm_writes(args.vgm)
+    expected = stream_writes(stream)
 
     if len(stream) <= 1:
         print("El mapa %d no tiene música propia: no hay nada que comparar."
               % args.map_id)
         return 0
 
-    print("VGM: %d escrituras al PSG en %.1f s" % (len(captured), seconds))
-    print("Conversor (%s): %d escrituras en total" % (name, len(expected)))
+    kinds = collections.Counter(w[0] for w in captured)
+    print("VGM: %d escrituras en %.1f s (%d al PSG, %d al YM2612)"
+          % (len(captured), seconds, kinds["psg"], kinds["ym"]))
+    kinds = collections.Counter(w[0] for w in expected)
+    print("Conversor (%s): %d en total (%d al PSG, %d al YM2612)"
+          % (name, len(expected), kinds["psg"], kinds["ym"]))
 
     # El comienzo de la grabación es el volcado del estado del chip, que no
     # está en el stream. Se busca dónde engancha el resto.
@@ -101,7 +118,7 @@ def main():
         tail = captured[skip:]
         if len(tail) < 32:
             break
-        start = expected.find(tail)
+        start = _find(expected, tail)
         if start >= 0:
             print("Coinciden: los %d bytes desde el %d de la captura son los "
                   "del conversor desde el %d." % (len(tail), skip, start))
@@ -109,9 +126,17 @@ def main():
             return 0
 
     print("NO COINCIDEN: lo que la ROM escribe no es lo que generó el conversor.")
-    print("  capturado:", " ".join("%02X" % b for b in captured[:24]))
-    print("  esperado: ", " ".join("%02X" % b for b in expected[:24]))
+    print("  capturado:", captured[:6])
+    print("  esperado: ", expected[:6])
     return 1
+
+
+def _find(haystack, needle):
+    """Dónde empieza `needle` dentro de `haystack`, o -1."""
+    for start in range(len(haystack) - len(needle) + 1):
+        if haystack[start:start + len(needle)] == needle:
+            return start
+    return -1
 
 
 if __name__ == "__main__":

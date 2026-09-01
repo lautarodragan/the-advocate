@@ -40,6 +40,12 @@ typedef signed short   s16;
 #define PAD1_DATA    (*(volatile u8 *)0xA10003)
 #define PAD1_CTRL    (*(volatile u8 *)0xA10009)
 #define PSG_PORT     (*(volatile u8 *)0xC00011)
+/* El YM2612 tiene dos mitades: los canales 1 a 3 en la parte 1 y los 4 a 6 en
+ * la parte 2. Cada una con su par dirección/dato. */
+#define YM_ADDR1     (*(volatile u8 *)0xA04000)
+#define YM_DATA1     (*(volatile u8 *)0xA04001)
+#define YM_ADDR2     (*(volatile u8 *)0xA04002)
+#define YM_DATA2     (*(volatile u8 *)0xA04003)
 
 /* --- mapa de la VRAM ------------------------------------------------------
  * Con los planos de 64x64 celdas cada uno ocupa 8 KB. Los tiles van abajo de
@@ -492,6 +498,26 @@ static const u8 *music_at;
 static u8 music_wait;
 static u16 music_accum;
 
+/* El YM2612 tarda en digerir cada escritura y hay que esperarlo: el bit 7 del
+ * puerto de dirección de la parte 1 dice si todavía está ocupado. Vale para las
+ * dos partes. */
+static void ym_write(u8 part, u8 reg, u8 value)
+{
+    while (YM_ADDR1 & 0x80)
+        ;
+    if (part == 1) {
+        YM_ADDR1 = reg;
+        while (YM_ADDR1 & 0x80)
+            ;
+        YM_DATA1 = value;
+    } else {
+        YM_ADDR2 = reg;
+        while (YM_ADDR1 & 0x80)
+            ;
+        YM_DATA2 = value;
+    }
+}
+
 static void music_start(void)
 {
     music_at = md_music;
@@ -499,26 +525,44 @@ static void music_start(void)
     music_accum = 0;
 }
 
+/* Opcodes del stream: escritura al PSG, a una de las dos partes del YM2612,
+ * esperar cuadros, o fin. */
+#define OP_PSG  0x00
+#define OP_YM1  0x01
+#define OP_YM2  0x02
+#define OP_WAIT 0x03
+#define OP_END  0xFF
+
 static void music_step(void)
 {
 #if MUSIC_BYTES > 1
-    u8 count;
+    u8 op;
 
     if (music_wait) {
         music_wait--;
         return;
     }
-    do {
-        count = *music_at++;
-        if (count == 0xFF) {
+    for (;;) {
+        op = *music_at++;
+        if (op == OP_END) {
             music_at = md_music;        /* se terminó: de nuevo desde arriba */
-            count = *music_at++;
+            continue;
         }
-        while (count--)
+        if (op == OP_WAIT) {
+            music_wait = *music_at++;
+            if (music_wait) {
+                music_wait--;
+                return;
+            }
+            continue;
+        }
+        if (op == OP_PSG) {
             PSG_PORT = *music_at++;
-        music_wait = *music_at++;
-    } while (music_wait == 0);
-    music_wait--;
+        } else {
+            u8 reg = *music_at++;
+            ym_write(op == OP_YM1 ? 1 : 2, reg, *music_at++);
+        }
+    }
 #endif
 }
 

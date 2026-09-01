@@ -44,7 +44,9 @@ _start:
     beq     1f
     move.l  #0x53454741, 0x00A14000 | "SEGA"
 1:
-    | Frenar el Z80 y dejarlo en reset: no lo usamos y así no molesta.
+    | Pedir el bus del Z80 y no devolverlo nunca. No usamos el Z80, pero el
+    | YM2612 vive de su lado: el 68000 sólo puede escribirle mientras tenga el
+    | bus. Si algún día se lo devolvemos, la música deja de sonar.
     move.w  #0x0100, 0x00A11100
     move.w  #0x0100, 0x00A11200
 

@@ -10,6 +10,7 @@ import struct
 
 NOTE_OFF = 0x80
 NOTE_ON = 0x90
+PROGRAM = 0xC0
 META = 0xFF
 TEMPO = 0x51
 DRUM_CHANNEL = 9        # el canal 10 del estándar, contando desde cero
@@ -37,8 +38,8 @@ def _varlen(data, pos):
             return value, pos
 
 
-def _track(data, pos, end, notes, tempos):
-    """Recorre una pista acumulando notas y cambios de tempo, en ticks."""
+def _track(data, pos, end, notes, tempos, programs):
+    """Recorre una pista acumulando notas, tempos e instrumentos, en ticks."""
     time = 0
     status = 0
     sounding = {}
@@ -77,8 +78,11 @@ def _track(data, pos, end, notes, tempos):
                 notes.append(note)
             elif key in sounding:
                 sounding.pop(key).end = time
-        elif kind in (0xC0, 0xD0):
-            pos += 1                    # program change y aftertouch de canal
+        elif kind == PROGRAM:
+            programs.setdefault(channel, data[pos])   # el primero de cada canal
+            pos += 1
+        elif kind == 0xD0:
+            pos += 1                    # aftertouch de canal
         else:
             pos += 2                    # el resto son dos bytes
 
@@ -87,7 +91,7 @@ def _track(data, pos, end, notes, tempos):
 
 
 def read(path):
-    """Devuelve (notas, cambios de tempo, ticks por negra)."""
+    """Devuelve (notas, tempos, ticks por negra, instrumento de cada canal)."""
     data = open(path, "rb").read()
     if data[:4] != b"MThd":
         raise ValueError("%s no es un MIDI" % path)
@@ -97,15 +101,15 @@ def read(path):
     if division & 0x8000:
         raise ValueError("MIDI con división SMPTE, no soportado")
 
-    notes, tempos = [], []
+    notes, tempos, programs = [], [], {}
     pos = 8 + header
     for _ in range(tracks):
         if data[pos:pos + 4] != b"MTrk":
             break
         length = struct.unpack(">I", data[pos + 4:pos + 8])[0]
-        _track(data, pos + 8, pos + 8 + length, notes, tempos)
+        _track(data, pos + 8, pos + 8 + length, notes, tempos, programs)
         pos += 8 + length
 
     notes.sort(key=lambda n: (n.start, n.pitch))
     tempos.sort()
-    return notes, tempos or [(0, 500000)], division
+    return notes, tempos or [(0, 500000)], division, programs

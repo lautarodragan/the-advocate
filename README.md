@@ -249,45 +249,49 @@ herencia: `music_type` 0 significa "el del padre", 2 el que trae el mapa, y 1
 "lo pone un evento". 77 mapas tienen tema propio; Lashe City no, así que sale
 mudo.
 
-El PSG de la Mega Drive tiene **tres canales de onda cuadrada y uno de ruido**,
-sin envolventes y sin polifonía por canal. Un MIDI de RM2k trae cuatro o cinco
-canales con acordes, así que hay que reducir: cada canal del MIDI va a una voz
-del PSG según su altura promedio —el más agudo lleva la melodía, el más grave el
-bajo, los del medio comparten— y de las notas que suenan a la vez en una voz se
-toca **la última que arrancó**, que es lo que hace un sintetizador monofónico.
-La percusión va al canal de ruido, con un golpe que se apaga solo.
+La Mega Drive tiene dos chips: el **YM2612**, con seis voces de síntesis FM, y
+el **PSG**, con tres de onda cuadrada y una de ruido. Los MIDIs de RM2k tienen
+una polifonía mediana de nueve notas simultáneas, así que igual hay que reducir.
 
-Lo que sale es un **log de escrituras al PSG a resolución de cuadro**, parecido
-a un VGM: cuántos bytes escribir, los bytes, y cuántos cuadros esperar. Toda la
-complejidad queda en Python y el reproductor de la ROM son veinte líneas. El
-tema de Yun Town son dos minutos en **7539 bytes**.
+**Cuántas voces le toca a cada canal del MIDI no es una por canal.** En el tema
+de Yun Town, el canal de la melodía con una voz cubre el 99% de su tiempo-nota,
+pero el de los acordes cubre el 33%. Así que las seis voces de FM se reparten de
+a una, siempre a la que más cobertura gane, ponderando por cuánto suena cada
+canal. Ese canal de acordes termina con tres voces y la melodía con una. Los
+canales que no entran en el FM caen en los tonos del PSG, y la percusión en el
+ruido.
+
+Con eso se reproduce el **85% del tiempo-nota** del tema, contra el 46% que
+daban las tres voces del PSG solo.
+
+**Los parches FM no se calculan, se eligen de oído.** Un instrumento de General
+MIDI dice "cuerdas"; traducir eso a los cuatro operadores del YM2612, con sus
+envolventes y su matriz de modulación, no tiene solución cerrada como sí la
+tiene buscar el color más cercano de una paleta. El banco de `ym2612.py` son
+ocho parches, uno por familia, pensados como punto de partida para tocarlos y
+regenerar. Ahí es donde está el margen de mejora del sonido.
+
+Lo que sale es un **log de escrituras a los dos chips a resolución de cuadro**,
+parecido a un VGM: cada evento dice a qué chip va, y entre medio cuántos cuadros
+esperar. Toda la complejidad queda en Python. El tema de Yun Town son dos
+minutos en 27 KB.
 
 El stream se genera a 60 cuadros por segundo y la ROM lo avanza con un
-acumulador de punto fijo: 1.0 pasos por cuadro en NTSC y 1.2 en PAL, así dura
-lo mismo en las dos.
+acumulador de punto fijo: 1.0 pasos por cuadro en NTSC y 1.2 en PAL, así dura lo
+mismo en las dos.
 
 **Se verifica igual que la imagen.** blastem graba un VGM, que es exactamente un
-log de escrituras a los chips, así que se compara byte a byte contra lo que
-pidió el conversor. Los primeros bytes de la grabación son el volcado del estado
-del chip, así que lo que se busca es dónde encaja el resto. Con 12 segundos
-grabados: 410 bytes, idénticos.
+log de escrituras a los chips, así que se compara evento a evento contra lo que
+pidió el conversor. Los primeros de la grabación son el volcado del estado de
+los chips, así que lo que se busca es dónde encaja el resto. Con 12 segundos
+grabados: 881 escrituras, idénticas.
 
-**Suena mal, y no es culpa de la consola.** La Mega Drive tiene dos chips de
-sonido y esto usa el chico: el PSG es el mismo del Master System. El grande es
-el YM2612, seis canales de síntesis FM, que es de donde sale el sonido con el
-que uno se acuerda de la consola.
+Un detalle que es fácil de romper: **el YM2612 está del lado del Z80**, así que
+el 68000 sólo puede escribirle mientras tenga pedido su bus. `boot.S` lo pide al
+arrancar y no lo devuelve nunca.
 
-Con tres voces se reproduce, en promedio sobre los 224 MIDIs del juego, el
-**56% del tiempo-nota**: más de la mitad de lo que suena a la vez se descarta.
-Con seis sube al 85%, y con las seis del FM más las tres del PSG, al 95%. La
-polifonía mediana de estos MIDIs es 9 notas simultáneas.
-
-Así que el techo está muy por encima de lo que se escucha ahora, pero el camino
-—mapear los instrumentos de General MIDI a parches FM— es bastante más
-artesanal que ajustar una paleta.
-
-Falta también que los eventos puedan cambiar el tema, que es como ABL lo hace en
-la mayoría de los mapas.
+Falta que los eventos puedan cambiar el tema, que es como ABL lo hace en la
+mayoría de los mapas.
 
 ### El plano como ventana móvil
 
