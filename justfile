@@ -39,12 +39,12 @@ md-convert map_id="8":
   python3 tools/render_map.py --map-id {{map_id}} --no-events -o md/shots/python.png
 
 md-build:
-  podman run --rm --mount=type=bind,src=.,dst=/abl -w /abl/md abl-md make
+  podman run --rm --network=none --mount=type=bind,src=.,dst=/abl -w /abl/md abl-md make
 
 # Corre la ROM sin pantalla y saca un screenshot. Las teclas son la cruceta del
 # control 1: se mantienen apretadas para mover la cámara antes de capturar.
 md-shot region="E" nombre="origen" teclas="" segundos="4":
-  podman run --rm --mount=type=bind,src=.,dst=/abl abl-md \
+  podman run --rm --network=none --mount=type=bind,src=.,dst=/abl abl-md \
       /abl/md/screenshot.sh /abl/md/build/abl.bin \
       /abl/md/shots/{{region}}-{{nombre}}.png 3 {{region}} "{{teclas}}" {{segundos}}
 
@@ -89,49 +89,56 @@ md map_id="8" segundos="12":
 
 # Sube la ROM al EverDrive y la arranca. Sin sacar la SD.
 md-upload dev="/dev/ttyACM0":
-  podman run --rm --device {{dev}} --mount=type=bind,src=.,dst=/abl \
+  podman run --rm --network=none --device {{dev}} --mount=type=bind,src=.,dst=/abl \
       abl-md mono /opt/edlink/edlink.exe run --file /abl/md/build/abl.bin
 
 # Escucha lo que la ROM escriba en el FIFO del cartucho: un printf por USB.
 md-usb dev="/dev/ttyACM0":
-  podman run --rm --device {{dev}} \
+  podman run --rm --network=none --device {{dev}} \
       abl-md mono /opt/edlink/edlink.exe usbrd --len -1 --tout -1 --print
 
 # Datos del cartucho, para verificar que el USB conecta.
 md-devinfo dev="/dev/ttyACM0":
-  podman run --rm --device {{dev}} \
+  podman run --rm --network=none --device {{dev}} \
       abl-md mono /opt/edlink/edlink.exe devinf
 
 # Graba lo que la ROM le escribe al PSG y lo compara con lo que pidió el
 # conversor de música. Si coinciden, suena exactamente lo que se generó.
 md-music map_id="8" segundos="12":
-  podman run --rm --mount=type=bind,src=.,dst=/abl abl-md \
+  podman run --rm --network=none --mount=type=bind,src=.,dst=/abl abl-md \
       /abl/md/vgmlog.sh /abl/md/build/abl.bin /abl/md/shots/musica.vgm {{segundos}}
   python3 tools/md_music_check.py md/shots/musica.vgm --map-id {{map_id}}
 
 # La ROM en una ventana de verdad, para moverla con las flechas. Necesita un
 # `xhost +local:` antes; en Wayland sale por XWayland.
 #
+# OJO con esto: compartir /tmp/.X11-unix le da al contenedor un cliente X con
+# acceso al servidor entero, o sea que puede leer el teclado de todas las
+# ventanas e inyectar eventos en otras. Es un escape efectivo del aislamiento.
+# Se acepta acá porque mirar el emulador lo pide, y se compensa con --network=none
+# y el repo montado de sólo lectura. Para verificar sin GUI están md-shot y
+# snes-check, que corren headless y no comparten ningún socket.
+#
 # El audio sale por el socket de compatibilidad PulseAudio de PipeWire. -g apaga
 # OpenGL: sin /dev/dri adentro no hay driver, y para 320x240 el render por
 # software sobra. Si querés GL, agregale --device /dev/dri y sacale el -g.
 md-play region="E" audio="/run/user/1000/pulse":
-  podman run --rm \
+  podman run --rm --network=none \
       -e DISPLAY \
       -e SDL_AUDIODRIVER=pulseaudio \
       -e PULSE_SERVER=unix:{{audio}}/native \
       -v /tmp/.X11-unix:/tmp/.X11-unix \
       -v {{audio}}:{{audio}} \
-      --mount=type=bind,src=.,dst=/abl \
+      --mount=type=bind,src=.,dst=/abl,ro=true \
       abl-md blastem -g -r {{region}} /abl/md/build/abl.bin
 
 # Lo mismo pero mudo, por si el socket de audio no está donde md-play espera.
 md-play-mudo region="E":
-  podman run --rm \
+  podman run --rm --network=none \
       -e DISPLAY \
       -e SDL_AUDIODRIVER=dummy \
       -v /tmp/.X11-unix:/tmp/.X11-unix \
-      --mount=type=bind,src=.,dst=/abl \
+      --mount=type=bind,src=.,dst=/abl,ro=true \
       abl-md blastem -g -r {{region}} /abl/md/build/abl.bin
 
 # --- Super Nintendo --------------------------------------------------------
@@ -143,7 +150,7 @@ snes-image:
   podman build -t abl-snes snes
 
 snes-build:
-  podman run --rm --mount=type=bind,src=.,dst=/abl -w /abl/snes abl-snes make
+  podman run --rm --network=none --mount=type=bind,src=.,dst=/abl -w /abl/snes abl-snes make
 
 # El MIDI del mapa a muestras BRR y un stream para el DSP.
 snes-music mapa="67":
@@ -154,7 +161,7 @@ snes-music mapa="67":
 # sonando se mide su energía y la de un señuelo un cuarto de tono más arriba.
 snes-check mapa="67" segundos="60":
   mkdir -p snes/shots
-  podman run --rm --mount=type=bind,src=.,dst=/abl abl-snes \
+  podman run --rm --network=none --mount=type=bind,src=.,dst=/abl abl-snes \
       /abl/snes/record.sh /abl/snes/build/abl.sfc /abl/snes/shots/tema.wav {{segundos}}
   python3 tools/snes_check.py snes/shots/tema.wav --map-id {{mapa}}
 
@@ -167,11 +174,11 @@ snes mapa="67": (snes-music mapa) snes-build (snes-check mapa)
 # dispositivo crudo hw:0, que PipeWire tiene tomado en exclusiva, y falla con
 # "Device or resource busy". Por SDL sale por PipeWire y convive con todo.
 snes-play audio="/run/user/1000/pulse":
-  podman run --rm \
+  podman run --rm --network=none \
       -e DISPLAY \
       -e SDL_AUDIODRIVER=pulseaudio \
       -e PULSE_SERVER=unix:{{audio}}/native \
       -v /tmp/.X11-unix:/tmp/.X11-unix \
       -v {{audio}}:{{audio}} \
-      --mount=type=bind,src=.,dst=/abl \
+      --mount=type=bind,src=.,dst=/abl,ro=true \
       abl-snes mednafen -sound.driver sdl /abl/snes/build/abl.sfc
