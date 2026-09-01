@@ -180,6 +180,16 @@ snes-check mapa="67" segundos="60":
   snes/record.sh snes/build/abl.sfc snes/shots/tema.wav {{segundos}}
   python3 tools/snes_check.py snes/shots/tema.wav --map-id {{mapa}}
 
+# El mismo MIDI tocado por FluidSynth en la PC, con el mismo SoundFont del que
+# salen nuestras muestras, y medido con la misma vara. Es el techo: dice cuánto
+# de lo que falta es culpa nuestra y cuánto es de la medición.
+snes-referencia mapa="67":
+  mkdir -p snes/shots
+  fluidsynth -F snes/shots/referencia.wav -r 48000 \
+      /usr/share/soundfonts/FluidR3_GM.sf2 \
+      "$(python3 tools/midi_path.py --map-id {{mapa}})"
+  python3 tools/snes_check.py snes/shots/referencia.wav --map-id {{mapa}}
+
 # Todo junto: convertir, compilar y verificar.
 snes mapa="67": (snes-music mapa) snes-build (snes-check mapa)
 

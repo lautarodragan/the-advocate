@@ -211,6 +211,17 @@ energía como la nota buena.
 
     tema 11h035: 57 de 60 ventanas con la nota por encima de su señuelo (95%)
 
+Cuánto de lo que falta es culpa nuestra lo dice `just snes-referencia`, que
+toca el mismo MIDI con FluidSynth en la PC —el mismo SoundFont del que salen
+nuestras muestras— y lo mide con la misma vara:
+
+    FluidSynth en la PC:  60 de 60 ventanas (100%)
+    nuestra SNES:         57 de 60 ventanas ( 95%)
+
+O sea que el techo de la métrica es 100% y las tres ventanas que perdemos son
+reales, no ruido de la medición. Sin ese número, un 95% no significa nada: podría
+ser el máximo alcanzable.
+
 La medida es ciega en los graves, y conviene saberlo: a 87 Hz el señuelo cae a
 1,3 Hz de la nota y la ventana de análisis resuelve 11,7 Hz, así que ahí empatan.
 Sirve de los medios para arriba.
