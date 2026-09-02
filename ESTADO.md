@@ -24,6 +24,16 @@ pide `actor`— y cuatro comandos: `PlayBGM`, `WeatherEffects`, `MoveEvent` y
 `ChangePartyMembers`. Mientras tanto el héroe queda parado adentro del caño,
 que es donde RM2k también lo deja.
 
+Después del hito, el mismo día, se armó la documentación de proceso: este
+archivo y `AGENTS.md` en `92509fc`, y el contenedor y `snes-tinte` en `d7597cc`
+y `2cc8078`. Nada de eso toca la ROM.
+
+Dos cosas cambiaron del lado de taro, en su `box`, y no se ven desde el repo:
+sacó el montaje de sólo lectura de `/home/taro/git/gaming/abl-rm`, que no usaba
+nadie, y pasó a `--rm --replace --name` para que los contenedores dejen de
+acumularse. Si algo del entorno se ve distinto a lo que dice `AGENTS.md`, es
+por ahí.
+
 ## Lo que se cree y no se corrió
 
 Esta sección existe porque el commit `c64e4d9` decía "Verificado" sobre un
