@@ -43,13 +43,25 @@ def main():
     print("w65.py: %d bytes" % len(ours))
     print("ca65:   %d bytes" % len(theirs))
 
-    if len(ours) != len(theirs):
-        print("DIFIEREN en el tamaño.")
+    # Los dos tamaños ya no coinciden: w65.py arma el cartucho entero, que son
+    # 256 KB, y snes.cfg describe uno de 32. Lo que se compara es el primer
+    # banco, que es donde el fuente de cobertura pone todo, y del resto se
+    # comprueba que sea relleno: si w65.py hubiera emitido algo ahí, sería un
+    # byte que no pidió nadie.
+    if len(ours) < len(theirs):
+        print("DIFIEREN en el tamaño: la nuestra es más corta.")
         return 1
+    sobra = ours[len(theirs):]
+    if sobra.strip(b"\x00"):
+        print("DIFIEREN: hay %d bytes distintos de cero fuera del primer banco."
+              % len(sobra.strip(b"\x00")))
+        return 1
+    ours = ours[:len(theirs)]
 
     diffs = [i for i in range(len(ours)) if ours[i] != theirs[i]]
     if not diffs:
-        print("IDÉNTICAS: %d bytes byte por byte." % len(ours))
+        print("IDÉNTICAS: %d bytes byte por byte, y el resto relleno."
+              % len(ours))
         return 0
 
     print("DIFIEREN en %d bytes de %d (%.2f%%)"

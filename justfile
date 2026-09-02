@@ -254,6 +254,9 @@ _cam-y:
 # Correr esto cada vez que se toquen las tablas de opcodes. Necesita podman, así
 # que va desde el host, no desde adentro del contenedor.
 #
+# Lo que compara es el primer banco: w65.py arma el cartucho entero, 256 KB, y
+# snes.cfg describe uno de 32. Del resto se comprueba que sea relleno.
+#
 # Lo que valida es la codificación de instrucciones, que es lo que se puede
 # equivocar en silencio. El layout de la ROM —banqueo LoROM, 128 KB, checksum—
 # ya no se compara: ca65 necesitaría una configuración bastante más compleja
