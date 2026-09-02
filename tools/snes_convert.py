@@ -343,7 +343,9 @@ def emit(path, name, tile_data, cram, tilemap, sprite=None):
                width * CELL - 16, height * CELL - 16,
                (width * CELL // 2) & ~15, (height * CELL // 2) & ~15,
                len(sprite[0]) // 32 if sprite else 0,
-               len(sprite[1]) if sprite else 0,
+               # Una más que los colores: el índice 0 del sprite es
+               # transparente y también ocupa su lugar en CGRAM.
+               len(sprite[1]) + 1 if sprite else 0,
                block("map_tiles", tile_data),
                block("map_cgram", colors),
                block("map_tilemap", words),

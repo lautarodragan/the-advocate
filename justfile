@@ -163,6 +163,33 @@ snes-compare nombre="mapa" x="0" y="0":
   python3 tools/snes_compare.py snes/shots/{{nombre}}.png snes/shots/python.png \
       --camara {{x}} {{y}} -o snes/shots/comparacion-{{nombre}}.png
 
+# Camina en una dirección hasta chocar contra el borde del mapa y compara lo que
+# la consola muestra contra lo que Python calcula que tendría que mostrar:
+# el mapa, la cámara siguiendo al héroe, y el héroe en su pose parada.
+snes-walk direccion="none" segundos="8":
+  just snes-shot {{direccion}} {{segundos}} "$(just _tecla {{direccion}})"
+  python3 tools/snes_expect.py --map-id $(just _mapa) --walk {{direccion}} \
+      -o snes/shots/esperado-{{direccion}}.png
+  python3 tools/snes_compare.py snes/shots/{{direccion}}.png \
+      snes/shots/esperado-{{direccion}}.png \
+      -o snes/shots/comparacion-{{direccion}}.png
+
+# El héroe: parado y caminando en las cuatro direcciones.
+snes-heroe mapa="7" segundos="8":
+  just snes-convert {{mapa}}
+  just snes-build
+  just snes-walk none {{segundos}}
+  just snes-walk right {{segundos}}
+  just snes-walk left {{segundos}}
+  just snes-walk up {{segundos}}
+  just snes-walk down {{segundos}}
+
+_tecla direccion:
+  @case {{direccion}} in up) echo Up;; down) echo Down;; left) echo Left;; right) echo Right;; *) echo "";; esac
+
+_mapa:
+  @grep -oP '^; Mapa: \K.*' snes/src/mapdata.inc >/dev/null; echo 7
+
 # Todo el camino del mapa: convertir, compilar, y verificar la cámara en las
 # cuatro esquinas a las que puede llegar.
 #

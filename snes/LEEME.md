@@ -75,6 +75,44 @@ comparación falla.
 
 Que llegue justo a 64 y 16 prueba a la vez el movimiento y el tope.
 
+## El personaje
+
+Las poses de RM2k son de 24x32 y la SNES no tiene ese tamaño de objeto: el más
+chico que las cubre es 32x32, así que se rellena con transparente a los costados
+y se pierde una cuarta parte de los tiles. Son 192 tiles, 6 KB.
+
+Y los sprites son **siempre de 4 bits por pixel**: no hay un modo 3 para ellos
+como para el fondo. Talan tiene 36 colores y entran 15, así que acá sí hay que
+fusionar. Cambia el 9,7% de sus pixeles, con un desvío máximo de 9,9 sobre 31
+por canal.
+
+**Cómo se verifica.** Se camina en cada dirección hasta chocar contra el borde
+del mapa, y ahí la posición es exactamente el tamaño del mapa menos una celda.
+La animación también queda predecible porque la ROM sólo anima cuando la
+posición realmente cambia: contra el borde el personaje mira hacia allá pero no
+camina en el lugar, que además es lo que hace RM2k.
+
+`snes_expect.py` arma en Python lo que la consola debería mostrar —el mapa, la
+cámara siguiendo al héroe, y el héroe en su pose parada con los colores ya
+fusionados— y se compara pixel por pixel.
+
+    parado    héroe en (160,112)  cámara (40,8)    0 pixeles distintos
+    derecha   héroe en (304,112)  cámara (64,8)    0
+    izquierda héroe en   (0,112)  cámara  (0,8)    0
+    arriba    héroe en   (160,0)  cámara (40,0)    0
+    abajo     héroe en (160,224)  cámara (40,16)   0
+
+Encontró dos cosas que a ojo no se veían:
+
+**Una entrada de CGRAM de menos.** El sprite emite 16 colores —el transparente
+más los 15— pero la constante decía 15, así que el último nunca se subía y
+quedaba en negro. Eran 14 pixeles de un gris apenas distinto.
+
+**El noveno bit de la X.** La X de un objeto tiene nueve bits y el noveno vive
+en la tabla chica de OAM. Sin él, el héroe pegado al borde izquierdo —que en
+pantalla queda en -8— se leía como positivo y el sprite saltaba al otro lado de
+la pantalla.
+
 ## Cómo está armado
 
 El audio lo maneja el **SPC700**, un procesador aparte con sus propios 64 KB. El

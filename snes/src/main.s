@@ -135,14 +135,28 @@ token:      .res 1      ; testigo del handshake con el SPC700
     jsr ppu_init
     jsr load_map
 
+    jsr load_sprite
+    jsr clear_oam
+
     rep #$20
 .a16
-    stz camara_x
-    stz camara_y
+    lda #HERO_START_X
+    sta hero_x
+    lda #HERO_START_Y
+    sta hero_y
     sep #$20
 .a8
-    stz pad                     ; la RAM arranca con basura, y move_camera la lee
-    jsr move_camera             ; deja el scroll en su lugar antes de encender
+    stz pad                     ; la RAM arranca con basura y move_hero la lee
+    lda #DIR_DOWN
+    sta hero_dir                ; mirando a cámara, como arranca RM2k
+    lda #1
+    sta anim_step               ; el frame del medio: la pose parada
+    lda #ANIM_FRAMES
+    sta anim_timer
+
+    jsr follow_camera           ; deja el scroll en su lugar antes de encender
+    jsr draw_hero
+    jsr push_oam
 
     lda #$0F
     sta INIDISP                 ; pantalla encendida, brillo al máximo
@@ -156,7 +170,11 @@ token:      .res 1      ; testigo del handshake con el SPC700
 loop:
     jsr wait_vblank
     jsr read_pad
-    jsr move_camera
+    jsr move_hero
+    jsr animate_hero
+    jsr follow_camera
+    jsr draw_hero
+    jsr push_oam                ; OAM sólo se puede tocar en vblank
     jsr music_frame
     bra loop
 .endproc
@@ -320,8 +338,8 @@ cero:
     lda #$FF
     sta BG1VOFS
     sta BG1VOFS
-    lda #$01
-    sta TM                      ; sólo BG1 en la pantalla principal
+    lda #$11
+    sta TM                      ; el fondo y los sprites en la pantalla principal
     rts
 .endproc
 
@@ -480,71 +498,46 @@ chica:
 .endproc
 
 ; --- la cámara -------------------------------------------------------------
-; El scroll es por hardware: mover la cámara es escribir dos registros. Lo único
-; que hay que cuidar es no salirse del mapa, que es lo que hacen las
-; comparaciones contra CAM_MAX_X y CAM_MAX_Y.
-.proc move_camera
+; Sigue al héroe: lo deja en el centro de la pantalla salvo cerca de los bordes
+; del mapa, donde se queda pegada para no mostrar el vacío de afuera.
+;
+; El scroll es por hardware, así que esto son dos restas y dos escrituras. No
+; hay que redibujar nada: el mapa entero ya está en el tilemap.
+.proc follow_camera
 .a8
 .i16
-    lda pad
-    and #PAD_RIGHT
-    beq no_derecha
     rep #$20
 .a16
-    lda camara_x
+    lda hero_x
+    clc
+    adc #8                      ; el centro de su celda de 16x16
+    sec
+    sbc #128                    ; media pantalla de ancho
+    bpl limite_x
+    lda #0                      ; el héroe está cerca del borde izquierdo
+limite_x:
     cmp #CAM_MAX_X
-    bcs tope_derecha
-    inc camara_x
-tope_derecha:
-    sep #$20
-.a8
-no_derecha:
+    bcc guarda_x
+    lda #CAM_MAX_X
+guarda_x:
+    sta camara_x
 
-    lda pad
-    and #PAD_LEFT
-    beq no_izquierda
-    rep #$20
-.a16
-    lda camara_x
-    beq tope_izquierda
-    dec camara_x
-tope_izquierda:
-    sep #$20
-.a8
-no_izquierda:
-
-    lda pad
-    and #PAD_DOWN
-    beq no_abajo
-    rep #$20
-.a16
-    lda camara_y
+    lda hero_y
+    clc
+    adc #8
+    sec
+    sbc #112                    ; media pantalla de alto
+    bpl limite_y
+    lda #0
+limite_y:
     cmp #CAM_MAX_Y
-    bcs tope_abajo
-    inc camara_y
-tope_abajo:
-    sep #$20
-.a8
-no_abajo:
-
-    lda pad
-    and #PAD_UP
-    beq no_arriba
-    rep #$20
-.a16
-    lda camara_y
-    beq tope_arriba
-    dec camara_y
-tope_arriba:
-    sep #$20
-.a8
-no_arriba:
+    bcc guarda_y
+    lda #CAM_MAX_Y
+guarda_y:
+    sta camara_y
 
     ; El PPU muestra la línea vofs+1 en el primer scanline, así que lo que se le
     ; escribe es siempre uno menos que dónde queremos mirar.
-    rep #$20
-.a16
-    lda camara_y
     dec a
     sta scroll_y
     sep #$20
@@ -564,9 +557,12 @@ no_arriba:
 .endproc
 
 ; --- el héroe --------------------------------------------------------------
-; Sin colisión todavía: lo único que lo frena son los bordes del mapa. Mirar
-; hacia un lado y caminar son la misma tecla, así que la dirección se actualiza
-; aunque el movimiento no llegue a pasar.
+; Sin colisión todavía: lo único que lo frena son los bordes del mapa.
+;
+; `moving` se pone sólo si la posición realmente cambió, no si la tecla estaba
+; apretada. Contra un borde, entonces, el héroe mira hacia allá pero no camina
+; en el lugar — que es lo que hace RM2k, y de paso deja la animación en un
+; estado predecible para poder verificarla.
 .proc move_hero
 .a8
 .i16
@@ -576,21 +572,22 @@ no_arriba:
     and #PAD_UP
     beq no_arriba
     lda #DIR_UP
-    sta hero_dir
-    inc moving
+    sta hero_dir                ; mirar siempre, aunque no se avance
     rep #$20
 .a16
     lda hero_y
-    beq tope_arriba
+    sta temp
     sec
     sbc #WALK_SPEED
     bpl guarda_arriba
-    lda #0                      ; no pasarse de largo cerca del borde
+    lda #0                      ; no pasarse del borde de arriba
 guarda_arriba:
     sta hero_y
-tope_arriba:
+    cmp temp
     sep #$20
 .a8
+    beq no_arriba               ; no se movió: estaba pegado
+    inc moving
 no_arriba:
 
     lda pad
@@ -598,10 +595,10 @@ no_arriba:
     beq no_abajo
     lda #DIR_DOWN
     sta hero_dir
-    inc moving
     rep #$20
 .a16
     lda hero_y
+    sta temp
     clc
     adc #WALK_SPEED
     cmp #HERO_MAX_Y
@@ -609,8 +606,11 @@ no_arriba:
     lda #HERO_MAX_Y
 guarda_abajo:
     sta hero_y
+    cmp temp
     sep #$20
 .a8
+    beq no_abajo
+    inc moving
 no_abajo:
 
     lda pad
@@ -618,20 +618,21 @@ no_abajo:
     beq no_izquierda
     lda #DIR_LEFT
     sta hero_dir
-    inc moving
     rep #$20
 .a16
     lda hero_x
-    beq tope_izquierda
+    sta temp
     sec
     sbc #WALK_SPEED
     bpl guarda_izquierda
     lda #0
 guarda_izquierda:
     sta hero_x
-tope_izquierda:
+    cmp temp
     sep #$20
 .a8
+    beq no_izquierda
+    inc moving
 no_izquierda:
 
     lda pad
@@ -639,10 +640,10 @@ no_izquierda:
     beq no_derecha
     lda #DIR_RIGHT
     sta hero_dir
-    inc moving
     rep #$20
 .a16
     lda hero_x
+    sta temp
     clc
     adc #WALK_SPEED
     cmp #HERO_MAX_X
@@ -650,8 +651,11 @@ no_izquierda:
     lda #HERO_MAX_X
 guarda_derecha:
     sta hero_x
+    cmp temp
     sep #$20
 .a8
+    beq no_derecha
+    inc moving
 no_derecha:
     rts
 .endproc
@@ -742,9 +746,17 @@ sin_ajuste:
     sep #$20
 .a8
     lda temp
-    sta oam                     ; X
+    sta oam                     ; X, los ocho bits bajos
     lda temp + 2
     sta oam + 1                 ; Y
+
+    ; La X de un objeto tiene nueve bits y el noveno vive en la tabla chica.
+    ; Sin él, una posición negativa —el héroe pegado al borde izquierdo, que en
+    ; pantalla queda en -8— se lee como positiva y el sprite salta al otro lado.
+    lda temp + 1
+    and #$01
+    ora #$02                    ; y el bit de al lado dice que es grande
+    sta oam_high
 
     ; Prioridad 2 —por encima del fondo— y la paleta 0 de los sprites, que en
     ; CGRAM es la 8.
