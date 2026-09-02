@@ -245,6 +245,86 @@ dónde entrás depende de por dónde viniste. La regla vive en `inicio_del_mapa(
 y la usan el conversor y la referencia: si cada uno eligiera por su cuenta, la
 comparación estaría midiendo dos cosas distintas.
 
+### El intérprete de eventos
+
+RM2k tiene unos 130 comandos de evento. La ROM entiende cinco —prender y apagar
+switches, esperar, teñir la pantalla y teletransportar— y resuelve las páginas
+como RM2k: de cada evento gana **la de número más alto cuyas condiciones se
+cumplen todas**.
+
+La regla que hace que eso sea seguro es una sola: **una página se emite sólo si
+todos sus comandos se pueden ejecutar**. Si aparece uno que no modelamos, la
+página no se emite y el evento no hace nada. Ejecutar la mitad de un script
+dejaría al juego en un estado que no existe, y la comparación no lo vería porque
+la referencia haría lo mismo mal. Por lo mismo, un evento con una condición que
+no sabemos evaluar —un ítem, un cronómetro— queda entero afuera: sin saber qué
+página está activa, correr la equivocada es peor que no correr ninguna.
+
+De las 519 páginas automáticas del juego, 42 se compilan enteras con este juego
+de comandos, y 31 sobreviven además al filtro por evento. Pero **29 de esas 31
+no hacen nada**: todos sus comandos son de los que se aceptan sin ejecutar
+porque no ejecutarlos no se ve. Las que hoy hacen algo son dos, y conviene
+tenerlo presente antes de creerle a un número grande:
+
+    mapa 3  Emitter Room               prende dos switches
+    mapa 4  Blank (Leave START here)   dos switches, tinte y teletransporte
+
+La segunda es la que abre el juego, y es la única del juego entero que ejercita
+el tinte y el teletransporte por evento.
+
+El tinte de pantalla no se podía saltear. En las puertas el fundido termina y la
+pantalla vuelve; acá se tiñe y después se teletransporta, así que el mapa de
+destino se ve teñido. En una consola con paleta eso no es un efecto de pantalla
+sino una transformación de la paleta: la cuenta es `canal * valor / 100` con
+enteros, que la consola hace con sus unidades de multiplicación y división y
+Python repite igual. Y como el tinte es estado del juego y no del mapa, se
+vuelve a aplicar cada vez que se carga uno; con el tinte neutro la cuenta deja
+los colores donde estaban, así que el camino es siempre el mismo.
+
+El intérprete está escrito dos veces —en `main.s` y en `tools/eventos.py`— pero
+el bytecode es uno solo, así que lo que se ejecuta de los dos lados es el mismo
+programa.
+
+**Cómo se lo mira:**
+
+    just snes-evento     # mapas 4 y 1 en la ROM, arrancando en el 4
+    just snes-play       # y con sonido, en una ventana
+
+El mapa 4 es una habitación negra y vacía cuyo único trabajo es prender dos
+switches, teñir la pantalla y teletransportar. Lo que se ve al arrancar es el
+mapa 1 ya teñido de azul, sin haber tocado una tecla: el tinte es `(0, 0, 100)`,
+o sea rojo y verde a cero y azul intacto.
+
+Los dos mapas tienen que estar en la ROM. Un teletransporte a un mapa que no
+entró no se puede compilar, y entonces la página entera no se emite: con el mapa
+4 solo, la pantalla se queda en negro, y eso es correcto.
+
+**Lo que la comparación todavía no cubre.** La referencia no corre los eventos al
+entrar a un mapa, así que `snes-hitos` no ve nada de esto: lo verifica a mano
+`snes-evento`, y la cuenta del tinte se verifica tiñendo con Python la misma
+captura de la consola sin teñir, que da cero pixeles distintos. Cerrar eso es lo
+que falta del hito.
+
+Que no estuviera cerrado costó caro. El camino del tinte y del teletransporte
+por evento no lo ejecutaba **ninguna** prueba, y tenía tres errores encadenados,
+cada uno tapando al siguiente:
+
+1. `poner_switch` pisaba `Y`, que es el cursor del bytecode del intérprete. Las
+   dos páginas que hacen algo empiezan prendiendo switches, así que el bucle
+   leía el opcode siguiente de un byte cualquiera del medio de la página y
+   cortaba ahí. Ninguna de las dos pasaba de su primer comando.
+2. El lazo de `tenir_paleta` llevaba la cuenta de colores en `X`, que adentro
+   del lazo es el índice de las tres tablas de canal. Al llegar al `cpx` valía
+   el azul del color anterior, así que el lazo no terminaba y la consola se
+   colgaba.
+3. El azul se corría cinco lugares en vez de diez, y salía en los bits del
+   verde. La pantalla se teñía de verde en lugar de azul.
+
+Los tres se veían apenas se corría la página, y no se veían de ninguna otra
+forma. La lección es la de siempre en este repo, pero al revés: acá el problema
+no fue que la referencia y la ROM se equivocaran igual, sino que **no había
+ninguna referencia que ejecutar**.
+
 ### Cómo se verifica
 
 `just snes-hitos` corre seis mapas, uno por cada cosa que puede romperse:
@@ -667,6 +747,12 @@ del acumulador, incluido el alto, que con A en 8 bits nadie tocó y trae lo que
 dejó la operación anterior. Una cuenta de direcciones hecha en 8 bits y cerrada
 con `tax` funciona mientras ese byte alto sea cero.
 
+**Un `jsr` te devuelve `X` e `Y` como se le da la gana.** No hay convención de
+llamada acá: cada rutina usa los índices para lo suyo. Cuando un registro es un
+cursor que tiene que sobrevivir a una llamada —el del bytecode del intérprete lo
+es— hay que guardarlo con `phy` en el que llama, y el que llama es el único que
+sabe que hace falta.
+
 **La consola arranca con lo que dejó el programa anterior.** El emulador arranca
 en cero. Hay que escribir los 43 registros del PPU, no sólo los que se usan, y
 cortar el HDMA antes que nada.
@@ -680,11 +766,17 @@ comparación.
 
 * **Que un NPC frene al héroe.** En RM2k los eventos de la capa del héroe
   bloquean el paso; la ROM todavía no lo mira. La tabla ya trae el dato.
-* **Los 721 teletransportes que no son puertas.** Están adentro de cinemáticas,
-  con variables y condiciones, y no se pueden resolver sin el intérprete de
-  eventos. Entre ellos está el del mapa donde el juego arranca, que es
-  automático y no por contacto: hoy se entra a `Blank (Leave START here)` y no
-  se sale.
+* **Que la referencia corra los eventos al entrar a un mapa.** Es la otra mitad
+  del hito: hasta que exista, `snes-hitos` no cubre el intérprete y el tinte se
+  verifica a mano. Los tres errores de arriba estaban ahí porque nada los corría.
+* **Los teletransportes que siguen sin resolverse.** Los que están adentro de
+  cinemáticas con variables y condiciones que todavía no modelamos. El del mapa
+  donde el juego arranca ya no: es automático, entra con los cinco comandos que
+  la ROM entiende, y `Blank (Leave START here)` ahora se sale solo.
+* **El héroe y la capa de encima.** En el mapa 1, parado en la celda (7,65) —a
+  donde teletransporta el evento de apertura—, la ROM dibuja al héroe por encima
+  del caño y la referencia lo esconde entero detrás. Son 284 pixeles y no lo
+  toca ninguna prueba de `snes-hitos`. Se ve con `just snes-parado 1 7 65`.
 * **El mapa entero en un cartucho.** Los 328 mapas suman 3,7 MB y LoROM llega a
   4, así que hoy entra un puñado por ROM y se elige al compilar. La salida
   probable es compartir los tiles entre los mapas que usan el mismo chipset:

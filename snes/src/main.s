@@ -236,6 +236,7 @@ tinte_b:     .res 1
 tin_ptr:     .res 3     ; la paleta que se está tiñendo, en la ROM
 tin_count:   .res 2     ; cuántos colores tiene
 tin_cgadd:   .res 1     ; y en qué entrada de CGRAM va
+tin_fin:     .res 2     ; cuántos bytes mide, que es el tope del lazo
 
 .segment "CODE"
 
@@ -622,6 +623,13 @@ puesto:
     jsr load_npcs
     jsr fill_window             ; deja listo tira_paso_col, que el otro usa
     jsr init_hero_ptr
+
+    ; El tinte es estado del juego, no del mapa: sobrevive al teletransporte.
+    ; Las paletas que se acaban de subir son las del cartucho, sin teñir, así
+    ; que se vuelven a teñir acá. Con el tinte neutro la cuenta es i*100/100 y
+    ; deja los colores donde estaban, así que no hace falta preguntar si hay
+    ; tinte: el camino es siempre el mismo.
+    jsr aplicar_tinte
     rts
 .endproc
 
@@ -876,6 +884,15 @@ no:
 .endproc
 
 ; El bucle del intérprete: un opcode por vuelta hasta el FIN.
+;
+; Y es el cursor del bytecode y tiene que sobrevivir a todo el bucle, así que
+; cada `jsr` que sale de acá lo guarda antes de irse. Las rutinas que se llaman
+; usan X e Y para lo suyo —poner_switch indexa el bitmap de switches,
+; aplicar_tinte recorre tres paletas— y ninguna tiene por qué saber que acá
+; significan otra cosa. Sin esto, el primer OP_SWITCH dejaba a Y valiendo el
+; número del switch dividido ocho, y lo que se leía como opcode siguiente era
+; un byte cualquiera del medio de la página: el bucle cortaba ahí y el resto no
+; corría.
 .proc correr_codigo
 .a8
 .i16
@@ -904,7 +921,9 @@ op_switch:
     iny
     lda [cod_ptr], y            ; y si va encendido o apagado
     iny
+    phy
     jsr poner_switch
+    ply
     bra otro
 
 op_esperar:
@@ -926,7 +945,9 @@ op_tinte:
     iny
     iny                         ; la saturación: el conversor sólo deja pasar
                                 ; la neutra, así que no hay nada que hacer
+    phy
     jsr aplicar_tinte
+    ply
     bra otro
 
 op_teleport:
@@ -1008,10 +1029,25 @@ cabe:
 .proc tenir_paleta
 .a8
 .i16
+    ; La cuenta va en Y y no en X: adentro del lazo X es el índice de las tres
+    ; tablas de canal, así que al llegar acá vale el azul del color anterior y
+    ; no cuántos colores van. Y sí sobrevive: es el cursor de la paleta.
+    rep #$20
+.a16
+    lda tin_count
+    asl a                       ; dos bytes por color
+    sta tin_fin
+    sep #$20
+.a8
+    ; Ni `sta` ni `sep` tocan Z, así que esto mira el `asl`. Una paleta sin
+    ; colores se va sin hacer nada: el DMA de abajo mediría cero bytes, que en
+    ; el hardware son 64 KB, y llenaría CGRAM de basura.
+    bne hay_colores
+    rts
+hay_colores:
     ldy #$0000
-    ldx #$0000
 cada_color:
-    cpx tin_count
+    cpy tin_fin
     beq subir
     rep #$20
 .a16
@@ -1059,11 +1095,10 @@ cada_color:
     rep #$20
 .a16
     and #$001F
-    asl a
-    asl a
-    asl a
-    asl a
-    asl a                       ; el azul va en los bits 10 a 14
+    xba                         ; el azul va en los bits 10 a 14: ocho lugares
+    asl a                       ; los da el intercambio de bytes y los dos que
+    asl a                       ; faltan, dos corrimientos. Diez `asl` seguidos
+                                ; se cuentan mal, y así fue como salieron cinco
     sta temp
     lda temp + 2
     and #$001F                  ; el rojo, sin el verde que quedó al lado
@@ -1081,7 +1116,6 @@ cada_color:
 
     iny
     iny
-    inx
     sep #$20
 .a8
     bra cada_color

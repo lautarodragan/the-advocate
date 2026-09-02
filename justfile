@@ -196,6 +196,23 @@ snes-puerta origen="30" destino="28" direccion="down" segundos="8":
       --saltar snes/shots/saltar-puerta.txt \
       -o snes/shots/comparacion-puerta.png
 
+# El intérprete de eventos, para mirarlo con los ojos. El juego arranca en el
+# mapa 4, una habitación vacía y negra cuyo único trabajo es prender dos
+# switches, teñir la pantalla y teletransportar: es la página que abre A Blurred
+# Line. Lo que se ve al arrancar es el mapa destino ya teñido, sin haber tocado
+# una tecla.
+#
+# Los dos mapas tienen que estar en la ROM: un teletransporte a un mapa que no
+# entró no se puede compilar, y entonces la página no se emite y el evento no
+# hace nada. Con el mapa 4 solo, la pantalla se queda en negro y eso es correcto.
+#
+# Después de esto, `just snes-play` lo muestra con sonido.
+snes-evento origen="4" destino="1":
+  mkdir -p snes/shots
+  python3 tools/snes_convert.py --map-id {{origen}} --mapas {{destino}}
+  just snes-build
+  just snes-shot evento 4 ""
+
 # Varios mapas en la misma ROM. Lo que prueba no es que cada uno se vea bien
 # —eso ya lo cubre snes-hitos— sino que se vea bien cuando su registro no está
 # al principio de la tabla: con el índice 0 el desplazamiento es cero y
