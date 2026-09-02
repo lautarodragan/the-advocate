@@ -319,6 +319,26 @@ class Instruction:
                                        ).to_bytes(self.width, "little")
 
 
+class BankFit:
+    """Relleno para que lo que sigue no cruce de banco.
+
+    Un DMA incrementa su dirección de origen linealmente, y en LoROM el byte que
+    sigue a $02FFFF no es la ROM del banco 3 sino la RAM: cualquier bloque que
+    se suba por DMA y cruce ese límite se lee basura de la mitad para adelante.
+
+    Lo declara el que emite los datos, porque es el único que sabe cuánto va a
+    ocupar el bloque. Cuánto hay que rellenar se resuelve al ubicar, que es
+    cuando se sabe dónde cayó.
+    """
+
+    def __init__(self, needed):
+        self.needed = needed
+        self.size = 0
+
+    def emit(self, symbols, address):
+        return b"\x00" * self.size
+
+
 class Reserve:
     """Espacio reservado en RAM: ocupa lugar pero no se escribe a la ROM."""
 
@@ -434,6 +454,10 @@ class Assembler:
             return
         if name == ".include":
             self.read(os.path.join(directory, rest.strip('"')))
+            return
+        if name == ".bloque":
+            self.items[self.segment].append(
+                BankFit(Expression(rest).value(self.symbols)))
             return
         if name == ".res":
             self.items[self.segment].append(
@@ -558,6 +582,11 @@ class Assembler:
             offset = start
             for segment in names:
                 for index, item in enumerate(self.items[segment]):
+                    if isinstance(item, BankFit):
+                        # Si el bloque que viene no entra en lo que queda del
+                        # banco, se rellena hasta el siguiente.
+                        queda = BANK_SIZE - (offset % BANK_SIZE)
+                        item.size = queda if item.needed > queda else 0
                     self.offsets[(segment, index)] = offset
                     self.addresses[(segment, index)] = lorom_address(offset)
                     offset += item.size

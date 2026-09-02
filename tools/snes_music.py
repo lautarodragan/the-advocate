@@ -363,7 +363,7 @@ def build(map_id, game_dir=GAME_DIR):
 def emit(path, name, driver, samples, stream):
     """El .inc que arma el ensamblador junto con main.s."""
     def block(label, data):
-        out = ["%s:" % label]
+        out = [".bloque %d" % len(data), "%s:" % label]
         for i in range(0, len(data), 16):
             out.append("    .byte " + ",".join("$%02X" % b for b in data[i:i + 16]))
         return "\n".join(out)

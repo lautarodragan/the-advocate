@@ -662,17 +662,26 @@ guarda_y:
 
     ; Los dos registros de scroll son de escritura doble: primero el byte bajo
     ; y después el alto.
+    ; Cada registro se completa antes de pasar al siguiente. Los de scroll
+    ; comparten un único latch entre todos los planos, así que intercalar las
+    ; escrituras —BG1 bajo, BG2 bajo, BG1 alto, BG2 alto— mezcla los valores y
+    ; el plano queda desplazado dentro de su celda, moviéndose en el lugar.
     lda camara_x
     sta BG1HOFS
-    sta BG2HOFS
     lda camara_x + 1
     sta BG1HOFS
+    lda camara_x
     sta BG2HOFS
+    lda camara_x + 1
+    sta BG2HOFS
+
     lda scroll_y
     sta BG1VOFS
-    sta BG2VOFS
     lda scroll_y + 1
     sta BG1VOFS
+    lda scroll_y
+    sta BG2VOFS
+    lda scroll_y + 1
     sta BG2VOFS
     rts
 .endproc

@@ -66,7 +66,11 @@ def hero_position(direction_name, passable, width, height, ocupadas=()):
     if step is None:
         return start[0] * TILE, start[1] * TILE, DIRECTIONS["down"]
 
-    x, y = walk(passable, width, height, start, step[0], step[1], ocupadas)
+    # Las celdas ocupadas sólo sirven para elegir dónde arranca. No se le pasan
+    # a la caminata: en RM2k un NPC bloquea el paso, pero la ROM todavía no lo
+    # implementa, y modelar acá algo que la consola no hace es inventar una
+    # diferencia.
+    x, y = walk(passable, width, height, start, step[0], step[1])
     return x * TILE, y * TILE, direction
 
 

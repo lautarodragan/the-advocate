@@ -512,7 +512,7 @@ def render_converted(tile_data, cram, tilemap, above=None):
             words[first + i] = int.from_bytes(colors[i * 2:i * 2 + 2], "little")
     palette = [((c & 0x1F), (c >> 5) & 0x1F, (c >> 10) & 0x1F) for c in words]
 
-    def draw(cells, data, planes, base_palette=None):
+    def draw(cells, data, planes):
         for ty, row in enumerate(cells):
             for tx, cell in enumerate(row):
                 number = cell & 0x03FF
@@ -528,7 +528,9 @@ def render_converted(tile_data, cram, tilemap, above=None):
                         if planes == 4:
                             if not value:
                                 continue        # transparente
-                            value += base_palette + pal * COLORS_PER_PALETTE
+                            # En 4 bits el índice se cuenta dentro de la paleta
+                            # que dice la celda; ésa ya lleva el desplazamiento.
+                            value += pal * COLORS_PER_PALETTE
                         color = palette[value] if value < len(palette) else (0, 0, 0)
                         image.putpixel((tx * CELL + x, ty * CELL + y),
                                        (color[0] << 3, color[1] << 3,
@@ -537,7 +539,7 @@ def render_converted(tile_data, cram, tilemap, above=None):
     if tilemap is not None:
         draw(tilemap, tile_data, 8)
     if above:
-        draw(above[2], above[0], 4, ABOVE_PALETTE * COLORS_PER_PALETTE)
+        draw(above[2], above[0], 4)
     return image
 
 
@@ -565,7 +567,9 @@ def emit(path, name, tile_data, cram, tilemap, sprite=None, collision=None,
     height, width = len(tilemap), len(tilemap[0])
 
     def block(label, data, per_line=16):
-        out = ["%s:" % label]
+        # Cada bloque se declara antes de emitirlo: todos se suben por DMA, y un
+        # DMA que cruce de banco lee basura de la mitad para adelante.
+        out = [".bloque %d" % len(data), "%s:" % label]
         for i in range(0, len(data), per_line):
             out.append("    .byte " + ",".join("$%02X" % b
                                                for b in data[i:i + per_line]))
