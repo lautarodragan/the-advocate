@@ -51,9 +51,23 @@ Lo que el contenedor cambia en la práctica:
   `.git/hooks` es un tmpfs vacío: `git config` falla y ningún hook corre.
 * **No hay puertos publicados.** Nada que se sirva acá adentro se ve desde el
   host.
-* **`/extras` sobrevive a la sesión**, igual que los paquetes instalados y que
-  el juego original en `/extras/abl-rm`. `/root`, `/usr`, `/var` y `/etc` son
-  volúmenes con nombre, no capas de la imagen.
+* **`/extras` sobrevive a la sesión**, igual que los paquetes instalados:
+  `/root`, `/usr`, `/var` y `/etc` son volúmenes con nombre, no capas de la
+  imagen.
+
+`/extras` es de **uso libre**, y ésa es la manera de conseguir material de
+referencia: se clona o se descarga acá adentro en vez de montar algo del host,
+que revela menos y da más margen. Hoy tiene:
+
+    /extras/abl-rm      el juego original. Es lo que lee GAME_DIR
+    /extras/ref         liblcf, easyrpg-player y Game-Decompilations
+    /extras/soundfonts  de donde salen las muestras
+
+**Los repos de `/extras/ref` están clonados adentro y no son los del host.**
+`liblcf` es de donde se genera `tools/event_codes.py`: los códigos de comando
+de RM2k salen de ahí y de ningún otro lado, porque la primera versión del
+filtro de puertas los puso de memoria y tres estaban mal. Si hace falta algo
+que no se consigue desde acá, se le pide a taro que lo copie a `/extras`.
 
 El host y el contenedor son casi simétricos a propósito, así que un comando
 que se le pida a taro —`mednafen snes/build/abl.sfc`, una receta de `just`—
