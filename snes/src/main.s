@@ -27,6 +27,23 @@ APUIO1   = $2141
 APUIO2   = $2142
 APUIO3   = $2143
 
+; La consola multiplica y divide por hardware, que es lo único que hace falta
+; para el tinte de pantalla: escala cada canal por un valor de 0 a 200 con 100
+; como neutro, o sea multiplicar y dividir por cien. Las dos son exactas y con
+; enteros, así que la referencia en Python puede hacer la misma cuenta y dar
+; siempre lo mismo.
+;
+; El producto tarda 8 ciclos en estar listo y el cociente 16. No hay que
+; esperarlos con un lazo: alcanza con no leer el resultado enseguida, y el
+; código que hay en el medio ya alcanza.
+WRMPYA   = $4202        ; multiplicando de 8 bits
+WRMPYB   = $4203        ; multiplicador: escribirlo arranca la cuenta
+RDMPYL   = $4216        ; el producto de 16 bits
+WRDIVL   = $4204        ; dividendo de 16 bits
+WRDIVH   = $4205
+WRDIVB   = $4206        ; divisor de 8: escribirlo arranca la cuenta
+RDDIVL   = $4214        ; el cociente de 16 bits
+
 ; --- el PPU ----------------------------------------------------------------
 BGMODE   = $2105        ; qué modo gráfico y con cuántos bits por pixel
 BG1SC    = $2107        ; dónde vive el tilemap de BG1 y de qué tamaño es
@@ -191,6 +208,35 @@ puerta_ptr:  .res 3     ; la de puertas, mientras se la busca
 entrada_x:   .res 2     ; por dónde entrar al mapa que se está por cargar, en
 entrada_y:   .res 2     ; celdas. $FFFF quiere decir "donde diga el registro"
 
+; El intérprete de eventos.
+pag_ptr:     .res 3     ; la tabla de páginas del mapa cargado
+cod_ptr:     .res 3     ; el código de la página que se está ejecutando
+elegida:     .res 3     ; el código de la página que ganó, mientras se decide
+elegida_hay: .res 1     ; si alguna página del evento en curso ganó
+elegida_trigger: .res 1 ; y qué la dispara, para correr sólo las automáticas
+ev_actual:   .res 2     ; qué evento se está resolviendo
+salto_mapa:  .res 1     ; un Teleport pedido por un evento: a qué mapa
+salto_x:     .res 2     ; y a qué celda. salto_hay dice si hay uno pendiente
+salto_y:     .res 2
+salto_hay:   .res 1
+saltos_restantes: .res 1 ; cuántas cadenas de teletransporte quedan permitidas
+; La página que se está mirando, ya leída de la tabla. Se copia en vez de
+; leerse en el lugar porque Y hace de cursor de la tabla, y usarlo además para
+; indexar el bitmap de switches vuelve el código imposible de seguir.
+pag_ofs:     .res 2
+pag_restan:  .res 2
+pg_evento:   .res 2
+pg_trigger:  .res 1
+pg_sa:       .res 2
+pg_sb:       .res 2
+pg_cod:      .res 3
+tinte_r:     .res 1     ; el tinte de pantalla, de 0 a 200 con 100 neutro
+tinte_g:     .res 1
+tinte_b:     .res 1
+tin_ptr:     .res 3     ; la paleta que se está tiñendo, en la ROM
+tin_count:   .res 2     ; cuántos colores tiene
+tin_cgadd:   .res 1     ; y en qué entrada de CGRAM va
+
 .segment "CODE"
 
 ; --- arranque --------------------------------------------------------------
@@ -232,6 +278,20 @@ entrada_y:   .res 2     ; celdas. $FFFF quiere decir "donde diga el registro"
     sta entrada_x
     sep #$20
 .a8
+
+    ; Los switches arrancan todos apagados, como una partida nueva de RM2k, y
+    ; la pantalla sin teñir.
+    ldx #$0000
+borrar_switches:
+    stz switches, x
+    inx
+    cpx #SWITCH_BYTES
+    bne borrar_switches
+    lda #TINTE_NEUTRO
+    sta tinte_r
+    sta tinte_g
+    sta tinte_b
+    stz salto_hay
     lda #MAPA_INICIAL
     jsr cargar_mapa
     jsr clear_oam
@@ -379,6 +439,11 @@ scrolls:
 ; De $2101 a $210C: objetos, modo, mosaico y dónde vive cada capa. Todo en
 ; cero, que es "nada encendido".
 .segment "TABLAS"
+; Un bit por posición, para el bitmap de switches. Sale más barata que ocho
+; corrimientos y se lee con el índice que ya tenemos.
+mascara:
+    .byte $01,$02,$04,$08,$10,$20,$40,$80
+
 ppu_bajos:
     .byte $00,$00,$00,$00       ; $2101 OBSEL, $2102-3 OAMADD, $2104 OAMDATA
     .byte $00,$00,$00,$00       ; $2105 BGMODE, $2106 MOSAIC, $2107-8 BG1-2SC
@@ -448,7 +513,7 @@ cero:
 ;
 ; Con la pantalla encendida esto no se puede llamar: escribe VRAM y CGRAM por
 ; DMA, que fuera del vblank el PPU no deja.
-.proc cargar_mapa
+.proc cargar_mapa_sin_eventos
 .a8
 .i16
     rep #$20
@@ -557,6 +622,595 @@ puesto:
     jsr load_npcs
     jsr fill_window             ; deja listo tira_paso_col, que el otro usa
     jsr init_hero_ptr
+    rts
+.endproc
+
+; Y esto es lo que hay que llamar: carga el mapa y le corre los eventos
+; automáticos.
+;
+; Si un evento pide un teletransporte, el ciclo se repite acá y no adentro del
+; intérprete. Llamar a cargar_mapa desde el intérprete sería recursión, y dos
+; mapas que se apuntan entre sí la harían infinita: la pila se va al fondo y la
+; consola hace cualquier cosa. El tope de vueltas está por la misma razón, para
+; el caso en que se apunten con un ciclo más largo.
+.proc cargar_mapa
+.a8
+.i16
+    pha                         ; el índice del mapa, que lo de abajo pisaría
+    lda #8
+    sta saltos_restantes        ; con stx serían dos bytes y pisaría el de al lado
+    pla
+    jsr cargar_mapa_sin_eventos
+otra_vez:
+    jsr correr_eventos
+    lda salto_hay
+    beq listo
+    stz salto_hay
+    rep #$20
+.a16
+    lda salto_x
+    sta entrada_x
+    lda salto_y
+    sta entrada_y
+    sep #$20
+.a8
+    dec saltos_restantes
+    beq listo                   ; demasiadas vueltas: se queda en este mapa
+    lda salto_mapa
+    jsr cargar_mapa_sin_eventos
+    bra otra_vez
+listo:
+    rts
+.endproc
+
+; --- el intérprete de eventos ----------------------------------------------
+;
+; RM2k se queda con la página de número más alto cuyas condiciones se cumplen
+; todas. Las páginas vienen agrupadas por evento y en orden, así que alcanza una
+; sola pasada: se recuerda la última que cumplió, y al cambiar de evento se
+; ejecuta la que haya quedado.
+;
+; Sólo se corren las automáticas. Las de contacto ya las cubren las puertas, y
+; las de botón necesitan que haya un botón que apretar.
+.proc correr_eventos
+.a8
+.i16
+    ldx mapa_ofs
+    rep #$20
+.a16
+    lda mapa_tabla + M_PAGINA_COUNT, x
+    bne hay_paginas
+    ; Salir por acá sin volver a 8 bits dejaría al que llama con el acumulador
+    ; del ancho equivocado. El ancho es estado y se escapa de las rutinas.
+    sep #$20
+.a8
+    rts
+hay_paginas:
+    rep #$20
+.a16
+    sta pag_restan
+    lda mapa_tabla + M_PTR_PAGINAS, x
+    sta pag_ptr
+    stz pag_ofs
+    sep #$20
+.a8
+    lda mapa_tabla + M_PTR_PAGINAS + 2, x
+    sta pag_ptr + 2
+    stz elegida_hay
+
+    jsr leer_pagina
+    rep #$20
+.a16
+    lda pg_evento
+    sta ev_actual
+    sep #$20
+.a8
+
+recorrer:
+    jsr leer_pagina
+    rep #$20
+.a16
+    lda pg_evento
+    cmp ev_actual
+    sep #$20
+.a8
+    beq mismo_evento
+
+    jsr ejecutar_elegida
+    lda salto_hay
+    bne nada                    ; un teletransporte corta el resto
+    rep #$20
+.a16
+    lda pg_evento
+    sta ev_actual
+    sep #$20
+.a8
+    stz elegida_hay
+
+mismo_evento:
+    jsr condiciones_ok
+    beq siguiente               ; no se cumplen: esta página no compite
+    ; Gana, por ahora: es la de número más alto que cumplió hasta acá.
+    lda pg_trigger
+    sta elegida_trigger
+    rep #$20
+.a16
+    lda pg_cod
+    sta elegida
+    sep #$20
+.a8
+    lda pg_cod + 2
+    sta elegida + 2
+    lda #1
+    sta elegida_hay
+
+siguiente:
+    rep #$20
+.a16
+    lda pag_ofs
+    clc
+    adc #PAGINA_BYTES
+    sta pag_ofs
+    dec pag_restan
+    sep #$20
+.a8
+    bne recorrer
+
+    jsr ejecutar_elegida
+nada:
+    rts
+.endproc
+
+; Los campos de la página que está en pag_ofs, a variables.
+.proc leer_pagina
+.a8
+.i16
+    ldy pag_ofs
+    rep #$20
+.a16
+    lda [pag_ptr], y            ; +0  a qué evento pertenece
+    sta pg_evento
+    sep #$20
+.a8
+    iny
+    iny
+    iny
+    lda [pag_ptr], y            ; +3  qué la dispara. De a un byte: leerlo de a
+    sta pg_trigger              ;     dos se llevaría puesto el switch de al lado
+    iny
+    rep #$20
+.a16
+    lda [pag_ptr], y            ; +4  el switch que pide, o 0
+    sta pg_sa
+    iny
+    iny
+    lda [pag_ptr], y            ; +6  el segundo, o 0
+    sta pg_sb
+    iny
+    iny
+    lda [pag_ptr], y            ; +8  su código: los 16 bits bajos
+    sta pg_cod
+    sep #$20
+.a8
+    iny
+    iny
+    lda [pag_ptr], y            ; +10 y su banco
+    sta pg_cod + 2
+    rts
+.endproc
+
+; ¿Se cumplen las condiciones de la página leída? Vuelve con Z=0 si sí.
+; Un switch en 0 quiere decir "esta página no lo pide".
+.proc condiciones_ok
+.a8
+.i16
+    rep #$20
+.a16
+    lda pg_sa
+    beq mirar_b
+    jsr switch_encendido
+    beq falla
+mirar_b:
+    lda pg_sb
+    beq cumple
+    jsr switch_encendido
+    beq falla
+cumple:
+    sep #$20
+.a8
+    lda #1                      ; Z=0
+    rts
+falla:
+    sep #$20
+.a8
+    lda #0                      ; Z=1
+    rts
+.endproc
+
+; ¿Está encendido el switch cuyo número viene en A? Vuelve con Z=0 si sí.
+.proc switch_encendido
+.a16
+.i16
+    pha
+    and #$0007
+    tax                         ; el bit dentro del byte
+    pla
+    lsr a
+    lsr a
+    lsr a
+    tay                         ; y qué byte del bitmap
+    sep #$20
+.a8
+    lda switches, y
+    and mascara, x
+    rep #$20
+.a16
+    rts                         ; rep no toca Z, así que el and sigue valiendo
+.endproc
+
+; Corre la página que ganó, si ganó alguna, es automática y tiene código.
+.proc ejecutar_elegida
+.a8
+.i16
+    lda elegida_hay
+    beq no
+    lda elegida_trigger
+    cmp #TRIGGER_AUTOMATICO
+    bne no
+    lda elegida
+    ora elegida + 1
+    ora elegida + 2
+    beq no                      ; sin código: no se pudo compilar
+    rep #$20
+.a16
+    lda elegida
+    sta cod_ptr
+    sep #$20
+.a8
+    lda elegida + 2
+    sta cod_ptr + 2
+    stz elegida_hay             ; que no se ejecute dos veces
+    jsr correr_codigo
+no:
+    rts
+.endproc
+
+; El bucle del intérprete: un opcode por vuelta hasta el FIN.
+.proc correr_codigo
+.a8
+.i16
+    ldy #$0000
+otro:
+    lda [cod_ptr], y
+    iny
+    cmp #OP_SWITCH
+    beq op_switch
+    cmp #OP_TELEPORT
+    beq op_teleport
+    cmp #OP_ESPERAR
+    beq op_esperar
+    cmp #OP_TINTE
+    beq op_tinte
+    rts                         ; OP_FIN, o algo que no conocemos: se corta
+
+op_switch:
+    rep #$20
+.a16
+    lda [cod_ptr], y            ; el número, de 16 bits
+    sta temp
+    sep #$20
+.a8
+    iny
+    iny
+    lda [cod_ptr], y            ; y si va encendido o apagado
+    iny
+    jsr poner_switch
+    bra otro
+
+op_esperar:
+    ; La espera se saltea. No tenemos cuadros que dejar pasar acá: esto corre
+    ; con la pantalla apagada mientras se carga el mapa, y lo que se compara es
+    ; la pantalla ya asentada. Lo que se pierde es el tiempo, no la imagen.
+    iny
+    bra otro
+
+op_tinte:
+    lda [cod_ptr], y
+    sta tinte_r
+    iny
+    lda [cod_ptr], y
+    sta tinte_g
+    iny
+    lda [cod_ptr], y
+    sta tinte_b
+    iny
+    iny                         ; la saturación: el conversor sólo deja pasar
+                                ; la neutra, así que no hay nada que hacer
+    jsr aplicar_tinte
+    bra otro
+
+op_teleport:
+    lda [cod_ptr], y
+    sta salto_mapa
+    iny
+    rep #$20
+.a16
+    lda [cod_ptr], y
+    sta salto_x
+    iny
+    iny
+    lda [cod_ptr], y
+    sta salto_y
+    sep #$20
+.a8
+    lda #1
+    sta salto_hay
+    rts                         ; el resto de la página no corre: RM2k tampoco
+.endproc
+
+; --- el tinte de pantalla --------------------------------------------------
+;
+; RM2k escala cada canal por un valor de 0 a 200, con 100 como neutro. En una
+; consola con paleta eso no es un efecto de pantalla sino una transformación de
+; la paleta: se escalan los colores al subirlos y el fondo, que va en 8 bits por
+; pixel y direcciona CGRAM en directo, queda teñido exactamente.
+;
+; La cuenta es `i * valor / 100` con enteros. Las dos operaciones las hace el
+; hardware y son exactas, así que la referencia en Python hace la misma cuenta
+; y da siempre lo mismo. Una aproximación con corrimientos no serviría: la
+; comparación es pixel por pixel.
+
+; t[i] = i * valor / 100 para i de 0 a 31, topado en 31. A = valor, X = tabla.
+.proc tabla_canal
+.a8
+.i16
+    sta temp                    ; el valor del canal
+    stx temp + 2                ; dónde va la tabla
+    ldy #$0000
+cada:
+    tya
+    sta WRMPYA
+    lda temp
+    sta WRMPYB                  ; arranca: el producto tarda ocho ciclos
+    nop
+    nop
+    nop
+    nop
+    rep #$20
+.a16
+    lda RDMPYL
+    sta WRDIVL                  ; el dividendo, en una sola escritura de 16
+    sep #$20
+.a8
+    lda #100
+    sta WRDIVB                  ; arranca: el cociente tarda dieciséis ciclos
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    lda RDDIVL
+    cmp #32
+    bcc cabe
+    lda #31                     ; el canal tiene cinco bits y no más
+cabe:
+    sta (temp + 2), y
+    iny
+    cpy #32
+    bne cada
+    rts
+.endproc
+
+; Lee una paleta de la ROM, la tiñe color por color y la sube a CGRAM.
+.proc tenir_paleta
+.a8
+.i16
+    ldy #$0000
+    ldx #$0000
+cada_color:
+    cpx tin_count
+    beq subir
+    rep #$20
+.a16
+    lda [tin_ptr], y
+    sta temp                    ; el color original, de 15 bits
+
+    and #$001F                  ; rojo
+    tax
+    sep #$20
+.a8
+    lda tabla_r, x
+    sta temp + 2
+    rep #$20
+.a16
+    lda temp
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    and #$001F                  ; verde
+    tax
+    sep #$20
+.a8
+    lda tabla_g, x
+    sta temp + 3
+    rep #$20
+.a16
+    lda temp
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    and #$001F                  ; azul
+    tax
+    sep #$20
+.a8
+    lda tabla_b, x
+    rep #$20
+.a16
+    and #$001F
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a                       ; el azul va en los bits 10 a 14
+    sta temp
+    lda temp + 2
+    and #$001F                  ; el rojo, sin el verde que quedó al lado
+    ora temp
+    sta temp
+    lda temp + 3
+    and #$001F
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a                       ; y el verde en los bits 5 a 9
+    ora temp
+    sta pal_buf, y
+
+    iny
+    iny
+    inx
+    sep #$20
+.a8
+    bra cada_color
+
+subir:
+    lda tin_cgadd
+    sta CGADD
+    rep #$20
+.a16
+    lda #.loword(pal_buf)
+    sta A1T0L
+    lda tin_count
+    asl a                       ; dos bytes por color
+    sta DAS0L
+    sep #$20
+.a8
+    stz A1B0                    ; pal_buf vive en el banco 0
+    lda #$00
+    sta DMAP0                   ; un registro, de a bytes
+    lda #$22
+    sta BBAD0                   ; destino: CGDATA
+    lda #$01
+    sta MDMAEN
+    rts
+.endproc
+
+; El tinte que dejó el evento, aplicado a las tres paletas del mapa.
+.proc aplicar_tinte
+.a8
+.i16
+    lda tinte_r
+    ldx #.loword(tabla_r)
+    jsr tabla_canal
+    lda tinte_g
+    ldx #.loword(tabla_g)
+    jsr tabla_canal
+    lda tinte_b
+    ldx #.loword(tabla_b)
+    jsr tabla_canal
+
+    ; El fondo, desde la entrada 0.
+    ldx #M_PTR_MAP_CGRAM
+    ldy #M_MAP_CGRAM
+    lda #0
+    jsr una_paleta
+
+    ; La capa de encima, en la entrada que le haya tocado a este mapa. Hay que
+    ; leerla del registro antes de cargar X con el campo, porque el registro se
+    ; direcciona justamente con X.
+    ldx mapa_ofs
+    lda mapa_tabla + M_ABOVE_FIRST, x
+    pha
+    ldx #M_PTR_ABOVE_CGRAM
+    ldy #M_ABOVE_CGRAM
+    pla
+    jsr una_paleta
+
+    ; Y los sprites, en la mitad de arriba de CGRAM.
+    ldx #M_PTR_SPRITE_CGRAM
+    ldy #M_SPRITE_CGRAM
+    lda #128
+    jsr una_paleta
+    rts
+.endproc
+
+; Tiñe y sube una de las paletas del mapa. X = el campo del puntero, Y = el
+; campo de la cantidad, A = en qué entrada de CGRAM arranca.
+.proc una_paleta
+.a8
+.i16
+    sta tin_cgadd
+    stx temp
+    sty temp + 2
+
+    rep #$20
+.a16
+    lda temp
+    clc
+    adc mapa_ofs
+    tax
+    lda mapa_tabla, x
+    sta tin_ptr
+    sep #$20
+.a8
+    lda mapa_tabla + 2, x
+    sta tin_ptr + 2
+
+    rep #$20
+.a16
+    lda temp + 2
+    clc
+    adc mapa_ofs
+    tax
+    lda mapa_tabla, x
+    sta tin_count
+    sep #$20
+.a8
+    jsr tenir_paleta
+    rts
+.endproc
+
+; Enciende o apaga el switch de temp según A.
+.proc poner_switch
+.a8
+.i16
+    pha
+    rep #$20
+.a16
+    lda temp
+    and #$0007
+    tax
+    lda temp
+    lsr a
+    lsr a
+    lsr a
+    tay
+    sep #$20
+.a8
+    pla
+    beq apagar
+    lda switches, y
+    ora mascara, x
+    sta switches, y
+    rts
+apagar:
+    lda mascara, x
+    eor #$FF
+    and switches, y
+    sta switches, y
     rts
 .endproc
 
@@ -2456,6 +3110,23 @@ tira_row2:  .res WINDOW_COLS * 2
 ; más NPCs de todo el juego tiene 89, y acá entran 127, que es el tope que
 ; impone OAM.
 npc_buf:  .res NPC_MAX * NPC_STRIDE
+
+; Un bit por switch de RM2k. El juego consulta hasta el 1003 en las condiciones
+; de página, así que con 1024 alcanza. Se limpian una sola vez al arrancar: en
+; RM2k una partida nueva empieza con todos apagados.
+switches: .res SWITCH_BYTES
+
+; El tinte de pantalla escala cada canal por el mismo factor para todos los
+; colores, así que en vez de hacer la cuenta 256 veces se hace 32: una tabla por
+; canal, indexada por el valor de 5 bits que tenía.
+tabla_r:  .res 32
+tabla_g:  .res 32
+tabla_b:  .res 32
+
+; Y la paleta teñida se arma acá antes de subirla. No se puede teñir en CGRAM
+; leyéndola y volviéndola a escribir: un segundo tinte se compondría con el
+; primero. Siempre se parte de la paleta original, que está en la ROM.
+pal_buf:  .res 512
 
 .segment "CODE"
 

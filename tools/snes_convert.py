@@ -38,6 +38,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+import eventos
 import lcf
 import md_convert
 from md_convert import (CELL, collect_npcs, cut_tiles, flips, hero_start,
@@ -729,6 +730,7 @@ MAPA_ESCALARES = [
     ("SPRITE_CGRAM", ""),
     ("NPC_COUNT", "cuántos NPCs con CharSet"),
     ("PUERTA_COUNT", "cuántas puertas salen de este mapa"),
+    ("PAGINA_COUNT", "cuántas páginas de evento hay que resolver"),
 ]
 MAPA_BYTES = [
     ("OBSEL_VALUE", "objetos de 8x8 y 32x32, y la página de sus tiles"),
@@ -737,7 +739,7 @@ MAPA_BYTES = [
 ]
 MAPA_PUNTEROS = ["map_tiles", "map_cgram", "above_tiles", "above_cgram",
                  "sprite_tiles", "sprite_cgram", "map_celdas", "map_bloques",
-                 "bloque_pass", "npc_table", "puertas"]
+                 "bloque_pass", "npc_table", "puertas", "paginas"]
 MAPA_PTR_BASE = 48                       # dónde arrancan los punteros
 MAPA_PTR_PASO = 4
 
@@ -745,6 +747,16 @@ MAPA_PTR_PASO = 4
 # dos para que buscarla sea un corrimiento, y sobra lugar para la dirección en
 # la que RM2k te deja mirando, que todavía no se usa.
 PUERTA_BYTES = 16
+
+# Una página de evento: a qué evento pertenece, qué la activa, y dónde está su
+# código. Las páginas de un mismo evento van seguidas y en orden, que es lo que
+# le permite a la ROM elegir la última que cumple sus condiciones en una sola
+# pasada, sin llevar una tabla por evento.
+PAGINA_BYTES = 16
+
+# Un bit por switch. El juego consulta hasta el 1003 en las condiciones de
+# página, así que con 1024 alcanza y sobra: son 128 bytes de RAM.
+SWITCH_BYTES = 128
 
 
 def campos_del_mapa(mapa):
@@ -770,6 +782,7 @@ def campos_del_mapa(mapa):
         "SPRITE_CGRAM": COLORS_PER_PALETTE * len(sprite[1]) if sprite else 0,
         "NPC_COUNT": len(sprite[3]) if sprite else 0,
         "PUERTA_COUNT": len(mapa["puertas"]) // PUERTA_BYTES,
+        "PAGINA_COUNT": len(mapa["paginas"]),
         "OBSEL_VALUE": 0x20 | (layout["sprites"][0] // 0x2000),
         "BG12NBA_VALUE": ((layout["encima"][0] // 0x1000) << 4)
                          | (layout["tiles"][0] // 0x1000),
@@ -850,6 +863,32 @@ def bloque(label, data, per_line=16, alinear=None):
     return "\n".join(out)
 
 
+def tabla_de_paginas(mapa, numero):
+    """Las páginas de evento del mapa, con el puntero a su código.
+
+    No pasa por `bloque()` porque sus punteros son simbólicos: apuntan adentro
+    del bloque de código, que el enlazador ubica.
+    """
+    out = ["paginas_%d:" % numero]
+    for pagina in mapa["paginas"]:
+        if pagina["codigo"]:
+            destino = "evcodigo_%d + %d" % (numero, pagina["offset"])
+            puntero = "<(%s), >(%s), ^(%s)" % (destino, destino, destino)
+        else:
+            puntero = "$00, $00, $00"   # sin código: no hay nada que correr
+        out.append("    .word %-4d ; +0  el evento al que pertenece"
+                   % pagina["evento"])
+        out.append("    .byte %-4d ; +2  su número de página" % pagina["pagina"])
+        out.append("    .byte %-4d ; +3  qué la dispara" % pagina["trigger"])
+        out.append("    .word %-4d ; +4  switch que pide, o 0" % pagina["switch_a"])
+        out.append("    .word %-4d ; +6  el segundo, o 0" % pagina["switch_b"])
+        out.append("    .byte %s ; +8  su código" % puntero)
+        out.append("    .byte " + ",".join(["$00"] * (PAGINA_BYTES - 11)))
+    if not mapa["paginas"]:
+        out.append("    .byte $00")     # una etiqueta no puede quedar vacía
+    return "\n".join(out)
+
+
 def datos_del_mapa(mapa, numero):
     """Los bloques de datos de un mapa, con el número pegado a cada etiqueta."""
     above, sprite = mapa["above"], mapa["sprite"]
@@ -864,10 +903,12 @@ def datos_del_mapa(mapa, numero):
         ("bloque_pass", mapa["pass"]),
         ("npc_table", npc_bytes(sprite[3]) if sprite else b""),
         ("puertas", mapa["puertas"]),
+        ("evcodigo", mapa["evcodigo"]),
     ]
     out = [bloque("%s_%d" % (nombre, numero), datos) for nombre, datos in pares]
     # La grilla va aparte porque es la única que no se sube por DMA.
     out.append(bloque("map_celdas_%d" % numero, mapa["celdas"], alinear=2))
+    out.append(tabla_de_paginas(mapa, numero))
     return "\n".join(out)
 
 
@@ -900,12 +941,27 @@ def emit(path, mapas, inicial=0):
         "NPC_STRIDE  = %d\n"
         "NPC_MAX     = %d\n"
         "PUERTA_BYTES = %d\n"
+        "PAGINA_BYTES = %d\n"
+        "; Los opcodes del intérprete de eventos.\n"
+        "OP_FIN      = $%02X\n"
+        "OP_SWITCH   = $%02X\n"
+        "OP_TELEPORT = $%02X\n"
+        "OP_ESPERAR  = $%02X\n"
+        "OP_TINTE    = $%02X\n"
+        "TRIGGER_AUTOMATICO = %d\n"
+        "TINTE_NEUTRO = %d\n"
+        "; Un bit por switch. El más alto que el juego consulta es el 1003.\n"
+        "SWITCH_BYTES = %d\n"
         "; La capa del héroe, para ordenarlo contra los NPCs.\n"
         "HERO_LAYER  = %d\n\n"
         % (", ".join("%d %s" % (m["id"], m["nombre"]) for m in mapas),
            len(mapas), MAPA_STRIDE, inicial,
            VRAM_MAP, VRAM_ABOVE_MAP, MAP_LAYOUT, NPC_STRIDE, NPC_MAX,
-           PUERTA_BYTES, md_convert.LAYER_SAME))
+           PUERTA_BYTES, PAGINA_BYTES,
+           eventos.OP_FIN, eventos.OP_SWITCH, eventos.OP_TELEPORT,
+           eventos.OP_ESPERAR, eventos.OP_TINTE,
+           eventos.TRIGGER_AUTOMATICO, eventos.TINTE_NEUTRO, SWITCH_BYTES,
+           md_convert.LAYER_SAME))
 
     with open(path, "w") as handle:
         handle.write(cabecera)
@@ -1056,6 +1112,21 @@ def main():
                      ", %d a mapas que no están en la ROM" % afuera
                      if afuera else ""))
 
+        # Los eventos automáticos: sus páginas con las condiciones, y el código
+        # de las que se pueden ejecutar, todo seguido en un solo bloque.
+        paginas = eventos.paginas_del_mapa(mapa["game_map"], indices.get)
+        codigo = bytearray()
+        for pagina in paginas:
+            pagina["offset"] = len(codigo)
+            if pagina["codigo"]:
+                codigo += pagina["codigo"]
+        mapa["paginas"] = paginas
+        mapa["evcodigo"] = bytes(codigo)
+        corribles = sum(1 for p in paginas if p["codigo"])
+        if paginas:
+            print("  mapa %d: %d página(s) de evento automático, %d ejecutable(s)"
+                  % (mapa["id"], len(paginas), corribles))
+
     if not 0 <= args.inicial < len(mapas):
         sys.exit("--inicial %d pero hay %d mapas" % (args.inicial, len(mapas)))
     emit(args.output, mapas, args.inicial)
@@ -1201,6 +1272,10 @@ def convertir(renderer, map_id, args, inicio=None):
         "layout": vram_layout(len(tile_data) // BYTES_PER_TILE),
         "resumen": summary, "base": base,
         "puertas_crudas": md_convert.collect_doors(game_map),
+        # Se guarda el mapa entero porque las puertas y los eventos no se
+        # pueden resolver hasta que estén todos: los dos traducen ids de mapa a
+        # índices de la tabla.
+        "game_map": game_map,
     }
 
 
