@@ -91,8 +91,12 @@ MDMAEN   = $420B        ; arrancar
 ; capa de encima en BG2 prioridad 1, el orden de RM2k sale del hardware sin
 ; ningún truco. Los eventos marcados "above" van en objetos prioridad 2, que es
 ; lo único que queda por encima de BG2.
-OBJ_PRIORITY = $20      ; prioridad 1 en el byte de atributos
-OBJ_PRIORITY_ABOVE = $30
+; En el byte de atributos de OAM —vhoopppN— la prioridad son los bits 5 y 4, o
+; sea que el valor va corrido cuatro lugares: prioridad 1 es $10 y no $20. Con
+; $20 el héroe quedaba en prioridad 2, que en este orden está *adelante* de
+; BG2 1, y entonces se dibujaba encima de la capa que tenía que taparlo.
+OBJ_PRIORITY = $10      ; prioridad 1: por debajo de la capa de encima
+OBJ_PRIORITY_ABOVE = $20
 
 ; Las poses de RM2k son de 24x32 y la SNES no tiene ese tamaño, así que se usa
 ; el objeto de 32x32 y sobra un poco a los costados. El valor de OBSEL, que

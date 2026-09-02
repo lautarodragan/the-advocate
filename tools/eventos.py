@@ -182,7 +182,14 @@ def pagina_activa(paginas, evento, estado):
 
 
 def correr_automaticos(paginas, estado):
-    """Corre las páginas automáticas activas del mapa. Devuelve el salto."""
+    """Corre las páginas automáticas activas del mapa. Devuelve el salto.
+
+    El salto pendiente se borra al entrar, que es el `stz salto_hay` de la ROM:
+    sin eso, el primer mapa que teletransporta dejaría el salto puesto y el
+    mapa de destino saldría saltando de nuevo al mismo lado sin haber corrido
+    ningún evento.
+    """
+    estado.salto = None
     for evento in sorted({p["evento"] for p in paginas}):
         pagina = pagina_activa(paginas, evento, estado)
         if pagina is None or pagina["trigger"] != TRIGGER_AUTOMATICO:

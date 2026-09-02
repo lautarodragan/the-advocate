@@ -1059,10 +1059,11 @@ def npc_bytes(table):
         # sería siempre mayor y quedaría siempre adelante de todos.
         out += sort_key(npc["layer"], npc["y"] * 16).to_bytes(2, "little")
         out.append(npc["tile"] & 0xFF)
-        # vhoopppN: prioridad 2, la paleta, y el noveno bit del número de tile.
-        # Los eventos marcados "above" son los únicos que van por encima de la
-        # capa que tapa al héroe; el resto comparten prioridad con él.
-        prioridad = 0x30 if npc["layer"] == md_convert.LAYER_ABOVE else 0x20
+        # vhoopppN: la prioridad son los bits 5 y 4, así que el valor va corrido
+        # cuatro lugares. Los eventos marcados "above" van en prioridad 2, que
+        # es lo único que queda por encima de BG2 1; el resto comparten con el
+        # héroe la prioridad 1, y como esa capa los tapa, caminan por debajo.
+        prioridad = 0x20 if npc["layer"] == md_convert.LAYER_ABOVE else 0x10
         out.append(prioridad | ((npc["palette"] & 0x07) << 1)
                    | ((npc["tile"] >> 8) & 0x01))
     return bytes(out)

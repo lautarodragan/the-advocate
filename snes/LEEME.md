@@ -299,15 +299,30 @@ Los dos mapas tienen que estar en la ROM. Un teletransporte a un mapa que no
 entró no se puede compilar, y entonces la página entera no se emite: con el mapa
 4 solo, la pantalla se queda en negro, y eso es correcto.
 
-**Lo que la comparación todavía no cubre.** La referencia no corre los eventos al
-entrar a un mapa, así que `snes-hitos` no ve nada de esto: lo verifica a mano
-`snes-evento`, y la cuenta del tinte se verifica tiñendo con Python la misma
-captura de la consola sin teñir, que da cero pixeles distintos. Cerrar eso es lo
-que falta del hito.
+**Cómo se verifica.** La referencia entra a los mapas como entra la ROM: para
+al héroe donde lo dejó la puerta o el teletransporte que lo trajo, le corre los
+eventos automáticos del mapa, y si una página pide mudarse repite el ciclo con
+el mismo tope de ocho vueltas que la consola. Los switches y el tinte viven en
+un estado que sobrevive a los mapas, porque de eso depende qué página queda
+activa en el siguiente.
 
-Que no estuviera cerrado costó caro. El camino del tinte y del teletransporte
-por evento no lo ejecutaba **ninguna** prueba, y tenía tres errores encadenados,
-cada uno tapando al siguiente:
+El tinte se aplica al final, sobre la imagen ya compuesta. En la consola no es
+un efecto de pantalla sino una transformación de CGRAM, y como cada pixel del
+fondo, de la capa de encima y de los sprites sale de una entrada de CGRAM,
+teñir cada color del render da lo mismo —siempre que la cuenta se haga sobre
+los 15 bits y no sobre los 24 del PNG, que redondearían distinto—.
+
+Eso es `just snes-evento`, y está en `snes-hitos`:
+
+    mapas 4 y 1 en la ROM, arrancando en el 4
+    la consola contra la referencia: 0 pixeles distintos de 57344
+
+En una sola comparación entran la selección de página, los dos switches, el
+tinte, el teletransporte, y que el héroe quede tapado por la capa de encima en
+la celda donde lo deja.
+
+Antes de que existiera, este camino no lo ejecutaba **ninguna** prueba, y tenía
+cuatro errores. Los tres primeros encadenados, cada uno tapando al siguiente:
 
 1. `poner_switch` pisaba `Y`, que es el cursor del bytecode del intérprete. Las
    dos páginas que hacen algo empiezan prendiendo switches, así que el bucle
@@ -320,10 +335,19 @@ cada uno tapando al siguiente:
 3. El azul se corría cinco lugares en vez de diez, y salía en los bits del
    verde. La pantalla se teñía de verde en lugar de azul.
 
-Los tres se veían apenas se corría la página, y no se veían de ninguna otra
-forma. La lección es la de siempre en este repo, pero al revés: acá el problema
-no fue que la referencia y la ROM se equivocaran igual, sino que **no había
-ninguna referencia que ejecutar**.
+Y el cuarto, que apareció recién cuando hubo una referencia contra la cual
+comparar: el héroe se dibujaba **por encima** de la capa que tiene que taparlo.
+La prioridad de un objeto son los bits 5 y 4 del byte de atributos, así que el
+valor va corrido cuatro lugares, y `$20` no es prioridad 1 sino 2 —que en el
+orden del modo 3 está adelante de BG2 1 y no atrás—. Estaba escrito igual de
+mal en el conversor y en la ROM, o sea que las dos partes coincidían y sólo se
+veía parándose debajo de la capa de encima. Ninguna caminata lo hacía: todas
+terminan contra un borde del mapa.
+
+Los cuatro se ven apenas se corre la página, y no se ven de ninguna otra forma.
+La lección es la de siempre en este repo, pero al revés: acá el problema no fue
+que la referencia y la ROM se equivocaran igual, sino que **no había ninguna
+referencia que ejecutar**.
 
 ### Cómo se verifica
 
@@ -747,6 +771,12 @@ del acumulador, incluido el alto, que con A en 8 bits nadie tocó y trae lo que
 dejó la operación anterior. Una cuenta de direcciones hecha en 8 bits y cerrada
 con `tax` funciona mientras ese byte alto sea cero.
 
+**La prioridad de un objeto son los bits 5 y 4 del byte de atributos**, no los
+0 y 1: `vhoopppN`. Escribir `$20` creyendo que es prioridad 1 da prioridad 2, y
+en el modo 3 el orden es `objetos 3 / BG1 1 / objetos 2 / BG2 1 / objetos 1 /
+BG1 0 / objetos 0`, así que ese lugar de más cruza justo la capa de encima. El
+sprite se sigue viendo, sólo que del lado equivocado de una capa.
+
 **Un `jsr` te devuelve `X` e `Y` como se le da la gana.** No hay convención de
 llamada acá: cada rutina usa los índices para lo suyo. Cuando un registro es un
 cursor que tiene que sobrevivir a una llamada —el del bytecode del intérprete lo
@@ -766,17 +796,19 @@ comparación.
 
 * **Que un NPC frene al héroe.** En RM2k los eventos de la capa del héroe
   bloquean el paso; la ROM todavía no lo mira. La tabla ya trae el dato.
-* **Que la referencia corra los eventos al entrar a un mapa.** Es la otra mitad
-  del hito: hasta que exista, `snes-hitos` no cubre el intérprete y el tinte se
-  verifica a mano. Los tres errores de arriba estaban ahí porque nada los corría.
 * **Los teletransportes que siguen sin resolverse.** Los que están adentro de
   cinemáticas con variables y condiciones que todavía no modelamos. El del mapa
   donde el juego arranca ya no: es automático, entra con los cinco comandos que
   la ROM entiende, y `Blank (Leave START here)` ahora se sale solo.
-* **El héroe y la capa de encima.** En el mapa 1, parado en la celda (7,65) —a
-  donde teletransporta el evento de apertura—, la ROM dibuja al héroe por encima
-  del caño y la referencia lo esconde entero detrás. Son 284 pixeles y no lo
-  toca ninguna prueba de `snes-hitos`. Se ve con `just snes-parado 1 7 65`.
+* **La cinemática de apertura.** El mapa 4 prende el switch 20, que es la
+  condición de la página que abre el mapa 1: el enganche ya funciona, y si esa
+  página se pudiera correr, arrancaría sola. No se puede por dos motivos, los
+  dos de la regla de todo o nada: la condición pide `actor` —que el héroe 10
+  esté en el grupo, y todavía no hay grupo— y entre sus comandos hay cuatro
+  que no modelamos: `PlayBGM`, `WeatherEffects`, `MoveEvent` y
+  `ChangePartyMembers`.
+  Mientras tanto el héroe queda parado adentro del caño, que es donde RM2k
+  también lo deja: ahí no camina nadie, sigue el script.
 * **El mapa entero en un cartucho.** Los 328 mapas suman 3,7 MB y LoROM llega a
   4, así que hoy entra un puñado por ROM y se elige al compilar. La salida
   probable es compartir los tiles entre los mapas que usan el mismo chipset:

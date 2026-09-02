@@ -14,6 +14,11 @@ personaje queda en su pose parada, que también es predecible.
 Los colores del personaje son los ya fusionados a 15: el sprite de la consola
 tiene 4 bits por pixel y no entran los 36 que trae el CharSet.
 
+Y tampoco alcanza con dibujar el mapa que se pidió. Al entrar a uno, la ROM le
+corre sus eventos automáticos, y ésos prenden switches, tiñen la pantalla y
+teletransportan: acá se corre el mismo bytecode, con el mismo estado, para
+terminar dibujando el mapa donde la consola realmente terminó.
+
 Uso:
     python3 tools/snes_expect.py --map-id 7 --walk right -o esperado.png
 """
@@ -26,6 +31,7 @@ from PIL import Image
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+import eventos
 import lcf
 import md_convert
 import snes_convert
@@ -54,13 +60,28 @@ WALK = {"none": None, "up": (0, -1), "down": (0, 1),
 
 
 class Mundo:
-    """Los mapas que entraron en la ROM, cargados a medida que se los pisa."""
+    """Los mapas que entraron en la ROM, cargados a medida que se los pisa.
+
+    `ids` es la tabla de la ROM en su orden, porque el orden es dato: un
+    teletransporte compilado no guarda el número de mapa de RM2k sino el índice
+    en esta tabla. Si acá estuviera en otro orden, el mismo bytecode llevaría a
+    otro mapa y la comparación mediría dos ROMs distintas.
+    """
 
     def __init__(self, renderer, game_dir, ids):
         self.renderer = renderer
         self.game_dir = game_dir
         self.ids = list(ids)
+        self.indices = {map_id: i for i, map_id in enumerate(self.ids)}
         self.cache = {}
+        self.paginas_cache = {}
+
+    def paginas(self, map_id):
+        """Las páginas de evento del mapa, compiladas como las compiló la ROM."""
+        if map_id not in self.paginas_cache:
+            self.paginas_cache[map_id] = eventos.paginas_del_mapa(
+                self.mapa(map_id)[0], self.indices.get)
+        return self.paginas_cache[map_id]
 
     def mapa(self, map_id):
         if map_id not in self.cache:
@@ -75,29 +96,68 @@ class Mundo:
         return self.cache[map_id]
 
 
-def hero_position(mundo, map_id, direction_name):
+# El mismo tope que `saltos_restantes` en la ROM: dos mapas que se
+# teletransporten entre sí colgarían a los dos lados, y una prueba colgada no
+# le dice nada a nadie.
+SALTOS_MAX = 8
+
+
+def entrar_al_mapa(mundo, estado, map_id, entrada=None):
+    """Entra a un mapa y le corre los eventos automáticos, como `cargar_mapa`.
+
+    Primero se para al héroe —donde diga la puerta o el teletransporte que nos
+    trajo, y si no, donde el mapa lo pone— y recién después corren los eventos,
+    que es el orden de la ROM: una página que teletransporta pisa esa posición,
+    pero una que sólo tiñe la deja donde estaba.
+
+    Si un evento pide mudarse, el ciclo se repite acá y no adentro del
+    intérprete, con el mismo tope de vueltas que la consola.
+
+    `estado` sobrevive a los mapas: los switches que prende una página son los
+    que deciden qué página está activa en el siguiente, y el tinte se queda
+    puesto hasta que otro lo cambie.
+    """
+    saltos = SALTOS_MAX
+    while True:
+        game_map, passable, ocupadas, _puertas = mundo.mapa(map_id)
+        if entrada is None:
+            x, y = snes_convert.inicio_del_mapa(mundo.renderer, map_id,
+                                                passable, game_map.width,
+                                                game_map.height, ocupadas)
+        else:
+            x, y = entrada
+            entrada = None
+        salto = eventos.correr_automaticos(mundo.paginas(map_id), estado)
+        if salto is None:
+            return map_id, x, y
+        saltos -= 1
+        if not saltos:
+            return map_id, x, y     # demasiadas vueltas: se queda en este mapa
+        map_id = mundo.ids[salto[0]]
+        entrada = (salto[1], salto[2])
+
+
+def hero_position(mundo, estado, map_id, direction_name, inicio=None):
     """En qué mapa y en qué celda termina el héroe, y hacia dónde mira.
 
-    No se estima: se camina con las mismas reglas que la ROM, de a un paso, y
-    entre paso y paso se mira si la celda tiene una puerta —que es cuando la
-    consola la mira—. Si la tiene, se cambia de mapa y se sigue caminando desde
-    donde deja, con la cruceta todavía apretada.
+    No se estima: se entra al mapa como entra la ROM —corriéndole los eventos—
+    y después se camina con sus mismas reglas, de a un paso, mirando entre paso
+    y paso si la celda tiene una puerta, que es cuando la consola la mira. Si la
+    tiene, se cambia de mapa —y al mapa nuevo también le corren sus eventos— y
+    se sigue caminando desde donde deja, con la cruceta todavía apretada.
 
     Devuelve (mapa, x, y, dirección) con x e y en pixeles.
     """
-    game_map, passable, ocupadas, puertas = mundo.mapa(map_id)
-    start = snes_convert.inicio_del_mapa(mundo.renderer, map_id, passable,
-                                         game_map.width, game_map.height,
-                                         ocupadas)
+    map_id, x, y = entrar_al_mapa(mundo, estado, map_id, inicio)
     step = WALK[direction_name]
     direction = DIRECTIONS.get(direction_name, DIRECTIONS["down"])
     if step is None:
-        return map_id, start[0] * TILE, start[1] * TILE, DIRECTIONS["down"]
+        return map_id, x * TILE, y * TILE, DIRECTIONS["down"]
 
-    x, y = start
     # El tope es por si dos puertas se apuntan entre sí: la ROM se quedaría
     # rebotando y la referencia también, y colgar una prueba no ayuda a nadie.
     for _ in range(10000):
+        game_map, passable, _ocupadas, puertas = mundo.mapa(map_id)
         # Las celdas ocupadas sólo sirven para elegir dónde arranca. No se le
         # pasan a la caminata: en RM2k un NPC bloquea el paso, pero la ROM
         # todavía no lo mira, y modelar acá algo que la consola no hace es
@@ -109,10 +169,38 @@ def hero_position(mundo, map_id, direction_name):
         puerta = puertas.get((x, y))
         if puerta is None:
             continue
-        map_id = puerta["mapa"]
-        x, y = puerta["destino_x"], puerta["destino_y"]
-        game_map, passable, ocupadas, puertas = mundo.mapa(map_id)
+        map_id, x, y = entrar_al_mapa(mundo, estado, puerta["mapa"],
+                                      (puerta["destino_x"], puerta["destino_y"]))
     return map_id, x * TILE, y * TILE, direction
+
+
+def tenir_imagen(view, tinte):
+    """El tinte del evento, aplicado color por color.
+
+    La consola no tiñe la pantalla sino CGRAM, y como cada pixel del fondo, de
+    la capa de encima y de los sprites sale de una entrada de CGRAM, teñir cada
+    color de la imagen ya compuesta da exactamente lo mismo.
+
+    La cuenta es la de `eventos.tenir`, con enteros y sobre los 15 bits. Hacerla
+    sobre los 24 del PNG redondearía distinto y la comparación fallaría por el
+    redondeo en vez de por la consola.
+    """
+    pixels = view.load()
+    memo = {}
+    for y in range(view.height):
+        for x in range(view.width):
+            color = pixels[x, y]
+            nuevo = memo.get(color)
+            if nuevo is None:
+                r, g, b = color[:3]
+                palabra = eventos.tenir(
+                    (r >> 3) | ((g >> 3) << 5) | ((b >> 3) << 10), tinte)
+                nuevo = ((palabra & 0x1F) << 3,
+                         ((palabra >> 5) & 0x1F) << 3,
+                         ((palabra >> 10) & 0x1F) << 3) + color[3:]
+                memo[color] = nuevo
+            pixels[x, y] = nuevo
+    return view
 
 
 def camera_for(x, y, map_w, map_h):
@@ -195,10 +283,14 @@ def main():
     parser.add_argument("--game-dir", default=GAME_DIR)
     parser.add_argument("--saltar", help="archivo donde anotar las líneas que "
                         "pasan el límite de sprites")
-    parser.add_argument("--mapas", nargs="+", type=int, metavar="ID",
+    parser.add_argument("--mapas", nargs="*", type=int, default=[], metavar="ID",
                         help="los otros mapas que entraron en la ROM, en el "
-                             "orden de la tabla. Sin esto una puerta no lleva "
-                             "a ningún lado, que es lo que pasa en la consola")
+                             "mismo orden que le pasaste al conversor. Sin esto "
+                             "una puerta no lleva a ningún lado, que es lo que "
+                             "pasa en la consola")
+    parser.add_argument("--inicial", type=int, default=0, metavar="N",
+                        help="en qué índice de la tabla arranca la ROM, igual "
+                             "que en el conversor")
     parser.add_argument("--hero-tile", nargs=2, type=int, metavar=("TX", "TY"),
                         help="poner al héroe en esta celda en vez de calcularla; "
                              "sirve para averiguar dónde lo dejó la ROM")
@@ -208,19 +300,29 @@ def main():
     args = parser.parse_args()
 
     renderer = Renderer(args.game_dir)
-    # El mundo son los mapas que entraron en la ROM, en el mismo orden. Sin
-    # --mapas es uno solo y no hay puerta que lleve a ningún lado, que es como
-    # se comportaba esto antes de que hubiera varios.
-    mundo = Mundo(renderer, args.game_dir, [args.map_id] + (args.mapas or []))
+    # El mundo son los mapas que entraron en la ROM, en el mismo orden y armado
+    # con la misma regla que usa el conversor, incluido que un mapa repetido en
+    # --mapas no entra dos veces. Sin --mapas es uno solo y no hay puerta que
+    # lleve a ningún lado, que es como se comportaba esto antes de que hubiera
+    # varios.
+    tabla = [args.map_id] + [m for m in args.mapas if m != args.map_id]
+    if not 0 <= args.inicial < len(tabla):
+        sys.exit("--inicial %d pero la tabla tiene %d mapas"
+                 % (args.inicial, len(tabla)))
+    mundo = Mundo(renderer, args.game_dir, tabla)
 
-    # Adónde se llega es lo primero: si la caminata cruza una puerta, el mapa
-    # que hay que dibujar no es el que se pidió.
-    if args.hero_tile:
-        map_id = args.map_id
-        x, y = args.hero_tile[0] * TILE, args.hero_tile[1] * TILE
-        direction = DIRECTIONS[args.dir or "down"]
-    else:
-        map_id, x, y, direction = hero_position(mundo, args.map_id, args.walk)
+    # Los switches arrancan apagados y la pantalla sin teñir, como una partida
+    # nueva de RM2k. De acá en adelante el estado lo mueven los eventos.
+    estado = eventos.Estado()
+
+    # Adónde se llega es lo primero: entre los eventos del arranque y las
+    # puertas que cruce la caminata, el mapa que hay que dibujar bien puede no
+    # ser el que se pidió.
+    inicio = tuple(args.hero_tile) if args.hero_tile else None
+    map_id, x, y, direction = hero_position(mundo, estado, tabla[args.inicial],
+                                            args.walk, inicio)
+    if args.hero_tile and args.dir:
+        direction = DIRECTIONS[args.dir]
 
     game_map = mundo.mapa(map_id)[0]
     base, above_img = renderer.render_layers(game_map)
@@ -291,10 +393,18 @@ def main():
         with open(args.saltar, "w") as handle:
             handle.write("".join("%d\n" % y for y in excedidas))
 
+    # El tinte va al final, sobre todo lo que se dibujó: en la consola es una
+    # transformación de CGRAM, y CGRAM la comparten el fondo, la capa de encima
+    # y los sprites.
+    view = tenir_imagen(view, estado.tinte)
+
     view.convert("RGB").save(args.output)
-    print("esperado -> %s: héroe en (%d,%d) mirando %s, cámara en (%d,%d)"
-          % (args.output, x, y, args.walk if args.walk != "none" else "abajo",
-             cam_x, cam_y))
+    print("esperado -> %s: mapa %d, héroe en (%d,%d) mirando %s, cámara en"
+          " (%d,%d)%s"
+          % (args.output, map_id, x, y,
+             args.walk if args.walk != "none" else "abajo", cam_x, cam_y,
+             "" if estado.tinte == (eventos.TINTE_NEUTRO,) * 3
+             else ", tinte %d/%d/%d" % estado.tinte))
 
 
 if __name__ == "__main__":

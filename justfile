@@ -166,9 +166,10 @@ snes-compare nombre="mapa" x="0" y="0":
 # Camina en una dirección hasta chocar contra el borde del mapa y compara lo que
 # la consola muestra contra lo que Python calcula que tendría que mostrar:
 # el mapa, la cámara siguiendo al héroe, y el héroe en su pose parada.
-snes-walk mapa="7" direccion="none" segundos="8":
+snes-walk mapa="7" direccion="none" segundos="8" mapas="" inicial="0":
   just snes-shot {{direccion}} {{segundos}} "$(just _tecla {{direccion}})"
   python3 tools/snes_expect.py --map-id {{mapa}} --walk {{direccion}} \
+      --mapas {{mapas}} --inicial {{inicial}} \
       --saltar snes/shots/saltar-{{direccion}}.txt \
       -o snes/shots/esperado-{{direccion}}.png
   python3 tools/snes_compare.py snes/shots/{{direccion}}.png \
@@ -212,18 +213,25 @@ snes-evento origen="4" destino="1":
   python3 tools/snes_convert.py --map-id {{origen}} --mapas {{destino}}
   just snes-build
   just snes-shot evento 4 ""
+  python3 tools/snes_expect.py --map-id {{origen}} --mapas {{destino}} \
+      --saltar snes/shots/saltar-evento.txt \
+      -o snes/shots/esperado-evento.png
+  python3 tools/snes_compare.py snes/shots/evento.png \
+      snes/shots/esperado-evento.png \
+      --saltar snes/shots/saltar-evento.txt \
+      -o snes/shots/comparacion-evento.png
 
 # Varios mapas en la misma ROM. Lo que prueba no es que cada uno se vea bien
 # —eso ya lo cubre snes-hitos— sino que se vea bien cuando su registro no está
 # al principio de la tabla: con el índice 0 el desplazamiento es cero y
 # cualquier cuenta mal hecha da el resultado correcto por casualidad.
-snes-varios primero="18" otros="7 19" indice="2" mapa="19":
+snes-varios primero="18" otros="7 19" indice="2":
   mkdir -p snes/shots
   python3 tools/snes_convert.py --map-id {{primero}} --mapas {{otros}} \
       --inicial {{indice}}
   just snes-build
-  just snes-walk {{mapa}} none 8
-  just snes-walk {{mapa}} down 8
+  just snes-walk {{primero}} none 8 "{{otros}}" {{indice}}
+  just snes-walk {{primero}} down 8 "{{otros}}" {{indice}}
 
 # Planta al héroe en una celda elegida y compara sin caminar. Llegar a un lugar
 # puntual caminando depende de cuántos segundos se mantenga la cruceta, que es
@@ -281,6 +289,13 @@ snes-recorrido desde="66":
 # registro no está al principio de la tabla, y que cruzar una puerta deje la
 # pantalla donde tiene que quedar.
 #
+# Y el último es el intérprete de eventos: la ROM arranca en el mapa 4, corre
+# la página que abre el juego —dos switches, un tinte y un teletransporte— y
+# tiene que terminar en el mapa 1, teñida, con el héroe en la celda que dice el
+# teletransporte y tapado por la capa de encima. La referencia corre el mismo
+# bytecode, así que lo que se compara es que las dos implementaciones del
+# intérprete estén de acuerdo, no que una de las dos ande.
+#
 # Los segundos son cuánto se mantiene la cruceta: tiene que alcanzar para
 # cruzar el mapa a 2 pixeles por cuadro.
 snes-hitos:
@@ -296,6 +311,7 @@ snes-hitos:
   just snes-parado 1 75 90 medias
   just snes-varios
   just snes-puerta
+  just snes-evento
 
 # El héroe: parado y caminando en las cuatro direcciones.
 snes-heroe mapa="7" segundos="8":
