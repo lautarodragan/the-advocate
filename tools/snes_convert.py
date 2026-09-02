@@ -438,35 +438,92 @@ def convert(image):
     return bytes(tile_data), cram, tilemap, summary
 
 
-# El tilemap del PPU se arma con "pantallas" de 32x32 celdas encadenadas en
-# VRAM: una sola, dos al lado, dos abajo, o cuatro. El valor va en los dos bits
-# bajos de BG1SC.
-SCREEN = 32
-LAYOUTS = {(1, 1): 0, (2, 1): 1, (1, 2): 2, (2, 2): 3}
+# --- el mapa como bloques de 16x16 -----------------------------------------
+# El tilemap del PPU no pasa de 64x64 celdas, y encima hay que repartir la VRAM
+# con los tiles, así que la ventana que se le deja son 64x32: 512x256 pixeles
+# contra los 256x224 de la pantalla. Los mapas del juego llegan a 1000x80
+# celdas, o sea que el mapa entero no está nunca en la VRAM: la ROM va
+# redibujando la columna y la fila que entran mientras la cámara se mueve.
+#
+# Lo que se guarda en la ROM tampoco es el tilemap expandido. Una celda de 16x16
+# de RM2k son cuatro celdas de 8x8 de la SNES, y es la unidad con la que el
+# juego fue dibujado: se repite muchísimo. Guardando un índice a una tabla de
+# bloques, el mapa más pesado pasa de 175 KB —más que la ROM entera— a 40.
+#
+# El bloque lleva las dos capas juntas y la pasabilidad. Que la pasabilidad
+# entre en el bloque no es gratis: dos celdas que se dibujan igual podrían
+# tener permisos distintos si vinieran de tiles distintos del ChipSet, así que
+# va en la clave y se separan solas.
+WINDOW_W, WINDOW_H = 64, 32     # la ventana de tilemap que vive en la VRAM
+BANK_SIZE = 32 * 1024           # lo que direcciona un banco de LoROM
+MAP_LAYOUT = 1                  # dos pantallas de 32x32 al lado, que es 64x32
+BLOCK_BYTES = 16                # cuatro celdas de BG1 y cuatro de BG2
+
+# --- el reparto de la VRAM --------------------------------------------------
+# Las 64 KB no se reparten como uno quiera: la base de los tiles de los sprites
+# va de a 16 KB, la de cada fondo de a 8 KB y la de cada tilemap de a 2 KB. Con
+# los dos tilemaps clavados al final —4 KB cada uno, que es lo que mide una
+# ventana de 64x32— quedan 56 KB para los tres bancos de tiles, y las
+# granularidades dejan exactamente dos cortes posibles:
+#
+#   ancho    fondo 512 tiles (32 KB) | sprites 512 (16 KB) | encima 256 (8 KB)
+#   fondo    fondo 640 tiles (40 KB) | encima 256 (8 KB)   | sprites 256 (8 KB)
+#
+# Se usa el primero salvo que el mapa pida más de 512 tiles de fondo, que en
+# todo el juego son tres. El segundo les da 128 tiles más al fondo a costa de la
+# mitad de los sprites, y esos tres mapas tienen pocos personajes.
+#
+# Cuál toca lo decide el conversor y viaja en el .inc: la ROM no elige nada.
+LAYOUT_ANCHO = {"tiles": (0x0000, 512), "sprites": (0x4000, 512),
+                "encima": (0x6000, 256)}
+LAYOUT_FONDO = {"tiles": (0x0000, 640), "encima": (0x5000, 256),
+                "sprites": (0x6000, 256)}
+VRAM_MAP = 0x7000
+VRAM_ABOVE_MAP = 0x7800
+
+# La tabla de bloques se lee con `lda tabla, x`, o sea que vive en el banco 0
+# junto con el código.
+MAX_BLOCKS = 1024
 
 
-def screen_order(tilemap):
-    """El tilemap acomodado como lo espera la VRAM, con su valor de BG1SC.
+def vram_layout(tiles):
+    """Cuál de los dos repartos de VRAM le toca a un mapa de estos tiles."""
+    if tiles > LAYOUT_ANCHO["tiles"][1]:
+        return LAYOUT_FONDO
+    return LAYOUT_ANCHO
 
-    Las pantallas no van una al lado de la otra en memoria: cada una ocupa sus
-    1024 celdas seguidas, primero la de arriba a la izquierda, después la de su
-    derecha, y recién ahí las de abajo. Acomodarlo acá le ahorra a la ROM tener
-    que copiar fila por fila, y le deja un DMA único.
+
+def build_blocks(tilemap, above_tilemap, passable, width, height):
+    """El mapa como índices a bloques de 16x16, con su tabla.
+
+    Devuelve (celdas, tabla de bloques, pasabilidad por bloque). Las celdas van
+    fila por fila, que es como las recorre la ROM.
     """
-    height, width = len(tilemap), len(tilemap[0])
-    across = 1 if width <= SCREEN else 2
-    down = 1 if height <= SCREEN else 2
-    if width > 2 * SCREEN or height > 2 * SCREEN:
-        raise SystemExit("el mapa no entra en un tilemap de 64x64 celdas; "
-                         "para mapas más grandes hace falta ir redibujando")
+    blocks, cells = {}, []
+    for by in range(height):
+        for bx in range(width):
+            key = (tuple(tilemap[by * 2 + dy][bx * 2 + dx]
+                         for dy in (0, 1) for dx in (0, 1)),
+                   tuple(above_tilemap[by * 2 + dy][bx * 2 + dx]
+                         for dy in (0, 1) for dx in (0, 1)),
+                   passable[by * width + bx])
+            if key not in blocks:
+                blocks[key] = len(blocks)
+            cells.append(blocks[key])
 
-    cells = [0] * (across * down * SCREEN * SCREEN)
-    for y, row in enumerate(tilemap):
-        for x, cell in enumerate(row):
-            screen = (y // SCREEN) * across + (x // SCREEN)
-            cells[screen * SCREEN * SCREEN
-                  + (y % SCREEN) * SCREEN + (x % SCREEN)] = cell
-    return cells, LAYOUTS[(across, down)]
+    if len(blocks) > MAX_BLOCKS:
+        raise SystemExit("el mapa usa %d bloques distintos y la tabla no puede "
+                         "pasar de %d" % (len(blocks), MAX_BLOCKS))
+
+    table = bytearray(BLOCK_BYTES * len(blocks))
+    pass_bytes = bytearray(len(blocks))
+    for (base, above, permisos), number in blocks.items():
+        entries = list(base) + list(above)
+        for i, cell in enumerate(entries):
+            table[number * BLOCK_BYTES + i * 2:
+                  number * BLOCK_BYTES + i * 2 + 2] = cell.to_bytes(2, "little")
+        pass_bytes[number] = permisos
+    return cells, bytes(table), bytes(pass_bytes)
 
 
 def unpack_tile(data, planes=8):
@@ -566,24 +623,32 @@ def emit(path, name, tile_data, cram, tilemap, sprite=None, collision=None,
     """El .inc que arma w65.py junto con main.s."""
     height, width = len(tilemap), len(tilemap[0])
 
-    def block(label, data, per_line=16):
+    def block(label, data, per_line=16, alinear=None):
         # Cada bloque se declara antes de emitirlo: todos se suben por DMA, y un
-        # DMA que cruce de banco lee basura de la mitad para adelante.
-        out = [".bloque %d" % len(data), "%s:" % label]
+        # DMA que cruce de banco lee basura de la mitad para adelante. La grilla
+        # de celdas no se sube por DMA sino que se recorre con un puntero, así
+        # que no le hace falta el banco entero: sólo que sus palabras no queden
+        # partidas entre el final de un banco y el principio del siguiente.
+        out = [".alinear %d" % alinear if alinear else ".bloque %d" % len(data),
+               "%s:" % label]
         for i in range(0, len(data), per_line):
             out.append("    .byte " + ",".join("$%02X" % b
                                                for b in data[i:i + per_line]))
         return "\n".join(out)
 
-    cells, layout = screen_order(tilemap)
+    cells, blocks, block_pass = build_blocks(tilemap, above[2], collision[0],
+                                             collision[3], collision[4])
     words = bytearray()
     for cell in cells:
         words += cell.to_bytes(2, "little")
 
-    above_cells = bytearray()
-    if above:
-        for cell in screen_order(above[2])[0]:
-            above_cells += cell.to_bytes(2, "little")
+    layout = vram_layout(len(tile_data) // BYTES_PER_TILE)
+    for cuantos, nombre in ((len(tile_data) // BYTES_PER_TILE, "tiles"),
+                            (len(above[0]) // 32, "encima"),
+                            (len(sprite[0]) // 32 if sprite else 0, "sprites")):
+        if cuantos > layout[nombre][1]:
+            raise SystemExit("con este reparto de VRAM, %s necesita %d tiles y "
+                             "entran %d" % (nombre, cuantos, layout[nombre][1]))
 
     colors = bytearray()
     for word in cram:
@@ -593,12 +658,28 @@ def emit(path, name, tile_data, cram, tilemap, sprite=None, collision=None,
         handle.write(
             "; Generado por tools/snes_convert.py. No editar.\n"
             "; Mapa: %s\n\n"
+            "; El mapa en celdas de 8x8, que es lo que mide el tilemap, y en\n"
+            "; celdas de 16x16, que es la unidad de RM2k y la del bloque.\n"
             "MAP_WIDTH   = %d\n"
             "MAP_HEIGHT  = %d\n"
+            "MAP_BW      = %d\n"
+            "MAP_BH      = %d\n"
             "MAP_TILES   = %d\n"
             "MAP_CGRAM   = %d\n"
             "MAP_LAYOUT  = %d\n"
-            "MAP_CELLS   = %d\n"
+            "MAP_BLOCKS  = %d\n"
+            "; El reparto de la VRAM, en palabras. Sale de cuántos tiles pide\n"
+            "; este mapa: la consola no elige nada, sólo escribe estos valores.\n"
+            "VRAM_TILES     = $%04X\n"
+            "VRAM_ABOVE     = $%04X\n"
+            "VRAM_SPRITE    = $%04X\n"
+            "VRAM_MAP       = $%04X\n"
+            "VRAM_ABOVE_MAP = $%04X\n"
+            "; OBSEL: objetos de 8x8 y 32x32, y la página de sus tiles.\n"
+            "OBSEL_VALUE    = $%02X\n"
+            "; BG12NBA: la página de los tiles de BG1 en el nibble bajo y la\n"
+            "; de los de BG2 en el alto, de a 4K palabras cada una.\n"
+            "BG12NBA_VALUE  = $%02X\n"
             "; Hasta dónde puede llegar la cámara sin salirse del mapa, en\n"
             "; pixeles: el ancho del mapa menos el de la pantalla.\n"
             "CAM_MAX_X   = %d\n"
@@ -609,11 +690,6 @@ def emit(path, name, tile_data, cram, tilemap, sprite=None, collision=None,
             "HERO_MAX_Y  = %d\n"
             "HERO_START_X = %d\n"
             "HERO_START_Y = %d\n"
-            "; La tabla de pasabilidad tiene un byte por celda de 16x16, con\n"
-            "; los cuatro bits de dirección ya resueltos. La ROM sólo la mira.\n"
-            "PASS_WIDTH  = %d\n"
-            "PASS_HEIGHT = %d\n"
-            "HERO_START_TILE = %d\n"
             "SPRITE_TILES = %d\n"
             "SPRITE_CGRAM = %d\n"
             "ABOVE_TILES  = %d\n"
@@ -623,18 +699,28 @@ def emit(path, name, tile_data, cram, tilemap, sprite=None, collision=None,
             "NPC_STRIDE   = %d\n"
             "; La capa del héroe, para ordenarlo contra los NPCs.\n"
             "HERO_LAYER   = %d\n\n"
-            # map_pass va en TABLAS, que el enlazador pone en el banco 0:
-            # la ROM la recorre con `lda map_pass, x`, y ese modo direcciona el
-            # banco de datos, no el banco donde esté la tabla.
-            '.segment "RODATA"\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n'
-            '.segment "TABLAS"\n%s\n%s\n'
-            % (name, width, height, len(tile_data) // BYTES_PER_TILE, len(cram),
-               layout, len(cells),
+            # La tabla de bloques y la de pasabilidad van en TABLAS, que el
+            # enlazador pone en el banco 0: la ROM las recorre con
+            # `lda tabla, x`, y ese modo direcciona el banco de datos, no el
+            # banco donde esté la tabla.
+            #
+            # La grilla de celdas no: llega a 40 KB y no entra en un banco. Se
+            # recorre con un puntero de 24 bits, y sólo pide arrancar en una
+            # dirección par, para que ninguna de sus palabras quede partida
+            # entre el $FFFF de un banco y el $8000 del siguiente.
+            '.segment "RODATA"\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n'
+            '.segment "TABLAS"\n%s\n%s\n%s\n'
+            % (name, width, height, collision[3], collision[4],
+               len(tile_data) // BYTES_PER_TILE, len(cram),
+               MAP_LAYOUT, len(blocks) // BLOCK_BYTES,
+               layout["tiles"][0], layout["encima"][0], layout["sprites"][0],
+               VRAM_MAP, VRAM_ABOVE_MAP,
+               0x20 | (layout["sprites"][0] // 0x2000),
+               ((layout["encima"][0] // 0x1000) << 4)
+               | (layout["tiles"][0] // 0x1000),
                max(0, width * CELL - 256), max(0, height * CELL - 224),
                width * CELL - 16, height * CELL - 16,
                collision[1] * 16, collision[2] * 16,
-               collision[3], collision[4],
-               collision[2] * collision[3] + collision[1],
                len(sprite[0]) // 32 if sprite else 0,
                # Una más que los colores: el índice 0 del sprite es
                # transparente y también ocupa su lugar en CGRAM.
@@ -646,13 +732,13 @@ def emit(path, name, tile_data, cram, tilemap, sprite=None, collision=None,
                NPC_STRIDE, md_convert.LAYER_SAME,
                block("map_tiles", tile_data),
                block("map_cgram", colors),
-               block("map_tilemap", words),
                block("above_tiles", above[0] if above else b""),
                block("above_cgram", above[1] if above else b""),
-               block("above_tilemap", above_cells),
                block("sprite_tiles", sprite[0] if sprite else b""),
                block("sprite_cgram", sprite_colors_bytes(sprite)),
-               block("map_pass", collision[0] if collision else b""),
+               block("map_celdas", words, alinear=2),
+               block("map_bloques", blocks),
+               block("bloque_pass", block_pass),
                block("npc_table", npc_bytes(sprite[3]) if sprite else b"")))
 
 
@@ -803,11 +889,22 @@ def main():
     print("  capa por encima del héroe: %d tiles, %d colores"
           % (len(above_data[0]) // 32, len(above_data[1]) // 2))
 
+    celdas, bloques, _pass = build_blocks(tilemap, above_data[2], passable,
+                                          game_map.width, game_map.height)
+    print("  el mapa entra en %d bloques de 16x16 para %d celdas: %d B de "
+          "grilla más %d B de tabla, contra los %d B del tilemap expandido"
+          % (len(bloques) // BLOCK_BYTES, len(celdas), 2 * len(celdas),
+             len(bloques), 2 * summary["celdas"]))
+    ventanas_x = (len(tilemap[0]) + WINDOW_W - 1) // WINDOW_W
+    ventanas_y = (len(tilemap) + WINDOW_H - 1) // WINDOW_H
+    if ventanas_x > 1 or ventanas_y > 1:
+        print("  no entra en la ventana de %dx%d: la ROM va a ir redibujando"
+              % (WINDOW_W, WINDOW_H))
+
     emit(args.output, name, tile_data, cram, tilemap, sprite, collision,
          above_data)
-    print("  tiles %d B, cgram %d B, tilemap %d B -> %s"
-          % (len(tile_data), 2 * len(cram),
-             2 * summary["celdas"], args.output))
+    print("  tiles %d B, cgram %d B -> %s"
+          % (len(tile_data), 2 * len(cram), args.output))
 
     if args.reference:
         base.save(args.reference)

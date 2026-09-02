@@ -59,14 +59,14 @@ A1B0     = $4304
 DAS0L    = $4305        ; cuántos bytes
 MDMAEN   = $420B        ; arrancar
 
-; La VRAM se direcciona por palabras. Los tiles arrancan en la 0 y el tilemap
-; en la $6000, que deja 24K palabras para tiles: mucho más de las 1024 que el
-; tilemap puede nombrar.
-VRAM_TILES = $0000
-VRAM_ABOVE = $1000      ; los tiles de la capa de encima, que son de 4 bits
-VRAM_SPRITE = $2000     ; los tiles de los sprites, en su propia página
-VRAM_MAP   = $6000
-VRAM_ABOVE_MAP = $6800
+; La VRAM se direcciona por palabras y son 64 K en total. Cómo se reparte entre
+; los tiles del fondo, los de la capa de encima, los de los sprites y los dos
+; tilemaps no está acá: lo decide el conversor mapa por mapa y llega en
+; mapdata.inc, junto con los valores ya armados de OBSEL y BG12NBA.
+;
+; No es una comodidad: el mapa que más tiles de fondo gasta necesita 620, y otro
+; con muchos personajes necesita 512 de sprite. Los dos juntos no entran, y
+; ninguno de los dos repartos sirve para todos los mapas.
 
 ; El orden de prioridades del modo 3, de adelante hacia atrás, es
 ;   objetos 3 / BG1 1 / objetos 2 / BG2 1 / objetos 1 / BG1 0 / objetos 0
@@ -77,10 +77,9 @@ VRAM_ABOVE_MAP = $6800
 OBJ_PRIORITY = $20      ; prioridad 1 en el byte de atributos
 OBJ_PRIORITY_ABOVE = $30
 
-; OBSEL: tamaño 8x8/32x32 en los bits altos, y la página de arriba en los bajos.
 ; Las poses de RM2k son de 24x32 y la SNES no tiene ese tamaño, así que se usa
-; el objeto de 32x32 y sobra un poco a los costados.
-OBSEL_VALUE = $21
+; el objeto de 32x32 y sobra un poco a los costados. El valor de OBSEL, que
+; lleva ese tamaño y la página de los tiles, lo arma el conversor.
 
 ; Las 12 poses: 3 frames de caminata por 4 direcciones. En RM2k las direcciones
 ; van 0=arriba, 1=derecha, 2=abajo, 3=izquierda, y el frame del medio es la
@@ -100,8 +99,24 @@ ANIM_FRAMES = 6
 SPRITE_OFF_X = 8
 SPRITE_OFF_Y = 16
 
-; Filas visibles. La pantalla muestra 28 de las 32 del tilemap.
-SCREEN_ROWS = 28
+; --- la ventana del mapa ---------------------------------------------------
+; El tilemap del PPU son 64x32 celdas, o sea 512x256 pixeles, y la pantalla son
+; 256x224. El mapa entero no entra: los del juego llegan a 1000x80 celdas. Lo
+; que hay en la VRAM es una ventana que se mueve con la cámara.
+;
+; La ventana no se desplaza: se la trata como un toro. La celda (mx,my) del mapa
+; vive siempre en la ranura (mx mod 64, my mod 32), y el scroll por hardware ya
+; hace la vuelta sola porque 1024 —el máximo del registro— es múltiplo de 512.
+; Así, cuando la cámara cruza el borde de una celda, sólo hay que reescribir la
+; columna o la fila que acaba de entrar: la que sale está 32 columnas o 4 filas
+; afuera de la pantalla y nadie la mira mientras tanto.
+WINDOW_COLS = 64
+WINDOW_ROWS = 32
+
+; Cuántas celdas de 8x8 llega a tocar la pantalla. Son 32 y 28 justas más una,
+; porque el scroll casi nunca cae parado sobre una celda.
+VIEW_COLS = 33
+VIEW_ROWS = 29
 
 .include "musicdata.inc"
 .include "mapdata.inc"
@@ -117,10 +132,20 @@ temp:       .res 4      ; cuentas intermedias
 hero_x:     .res 2      ; dónde está el héroe en el mapa, en pixeles
 hero_y:     .res 2
 hero_dir:   .res 1      ; hacia dónde mira
-tile_x:     .res 1      ; y en qué celda de 16x16 está
-tile_y:     .res 1
-tile_index: .res 2      ; su posición dentro de la tabla de pasabilidad
-target_index: .res 2    ; la de la celda a la que quiere ir
+tile_x:     .res 2      ; y en qué celda de 16x16 está. Dos bytes: hay mapas de
+tile_y:     .res 2      ; 500 celdas de ancho y en uno no entrarían
+celdas:     .res 3      ; puntero a la fila de bloques donde arranca la ventana
+celdas_ptr: .res 3      ; el mismo, mientras se recorre para armar una tira
+win_col:    .res 2      ; la celda de 8x8 que quedó en el borde de la ventana
+win_row:    .res 2      ; el cuadro pasado, para saber si la cámara la cruzó
+win_block:  .res 2      ; y la fila de bloques a la que apunta `celdas`
+col_addr:   .res 2      ; dónde va en la VRAM la columna recién armada
+row_addr:   .res 2      ; ídem la fila; $0000 en las dos si no hay nada
+tira_ofs:   .res 2      ; desplazamiento dentro del bloque, mientras se arma
+tira_paso_col: .res 2   ; lo que mide una fila de bloques, en bytes
+tira_resta: .res 2      ; cuántas celdas faltan por armar
+hero_ptr:   .res 3      ; y en qué celda de la grilla, como puntero: se mueve
+                        ; con él en vez de recalcularse
 step_left:  .res 1      ; pixeles que faltan del paso en curso, 0 si no hay
 step_dx:    .res 2      ; cuánto avanza por cuadro, con signo
 step_dy:    .res 2
@@ -177,25 +202,31 @@ pal_tick:   .res 1      ; para meter el cuadro de música que falta
     sta NMITIMEN                ; que la consola lea los controles sola
 
     jsr ppu_init
-    jsr load_map
 
-    jsr load_sprite
-    jsr clear_oam
-
+    ; El héroe primero: la ventana del mapa se llena alrededor de la cámara, y
+    ; la cámara sale de dónde está parado.
     rep #$20
 .a16
     lda #HERO_START_X
     sta hero_x
     lda #HERO_START_Y
     sta hero_y
-    lda #HERO_START_TILE
-    sta tile_index
-    sep #$20
-.a8
     lda #(HERO_START_X / 16)
     sta tile_x
     lda #(HERO_START_Y / 16)
     sta tile_y
+    sep #$20
+.a8
+    jsr follow_camera
+
+    jsr load_map
+    jsr load_above
+    jsr fill_window             ; deja listo tira_paso_col, que el otro usa
+    jsr init_hero_ptr
+
+    jsr load_sprite
+    jsr clear_oam
+
     stz step_left               ; parado, sin paso en curso
     stz pad                     ; la RAM arranca con basura y move_hero la lee
     lda #DIR_DOWN
@@ -205,7 +236,6 @@ pal_tick:   .res 1      ; para meter el cuadro de música que falta
     lda #ANIM_FRAMES
     sta anim_timer
 
-    jsr follow_camera           ; deja el scroll en su lugar antes de encender
     jsr build_oam
     jsr flush_video
 
@@ -229,6 +259,7 @@ loop:
     jsr move_hero
     jsr animate_hero
     jsr follow_camera
+    jsr stream_map              ; la columna o la fila que la cámara destapó
     jsr build_oam               ; y se arma el siguiente, ya fuera del vblank
     jsr music_tick
     bra loop
@@ -377,14 +408,13 @@ cero:
     lda #$03
     sta BGMODE
     ; BG1SC lleva la dirección del tilemap en el byte alto y el tamaño en los
-    ; dos bits bajos; con VRAM_MAP en $6000 y tamaño 0 queda $60.
+    ; dos bits bajos; con VRAM_MAP en $7000 y el tamaño 1 —dos pantallas de
+    ; 32x32 una al lado de la otra, o sea 64x32— queda $71.
     lda #>VRAM_MAP | MAP_LAYOUT
-    sta BG1SC                   ; tilemap acá, del tamaño que pida el mapa
+    sta BG1SC                   ; la ventana del mapa, siempre de 64x32
     lda #>VRAM_ABOVE_MAP | MAP_LAYOUT
-    sta BG2SC                   ; y el tilemap de la capa de encima acá
-    ; BG12NBA lleva las direcciones de los tiles de BG1 y BG2 en cada nibble, en
-    ; unidades de 4K palabras: BG1 en la 0, BG2 en la $1000.
-    lda #$10
+    sta BG2SC                   ; y la de la capa de encima, del mismo tamaño
+    lda #BG12NBA_VALUE
     sta BG12NBA
     stz BG1HOFS                 ; el scroll es de dos escrituras, byte bajo
     stz BG1HOFS                 ; y byte alto
@@ -439,24 +469,8 @@ cero:
     lda #$01
     sta MDMAEN
 
-    ; --- el tilemap ---
-    ; Viene del conversor ya acomodado como lo quiere la VRAM: las pantallas de
-    ; 32x32 una detrás de la otra, no el mapa fila por fila. Por eso entra en un
-    ; solo DMA en vez de treinta.
-    ldx #VRAM_MAP
-    stx VMADDL
-    ldx #.loword(map_tilemap)
-    stx A1T0L
-    lda #^map_tilemap
-    sta A1B0
-    ldy #(MAP_CELLS * 2)
-    sty DAS0L
-    lda #$01
-    sta DMAP0
-    lda #$18
-    sta BBAD0
-    lda #$01
-    sta MDMAEN
+    ; El tilemap no se sube acá: no existe uno entero para subir. Lo arma
+    ; fill_window a partir de los bloques, y desde ahí lo mantiene el streaming.
     rts
 .endproc
 
@@ -551,8 +565,18 @@ chica:
     sta BBAD0                   ; destino: OAMDATA
     lda #$01
     sta MDMAEN
+    rts
+.endproc
 
-    ; --- la capa que va por encima del héroe ---
+; --- la capa que va por encima del héroe -----------------------------------
+; Sus tiles y su paleta se suben una sola vez, con la pantalla apagada. Su
+; tilemap no: va en la misma ventana móvil que el del fondo, y lo llena el
+; streaming.
+.proc load_above
+.a8
+.i16
+    lda #$80
+    sta VMAIN
     ldx #VRAM_ABOVE
     stx VMADDL
     ldx #.loword(above_tiles)
@@ -565,17 +589,6 @@ chica:
     sta DMAP0
     lda #$18
     sta BBAD0
-    lda #$01
-    sta MDMAEN
-
-    ldx #VRAM_ABOVE_MAP
-    stx VMADDL
-    ldx #.loword(above_tilemap)
-    stx A1T0L
-    lda #^above_tilemap
-    sta A1B0
-    ldy #(MAP_CELLS * 2)
-    sty DAS0L
     lda #$01
     sta MDMAEN
 
@@ -646,6 +659,456 @@ guarda_y:
     rts
 .endproc
 
+; --- la ventana móvil del mapa ---------------------------------------------
+; El tilemap del PPU son 64x32 celdas y los mapas del juego llegan a 1000x80:
+; el mapa entero nunca está en la VRAM. Lo que hay es una ventana que se trata
+; como un toro —la celda (mx,my) vive siempre en la ranura (mx mod 64, my mod
+; 32)— y que se mantiene reescribiendo la columna o la fila que acaba de entrar
+; en pantalla. La que sale queda 32 columnas o 4 filas afuera, así que nadie la
+; ve mientras se la pisa.
+;
+; El scroll por hardware hace la vuelta solo: el registro son 10 bits, o sea
+; 1024 pixeles, y 1024 es múltiplo de los 512 que mide la ventana a lo ancho.
+; Se le escribe la posición de la cámara tal cual y cae donde tiene que caer.
+;
+; De la ROM no sale un tilemap sino una grilla de bloques: la celda de 16x16 de
+; RM2k, que es la unidad con la que el juego fue dibujado y que se repite
+; muchísimo. El bloque lleva sus cuatro celdas de fondo, sus cuatro de la capa
+; de encima y su pasabilidad, todo junto. Guardarlo así es lo que hace que el
+; mapa más grande pase de 175 KB —más que la ROM entera— a 40.
+
+; La grilla llega a 40 KB y no entra en un banco, así que se recorre con un
+; puntero de 24 bits. En LoROM un banco sólo tiene sus 32 K de arriba: pasarse
+; del $FFFF no lleva al $0000 del banco siguiente sino a su $8000, y estas dos
+; rutinas son las únicas que saben eso.
+.proc ptr_mas
+.a16
+.i16
+    clc
+    adc celdas_ptr
+    sta celdas_ptr
+    bcc listo
+    clc
+    adc #$8000
+    sta celdas_ptr
+    sep #$20
+.a8
+    lda celdas_ptr + 2
+    inc a
+    sta celdas_ptr + 2
+    rep #$20
+.a16
+listo:
+    rts
+.endproc
+
+.proc ptr_menos
+.a16
+.i16
+    eor #$FFFF                  ; restar es sumar el complemento
+    sec
+    adc celdas_ptr
+    cmp #$8000
+    bcs guarda                  ; sigue dentro de la mitad alta del banco
+    clc
+    adc #$8000
+    sta celdas_ptr
+    sep #$20
+.a8
+    lda celdas_ptr + 2
+    dec a
+    sta celdas_ptr + 2
+    rep #$20
+.a16
+    rts
+guarda:
+    sta celdas_ptr
+    rts
+.endproc
+
+.proc ptr_desde_celdas
+.a16
+.i16
+    lda celdas
+    sta celdas_ptr
+    sep #$20
+.a8
+    lda celdas + 2
+    sta celdas_ptr + 2
+    rep #$20
+.a16
+    rts
+.endproc
+
+.proc ptr_a_celdas
+.a16
+.i16
+    lda celdas_ptr
+    sta celdas
+    sep #$20
+.a8
+    lda celdas_ptr + 2
+    sta celdas + 2
+    rep #$20
+.a16
+    rts
+.endproc
+
+; Arma la columna X del mapa —en celdas de 8x8— y deja en col_addr dónde va.
+;
+; Se llenan las 32 filas de la ventana, no las 29 que se ven. La ranura de cada
+; fila es fija, fila mod 32, así que escribir de más no puede pisar nada que se
+; esté mirando, y ahorra tener que llevar la cuenta de qué parte de la columna
+; ya estaba bien.
+.proc build_column
+.a16
+.i16
+    stz col_addr
+    cpx #MAP_WIDTH
+    bcc dentro
+    rts                         ; más allá del borde: no hay nada que dibujar
+dentro:
+
+    ; Dónde cae en la VRAM. La ventana son dos pantallas de 32x32 pegadas, y la
+    ; de la derecha vive 1024 palabras más adelante, no al lado.
+    txa
+    and #(WINDOW_COLS - 1)
+    sta temp
+    and #$001F
+    clc
+    adc #VRAM_MAP
+    sta col_addr
+    lda temp
+    and #$0020
+    beq izquierda
+    lda col_addr
+    clc
+    adc #1024
+    sta col_addr
+izquierda:
+
+    ; El bloque mide 16x16: la columna de bloques es la mitad de la de celdas y
+    ; el bit que sobra dice cuál de sus dos mitades toca.
+    txa
+    and #$0001
+    asl a                       ; 0 la mitad izquierda, 2 la derecha
+    sta tira_ofs
+    txa
+    lsr a
+    asl a                       ; la columna de bloques, en bytes
+    sta temp
+
+    jsr ptr_desde_celdas
+    lda temp
+    jsr ptr_mas
+
+    ; La fila de arriba de la ventana decide la ranura donde arranca y en qué
+    ; mitad del bloque cae.
+    lda win_row
+    and #$0001
+    beq desde_arriba
+    lda tira_ofs
+    ora #$0004                  ; arranca por la mitad de abajo del bloque
+    sta tira_ofs
+desde_arriba:
+    lda win_row
+    and #(WINDOW_ROWS - 1)
+    asl a
+    tay                         ; la ranura, en bytes
+
+    ; Cuántas filas hay por delante: la ventana entera, o lo que quede de mapa.
+    lda #MAP_HEIGHT
+    sec
+    sbc win_row
+    cmp #WINDOW_ROWS
+    bcc corta
+    lda #WINDOW_ROWS
+corta:
+    sta tira_resta
+
+fila:
+    lda [celdas_ptr]            ; el bloque de esta celda
+    asl a
+    asl a
+    asl a
+    asl a                       ; su registro mide 16 bytes
+    clc
+    adc tira_ofs
+    tax
+    lda map_bloques, x
+    sta tira_col, y             ; la celda del fondo
+    lda map_bloques + 8, x
+    sta tira_col2, y            ; y la de la capa de encima
+
+    iny
+    iny
+    tya
+    and #(WINDOW_ROWS * 2 - 1)  ; la ventana da la vuelta
+    tay
+
+    lda tira_ofs
+    eor #$0004                  ; la otra mitad del bloque
+    sta tira_ofs
+    and #$0004
+    bne misma                   ; sigue en el mismo bloque
+    lda tira_paso_col
+    jsr ptr_mas                 ; a la fila de bloques siguiente
+misma:
+    dec tira_resta
+    bne fila
+    rts
+.endproc
+
+; La imagen espejada de la anterior: arma la fila X del mapa en tira_row. Lo
+; único que cambia es cuál de los dos ejes alterna dentro del bloque y cuánto
+; avanza el puntero al pasar de uno al siguiente.
+.proc build_row
+.a16
+.i16
+    stz row_addr
+    cpx #MAP_HEIGHT
+    bcc dentro
+    rts                         ; más allá del borde de abajo
+dentro:
+    txa
+    and #(WINDOW_ROWS - 1)
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a                       ; cada fila de la pantalla mide 32 palabras
+    clc
+    adc #VRAM_MAP
+    sta row_addr
+
+    txa
+    and #$0001
+    asl a
+    asl a                       ; 0 la mitad de arriba del bloque, 4 la de abajo
+    sta tira_ofs
+    txa
+    lsr a
+    sta temp                    ; la fila de bloques que entra
+
+    ; El ancla apunta a la fila de bloques de arriba de la ventana; la que entra
+    ; puede estar hasta catorce filas más abajo, si es la del pie de la pantalla.
+    jsr ptr_desde_celdas
+    lda temp
+    sec
+    sbc win_block
+    beq en_la_fila
+    tax
+baja:
+    lda tira_paso_col
+    jsr ptr_mas
+    dex
+    bne baja
+en_la_fila:
+
+    lda win_col
+    and #$0001
+    beq desde_izquierda
+    lda tira_ofs
+    ora #$0002
+    sta tira_ofs
+desde_izquierda:
+    lda win_col
+    lsr a
+    asl a                       ; la columna de bloques de la izquierda, en bytes
+    jsr ptr_mas
+
+    lda win_col
+    and #(WINDOW_COLS - 1)
+    asl a
+    tay
+
+    lda #MAP_WIDTH
+    sec
+    sbc win_col
+    cmp #WINDOW_COLS
+    bcc corta
+    lda #WINDOW_COLS
+corta:
+    sta tira_resta
+
+columna:
+    lda [celdas_ptr]
+    asl a
+    asl a
+    asl a
+    asl a
+    clc
+    adc tira_ofs
+    tax
+    lda map_bloques, x
+    sta tira_row, y
+    lda map_bloques + 8, x
+    sta tira_row2, y
+
+    iny
+    iny
+    tya
+    and #(WINDOW_COLS * 2 - 1)
+    tay
+
+    lda tira_ofs
+    eor #$0002                  ; la otra mitad del bloque, ahora a lo ancho
+    sta tira_ofs
+    and #$0002
+    bne mismo
+    lda #2
+    jsr ptr_mas                 ; al bloque de al lado
+mismo:
+    dec tira_resta
+    bne columna
+    rts
+.endproc
+
+; Qué hay que redibujar este cuadro. La cámara se mueve como mucho dos pixeles
+; por vuelta y sólo por un eje, así que cruza a lo sumo el borde de una celda:
+; alcanza con mirar si la esquina de la ventana cambió de celda. Si algún día
+; la cámara pudiera saltar —un teleport, un cambio de mapa— eso no es un ajuste
+; de esta rutina sino un fill_window entero, con la pantalla apagada.
+.proc stream_map
+.a8
+.i16
+    rep #$20
+.a16
+    stz col_addr
+    stz row_addr
+
+    lda camara_y
+    lsr a
+    lsr a
+    lsr a
+    cmp win_row
+    beq sin_fila
+    bcs bajando
+    tax                         ; sube: entra la fila de arriba de la pantalla
+    bra guarda_fila
+bajando:
+    pha
+    clc
+    adc #(VIEW_ROWS - 1)
+    tax                         ; baja: entra la del pie
+    pla
+guarda_fila:
+    sta win_row
+
+    ; El ancla de bloques sigue a la fila de arriba de la ventana.
+    lsr a
+    cmp win_block
+    beq mismo_bloque
+    pha
+    bcs baja_bloque
+    jsr ptr_desde_celdas
+    lda tira_paso_col
+    jsr ptr_menos
+    jsr ptr_a_celdas
+    bra guarda_bloque
+baja_bloque:
+    jsr ptr_desde_celdas
+    lda tira_paso_col
+    jsr ptr_mas
+    jsr ptr_a_celdas
+guarda_bloque:
+    pla
+    sta win_block
+mismo_bloque:
+    jsr build_row               ; X sigue siendo la fila que entra
+
+sin_fila:
+    lda camara_x
+    lsr a
+    lsr a
+    lsr a
+    cmp win_col
+    beq sin_columna
+    bcs derecha
+    tax
+    bra guarda_col
+derecha:
+    pha
+    clc
+    adc #(VIEW_COLS - 1)
+    tax
+    pla
+guarda_col:
+    sta win_col
+    jsr build_column
+sin_columna:
+    sep #$20
+.a8
+    rts
+.endproc
+
+; Llena la ventana entera desde cero: las 64 columnas, una por una. Va con la
+; pantalla apagada, al arrancar, y es el único momento en que se escribe tanto
+; tilemap de una vez.
+.proc fill_window
+.a8
+.i16
+    rep #$20
+.a16
+    stz col_addr
+    stz row_addr
+    lda #(MAP_BW * 2)
+    sta tira_paso_col           ; lo que mide una fila de bloques, en bytes
+
+    lda camara_x
+    lsr a
+    lsr a
+    lsr a
+    sta win_col
+    lda camara_y
+    lsr a
+    lsr a
+    lsr a
+    sta win_row
+    lsr a
+    sta win_block
+
+    ; celdas = map_celdas + win_block filas. Se suma de a una en vez de
+    ; multiplicar: pasa una sola vez y el 65816 no multiplica.
+    lda #.loword(map_celdas)
+    sta celdas_ptr
+    sep #$20
+.a8
+    lda #^map_celdas
+    sta celdas_ptr + 2
+    rep #$20
+.a16
+    ldx win_block
+    beq sin_filas
+suma:
+    lda tira_paso_col
+    jsr ptr_mas
+    dex
+    bne suma
+sin_filas:
+    jsr ptr_a_celdas
+
+    lda win_col
+    sta temp + 2
+    ldy #WINDOW_COLS
+columna:
+    phy
+    ldx temp + 2
+    jsr build_column
+    sep #$20
+.a8
+    jsr push_strips
+    rep #$20
+.a16
+    inc temp + 2
+    ply
+    dey
+    bne columna
+    sep #$20
+.a8
+    rts
+.endproc
+
 ; --- lo que va sí o sí dentro del vblank -----------------------------------
 ; OAM sólo se puede escribir mientras el PPU no la está leyendo, o sea en el
 ; vblank. Armarla lleva su tiempo —con treinta y pico de personajes, más de un
@@ -683,6 +1146,116 @@ guarda_y:
     sta BG2VOFS
     lda scroll_y + 1
     sta BG2VOFS
+
+    jsr push_strips
+    rts
+.endproc
+
+; Sube Y bytes desde la dirección X de la RAM a la VRAM, que ya quedó apuntada.
+.proc dma_a_vram
+.a8
+.i16
+    stx A1T0L
+    stz A1B0                    ; las tiras viven en el banco 0
+    sty DAS0L
+    lda #$01
+    sta DMAP0                   ; dos registros, de a palabras
+    lda #$18
+    sta BBAD0                   ; destino: VMDATAL
+    lda #$01
+    sta MDMAEN
+    rts
+.endproc
+
+; Las tiras que dejó armadas stream_map. Van acá y no donde se arman porque la
+; VRAM sólo se puede escribir en el vblank; armarlas adentro no entraría.
+;
+; Una columna sale de un DMA por capa: el PPU puede avanzar de a 32 palabras
+; tras cada escritura, que es justo lo que mide una fila del tilemap. Una fila
+; sale de dos, porque las dos pantallas de 32x32 no son contiguas.
+.proc push_strips
+.a8
+.i16
+    ldx col_addr
+    beq sin_columna
+    lda #$81                    ; avanzar 32 palabras tras el byte alto
+    sta VMAIN
+    stx VMADDL
+    ldx #.loword(tira_col)
+    ldy #(WINDOW_ROWS * 2)
+    jsr dma_a_vram
+
+    rep #$20
+.a16
+    lda col_addr
+    clc
+    adc #(VRAM_ABOVE_MAP - VRAM_MAP)
+    sta temp
+    sep #$20
+.a8
+    ldx temp
+    stx VMADDL
+    ldx #.loword(tira_col2)
+    ldy #(WINDOW_ROWS * 2)
+    jsr dma_a_vram
+    stz col_addr
+    stz col_addr + 1
+sin_columna:
+
+    ldx row_addr
+    beq sin_fila
+    lda #$80                    ; avanzar una palabra: la fila es contigua
+    sta VMAIN
+    stx VMADDL
+    ldx #.loword(tira_row)
+    ldy #(WINDOW_COLS)          ; las ranuras 0 a 31, la pantalla izquierda
+    jsr dma_a_vram
+
+    rep #$20
+.a16
+    lda row_addr
+    clc
+    adc #1024                   ; la pantalla de la derecha vive acá
+    sta temp
+    sep #$20
+.a8
+    ldx temp
+    stx VMADDL
+    ldx #.loword(tira_row + WINDOW_COLS)
+    ldy #(WINDOW_COLS)
+    jsr dma_a_vram
+
+    ; Y lo mismo para la capa de encima, media ventana más adelante.
+    rep #$20
+.a16
+    lda row_addr
+    clc
+    adc #(VRAM_ABOVE_MAP - VRAM_MAP)
+    sta temp
+    sep #$20
+.a8
+    ldx temp
+    stx VMADDL
+    ldx #.loword(tira_row2)
+    ldy #(WINDOW_COLS)
+    jsr dma_a_vram
+
+    rep #$20
+.a16
+    lda temp
+    clc
+    adc #1024
+    sta temp
+    sep #$20
+.a8
+    ldx temp
+    stx VMADDL
+    ldx #.loword(tira_row2 + WINDOW_COLS)
+    ldy #(WINDOW_COLS)
+    jsr dma_a_vram
+    stz row_addr
+    stz row_addr + 1
+sin_fila:
     rts
 .endproc
 
@@ -750,28 +1323,26 @@ no_derecha:
 
 ; Cada intento comprueba el borde del mapa, después los dos permisos, y recién
 ; ahí arranca el paso.
+; Los cuatro trabajan con el acumulador de 16 bits: la celda del héroe ya no
+; entra en un byte —hay mapas de 500 celdas de ancho— y los permisos se buscan
+; con índices de 16.
 .proc try_up
 .a8
 .i16
+    rep #$20
+.a16
     lda tile_y
     beq no                      ; ya está en la fila de arriba
     lda #PASS_UP
     jsr can_leave
     beq no
-    rep #$20
-.a16
-    lda tile_index
-    sec
-    sbc #PASS_WIDTH
-    sta target_index
-    sep #$20
-.a8
-    lda #PASS_DOWN              ; la celda de arriba tiene que dejar entrar
+    jsr ptr_desde_hero
+    lda tira_paso_col
+    jsr ptr_menos               ; el destino: una fila de bloques más arriba
+    lda #PASS_DOWN              ; y esa celda tiene que dejar entrar
     jsr can_enter
     beq no
     dec tile_y
-    rep #$20
-.a16
     lda #0
     sta step_dx
     lda #-WALK_SPEED
@@ -779,34 +1350,32 @@ no_derecha:
     sep #$20
 .a8
     jsr begin_step
+    rts
 no:
+    sep #$20
+.a8
     rts
 .endproc
 
 .proc try_down
 .a8
 .i16
+    rep #$20
+.a16
     lda tile_y
     inc a
-    cmp #PASS_HEIGHT
+    cmp #MAP_BH
     bcs no
     lda #PASS_DOWN
     jsr can_leave
     beq no
-    rep #$20
-.a16
-    lda tile_index
-    clc
-    adc #PASS_WIDTH
-    sta target_index
-    sep #$20
-.a8
+    jsr ptr_desde_hero
+    lda tira_paso_col
+    jsr ptr_mas                 ; una fila de bloques más abajo
     lda #PASS_UP
     jsr can_enter
     beq no
     inc tile_y
-    rep #$20
-.a16
     lda #0
     sta step_dx
     lda #WALK_SPEED
@@ -814,31 +1383,30 @@ no:
     sep #$20
 .a8
     jsr begin_step
+    rts
 no:
+    sep #$20
+.a8
     rts
 .endproc
 
 .proc try_left
 .a8
 .i16
+    rep #$20
+.a16
     lda tile_x
     beq no
     lda #PASS_LEFT
     jsr can_leave
     beq no
-    rep #$20
-.a16
-    lda tile_index
-    dec a
-    sta target_index
-    sep #$20
-.a8
+    jsr ptr_desde_hero
+    lda #2
+    jsr ptr_menos               ; la celda de al lado
     lda #PASS_RIGHT
     jsr can_enter
     beq no
     dec tile_x
-    rep #$20
-.a16
     lda #-WALK_SPEED
     sta step_dx
     lda #0
@@ -846,33 +1414,32 @@ no:
     sep #$20
 .a8
     jsr begin_step
+    rts
 no:
+    sep #$20
+.a8
     rts
 .endproc
 
 .proc try_right
 .a8
 .i16
+    rep #$20
+.a16
     lda tile_x
     inc a
-    cmp #PASS_WIDTH
+    cmp #MAP_BW
     bcs no
     lda #PASS_RIGHT
     jsr can_leave
     beq no
-    rep #$20
-.a16
-    lda tile_index
-    inc a
-    sta target_index
-    sep #$20
-.a8
+    jsr ptr_desde_hero
+    lda #2
+    jsr ptr_mas
     lda #PASS_LEFT
     jsr can_enter
     beq no
     inc tile_x
-    rep #$20
-.a16
     lda #WALK_SPEED
     sta step_dx
     lda #0
@@ -880,28 +1447,119 @@ no:
     sep #$20
 .a8
     jsr begin_step
+    rts
 no:
+    sep #$20
+.a8
     rts
 .endproc
+
+; --- la pasabilidad --------------------------------------------------------
+; Ya no hay una tabla con un byte por celda: los permisos viajan en el bloque.
+; Son dos saltos —la celda dice qué bloque es, el bloque dice qué permisos
+; tiene— y a cambio el mapa más grande se ahorra veinte kilobytes. Que dos
+; celdas dibujadas igual pero con permisos distintos no se confundan lo
+; garantiza el conversor, que mete la pasabilidad en la clave del bloque.
+;
+; Dónde está el héroe dentro de la grilla tampoco es un índice: es un puntero
+; que se mueve con él, una celda o una fila por paso. Así nunca hay que
+; multiplicar ni recalcular una dirección de 24 bits desde cero, que en LoROM
+; es incómodo porque los bancos no son contiguos.
 
 ; A = el bit que hace falta. Devuelve con Z apagado si la celda lo tiene.
 .proc can_leave
-.a8
+.a16
 .i16
     sta temp
-    ldx tile_index
-    lda map_pass, x
+    jsr ptr_desde_hero
+    jsr pass_del_ptr
     and temp
     rts
 .endproc
 
+; Igual, pero sobre la celda a la que celdas_ptr ya quedó apuntando: cada
+; dirección lo corre por su cuenta antes de llamar, y si el paso se acepta
+; begin_step lo copia a hero_ptr. Así el destino se calcula una sola vez.
 .proc can_enter
-.a8
+.a16
 .i16
     sta temp
-    ldx target_index
-    lda map_pass, x
+    jsr pass_del_ptr
     and temp
+    rts
+.endproc
+
+.proc pass_del_ptr
+.a16
+.i16
+    lda [celdas_ptr]            ; qué bloque es esta celda
+    tax
+    sep #$20
+.a8
+    lda bloque_pass, x
+    rep #$20
+.a16
+    and #$00FF
+    rts
+.endproc
+
+.proc ptr_desde_hero
+.a16
+.i16
+    lda hero_ptr
+    sta celdas_ptr
+    sep #$20
+.a8
+    lda hero_ptr + 2
+    sta celdas_ptr + 2
+    rep #$20
+.a16
+    rts
+.endproc
+
+.proc ptr_a_hero
+.a16
+.i16
+    lda celdas_ptr
+    sta hero_ptr
+    sep #$20
+.a8
+    lda celdas_ptr + 2
+    sta hero_ptr + 2
+    rep #$20
+.a16
+    rts
+.endproc
+
+; Dónde arranca el héroe dentro de la grilla. Se camina hasta ahí sumando: una
+; fila de bloques por cada fila que baja y después las columnas de una vez.
+.proc init_hero_ptr
+.a8
+.i16
+    rep #$20
+.a16
+    lda #.loword(map_celdas)
+    sta celdas_ptr
+    sep #$20
+.a8
+    lda #^map_celdas
+    sta celdas_ptr + 2
+    rep #$20
+.a16
+    ldx tile_y
+    beq sin_filas
+filas:
+    lda tira_paso_col
+    jsr ptr_mas
+    dex
+    bne filas
+sin_filas:
+    lda tile_x
+    asl a                       ; cada celda ocupa dos bytes
+    jsr ptr_mas
+    jsr ptr_a_hero
+    sep #$20
+.a8
     rts
 .endproc
 
@@ -914,9 +1572,8 @@ no:
     sta step_left
     rep #$20
 .a16
-    lda target_index
-    sta tile_index              ; RM2k cuenta desde la celda de destino
-    sep #$20
+    jsr ptr_a_hero              ; RM2k cuenta desde la celda de destino, que es
+    sep #$20                    ; adonde can_enter dejó apuntado el puntero
 .a8
     jsr advance_step
     rts
@@ -1414,6 +2071,18 @@ port0: .res 1
 oam:      .res 512
 oam_high: .res 32
 
+; Las tiras del mapa se arman acá fuera del vblank y se suben desde acá cuando
+; empieza el siguiente, igual que OAM. Armarlas dentro del vblank no entraría, y
+; escribirlas a la VRAM fuera de él las mostraría a medio hacer.
+;
+; Una columna son las 32 celdas de la ventana; una fila, las 64. Se indexan por
+; la ranura, no por la celda del mapa: así el orden del buffer es exactamente el
+; orden en que la VRAM las quiere y cada tira sale de un DMA.
+tira_col:   .res WINDOW_ROWS * 2
+tira_col2:  .res WINDOW_ROWS * 2
+tira_row:   .res WINDOW_COLS * 2
+tira_row2:  .res WINDOW_COLS * 2
+
 .segment "CODE"
 
 ; --- música ----------------------------------------------------------------
@@ -1522,7 +2191,7 @@ done:
     .byte "ABL SNES MUSIC POC   "  ; 21 caracteres
     .byte $20                      ; LoROM, velocidad lenta
     .byte $00                      ; sólo ROM, sin RAM ni chips extra
-    .byte $07                      ; tamaño: 128 KB (el byte es log2 de los KB)
+    .byte $08                      ; tamaño: 256 KB (el byte es log2 de los KB)
     .byte $00                      ; sin SRAM
     .byte $01                      ; región
     .byte $00                      ; desarrollador

@@ -176,6 +176,37 @@ snes-walk mapa="7" direccion="none" segundos="8":
       --saltar snes/shots/saltar-{{direccion}}.txt \
       -o snes/shots/comparacion-{{direccion}}.png
 
+# Pasa los 335 mapas por los límites del hardware sin armar ninguna ROM: dice
+# cuáles no entran y por qué. Correr cuando se toque el conversor o el reparto
+# de la VRAM.
+snes-relevar desde="0":
+  python3 tools/snes_survey.py --desde {{desde}}
+
+# Cuánto llega a caminar el héroe en cada mapa, con las mismas reglas que la
+# ROM. Sirve para elegir contra qué mapa probar el redibujado: uno enorme lleno
+# de paredes frena en la tercera celda y no prueba nada.
+snes-recorrido desde="66":
+  python3 tools/snes_recorrido.py --desde {{desde}}
+
+# La tanda de regresión: un mapa por cada cosa que puede romperse.
+#
+# Los tres primeros son los que cerraron los hitos anteriores y tienen que
+# seguir en cero. Los tres últimos son los que ejercitan el redibujado: mapa 6
+# recorre 100 celdas por los dos ejes, o sea que la ventana da la vuelta tres
+# veces a lo alto; mapa 8 es Lashe City, que además necesita 512 tiles de
+# sprite y por eso le toca el otro reparto de VRAM; y mapa 52 mide 1000x80
+# celdas, con una grilla de 40 KB que cruza el corte de banco de LoROM.
+#
+# Los segundos son cuánto se mantiene la cruceta: tiene que alcanzar para
+# cruzar el mapa a 2 pixeles por cuadro.
+snes-hitos:
+  just snes-heroe 73 8
+  just snes-heroe 18 8
+  just snes-heroe 119 8
+  just snes-heroe 6 18
+  just snes-heroe 8 25
+  just snes-heroe 52 45
+
 # El héroe: parado y caminando en las cuatro direcciones.
 snes-heroe mapa="7" segundos="8":
   just snes-convert {{mapa}}

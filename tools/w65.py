@@ -29,8 +29,15 @@ import sys
 
 
 # --- el mapa de memoria -----------------------------------------------------
-# LoROM de 128 KB: cuatro bancos de 32 KB, cada uno mapeado en $8000-$FFFF del
+# LoROM de 256 KB: ocho bancos de 32 KB, cada uno mapeado en $8000-$FFFF del
 # banco que le toca. La cabecera y los vectores van al final del primero.
+#
+# Eran cuatro bancos hasta que los mapas grandes entraron en escena. No es que
+# los datos no entraran: el mapa más pesado son unos 100 KB contando la música.
+# Lo que no entra es el relleno. Todo lo que se sube por DMA tiene que caer
+# entero dentro de un banco, y con bloques de 25 y 42 KB acomodarlos sin
+# desperdicio es imposible. Doscientos cincuenta y seis kilobytes es un tamaño
+# de cartucho absolutamente común y saca el problema de encima.
 #
 # Lo cómodo de LoROM es que el archivo es lineal aunque las direcciones no lo
 # sean: el byte que sigue a $007FFF en el archivo es $018000. Así que las piezas
@@ -41,7 +48,7 @@ import sys
 # Lo que sí paga el precio es el 65816: un puntero de 24 bits no avanza solo de
 # $00FFFF a $018000, hay que ayudarlo. Está en `advance`, en main.s.
 BANK_SIZE = 0x8000
-ROM_BANKS = 4
+ROM_BANKS = 8
 
 # TABLAS va en el banco 0, junto al código, y no es un detalle de acomodo: el
 # direccionamiento absoluto indexado —`lda tabla, x`— usa el registro de banco
@@ -52,7 +59,7 @@ AREAS = [
     ("ROM",  0x00000, 0x07FC0, ["CODE", "TABLAS"]),
     ("HEAD", 0x07FC0, 0x00020, ["HEADER"]),
     ("VECT", 0x07FE0, 0x00020, ["VECTORS"]),
-    ("DATA", 0x08000, 0x18000, ["RODATA"]),
+    ("DATA", 0x08000, 0x38000, ["RODATA"]),
 ]
 # La RAM no sale en el archivo: se ubica por dirección, no por desplazamiento.
 RAM_AREAS = [
@@ -319,6 +326,23 @@ class Instruction:
                                        ).to_bytes(self.width, "little")
 
 
+class Align:
+    """Relleno para que lo que sigue arranque en una dirección múltiplo de N.
+
+    Hace falta cuando la ROM va a leer palabras de una tabla con un puntero de
+    24 bits: si la tabla arrancara en una dirección impar, una de sus palabras
+    caería justo entre el $FFFF de un banco y el $8000 del siguiente, y esa
+    lectura traería un byte de cada lado.
+    """
+
+    def __init__(self, unit):
+        self.unit = unit
+        self.size = 0
+
+    def emit(self, symbols, address):
+        return b"\x00" * self.size
+
+
 class BankFit:
     """Relleno para que lo que sigue no cruce de banco.
 
@@ -360,6 +384,7 @@ class Assembler:
         self.checksum = checksum
         self.items = {name: [] for name in SEGMENTS}
         self.segment = "CODE"
+        self.origen = "?"       # de qué línea salió lo último que se agregó
         self.symbols = {}
         self.pending = []       # (segmento, índice del item, nombre) de etiquetas
         self.zeropage = set()   # nombres que viven en la página directa
@@ -378,14 +403,19 @@ class Assembler:
 
     def read(self, path):
         directory = os.path.dirname(os.path.abspath(path))
-        for raw in open(path, encoding="utf-8"):
+        for numero, raw in enumerate(open(path, encoding="utf-8"), 1):
             line = raw.split(";")[0].strip()
             if not line:
                 continue
+            # De dónde salió cada cosa. No se usa al leer —ahí el error se
+            # atrapa acá mismo— sino al emitir, que es una pasada aparte y
+            # donde aparecen los errores que dependen de dónde cayó todo: un
+            # salto que quedó lejos, una expresión que no entra en su ancho.
+            self.origen = "%s:%d: %s" % (path, numero, line)
             try:
                 self.line(line, directory)
             except Error as error:
-                raise Error("%s: %s\n  en: %s" % (path, error, line.strip()))
+                raise Error("%s\n  en %s" % (error, self.origen))
 
     def line(self, line, directory):
         # Etiquetas: pueden venir solas o con una instrucción atrás.
@@ -456,16 +486,17 @@ class Assembler:
             self.read(os.path.join(directory, rest.strip('"')))
             return
         if name == ".bloque":
-            self.items[self.segment].append(
-                BankFit(Expression(rest).value(self.symbols)))
+            self.add(BankFit(Expression(rest).value(self.symbols)))
+            return
+        if name == ".alinear":
+            self.add(Align(Expression(rest).value(self.symbols)))
             return
         if name == ".res":
-            self.items[self.segment].append(
-                Reserve(Expression(rest).value(self.symbols)))
+            self.add(Reserve(Expression(rest).value(self.symbols)))
             return
         if name in (".byte", ".word", ".addr", ".dword"):
             width = {".byte": 1, ".word": 2, ".addr": 2, ".dword": 4}[name]
-            self.items[self.segment].append(Data(self.data(rest, width)))
+            self.add(Data(self.data(rest, width)))
             return
         raise Error("no conozco la directiva %s" % name)
 
@@ -569,6 +600,7 @@ class Assembler:
         return name
 
     def add(self, item):
+        item.origen = self.origen
         self.items[self.segment].append(item)
 
     # --- pasada 2: ubicar y emitir ---
@@ -587,6 +619,8 @@ class Assembler:
                         # banco, se rellena hasta el siguiente.
                         queda = BANK_SIZE - (offset % BANK_SIZE)
                         item.size = queda if item.needed > queda else 0
+                    elif isinstance(item, Align):
+                        item.size = -offset % item.unit
                     self.offsets[(segment, index)] = offset
                     self.addresses[(segment, index)] = lorom_address(offset)
                     offset += item.size
@@ -646,7 +680,12 @@ class Assembler:
             offset = start
             for segment in names:
                 for index, item in enumerate(self.items[segment]):
-                    data = self.emit_item(item, self.addresses[(segment, index)])
+                    try:
+                        data = self.emit_item(
+                            item, self.addresses[(segment, index)])
+                    except Error as error:
+                        raise Error("%s\n  en %s"
+                                    % (error, getattr(item, "origen", "?")))
                     rom[offset:offset + len(data)] = data
                     offset += item.size
         if self.checksum:

@@ -55,12 +55,7 @@ que hay que cuidar es no salirse del mapa.
 
 El tilemap del PPU se arma con "pantallas" de 32×32 celdas encadenadas en VRAM,
 y no van una al lado de la otra en memoria: cada una ocupa sus 1024 celdas
-seguidas. El conversor entrega el mapa ya acomodado así, con lo que la ROM lo
-sube en **un solo DMA** en vez de copiar fila por fila.
-
-Eso alcanza hasta 64×64 celdas, o sea 512×512 pixeles. Map0007 son 40×30. Para
-mapas más grandes —Lashe City son 300×300 celdas— va a haber que redibujar filas
-y columnas mientras la cámara se mueve, que es el hito siguiente.
+seguidas.
 
 **Cómo se verifica.** Cada dirección se mantiene apretada hasta que la cámara
 choca contra el borde. Dónde tiene que quedar no se estima: es exactamente el
@@ -74,6 +69,82 @@ comparación falla.
     esquina  (64,16)  0
 
 Que llegue justo a 64 y 16 prueba a la vez el movimiento y el tope.
+
+## Los mapas que no entran
+
+El tilemap del PPU no pasa de 64×64 celdas y encima hay que repartirle la VRAM
+a los tiles, así que la ventana que le queda son **64×32 celdas: 512×256
+pixeles**. Los mapas del juego llegan a 1000×80. De 335 mapas, 94 no entran.
+
+La ventana no se desplaza: se la trata como un **toro**. La celda `(mx, my)` del
+mapa vive siempre en la ranura `(mx mod 64, my mod 32)`, y el scroll por
+hardware da la vuelta solo porque 1024 —el máximo del registro— es múltiplo de
+los 512 que mide la ventana. Cuando la cámara cruza el borde de una celda, sólo
+hay que reescribir la columna o la fila que acaba de entrar; la que sale está 32
+columnas o 4 filas afuera de la pantalla y nadie la mira mientras se la pisa.
+
+De ahí sale una propiedad cómoda: **no hace falta llevar la cuenta de qué parte
+de la ventana está al día**. Como la ranura de cada celda es fija, escribir de
+más nunca puede pisar algo que se esté viendo, y la inducción cierra sola desde
+el llenado inicial.
+
+Las tiras se arman en RAM fuera del vblank y se suben cuando empieza el
+siguiente, igual que OAM. Una columna sale de un DMA por capa —el PPU puede
+avanzar de a 32 palabras tras cada escritura, que es justo lo que mide una fila
+del tilemap— y una fila sale de dos, porque las dos pantallas de 32×32 no son
+contiguas en VRAM.
+
+### El mapa no se guarda como tilemap
+
+Expandido no entraría en el cartucho: 1000×80 celdas por dos bytes son 156 KB,
+más que la ROM entera. Lo que se guarda es la **celda de 16×16 de RM2k**, que es
+la unidad con la que el juego fue dibujado y que se repite muchísimo.
+
+    mapa 52, 1000x80 celdas    tilemap expandido   160.000 B
+                               grilla de bloques    40.000 B + 1.744 B de tabla
+
+El bloque lleva sus cuatro celdas de fondo, sus cuatro de la capa de encima y su
+pasabilidad, todo junto. En todo el juego el máximo son 512 bloques distintos.
+
+Que la pasabilidad viaje en el bloque **borró la tabla de colisión entera** —un
+byte por celda, hasta 20 KB. Y no es un atajo: dos celdas que se dibujan igual
+podrían tener permisos distintos si vinieran de tiles distintos del ChipSet, así
+que la pasabilidad va en la clave con la que se deduplica y esas dos se separan
+solas.
+
+Dónde está el héroe dentro de la grilla tampoco es un índice sino un **puntero
+que se mueve con él**, una celda o una fila por paso. Así nunca hay que
+multiplicar ni armar una dirección de 24 bits desde cero, que en LoROM es
+incómodo porque los bancos no son contiguos.
+
+### El reparto de la VRAM lo decide el conversor
+
+Las 64 KB no se reparten como uno quiera: la base de los tiles de los sprites va
+de a 16 KB, la de cada fondo de a 8 KB y la de cada tilemap de a 2 KB. Con los
+dos tilemaps clavados al final quedan 56 KB para los tres bancos de tiles, y las
+granularidades dejan exactamente dos cortes posibles:
+
+    ancho    fondo 512 tiles (32 KB) | sprites 512 (16 KB) | encima 256 (8 KB)
+    fondo    fondo 640 tiles (40 KB) | encima 256 (8 KB)   | sprites 256 (8 KB)
+
+Ninguno sirve para todos los mapas: el que más tiles de fondo gasta necesita
+620, y Lashe City necesita 320 de sprite. Cuál toca lo decide el conversor
+—junto con los valores ya armados de `OBSEL` y `BG12NBA`— y viaja en el `.inc`.
+La ROM no elige nada.
+
+### Cómo se verifica
+
+`just snes-hitos` corre seis mapas, uno por cada cosa que puede romperse:
+
+    73, 18, 119   los que cerraron los hitos anteriores: tienen que seguir en cero
+    6             recorre 100 celdas por los dos ejes: la ventana da tres vueltas
+    8             Lashe City, que además pide el otro reparto de VRAM
+    52            1000x80, con 40 KB de grilla que cruzan el corte de banco
+
+Qué mapa elegir para eso no se adivina mirando el tamaño —uno enorme lleno de
+paredes frena en la tercera celda—, así que `tools/snes_recorrido.py` camina
+todos los mapas con las mismas reglas que la ROM y dice cuánto se recorre en
+cada dirección.
 
 ## El personaje
 
@@ -119,7 +190,9 @@ Toda la lógica de RM2k vive en el conversor y la comparte con la Mega Drive: qu
 cruzar de una celda a la de al lado pide permiso a las dos —la de origen tiene
 que dejar salir por ese lado y la de destino dejar entrar por el opuesto—, que
 la capa alta manda sobre la baja salvo que sea decorado, y que las caras de
-pared se cruzan siempre. La consola sólo mira una tabla de un byte por celda.
+pared se cruzan siempre. La consola sólo lee los cuatro bits ya resueltos, que
+desde el hito del redibujado viajan adentro del bloque de 16×16 en vez de en una
+tabla aparte.
 
 El movimiento también cambia: **RM2k no mueve al personaje libremente.** Se
 compromete a una celda vecina y recorre sus 16 pixeles sin poder frenar. Por eso
@@ -151,6 +224,13 @@ la corrupción de pantalla desapareciera, y por eso no se notó.
 
 Ahora hay un segmento `TABLAS` que el enlazador pone en el banco 0. Todo lo que
 la CPU recorra con un índice tiene que estar ahí.
+
+Y lo que no entre en un banco no puede recorrerse con un índice, punto: la
+grilla de celdas llega a 40 KB. Ésa se lee con un puntero de 24 bits, y ahí
+aparece la otra cara de LoROM: **un banco sólo tiene sus 32 K de arriba**, así
+que pasarse del `$FFFF` no lleva al `$0000` del banco siguiente sino a su
+`$8000`. Dos rutinas de diez líneas, `ptr_mas` y `ptr_menos`, son las únicas que
+saben eso; todo lo demás las usa y se olvida del tema.
 
 ## Cómo está armado
 
@@ -386,7 +466,14 @@ distinto de cero.
 linealmente, y el byte que sigue a `$02FFFF` no es la ROM del banco 3 sino la
 RAM. Un bloque que cruce ese límite se sube bien hasta ahí y basura después.
 `w65.py` tiene `.bloque N` para rellenar hasta el banco siguiente, y el
-conversor lo declara antes de cada bloque.
+conversor lo declara antes de cada bloque. Ese relleno es lo que terminó
+obligando a pasar el cartucho de 128 a 256 KB: los datos entran, lo que no entra
+es el acolchado de bloques de 25 y 42 KB.
+
+**Un puntero de 24 bits tampoco lo sigue.** El byte que sigue a `$01FFFF` está
+en `$028000`, no en `$020000`: un banco de LoROM sólo tiene sus 32 K de arriba.
+Cualquier tabla que no entre en un banco —la grilla de celdas llega a 40 KB—
+tiene que avanzarse con esa corrección. Está en `ptr_mas` y `ptr_menos`.
 
 **`lda tabla, x` direcciona el banco de datos, no el banco de la tabla.** Ese
 registro vale 0 y no lo tocamos, así que todo lo que la CPU recorra con un
@@ -425,9 +512,10 @@ comparación.
 
 * **Que un NPC frene al héroe.** En RM2k los eventos de la capa del héroe
   bloquean el paso; la ROM todavía no lo mira. La tabla ya trae el dato.
-* **Mapas más grandes que 64x64 celdas.** Hoy el mapa entero se sube una vez al
-  arrancar. Lashe City son 300x300: hace falta redibujar filas y columnas
-  mientras la cámara se mueve.
+* **Doce mapas cuya capa de encima no entra en dos paletas de 15.** Es una
+  restricción vieja, anterior al redibujado, y aparece en Yun Town y Sorbe
+  Village entre otros. Hay 96 colores de fondo sin usar: la salida más probable
+  es darle una tercera paleta.
 * **El ataque y el decaimiento** siguen saliendo de las ocho familias de
   `sdsp.py`, elegidas a ojo cuando el banco era sintético. El SoundFont trae los
   suyos por instrumento y todavía no se leen. (El release ya no: ver arriba.)

@@ -231,9 +231,13 @@ def main():
     if excedidas:
         print("  %d líneas pasan el límite de sprites de la consola: ahí se"
               " pierden objetos y no se comparan" % len(excedidas))
-        if args.saltar:
-            with open(args.saltar, "w") as handle:
-                handle.write("\n".join(str(y) for y in excedidas) + "\n")
+    # El archivo se escribe siempre, aunque no haya nada que excluir. Si sólo se
+    # escribiera cuando sobran sprites, al cambiar de mapa quedaría el del
+    # anterior y la comparación seguiría salteando líneas que ya no
+    # corresponden: aflojaría la prueba justo donde nadie está mirando.
+    if args.saltar:
+        with open(args.saltar, "w") as handle:
+            handle.write("".join("%d\n" % y for y in excedidas))
 
     view.convert("RGB").save(args.output)
     print("esperado -> %s: héroe en (%d,%d) mirando %s, cámara en (%d,%d)"
