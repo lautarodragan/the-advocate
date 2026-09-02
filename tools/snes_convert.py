@@ -40,10 +40,10 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import lcf
 import md_convert
-from md_convert import (CELL, cut_tiles, flips, reduce_colors, tile_colors,
-                        to_indices)
-from render_map import (GAME_DIR, REPO, RTP_DIR, Renderer, find_resource,
-                        load_image)
+from md_convert import (CELL, cut_tiles, flips, hero_start, passability_map,
+                        reduce_colors, tile_colors, to_indices)
+from render_map import (GAME_DIR, REPO, RTP_DIR, Renderer, build_passability,
+                        find_resource, load_image)
 
 # El PPU direcciona 1024 tiles por capa: diez bits en cada celda del tilemap.
 MAX_TILES = 1024
@@ -294,7 +294,7 @@ def screen_order(tilemap):
     return cells, LAYOUTS[(across, down)]
 
 
-def emit(path, name, tile_data, cram, tilemap, sprite=None):
+def emit(path, name, tile_data, cram, tilemap, sprite=None, collision=None):
     """El .inc que arma w65.py junto con main.s."""
     height, width = len(tilemap), len(tilemap[0])
 
@@ -329,19 +329,30 @@ def emit(path, name, tile_data, cram, tilemap, sprite=None):
             "CAM_MAX_X   = %d\n"
             "CAM_MAX_Y   = %d\n"
             "; El héroe se para en una celda de 16x16 y no puede salirse del\n"
-            "; mapa. Arranca en el centro, alineado a esa grilla.\n"
+            "; mapa. Arranca en el tile abierto más cercano al centro.\n"
             "HERO_MAX_X  = %d\n"
             "HERO_MAX_Y  = %d\n"
             "HERO_START_X = %d\n"
             "HERO_START_Y = %d\n"
+            "; La tabla de pasabilidad tiene un byte por celda de 16x16, con\n"
+            "; los cuatro bits de dirección ya resueltos. La ROM sólo la mira.\n"
+            "PASS_WIDTH  = %d\n"
+            "PASS_HEIGHT = %d\n"
+            "HERO_START_TILE = %d\n"
             "SPRITE_TILES = %d\n"
             "SPRITE_CGRAM = %d\n\n"
+            # map_pass va en TABLAS, que el enlazador pone en el banco 0:
+            # la ROM la recorre con `lda map_pass, x`, y ese modo direcciona el
+            # banco de datos, no el banco donde esté la tabla.
             '.segment "RODATA"\n%s\n%s\n%s\n%s\n%s\n'
+            '.segment "TABLAS"\n%s\n'
             % (name, width, height, len(tile_data) // BYTES_PER_TILE, len(cram),
                layout, len(cells),
                max(0, width * CELL - 256), max(0, height * CELL - 224),
                width * CELL - 16, height * CELL - 16,
-               (width * CELL // 2) & ~15, (height * CELL // 2) & ~15,
+               collision[1] * 16, collision[2] * 16,
+               collision[3], collision[4],
+               collision[2] * collision[3] + collision[1],
                len(sprite[0]) // 32 if sprite else 0,
                # Una más que los colores: el índice 0 del sprite es
                # transparente y también ocupa su lugar en CGRAM.
@@ -350,7 +361,8 @@ def emit(path, name, tile_data, cram, tilemap, sprite=None):
                block("map_cgram", colors),
                block("map_tilemap", words),
                block("sprite_tiles", sprite[0] if sprite else b""),
-               block("sprite_cgram", sprite_colors_bytes(sprite))))
+               block("sprite_cgram", sprite_colors_bytes(sprite)),
+               block("map_pass", collision[0] if collision else b"")))
 
 
 def sprite_colors_bytes(sprite):
@@ -393,6 +405,16 @@ def main():
         sys.exit("no encuentro el CharSet %r" % args.charset)
     sprite = build_sprite(load_image(charset_path), args.charset_index)
 
+    # La colisión: un byte por celda de 16x16 con los cuatro bits de dirección
+    # ya resueltos. Toda la lógica de RM2k —que la capa alta manda salvo que sea
+    # decorado, que las caras de pared se cruzan siempre— se decide acá, no en
+    # la consola.
+    chipset = renderer.database.chipsets[game_map.chipset_id]
+    flags = build_passability(chipset)
+    passable = passability_map(game_map, flags)
+    start_x, start_y = hero_start(passable, game_map.width, game_map.height)
+    collision = (passable, start_x, start_y, game_map.width, game_map.height)
+
     print("Mapa %d %r: %dx%d celdas de %dx%d px"
           % (args.map_id, name, len(tilemap[0]), len(tilemap),
              CELL, CELL))
@@ -405,7 +427,13 @@ def main():
     print("  sprite %s: %d tiles, paleta de %d, %d colores fusionados"
           % (args.charset, len(sprite[0]) // 32, len(sprite[1]), sprite[2]))
 
-    emit(args.output, name, tile_data, cram, tilemap, sprite)
+    abiertos = sum(1 for b in passable if b == 0x0F)
+    print("  colisión: %d celdas, %d abiertas por los cuatro lados (%.0f%%), "
+          "el héroe arranca en (%d,%d)"
+          % (len(passable), abiertos, 100.0 * abiertos / len(passable),
+             start_x, start_y))
+
+    emit(args.output, name, tile_data, cram, tilemap, sprite, collision)
     print("  tiles %d B, cgram %d B, tilemap %d B -> %s"
           % (len(tile_data), 2 * len(cram),
              2 * summary["celdas"], args.output))

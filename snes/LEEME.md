@@ -113,6 +113,45 @@ en la tabla chica de OAM. Sin él, el héroe pegado al borde izquierdo —que en
 pantalla queda en -8— se leía como positivo y el sprite saltaba al otro lado de
 la pantalla.
 
+## La colisión
+
+Toda la lógica de RM2k vive en el conversor y la comparte con la Mega Drive: que
+cruzar de una celda a la de al lado pide permiso a las dos —la de origen tiene
+que dejar salir por ese lado y la de destino dejar entrar por el opuesto—, que
+la capa alta manda sobre la baja salvo que sea decorado, y que las caras de
+pared se cruzan siempre. La consola sólo mira una tabla de un byte por celda.
+
+El movimiento también cambia: **RM2k no mueve al personaje libremente.** Se
+compromete a una celda vecina y recorre sus 16 pixeles sin poder frenar. Por eso
+el estado es la celda más cuántos pixeles faltan del paso en curso, y mientras
+falten no se acepta otra dirección.
+
+    parado     héroe en (160,112)   0 pixeles distintos de 57344
+    derecha    héroe en (224,112)   0     frena en la celda 14 de 19
+    izquierda  héroe en  (48,112)   0     en la 3
+    arriba     héroe en  (160,80)   0     en la 5
+    abajo      héroe en (160,160)   0     en la 10
+
+Que frene en celdas interiores y no en los bordes del mapa es lo que dice que la
+tabla se está mirando de verdad.
+
+## Las tablas van en el banco 0
+
+`lda tabla, x` direcciona **el registro de banco de datos**, no el banco donde
+esté la tabla. Ese registro vale 0 al arrancar y nunca lo tocamos, así que una
+tabla en otro banco se lee del lugar equivocado — sin ningún error, con bytes
+que casualmente están ahí.
+
+Pasó con la tabla de colisión: la ROM leía su propio código como si fuera
+pasabilidad, y el personaje no se movía. Y pasaba desde antes con las tablas de
+`ppu_reset`, que viven en el mismo segmento: **ese arreglo estaba funcionando a
+medias.** Lo que sí funcionaba eran las escrituras directas —apagar el HDMA, los
+scrolls— y los borrados por DMA, que llevan el banco explícito. Alcanzó para que
+la corrupción de pantalla desapareciera, y por eso no se notó.
+
+Ahora hay un segmento `TABLAS` que el enlazador pone en el banco 0. Todo lo que
+la CPU recorra con un índice tiene que estar ahí.
+
 ## Cómo está armado
 
 El audio lo maneja el **SPC700**, un procesador aparte con sus propios 64 KB. El

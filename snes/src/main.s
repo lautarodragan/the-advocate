@@ -102,6 +102,13 @@ temp:       .res 4      ; cuentas intermedias
 hero_x:     .res 2      ; dónde está el héroe en el mapa, en pixeles
 hero_y:     .res 2
 hero_dir:   .res 1      ; hacia dónde mira
+tile_x:     .res 1      ; y en qué celda de 16x16 está
+tile_y:     .res 1
+tile_index: .res 2      ; su posición dentro de la tabla de pasabilidad
+target_index: .res 2    ; la de la celda a la que quiere ir
+step_left:  .res 1      ; pixeles que faltan del paso en curso, 0 si no hay
+step_dx:    .res 2      ; cuánto avanza por cuadro, con signo
+step_dy:    .res 2
 anim_step:  .res 1      ; en qué punto del ciclo de caminata va
 anim_timer: .res 1      ; cuántos cuadros faltan para el frame siguiente
 moving:     .res 1      ; si se movió este cuadro
@@ -144,8 +151,15 @@ token:      .res 1      ; testigo del handshake con el SPC700
     sta hero_x
     lda #HERO_START_Y
     sta hero_y
+    lda #HERO_START_TILE
+    sta tile_index
     sep #$20
 .a8
+    lda #(HERO_START_X / 16)
+    sta tile_x
+    lda #(HERO_START_Y / 16)
+    sta tile_y
+    stz step_left               ; parado, sin paso en curso
     stz pad                     ; la RAM arranca con basura y move_hero la lee
     lda #DIR_DOWN
     sta hero_dir                ; mirando a cámara, como arranca RM2k
@@ -283,7 +297,7 @@ scrolls:
 
 ; De $2101 a $210C: objetos, modo, mosaico y dónde vive cada capa. Todo en
 ; cero, que es "nada encendido".
-.segment "RODATA"
+.segment "TABLAS"
 ppu_bajos:
     .byte $00,$00,$00,$00       ; $2101 OBSEL, $2102-3 OAMADD, $2104 OAMDATA
     .byte $00,$00,$00,$00       ; $2105 BGMODE, $2106 MOSAIC, $2107-8 BG1-2SC
@@ -557,106 +571,264 @@ guarda_y:
 .endproc
 
 ; --- el héroe --------------------------------------------------------------
-; Sin colisión todavía: lo único que lo frena son los bordes del mapa.
+; RM2k no mueve al personaje libremente: se compromete a una celda vecina y
+; recorre los 16 pixeles hasta ella sin poder frenar. Por eso el estado es la
+; celda donde está más cuántos pixeles le faltan del paso en curso, y mientras
+; falten no se acepta otra dirección.
 ;
-; `moving` se pone sólo si la posición realmente cambió, no si la tecla estaba
-; apretada. Contra un borde, entonces, el héroe mira hacia allá pero no camina
-; en el lugar — que es lo que hace RM2k, y de paso deja la animación en un
-; estado predecible para poder verificarla.
+; Los cuatro bits de pasabilidad son: abajo $01, izquierda $02, derecha $04,
+; arriba $08. Cruzar de una celda a la de al lado pide permiso a las dos: la de
+; origen tiene que dejar salir por ese lado y la de destino dejar entrar por el
+; opuesto. Todo lo demás —que la capa alta manda salvo que sea decorado, que las
+; caras de pared se cruzan siempre— ya lo resolvió el conversor.
+
+PASS_DOWN  = $01
+PASS_LEFT  = $02
+PASS_RIGHT = $04
+PASS_UP    = $08
+
 .proc move_hero
 .a8
 .i16
-    stz moving
+    ; Si hay un paso en curso, se termina: no se puede frenar a mitad de celda.
+    lda step_left
+    beq quieto
+    jsr advance_step
+    rts
 
+quieto:
+    stz moving
     lda pad
     and #PAD_UP
     beq no_arriba
     lda #DIR_UP
-    sta hero_dir                ; mirar siempre, aunque no se avance
-    rep #$20
-.a16
-    lda hero_y
-    sta temp
-    sec
-    sbc #WALK_SPEED
-    bpl guarda_arriba
-    lda #0                      ; no pasarse del borde de arriba
-guarda_arriba:
-    sta hero_y
-    cmp temp
-    sep #$20
-.a8
-    beq no_arriba               ; no se movió: estaba pegado
-    inc moving
+    sta hero_dir
+    jsr try_up
+    rts
 no_arriba:
-
     lda pad
     and #PAD_DOWN
     beq no_abajo
     lda #DIR_DOWN
     sta hero_dir
-    rep #$20
-.a16
-    lda hero_y
-    sta temp
-    clc
-    adc #WALK_SPEED
-    cmp #HERO_MAX_Y
-    bcc guarda_abajo
-    lda #HERO_MAX_Y
-guarda_abajo:
-    sta hero_y
-    cmp temp
-    sep #$20
-.a8
-    beq no_abajo
-    inc moving
+    jsr try_down
+    rts
 no_abajo:
-
     lda pad
     and #PAD_LEFT
     beq no_izquierda
     lda #DIR_LEFT
     sta hero_dir
-    rep #$20
-.a16
-    lda hero_x
-    sta temp
-    sec
-    sbc #WALK_SPEED
-    bpl guarda_izquierda
-    lda #0
-guarda_izquierda:
-    sta hero_x
-    cmp temp
-    sep #$20
-.a8
-    beq no_izquierda
-    inc moving
+    jsr try_left
+    rts
 no_izquierda:
-
     lda pad
     and #PAD_RIGHT
     beq no_derecha
     lda #DIR_RIGHT
     sta hero_dir
+    jsr try_right
+no_derecha:
+    rts
+.endproc
+
+; Cada intento comprueba el borde del mapa, después los dos permisos, y recién
+; ahí arranca el paso.
+.proc try_up
+.a8
+.i16
+    lda tile_y
+    beq no                      ; ya está en la fila de arriba
+    lda #PASS_UP
+    jsr can_leave
+    beq no
+    rep #$20
+.a16
+    lda tile_index
+    sec
+    sbc #PASS_WIDTH
+    sta target_index
+    sep #$20
+.a8
+    lda #PASS_DOWN              ; la celda de arriba tiene que dejar entrar
+    jsr can_enter
+    beq no
+    dec tile_y
+    rep #$20
+.a16
+    lda #0
+    sta step_dx
+    lda #-WALK_SPEED
+    sta step_dy
+    sep #$20
+.a8
+    jsr begin_step
+no:
+    rts
+.endproc
+
+.proc try_down
+.a8
+.i16
+    lda tile_y
+    inc a
+    cmp #PASS_HEIGHT
+    bcs no
+    lda #PASS_DOWN
+    jsr can_leave
+    beq no
+    rep #$20
+.a16
+    lda tile_index
+    clc
+    adc #PASS_WIDTH
+    sta target_index
+    sep #$20
+.a8
+    lda #PASS_UP
+    jsr can_enter
+    beq no
+    inc tile_y
+    rep #$20
+.a16
+    lda #0
+    sta step_dx
+    lda #WALK_SPEED
+    sta step_dy
+    sep #$20
+.a8
+    jsr begin_step
+no:
+    rts
+.endproc
+
+.proc try_left
+.a8
+.i16
+    lda tile_x
+    beq no
+    lda #PASS_LEFT
+    jsr can_leave
+    beq no
+    rep #$20
+.a16
+    lda tile_index
+    dec a
+    sta target_index
+    sep #$20
+.a8
+    lda #PASS_RIGHT
+    jsr can_enter
+    beq no
+    dec tile_x
+    rep #$20
+.a16
+    lda #-WALK_SPEED
+    sta step_dx
+    lda #0
+    sta step_dy
+    sep #$20
+.a8
+    jsr begin_step
+no:
+    rts
+.endproc
+
+.proc try_right
+.a8
+.i16
+    lda tile_x
+    inc a
+    cmp #PASS_WIDTH
+    bcs no
+    lda #PASS_RIGHT
+    jsr can_leave
+    beq no
+    rep #$20
+.a16
+    lda tile_index
+    inc a
+    sta target_index
+    sep #$20
+.a8
+    lda #PASS_LEFT
+    jsr can_enter
+    beq no
+    inc tile_x
+    rep #$20
+.a16
+    lda #WALK_SPEED
+    sta step_dx
+    lda #0
+    sta step_dy
+    sep #$20
+.a8
+    jsr begin_step
+no:
+    rts
+.endproc
+
+; A = el bit que hace falta. Devuelve con Z apagado si la celda lo tiene.
+.proc can_leave
+.a8
+.i16
+    sta temp
+    ldx tile_index
+    lda map_pass, x
+    and temp
+    rts
+.endproc
+
+.proc can_enter
+.a8
+.i16
+    sta temp
+    ldx target_index
+    lda map_pass, x
+    and temp
+    rts
+.endproc
+
+; Arranca el paso: dieciséis pixeles por recorrer y el índice ya en la celda
+; nueva, que es como RM2k lleva la cuenta.
+.proc begin_step
+.a8
+.i16
+    lda #16
+    sta step_left
+    rep #$20
+.a16
+    lda target_index
+    sta tile_index              ; RM2k cuenta desde la celda de destino
+    sep #$20
+.a8
+    jsr advance_step
+    rts
+.endproc
+
+; Avanza los pixeles de este cuadro y, si con eso se completa el paso, deja al
+; personaje exactamente sobre la celda.
+.proc advance_step
+.a8
+.i16
+    lda #$01
+    sta moving
     rep #$20
 .a16
     lda hero_x
-    sta temp
     clc
-    adc #WALK_SPEED
-    cmp #HERO_MAX_X
-    bcc guarda_derecha
-    lda #HERO_MAX_X
-guarda_derecha:
+    adc step_dx
     sta hero_x
-    cmp temp
+    lda hero_y
+    clc
+    adc step_dy
+    sta hero_y
     sep #$20
 .a8
-    beq no_derecha
-    inc moving
-no_derecha:
+    lda step_left
+    sec
+    sbc #WALK_SPEED
+    sta step_left
     rts
 .endproc
 

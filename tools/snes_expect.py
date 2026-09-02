@@ -29,8 +29,9 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import lcf
 import md_convert
 import snes_convert
-from render_map import (GAME_DIR, REPO, RTP_DIR, Renderer, find_resource,
-                        load_image)
+from md_convert import hero_start, passability_map, walk
+from render_map import (GAME_DIR, REPO, RTP_DIR, Renderer, build_passability,
+                        find_resource, load_image)
 
 SCREEN_W, SCREEN_H = 256, 224
 TILE = 16                       # la celda de RM2k sobre la que se para
@@ -42,25 +43,22 @@ WALK = {"none": None, "up": (0, -1), "down": (0, 1),
         "left": (-1, 0), "right": (1, 0)}
 
 
-def hero_position(walk, map_w, map_h):
+def hero_position(direction_name, passable, width, height):
     """Dónde termina el héroe, en pixeles, y hacia dónde mira.
 
-    Arranca en el centro del mapa alineado a la grilla, que es lo que emite el
-    conversor, y camina hasta chocar contra el borde.
+    No se estima: se camina con las mismas reglas que la ROM. Arranca en el tile
+    abierto más cercano al centro —el mismo que eligió el conversor— y avanza
+    hasta que la pasabilidad lo frena o se acaba el mapa. Si la ROM lo dejara en
+    otra celda, la comparación falla.
     """
-    x = (map_w * 8 // 2) & ~15
-    y = (map_h * 8 // 2) & ~15
-    max_x, max_y = map_w * 8 - TILE, map_h * 8 - TILE
-
-    step = WALK[walk]
-    direction = DIRECTIONS.get(walk, DIRECTIONS["down"])
+    start = hero_start(passable, width, height)
+    step = WALK[direction_name]
+    direction = DIRECTIONS.get(direction_name, DIRECTIONS["down"])
     if step is None:
-        return x, y, DIRECTIONS["down"]
+        return start[0] * TILE, start[1] * TILE, DIRECTIONS["down"]
 
-    dx, dy = step
-    x = max(0, min(max_x, x + dx * max(map_w, map_h) * 8))
-    y = max(0, min(max_y, y + dy * max(map_w, map_h) * 8))
-    return x, y, direction
+    x, y = walk(passable, width, height, start, step[0], step[1])
+    return x * TILE, y * TILE, direction
 
 
 def camera_for(x, y, map_w, map_h):
@@ -113,8 +111,10 @@ def main():
     if base is None:
         sys.exit("no encuentro el chipset del mapa %d" % args.map_id)
 
-    x, y, direction = hero_position(args.walk, game_map.width * 2,
-                                    game_map.height * 2)
+    chipset = renderer.database.chipsets[game_map.chipset_id]
+    passable = passability_map(game_map, build_passability(chipset))
+    x, y, direction = hero_position(args.walk, passable,
+                                    game_map.width, game_map.height)
     cam_x, cam_y = camera_for(x, y, game_map.width * 2, game_map.height * 2)
 
     view = base.convert("RGBA").crop((cam_x, cam_y,

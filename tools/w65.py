@@ -43,8 +43,13 @@ import sys
 BANK_SIZE = 0x8000
 ROM_BANKS = 4
 
+# TABLAS va en el banco 0, junto al código, y no es un detalle de acomodo: el
+# direccionamiento absoluto indexado —`lda tabla, x`— usa el registro de banco
+# de datos, que dejamos en 0. Una tabla en otro banco se leería del lugar
+# equivocado sin dar ningún error. Todo lo que la CPU recorra con un índice
+# tiene que estar acá.
 AREAS = [
-    ("ROM",  0x00000, 0x07FC0, ["CODE"]),
+    ("ROM",  0x00000, 0x07FC0, ["CODE", "TABLAS"]),
     ("HEAD", 0x07FC0, 0x00020, ["HEADER"]),
     ("VECT", 0x07FE0, 0x00020, ["VECTORS"]),
     ("DATA", 0x08000, 0x18000, ["RODATA"]),
