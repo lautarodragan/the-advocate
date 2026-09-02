@@ -372,8 +372,62 @@ aplica el volumen general, sin limitar en el medio: la primera versión saturaba
 salen de medir, no de la teoría, porque la teoría supone que todas las voces
 pican juntas y en fase y eso no pasa nunca.
 
+## Trampas del hardware
+
+Todas éstas costaron horas y ninguna da error: la consola hace algo distinto de
+lo que uno pidió, en silencio. Están acá porque van a volver.
+
+**Un DMA de tamaño cero transfiere 65536 bytes, no ninguno.** Un mapa sin capa
+de encima mandaba una paleta vacía y arrasaba CGRAM entera, paletas de sprites
+incluidas. Cualquier tamaño que salga de un conteo tiene que garantizarse
+distinto de cero.
+
+**Un DMA no sigue el mapeo de LoROM.** Su dirección de origen se incrementa
+linealmente, y el byte que sigue a `$02FFFF` no es la ROM del banco 3 sino la
+RAM. Un bloque que cruce ese límite se sube bien hasta ahí y basura después.
+`w65.py` tiene `.bloque N` para rellenar hasta el banco siguiente, y el
+conversor lo declara antes de cada bloque.
+
+**`lda tabla, x` direcciona el banco de datos, no el banco de la tabla.** Ese
+registro vale 0 y no lo tocamos, así que todo lo que la CPU recorra con un
+índice tiene que estar en el banco 0 — de ahí el segmento `TABLAS`.
+
+**Los registros de scroll comparten un único latch entre todos los planos.**
+Escribir BG1 bajo, BG2 bajo, BG1 alto, BG2 alto mezcla los valores. Hay que
+completar cada registro antes de pasar al siguiente.
+
+**El PPU muestra la línea `vofs+1` en el primer scanline**, no la `vofs`. Con el
+scroll en 0 el mapa queda corrido una línea.
+
+**La X de un objeto tiene nueve bits**, y el noveno vive en la tabla chica de
+OAM. Sin él, un sprite en `-8` se lee como positivo y salta al otro lado.
+
+**La consola lee los controles sola al empezar el vblank, pero no arranca en el
+mismo ciclo.** Preguntar sólo "¿terminó?" pasa de largo y lee registros a medio
+armar; hay que esperar a que empiece. Y si antes se hace algo largo —el DMA de
+OAM— se llega con la lectura ya terminada y esperar su arranque cuesta el cuadro
+siguiente entero.
+
+**OAM sólo se puede escribir en el vblank, y armarla lleva tiempo.** Con treinta
+personajes no entra armarla y subirla en el mismo vblank: se sube la del cuadro
+anterior apenas abre, y se arma la del siguiente después.
+
+**La consola arranca con lo que dejó el programa anterior.** El emulador arranca
+en cero. Hay que escribir los 43 registros del PPU, no sólo los que se usan, y
+cortar el HDMA antes que nada.
+
+**En una línea no entran más de 34 tiles de 8x8 de sprite.** Un objeto de 32x32
+aporta cuatro, así que a partir de nueve personajes juntos se pierden los
+últimos. No tiene arreglo; se declara y se excluyen esas líneas de la
+comparación.
+
 ## Lo que falta
 
+* **Que un NPC frene al héroe.** En RM2k los eventos de la capa del héroe
+  bloquean el paso; la ROM todavía no lo mira. La tabla ya trae el dato.
+* **Mapas más grandes que 64x64 celdas.** Hoy el mapa entero se sube una vez al
+  arrancar. Lashe City son 300x300: hace falta redibujar filas y columnas
+  mientras la cámara se mueve.
 * **El ataque y el decaimiento** siguen saliendo de las ocho familias de
   `sdsp.py`, elegidas a ojo cuando el banco era sintético. El SoundFont trae los
   suyos por instrumento y todavía no se leen. (El release ya no: ver arriba.)
