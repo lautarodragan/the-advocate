@@ -1,0 +1,63 @@
+# Dónde quedamos
+
+Lo que existe sólo mientras alguien trabaja: qué está a medias, qué se cree sin
+haberlo corrido, y qué se dejó afuera a propósito. Todo lo durable va al
+`LEEME.md` de cada port y a los mensajes de commit, que en este repo son largos
+justamente para eso.
+
+Se escribe **mientras se trabaja**, no al final. Un resumen escrito al cerrar
+es la misma operación con pérdida que compactar, sólo que a un archivo.
+
+Última vez que se tocó: 2026-09-02.
+
+## En vuelo
+
+Nada a medias. El hito 12 —el intérprete de eventos— quedó cerrado de los dos
+lados el 2026-09-02, en `f337a02` y `fe2767d`.
+
+    just snes-hitos    46 comparaciones, todas en 0 pixeles de 57344
+
+El corte siguiente que se propuso, sin empezar: **la cinemática de apertura**.
+El mapa 4 ya prende el switch 20, que es la condición de la página que abre el
+mapa 1, así que el enganche funciona. Falta que exista un grupo —la condición
+pide `actor`— y cuatro comandos: `PlayBGM`, `WeatherEffects`, `MoveEvent` y
+`ChangePartyMembers`. Mientras tanto el héroe queda parado adentro del caño,
+que es donde RM2k también lo deja.
+
+## Lo que se cree y no se corrió
+
+Esta sección existe porque el commit `c64e4d9` decía "Verificado" sobre un
+camino que ninguna prueba ejecutaba, y eso costó tres errores encadenados. Un
+commit narra lo hecho; los supuestos no tienen dónde vivir. Acá.
+
+* **`OBJ_PRIORITY_ABOVE = $20`.** La prioridad del héroe (`$10`) la fija
+  `snes-evento`, que da cero parándolo debajo de la capa de encima. La de los
+  eventos marcados "above" no la ejercita **ninguna** prueba: haría falta uno
+  de ésos parado sobre una celda de la capa de encima. Es el mismo tipo de
+  agujero que escondió a los cuatro anteriores.
+* **El orden de la tabla de mapas.** La referencia ahora la recibe entera, y es
+  necesario porque un teletransporte compilado guarda el índice y no el número
+  de mapa. Pero ningún mapa de `snes-hitos` teletransporta por evento salvo el
+  4, y ahí la tabla tiene dos entradas: equivocarse de orden no lo detectaría
+  ninguna prueba actual.
+* **El tope de ocho saltos.** La referencia modela el `dec/beq` de la ROM, que
+  se queda en el mapa donde estaba. Nada encadena ocho teletransportes, así que
+  el caso límite está escrito de los dos lados y corrido de ninguno.
+* **La guarda de la paleta vacía** en `tenir_paleta`. Se puso porque el
+  conversor emite `SPRITE_CGRAM = 0` cuando un mapa no declara sprites. No se
+  relevaron los 335 mapas para ver si alguno lo hace de verdad.
+* **Las 29 páginas que compilan a puro `FIN`.** Se asume que no se ven porque
+  todos sus comandos son de los "ignorables". Es por construcción, no por
+  medición mapa por mapa.
+
+## Lo que se dejó afuera a propósito
+
+* **Que un NPC frene al héroe.** La referencia tampoco lo modela, y es a
+  propósito: modelar de este lado algo que la consola no hace inventa una
+  diferencia. Los dos lados se mueven juntos o ninguno.
+* **La saturación del tinte.** El conversor sólo deja pasar la neutra, así que
+  una página que la use no se emite. Aceptarla sin aplicarla sería el error de
+  siempre: la referencia haría lo mismo mal.
+* **Los builds numerados de `snes/build/`.** No están en git y no los produce
+  ninguna receta salvo el 12. Armar uno a mano es cómo se terminó mirando el
+  mapa 6 creyendo que era la demo del hito 12 —ver `AGENTS.md`—.
