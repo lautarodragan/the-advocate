@@ -482,17 +482,24 @@ TELEPORT = 10810
 TRIGGER_TOCA_HEROE = 1
 
 # Lo que puede acompañar a un teletransporte sin que deje de ser una puerta.
-# Son cosas que no cambian a dónde vas: fundidos, esperas, un sonido, el fin de
-# la página. Si aparece cualquier otra —una condición, una variable, un
-# diálogo— el evento hace algo más que mudarte y no se puede resolver sin
-# intérprete.
+#
+# El criterio no es "suena inofensivo" sino "que no lo hagamos no se ve en la
+# pantalla que comparamos": un fundido, una espera y un sonido se saltean y la
+# imagen final es la misma. Cualquier otra cosa —una condición, una variable,
+# un diálogo, un cambio de música o del gráfico del héroe— hace que el evento
+# haga algo más que mudarte, y ahí la puerta no alcanza.
+#
+# Estos números salen de tools/event_codes.py y hay que sacarlos de ahí. La
+# primera versión los puso de memoria y tres estaban mal: dos de los que creía
+# inofensivos eran PlayBGM y ChangeSpriteAssociation, o sea que el filtro
+# aceptaba puertas que cambian la música y el sprite del héroe. Ese error la
+# comparación no lo ve, porque la referencia usa esta misma lista.
 PUERTA_ACOMPAÑAN = {
     10,      # END
     10120,   # MessageOptions
-    11310,   # Wait
-    11410,   # PlaySound
-    11510,   # TintScreen
-    10630,   # ProceedWithMovement
+    11410,   # Wait
+    11550,   # PlaySound: no tenemos efectos todavía, así que no se oye nada
+    11030,   # TintScreen: el fundido con el que RM2k cruza una puerta
 }
 
 

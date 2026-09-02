@@ -201,12 +201,25 @@ mapa con más NPCs del juego tiene 89.
 
 ### Las puertas
 
-De los 959 teletransportes del juego, **238 son puertas**: una página cuyo único
-trabajo es mudarte, sin variables ni condiciones ni diálogo, y todas se disparan
-con "toca el héroe". Ésas se pueden hacer sin intérprete de eventos, y son las
-que convierten un mapa suelto en un mundo.
+De los 959 teletransportes del juego, **265 son puertas**: una página cuyo único
+trabajo es mudarte, sin variables ni condiciones ni diálogo. De ésas, 263 se
+disparan con "toca el héroe" y son las que la ROM usa. Se pueden hacer sin
+intérprete de eventos, y son las que convierten un mapa suelto en un mundo.
 
-Los otros 721 están adentro de cinemáticas y piden el intérprete.
+Las otras 694 están adentro de cinemáticas y piden el intérprete.
+
+Qué comandos pueden acompañar a un teletransporte sin que deje de ser una
+puerta se decide con un criterio, no a ojo: **que no ejecutarlos no se vea en la
+pantalla que comparamos**. Un fundido, una espera y un sonido se saltean y la
+imagen final es la misma; un cambio de música o del gráfico del héroe, no.
+
+La primera versión de esa lista puso los códigos de memoria y tres estaban mal.
+Dos de los que creía inofensivos eran `PlayBGM` y `ChangeSpriteAssociation`, así
+que el filtro aceptaba como puertas eventos que cambian la música y el sprite
+del héroe. **La comparación no puede ver ese error**, porque la referencia usa
+la misma lista: las dos partes coinciden en hacer lo mismo mal. Los códigos
+salen de `tools/event_codes.py`, que se genera desde liblcf, y de ningún otro
+lado.
 
 La ROM mira la tabla de puertas al **terminar** el paso, no al empezarlo, que es
 lo que hace RM2k: el evento se dispara cuando el héroe ocupa la celda. Si hay
