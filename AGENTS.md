@@ -33,6 +33,24 @@ decía "Verificado: mapas 7 y 4 en cero" sobre un camino que ninguna prueba
 ejecutaba, y detrás había tres errores encadenados. Si un camino nuevo no lo
 cubre `snes-hitos`, el mensaje tiene que decirlo con todas las letras.
 
+## Comandos que taro pueda revisar
+
+Aprueba cada comando a mano, muchas veces desde el celular, donde la app los
+trunca. Su preocupación son los supply chain attacks, así que lo que aprueba
+tiene que ser corto y tiene que haber visto el contenido antes.
+
+* **El código va a un archivo y después se ejecuta.** Nunca `python3 -c` ni un
+  heredoc `python3 - <<'PY'`. Lo que él lee es el diff de `Write`, que la
+  interfaz sí renderiza entero; lo que aprueba es una línea.
+* **Un comando por llamada**, sin encadenar con `&&`.
+* **Lo rutinario, por una receta de `just`.** Así la lista de permisos puede
+  nombrar recetas concretas —que viven en el justfile, en git, revisadas— en
+  vez de intérpretes: `Bash(python3:*)` es aprobar cualquier cosa.
+* **Las lecturas, con `Read` y `Grep`**, no con `cat` ni `sed -n`.
+
+Si la configuración de la sesión pide preferir `Bash` sobre `Read`/`Grep`, en
+este setup gana lo de acá: aquello genera aprobaciones que no hacen falta.
+
 ## Trampas del entorno
 
 **`snes/src/mapdata.inc` es estado global.** Lo pisa cualquier `snes-convert`,
