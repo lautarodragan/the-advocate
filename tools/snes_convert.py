@@ -893,6 +893,11 @@ def main():
     parser.add_argument("--charset-index", type=int, default=0,
                         help="cuál de los 8 personajes del CharSet")
     parser.add_argument("--reference", help="PNG del render de Python, para comparar")
+    parser.add_argument("--inicio", nargs=2, type=int, metavar=("TX", "TY"),
+                        help="dónde plantar al héroe, en celdas de 16x16. Sin "
+                             "esto arranca en el tile abierto más cercano al "
+                             "centro. Sirve para llevar la cámara a un lugar "
+                             "puntual sin tener que caminar hasta él")
     args = parser.parse_args()
 
     renderer = Renderer(args.game_dir)
@@ -945,8 +950,11 @@ def main():
     # dos tendrían la misma clave de orden y cuál queda encima dependería de un
     # desempate que no tiene por qué coincidir entre la consola y el render.
     ocupadas = {(n["x"], n["y"]) for n in npcs}
-    start_x, start_y = hero_start(passable, game_map.width, game_map.height,
-                                  ocupadas)
+    if args.inicio:
+        start_x, start_y = args.inicio
+    else:
+        start_x, start_y = hero_start(passable, game_map.width,
+                                      game_map.height, ocupadas)
     collision = (passable, start_x, start_y, game_map.width, game_map.height)
 
     print("Mapa %d %r: %dx%d celdas de %dx%d px"

@@ -191,6 +191,24 @@ paredes frena en la tercera celda—, así que `tools/snes_recorrido.py` camina
 todos los mapas con las mismas reglas que la ROM y dice cuánto se recorre en
 cada dirección.
 
+Y no todo se llega caminando. Una caminata termina siempre contra un borde del
+mapa, que es justo donde la cámara queda pegada; hay estados que sólo se ven en
+el medio. `just snes-parado MAPA TX TY` planta al héroe en una celda elegida y
+compara sin caminar, que además no depende de cuántos segundos se mantenga la
+cruceta. Así se reprodujo el error de la banda de OAM.
+
+**Dónde recortar la captura se le pregunta a X, no a los pixeles.** Se captura
+el display entero de Xvfb y hay que quedarse con los 256x224 de la consola. La
+primera versión buscaba el primer pixel distinto del fondo del servidor, que es
+negro —y el mapa 1 es casi todo negro. En cuanto los sprites dejaron de
+dibujarse envueltos arriba, el recorte se deslizó 93 líneas y la comparación
+falló por algo que no tenía nada que ver con la ROM. Ahora `screenshot.sh` le
+pide la geometría de la ventana a X y se la pasa a `snes_crop.py`.
+
+Buscar esa ventana tiene su propia trampa: `xdotool search --name` no la
+encuentra, porque sin gestor de ventanas mednafen publica `_NET_WM_NAME` y
+`search` mira `WM_NAME`. Hay que enumerar y preguntarle el nombre a cada una.
+
 ## El personaje
 
 Las poses de RM2k son de 24x32 y la SNES no tiene ese tamaño de objeto: el más
@@ -533,6 +551,22 @@ scroll en 0 el mapa queda corrido una línea.
 
 **La X de un objeto tiene nueve bits**, y el noveno vive en la tabla chica de
 OAM. Sin él, un sprite en `-8` se lee como positivo y salta al otro lado.
+
+**La Y de un objeto tiene ocho, y la pantalla 224 líneas.** Los valores 224 a
+255 quedan ambiguos, y el PPU los resuelve siempre para el mismo lado: los lee
+como "un poco más arriba del borde de arriba" y dibuja el objeto envuelto. Un
+NPC que se iba por abajo se guardaba con una Y de esa banda y reaparecía arriba
+—primero los pies, después entero— antes de desaparecer.
+
+La ambigüedad no se puede sacar, y encima hace falta: es la que hace que un
+objeto en `y = -31` muestre su última línea en la línea 0. Lo que no puede pasar
+es que le llegue un objeto que de verdad está abajo, así que el descarte de
+`emit_object` va en 224 y no en 256. La cuenta de la X es la misma y va en 256.
+
+Ninguna de las caminatas del arnés lo tocaba: todas terminan contra un borde del
+mapa, y ahí la cámara está pegada y los NPCs no quedan nunca en esa banda. Por
+eso `snes-hitos` ahora incluye una parada quieta en (75,88) del mapa 1, donde
+hay cuatro NPCs justo debajo del borde.
 
 **La consola lee los controles sola al empezar el vblank, pero no arranca en el
 mismo ciclo.** Preguntar sólo "¿terminó?" pasa de largo y lee registros a medio

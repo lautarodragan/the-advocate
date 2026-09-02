@@ -1806,6 +1806,10 @@ sin_ajuste:
 ; Descarta lo que caiga fuera de la pantalla: la X del objeto tiene nueve bits y
 ; la Y sólo ocho, así que un objeto lejano daría la vuelta y aparecería del otro
 ; lado. Se corren los rangos 32 pixeles para poder compararlos sin signo.
+; El +32 de las dos comparaciones corre el origen para que un objeto que asoma
+; por arriba o por la izquierda —y que llega acá con la coordenada negativa— dé
+; un número chico en vez de uno gigante, y una sola comparación sin signo
+; resuelva los dos bordes.
 .proc emit_object
 .a8
 .i16
@@ -1814,7 +1818,7 @@ sin_ajuste:
     lda obj_x
     clc
     adc #32
-    cmp #(256 + 64)
+    cmp #(256 + 32)
     sep #$20
 .a8
     bcs fuera
@@ -1823,7 +1827,17 @@ sin_ajuste:
     lda obj_y
     clc
     adc #32
-    cmp #(224 + 64)
+    ; El borde de abajo no se descarta en 256 sino en 224, y no es lo mismo. La
+    ; Y de OAM tiene 8 bits y la pantalla 224 líneas, así que los valores 224 a
+    ; 255 quedan ambiguos: el PPU los lee siempre como "un poco más arriba del
+    ; borde de arriba" y dibuja el objeto envuelto. Con el corte en 256, un NPC
+    ; que se iba por abajo se guardaba con una Y de esa banda y reaparecía
+    ; arriba, mostrando primero los pies y después entero.
+    ;
+    ; La ambigüedad hace falta y no se puede sacar: es la que hace que un objeto
+    ; en y = -31 muestre su última línea en la línea 0. Lo que no puede pasar es
+    ; que le llegue un objeto que de verdad está abajo.
+    cmp #(224 + 32)
     sep #$20
 .a8
     bcs fuera

@@ -176,6 +176,22 @@ snes-walk mapa="7" direccion="none" segundos="8":
       --saltar snes/shots/saltar-{{direccion}}.txt \
       -o snes/shots/comparacion-{{direccion}}.png
 
+# Planta al héroe en una celda elegida y compara sin caminar. Llegar a un lugar
+# puntual caminando depende de cuántos segundos se mantenga la cruceta, que es
+# frágil; acá la cámara queda donde uno quiere y la captura no se negocia.
+snes-parado mapa="1" tx="75" ty="88" nombre="parado":
+  mkdir -p snes/shots
+  python3 tools/snes_convert.py --map-id {{mapa}} --inicio {{tx}} {{ty}}
+  just snes-build
+  just snes-shot {{nombre}} 4 ""
+  python3 tools/snes_expect.py --map-id {{mapa}} --hero-tile {{tx}} {{ty}} \
+      --dir down --saltar snes/shots/saltar-{{nombre}}.txt \
+      -o snes/shots/esperado-{{nombre}}.png
+  python3 tools/snes_compare.py snes/shots/{{nombre}}.png \
+      snes/shots/esperado-{{nombre}}.png \
+      --saltar snes/shots/saltar-{{nombre}}.txt \
+      -o snes/shots/comparacion-{{nombre}}.png
+
 # Pasa los 335 mapas por los límites del hardware sin armar ninguna ROM: dice
 # cuáles no entran y por qué. Correr cuando se toque el conversor o el reparto
 # de la VRAM.
@@ -197,10 +213,20 @@ snes-recorrido desde="66":
 # sprite y por eso le toca el otro reparto de VRAM; y mapa 52 mide 1000x80
 # celdas, con una grilla de 40 KB que cruza el corte de banco de LoROM.
 #
-# Los dos últimos ejercitan el reparto de CGRAM: mapa 1 es el primero del juego
-# y su capa de encima se lleva cuatro paletas, dejándole 63 colores al fondo;
-# mapa 348 es el caso contrario, donde el fondo usa los 95 que puede y la capa
-# de encima tiene que fusionar 27 colores para entrar en lo que sobra.
+# Los dos siguientes ejercitan el reparto de CGRAM: mapa 1 es el primero del
+# juego y su capa de encima se lleva cuatro paletas, dejándole 63 colores al
+# fondo; mapa 348 es el caso contrario, donde el fondo usa los 95 que puede y la
+# capa de encima tiene que fusionar 27 colores para entrar en lo que sobra.
+#
+# Los dos últimos son el borde de abajo de la pantalla, y van de a pares porque
+# se equivocan para lados opuestos. En (75,88) del mapa 1 hay cuatro NPCs justo
+# debajo del borde, en la banda donde la Y de OAM es ambigua: con el descarte
+# corrido para un lado reaparecen arriba. En (75,90) los mismos cuatro asoman
+# apenas la cabeza: con el descarte corrido para el otro lado desaparecen. Uno
+# solo de los dos casos deja pasar la mitad de los errores posibles.
+#
+# Ninguna caminata los tocaba: todas terminan contra un borde del mapa, y ahí la
+# cámara queda pegada y los NPCs no caen nunca en esa banda.
 #
 # Los segundos son cuánto se mantiene la cruceta: tiene que alcanzar para
 # cruzar el mapa a 2 pixeles por cuadro.
@@ -213,6 +239,8 @@ snes-hitos:
   just snes-heroe 52 45
   just snes-heroe 1 18
   just snes-heroe 348 8
+  just snes-parado 1 75 88 borde
+  just snes-parado 1 75 90 medias
 
 # El héroe: parado y caminando en las cuatro direcciones.
 snes-heroe mapa="7" segundos="8":
