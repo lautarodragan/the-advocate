@@ -52,7 +52,7 @@ WALK = {"none": None, "up": (0, -1), "down": (0, 1),
         "left": (-1, 0), "right": (1, 0)}
 
 
-def hero_position(direction_name, passable, width, height):
+def hero_position(direction_name, passable, width, height, ocupadas=()):
     """Dónde termina el héroe, en pixeles, y hacia dónde mira.
 
     No se estima: se camina con las mismas reglas que la ROM. Arranca en el tile
@@ -60,13 +60,13 @@ def hero_position(direction_name, passable, width, height):
     hasta que la pasabilidad lo frena o se acaba el mapa. Si la ROM lo dejara en
     otra celda, la comparación falla.
     """
-    start = hero_start(passable, width, height)
+    start = hero_start(passable, width, height, ocupadas)
     step = WALK[direction_name]
     direction = DIRECTIONS.get(direction_name, DIRECTIONS["down"])
     if step is None:
         return start[0] * TILE, start[1] * TILE, DIRECTIONS["down"]
 
-    x, y = walk(passable, width, height, start, step[0], step[1])
+    x, y = walk(passable, width, height, start, step[0], step[1], ocupadas)
     return x * TILE, y * TILE, direction
 
 
@@ -105,7 +105,7 @@ def pose_image(charset, index, pose):
     return out
 
 
-def draw_actors(view, sprites):
+def draw_actors(view, sprites, encima=None):
     """Pinta los sprites y avisa en qué líneas la consola no va a poder.
 
     No se intenta reproducir *cuáles* se pierden. La consola arma la lista de
@@ -119,15 +119,24 @@ def draw_actors(view, sprites):
     """
     excedidas = []
     for y in range(SCREEN_H):
-        presentes = sum(1 for _img, _sx, sy in sprites
+        presentes = sum(1 for _img, _sx, sy, _a in sprites
                         if sy <= y < sy + snes_convert.OBJ_H)
         if (presentes * OBJ_TILES > OBJ_TILES_PER_LINE
                 or presentes > OBJ_PER_LINE):
             excedidas.append(y)
 
     # Se pintan de atrás hacia adelante, o sea al revés del orden de OAM.
-    for image, sx, sy in reversed(sprites):
+    for image, sx, sy, arriba in reversed(sprites):
+        if arriba:
+            continue                # esos van después de la capa de encima
         view.alpha_composite(image, (sx, sy))
+
+    if encima is not None:
+        view.alpha_composite(encima, (0, 0))
+
+    for image, sx, sy, arriba in reversed(sprites):
+        if arriba:
+            view.alpha_composite(image, (sx, sy))
     return excedidas
 
 
@@ -152,9 +161,18 @@ def main():
     renderer = Renderer(args.game_dir)
     game_map = lcf.Map(os.path.join(args.game_dir,
                                     "Map%04d.lmu" % args.map_id))
-    base, _above = renderer.render_layers(game_map)
+    base, above_img = renderer.render_layers(game_map)
     if base is None:
         sys.exit("no encuentro el chipset del mapa %d" % args.map_id)
+
+    # La referencia se arma desde los datos convertidos, no desde el render:
+    # entre uno y otro están la fusión de colores, el reparto en paletas, el
+    # reuso de tiles y los espejados, y todo eso aparecería como diferencia
+    # aunque la consola hiciera exactamente lo que se le pidió.
+    tile_data, cram, tilemap, _resumen = snes_convert.convert(base)
+    above_data = snes_convert.convert_above(above_img)
+    mapa = snes_convert.render_converted(tile_data, cram, tilemap)
+    encima_todo = snes_convert.render_above(cram, above_data)
 
     chipset = renderer.database.chipsets[game_map.chipset_id]
     passable = passability_map(game_map, build_passability(chipset))
@@ -162,12 +180,12 @@ def main():
         x, y = args.hero_tile[0] * TILE, args.hero_tile[1] * TILE
         direction = DIRECTIONS[args.dir or "down"]
     else:
-        x, y, direction = hero_position(args.walk, passable,
-                                        game_map.width, game_map.height)
+        ocupadas = {(n["x"], n["y"]) for n in collect_npcs(game_map)}
+        x, y, direction = hero_position(args.walk, passable, game_map.width,
+                                        game_map.height, ocupadas)
     cam_x, cam_y = camera_for(x, y, game_map.width * 2, game_map.height * 2)
 
-    view = base.convert("RGBA").crop((cam_x, cam_y,
-                                      cam_x + SCREEN_W, cam_y + SCREEN_H))
+    view = mapa.crop((cam_x, cam_y, cam_x + SCREEN_W, cam_y + SCREEN_H))
 
     images = {}
 
@@ -184,22 +202,28 @@ def main():
     # adelante, que es al revés del orden en que van a OAM.
     actors = [(snes_convert.sort_key(npc["layer"], npc["y"] * TILE),
                npc["charset"], npc["index"], npc["pose"],
-               npc["x"] * TILE, npc["y"] * TILE)
+               npc["x"] * TILE, npc["y"] * TILE,
+               npc["layer"] == md_convert.LAYER_ABOVE)
               for npc in collect_npcs(game_map)]
     actors.append((snes_convert.sort_key(md_convert.LAYER_SAME, y),
                    args.charset, args.charset_index,
-                   direction * 3 + STAND, x, y))
+                   direction * 3 + STAND, x, y, False))
 
     # En OAM van del frente hacia el fondo, que es al revés del orden en que se
     # pintan. La consola recorre ese mismo orden para decidir qué entra en cada
     # línea, así que hay que respetarlo para reproducir lo que se pierde.
     order = sorted(actors, key=lambda a: a[0], reverse=True)
     sprites = []
-    for _key, name, index, pose, px, py in order:
+    for _key, name, index, pose, px, py, arriba in order:
         sprites.append((pose_image(charset_image(name), index, pose),
-                        px - 4 - cam_x, py - 16 - cam_y))
+                        px - 4 - cam_x, py - 16 - cam_y, arriba))
 
-    excedidas = draw_actors(view, sprites)
+    # La capa que va por encima del héroe se compone entre los sprites comunes y
+    # los eventos marcados "above", que es el orden de RM2k y el que el hardware
+    # reproduce con las prioridades del modo 3.
+    encima = encima_todo.crop((cam_x, cam_y,
+                               cam_x + SCREEN_W, cam_y + SCREEN_H))
+    excedidas = draw_actors(view, sprites, encima)
     if excedidas:
         print("  %d líneas pasan el límite de sprites de la consola: ahí se"
               " pierden objetos y no se comparan" % len(excedidas))

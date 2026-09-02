@@ -48,10 +48,24 @@ from render_map import (GAME_DIR, REPO, RTP_DIR, Renderer, build_passability,
 # El PPU direcciona 1024 tiles por capa: diez bits en cada celda del tilemap.
 MAX_TILES = 1024
 
-# CGRAM tiene 256 entradas; la mitad de arriba es de los sprites. El 0 es el
-# color de fondo y ningún tile lo usa, así que quedan 127 para el mapa.
-BG_COLORS = 127
+# CGRAM tiene 256 entradas. La mitad de arriba es de los sprites; de la mitad de
+# abajo, que usa el fondo en 8 bits por pixel, se reservan las dos últimas
+# paletas de 16 para la capa que va por encima del héroe. Ésa va en 4 bits, y en
+# 4 bits el índice se cuenta dentro de una paleta de 16.
+BG_COLORS = 95                           # el 0 es el fondo y ningún tile lo usa
+ABOVE_PALETTE = 6                        # la primera de las dos reservadas
+ABOVE_PALETTES = 2
 BYTES_PER_TILE = 64                      # 8 planos de bits, 8 filas cada uno
+
+# El orden de prioridades del modo 3, de adelante hacia atrás, es:
+#
+#     objetos 3 / BG1 1 / objetos 2 / BG2 1 / objetos 1 / BG1 0 / objetos 0
+#
+# que es justo lo que hace falta: el mapa en BG1 con prioridad 0, el héroe y los
+# NPCs comunes en objetos con prioridad 1, la capa de encima en BG2 con
+# prioridad 1, y los eventos marcados "above" en objetos con prioridad 2. El
+# orden de RM2k sale del hardware sin trucos.
+PRIORITY_ABOVE = 1                       # para las celdas de BG2
 
 # El color 0 de CGRAM es el fondo: se ve donde ninguna capa dibuja, y también
 # donde un tile usa el índice 0. Magenta, que no aparece en ningún mapa, así que
@@ -95,6 +109,70 @@ def cgram_word(color):
     """Palabra de CGRAM: 0BBB BBGG GGGR RRRR."""
     red, green, blue = color
     return (blue << 10) | (green << 5) | red
+
+
+def convert_above(image):
+    """La capa que va por encima del héroe: tiles de 4 bits y su tilemap.
+
+    Es mucho más chica que la de abajo —en Map0073 son 419 celdas de 900, con
+    siete colores— así que entra holgada en dos paletas. Las celdas vacías
+    apuntan al tile 0, que se deja transparente a propósito.
+    """
+    grid = cut_tiles(quantize(image))
+    sets = {tile_colors(t) for row in grid for t in row}
+    sets = {s for s in sets if s}
+    groups = md_convert.try_pack(sets, ABOVE_PALETTES) if sets else []
+    if sets and groups is None:
+        raise SystemExit("la capa de encima no entra en %d paletas de 15"
+                         % ABOVE_PALETTES)
+    palettes = [sorted(g) for g in groups]
+
+    blank = tuple(tuple(0 for _ in range(CELL)) for _ in range(CELL))
+    pool = {(0, blank): 0}
+    tiles = bytearray(32)
+    tilemap = []
+    for row in grid:
+        line = []
+        colors_of = tile_colors
+        for tile in row:
+            colors = colors_of(tile)
+            if not colors:
+                line.append(entry(0, 0, 0))
+                continue
+            index = next(i for i, pal in enumerate(palettes)
+                         if colors <= set(pal))
+            indices = to_indices(tile, palettes[index])
+
+            placed = None
+            for oriented, horizontal, vertical in flips(indices):
+                if (index, oriented) in pool:
+                    placed = entry(pool[(index, oriented)], horizontal, vertical,
+                                   PRIORITY_ABOVE)
+                    placed |= (ABOVE_PALETTE + index) << 10
+                    break
+            if placed is None:
+                number = len(pool)
+                pool[(index, indices)] = number
+                tiles += bytes(32)
+                tiles[number * 32:(number + 1) * 32] = pack_tile(indices, planes=4)
+                placed = entry(number, 0, 0, PRIORITY_ABOVE)
+                placed |= (ABOVE_PALETTE + index) << 10
+            line.append(placed)
+        tilemap.append(line)
+
+    cram = bytearray()
+    for palette in palettes:
+        cram += cgram_word(BACKDROP).to_bytes(2, "little")
+        for color in palette:
+            cram += cgram_word(color).to_bytes(2, "little")
+        cram += bytes(2 * (COLORS_PER_PALETTE - 1 - len(palette)))
+
+    # Nunca cero: en la consola un DMA de tamaño cero transfiere 65536 bytes, no
+    # ninguno. Un mapa sin capa de encima mandaba una paleta vacía y arrasaba
+    # CGRAM entera, paletas de sprites incluidas. Se emite una paleta vacía.
+    if not cram:
+        cram = bytearray(2 * COLORS_PER_PALETTE)
+    return bytes(tiles), bytes(cram), tilemap
 
 
 def entry(tile, horizontal, vertical, priority=0):
@@ -391,7 +469,98 @@ def screen_order(tilemap):
     return cells, LAYOUTS[(across, down)]
 
 
-def emit(path, name, tile_data, cram, tilemap, sprite=None, collision=None):
+def unpack_tile(data, planes=8):
+    """Un tile de vuelta a índices, para poder reconstruir lo que se ve."""
+    rows = []
+    for y in range(CELL):
+        row = []
+        for x in range(CELL):
+            bit = 1 << (7 - x)
+            value = 0
+            for plane in range(planes):
+                if data[(plane // 2) * 16 + y * 2 + (plane % 2)] & bit:
+                    value |= 1 << plane
+            row.append(value)
+        rows.append(tuple(row))
+    return tuple(rows)
+
+
+def render_converted(tile_data, cram, tilemap, above=None):
+    """La imagen que la consola va a mostrar, armada desde los datos convertidos.
+
+    Comparar contra el render original de Python no alcanza: entre uno y otro
+    está la fusión de colores, el reparto en paletas, el reuso de tiles y los
+    espejados. Si la referencia se arma desde el render, cada una de esas cosas
+    aparece como una diferencia aunque la consola esté haciendo exactamente lo
+    que se le pidió.
+
+    Armándola desde los datos, lo único que puede diferir es la consola.
+    """
+    from PIL import Image
+
+    reference = tilemap if tilemap is not None else above[2]
+    height, width = len(reference), len(reference[0])
+    image = Image.new("RGBA", (width * CELL, height * CELL))
+
+    # CGRAM tal como queda en la consola: el fondo desde el 0 y la capa de
+    # encima en las dos paletas reservadas más arriba.
+    words = list(cram) + [0] * (128 - len(cram))
+    if above:
+        colors = above[1]
+        first = ABOVE_PALETTE * COLORS_PER_PALETTE
+        for i in range(len(colors) // 2):
+            words[first + i] = int.from_bytes(colors[i * 2:i * 2 + 2], "little")
+    palette = [((c & 0x1F), (c >> 5) & 0x1F, (c >> 10) & 0x1F) for c in words]
+
+    def draw(cells, data, planes, base_palette=None):
+        for ty, row in enumerate(cells):
+            for tx, cell in enumerate(row):
+                number = cell & 0x03FF
+                pal = (cell >> 10) & 0x07
+                indices = unpack_tile(
+                    data[number * (planes * 8):(number + 1) * (planes * 8)],
+                    planes)
+                for y in range(CELL):
+                    for x in range(CELL):
+                        sx = CELL - 1 - x if cell & 0x4000 else x
+                        sy = CELL - 1 - y if cell & 0x8000 else y
+                        value = indices[sy][sx]
+                        if planes == 4:
+                            if not value:
+                                continue        # transparente
+                            value += base_palette + pal * COLORS_PER_PALETTE
+                        color = palette[value] if value < len(palette) else (0, 0, 0)
+                        image.putpixel((tx * CELL + x, ty * CELL + y),
+                                       (color[0] << 3, color[1] << 3,
+                                        color[2] << 3, 255))
+
+    if tilemap is not None:
+        draw(tilemap, tile_data, 8)
+    if above:
+        draw(above[2], above[0], 4, ABOVE_PALETTE * COLORS_PER_PALETTE)
+    return image
+
+
+def render_above(cram, above):
+    """Sólo la capa de encima, transparente donde no dibuja nada."""
+    from PIL import Image
+
+    height, width = len(above[2]), len(above[2][0])
+    image = Image.new("RGBA", (width * CELL, height * CELL), (0, 0, 0, 0))
+    lleno = render_converted(b"", cram, None, above)
+    image.paste(lleno, (0, 0))
+    # Lo que la capa no toca quedó del color de fondo; ahí va transparente.
+    fondo = (BACKDROP[0] << 3, BACKDROP[1] << 3, BACKDROP[2] << 3, 255)
+    pixels = image.load()
+    for y in range(image.height):
+        for x in range(image.width):
+            if pixels[x, y] == fondo:
+                pixels[x, y] = (0, 0, 0, 0)
+    return image
+
+
+def emit(path, name, tile_data, cram, tilemap, sprite=None, collision=None,
+         above=None):
     """El .inc que arma w65.py junto con main.s."""
     height, width = len(tilemap), len(tilemap[0])
 
@@ -406,6 +575,11 @@ def emit(path, name, tile_data, cram, tilemap, sprite=None, collision=None):
     words = bytearray()
     for cell in cells:
         words += cell.to_bytes(2, "little")
+
+    above_cells = bytearray()
+    if above:
+        for cell in screen_order(above[2])[0]:
+            above_cells += cell.to_bytes(2, "little")
 
     colors = bytearray()
     for word in cram:
@@ -438,6 +612,9 @@ def emit(path, name, tile_data, cram, tilemap, sprite=None, collision=None):
             "HERO_START_TILE = %d\n"
             "SPRITE_TILES = %d\n"
             "SPRITE_CGRAM = %d\n"
+            "ABOVE_TILES  = %d\n"
+            "ABOVE_CGRAM  = %d\n"
+            "ABOVE_FIRST  = %d\n"
             "NPC_COUNT    = %d\n"
             "NPC_STRIDE   = %d\n"
             "; La capa del héroe, para ordenarlo contra los NPCs.\n"
@@ -445,7 +622,7 @@ def emit(path, name, tile_data, cram, tilemap, sprite=None, collision=None):
             # map_pass va en TABLAS, que el enlazador pone en el banco 0:
             # la ROM la recorre con `lda map_pass, x`, y ese modo direcciona el
             # banco de datos, no el banco donde esté la tabla.
-            '.segment "RODATA"\n%s\n%s\n%s\n%s\n%s\n'
+            '.segment "RODATA"\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n'
             '.segment "TABLAS"\n%s\n%s\n'
             % (name, width, height, len(tile_data) // BYTES_PER_TILE, len(cram),
                layout, len(cells),
@@ -458,11 +635,17 @@ def emit(path, name, tile_data, cram, tilemap, sprite=None, collision=None):
                # Una más que los colores: el índice 0 del sprite es
                # transparente y también ocupa su lugar en CGRAM.
                COLORS_PER_PALETTE * len(sprite[1]) if sprite else 0,
+               len(above[0]) // 32 if above else 0,
+               len(above[1]) // 2 if above else 0,
+               ABOVE_PALETTE * COLORS_PER_PALETTE,
                len(sprite[3]) if sprite else 0,
                NPC_STRIDE, md_convert.LAYER_SAME,
                block("map_tiles", tile_data),
                block("map_cgram", colors),
                block("map_tilemap", words),
+               block("above_tiles", above[0] if above else b""),
+               block("above_cgram", above[1] if above else b""),
+               block("above_tilemap", above_cells),
                block("sprite_tiles", sprite[0] if sprite else b""),
                block("sprite_cgram", sprite_colors_bytes(sprite)),
                block("map_pass", collision[0] if collision else b""),
@@ -517,7 +700,10 @@ def npc_bytes(table):
         out += sort_key(npc["layer"], npc["y"] * 16).to_bytes(2, "little")
         out.append(npc["tile"] & 0xFF)
         # vhoopppN: prioridad 2, la paleta, y el noveno bit del número de tile.
-        out.append(0x30 | ((npc["palette"] & 0x07) << 1)
+        # Los eventos marcados "above" son los únicos que van por encima de la
+        # capa que tapa al héroe; el resto comparten prioridad con él.
+        prioridad = 0x30 if npc["layer"] == md_convert.LAYER_ABOVE else 0x20
+        out.append(prioridad | ((npc["palette"] & 0x07) << 1)
                    | ((npc["tile"] >> 8) & 0x01))
     return bytes(out)
 
@@ -541,10 +727,12 @@ def main():
     name = renderer.tree.map_names.get(args.map_id, "?")
 
     base, _above = renderer.render_layers(game_map)
+
     if base is None:
         sys.exit("no encuentro el chipset del mapa %d" % args.map_id)
 
     tile_data, cram, tilemap, summary = convert(base)
+    above_data = convert_above(_above)
 
     # Los personajes: el héroe con sus 12 poses porque camina, y cada NPC con la
     # que declara su página. Si un NPC usa el mismo personaje que el héroe,
@@ -581,7 +769,12 @@ def main():
     chipset = renderer.database.chipsets[game_map.chipset_id]
     flags = build_passability(chipset)
     passable = passability_map(game_map, flags)
-    start_x, start_y = hero_start(passable, game_map.width, game_map.height)
+    # Las celdas con un NPC quedan afuera: si el héroe arrancara sobre uno, los
+    # dos tendrían la misma clave de orden y cuál queda encima dependería de un
+    # desempate que no tiene por qué coincidir entre la consola y el render.
+    ocupadas = {(n["x"], n["y"]) for n in npcs}
+    start_x, start_y = hero_start(passable, game_map.width, game_map.height,
+                                  ocupadas)
     collision = (passable, start_x, start_y, game_map.width, game_map.height)
 
     print("Mapa %d %r: %dx%d celdas de %dx%d px"
@@ -603,7 +796,11 @@ def main():
           % (len(passable), abiertos, 100.0 * abiertos / len(passable),
              start_x, start_y))
 
-    emit(args.output, name, tile_data, cram, tilemap, sprite, collision)
+    print("  capa por encima del héroe: %d tiles, %d colores"
+          % (len(above_data[0]) // 32, len(above_data[1]) // 2))
+
+    emit(args.output, name, tile_data, cram, tilemap, sprite, collision,
+         above_data)
     print("  tiles %d B, cgram %d B, tilemap %d B -> %s"
           % (len(tile_data), 2 * len(cram),
              2 * summary["celdas"], args.output))

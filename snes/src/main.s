@@ -30,6 +30,9 @@ APUIO3   = $2143
 ; --- el PPU ----------------------------------------------------------------
 BGMODE   = $2105        ; qué modo gráfico y con cuántos bits por pixel
 BG1SC    = $2107        ; dónde vive el tilemap de BG1 y de qué tamaño es
+BG2SC    = $2108        ; lo mismo para BG2, la capa que tapa al héroe
+BG2HOFS  = $210F        ; su scroll, que tiene que ir con el de BG1
+BG2VOFS  = $2110
 BG12NBA  = $210B        ; dónde viven los tiles de BG1 y BG2
 BG1HOFS  = $210D        ; scroll horizontal de BG1 (se escribe dos veces)
 BG1VOFS  = $210E        ; scroll vertical
@@ -60,8 +63,19 @@ MDMAEN   = $420B        ; arrancar
 ; en la $6000, que deja 24K palabras para tiles: mucho más de las 1024 que el
 ; tilemap puede nombrar.
 VRAM_TILES = $0000
+VRAM_ABOVE = $1000      ; los tiles de la capa de encima, que son de 4 bits
 VRAM_SPRITE = $2000     ; los tiles de los sprites, en su propia página
 VRAM_MAP   = $6000
+VRAM_ABOVE_MAP = $6800
+
+; El orden de prioridades del modo 3, de adelante hacia atrás, es
+;   objetos 3 / BG1 1 / objetos 2 / BG2 1 / objetos 1 / BG1 0 / objetos 0
+; así que con el mapa en BG1 prioridad 0, el héroe en objetos prioridad 1 y la
+; capa de encima en BG2 prioridad 1, el orden de RM2k sale del hardware sin
+; ningún truco. Los eventos marcados "above" van en objetos prioridad 2, que es
+; lo único que queda por encima de BG2.
+OBJ_PRIORITY = $20      ; prioridad 1 en el byte de atributos
+OBJ_PRIORITY_ABOVE = $30
 
 ; OBSEL: tamaño 8x8/32x32 en los bits altos, y la página de arriba en los bajos.
 ; Las poses de RM2k son de 24x32 y la SNES no tiene ese tamaño, así que se usa
@@ -366,9 +380,11 @@ cero:
     ; dos bits bajos; con VRAM_MAP en $6000 y tamaño 0 queda $60.
     lda #>VRAM_MAP | MAP_LAYOUT
     sta BG1SC                   ; tilemap acá, del tamaño que pida el mapa
-    ; BG12NBA lleva la dirección de los tiles de BG1 en el nibble bajo, en
-    ; unidades de 4K palabras. Con VRAM_TILES en la 0, es 0.
-    lda #$00
+    lda #>VRAM_ABOVE_MAP | MAP_LAYOUT
+    sta BG2SC                   ; y el tilemap de la capa de encima acá
+    ; BG12NBA lleva las direcciones de los tiles de BG1 y BG2 en cada nibble, en
+    ; unidades de 4K palabras: BG1 en la 0, BG2 en la $1000.
+    lda #$10
     sta BG12NBA
     stz BG1HOFS                 ; el scroll es de dos escrituras, byte bajo
     stz BG1HOFS                 ; y byte alto
@@ -379,8 +395,8 @@ cero:
     lda #$FF
     sta BG1VOFS
     sta BG1VOFS
-    lda #$11
-    sta TM                      ; el fondo y los sprites en la pantalla principal
+    lda #$13
+    sta TM                      ; las dos capas del mapa y los sprites
     rts
 .endproc
 
@@ -535,6 +551,50 @@ chica:
     sta BBAD0                   ; destino: OAMDATA
     lda #$01
     sta MDMAEN
+
+    ; --- la capa que va por encima del héroe ---
+    ldx #VRAM_ABOVE
+    stx VMADDL
+    ldx #.loword(above_tiles)
+    stx A1T0L
+    lda #^above_tiles
+    sta A1B0
+    ldy #(ABOVE_TILES * 32)     ; son de 4 bits: 32 bytes por tile
+    sty DAS0L
+    lda #$01
+    sta DMAP0
+    lda #$18
+    sta BBAD0
+    lda #$01
+    sta MDMAEN
+
+    ldx #VRAM_ABOVE_MAP
+    stx VMADDL
+    ldx #.loword(above_tilemap)
+    stx A1T0L
+    lda #^above_tilemap
+    sta A1B0
+    ldy #(MAP_CELLS * 2)
+    sty DAS0L
+    lda #$01
+    sta MDMAEN
+
+    ; Su paleta va en las dos últimas de la mitad baja de CGRAM, que el fondo
+    ; de 8 bits deja libres a propósito.
+    lda #ABOVE_FIRST
+    sta CGADD
+    ldx #.loword(above_cgram)
+    stx A1T0L
+    lda #^above_cgram
+    sta A1B0
+    ldy #(ABOVE_CGRAM * 2)
+    sty DAS0L
+    lda #$00
+    sta DMAP0
+    lda #$22
+    sta BBAD0
+    lda #$01
+    sta MDMAEN
     rts
 .endproc
 
@@ -604,12 +664,16 @@ guarda_y:
     ; y después el alto.
     lda camara_x
     sta BG1HOFS
+    sta BG2HOFS
     lda camara_x + 1
     sta BG1HOFS
+    sta BG2HOFS
     lda scroll_y
     sta BG1VOFS
+    sta BG2VOFS
     lda scroll_y + 1
     sta BG1VOFS
+    sta BG2VOFS
     rts
 .endproc
 
@@ -1049,7 +1113,7 @@ sin_ajuste:
     clc
     adc temp + 1
     sta obj_tile
-    lda #$30                    ; prioridad 2, paleta 0 de los sprites
+    lda #OBJ_PRIORITY           ; por debajo de la capa que lo tapa
     sta obj_attr
 
     rep #$20
