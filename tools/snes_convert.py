@@ -40,8 +40,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import lcf
 import md_convert
-from md_convert import (CELL, cut_tiles, flips, hero_start, passability_map,
-                        reduce_colors, tile_colors, to_indices)
+from md_convert import (CELL, collect_npcs, cut_tiles, flips, hero_start,
+                        passability_map, reduce_colors, tile_colors, to_indices)
 from render_map import (GAME_DIR, REPO, RTP_DIR, Renderer, build_passability,
                         find_resource, load_image)
 
@@ -122,6 +122,7 @@ def entry(tile, horizontal, vertical, priority=0):
 SPRITE_W, SPRITE_H = 24, 32
 OBJ_W = OBJ_H = 32                 # el tamaño real del objeto en pantalla
 OBJ_COLORS = 15                    # 4 bits por pixel, y el 0 es transparente
+COLORS_PER_PALETTE = 16            # lo que ocupa cada paleta de sprite en CGRAM
 SPRITE_POSES = 12
 SPRITE_PALETTE = 8                 # los sprites usan las paletas 8 a 15
 
@@ -190,6 +191,102 @@ def build_sprite(image, index=0):
                 tiles[number * 32:(number + 1) * 32] = pack_tile(tuple(cell),
                                                                 planes=4)
     return bytes(tiles), palette, len(merged)
+
+
+# --- los NPCs ---------------------------------------------------------------
+#
+# Son los eventos del mapa que tienen CharSet, quietos en la pose que declara su
+# página. No se evalúan sus scripts. Cada uno es un objeto de OAM más.
+#
+# Dos límites de la consola mandan acá. Uno es cuántos tiles de sprite entran en
+# VRAM: 512 direccionables, y cada pose son 16. El otro, más duro, es que en una
+# misma línea de pantalla no puede haber más de 34 tiles de 8x8 de sprite; un
+# objeto de 32x32 aporta 4, así que a partir de nueve personajes juntos la
+# consola empieza a no dibujar los últimos.
+
+BLOCKS_PER_ROW = 4              # bloques de 4x4 tiles que entran en la grilla
+
+
+def block_tile(block):
+    """El número de tile donde arranca un bloque de 32x32."""
+    return (block // BLOCKS_PER_ROW) * 64 + (block % BLOCKS_PER_ROW) * 4
+
+
+def build_characters(images, characters):
+    """El banco de sprites de varios personajes, cada uno con su paleta.
+
+    `characters` es una lista de (charset, índice, poses). El héroe pide sus 12
+    poses porque camina; cada NPC, sólo la que declara.
+
+    Devuelve (tiles, paletas, ubicación), donde ubicación mapea
+    (charset, índice, pose) a (bloque, número de paleta).
+    """
+    tiles = bytearray()
+    palettes = []
+    where = {}
+    block = 0
+
+    for charset, index, poses in characters:
+        image = images[charset]
+        counts = sprite_colors(image, index)
+        if len(counts) <= OBJ_COLORS:
+            mapping = {c: c for c in counts}
+        else:
+            mapping, _ = md_convert.merge_least_used(counts, OBJ_COLORS)
+        palette = sorted(set(mapping.values()))
+        lookup = {color: i + 1 for i, color in enumerate(palette)}
+        slot = len(palettes)
+        palettes.append(palette)
+
+        for pose in poses:
+            where[(charset, index, pose)] = (block, slot)
+            ox, oy = pose_origin(index, pose)
+            first = block_tile(block)
+            # El bloque no ocupa 16 tiles seguidos: es un cuadrado de 4x4 dentro
+            # de una grilla de 16 de ancho, así que hay que dejar el hueco.
+            needed = (first + 3 * OBJ_ROW + 4) * 32
+            if len(tiles) < needed:
+                tiles += bytes(needed - len(tiles))
+            for ty in range(4):
+                for tx in range(4):
+                    cell = []
+                    for y in range(CELL):
+                        row = []
+                        for x in range(CELL):
+                            sx = tx * CELL + x - (OBJ_W - SPRITE_W) // 2
+                            sy = ty * CELL + y
+                            if 0 <= sx < SPRITE_W and 0 <= sy < SPRITE_H:
+                                r, g, b, a = image.getpixel((ox + sx, oy + sy))
+                                row.append(lookup[mapping[(r >> 3, g >> 3,
+                                                           b >> 3)]] if a else 0)
+                            else:
+                                row.append(0)
+                        cell.append(tuple(row))
+                    number = first + ty * OBJ_ROW + tx
+                    tiles[number * 32:(number + 1) * 32] = pack_tile(
+                        tuple(cell), planes=4)
+            block += 1
+
+    return bytes(tiles), palettes, where
+
+
+def npc_table(npcs, where):
+    """Los NPCs listos para la ROM, ya ordenados como los dibuja RM2k.
+
+    El orden de dibujado es primero por capa y recién después por Y: uno "below"
+    queda debajo del héroe aunque esté más adelante en pantalla. En la consola,
+    el objeto con índice más bajo de OAM es el que se ve encima, así que la
+    tabla va del frente hacia el fondo.
+    """
+    rows = []
+    for npc in sorted(npcs, key=lambda n: (n["layer"], n["y"]), reverse=True):
+        block, slot = where[(npc["charset"], npc["index"], npc["pose"])]
+        rows.append({
+            "x": npc["x"] * 16, "y": npc["y"] * 16,
+            "tile": block_tile(block), "palette": slot,
+            "layer": npc["layer"], "blocks": npc["blocks"],
+        })
+    return rows
 
 
 # --- conversión -------------------------------------------------------------
@@ -340,12 +437,16 @@ def emit(path, name, tile_data, cram, tilemap, sprite=None, collision=None):
             "PASS_HEIGHT = %d\n"
             "HERO_START_TILE = %d\n"
             "SPRITE_TILES = %d\n"
-            "SPRITE_CGRAM = %d\n\n"
+            "SPRITE_CGRAM = %d\n"
+            "NPC_COUNT    = %d\n"
+            "NPC_STRIDE   = %d\n"
+            "; La capa del héroe, para ordenarlo contra los NPCs.\n"
+            "HERO_LAYER   = %d\n\n"
             # map_pass va en TABLAS, que el enlazador pone en el banco 0:
             # la ROM la recorre con `lda map_pass, x`, y ese modo direcciona el
             # banco de datos, no el banco donde esté la tabla.
             '.segment "RODATA"\n%s\n%s\n%s\n%s\n%s\n'
-            '.segment "TABLAS"\n%s\n'
+            '.segment "TABLAS"\n%s\n%s\n'
             % (name, width, height, len(tile_data) // BYTES_PER_TILE, len(cram),
                layout, len(cells),
                max(0, width * CELL - 256), max(0, height * CELL - 224),
@@ -356,22 +457,68 @@ def emit(path, name, tile_data, cram, tilemap, sprite=None, collision=None):
                len(sprite[0]) // 32 if sprite else 0,
                # Una más que los colores: el índice 0 del sprite es
                # transparente y también ocupa su lugar en CGRAM.
-               len(sprite[1]) + 1 if sprite else 0,
+               COLORS_PER_PALETTE * len(sprite[1]) if sprite else 0,
+               len(sprite[3]) if sprite else 0,
+               NPC_STRIDE, md_convert.LAYER_SAME,
                block("map_tiles", tile_data),
                block("map_cgram", colors),
                block("map_tilemap", words),
                block("sprite_tiles", sprite[0] if sprite else b""),
                block("sprite_cgram", sprite_colors_bytes(sprite)),
-               block("map_pass", collision[0] if collision else b"")))
+               block("map_pass", collision[0] if collision else b""),
+               block("npc_table", npc_bytes(sprite[3]) if sprite else b"")))
 
 
 def sprite_colors_bytes(sprite):
-    """La paleta del sprite como bytes de CGRAM, con el 0 transparente."""
+    """Las paletas de los sprites como bytes de CGRAM.
+
+    Cada una son 16 entradas: el índice 0 es transparente y no se dibuja, pero
+    igual ocupa su lugar, y las que sobran se rellenan para que la siguiente
+    empiece donde el hardware la espera.
+    """
     if not sprite:
         return b""
-    out = bytearray(cgram_word(BACKDROP).to_bytes(2, "little"))
-    for color in sprite[1]:
-        out += cgram_word(color).to_bytes(2, "little")
+    out = bytearray()
+    for palette in sprite[1]:
+        out += cgram_word(BACKDROP).to_bytes(2, "little")
+        for color in palette:
+            out += cgram_word(color).to_bytes(2, "little")
+        out += bytes(2 * (COLORS_PER_PALETTE - 1 - len(palette)))
+    return bytes(out)
+
+
+NPC_STRIDE = 8
+
+
+def sort_key(layer, y):
+    """Cómo ordena RM2k: primero la capa y recién después la Y.
+
+    Un evento "below" queda debajo del héroe aunque esté más adelante en la
+    pantalla, y uno "above" lo tapa siempre. Meter la capa en los bits altos
+    hace que una sola comparación de 16 bits decida las dos cosas.
+    """
+    return (layer << 12) | (y & 0x0FFF)
+
+
+def npc_bytes(table):
+    """La tabla de NPCs: ocho bytes por cada uno.
+
+    Posición en el mapa, la clave con la que se ordena contra el héroe, qué tile
+    de sprite le toca, y el byte de atributos ya armado con su paleta. La ROM
+    sólo resta la cámara y lo copia a OAM.
+    """
+    out = bytearray()
+    for npc in table:
+        out += npc["x"].to_bytes(2, "little")
+        out += npc["y"].to_bytes(2, "little")
+        # La clave va con la Y en pixeles, que es como la calcula la ROM a
+        # partir de la posición del héroe. Con la Y en celdas, la del héroe
+        # sería siempre mayor y quedaría siempre adelante de todos.
+        out += sort_key(npc["layer"], npc["y"] * 16).to_bytes(2, "little")
+        out.append(npc["tile"] & 0xFF)
+        # vhoopppN: prioridad 2, la paleta, y el noveno bit del número de tile.
+        out.append(0x30 | ((npc["palette"] & 0x07) << 1)
+                   | ((npc["tile"] >> 8) & 0x01))
     return bytes(out)
 
 
@@ -399,11 +546,33 @@ def main():
 
     tile_data, cram, tilemap, summary = convert(base)
 
-    charset_path = find_resource([REPO, args.game_dir, RTP_DIR], "CharSet",
-                                 args.charset)
-    if not charset_path:
-        sys.exit("no encuentro el CharSet %r" % args.charset)
-    sprite = build_sprite(load_image(charset_path), args.charset_index)
+    # Los personajes: el héroe con sus 12 poses porque camina, y cada NPC con la
+    # que declara su página. Si un NPC usa el mismo personaje que el héroe,
+    # comparten paleta y tiles sin que haya que hacer nada.
+    npcs = collect_npcs(game_map)
+    poses = collections.defaultdict(set)
+    poses[(args.charset, args.charset_index)] = set(range(SPRITE_POSES))
+    for npc in npcs:
+        poses[(npc["charset"], npc["index"])].add(npc["pose"])
+
+    images, characters = {}, []
+    for charset, index in sorted(poses, key=lambda k: k != (args.charset,
+                                                            args.charset_index)):
+        if charset not in images:
+            path = find_resource([REPO, args.game_dir, RTP_DIR],
+                                 "CharSet", charset)
+            if not path:
+                sys.exit("no encuentro el CharSet %r" % charset)
+            images[charset] = load_image(path)
+        characters.append((charset, index, sorted(poses[(charset, index)])))
+
+    if len(characters) > 8:
+        sys.exit("el mapa usa %d personajes y hay 8 paletas de sprite"
+                 % len(characters))
+
+    tiles, palettes, where = build_characters(images, characters)
+    table = npc_table(npcs, where)
+    sprite = (tiles, palettes, where, table)
 
     # La colisión: un byte por celda de 16x16 con los cuatro bits de dirección
     # ya resueltos. Toda la lógica de RM2k —que la capa alta manda salvo que sea
@@ -424,8 +593,9 @@ def main():
           % (summary["tiles"], summary["celdas"],
              100.0 * (1 - summary["tiles"] / summary["celdas"])))
 
-    print("  sprite %s: %d tiles, paleta de %d, %d colores fusionados"
-          % (args.charset, len(sprite[0]) // 32, len(sprite[1]), sprite[2]))
+    print("  sprites: %d personajes, %d poses, %d tiles, %d paletas"
+          % (len(characters), len(where), len(tiles) // 32, len(palettes)))
+    print("  %d NPCs con CharSet de %d eventos" % (len(table), len(game_map.events)))
 
     abiertos = sum(1 for b in passable if b == 0x0F)
     print("  colisión: %d celdas, %d abiertas por los cuatro lados (%.0f%%), "

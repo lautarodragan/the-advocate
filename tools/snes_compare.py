@@ -15,6 +15,7 @@ Uso:
 """
 
 import argparse
+import os
 import sys
 
 from PIL import Image
@@ -34,6 +35,7 @@ def main():
     parser.add_argument("--camara", nargs=2, type=int, metavar=("X", "Y"),
                         default=(0, 0),
                         help="dónde tendría que estar mirando la cámara")
+    parser.add_argument("--saltar", help="archivo con las líneas a excluir")
     parser.add_argument("-o", "--output", help="PNG con las dos y la diferencia")
     args = parser.parse_args()
 
@@ -49,10 +51,21 @@ def main():
     if len(ours) != len(theirs):
         sys.exit("las imágenes no tienen el mismo tamaño")
 
-    diffs = [i for i, (a, b) in enumerate(zip(ours, theirs)) if a != b]
-    total = len(ours)
+    # Hay líneas donde la consola no puede dibujar todos los sprites; el
+    # esperado las declara y acá se excluyen, en vez de contar como error algo
+    # que el hardware no puede hacer.
+    saltar = set()
+    if args.saltar and os.path.exists(args.saltar):
+        saltar = {int(line) for line in open(args.saltar) if line.strip()}
+
+    diffs = [i for i, (a, b) in enumerate(zip(ours, theirs))
+             if a != b and (i // shot.width) not in saltar]
+    total = len(ours) - len(saltar) * shot.width
     print("%s contra %s: %dx%d, cámara en (%d,%d)"
           % (args.captura, args.referencia, shot.width, shot.height, x, y))
+    if saltar:
+        print("  %d líneas excluidas: la consola no puede dibujar tantos "
+              "sprites juntos" % len(saltar))
     print("  pixeles distintos: %d de %d (%.2f%%)"
           % (len(diffs), total, 100.0 * len(diffs) / total))
 

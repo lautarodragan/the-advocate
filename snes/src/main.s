@@ -112,6 +112,18 @@ step_dy:    .res 2
 anim_step:  .res 1      ; en qué punto del ciclo de caminata va
 anim_timer: .res 1      ; cuántos cuadros faltan para el frame siguiente
 moving:     .res 1      ; si se movió este cuadro
+oam_slot:   .res 2      ; en qué objeto de OAM vamos
+npc_ofs:    .res 2      ; desplazamiento dentro de la tabla de NPCs
+hero_key:   .res 2      ; la clave de orden del héroe
+hero_drawn: .res 1      ; si ya se lo intercaló
+high_acc:   .res 1      ; los bits de la tabla chica que se van juntando
+high_ptr:   .res 2      ; y en qué byte de ella van. Dos bytes porque se usa
+                        ; como índice, y `ldx` con X de 16 bits lee dos: con uno
+                        ; solo tomaría de basura el byte alto.
+obj_x:      .res 2      ; posición en pantalla del objeto que se está armando
+obj_y:      .res 2
+obj_tile:   .res 1
+obj_attr:   .res 1
 wait_frames: .res 1     ; cuántos cuadros faltan para el próximo evento
 token:      .res 1      ; testigo del handshake con el SPC700
 
@@ -169,8 +181,8 @@ token:      .res 1      ; testigo del handshake con el SPC700
     sta anim_timer
 
     jsr follow_camera           ; deja el scroll en su lugar antes de encender
-    jsr draw_hero
-    jsr push_oam
+    jsr build_oam
+    jsr flush_video
 
     lda #$0F
     sta INIDISP                 ; pantalla encendida, brillo al máximo
@@ -183,12 +195,12 @@ token:      .res 1      ; testigo del handshake con el SPC700
 
 loop:
     jsr wait_vblank
+    jsr flush_video             ; lo del cuadro anterior, apenas abre el vblank
     jsr read_pad
     jsr move_hero
     jsr animate_hero
     jsr follow_camera
-    jsr draw_hero
-    jsr push_oam                ; OAM sólo se puede tocar en vblank
+    jsr build_oam               ; y se arma el siguiente, ya fuera del vblank
     jsr music_frame
     bra loop
 .endproc
@@ -556,6 +568,22 @@ guarda_y:
     sta scroll_y
     sep #$20
 .a8
+    rts
+.endproc
+
+; --- lo que va sí o sí dentro del vblank -----------------------------------
+; OAM sólo se puede escribir mientras el PPU no la está leyendo, o sea en el
+; vblank. Armarla lleva su tiempo —con treinta y pico de personajes, más de un
+; milisegundo— así que armarla y subirla en el mismo vblank no entra: la subida
+; termina cayendo afuera y los objetos salen en cualquier lado.
+;
+; Por eso se sube lo del cuadro anterior apenas empieza el vblank, y recién
+; después se arma la del siguiente. El scroll va junto, para que el fondo y los
+; sprites correspondan al mismo momento.
+.proc flush_video
+.a8
+.i16
+    jsr push_oam
 
     ; Los dos registros de scroll son de escritura doble: primero el byte bajo
     ; y después el alto.
@@ -859,10 +887,118 @@ listo:
     rts
 .endproc
 
-; --- el héroe en OAM -------------------------------------------------------
-.proc draw_hero
+; --- armado de OAM ---------------------------------------------------------
+; Un objeto por NPC más uno para el héroe, en el orden en que RM2k los dibuja:
+; primero por capa y recién después por Y. En la consola el objeto con índice
+; más bajo de OAM es el que se ve encima, así que se recorre del frente hacia el
+; fondo — que es como el conversor dejó ordenada la tabla.
+;
+; El héroe se intercala donde le toca por su clave, no va siempre primero ni
+; siempre último: un evento "below" tiene que quedar debajo de él aunque esté
+; más adelante en pantalla, y uno "above" taparlo siempre.
+.proc build_oam
 .a8
 .i16
+    ; Todo escondido antes de empezar. Esconder sólo la cola al terminar deja
+    ; los objetos que este cuadro no usó con los datos del anterior, y basta con
+    ; que la cámara se mueva para que la cuenta cambie y alguno reaparezca donde
+    ; no va. Son 128 escrituras y sacan de encima toda esa clase de error.
+    jsr clear_oam
+    stz high_acc
+    stz hero_drawn
+    rep #$20
+.a16
+    stz high_ptr
+    stz oam_slot
+    stz npc_ofs
+    ; La clave del héroe: su capa arriba y su Y abajo, igual que en la tabla.
+    lda hero_y
+    and #$0FFF
+    ora #(HERO_LAYER * 4096)
+    sta hero_key
+    sep #$20
+.a8
+
+recorrer:
+    rep #$20
+.a16
+    lda npc_ofs
+    cmp #(NPC_COUNT * NPC_STRIDE)
+    sep #$20
+.a8
+    beq ultimos
+
+    lda hero_drawn
+    bne toca_npc
+    ; ¿Va el héroe antes que este NPC? Sí si su clave es mayor o igual, porque
+    ; la tabla va de mayor a menor.
+    ldx npc_ofs
+    rep #$20
+.a16
+    lda hero_key
+    cmp npc_table + 4, x
+    sep #$20
+.a8
+    bcc toca_npc
+    jsr place_hero
+    bra recorrer
+
+toca_npc:
+    jsr place_npc
+    rep #$20
+.a16
+    lda npc_ofs
+    clc
+    adc #NPC_STRIDE
+    sta npc_ofs
+    sep #$20
+.a8
+    bra recorrer
+
+ultimos:
+    lda hero_drawn
+    bne cerrar
+    jsr place_hero
+cerrar:
+    jsr flush_high
+    rts
+.endproc
+
+; --- un NPC ----------------------------------------------------------------
+.proc place_npc
+.a8
+.i16
+    ldx npc_ofs
+    rep #$20
+.a16
+    lda npc_table + 0, x        ; su posición en el mapa
+    sec
+    sbc camara_x
+    sec
+    sbc #SPRITE_OFF_X
+    sta obj_x
+    lda npc_table + 2, x
+    sec
+    sbc camara_y
+    sec
+    sbc #SPRITE_OFF_Y
+    sta obj_y
+    sep #$20
+.a8
+    lda npc_table + 6, x
+    sta obj_tile
+    lda npc_table + 7, x
+    sta obj_attr
+    jsr emit_object
+    rts
+.endproc
+
+; --- el héroe --------------------------------------------------------------
+.proc place_hero
+.a8
+.i16
+    inc hero_drawn
+
     ; El frame del CharSet: los pasos 0 y 2 son los de los costados, y los
     ; pasos 1 y 3 son los dos la pose del medio.
     lda anim_step
@@ -880,7 +1016,7 @@ sin_ajuste:
     adc hero_dir                ; dirección * 3
     clc
     adc temp                    ; más el frame
-    sta temp                    ; = número de pose, de 0 a 11
+    sta temp
 
     lsr a
     lsr a                       ; pose / 4 = fila de bloques
@@ -897,10 +1033,10 @@ sin_ajuste:
     asl a                       ; * 4 tiles
     clc
     adc temp + 1
-    sta oam + 2                 ; el número de tile del objeto 0
+    sta obj_tile
+    lda #$30                    ; prioridad 2, paleta 0 de los sprites
+    sta obj_attr
 
-    ; Posición en pantalla: donde está en el mapa, menos donde mira la cámara,
-    ; menos lo que el sprite sobresale de su celda.
     rep #$20
 .a16
     lda hero_x
@@ -908,32 +1044,138 @@ sin_ajuste:
     sbc camara_x
     sec
     sbc #SPRITE_OFF_X
-    sta temp
+    sta obj_x
     lda hero_y
     sec
     sbc camara_y
     sec
     sbc #SPRITE_OFF_Y
-    sta temp + 2
+    sta obj_y
     sep #$20
 .a8
-    lda temp
-    sta oam                     ; X, los ocho bits bajos
-    lda temp + 2
-    sta oam + 1                 ; Y
+    jsr emit_object
+    rts
+.endproc
 
-    ; La X de un objeto tiene nueve bits y el noveno vive en la tabla chica.
-    ; Sin él, una posición negativa —el héroe pegado al borde izquierdo, que en
-    ; pantalla queda en -8— se lee como positiva y el sprite salta al otro lado.
-    lda temp + 1
+; --- un objeto en OAM ------------------------------------------------------
+; Descarta lo que caiga fuera de la pantalla: la X del objeto tiene nueve bits y
+; la Y sólo ocho, así que un objeto lejano daría la vuelta y aparecería del otro
+; lado. Se corren los rangos 32 pixeles para poder compararlos sin signo.
+.proc emit_object
+.a8
+.i16
+    rep #$20
+.a16
+    lda obj_x
+    clc
+    adc #32
+    cmp #(256 + 64)
+    sep #$20
+.a8
+    bcs fuera
+    rep #$20
+.a16
+    lda obj_y
+    clc
+    adc #32
+    cmp #(224 + 64)
+    sep #$20
+.a8
+    bcs fuera
+
+    rep #$20
+.a16
+    lda oam_slot
+    asl a
+    asl a
+    tax                         ; cuatro bytes por objeto
+    sep #$20
+.a8
+    lda obj_x
+    sta oam, x
+    lda obj_y
+    sta oam + 1, x
+    lda obj_tile
+    sta oam + 2, x
+    lda obj_attr
+    sta oam + 3, x
+
+    ; Sus dos bits en la tabla chica: el noveno de la X y el tamaño.
+    lda obj_x + 1
     and #$01
-    ora #$02                    ; y el bit de al lado dice que es grande
-    sta oam_high
+    ora #$02                    ; todos los objetos son de 32x32
+    jsr push_high
+    rep #$20
+.a16
+    inc oam_slot
+    sep #$20
+.a8
+fuera:
+    rts
+.endproc
 
-    ; Prioridad 2 —por encima del fondo— y la paleta 0 de los sprites, que en
-    ; CGRAM es la 8.
-    lda #$30
-    sta oam + 3
+; Mete dos bits arriba del acumulador y lo corre. Después de cuatro objetos el
+; byte queda armado en el orden que la consola espera.
+.proc push_high
+.a8
+.i16
+    pha
+    lda high_acc
+    lsr a
+    lsr a
+    sta high_acc
+    pla
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a
+    ora high_acc
+    sta high_acc
+
+    lda oam_slot
+    and #$03
+    cmp #$03
+    bne listo                   ; todavía no se completó el byte
+    jsr store_high
+listo:
+    rts
+.endproc
+
+.proc store_high
+.a8
+.i16
+    lda high_acc
+    ldx high_ptr
+    sta oam_high, x
+    stz high_acc
+    rep #$20
+.a16
+    inc high_ptr
+    sep #$20
+.a8
+    rts
+.endproc
+
+; Al cerrar puede quedar un byte a medias. Se completa con objetos escondidos,
+; que igual van a quedar con la Y fuera de pantalla.
+.proc flush_high
+.a8
+.i16
+completar:
+    lda oam_slot
+    and #$03
+    beq listo
+    lda #$02
+    jsr push_high
+    rep #$20
+.a16
+    inc oam_slot
+    sep #$20
+.a8
+    bra completar
+listo:
     rts
 .endproc
 
