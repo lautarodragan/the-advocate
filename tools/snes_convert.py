@@ -701,128 +701,229 @@ def render_above(cram, above):
     return image
 
 
-def emit(path, name, tile_data, cram, tilemap, sprite=None, collision=None,
-         above=None):
-    """El .inc que arma w65.py junto con main.s."""
+# El registro de un mapa en la tabla. El paso es potencia de dos para que pasar
+# de índice a desplazamiento sean corrimientos y no una multiplicación, y sobra
+# lugar a propósito: agregar un campo no tiene que mover nada de lo que ya está.
+#
+# Los punteros van de a cuatro bytes aunque midan tres. El byte que sobra no se
+# usa; lo que se gana es que la parte baja de cada puntero caiga siempre en una
+# dirección par, que es como se la lee con el acumulador en 16 bits.
+MAPA_STRIDE = 128
+MAPA_ESCALARES = [
+    ("MAP_BW", "ancho en celdas de 16x16"),
+    ("MAP_BH", "alto en celdas de 16x16"),
+    ("CAM_MAX_X", "hasta dónde llega la cámara sin salirse"),
+    ("CAM_MAX_Y", ""),
+    ("HERO_MAX_X", "hasta dónde llega el héroe"),
+    ("HERO_MAX_Y", ""),
+    ("HERO_START_X", "dónde arranca, en pixeles"),
+    ("HERO_START_Y", ""),
+    ("VRAM_TILES", "el reparto de la VRAM, en palabras"),
+    ("VRAM_ABOVE", ""),
+    ("VRAM_SPRITE", ""),
+    ("MAP_TILES", "cuántos tiles de fondo, para el DMA"),
+    ("MAP_CGRAM", "cuántas palabras de CGRAM"),
+    ("ABOVE_TILES", ""),
+    ("ABOVE_CGRAM", ""),
+    ("SPRITE_TILES", ""),
+    ("SPRITE_CGRAM", ""),
+    ("NPC_COUNT", "cuántos NPCs con CharSet"),
+    ("PUERTA_COUNT", "cuántas puertas salen de este mapa"),
+]
+MAPA_BYTES = [
+    ("OBSEL_VALUE", "objetos de 8x8 y 32x32, y la página de sus tiles"),
+    ("BG12NBA_VALUE", "las páginas de tiles de BG1 y BG2"),
+    ("ABOVE_FIRST", "en qué entrada de CGRAM arranca la capa de encima"),
+]
+MAPA_PUNTEROS = ["map_tiles", "map_cgram", "above_tiles", "above_cgram",
+                 "sprite_tiles", "sprite_cgram", "map_celdas", "map_bloques",
+                 "bloque_pass", "npc_table", "puertas"]
+MAPA_PTR_BASE = 48                       # dónde arrancan los punteros
+MAPA_PTR_PASO = 4
+
+# Una puerta: dónde está, a qué mapa lleva y a qué celda. El paso es potencia de
+# dos para que buscarla sea un corrimiento, y sobra lugar para la dirección en
+# la que RM2k te deja mirando, que todavía no se usa.
+PUERTA_BYTES = 16
+
+
+def campos_del_mapa(mapa):
+    """Los valores del registro de un mapa, en el orden en que se emiten."""
+    tilemap, above, sprite = mapa["tilemap"], mapa["above"], mapa["sprite"]
+    collision, layout = mapa["collision"], mapa["layout"]
     height, width = len(tilemap), len(tilemap[0])
+    return {
+        "MAP_BW": collision[3], "MAP_BH": collision[4],
+        "CAM_MAX_X": max(0, width * CELL - 256),
+        "CAM_MAX_Y": max(0, height * CELL - 224),
+        "HERO_MAX_X": width * CELL - 16, "HERO_MAX_Y": height * CELL - 16,
+        "HERO_START_X": collision[1] * 16, "HERO_START_Y": collision[2] * 16,
+        "VRAM_TILES": layout["tiles"][0], "VRAM_ABOVE": layout["encima"][0],
+        "VRAM_SPRITE": layout["sprites"][0],
+        "MAP_TILES": len(mapa["tiles"]) // BYTES_PER_TILE,
+        "MAP_CGRAM": len(mapa["cram"]) // 2,
+        "ABOVE_TILES": len(above[0]) // 32,
+        "ABOVE_CGRAM": len(above[1]) // 2,
+        "SPRITE_TILES": len(sprite[0]) // 32 if sprite else 0,
+        # Una más que los colores: el índice 0 del sprite es transparente y
+        # también ocupa su lugar en CGRAM.
+        "SPRITE_CGRAM": COLORS_PER_PALETTE * len(sprite[1]) if sprite else 0,
+        "NPC_COUNT": len(sprite[3]) if sprite else 0,
+        "PUERTA_COUNT": len(mapa["puertas"]) // PUERTA_BYTES,
+        "OBSEL_VALUE": 0x20 | (layout["sprites"][0] // 0x2000),
+        "BG12NBA_VALUE": ((layout["encima"][0] // 0x1000) << 4)
+                         | (layout["tiles"][0] // 0x1000),
+        "ABOVE_FIRST": above[3] * COLORS_PER_PALETTE,
+    }
 
-    def block(label, data, per_line=16, alinear=None):
-        # Cada bloque se declara antes de emitirlo: todos se suben por DMA, y un
-        # DMA que cruce de banco lee basura de la mitad para adelante. La grilla
-        # de celdas no se sube por DMA sino que se recorre con un puntero, así
-        # que no le hace falta el banco entero: sólo que sus palabras no queden
-        # partidas entre el final de un banco y el principio del siguiente.
-        out = [".alinear %d" % alinear if alinear else ".bloque %d" % len(data),
-               "%s:" % label]
-        for i in range(0, len(data), per_line):
-            out.append("    .byte " + ",".join("$%02X" % b
-                                               for b in data[i:i + per_line]))
-        return "\n".join(out)
 
-    cells, blocks, block_pass = build_blocks(tilemap, above[2], collision[0],
-                                             collision[3], collision[4])
-    words = bytearray()
-    for cell in cells:
-        words += cell.to_bytes(2, "little")
+def desplazamientos():
+    """Los nombres de los campos del registro, para que main.s no los repita.
 
-    layout = vram_layout(len(tile_data) // BYTES_PER_TILE)
-    for cuantos, nombre in ((len(tile_data) // BYTES_PER_TILE, "tiles"),
-                            (len(above[0]) // 32, "encima"),
-                            (len(sprite[0]) // 32 if sprite else 0, "sprites")):
-        if cuantos > layout[nombre][1]:
-            raise SystemExit("con este reparto de VRAM, %s necesita %d tiles y "
-                             "entran %d" % (nombre, cuantos, layout[nombre][1]))
+    Que el conversor emita los desplazamientos y la ROM sólo los nombre es lo
+    que hace imposible que se desincronicen: si acá se agrega un campo, allá no
+    hay ningún número que actualizar.
+    """
+    out = ["; Dónde cae cada campo dentro del registro de un mapa."]
+    usado = 0
+    for nombre, _ in MAPA_ESCALARES:
+        out.append("M_%-14s = %d" % (nombre, usado))
+        usado += 2
+    for nombre, _ in MAPA_BYTES:
+        out.append("M_%-14s = %d" % (nombre, usado))
+        usado += 1
+    for numero, nombre in enumerate(MAPA_PUNTEROS):
+        out.append("M_PTR_%-10s = %d"
+                   % (nombre.upper(), MAPA_PTR_BASE + numero * MAPA_PTR_PASO))
+    return "\n".join(out)
 
-    colors = bytearray()
-    for word in cram:
-        colors += word.to_bytes(2, "little")
+
+def tabla_de_mapas(mapas):
+    """La tabla que la ROM recorre para saber qué cargar."""
+    out = ["; La tabla de mapas: un registro de %d bytes por mapa, con todo lo"
+           % MAPA_STRIDE,
+           "; que la ROM necesita para cargarlo. Los punteros son de 24 bits",
+           "; porque los datos viven repartidos por todos los bancos.",
+           "mapa_tabla:"]
+    for numero, mapa in enumerate(mapas):
+        campos = campos_del_mapa(mapa)
+        out.append("    ; --- %d: mapa %d %r ---" % (numero, mapa["id"],
+                                                     mapa["nombre"]))
+        usado = 0
+        for nombre, comentario in MAPA_ESCALARES:
+            out.append("    .word %-6d ; +%-3d %s%s"
+                       % (campos[nombre], usado, nombre,
+                          "  " + comentario if comentario else ""))
+            usado += 2
+        for nombre, comentario in MAPA_BYTES:
+            out.append("    .byte $%02X    ; +%-3d %s  %s"
+                       % (campos[nombre], usado, nombre, comentario))
+            usado += 1
+        relleno = MAPA_PTR_BASE - usado
+        out.append("    .byte %s ; +%d  relleno hasta los punteros"
+                   % (",".join(["$00"] * relleno), usado))
+        usado += relleno
+        for nombre in MAPA_PUNTEROS:
+            etiqueta = "%s_%d" % (nombre, numero)
+            out.append("    .byte <(%s), >(%s), ^(%s), $00 ; +%d  %s"
+                       % (etiqueta, etiqueta, etiqueta, usado, nombre))
+            usado += MAPA_PTR_PASO
+        assert usado <= MAPA_STRIDE, usado
+        out.append("    .byte " + ",".join(["$00"] * (MAPA_STRIDE - usado)))
+    return "\n".join(out)
+
+
+def bloque(label, data, per_line=16, alinear=None):
+    """Un bloque de datos con su declaración de acomodo.
+
+    Cada bloque se declara antes de emitirlo: casi todos se suben por DMA, y un
+    DMA que cruce de banco lee basura de la mitad para adelante. La grilla de
+    celdas no se sube por DMA sino que se recorre con un puntero, así que no le
+    hace falta el banco entero: sólo que sus palabras no queden partidas entre
+    el final de un banco y el principio del siguiente.
+    """
+    out = [".alinear %d" % alinear if alinear else ".bloque %d" % len(data),
+           "%s:" % label]
+    for i in range(0, len(data), per_line):
+        out.append("    .byte " + ",".join("$%02X" % b
+                                           for b in data[i:i + per_line]))
+    return "\n".join(out)
+
+
+def datos_del_mapa(mapa, numero):
+    """Los bloques de datos de un mapa, con el número pegado a cada etiqueta."""
+    above, sprite = mapa["above"], mapa["sprite"]
+    pares = [
+        ("map_tiles", mapa["tiles"]),
+        ("map_cgram", mapa["cram"]),
+        ("above_tiles", above[0]),
+        ("above_cgram", above[1]),
+        ("sprite_tiles", sprite[0] if sprite else b""),
+        ("sprite_cgram", sprite_colors_bytes(sprite)),
+        ("map_bloques", mapa["bloques"]),
+        ("bloque_pass", mapa["pass"]),
+        ("npc_table", npc_bytes(sprite[3]) if sprite else b""),
+        ("puertas", mapa["puertas"]),
+    ]
+    out = [bloque("%s_%d" % (nombre, numero), datos) for nombre, datos in pares]
+    # La grilla va aparte porque es la única que no se sube por DMA.
+    out.append(bloque("map_celdas_%d" % numero, mapa["celdas"], alinear=2))
+    return "\n".join(out)
+
+
+def emit(path, mapas, inicial=0):
+    """El .inc que arma w65.py junto con main.s."""
+    for numero, mapa in enumerate(mapas):
+        layout = mapa["layout"]
+        for cuantos, nombre in (
+                (len(mapa["tiles"]) // BYTES_PER_TILE, "tiles"),
+                (len(mapa["above"][0]) // 32, "encima"),
+                (len(mapa["sprite"][0]) // 32 if mapa["sprite"] else 0,
+                 "sprites")):
+            if cuantos > layout[nombre][1]:
+                raise SystemExit(
+                    "mapa %d: con este reparto de VRAM, %s necesita %d tiles y "
+                    "entran %d" % (mapa["id"], nombre, cuantos,
+                                   layout[nombre][1]))
+
+    cabecera = (
+        "; Generado por tools/snes_convert.py. No editar.\n"
+        "; Mapas: %s\n\n"
+        "MAPA_COUNT   = %d\n"
+        "MAPA_STRIDE  = %d\n"
+        "MAPA_INICIAL = %d\n"
+        "; Lo que no depende del mapa: el tilemap vive siempre en el mismo\n"
+        "; lugar de la VRAM, y el paso de la tabla de NPCs no cambia.\n"
+        "VRAM_MAP       = $%04X\n"
+        "VRAM_ABOVE_MAP = $%04X\n"
+        "MAP_LAYOUT  = %d\n"
+        "NPC_STRIDE  = %d\n"
+        "NPC_MAX     = %d\n"
+        "PUERTA_BYTES = %d\n"
+        "; La capa del héroe, para ordenarlo contra los NPCs.\n"
+        "HERO_LAYER  = %d\n\n"
+        % (", ".join("%d %s" % (m["id"], m["nombre"]) for m in mapas),
+           len(mapas), MAPA_STRIDE, inicial,
+           VRAM_MAP, VRAM_ABOVE_MAP, MAP_LAYOUT, NPC_STRIDE, NPC_MAX,
+           PUERTA_BYTES, md_convert.LAYER_SAME))
 
     with open(path, "w") as handle:
-        handle.write(
-            "; Generado por tools/snes_convert.py. No editar.\n"
-            "; Mapa: %s\n\n"
-            "; El mapa en celdas de 8x8, que es lo que mide el tilemap, y en\n"
-            "; celdas de 16x16, que es la unidad de RM2k y la del bloque.\n"
-            "MAP_WIDTH   = %d\n"
-            "MAP_HEIGHT  = %d\n"
-            "MAP_BW      = %d\n"
-            "MAP_BH      = %d\n"
-            "MAP_TILES   = %d\n"
-            "MAP_CGRAM   = %d\n"
-            "MAP_LAYOUT  = %d\n"
-            "MAP_BLOCKS  = %d\n"
-            "; El reparto de la VRAM, en palabras. Sale de cuántos tiles pide\n"
-            "; este mapa: la consola no elige nada, sólo escribe estos valores.\n"
-            "VRAM_TILES     = $%04X\n"
-            "VRAM_ABOVE     = $%04X\n"
-            "VRAM_SPRITE    = $%04X\n"
-            "VRAM_MAP       = $%04X\n"
-            "VRAM_ABOVE_MAP = $%04X\n"
-            "; OBSEL: objetos de 8x8 y 32x32, y la página de sus tiles.\n"
-            "OBSEL_VALUE    = $%02X\n"
-            "; BG12NBA: la página de los tiles de BG1 en el nibble bajo y la\n"
-            "; de los de BG2 en el alto, de a 4K palabras cada una.\n"
-            "BG12NBA_VALUE  = $%02X\n"
-            "; Hasta dónde puede llegar la cámara sin salirse del mapa, en\n"
-            "; pixeles: el ancho del mapa menos el de la pantalla.\n"
-            "CAM_MAX_X   = %d\n"
-            "CAM_MAX_Y   = %d\n"
-            "; El héroe se para en una celda de 16x16 y no puede salirse del\n"
-            "; mapa. Arranca en el tile abierto más cercano al centro.\n"
-            "HERO_MAX_X  = %d\n"
-            "HERO_MAX_Y  = %d\n"
-            "HERO_START_X = %d\n"
-            "HERO_START_Y = %d\n"
-            "SPRITE_TILES = %d\n"
-            "SPRITE_CGRAM = %d\n"
-            "ABOVE_TILES  = %d\n"
-            "ABOVE_CGRAM  = %d\n"
-            "ABOVE_FIRST  = %d\n"
-            "NPC_COUNT    = %d\n"
-            "NPC_STRIDE   = %d\n"
-            "; La capa del héroe, para ordenarlo contra los NPCs.\n"
-            "HERO_LAYER   = %d\n\n"
-            # La tabla de bloques y la de pasabilidad van en TABLAS, que el
-            # enlazador pone en el banco 0: la ROM las recorre con
-            # `lda tabla, x`, y ese modo direcciona el banco de datos, no el
-            # banco donde esté la tabla.
-            #
-            # La grilla de celdas no: llega a 40 KB y no entra en un banco. Se
-            # recorre con un puntero de 24 bits, y sólo pide arrancar en una
-            # dirección par, para que ninguna de sus palabras quede partida
-            # entre el $FFFF de un banco y el $8000 del siguiente.
-            '.segment "RODATA"\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n'
-            '.segment "TABLAS"\n%s\n%s\n%s\n'
-            % (name, width, height, collision[3], collision[4],
-               len(tile_data) // BYTES_PER_TILE, len(cram),
-               MAP_LAYOUT, len(blocks) // BLOCK_BYTES,
-               layout["tiles"][0], layout["encima"][0], layout["sprites"][0],
-               VRAM_MAP, VRAM_ABOVE_MAP,
-               0x20 | (layout["sprites"][0] // 0x2000),
-               ((layout["encima"][0] // 0x1000) << 4)
-               | (layout["tiles"][0] // 0x1000),
-               max(0, width * CELL - 256), max(0, height * CELL - 224),
-               width * CELL - 16, height * CELL - 16,
-               collision[1] * 16, collision[2] * 16,
-               len(sprite[0]) // 32 if sprite else 0,
-               # Una más que los colores: el índice 0 del sprite es
-               # transparente y también ocupa su lugar en CGRAM.
-               COLORS_PER_PALETTE * len(sprite[1]) if sprite else 0,
-               len(above[0]) // 32 if above else 0,
-               len(above[1]) // 2 if above else 0,
-               above[3] * COLORS_PER_PALETTE,
-               len(sprite[3]) if sprite else 0,
-               NPC_STRIDE, md_convert.LAYER_SAME,
-               block("map_tiles", tile_data),
-               block("map_cgram", colors),
-               block("above_tiles", above[0] if above else b""),
-               block("above_cgram", above[1] if above else b""),
-               block("sprite_tiles", sprite[0] if sprite else b""),
-               block("sprite_cgram", sprite_colors_bytes(sprite)),
-               block("map_celdas", words, alinear=2),
-               block("map_bloques", blocks),
-               block("bloque_pass", block_pass),
-               block("npc_table", npc_bytes(sprite[3]) if sprite else b"")))
+        handle.write(cabecera)
+        handle.write(desplazamientos())
+        handle.write("\n\n")
+        # Los datos van en RODATA, que el enlazador reparte por los bancos de
+        # arriba. La tabla va en TABLAS, o sea el banco 0, porque la ROM la
+        # recorre con `lda mapa_tabla + campo, x` y ese modo direcciona el banco
+        # de datos. Los datos ya no pueden estar ahí: no entran.
+        handle.write('.segment "RODATA"\n')
+        for numero, mapa in enumerate(mapas):
+            handle.write("; --- %d: mapa %d %r ---\n"
+                         % (numero, mapa["id"], mapa["nombre"]))
+            handle.write(datos_del_mapa(mapa, numero))
+            handle.write("\n")
+        handle.write('\n.segment "TABLAS"\n')
+        handle.write(tabla_de_mapas(mapas))
+        handle.write("\n")
 
 
 def sprite_colors_bytes(sprite):
@@ -843,7 +944,37 @@ def sprite_colors_bytes(sprite):
     return bytes(out)
 
 
+def puertas_bytes(puertas, indices):
+    """Las puertas listas para la ROM, ya con el índice de tabla del destino.
+
+    Las que llevan a un mapa que no entró en la ROM se descartan acá: en la
+    consola serían un salto al vacío, y es mejor que no hagan nada a que hagan
+    cualquier cosa. El conversor avisa cuántas quedaron afuera.
+    """
+    out = bytearray()
+    afuera = 0
+    for puerta in puertas:
+        destino = indices.get(puerta["mapa"])
+        if destino is None:
+            afuera += 1
+            continue
+        registro = bytearray(PUERTA_BYTES)
+        registro[0:2] = puerta["x"].to_bytes(2, "little")
+        registro[2:4] = puerta["y"].to_bytes(2, "little")
+        registro[4:6] = puerta["destino_x"].to_bytes(2, "little")
+        registro[6:8] = puerta["destino_y"].to_bytes(2, "little")
+        registro[8] = destino
+        out += registro
+    return bytes(out), afuera
+
+
 NPC_STRIDE = 8
+
+# La tabla de NPCs del mapa que está cargado se copia a RAM, porque build_oam la
+# recorre con un índice y eso direcciona el banco de datos. El tope no es una
+# elección: en OAM entran 128 objetos y uno es el héroe, así que ningún mapa
+# puede mostrar más. El que más tiene en todo el juego son 89.
+NPC_MAX = 127
 
 
 def sort_key(layer, y):
@@ -893,6 +1024,14 @@ def main():
     parser.add_argument("--charset-index", type=int, default=0,
                         help="cuál de los 8 personajes del CharSet")
     parser.add_argument("--reference", help="PNG del render de Python, para comparar")
+    parser.add_argument("--mapas", nargs="+", type=int, metavar="ID",
+                        help="otros mapas para meter en la misma ROM. El de "
+                             "--map-id va primero en la tabla")
+    parser.add_argument("--inicial", type=int, default=0, metavar="N",
+                        help="en qué índice de la tabla arranca la ROM. Sirve "
+                             "para probar un mapa que no sea el primero, que "
+                             "es el único caso donde el desplazamiento del "
+                             "registro no es cero")
     parser.add_argument("--inicio", nargs=2, type=int, metavar=("TX", "TY"),
                         help="dónde plantar al héroe, en celdas de 16x16. Sin "
                              "esto arranca en el tile abierto más cercano al "
@@ -901,13 +1040,64 @@ def main():
     args = parser.parse_args()
 
     renderer = Renderer(args.game_dir)
-    game_map = lcf.Map(os.path.join(args.game_dir, "Map%04d.lmu" % args.map_id))
-    name = renderer.tree.map_names.get(args.map_id, "?")
+    mapas = [convertir(renderer, map_id, args,
+                       inicio=args.inicio if map_id == args.map_id else None)
+             for map_id in ([args.map_id] + [m for m in (args.mapas or [])
+                                             if m != args.map_id])]
+    # Las puertas se resuelven cuando están todos los mapas: una puede llevar a
+    # cualquier otro, así que el índice de destino no se sabe hasta el final.
+    indices = {mapa["id"]: numero for numero, mapa in enumerate(mapas)}
+    for mapa in mapas:
+        mapa["puertas"], afuera = puertas_bytes(mapa["puertas_crudas"], indices)
+        cuantas = len(mapa["puertas"]) // PUERTA_BYTES
+        if cuantas or afuera:
+            print("  mapa %d: %d puerta(s)%s"
+                  % (mapa["id"], cuantas,
+                     ", %d a mapas que no están en la ROM" % afuera
+                     if afuera else ""))
+
+    if not 0 <= args.inicial < len(mapas):
+        sys.exit("--inicial %d pero hay %d mapas" % (args.inicial, len(mapas)))
+    emit(args.output, mapas, args.inicial)
+    print("%d mapa(s) -> %s, arranca en el %d (mapa %d)"
+          % (len(mapas), args.output, args.inicial, mapas[args.inicial]["id"]))
+
+    if args.reference:
+        mapas[args.inicial]["base"].save(args.reference)
+        print("referencia -> %s" % args.reference)
+
+
+def inicio_del_mapa(renderer, map_id, passable, width, height, ocupadas=()):
+    """Dónde se para el héroe al entrar a este mapa, en celdas de 16x16.
+
+    En el mapa donde el juego arranca de verdad, lo dice el LCF y no hay nada
+    que elegir: A Blurred Line empieza en Map0004, que es una habitación vacía
+    cuyo único trabajo es disparar un evento y teletransportar. Esa habitación
+    no tiene ni una celda abierta por los cuatro lados, así que la heurística de
+    abajo no tendría dónde poner a nadie.
+
+    En cualquier otro mapa todavía no hay una respuesta real —se llega por
+    teletransporte, y de dónde viene uno depende de por dónde entró—, así que se
+    usa el tile abierto más cercano al centro, que es lo que las pruebas
+    necesitan: un lugar desde el cual se pueda caminar.
+
+    Está acá y no en cada llamador porque la referencia con la que se compara
+    tiene que pararlo en el mismo lugar que la ROM.
+    """
+    if map_id == renderer.tree.start_map_id:
+        return renderer.tree.start_x, renderer.tree.start_y
+    return hero_start(passable, width, height, ocupadas)
+
+
+def convertir(renderer, map_id, args, inicio=None):
+    """Un mapa entero: tiles, colores, sprites, colisión y bloques."""
+    game_map = lcf.Map(os.path.join(args.game_dir, "Map%04d.lmu" % map_id))
+    name = renderer.tree.map_names.get(map_id, "?")
 
     base, _above = renderer.render_layers(game_map)
 
     if base is None:
-        sys.exit("no encuentro el chipset del mapa %d" % args.map_id)
+        sys.exit("no encuentro el chipset del mapa %d" % map_id)
 
     (tile_data, cram, tilemap, summary), above_data = convert_layers(base, _above)
 
@@ -950,15 +1140,16 @@ def main():
     # dos tendrían la misma clave de orden y cuál queda encima dependería de un
     # desempate que no tiene por qué coincidir entre la consola y el render.
     ocupadas = {(n["x"], n["y"]) for n in npcs}
-    if args.inicio:
-        start_x, start_y = args.inicio
-    else:
-        start_x, start_y = hero_start(passable, game_map.width,
-                                      game_map.height, ocupadas)
+    start_x, start_y = inicio or inicio_del_mapa(
+        renderer, map_id, passable, game_map.width, game_map.height, ocupadas)
     collision = (passable, start_x, start_y, game_map.width, game_map.height)
 
+    if len(table) > NPC_MAX:
+        sys.exit("el mapa %d tiene %d NPCs y en OAM entran %d"
+                 % (map_id, len(table), NPC_MAX))
+
     print("Mapa %d %r: %dx%d celdas de %dx%d px"
-          % (args.map_id, name, len(tilemap[0]), len(tilemap),
+          % (map_id, name, len(tilemap[0]), len(tilemap),
              CELL, CELL))
     print("  %d colores distintos, %d en CGRAM de %d disponibles, %d fusionados"
           % (summary["colores"], summary["usados"], summary["presupuesto"],
@@ -982,8 +1173,8 @@ def main():
           % (len(above_data[0]) // 32, len(above_data[1]) // 2,
              BG_PALETTES - above_data[3], above_data[3], above_data[4]))
 
-    celdas, bloques, _pass = build_blocks(tilemap, above_data[2], passable,
-                                          game_map.width, game_map.height)
+    celdas, bloques, block_pass = build_blocks(tilemap, above_data[2], passable,
+                                               game_map.width, game_map.height)
     print("  el mapa entra en %d bloques de 16x16 para %d celdas: %d B de "
           "grilla más %d B de tabla, contra los %d B del tilemap expandido"
           % (len(bloques) // BLOCK_BYTES, len(celdas), 2 * len(celdas),
@@ -994,14 +1185,23 @@ def main():
         print("  no entra en la ventana de %dx%d: la ROM va a ir redibujando"
               % (WINDOW_W, WINDOW_H))
 
-    emit(args.output, name, tile_data, cram, tilemap, sprite, collision,
-         above_data)
-    print("  tiles %d B, cgram %d B -> %s"
-          % (len(tile_data), 2 * len(cram), args.output))
+    words = bytearray()
+    for cell in celdas:
+        words += cell.to_bytes(2, "little")
+    colors = bytearray()
+    for word in cram:
+        colors += word.to_bytes(2, "little")
 
-    if args.reference:
-        base.save(args.reference)
-        print("  referencia -> %s" % args.reference)
+    return {
+        "id": map_id, "nombre": name,
+        "tiles": tile_data, "cram": bytes(colors), "cram_words": cram,
+        "tilemap": tilemap, "above": above_data, "sprite": sprite,
+        "collision": collision, "celdas": bytes(words),
+        "bloques": bloques, "pass": block_pass,
+        "layout": vram_layout(len(tile_data) // BYTES_PER_TILE),
+        "resumen": summary, "base": base,
+        "puertas_crudas": md_convert.collect_doors(game_map),
+    }
 
 
 if __name__ == "__main__":

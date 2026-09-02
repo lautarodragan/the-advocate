@@ -89,12 +89,19 @@ def lorom_address(offset):
 #   abs   absoluto, 2 bytes                lda $2140
 #   dpil  indirecto largo por página       lda [$12]
 #         directa, 1 byte
+#   dpily indirecto largo indexado por Y   lda [$12],y
 #   dpi   indirecto por página directa     lda ($12)
+#   dpiy  indirecto indexado por Y         lda ($12),y
 #   rel   relativo al PC, 1 byte con signo bne etiqueta
+#
+# El índice va pegado al modo y no aparte porque `[$12]` y `[$12],y` son
+# opcodes distintos. El largo indexado es el que permite recorrer una tabla que
+# no vive en el banco de datos, que es como se leen las tablas del mapa cuando
+# hay más de uno en la ROM.
 
 OPCODES = {
-    "lda": {"dpx": 0xB5, "absx": 0xBD, "absy": 0xB9, "imm": 0xA9, "dp": 0xA5, "abs": 0xAD, "dpil": 0xA7, "dpi": 0xB2},
-    "sta": {"dpx": 0x95, "absx": 0x9D, "absy": 0x99, "dp": 0x85, "abs": 0x8D, "dpil": 0x87, "dpi": 0x92},
+    "lda": {"dpx": 0xB5, "absx": 0xBD, "absy": 0xB9, "imm": 0xA9, "dp": 0xA5, "abs": 0xAD, "dpil": 0xA7, "dpily": 0xB7, "dpi": 0xB2, "dpiy": 0xB1},
+    "sta": {"dpx": 0x95, "absx": 0x9D, "absy": 0x99, "dp": 0x85, "abs": 0x8D, "dpil": 0x87, "dpily": 0x97, "dpi": 0x92, "dpiy": 0x91},
     "ldx": {"dpy": 0xB6, "absy": 0xBE, "imm": 0xA2, "dp": 0xA6, "abs": 0xAE},
     "stx": {"dpy": 0x96, "dp": 0x86, "abs": 0x8E},
     "ldy": {"dpx": 0xB4, "absx": 0xBC, "imm": 0xA0, "dp": 0xA4, "abs": 0xAC},
@@ -535,11 +542,13 @@ class Assembler:
         if mode not in modes:
             raise Error("%s no acepta el modo %s" % (mnemonic, mode))
         width = {"imp": 0, "acc": 0, "dp": 1, "dpx": 1, "dpy": 1,
-                 "dpil": 1, "dpi": 1, "imm8": 1,
+                 "dpil": 1, "dpily": 1, "dpi": 1, "dpiy": 1, "imm8": 1,
                  "abs": 2, "absx": 2, "absy": 2}.get(mode)
         if mode == "imm":
             wide = self.i16 if mnemonic in INDEX_WIDTH else self.a16
             width = 2 if wide else 1
+        if width is None:
+            raise Error("no sé cuánto ocupa el operando del modo %s" % mode)
         self.add(Instruction(modes[mode], expression, width))
 
     def decode(self, mnemonic, operand, modes):
@@ -558,10 +567,15 @@ class Assembler:
         if operand.startswith("#"):
             return ("imm8" if "imm8" in modes else "imm",
                     Expression(operand[1:]))
+        # Los indirectos llevan el índice pegado al modo, no aparte: `[dp]` y
+        # `[dp],y` son opcodes distintos. Si el índice se descartara acá, un
+        # `lda [ptr],y` se ensamblaría como `lda [ptr]` sin decir nada, que es
+        # exactamente la clase de error que este ensamblador existe para no
+        # tener. Se lo pasa al modo y que falle si no existe.
         if operand.startswith("[") and operand.endswith("]"):
-            return "dpil", self.target(operand[1:-1])
+            return "dpil" + index, self.target(operand[1:-1])
         if operand.startswith("(") and operand.endswith(")"):
-            return "dpi", self.target(operand[1:-1])
+            return "dpi" + index, self.target(operand[1:-1])
 
         expression = self.target(operand)
         # Página directa en dos casos: el símbolo vive en el segmento ZEROPAGE,

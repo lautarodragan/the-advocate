@@ -169,6 +169,28 @@ token:      .res 1      ; testigo del handshake con el SPC700
 es_pal:     .res 1      ; 1 si la consola corre a 50 cuadros por segundo
 pal_tick:   .res 1      ; para meter el cuadro de música que falta
 
+; El mapa que está cargado. Todo esto salía de constantes del .inc cuando había
+; un mapa solo; ahora sale de su registro en `mapa_tabla` y vive acá mientras
+; dure. Lo que se usa una sola vez —los tamaños de los DMA, las bases de VRAM—
+; no se copia: se lee del registro en el momento.
+mapa_ofs:    .res 2     ; el desplazamiento del registro del mapa actual
+mapa_ancho:  .res 2     ; su ancho en celdas de 16x16
+mapa_alto:   .res 2
+mapa_cw:     .res 2     ; y en celdas de 8x8, que es el doble. Se guarda hecho
+mapa_ch:     .res 2     ; porque el redibujado lo mira en cada columna y fila
+npc_total:   .res 2     ; cuántos bytes ocupa la tabla de NPCs de este mapa
+cam_max_x:   .res 2     ; hasta dónde puede llegar la cámara sin salirse
+cam_max_y:   .res 2
+bloques_ptr: .res 3     ; la tabla de bloques, que ya no entra en el banco 0
+bloques8_ptr: .res 3    ; la misma corrida ocho bytes, que es donde arranca la
+                        ; capa de encima dentro del bloque. Dos punteros salen
+                        ; más baratos que ocho `iny` en el lazo más caliente.
+pass_ptr:    .res 3     ; la pasabilidad, un byte por bloque
+npc_ptr:     .res 3     ; y la de NPCs, sólo mientras se la copia a la RAM
+puerta_ptr:  .res 3     ; la de puertas, mientras se la busca
+entrada_x:   .res 2     ; por dónde entrar al mapa que se está por cargar, en
+entrada_y:   .res 2     ; celdas. $FFFF quiere decir "donde diga el registro"
+
 .segment "CODE"
 
 ; --- arranque --------------------------------------------------------------
@@ -203,28 +225,15 @@ pal_tick:   .res 1      ; para meter el cuadro de música que falta
 
     jsr ppu_init
 
-    ; El héroe primero: la ventana del mapa se llena alrededor de la cámara, y
-    ; la cámara sale de dónde está parado.
+    ; Sin entrada puesta: el primer mapa arranca donde diga su registro.
     rep #$20
 .a16
-    lda #HERO_START_X
-    sta hero_x
-    lda #HERO_START_Y
-    sta hero_y
-    lda #(HERO_START_X / 16)
-    sta tile_x
-    lda #(HERO_START_Y / 16)
-    sta tile_y
+    lda #$FFFF
+    sta entrada_x
     sep #$20
 .a8
-    jsr follow_camera
-
-    jsr load_map
-    jsr load_above
-    jsr fill_window             ; deja listo tira_paso_col, que el otro usa
-    jsr init_hero_ptr
-
-    jsr load_sprite
+    lda #MAPA_INICIAL
+    jsr cargar_mapa
     jsr clear_oam
 
     stz step_left               ; parado, sin paso en curso
@@ -414,8 +423,8 @@ cero:
     sta BG1SC                   ; la ventana del mapa, siempre de 64x32
     lda #>VRAM_ABOVE_MAP | MAP_LAYOUT
     sta BG2SC                   ; y la de la capa de encima, del mismo tamaño
-    lda #BG12NBA_VALUE
-    sta BG12NBA
+    ; BG12NBA sale del mapa, así que lo pone cargar_mapa. Acá quedaría con el
+    ; valor del mapa anterior en cuanto haya más de uno.
     stz BG1HOFS                 ; el scroll es de dos escrituras, byte bajo
     stz BG1HOFS                 ; y byte alto
     ; El PPU muestra la línea vofs+1 en el primer scanline visible, no la vofs.
@@ -433,20 +442,178 @@ cero:
 ; --- volcado del mapa a la VRAM --------------------------------------------
 ; Todo por DMA y con la pantalla apagada, que es cuando se puede escribir la
 ; VRAM sin pelearle al PPU.
+; Carga entero el mapa cuyo índice viene en A: sus datos a la VRAM y a CGRAM,
+; sus tablas a donde la ROM las busca, la cámara donde arranca el héroe y la
+; ventana del tilemap llena. Es todo lo que hay que hacer para cambiar de mapa.
+;
+; Con la pantalla encendida esto no se puede llamar: escribe VRAM y CGRAM por
+; DMA, que fuera del vblank el PPU no deja.
+.proc cargar_mapa
+.a8
+.i16
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a                       ; por MAPA_STRIDE, que es 128
+    sta mapa_ofs
+    tax
+
+    ; Lo que se mira seguido se copia; lo que se usa una vez se lee en el lugar.
+    lda mapa_tabla + M_MAP_BW, x
+    sta mapa_ancho
+    asl a
+    sta mapa_cw                 ; el ancho en celdas de 8x8 es el doble
+    lda mapa_tabla + M_MAP_BH, x
+    sta mapa_alto
+    asl a
+    sta mapa_ch
+    lda mapa_tabla + M_CAM_MAX_X, x
+    sta cam_max_x
+    lda mapa_tabla + M_CAM_MAX_Y, x
+    sta cam_max_y
+    lda mapa_tabla + M_NPC_COUNT, x
+    asl a
+    asl a
+    asl a                       ; NPC_STRIDE bytes por NPC
+    sta npc_total
+
+    ; Los punteros a las dos tablas que se leen desde la ROM. El segundo apunta
+    ; ocho bytes más adelante, que es donde cada bloque guarda su capa de
+    ; encima; sumar ocho no puede desbordar el banco porque `.bloque` garantiza
+    ; que la tabla entera entra en uno.
+    lda mapa_tabla + M_PTR_MAP_BLOQUES, x
+    sta bloques_ptr
+    clc
+    adc #8
+    sta bloques8_ptr
+    lda mapa_tabla + M_PTR_BLOQUE_PASS, x
+    sta pass_ptr
+    sep #$20
+.a8
+    lda mapa_tabla + M_PTR_MAP_BLOQUES + 2, x
+    sta bloques_ptr + 2
+    sta bloques8_ptr + 2
+    lda mapa_tabla + M_PTR_BLOQUE_PASS + 2, x
+    sta pass_ptr + 2
+
+    ; Dónde arranca el héroe: donde diga el registro, salvo que quien llamó haya
+    ; dejado una entrada puesta, que es lo que hace una puerta. La cámara se
+    ; acomoda antes de llenar la ventana, porque la ventana se llena alrededor
+    ; de ella.
+    rep #$20
+.a16
+    lda entrada_x
+    cmp #$FFFF
+    bne desde_puerta
+    lda mapa_tabla + M_HERO_START_X, x
+    sta hero_x
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    sta tile_x
+    lda mapa_tabla + M_HERO_START_Y, x
+    sta hero_y
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    sta tile_y
+    bra puesto
+
+desde_puerta:
+    sta tile_x
+    asl a
+    asl a
+    asl a
+    asl a                       ; la celda mide 16 pixeles
+    sta hero_x
+    lda entrada_y
+    sta tile_y
+    asl a
+    asl a
+    asl a
+    asl a
+    sta hero_y
+    lda #$FFFF
+    sta entrada_x               ; consumida: la próxima carga vuelve al registro
+
+puesto:
+    sep #$20
+.a8
+    lda mapa_tabla + M_BG12NBA_VALUE, x
+    sta BG12NBA
+
+    jsr follow_camera
+    jsr load_map
+    jsr load_above
+    jsr load_sprite
+    jsr load_npcs
+    jsr fill_window             ; deja listo tira_paso_col, que el otro usa
+    jsr init_hero_ptr
+    rts
+.endproc
+
+; Deja en A1T0L/A1B0 el puntero de 24 bits que el registro del mapa guarda en el
+; campo que venga en Y. Los tres bytes del puntero están seguidos, así que la
+; parte baja sale de una lectura de 16 bits y el banco de la de al lado.
+; La cuenta va con el acumulador en 16 bits de punta a punta. Hacerla en 8 y
+; después `tax` no sirve: el acumulador del 65816 son 16 bits siempre, y `tax`
+; con X ancho transfiere los dos bytes, incluido el alto que quedó de la
+; operación anterior. Con el mapa 7 daba cero de casualidad para los tiles y
+; basura para la paleta.
+.proc dma_origen
+.a8
+.i16
+    rep #$20
+.a16
+    tya                         ; el desplazamiento del campo
+    clc
+    adc mapa_ofs
+    tax
+    lda mapa_tabla, x
+    sta A1T0L
+    sep #$20
+.a8
+    lda mapa_tabla + 2, x
+    sta A1B0
+    rts
+.endproc
+
 .proc load_map
 .a8
 .i16
+    ldx mapa_ofs
     ; --- los tiles ---
     lda #$80
     sta VMAIN                   ; avanzar una palabra tras el byte alto
-    ldx #VRAM_TILES
-    stx VMADDL
-    ldx #.loword(map_tiles)
-    stx A1T0L
-    lda #^map_tiles
-    sta A1B0
-    ldy #(MAP_TILES * 64)
-    sty DAS0L
+    rep #$20
+.a16
+    lda mapa_tabla + M_VRAM_TILES, x
+    sta VMADDL
+    sep #$20
+.a8
+    ldy #M_PTR_MAP_TILES
+    jsr dma_origen
+    ldx mapa_ofs
+    rep #$20
+.a16
+    lda mapa_tabla + M_MAP_TILES, x
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a                       ; 64 bytes por tile de 8 bits
+    sta DAS0L
+    sep #$20
+.a8
     lda #$01
     sta DMAP0                   ; dos registros, de a palabras
     lda #$18
@@ -456,12 +623,16 @@ cero:
 
     ; --- los colores ---
     stz CGADD
-    ldx #.loword(map_cgram)
-    stx A1T0L
-    lda #^map_cgram
-    sta A1B0
-    ldy #(MAP_CGRAM * 2)
-    sty DAS0L
+    ldy #M_PTR_MAP_CGRAM
+    jsr dma_origen
+    ldx mapa_ofs
+    rep #$20
+.a16
+    lda mapa_tabla + M_MAP_CGRAM, x
+    asl a                       ; dos bytes por color
+    sta DAS0L
+    sep #$20
+.a8
     lda #$00
     sta DMAP0                   ; un registro, de a bytes
     lda #$22
@@ -478,16 +649,29 @@ cero:
 .proc load_sprite
 .a8
 .i16
+    ldx mapa_ofs
     lda #$80
     sta VMAIN
-    ldx #VRAM_SPRITE
-    stx VMADDL
-    ldx #.loword(sprite_tiles)
-    stx A1T0L
-    lda #^sprite_tiles
-    sta A1B0
-    ldy #(SPRITE_TILES * 32)
-    sty DAS0L
+    rep #$20
+.a16
+    lda mapa_tabla + M_VRAM_SPRITE, x
+    sta VMADDL
+    sep #$20
+.a8
+    ldy #M_PTR_SPRITE_TILES
+    jsr dma_origen
+    ldx mapa_ofs
+    rep #$20
+.a16
+    lda mapa_tabla + M_SPRITE_TILES, x
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a                       ; 32 bytes por tile de 4 bits
+    sta DAS0L
+    sep #$20
+.a8
     lda #$01
     sta DMAP0
     lda #$18
@@ -499,12 +683,16 @@ cero:
     ; 8 arranca en el color 128.
     lda #128
     sta CGADD
-    ldx #.loword(sprite_cgram)
-    stx A1T0L
-    lda #^sprite_cgram
-    sta A1B0
-    ldy #(SPRITE_CGRAM * 2)
-    sty DAS0L
+    ldy #M_PTR_SPRITE_CGRAM
+    jsr dma_origen
+    ldx mapa_ofs
+    rep #$20
+.a16
+    lda mapa_tabla + M_SPRITE_CGRAM, x
+    asl a
+    sta DAS0L
+    sep #$20
+.a8
     lda #$00
     sta DMAP0
     lda #$22
@@ -512,7 +700,7 @@ cero:
     lda #$01
     sta MDMAEN
 
-    lda #OBSEL_VALUE
+    lda mapa_tabla + M_OBSEL_VALUE, x
     sta OBSEL
     rts
 .endproc
@@ -575,16 +763,29 @@ chica:
 .proc load_above
 .a8
 .i16
+    ldx mapa_ofs
     lda #$80
     sta VMAIN
-    ldx #VRAM_ABOVE
-    stx VMADDL
-    ldx #.loword(above_tiles)
-    stx A1T0L
-    lda #^above_tiles
-    sta A1B0
-    ldy #(ABOVE_TILES * 32)     ; son de 4 bits: 32 bytes por tile
-    sty DAS0L
+    rep #$20
+.a16
+    lda mapa_tabla + M_VRAM_ABOVE, x
+    sta VMADDL
+    sep #$20
+.a8
+    ldy #M_PTR_ABOVE_TILES
+    jsr dma_origen
+    ldx mapa_ofs
+    rep #$20
+.a16
+    lda mapa_tabla + M_ABOVE_TILES, x
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a                       ; son de 4 bits: 32 bytes por tile
+    sta DAS0L
+    sep #$20
+.a8
     lda #$01
     sta DMAP0
     lda #$18
@@ -592,22 +793,72 @@ chica:
     lda #$01
     sta MDMAEN
 
-    ; Su paleta va en las dos últimas de la mitad baja de CGRAM, que el fondo
-    ; de 8 bits deja libres a propósito.
-    lda #ABOVE_FIRST
+    ; Su paleta va en las últimas paletas de la mitad baja de CGRAM, que el
+    ; fondo de 8 bits deja libres. Cuántas y desde dónde lo decidió el
+    ; conversor mapa por mapa, así que viene en el registro.
+    lda mapa_tabla + M_ABOVE_FIRST, x
     sta CGADD
-    ldx #.loword(above_cgram)
-    stx A1T0L
-    lda #^above_cgram
-    sta A1B0
-    ldy #(ABOVE_CGRAM * 2)
-    sty DAS0L
+    ldy #M_PTR_ABOVE_CGRAM
+    jsr dma_origen
+    ldx mapa_ofs
+    rep #$20
+.a16
+    lda mapa_tabla + M_ABOVE_CGRAM, x
+    asl a
+    sta DAS0L
+    sep #$20
+.a8
     lda #$00
     sta DMAP0
     lda #$22
     sta BBAD0
     lda #$01
     sta MDMAEN
+    rts
+.endproc
+
+; La tabla de NPCs a la RAM, que es de donde build_oam la lee.
+;
+; Con un lazo y no con un DMA: para llegar a la WRAM el DMA tiene que pasar por
+; el puerto $2180 y dejar la dirección puesta en $2181-$2183, que son tres
+; registros más que acordarse de cargar. Son mil bytes como mucho y esto corre
+; una vez por mapa, así que el lazo no le cuesta nada a nadie y no puede
+; escribir en el lugar equivocado.
+.proc load_npcs
+.a8
+.i16
+    rep #$20
+.a16
+    lda #M_PTR_NPC_TABLE
+    clc
+    adc mapa_ofs
+    tax
+    lda mapa_tabla, x           ; los 16 bits bajos del puntero
+    sta npc_ptr
+    sep #$20
+.a8
+    lda mapa_tabla + 2, x       ; y su banco
+    sta npc_ptr + 2
+
+    ldx mapa_ofs
+    rep #$20
+.a16
+    lda mapa_tabla + M_NPC_COUNT, x
+    asl a
+    asl a
+    asl a                       ; NPC_STRIDE bytes por NPC
+    sta temp
+    sep #$20
+.a8
+    ldy #$0000
+copiar:
+    cpy temp
+    beq listo
+    lda [npc_ptr], y
+    sta npc_buf, y
+    iny
+    bra copiar
+listo:
     rts
 .endproc
 
@@ -630,9 +881,9 @@ chica:
     bpl limite_x
     lda #0                      ; el héroe está cerca del borde izquierdo
 limite_x:
-    cmp #CAM_MAX_X
+    cmp cam_max_x
     bcc guarda_x
-    lda #CAM_MAX_X
+    lda cam_max_x
 guarda_x:
     sta camara_x
 
@@ -644,9 +895,9 @@ guarda_x:
     bpl limite_y
     lda #0
 limite_y:
-    cmp #CAM_MAX_Y
+    cmp cam_max_y
     bcc guarda_y
-    lda #CAM_MAX_Y
+    lda cam_max_y
 guarda_y:
     sta camara_y
 
@@ -764,7 +1015,7 @@ guarda:
 .a16
 .i16
     stz col_addr
-    cpx #MAP_WIDTH
+    cpx mapa_cw
     bcc dentro
     rts                         ; más allá del borde: no hay nada que dibujar
 dentro:
@@ -814,10 +1065,10 @@ desde_arriba:
     lda win_row
     and #(WINDOW_ROWS - 1)
     asl a
-    tay                         ; la ranura, en bytes
+    tax                         ; la ranura, en bytes
 
     ; Cuántas filas hay por delante: la ventana entera, o lo que quede de mapa.
-    lda #MAP_HEIGHT
+    lda mapa_ch
     sec
     sbc win_row
     cmp #WINDOW_ROWS
@@ -826,6 +1077,9 @@ desde_arriba:
 corta:
     sta tira_resta
 
+    ; El índice del bloque va en Y y la ranura en X, y no al revés: la tabla de
+    ; bloques ya no vive en el banco 0 —con varios mapas no entra— así que se
+    ; lee con un puntero de 24 bits, y ese modo sólo indexa por Y.
 fila:
     lda [celdas_ptr]            ; el bloque de esta celda
     asl a
@@ -834,17 +1088,17 @@ fila:
     asl a                       ; su registro mide 16 bytes
     clc
     adc tira_ofs
-    tax
-    lda map_bloques, x
-    sta tira_col, y             ; la celda del fondo
-    lda map_bloques + 8, x
-    sta tira_col2, y            ; y la de la capa de encima
-
-    iny
-    iny
-    tya
-    and #(WINDOW_ROWS * 2 - 1)  ; la ventana da la vuelta
     tay
+    lda [bloques_ptr], y
+    sta tira_col, x             ; la celda del fondo
+    lda [bloques8_ptr], y
+    sta tira_col2, x            ; y la de la capa de encima
+
+    inx
+    inx
+    txa
+    and #(WINDOW_ROWS * 2 - 1)  ; la ventana da la vuelta
+    tax
 
     lda tira_ofs
     eor #$0004                  ; la otra mitad del bloque
@@ -866,7 +1120,7 @@ misma:
 .a16
 .i16
     stz row_addr
-    cpx #MAP_HEIGHT
+    cpx mapa_ch
     bcc dentro
     rts                         ; más allá del borde de abajo
 dentro:
@@ -920,9 +1174,9 @@ desde_izquierda:
     lda win_col
     and #(WINDOW_COLS - 1)
     asl a
-    tay
+    tax
 
-    lda #MAP_WIDTH
+    lda mapa_cw
     sec
     sbc win_col
     cmp #WINDOW_COLS
@@ -939,17 +1193,17 @@ columna:
     asl a
     clc
     adc tira_ofs
-    tax
-    lda map_bloques, x
-    sta tira_row, y
-    lda map_bloques + 8, x
-    sta tira_row2, y
-
-    iny
-    iny
-    tya
-    and #(WINDOW_COLS * 2 - 1)
     tay
+    lda [bloques_ptr], y
+    sta tira_row, x
+    lda [bloques8_ptr], y
+    sta tira_row2, x
+
+    inx
+    inx
+    txa
+    and #(WINDOW_COLS * 2 - 1)
+    tax
 
     lda tira_ofs
     eor #$0002                  ; la otra mitad del bloque, ahora a lo ancho
@@ -1052,7 +1306,8 @@ sin_columna:
 .a16
     stz col_addr
     stz row_addr
-    lda #(MAP_BW * 2)
+    lda mapa_ancho
+    asl a
     sta tira_paso_col           ; lo que mide una fila de bloques, en bytes
 
     lda camara_x
@@ -1068,13 +1323,14 @@ sin_columna:
     lsr a
     sta win_block
 
-    ; celdas = map_celdas + win_block filas. Se suma de a una en vez de
+    ; celdas = la grilla del mapa + win_block filas. Se suma de a una en vez de
     ; multiplicar: pasa una sola vez y el 65816 no multiplica.
-    lda #.loword(map_celdas)
+    ldx mapa_ofs
+    lda mapa_tabla + M_PTR_MAP_CELDAS, x
     sta celdas_ptr
     sep #$20
 .a8
-    lda #^map_celdas
+    lda mapa_tabla + M_PTR_MAP_CELDAS + 2, x
     sta celdas_ptr + 2
     rep #$20
 .a16
@@ -1364,7 +1620,7 @@ no:
 .a16
     lda tile_y
     inc a
-    cmp #MAP_BH
+    cmp mapa_alto
     bcs no
     lda #PASS_DOWN
     jsr can_leave
@@ -1428,7 +1684,7 @@ no:
 .a16
     lda tile_x
     inc a
-    cmp #MAP_BW
+    cmp mapa_ancho
     bcs no
     lda #PASS_RIGHT
     jsr can_leave
@@ -1493,10 +1749,10 @@ no:
 .a16
 .i16
     lda [celdas_ptr]            ; qué bloque es esta celda
-    tax
+    tay
     sep #$20
 .a8
-    lda bloque_pass, x
+    lda [pass_ptr], y
     rep #$20
 .a16
     and #$00FF
@@ -1538,11 +1794,12 @@ no:
 .i16
     rep #$20
 .a16
-    lda #.loword(map_celdas)
+    ldx mapa_ofs
+    lda mapa_tabla + M_PTR_MAP_CELDAS, x
     sta celdas_ptr
     sep #$20
 .a8
-    lda #^map_celdas
+    lda mapa_tabla + M_PTR_MAP_CELDAS + 2, x
     sta celdas_ptr + 2
     rep #$20
 .a16
@@ -1602,6 +1859,100 @@ sin_filas:
     sec
     sbc #WALK_SPEED
     sta step_left
+    bne sigue                   ; el paso todavía no terminó
+    jsr cruzar_puerta           ; recién parado en la celda: ¿había puerta?
+sigue:
+    rts
+.endproc
+
+; Si la celda donde el héroe acaba de pararse tiene una puerta, cargar el mapa
+; al que lleva. Se mira al terminar el paso y no al empezarlo, que es lo que
+; hace RM2k: el evento se dispara cuando el héroe ocupa la celda, no cuando la
+; encara.
+;
+; La tabla se recorre entera comparando. Son pocas —el mapa con más puertas del
+; juego tiene un puñado— y esto corre una vez cada dieciséis pixeles.
+.proc cruzar_puerta
+.a8
+.i16
+    ldx mapa_ofs
+    rep #$20
+.a16
+    lda mapa_tabla + M_PUERTA_COUNT, x
+    beq no_hay
+    sta temp                    ; cuántas quedan por mirar
+    lda mapa_tabla + M_PTR_PUERTAS, x
+    sta temp + 2
+    sep #$20
+.a8
+    lda mapa_tabla + M_PTR_PUERTAS + 2, x
+    sta puerta_ptr + 2
+    rep #$20
+.a16
+    lda temp + 2
+    sta puerta_ptr
+
+    ldy #$0000
+buscar:
+    lda [puerta_ptr], y
+    cmp tile_x
+    bne siguiente
+    iny
+    iny
+    lda [puerta_ptr], y
+    dey
+    dey
+    cmp tile_y
+    beq cruzar
+siguiente:
+    tya
+    clc
+    adc #PUERTA_BYTES
+    tay
+    dec temp
+    bne buscar
+no_hay:
+    sep #$20
+.a8
+    rts
+
+cruzar:
+.a16
+    ; Acá se llega con A en 16 bits, desde el `beq` de arriba. El `.a16` no es
+    ; decoración: sin él el ensamblador viene creyendo lo que dejó dicho `no_hay`
+    ; y le pone un solo byte al `and #$00FF`, que el CPU lee como dos y se come
+    ; la instrucción siguiente.
+    ;
+    ; El destino está en el mismo registro: primero a dónde, después a qué mapa.
+    iny
+    iny
+    iny
+    iny
+    lda [puerta_ptr], y         ; la celda de destino, en X
+    sta entrada_x
+    iny
+    iny
+    lda [puerta_ptr], y         ; y en Y
+    sta entrada_y
+    iny
+    iny
+    lda [puerta_ptr], y
+    and #$00FF                  ; el índice del mapa al que lleva
+    sep #$20
+.a8
+
+    ; La pantalla se apaga mientras se carga: cargar_mapa escribe VRAM y CGRAM
+    ; por DMA, y con el PPU dibujando eso sale basura. RM2k también funde a
+    ; negro al cruzar una puerta, así que el parpadeo no desentona.
+    pha
+    lda #$80
+    sta INIDISP
+    pla
+    jsr cargar_mapa
+    stz step_left               ; el paso que se estaba dando quedó allá
+    stz moving
+    lda #$0F
+    sta INIDISP
     rts
 .endproc
 
@@ -1668,7 +2019,7 @@ recorrer:
     rep #$20
 .a16
     lda npc_ofs
-    cmp #(NPC_COUNT * NPC_STRIDE)
+    cmp npc_total
     sep #$20
 .a8
     beq ultimos
@@ -1681,7 +2032,7 @@ recorrer:
     rep #$20
 .a16
     lda hero_key
-    cmp npc_table + 4, x
+    cmp npc_buf + 4, x
     sep #$20
 .a8
     bcc toca_npc
@@ -1716,13 +2067,13 @@ cerrar:
     ldx npc_ofs
     rep #$20
 .a16
-    lda npc_table + 0, x        ; su posición en el mapa
+    lda npc_buf + 0, x        ; su posición en el mapa
     sec
     sbc camara_x
     sec
     sbc #SPRITE_OFF_X
     sta obj_x
-    lda npc_table + 2, x
+    lda npc_buf + 2, x
     sec
     sbc camara_y
     sec
@@ -1730,9 +2081,9 @@ cerrar:
     sta obj_y
     sep #$20
 .a8
-    lda npc_table + 6, x
+    lda npc_buf + 6, x
     sta obj_tile
-    lda npc_table + 7, x
+    lda npc_buf + 7, x
     sta obj_attr
     jsr emit_object
     rts
@@ -2096,6 +2447,15 @@ tira_col:   .res WINDOW_ROWS * 2
 tira_col2:  .res WINDOW_ROWS * 2
 tira_row:   .res WINDOW_COLS * 2
 tira_row2:  .res WINDOW_COLS * 2
+
+; La tabla de NPCs del mapa cargado. Es la única de las tablas del mapa que se
+; copia a RAM en vez de leerse con un puntero, y por una razón concreta:
+; build_oam la recorre con un índice y en cinco desplazamientos distintos, así
+; que con `lda tabla, x` sale una instrucción por campo y con un puntero salen
+; tres. Copiarla cuesta un DMA por carga de mapa y entra de sobra: el mapa con
+; más NPCs de todo el juego tiene 89, y acá entran 127, que es el tope que
+; impone OAM.
+npc_buf:  .res NPC_MAX * NPC_STRIDE
 
 .segment "CODE"
 

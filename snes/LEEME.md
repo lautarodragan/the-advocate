@@ -175,6 +175,63 @@ donde está escrito. Antes cada llamador convertía una y después la otra, y qu
 las tres copias del orden coincidieran era cuestión de suerte —justo la forma de
 error que ya nos había aflojado la comparación una vez.
 
+## Varios mapas en la ROM
+
+Un mapa solo no es un juego. Todo lo que antes era una constante del `.inc` —el
+tamaño, las bases de VRAM, dónde arranca el héroe, los punteros a cada tabla—
+pasó a ser un campo del registro del mapa en `mapa_tabla`, y la ROM carga el que
+le digan con `cargar_mapa`.
+
+Los desplazamientos de cada campo los emite el conversor. La ROM sólo los
+nombra, así que agregar un campo no deja ningún número que actualizar de este
+lado.
+
+**Las tablas del mapa ya no entran en el banco 0.** La de bloques llega a 8 KB
+—512 bloques por 16 bytes— y con varios mapas no hay dónde ponerlas. Se leen
+desde donde estén con un puntero de 24 bits, o sea `lda [ptr],y`, que fue lo que
+obligó a agregarle direccionamiento indirecto indexado a `w65.py`. Buscando
+dónde meterlo apareció que `lda [ptr],y` se ensamblaba como `lda [ptr]` sin
+avisar: el sufijo se separaba y la rama de los corchetes lo descartaba.
+
+La de NPCs es la excepción y se copia a la RAM: `build_oam` la recorre con un
+índice y en cinco desplazamientos distintos, así que con un puntero saldría el
+triple de instrucciones en el lazo que se ejecuta 128 veces por cuadro. Copiarla
+cuesta un lazo por carga de mapa y entran 127, que es el tope que impone OAM; el
+mapa con más NPCs del juego tiene 89.
+
+### Las puertas
+
+De los 959 teletransportes del juego, **238 son puertas**: una página cuyo único
+trabajo es mudarte, sin variables ni condiciones ni diálogo, y todas se disparan
+con "toca el héroe". Ésas se pueden hacer sin intérprete de eventos, y son las
+que convierten un mapa suelto en un mundo.
+
+Los otros 721 están adentro de cinemáticas y piden el intérprete.
+
+La ROM mira la tabla de puertas al **terminar** el paso, no al empezarlo, que es
+lo que hace RM2k: el evento se dispara cuando el héroe ocupa la celda. Si hay
+puerta, se apaga la pantalla, se carga el mapa entero y se lo deja donde la
+puerta dice. RM2k también funde a negro al cruzar, así que el parpadeo no
+desentona.
+
+Una puerta a un mapa que no entró en el cartucho se descarta en la conversión.
+En la consola sería un salto al vacío, y es mejor que no haga nada a que haga
+cualquier cosa; el conversor dice cuántas quedaron afuera.
+
+### El arranque de verdad
+
+El juego no empieza donde las pruebas lo ponían. Empieza en **Map0004, `Blank
+(Leave START here)`**, una habitación vacía cuyo único trabajo es disparar un
+evento y teletransportar —el patrón clásico de RM2k—. Esa habitación no tiene ni
+una celda abierta por los cuatro lados, así que la heurística que elegía "el
+tile abierto más cercano al centro" no tenía dónde poner a nadie.
+
+Ahora, en el mapa donde el juego arranca, la posición sale del LCF. En los demás
+sigue saliendo de la heurística, porque a ésos se llega por teletransporte y de
+dónde entrás depende de por dónde viniste. La regla vive en `inicio_del_mapa()`
+y la usan el conversor y la referencia: si cada uno eligiera por su cuenta, la
+comparación estaría midiendo dos cosas distintas.
+
 ### Cómo se verifica
 
 `just snes-hitos` corre seis mapas, uno por cada cosa que puede romperse:
@@ -185,6 +242,12 @@ error que ya nos había aflojado la comparación una vez.
     52            1000x80, con 40 KB de grilla que cruzan el corte de banco
     1             el primero del juego: la capa de encima se lleva 4 paletas
     348           el caso opuesto: el fondo usa 95 y encima fusiona 27
+
+Más dos paradas quietas en el borde de abajo del mapa 1, que van de a pares
+porque se equivocan para lados opuestos, y dos casos de varios mapas: uno que se
+carga desde un registro que no es el primero de la tabla —con el índice 0 el
+desplazamiento es cero y cualquier cuenta mal hecha da bien por casualidad— y
+una puerta cruzada de punta a punta.
 
 Qué mapa elegir para eso no se adivina mirando el tamaño —uno enorme lleno de
 paredes frena en la tercera celda—, así que `tools/snes_recorrido.py` camina
@@ -578,6 +641,19 @@ siguiente entero.
 personajes no entra armarla y subirla en el mismo vblank: se sube la del cuadro
 anterior apenas abre, y se arma la del siguiente después.
 
+**El ancho de A y de X/Y es estado, y el ensamblador lo cree.** Las directivas
+`.a8` y `.a16` no describen: mandan. Un `cruzar:` puesto justo debajo de un
+camino que terminaba en `.a8` hereda ese estado aunque se llegue ahí por un
+salto con A en 16 bits, y entonces un `and #$00FF` sale con un byte de operando,
+el CPU lee dos, y se come la instrucción siguiente. La pantalla queda negra y no
+hay ningún error. Toda etiqueta a la que se salte desde otro ancho tiene que
+declararlo.
+
+Y la misma trampa del otro lado: `tax` con X de 16 bits transfiere los dos bytes
+del acumulador, incluido el alto, que con A en 8 bits nadie tocó y trae lo que
+dejó la operación anterior. Una cuenta de direcciones hecha en 8 bits y cerrada
+con `tax` funciona mientras ese byte alto sea cero.
+
 **La consola arranca con lo que dejó el programa anterior.** El emulador arranca
 en cero. Hay que escribir los 43 registros del PPU, no sólo los que se usan, y
 cortar el HDMA antes que nada.
@@ -591,6 +667,15 @@ comparación.
 
 * **Que un NPC frene al héroe.** En RM2k los eventos de la capa del héroe
   bloquean el paso; la ROM todavía no lo mira. La tabla ya trae el dato.
+* **Los 721 teletransportes que no son puertas.** Están adentro de cinemáticas,
+  con variables y condiciones, y no se pueden resolver sin el intérprete de
+  eventos. Entre ellos está el del mapa donde el juego arranca, que es
+  automático y no por contacto: hoy se entra a `Blank (Leave START here)` y no
+  se sale.
+* **El mapa entero en un cartucho.** Los 328 mapas suman 3,7 MB y LoROM llega a
+  4, así que hoy entra un puñado por ROM y se elige al compilar. La salida
+  probable es compartir los tiles entre los mapas que usan el mismo chipset:
+  son 43 chipsets para 328 mapas.
 * **Mapas con más de ocho personajes distintos.** Los sprites van en 4 bits y
   hay ocho paletas para ellos, una por CharSet. Yun Town usa diez y Sorbe
   Village once, así que no convierten. Los dos venían tapados detrás del

@@ -29,7 +29,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import lcf
 import md_convert
 import snes_convert
-from md_convert import (collect_npcs, hero_start, passability_map, walk)
+from md_convert import (collect_doors, collect_npcs, passability_map,
+                        puede_pasar)
 from render_map import (GAME_DIR, REPO, RTP_DIR, Renderer, build_passability,
                         find_resource, load_image)
 
@@ -52,26 +53,66 @@ WALK = {"none": None, "up": (0, -1), "down": (0, 1),
         "left": (-1, 0), "right": (1, 0)}
 
 
-def hero_position(direction_name, passable, width, height, ocupadas=()):
-    """Dónde termina el héroe, en pixeles, y hacia dónde mira.
+class Mundo:
+    """Los mapas que entraron en la ROM, cargados a medida que se los pisa."""
 
-    No se estima: se camina con las mismas reglas que la ROM. Arranca en el tile
-    abierto más cercano al centro —el mismo que eligió el conversor— y avanza
-    hasta que la pasabilidad lo frena o se acaba el mapa. Si la ROM lo dejara en
-    otra celda, la comparación falla.
+    def __init__(self, renderer, game_dir, ids):
+        self.renderer = renderer
+        self.game_dir = game_dir
+        self.ids = list(ids)
+        self.cache = {}
+
+    def mapa(self, map_id):
+        if map_id not in self.cache:
+            game_map = lcf.Map(os.path.join(self.game_dir,
+                                            "Map%04d.lmu" % map_id))
+            chipset = self.renderer.database.chipsets[game_map.chipset_id]
+            passable = passability_map(game_map, build_passability(chipset))
+            ocupadas = {(n["x"], n["y"]) for n in collect_npcs(game_map)}
+            puertas = {(p["x"], p["y"]): p for p in collect_doors(game_map)
+                       if p["mapa"] in self.ids}
+            self.cache[map_id] = (game_map, passable, ocupadas, puertas)
+        return self.cache[map_id]
+
+
+def hero_position(mundo, map_id, direction_name):
+    """En qué mapa y en qué celda termina el héroe, y hacia dónde mira.
+
+    No se estima: se camina con las mismas reglas que la ROM, de a un paso, y
+    entre paso y paso se mira si la celda tiene una puerta —que es cuando la
+    consola la mira—. Si la tiene, se cambia de mapa y se sigue caminando desde
+    donde deja, con la cruceta todavía apretada.
+
+    Devuelve (mapa, x, y, dirección) con x e y en pixeles.
     """
-    start = hero_start(passable, width, height, ocupadas)
+    game_map, passable, ocupadas, puertas = mundo.mapa(map_id)
+    start = snes_convert.inicio_del_mapa(mundo.renderer, map_id, passable,
+                                         game_map.width, game_map.height,
+                                         ocupadas)
     step = WALK[direction_name]
     direction = DIRECTIONS.get(direction_name, DIRECTIONS["down"])
     if step is None:
-        return start[0] * TILE, start[1] * TILE, DIRECTIONS["down"]
+        return map_id, start[0] * TILE, start[1] * TILE, DIRECTIONS["down"]
 
-    # Las celdas ocupadas sólo sirven para elegir dónde arranca. No se le pasan
-    # a la caminata: en RM2k un NPC bloquea el paso, pero la ROM todavía no lo
-    # implementa, y modelar acá algo que la consola no hace es inventar una
-    # diferencia.
-    x, y = walk(passable, width, height, start, step[0], step[1])
-    return x * TILE, y * TILE, direction
+    x, y = start
+    # El tope es por si dos puertas se apuntan entre sí: la ROM se quedaría
+    # rebotando y la referencia también, y colgar una prueba no ayuda a nadie.
+    for _ in range(10000):
+        # Las celdas ocupadas sólo sirven para elegir dónde arranca. No se le
+        # pasan a la caminata: en RM2k un NPC bloquea el paso, pero la ROM
+        # todavía no lo mira, y modelar acá algo que la consola no hace es
+        # inventar una diferencia.
+        if not puede_pasar(passable, game_map.width, game_map.height,
+                           x, y, step[0], step[1]):
+            break
+        x, y = x + step[0], y + step[1]
+        puerta = puertas.get((x, y))
+        if puerta is None:
+            continue
+        map_id = puerta["mapa"]
+        x, y = puerta["destino_x"], puerta["destino_y"]
+        game_map, passable, ocupadas, puertas = mundo.mapa(map_id)
+    return map_id, x * TILE, y * TILE, direction
 
 
 def camera_for(x, y, map_w, map_h):
@@ -154,6 +195,10 @@ def main():
     parser.add_argument("--game-dir", default=GAME_DIR)
     parser.add_argument("--saltar", help="archivo donde anotar las líneas que "
                         "pasan el límite de sprites")
+    parser.add_argument("--mapas", nargs="+", type=int, metavar="ID",
+                        help="los otros mapas que entraron en la ROM, en el "
+                             "orden de la tabla. Sin esto una puerta no lleva "
+                             "a ningún lado, que es lo que pasa en la consola")
     parser.add_argument("--hero-tile", nargs=2, type=int, metavar=("TX", "TY"),
                         help="poner al héroe en esta celda en vez de calcularla; "
                              "sirve para averiguar dónde lo dejó la ROM")
@@ -163,11 +208,24 @@ def main():
     args = parser.parse_args()
 
     renderer = Renderer(args.game_dir)
-    game_map = lcf.Map(os.path.join(args.game_dir,
-                                    "Map%04d.lmu" % args.map_id))
+    # El mundo son los mapas que entraron en la ROM, en el mismo orden. Sin
+    # --mapas es uno solo y no hay puerta que lleve a ningún lado, que es como
+    # se comportaba esto antes de que hubiera varios.
+    mundo = Mundo(renderer, args.game_dir, [args.map_id] + (args.mapas or []))
+
+    # Adónde se llega es lo primero: si la caminata cruza una puerta, el mapa
+    # que hay que dibujar no es el que se pidió.
+    if args.hero_tile:
+        map_id = args.map_id
+        x, y = args.hero_tile[0] * TILE, args.hero_tile[1] * TILE
+        direction = DIRECTIONS[args.dir or "down"]
+    else:
+        map_id, x, y, direction = hero_position(mundo, args.map_id, args.walk)
+
+    game_map = mundo.mapa(map_id)[0]
     base, above_img = renderer.render_layers(game_map)
     if base is None:
-        sys.exit("no encuentro el chipset del mapa %d" % args.map_id)
+        sys.exit("no encuentro el chipset del mapa %d" % map_id)
 
     # La referencia se arma desde los datos convertidos, no desde el render:
     # entre uno y otro están la fusión de colores, el reparto en paletas, el
@@ -181,15 +239,6 @@ def main():
     mapa = snes_convert.render_converted(tile_data, cram, tilemap)
     encima_todo = snes_convert.render_above(cram, above_data)
 
-    chipset = renderer.database.chipsets[game_map.chipset_id]
-    passable = passability_map(game_map, build_passability(chipset))
-    if args.hero_tile:
-        x, y = args.hero_tile[0] * TILE, args.hero_tile[1] * TILE
-        direction = DIRECTIONS[args.dir or "down"]
-    else:
-        ocupadas = {(n["x"], n["y"]) for n in collect_npcs(game_map)}
-        x, y, direction = hero_position(args.walk, passable, game_map.width,
-                                        game_map.height, ocupadas)
     cam_x, cam_y = camera_for(x, y, game_map.width * 2, game_map.height * 2)
 
     view = mapa.crop((cam_x, cam_y, cam_x + SCREEN_W, cam_y + SCREEN_H))

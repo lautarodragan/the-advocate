@@ -278,29 +278,40 @@ def hero_start(passable, width, height, blocked=()):
     return best[1], best[2]
 
 
+def puede_pasar(passable, width, height, x, y, dx, dy, blocked=()):
+    """Si desde (x,y) se puede dar un paso en (dx,dy).
+
+    Las dos caras se consultan, la que se deja y la que se entra, que es la
+    regla de RM2k. Está separada de `walk` porque hay quien necesita caminar de
+    a un paso —para mirar entre paso y paso si la celda tiene una puerta— y las
+    reglas tienen que ser las mismas, no una copia parecida.
+    """
+    leaving = {(1, 0): PASS_RIGHT, (-1, 0): PASS_LEFT,
+               (0, 1): PASS_DOWN, (0, -1): PASS_UP}[(dx, dy)]
+    entering = {(1, 0): PASS_LEFT, (-1, 0): PASS_RIGHT,
+                (0, 1): PASS_UP, (0, -1): PASS_DOWN}[(dx, dy)]
+    nx, ny = x + dx, y + dy
+    if not (0 <= nx < width and 0 <= ny < height):
+        return False
+    if not passable[y * width + x] & leaving:
+        return False
+    if not passable[ny * width + nx] & entering:
+        return False
+    if (nx, ny) in blocked:
+        return False                # hay un NPC parado ahí
+    return True
+
+
 def walk(passable, width, height, start, dx, dy, blocked=()):
     """Hasta dónde llega el personaje caminando en una dirección sin soltar.
 
     Mismas reglas que la ROM, para poder predecir dónde va a terminar y
     comparar contra eso.
     """
-    leaving = {(1, 0): PASS_RIGHT, (-1, 0): PASS_LEFT,
-               (0, 1): PASS_DOWN, (0, -1): PASS_UP}[(dx, dy)]
-    entering = {(1, 0): PASS_LEFT, (-1, 0): PASS_RIGHT,
-                (0, 1): PASS_UP, (0, -1): PASS_DOWN}[(dx, dy)]
-
     x, y = start
-    while True:
-        nx, ny = x + dx, y + dy
-        if not (0 <= nx < width and 0 <= ny < height):
-            return x, y
-        if not passable[y * width + x] & leaving:
-            return x, y
-        if not passable[ny * width + nx] & entering:
-            return x, y
-        if (nx, ny) in blocked:
-            return x, y             # hay un NPC parado ahí
-        x, y = nx, ny
+    while puede_pasar(passable, width, height, x, y, dx, dy, blocked):
+        x, y = x + dx, y + dy
+    return x, y
 
 
 # --- el sprite del personaje ----------------------------------------------
@@ -464,6 +475,55 @@ def collect_npcs(game_map):
             "blocks": page.layer == LAYER_SAME,
         })
     return npcs
+
+
+# El código de Teleport y los triggers de una página, de liblcf.
+TELEPORT = 10810
+TRIGGER_TOCA_HEROE = 1
+
+# Lo que puede acompañar a un teletransporte sin que deje de ser una puerta.
+# Son cosas que no cambian a dónde vas: fundidos, esperas, un sonido, el fin de
+# la página. Si aparece cualquier otra —una condición, una variable, un
+# diálogo— el evento hace algo más que mudarte y no se puede resolver sin
+# intérprete.
+PUERTA_ACOMPAÑAN = {
+    10,      # END
+    10120,   # MessageOptions
+    11310,   # Wait
+    11410,   # PlaySound
+    11510,   # TintScreen
+    10630,   # ProceedWithMovement
+}
+
+
+def collect_doors(game_map):
+    """Las puertas del mapa: eventos cuyo único trabajo es mudarte de mapa.
+
+    De los 959 teletransportes del juego, 238 son de éstos y todos se disparan
+    con "toca el héroe". Los otros 721 están adentro de cinemáticas, con
+    variables y condiciones, y ésos piden el intérprete de eventos.
+
+    La gracia de separarlos es que las puertas se pueden hacer sin intérprete:
+    el héroe pisa una celda, se mira si hay puerta, y si hay se carga el mapa
+    de destino. Eso ya es un mundo en vez de un mapa suelto.
+    """
+    puertas = []
+    for event in game_map.events:
+        page = event.active_page()
+        if page is None or getattr(page, "trigger", None) != TRIGGER_TOCA_HEROE:
+            continue
+        codes = [c.code for c in page.commands]
+        if TELEPORT not in codes:
+            continue
+        if any(c != TELEPORT and c not in PUERTA_ACOMPAÑAN for c in codes):
+            continue
+        salto = next(c for c in page.commands if c.code == TELEPORT)
+        if len(salto.parameters) < 3:
+            continue
+        destino, x, y = salto.parameters[0], salto.parameters[1], salto.parameters[2]
+        puertas.append({"x": event.x, "y": event.y,
+                        "mapa": destino, "destino_x": x, "destino_y": y})
+    return puertas
 
 
 def allocate(grid, counters):

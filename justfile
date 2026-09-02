@@ -176,6 +176,38 @@ snes-walk mapa="7" direccion="none" segundos="8":
       --saltar snes/shots/saltar-{{direccion}}.txt \
       -o snes/shots/comparacion-{{direccion}}.png
 
+# Una puerta: el héroe camina, la pisa, y aparece en el otro mapa. Lo que se
+# compara es la pantalla entera después de cruzar, así que cubre de una vez el
+# cambio de mapa completo —tiles, paleta, capa de encima, sprites, NPCs— y que
+# el héroe haya caído en la celda que la puerta dice.
+#
+# La referencia recibe la misma lista de mapas que la ROM: una puerta a un mapa
+# que no entró en el cartucho no lleva a ningún lado, ni en la consola ni acá.
+snes-puerta origen="30" destino="28" direccion="down" segundos="8":
+  mkdir -p snes/shots
+  python3 tools/snes_convert.py --map-id {{origen}} --mapas {{destino}}
+  just snes-build
+  just snes-shot puerta {{segundos}} "$(just _tecla {{direccion}})"
+  python3 tools/snes_expect.py --map-id {{origen}} --mapas {{destino}} \
+      --walk {{direccion}} --saltar snes/shots/saltar-puerta.txt \
+      -o snes/shots/esperado-puerta.png
+  python3 tools/snes_compare.py snes/shots/puerta.png \
+      snes/shots/esperado-puerta.png \
+      --saltar snes/shots/saltar-puerta.txt \
+      -o snes/shots/comparacion-puerta.png
+
+# Varios mapas en la misma ROM. Lo que prueba no es que cada uno se vea bien
+# —eso ya lo cubre snes-hitos— sino que se vea bien cuando su registro no está
+# al principio de la tabla: con el índice 0 el desplazamiento es cero y
+# cualquier cuenta mal hecha da el resultado correcto por casualidad.
+snes-varios primero="18" otros="7 19" indice="2" mapa="19":
+  mkdir -p snes/shots
+  python3 tools/snes_convert.py --map-id {{primero}} --mapas {{otros}} \
+      --inicial {{indice}}
+  just snes-build
+  just snes-walk {{mapa}} none 8
+  just snes-walk {{mapa}} down 8
+
 # Planta al héroe en una celda elegida y compara sin caminar. Llegar a un lugar
 # puntual caminando depende de cuántos segundos se mantenga la cruceta, que es
 # frágil; acá la cámara queda donde uno quiere y la captura no se negocia.
@@ -228,6 +260,10 @@ snes-recorrido desde="66":
 # Ninguna caminata los tocaba: todas terminan contra un borde del mapa, y ahí la
 # cámara queda pegada y los NPCs no caen nunca en esa banda.
 #
+# Y los dos del final son la ROM con varios mapas: que uno se vea bien cuando su
+# registro no está al principio de la tabla, y que cruzar una puerta deje la
+# pantalla donde tiene que quedar.
+#
 # Los segundos son cuánto se mantiene la cruceta: tiene que alcanzar para
 # cruzar el mapa a 2 pixeles por cuadro.
 snes-hitos:
@@ -241,6 +277,8 @@ snes-hitos:
   just snes-heroe 348 8
   just snes-parado 1 75 88 borde
   just snes-parado 1 75 90 medias
+  just snes-varios
+  just snes-puerta
 
 # El héroe: parado y caminando en las cuatro direcciones.
 snes-heroe mapa="7" segundos="8":
