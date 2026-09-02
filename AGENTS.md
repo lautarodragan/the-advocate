@@ -33,23 +33,50 @@ decía "Verificado: mapas 7 y 4 en cero" sobre un camino que ninguna prueba
 ejecutaba, y detrás había tres errores encadenados. Si un camino nuevo no lo
 cubre `snes-hitos`, el mensaje tiene que decirlo con todas las letras.
 
-## Comandos que taro pueda revisar
+## Dónde corre esto
 
-Aprueba cada comando a mano, muchas veces desde el celular, donde la app los
-trunca. Su preocupación son los supply chain attacks, así que lo que aprueba
-tiene que ser corto y tiene que haber visto el contenido antes.
+Adentro de un contenedor de podman que taro levanta con `box`, una función
+suya de nushell: Arch —igual que el host— con el repo montado en
+`/host/abl-sg`. **Los archivos del repo son los de verdad**: lo que se escribe
+acá queda escrito en su disco. El resto del sistema es descartable, y por eso
+él trabaja en auto mode y no aprueba comando por comando; lo que revisa es el
+`git diff`.
 
-* **El código va a un archivo y después se ejecuta.** Nunca `python3 -c` ni un
-  heredoc `python3 - <<'PY'`. Lo que él lee es el diff de `Write`, que la
-  interfaz sí renderiza entero; lo que aprueba es una línea.
-* **Un comando por llamada**, sin encadenar con `&&`.
-* **Lo rutinario, por una receta de `just`.** Así la lista de permisos puede
-  nombrar recetas concretas —que viven en el justfile, en git, revisadas— en
-  vez de intérpretes: `Bash(python3:*)` es aprobar cualquier cosa.
-* **Las lecturas, con `Read` y `Grep`**, no con `cat` ni `sed -n`.
+Lo que el contenedor cambia en la práctica:
 
-Si la configuración de la sesión pide preferir `Bash` sobre `Read`/`Grep`, en
-este setup gana lo de acá: aquello genera aprobaciones que no hacen falta.
+* **No hay podman adentro.** Las recetas que lo usan —todo el port a Mega
+  Drive, y `snes-validar`— van desde el host. El justfile lo aclara en cada
+  una.
+* **`.git/config` y `.git/info` están montados de sólo lectura**, y
+  `.git/hooks` es un tmpfs vacío: `git config` falla y ningún hook corre.
+* **No hay puertos publicados.** Nada que se sirva acá adentro se ve desde el
+  host.
+* **`/extras` sobrevive a la sesión**, igual que los paquetes instalados y que
+  el juego original en `/extras/abl-rm`. `/root`, `/usr`, `/var` y `/etc` son
+  volúmenes con nombre, no capas de la imagen.
+
+El host y el contenedor son casi simétricos a propósito, así que un comando
+que se le pida a taro —`mednafen snes/build/abl.sfc`, una receta de `just`—
+suele valer tal cual de los dos lados. Las versiones pueden driftear, porque
+los paquetes no se comparten.
+
+Lo que sí o sí es del host: el `git push`, cualquier cosa con podman, el
+EverDrive por USB, y **ver y escuchar la ROM de verdad** — acá adentro se
+captura con Xvfb y el audio se graba a un wav en vez de sonar.
+
+## Recetas o scripts descartables
+
+La decisión no es de seguridad: es el costo de mantener el script contra lo que
+rinda tenerlo. Una receta por cada script convertiría al justfile en ruido.
+
+**Receta de `just`** cuando se va a volver a correr: si entra en una cadena de
+verificación, si conviene que quede escrito cómo se armó algo, o si taro lo va
+a correr desde el host. `snes-evento` nació así, y de paso dejó de existir la
+ROM armada a mano que mandó a mirar el mapa equivocado.
+
+**Script descartable** cuando contesta una pregunta de una sola vez: cuántos
+mapas tienen tal cosa, en qué offset de la ROM cae tal byte. Va al scratchpad
+y se tira.
 
 ## Trampas del entorno
 

@@ -197,6 +197,18 @@ snes-puerta origen="30" destino="28" direccion="down" segundos="8":
       --saltar snes/shots/saltar-puerta.txt \
       -o snes/shots/comparacion-puerta.png
 
+# El tinte solo, contra la cuenta de Python y sin referencia de por medio: toma
+# la misma pantalla capturada de la consola sin teñir y teñida, y pregunta si la
+# transformación de una a la otra es exactamente canal * valor / 100 sobre los
+# 15 bits. Es una segunda opinión sobre snes-evento, que compara un camino
+# entero; si snes-evento falla y esto da cero, el tinte no es el problema.
+#
+# La captura sin teñir sale de plantar al héroe en el destino del
+# teletransporte, que es la misma pantalla sin el evento:
+#     just snes-parado 1 7 65 destino
+snes-tinte sin="snes/shots/destino.png" con="snes/shots/evento.png" r="0" g="0" b="100":
+  python3 tools/snes_tinte.py {{sin}} {{con}} --tinte {{r}} {{g}} {{b}}
+
 # El intérprete de eventos, para mirarlo con los ojos. El juego arranca en el
 # mapa 4, una habitación vacía y negra cuyo único trabajo es prender dos
 # switches, teñir la pantalla y teletransportar: es la página que abre A Blurred
