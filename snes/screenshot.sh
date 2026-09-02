@@ -24,7 +24,14 @@ trap 'kill $xvfb_pid $pid 2>/dev/null || true' EXIT
 export DISPLAY=:99 SDL_AUDIODRIVER=dummy
 for _ in $(seq 50); do xdpyinfo >/dev/null 2>&1 && break; sleep 0.1; done
 
+# La cruceta va atada a las flechas. Por defecto mednafen usa WASD, que además
+# depende de la configuración de quien corra esto; fijarlo acá hace que el
+# script no dependa de nada de afuera. Los números son scancodes de SDL.
 timeout "$((seconds + 20))" mednafen \
+    -snes.input.port1.gamepad.up    "keyboard 0x0 82" \
+    -snes.input.port1.gamepad.down  "keyboard 0x0 81" \
+    -snes.input.port1.gamepad.left  "keyboard 0x0 80" \
+    -snes.input.port1.gamepad.right "keyboard 0x0 79" \
     -sound 0 \
     -snes.correct_aspect 0 \
     -snes.stretch 0 \

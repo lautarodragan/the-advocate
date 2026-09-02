@@ -48,6 +48,33 @@ línea `vofs+1` en el primer scanline**, no la `vofs`. Con el scroll en 0 el map
 quedaba corrido una línea. Las dos imágenes se veían idénticas y diferían en el
 50% de los pixeles.
 
+## La cámara
+
+El scroll es por hardware: mover la cámara es escribir dos registros. Lo único
+que hay que cuidar es no salirse del mapa.
+
+El tilemap del PPU se arma con "pantallas" de 32×32 celdas encadenadas en VRAM,
+y no van una al lado de la otra en memoria: cada una ocupa sus 1024 celdas
+seguidas. El conversor entrega el mapa ya acomodado así, con lo que la ROM lo
+sube en **un solo DMA** en vez de copiar fila por fila.
+
+Eso alcanza hasta 64×64 celdas, o sea 512×512 pixeles. Map0007 son 40×30. Para
+mapas más grandes —Lashe City son 300×300 celdas— va a haber que redibujar filas
+y columnas mientras la cámara se mueve, que es el hito siguiente.
+
+**Cómo se verifica.** Cada dirección se mantiene apretada hasta que la cámara
+choca contra el borde. Dónde tiene que quedar no se estima: es exactamente el
+ancho del mapa menos el de la pantalla, que el conversor emite como `CAM_MAX_X`
+y `CAM_MAX_Y`. Si la ROM se moviera de más, de menos, o no frenara, la
+comparación falla.
+
+    centro   (0,0)    0 pixeles distintos de 57344
+    derecha  (64,0)   0
+    abajo    (0,16)   0
+    esquina  (64,16)  0
+
+Que llegue justo a 64 y 16 prueba a la vez el movimiento y el tope.
+
 ## Cómo está armado
 
 El audio lo maneja el **SPC700**, un procesador aparte con sus propios 64 KB. El

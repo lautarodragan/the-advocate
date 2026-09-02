@@ -31,13 +31,19 @@ def main():
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("captura")
     parser.add_argument("referencia")
+    parser.add_argument("--camara", nargs=2, type=int, metavar=("X", "Y"),
+                        default=(0, 0),
+                        help="dónde tendría que estar mirando la cámara")
     parser.add_argument("-o", "--output", help="PNG con las dos y la diferencia")
     args = parser.parse_args()
 
     shot = Image.open(args.captura).convert("RGB")
     full = Image.open(args.referencia).convert("RGB")
-    # La referencia es el mapa entero; la consola muestra sólo su ventana.
-    reference = full.crop((0, 0, shot.width, shot.height))
+    # La referencia es el mapa entero; la consola muestra sólo la ventana que la
+    # cámara esté mirando. Dónde debería estar no se mide: se calcula, y si la
+    # ROM la dejó en otro lado la comparación falla.
+    x, y = args.camara
+    reference = full.crop((x, y, x + shot.width, y + shot.height))
 
     ours, theirs = quantize(shot), quantize(reference)
     if len(ours) != len(theirs):
@@ -45,8 +51,8 @@ def main():
 
     diffs = [i for i, (a, b) in enumerate(zip(ours, theirs)) if a != b]
     total = len(ours)
-    print("%s contra %s: %dx%d" % (args.captura, args.referencia,
-                                   shot.width, shot.height))
+    print("%s contra %s: %dx%d, cámara en (%d,%d)"
+          % (args.captura, args.referencia, shot.width, shot.height, x, y))
     print("  pixeles distintos: %d de %d (%.2f%%)"
           % (len(diffs), total, 100.0 * len(diffs) / total))
 

@@ -35,6 +35,13 @@ VMAIN    = $2115        ; cómo avanza el puntero de VRAM tras cada escritura
 VMADDL   = $2116        ; dirección de VRAM, en palabras
 CGADD    = $2121        ; índice de CGRAM
 TM       = $212C        ; qué capas se ven en la pantalla principal
+JOY1H    = $4219        ; control 1: arriba, abajo, izquierda, derecha y más
+
+; Los bits del control que nos interesan, tal como aparecen en JOY1H.
+PAD_RIGHT = $01
+PAD_LEFT  = $02
+PAD_DOWN  = $04
+PAD_UP    = $08
 
 ; --- DMA, canal 0 ----------------------------------------------------------
 DMAP0    = $4300        ; modo de transferencia
@@ -59,8 +66,10 @@ SCREEN_ROWS = 28
 .segment "ZEROPAGE"
 source:     .res 3      ; puntero al bloque que estamos subiendo
 music:      .res 3      ; puntero dentro del stream de música
-origen:     .res 2      ; al copiar el tilemap: de dónde
-destino:    .res 2      ; y a dónde
+camara_x:   .res 2      ; dónde está mirando la cámara, en pixeles
+camara_y:   .res 2
+scroll_y:   .res 2      ; lo mismo menos uno, que es lo que el PPU quiere
+pad:        .res 1      ; lo que el control tenía apretado este cuadro
 wait_frames: .res 1     ; cuántos cuadros faltan para el próximo evento
 token:      .res 1      ; testigo del handshake con el SPC700
 
@@ -81,11 +90,20 @@ token:      .res 1      ; testigo del handshake con el SPC700
 .a8
     lda #$80
     sta INIDISP                 ; blanking forzado: la VRAM sólo se toca así
-    lda #$00
-    sta NMITIMEN
+    lda #$01
+    sta NMITIMEN                ; que la consola lea los controles sola
 
     jsr ppu_init
     jsr load_map
+
+    rep #$20
+.a16
+    stz camara_x
+    stz camara_y
+    sep #$20
+.a8
+    stz pad                     ; la RAM arranca con basura, y move_camera la lee
+    jsr move_camera             ; deja el scroll en su lugar antes de encender
 
     lda #$0F
     sta INIDISP                 ; pantalla encendida, brillo al máximo
@@ -98,6 +116,8 @@ token:      .res 1      ; testigo del handshake con el SPC700
 
 loop:
     jsr wait_vblank
+    jsr read_pad
+    jsr move_camera
     jsr music_frame
     bra loop
 .endproc
@@ -129,8 +149,8 @@ in:
     sta BGMODE
     ; BG1SC lleva la dirección del tilemap en el byte alto y el tamaño en los
     ; dos bits bajos; con VRAM_MAP en $6000 y tamaño 0 queda $60.
-    lda #>VRAM_MAP
-    sta BG1SC                   ; tilemap acá, de 32x32 celdas
+    lda #>VRAM_MAP | MAP_LAYOUT
+    sta BG1SC                   ; tilemap acá, del tamaño que pida el mapa
     ; BG12NBA lleva la dirección de los tiles de BG1 en el nibble bajo, en
     ; unidades de 4K palabras. Con VRAM_TILES en la 0, es 0.
     lda #$00
@@ -188,56 +208,124 @@ in:
     lda #$01
     sta MDMAEN
 
-    ; --- el tilemap, fila por fila ---
-    ; El mapa es más ancho que el tilemap del PPU —40 celdas contra 32—, así que
-    ; no se puede mandar de una sola vez: hay que copiar 32 celdas por fila y
-    ; saltear el resto. Es también lo que va a hacer falta para la cámara.
+    ; --- el tilemap ---
+    ; Viene del conversor ya acomodado como lo quiere la VRAM: las pantallas de
+    ; 32x32 una detrás de la otra, no el mapa fila por fila. Por eso entra en un
+    ; solo DMA en vez de treinta.
+    ldx #VRAM_MAP
+    stx VMADDL
+    ldx #.loword(map_tilemap)
+    stx A1T0L
     lda #^map_tilemap
     sta A1B0
+    ldy #(MAP_CELLS * 2)
+    sty DAS0L
     lda #$01
     sta DMAP0
     lda #$18
     sta BBAD0
-
-    rep #$20
-.a16
-    lda #.loword(map_tilemap)
-    sta origen
-    lda #VRAM_MAP
-    sta destino
-    sep #$20
-.a8
-
-    ldx #SCREEN_ROWS
-fila:
-    rep #$20
-.a16
-    lda origen
-    sta A1T0L
-    lda destino
-    sta VMADDL
-    lda #64                     ; 32 celdas de dos bytes
-    sta DAS0L
-    sep #$20
-.a8
     lda #$01
     sta MDMAEN
+    rts
+.endproc
 
+; --- la cámara -------------------------------------------------------------
+; El scroll es por hardware: mover la cámara es escribir dos registros. Lo único
+; que hay que cuidar es no salirse del mapa, que es lo que hacen las
+; comparaciones contra CAM_MAX_X y CAM_MAX_Y.
+.proc move_camera
+.a8
+.i16
+    lda pad
+    and #PAD_RIGHT
+    beq no_derecha
     rep #$20
 .a16
-    lda origen
-    clc
-    adc #(MAP_WIDTH * 2)        ; la fila siguiente del mapa
-    sta origen
-    lda destino
-    clc
-    adc #32                     ; la fila siguiente del tilemap
-    sta destino
+    lda camara_x
+    cmp #CAM_MAX_X
+    bcs tope_derecha
+    inc camara_x
+tope_derecha:
+    sep #$20
+.a8
+no_derecha:
+
+    lda pad
+    and #PAD_LEFT
+    beq no_izquierda
+    rep #$20
+.a16
+    lda camara_x
+    beq tope_izquierda
+    dec camara_x
+tope_izquierda:
+    sep #$20
+.a8
+no_izquierda:
+
+    lda pad
+    and #PAD_DOWN
+    beq no_abajo
+    rep #$20
+.a16
+    lda camara_y
+    cmp #CAM_MAX_Y
+    bcs tope_abajo
+    inc camara_y
+tope_abajo:
+    sep #$20
+.a8
+no_abajo:
+
+    lda pad
+    and #PAD_UP
+    beq no_arriba
+    rep #$20
+.a16
+    lda camara_y
+    beq tope_arriba
+    dec camara_y
+tope_arriba:
+    sep #$20
+.a8
+no_arriba:
+
+    ; El PPU muestra la línea vofs+1 en el primer scanline, así que lo que se le
+    ; escribe es siempre uno menos que dónde queremos mirar.
+    rep #$20
+.a16
+    lda camara_y
+    dec a
+    sta scroll_y
     sep #$20
 .a8
 
-    dex
-    bne fila
+    ; Los dos registros de scroll son de escritura doble: primero el byte bajo
+    ; y después el alto.
+    lda camara_x
+    sta BG1HOFS
+    lda camara_x + 1
+    sta BG1HOFS
+    lda scroll_y
+    sta BG1VOFS
+    lda scroll_y + 1
+    sta BG1VOFS
+    rts
+.endproc
+
+; --- lectura del control ---------------------------------------------------
+; La consola lee los controles sola al empezar el vblank, pero tarda unos
+; scanlines. El bit 0 de HVBJOY dice si todavía está en eso: leer antes devuelve
+; basura a medio armar.
+.proc read_pad
+.a8
+.i16
+espera:
+    lda HVBJOY
+    and #$01
+    bne espera
+    lda JOY1H
+    sta pad
     rts
 .endproc
 

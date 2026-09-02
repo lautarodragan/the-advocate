@@ -191,10 +191,17 @@ class Expression:
 
     def _sum(self, symbols, pos):
         value, pos = self._product(symbols, pos)
-        while pos < len(self.tokens) and self.tokens[pos][1] in "+-":
+        while pos < len(self.tokens) and self.tokens[pos][1] in "+-|&":
             operator = self.tokens[pos][1]
             right, pos = self._product(symbols, pos + 1)
-            value = value + right if operator == "+" else value - right
+            if operator == "+":
+                value = value + right
+            elif operator == "-":
+                value = value - right
+            elif operator == "|":
+                value = value | right
+            else:
+                value = value & right
         return value, pos
 
     def _product(self, symbols, pos):

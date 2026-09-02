@@ -176,6 +176,37 @@ def convert(image):
     return bytes(tile_data), cram, tilemap, summary
 
 
+# El tilemap del PPU se arma con "pantallas" de 32x32 celdas encadenadas en
+# VRAM: una sola, dos al lado, dos abajo, o cuatro. El valor va en los dos bits
+# bajos de BG1SC.
+SCREEN = 32
+LAYOUTS = {(1, 1): 0, (2, 1): 1, (1, 2): 2, (2, 2): 3}
+
+
+def screen_order(tilemap):
+    """El tilemap acomodado como lo espera la VRAM, con su valor de BG1SC.
+
+    Las pantallas no van una al lado de la otra en memoria: cada una ocupa sus
+    1024 celdas seguidas, primero la de arriba a la izquierda, después la de su
+    derecha, y recién ahí las de abajo. Acomodarlo acá le ahorra a la ROM tener
+    que copiar fila por fila, y le deja un DMA único.
+    """
+    height, width = len(tilemap), len(tilemap[0])
+    across = 1 if width <= SCREEN else 2
+    down = 1 if height <= SCREEN else 2
+    if width > 2 * SCREEN or height > 2 * SCREEN:
+        raise SystemExit("el mapa no entra en un tilemap de 64x64 celdas; "
+                         "para mapas más grandes hace falta ir redibujando")
+
+    cells = [0] * (across * down * SCREEN * SCREEN)
+    for y, row in enumerate(tilemap):
+        for x, cell in enumerate(row):
+            screen = (y // SCREEN) * across + (x // SCREEN)
+            cells[screen * SCREEN * SCREEN
+                  + (y % SCREEN) * SCREEN + (x % SCREEN)] = cell
+    return cells, LAYOUTS[(across, down)]
+
+
 def emit(path, name, tile_data, cram, tilemap):
     """El .inc que arma w65.py junto con main.s."""
     height, width = len(tilemap), len(tilemap[0])
@@ -187,10 +218,10 @@ def emit(path, name, tile_data, cram, tilemap):
                                                for b in data[i:i + per_line]))
         return "\n".join(out)
 
+    cells, layout = screen_order(tilemap)
     words = bytearray()
-    for row in tilemap:
-        for cell in row:
-            words += cell.to_bytes(2, "little")
+    for cell in cells:
+        words += cell.to_bytes(2, "little")
 
     colors = bytearray()
     for word in cram:
@@ -203,9 +234,17 @@ def emit(path, name, tile_data, cram, tilemap):
             "MAP_WIDTH   = %d\n"
             "MAP_HEIGHT  = %d\n"
             "MAP_TILES   = %d\n"
-            "MAP_CGRAM   = %d\n\n"
+            "MAP_CGRAM   = %d\n"
+            "MAP_LAYOUT  = %d\n"
+            "MAP_CELLS   = %d\n"
+            "; Hasta dónde puede llegar la cámara sin salirse del mapa, en\n"
+            "; pixeles: el ancho del mapa menos el de la pantalla.\n"
+            "CAM_MAX_X   = %d\n"
+            "CAM_MAX_Y   = %d\n\n"
             '.segment "RODATA"\n%s\n%s\n%s\n'
             % (name, width, height, len(tile_data) // BYTES_PER_TILE, len(cram),
+               layout, len(cells),
+               max(0, width * CELL - 256), max(0, height * CELL - 224),
                block("map_tiles", tile_data),
                block("map_cgram", colors),
                block("map_tilemap", words)))

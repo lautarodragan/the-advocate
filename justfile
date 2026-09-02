@@ -159,12 +159,35 @@ snes-shot nombre="mapa" segundos="4" teclas="":
   snes/screenshot.sh snes/build/abl.sfc snes/shots/{{nombre}}.png {{segundos}} "{{teclas}}"
 
 # La captura contra el render de Python, pixel por pixel y a 15 bits.
-snes-compare nombre="mapa":
+snes-compare nombre="mapa" x="0" y="0":
   python3 tools/snes_compare.py snes/shots/{{nombre}}.png snes/shots/python.png \
-      -o snes/shots/comparacion-{{nombre}}.png
+      --camara {{x}} {{y}} -o snes/shots/comparacion-{{nombre}}.png
 
-# Todo el camino del mapa: convertir, compilar, capturar y comparar.
-snes-mapa mapa="7": (snes-convert mapa) snes-build snes-shot snes-compare
+# Todo el camino del mapa: convertir, compilar, y verificar la cámara en las
+# cuatro esquinas a las que puede llegar.
+#
+# Cada dirección se mantiene apretada hasta que la cámara choca contra el borde
+# del mapa, así que dónde tiene que quedar no se estima: es exactamente
+# CAM_MAX_X y CAM_MAX_Y, que salen del tamaño del mapa. Si la ROM se moviera de
+# más, de menos, o no frenara, la comparación falla.
+snes-mapa mapa="7" segundos="5":
+  just snes-convert {{mapa}}
+  just snes-build
+  just snes-shot centro {{segundos}}
+  just snes-compare centro 0 0
+  just snes-shot derecha {{segundos}} "Right"
+  just snes-compare derecha $(just _cam-x) 0
+  just snes-shot abajo {{segundos}} "Down"
+  just snes-compare abajo 0 $(just _cam-y)
+  just snes-shot esquina {{segundos}} "Right Down"
+  just snes-compare esquina $(just _cam-x) $(just _cam-y)
+
+# Los topes de la cámara salen del .inc que generó el conversor, así que las
+# recetas no repiten números que dependen del mapa.
+_cam-x:
+  @grep -oP 'CAM_MAX_X\s*=\s*\K\d+' snes/src/mapdata.inc
+_cam-y:
+  @grep -oP 'CAM_MAX_Y\s*=\s*\K\d+' snes/src/mapdata.inc
 
 # --- verificación del ensamblador ------------------------------------------
 # w65.py reemplaza a ca65 y ld65. Que se pueda confiar en él no es una promesa:

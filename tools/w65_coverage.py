@@ -95,6 +95,8 @@ def lines():
         "    lda #zp_sym * 2 + 1",
         "    lda #(zp_sym + 1) * 2",
         "    lda #abs_sym / 256",
+        "    lda #zp_sym | 1",
+        "    lda #zp_sym & 15",
         "    rts",
     ]
 
