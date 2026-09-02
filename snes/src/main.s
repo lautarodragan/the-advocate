@@ -757,13 +757,27 @@ sin_ajuste:
 ; La consola lee los controles sola al empezar el vblank, pero tarda unos
 ; scanlines. El bit 0 de HVBJOY dice si todavía está en eso: leer antes devuelve
 ; basura a medio armar.
+; La consola lee los controles sola al empezar el vblank, pero no arranca en el
+; mismo ciclo en que el vblank empieza: tarda unas decenas de ciclos, y después
+; unos cuatro scanlines en terminar. El bit 0 de HVBJOY vale 1 mientras está en
+; eso.
+;
+; Preguntar sólo "¿terminó?" tiene una carrera: como wait_vblank devuelve justo
+; al empezar el vblank, la lectura todavía no arrancó, el bit vale 0, y se pasa
+; de largo leyendo los registros mientras la consola está por pisarlos. Cada
+; tanto sale un valor a medio armar y ese cuadro se pierde el movimiento, que se
+; ve como un tirón. Por eso hay que esperar primero a que empiece.
 .proc read_pad
 .a8
 .i16
-espera:
+arranca:
     lda HVBJOY
     and #$01
-    bne espera
+    beq arranca                 ; todavía no empezó
+termina:
+    lda HVBJOY
+    and #$01
+    bne termina                 ; sigue leyendo
     lda JOY1H
     sta pad
     rts
