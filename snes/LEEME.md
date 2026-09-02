@@ -132,6 +132,49 @@ Ninguno sirve para todos los mapas: el que más tiles de fondo gasta necesita
 —junto con los valores ya armados de `OBSEL` y `BG12NBA`— y viaja en el `.inc`.
 La ROM no elige nada.
 
+### El reparto de CGRAM, también
+
+Las 256 entradas de CGRAM se parten al medio: la mitad de arriba es de los
+sprites. La de abajo la comparten el fondo, que va en 8 bits y direcciona CGRAM
+en directo, y la capa de encima, que va en 4 bits y por lo tanto cuenta su
+índice dentro de una paleta de 16.
+
+Ese corte estaba clavado en dos paletas para la capa de encima y 95 colores para
+el fondo, y **27 mapas no entraban** —los tres primeros del juego entre ellos—
+mientras el fondo dejaba colores sin usar. Al medirlo aparecieron dos causas que
+se veían como una sola:
+
+    la capa de encima pide 3 paletas    7 mapas
+                            4           5
+                            5           1
+                            6           2
+                            7           6
+    un tile suelto con más de 15 colores   1 mapa
+
+La segunda no la arregla ningún reparto: un tile de 17 colores no entra en una
+paleta de 15 por muchas que haya. Se arregla fusionando, que es lo que la Mega
+Drive ya hacía con el fondo.
+
+Ahora el corte lo decide el conversor mapa por mapa, y **el fondo tiene la
+primera opción**: se queda con las paletas que necesita para los colores que
+realmente usa, y la capa de encima se lleva las que sobren —hasta las que pida,
+nunca más— y fusiona si no le alcanzan. Va en ese orden porque son 300 mapas
+cuya capa de encima pide una o dos paletas contra un puñado que pediría siete:
+servir primero al de encima le sacaría colores al fondo en todos para que unos
+pocos no fusionen.
+
+    Map0007   fondo 60 de 111 disponibles | encima 1 paleta desde la 7
+    Map0001   fondo 49 de  63             | encima 4 paletas desde la 4
+    Map0348   fondo 95 de  95             | encima 2 desde la 6, 27 fusionados
+
+Los tres primeros mapas del juego entran ahora sin fusionar un solo color.
+
+Que las dos capas se conviertan juntas no es comodidad: el corte no lo puede
+decidir ninguna por su cuenta, así que `convert_layers()` es el único lugar
+donde está escrito. Antes cada llamador convertía una y después la otra, y que
+las tres copias del orden coincidieran era cuestión de suerte —justo la forma de
+error que ya nos había aflojado la comparación una vez.
+
 ### Cómo se verifica
 
 `just snes-hitos` corre seis mapas, uno por cada cosa que puede romperse:
@@ -140,6 +183,8 @@ La ROM no elige nada.
     6             recorre 100 celdas por los dos ejes: la ventana da tres vueltas
     8             Lashe City, que además pide el otro reparto de VRAM
     52            1000x80, con 40 KB de grilla que cruzan el corte de banco
+    1             el primero del juego: la capa de encima se lleva 4 paletas
+    348           el caso opuesto: el fondo usa 95 y encima fusiona 27
 
 Qué mapa elegir para eso no se adivina mirando el tamaño —uno enorme lleno de
 paredes frena en la tercera celda—, así que `tools/snes_recorrido.py` camina
@@ -512,10 +557,10 @@ comparación.
 
 * **Que un NPC frene al héroe.** En RM2k los eventos de la capa del héroe
   bloquean el paso; la ROM todavía no lo mira. La tabla ya trae el dato.
-* **Doce mapas cuya capa de encima no entra en dos paletas de 15.** Es una
-  restricción vieja, anterior al redibujado, y aparece en Yun Town y Sorbe
-  Village entre otros. Hay 96 colores de fondo sin usar: la salida más probable
-  es darle una tercera paleta.
+* **Mapas con más de ocho personajes distintos.** Los sprites van en 4 bits y
+  hay ocho paletas para ellos, una por CharSet. Yun Town usa diez y Sorbe
+  Village once, así que no convierten. Los dos venían tapados detrás del
+  problema de las paletas de la capa de encima, que ya está resuelto.
 * **El ataque y el decaimiento** siguen saliendo de las ocho familias de
   `sdsp.py`, elegidas a ojo cuando el banco era sintético. El SoundFont trae los
   suyos por instrumento y todavía no se leen. (El release ya no: ver arriba.)

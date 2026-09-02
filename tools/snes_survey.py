@@ -42,8 +42,11 @@ def main():
     ids = sorted(int(n[3:7]) for n in os.listdir(args.game_dir)
                  if n.startswith("Map") and n.endswith(".lmu"))
 
-    print("  id  nombre                    celdas    tiles colores bloques"
-          "     hoy  bloques  qué lo frena")
+    # "colores" es lo que el fondo usa contra lo que tiene disponible, y ese
+    # disponible depende de "arr", las paletas que se llevó la capa de encima.
+    # Cuando los dos números son iguales el mapa está fusionando colores.
+    print("  id  nombre                    celdas    tiles   colores arr"
+          " bloques     hoy  bloques  qué lo frena")
     for map_id in ids:
         path = os.path.join(args.game_dir, "Map%04d.lmu" % map_id)
         game_map = lcf.Map(path)
@@ -57,8 +60,8 @@ def main():
             if base is None:
                 print("  %3d  %-24s  sin chipset" % (map_id, name[:24]))
                 continue
-            tile_data, cram, tilemap, resumen = snes_convert.convert(base)
-            above = snes_convert.convert_above(above_img)
+            (tile_data, cram, tilemap, resumen), above = \
+                snes_convert.convert_layers(base, above_img)
         except SystemExit as error:
             print("  %3d  %-24s  %4dx%-4d  %s" % (map_id, name[:24], width,
                                                   height, error))
@@ -106,8 +109,11 @@ def main():
         if con_bloques > ROM:
             frena.append("ROM")
 
-        print("  %3d  %-24s  %4dx%-4d  %5d  %5d  %5d  %6.1f KB  %6.1f KB  %s"
-              % (map_id, name[:24], width, height, tiles, resumen["usados"],
+        print("  %3d  %-24s  %4dx%-4d  %5d  %4d/%-4d  %d  %5d  %6.1f KB"
+              "  %6.1f KB  %s"
+              % (map_id, name[:24], width, height, tiles,
+                 resumen["usados"], resumen["presupuesto"],
+                 snes_convert.BG_PALETTES - above[3],
                  len(bloques), datos / 1024, con_bloques / 1024,
                  ", ".join(frena) or "-"))
 

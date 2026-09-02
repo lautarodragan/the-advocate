@@ -48,14 +48,36 @@ from render_map import (GAME_DIR, REPO, RTP_DIR, Renderer, build_passability,
 # El PPU direcciona 1024 tiles por capa: diez bits en cada celda del tilemap.
 MAX_TILES = 1024
 
-# CGRAM tiene 256 entradas. La mitad de arriba es de los sprites; de la mitad de
-# abajo, que usa el fondo en 8 bits por pixel, se reservan las dos últimas
-# paletas de 16 para la capa que va por encima del héroe. Ésa va en 4 bits, y en
-# 4 bits el índice se cuenta dentro de una paleta de 16.
-BG_COLORS = 95                           # el 0 es el fondo y ningún tile lo usa
-ABOVE_PALETTE = 6                        # la primera de las dos reservadas
-ABOVE_PALETTES = 2
+# CGRAM tiene 256 entradas. La mitad de arriba es de los sprites; la de abajo la
+# comparten el fondo, que va en 8 bits por pixel y direcciona CGRAM en directo,
+# y la capa que va por encima del héroe, que va en 4 bits y por lo tanto cuenta
+# su índice dentro de una paleta de 16.
+#
+# Dónde cae el corte entre las dos no es fijo: lo decide el conversor mapa por
+# mapa, en convert_layers(). Con una paleta arriba el fondo tiene 111 colores;
+# con tres, 79. Antes eran dos siempre, y 27 mapas no entraban —los tres
+# primeros del juego entre ellos— mientras el fondo dejaba colores sin usar.
+#
+# El tope de acá abajo no es una decisión de calidad sino la forma del hardware:
+# al fondo tiene que quedarle al menos una paleta. Cuántas se lleva de verdad la
+# capa de encima sale de lo que el fondo no necesita.
+BG_PALETTES = 8                          # la mitad baja de CGRAM, en paletas
+MAX_ABOVE_PALETTES = BG_PALETTES - 1
 BYTES_PER_TILE = 64                      # 8 planos de bits, 8 filas cada uno
+
+
+def above_split(palettes):
+    """En qué paleta arranca la capa de encima si se lleva tantas."""
+    return BG_PALETTES - palettes
+
+
+def bg_budget(first):
+    """Los colores que le quedan al fondo debajo de la capa de encima.
+
+    El 0 no cuenta: es el color de fondo de la pantalla y ningún tile lo usa.
+    """
+    return first * COLORS_PER_PALETTE - 1
+
 
 # El orden de prioridades del modo 3, de adelante hacia atrás, es:
 #
@@ -111,21 +133,39 @@ def cgram_word(color):
     return (blue << 10) | (green << 5) | red
 
 
-def convert_above(image):
+def convert_above(image, palettes=None, grid=None):
     """La capa que va por encima del héroe: tiles de 4 bits y su tilemap.
 
     Es mucho más chica que la de abajo —en Map0073 son 419 celdas de 900, con
-    siete colores— así que entra holgada en dos paletas. Las celdas vacías
-    apuntan al tile 0, que se deja transparente a propósito.
+    siete colores— así que casi siempre entra en una o dos paletas. Las celdas
+    vacías apuntan al tile 0, que se deja transparente a propósito.
+
+    `palettes` es cuántas le concede el reparto; sin él se lleva las que pida
+    hasta el tope. Si no le alcanzan, fusiona.
+
+    Devuelve (tiles, palabras de CGRAM, tilemap, primera paleta, fusionados).
     """
-    grid = cut_tiles(quantize(image))
+    if grid is None:
+        grid = cut_tiles(quantize(image))
+    limite = MAX_ABOVE_PALETTES if palettes is None else palettes
     sets = {tile_colors(t) for row in grid for t in row}
     sets = {s for s in sets if s}
-    groups = md_convert.try_pack(sets, ABOVE_PALETTES) if sets else []
+    groups = md_convert.try_pack(sets, limite) if sets else []
+    merged = []
     if sets and groups is None:
-        raise SystemExit("la capa de encima no entra en %d paletas de 15"
-                         % ABOVE_PALETTES)
+        # Repartiendo no entra. Hay dos motivos y se confundían en uno solo:
+        # que los colores sean muchos para las paletas concedidas, o que un
+        # tile suelto tenga más de 15, que no entra en ninguna paleta por
+        # muchas que se le den. El segundo no lo arregla ningún reparto.
+        #
+        # Los dos los arregla lo mismo: fusionar el color menos usado con su
+        # vecino más cercano y reintentar. Es lo que la Mega Drive ya hacía con
+        # el fondo, y el código vive allá.
+        grid, groups, merged, _ = md_convert.reduce_colors(grid, limite)
     palettes = [sorted(g) for g in groups]
+    # Sin capa de encima no se reserva nada, pero el DMA igual manda una paleta
+    # vacía (ver abajo), así que el corte se cuenta como si hubiera una.
+    above_first = above_split(max(1, len(palettes)))
 
     blank = tuple(tuple(0 for _ in range(CELL)) for _ in range(CELL))
     pool = {(0, blank): 0}
@@ -148,7 +188,7 @@ def convert_above(image):
                 if (index, oriented) in pool:
                     placed = entry(pool[(index, oriented)], horizontal, vertical,
                                    PRIORITY_ABOVE)
-                    placed |= (ABOVE_PALETTE + index) << 10
+                    placed |= (above_first + index) << 10
                     break
             if placed is None:
                 number = len(pool)
@@ -156,7 +196,7 @@ def convert_above(image):
                 tiles += bytes(32)
                 tiles[number * 32:(number + 1) * 32] = pack_tile(indices, planes=4)
                 placed = entry(number, 0, 0, PRIORITY_ABOVE)
-                placed |= (ABOVE_PALETTE + index) << 10
+                placed |= (above_first + index) << 10
             line.append(placed)
         tilemap.append(line)
 
@@ -172,7 +212,7 @@ def convert_above(image):
     # CGRAM entera, paletas de sprites incluidas. Se emite una paleta vacía.
     if not cram:
         cram = bytearray(2 * COLORS_PER_PALETTE)
-    return bytes(tiles), bytes(cram), tilemap
+    return bytes(tiles), bytes(cram), tilemap, above_first, len(merged)
 
 
 def entry(tile, horizontal, vertical, priority=0):
@@ -369,34 +409,75 @@ def npc_table(npcs, where):
 
 # --- conversión -------------------------------------------------------------
 
-def build_palette(grid):
+def build_palette(grid, bg_colors):
     """Los colores del mapa, en una sola tabla, fusionando sólo si sobran.
 
-    Con 8 bits por pixel el único límite es cuántas entradas de CGRAM hay
-    libres. Map0007 usa 60 de las 127, así que no se fusiona nada; el camino de
-    fusión existe para mapas más cargados y es el mismo de la Mega Drive.
+    Con 8 bits por pixel el único límite es cuántas entradas de CGRAM quedan
+    libres debajo de la capa de encima. Map0007 usa 60, así que no se fusiona
+    nada; el camino de fusión existe para mapas más cargados y es el mismo de
+    la Mega Drive.
     """
     counts = collections.Counter(p for row in grid for tile in row
                                  for line in tile for p in line
                                  if p is not None)
-    if len(counts) <= BG_COLORS:
+    if len(counts) <= bg_colors:
         return sorted(counts), grid, []
 
-    mapping, merged = md_convert.merge_least_used(counts, BG_COLORS)
+    mapping, merged = md_convert.merge_least_used(counts, bg_colors)
     grid = [[tuple(tuple(mapping.get(p) for p in line) for line in tile)
              for tile in row] for row in grid]
     return sorted({c for c in mapping.values()}), grid, merged
 
 
-def convert(image):
+def convert_layers(base, above_img):
+    """Las dos capas juntas, que es la única forma de repartir CGRAM bien.
+
+    El corte entre el fondo y la capa de encima no lo puede decidir ninguna de
+    las dos por su cuenta, así que se decide acá y hay un solo lugar donde está
+    escrito. Antes cada llamador convertía una y después la otra, y que las tres
+    copias del orden coincidieran era cuestión de suerte.
+
+    La regla es que el fondo tiene la primera opción: se queda con las paletas
+    que le hacen falta para los colores que realmente usa, porque va en 8 bits
+    y no puede repartirlos en grupos. La capa de encima se lleva las que sobren
+    —hasta las que pida, nunca más— y si no le alcanzan, fusiona.
+
+    Va en ese orden y no al revés porque son 300 mapas cuya capa de encima pide
+    una o dos paletas contra un puñado que pediría siete: dejar que el de
+    encima se sirva primero le sacaría colores al fondo en todos para que unos
+    pocos no fusionen.
+
+    Devuelve (lo de convert(), lo de convert_above()).
+    """
+    base_grid = cut_tiles(quantize(base))
+    above_grid = cut_tiles(quantize(above_img))
+
+    # Lo que el fondo usa, y por lo tanto las paletas de 16 que necesita. El
+    # +1 es el color de fondo de la pantalla, que ocupa la entrada 0.
+    usados = len({p for row in base_grid for tile in row
+                  for line in tile for p in line if p is not None})
+    pide = -(-(usados + 1) // COLORS_PER_PALETTE)
+    libres = max(1, min(MAX_ABOVE_PALETTES, BG_PALETTES - pide))
+
+    above = convert_above(above_img, palettes=libres, grid=above_grid)
+    return convert(base, bg_budget(above[3]), grid=base_grid), above
+
+
+def convert(image, bg_colors=None, grid=None):
     """La imagen del mapa a tiles, paleta y tilemap.
+
+    `bg_colors` es lo que le dejó libre la capa de encima; sin él se asume el
+    reparto de dos paletas arriba, que es el que valía cuando no se elegía.
 
     Devuelve (datos de tiles, palabras de CGRAM, tilemap, resumen).
     """
-    grid = cut_tiles(quantize(image))
+    if bg_colors is None:
+        bg_colors = bg_budget(above_split(2))
+    if grid is None:
+        grid = cut_tiles(quantize(image))
     before = len({p for row in grid for tile in row
                   for line in tile for p in line if p is not None})
-    palette, grid, merged = build_palette(grid)
+    palette, grid, merged = build_palette(grid, bg_colors)
 
     pool, tilemap = {}, []
     for row in grid:
@@ -431,6 +512,7 @@ def convert(image):
     summary = {
         "colores": before,
         "usados": len(palette),
+        "presupuesto": bg_colors,
         "fusionados": len(merged),
         "tiles": len(pool),
         "celdas": sum(len(row) for row in tilemap),
@@ -560,11 +642,12 @@ def render_converted(tile_data, cram, tilemap, above=None):
     image = Image.new("RGBA", (width * CELL, height * CELL))
 
     # CGRAM tal como queda en la consola: el fondo desde el 0 y la capa de
-    # encima en las dos paletas reservadas más arriba.
+    # encima en las paletas que se haya llevado, que son las de más arriba de
+    # la mitad baja. Dónde arranca lo dice ella, no una constante.
     words = list(cram) + [0] * (128 - len(cram))
     if above:
         colors = above[1]
-        first = ABOVE_PALETTE * COLORS_PER_PALETTE
+        first = above[3] * COLORS_PER_PALETTE
         for i in range(len(colors) // 2):
             words[first + i] = int.from_bytes(colors[i * 2:i * 2 + 2], "little")
     palette = [((c & 0x1F), (c >> 5) & 0x1F, (c >> 10) & 0x1F) for c in words]
@@ -727,7 +810,7 @@ def emit(path, name, tile_data, cram, tilemap, sprite=None, collision=None,
                COLORS_PER_PALETTE * len(sprite[1]) if sprite else 0,
                len(above[0]) // 32 if above else 0,
                len(above[1]) // 2 if above else 0,
-               ABOVE_PALETTE * COLORS_PER_PALETTE,
+               above[3] * COLORS_PER_PALETTE,
                len(sprite[3]) if sprite else 0,
                NPC_STRIDE, md_convert.LAYER_SAME,
                block("map_tiles", tile_data),
@@ -821,8 +904,7 @@ def main():
     if base is None:
         sys.exit("no encuentro el chipset del mapa %d" % args.map_id)
 
-    tile_data, cram, tilemap, summary = convert(base)
-    above_data = convert_above(_above)
+    (tile_data, cram, tilemap, summary), above_data = convert_layers(base, _above)
 
     # Los personajes: el héroe con sus 12 poses porque camina, y cada NPC con la
     # que declara su página. Si un NPC usa el mismo personaje que el héroe,
@@ -870,8 +952,9 @@ def main():
     print("Mapa %d %r: %dx%d celdas de %dx%d px"
           % (args.map_id, name, len(tilemap[0]), len(tilemap),
              CELL, CELL))
-    print("  %d colores distintos, %d en CGRAM, %d fusionados"
-          % (summary["colores"], summary["usados"], summary["fusionados"]))
+    print("  %d colores distintos, %d en CGRAM de %d disponibles, %d fusionados"
+          % (summary["colores"], summary["usados"], summary["presupuesto"],
+             summary["fusionados"]))
     print("  %d tiles únicos de %d celdas (%.0f%% de reuso)"
           % (summary["tiles"], summary["celdas"],
              100.0 * (1 - summary["tiles"] / summary["celdas"])))
@@ -886,8 +969,10 @@ def main():
           % (len(passable), abiertos, 100.0 * abiertos / len(passable),
              start_x, start_y))
 
-    print("  capa por encima del héroe: %d tiles, %d colores"
-          % (len(above_data[0]) // 32, len(above_data[1]) // 2))
+    print("  capa por encima del héroe: %d tiles, %d colores en %d paleta(s) "
+          "desde la %d, %d fusionados"
+          % (len(above_data[0]) // 32, len(above_data[1]) // 2,
+             BG_PALETTES - above_data[3], above_data[3], above_data[4]))
 
     celdas, bloques, _pass = build_blocks(tilemap, above_data[2], passable,
                                           game_map.width, game_map.height)

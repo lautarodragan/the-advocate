@@ -173,8 +173,11 @@ def main():
     # entre uno y otro están la fusión de colores, el reparto en paletas, el
     # reuso de tiles y los espejados, y todo eso aparecería como diferencia
     # aunque la consola hiciera exactamente lo que se le pidió.
-    tile_data, cram, tilemap, _resumen = snes_convert.convert(base)
-    above_data = snes_convert.convert_above(above_img)
+    # Las dos capas juntas, con la misma función que usa el conversor: el
+    # reparto de CGRAM depende de las dos, y si la referencia lo calculara por
+    # su cuenta compararía contra una ROM que no existe.
+    (tile_data, cram, tilemap, _resumen), above_data = \
+        snes_convert.convert_layers(base, above_img)
     mapa = snes_convert.render_converted(tile_data, cram, tilemap)
     encima_todo = snes_convert.render_above(cram, above_data)
 

@@ -197,6 +197,11 @@ snes-recorrido desde="66":
 # sprite y por eso le toca el otro reparto de VRAM; y mapa 52 mide 1000x80
 # celdas, con una grilla de 40 KB que cruza el corte de banco de LoROM.
 #
+# Los dos últimos ejercitan el reparto de CGRAM: mapa 1 es el primero del juego
+# y su capa de encima se lleva cuatro paletas, dejándole 63 colores al fondo;
+# mapa 348 es el caso contrario, donde el fondo usa los 95 que puede y la capa
+# de encima tiene que fusionar 27 colores para entrar en lo que sobra.
+#
 # Los segundos son cuánto se mantiene la cruceta: tiene que alcanzar para
 # cruzar el mapa a 2 pixeles por cuadro.
 snes-hitos:
@@ -206,6 +211,8 @@ snes-hitos:
   just snes-heroe 6 18
   just snes-heroe 8 25
   just snes-heroe 52 45
+  just snes-heroe 1 18
+  just snes-heroe 348 8
 
 # El héroe: parado y caminando en las cuatro direcciones.
 snes-heroe mapa="7" segundos="8":
