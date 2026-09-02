@@ -20,6 +20,7 @@ INIDISP  = $2100        ; brillo y blanking
 NMITIMEN = $4200        ; habilitación de NMI y joypads
 RDNMI    = $4210        ; leerlo baja la bandera de NMI
 HVBJOY   = $4212        ; bit 7: estamos en vblank
+STAT78   = $213F        ; bit 4: 0 = consola NTSC, 1 = PAL
 HDMAEN   = $420C        ; canales de DMA por scanline
 APUIO0   = $2140        ; los cuatro puertos hacia el SPC700
 APUIO1   = $2141
@@ -126,6 +127,8 @@ obj_tile:   .res 1
 obj_attr:   .res 1
 wait_frames: .res 1     ; cuántos cuadros faltan para el próximo evento
 token:      .res 1      ; testigo del handshake con el SPC700
+es_pal:     .res 1      ; 1 si la consola corre a 50 cuadros por segundo
+pal_tick:   .res 1      ; para meter el cuadro de música que falta
 
 .segment "CODE"
 
@@ -144,6 +147,14 @@ token:      .res 1      ; testigo del handshake con el SPC700
 .a8
     lda #$80
     sta INIDISP                 ; blanking forzado: la VRAM sólo se toca así
+    ; La región no es un detalle cosmético: el stream de música está armado en
+    ; cuadros, y una consola PAL da 50 por segundo en vez de 60. Sin corregirlo
+    ; el tema suena un 17% lento.
+    lda STAT78
+    and #$10
+    sta es_pal
+    stz pal_tick
+
     jsr ppu_reset               ; la consola no arranca limpia; el emulador sí
 
     ; Después del reset, no antes: ppu_reset apaga NMITIMEN junto con todo lo
@@ -195,13 +206,17 @@ token:      .res 1      ; testigo del handshake con el SPC700
 
 loop:
     jsr wait_vblank
-    jsr flush_video             ; lo del cuadro anterior, apenas abre el vblank
+    ; El control primero: la consola lo lee sola al empezar el vblank y hay que
+    ; esperar a que arranque. Si antes se hiciera algo largo —el DMA de OAM, por
+    ; ejemplo— se llegaría con la lectura ya terminada, y esperar su arranque
+    ; significaría esperar al cuadro siguiente: medio cuadro por vuelta.
     jsr read_pad
+    jsr flush_video             ; lo del cuadro anterior, todavía en vblank
     jsr move_hero
     jsr animate_hero
     jsr follow_camera
     jsr build_oam               ; y se arma el siguiente, ya fuera del vblank
-    jsr music_frame
+    jsr music_tick
     bra loop
 .endproc
 
@@ -1333,6 +1348,24 @@ oam_high: .res 32
 OP_DSP  = $00
 OP_WAIT = $01
 OP_END  = $FF
+
+; Un cuadro de música por cuadro de video, más uno extra cada cinco si la
+; consola es PAL: seis cada cinco son exactamente 60 por cada 50.
+.proc music_tick
+.a8
+.i16
+    jsr music_frame
+    lda es_pal
+    beq listo
+    inc pal_tick
+    lda pal_tick
+    cmp #5
+    bcc listo
+    stz pal_tick
+    jsr music_frame             ; el cuadro que le falta a PAL
+listo:
+    rts
+.endproc
 
 .proc music_start
 .a8

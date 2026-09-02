@@ -15,7 +15,9 @@ out=${2:?$usage}
 seconds=${3:-4}
 keys=${4:-}
 
-export HOME=/tmp/mednafen
+# Configuración propia: mednafen guarda al salir lo que se le pase por línea de
+# comandos, y el -sound 0 de acá le arruinaba la grabación a record.sh.
+export HOME=/tmp/mednafen-video
 mkdir -p "$HOME"
 
 Xvfb :99 -screen 0 640x480x24 >/dev/null 2>&1 &

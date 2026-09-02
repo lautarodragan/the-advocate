@@ -15,7 +15,10 @@ rom=${1:?$usage}
 out=${2:?$usage}
 seconds=${3:-4}
 
-export HOME=/tmp/mednafen
+# Configuración propia, separada de la de screenshot.sh: mednafen guarda las
+# opciones de la línea de comandos al salir, y aquél pasa -sound 0. Compartiendo
+# HOME, esto grababa silencio sin decir nada.
+export HOME=/tmp/mednafen-audio
 mkdir -p "$HOME"
 Xvfb :99 -screen 0 640x480x24 >/dev/null 2>&1 &
 xvfb_pid=$!
@@ -26,6 +29,7 @@ for _ in $(seq 50); do xdpyinfo >/dev/null 2>&1 && break; sleep 0.1; done
 rm -f /tmp/out.wav
 timeout "$((seconds + 8))" mednafen \
     -soundrecord /tmp/out.wav \
+    -sound 1 \
     -sound.driver dummy \
     -video.driver 0 \
     -snes.correct_aspect 0 \
