@@ -81,28 +81,28 @@ def lorom_address(offset):
 #   rel   relativo al PC, 1 byte con signo bne etiqueta
 
 OPCODES = {
-    "lda": {"imm": 0xA9, "dp": 0xA5, "abs": 0xAD, "dpil": 0xA7, "dpi": 0xB2},
-    "sta": {"dp": 0x85, "abs": 0x8D, "dpil": 0x87, "dpi": 0x92},
-    "ldx": {"imm": 0xA2, "dp": 0xA6, "abs": 0xAE},
-    "stx": {"dp": 0x86, "abs": 0x8E},
-    "ldy": {"imm": 0xA0, "dp": 0xA4, "abs": 0xAC},
-    "sty": {"dp": 0x84, "abs": 0x8C},
-    "cmp": {"imm": 0xC9, "dp": 0xC5, "abs": 0xCD},
+    "lda": {"dpx": 0xB5, "absx": 0xBD, "absy": 0xB9, "imm": 0xA9, "dp": 0xA5, "abs": 0xAD, "dpil": 0xA7, "dpi": 0xB2},
+    "sta": {"dpx": 0x95, "absx": 0x9D, "absy": 0x99, "dp": 0x85, "abs": 0x8D, "dpil": 0x87, "dpi": 0x92},
+    "ldx": {"dpy": 0xB6, "absy": 0xBE, "imm": 0xA2, "dp": 0xA6, "abs": 0xAE},
+    "stx": {"dpy": 0x96, "dp": 0x86, "abs": 0x8E},
+    "ldy": {"dpx": 0xB4, "absx": 0xBC, "imm": 0xA0, "dp": 0xA4, "abs": 0xAC},
+    "sty": {"dpx": 0x94, "dp": 0x84, "abs": 0x8C},
+    "cmp": {"dpx": 0xD5, "absx": 0xDD, "absy": 0xD9, "imm": 0xC9, "dp": 0xC5, "abs": 0xCD},
     "cpx": {"imm": 0xE0, "dp": 0xE4, "abs": 0xEC},
     "cpy": {"imm": 0xC0, "dp": 0xC4, "abs": 0xCC},
-    "inc": {"acc": 0x1A, "dp": 0xE6, "abs": 0xEE},
-    "dec": {"acc": 0x3A, "dp": 0xC6, "abs": 0xCE},
-    "stz": {"dp": 0x64, "abs": 0x9C},
-    "and": {"imm": 0x29, "dp": 0x25, "abs": 0x2D},
-    "ora": {"imm": 0x09, "dp": 0x05, "abs": 0x0D},
-    "eor": {"imm": 0x49, "dp": 0x45, "abs": 0x4D},
-    "adc": {"imm": 0x69, "dp": 0x65, "abs": 0x6D},
-    "sbc": {"imm": 0xE9, "dp": 0xE5, "abs": 0xED},
+    "inc": {"dpx": 0xF6, "absx": 0xFE, "acc": 0x1A, "dp": 0xE6, "abs": 0xEE},
+    "dec": {"dpx": 0xD6, "absx": 0xDE, "acc": 0x3A, "dp": 0xC6, "abs": 0xCE},
+    "stz": {"dpx": 0x74, "absx": 0x9E, "dp": 0x64, "abs": 0x9C},
+    "and": {"dpx": 0x35, "absx": 0x3D, "absy": 0x39, "imm": 0x29, "dp": 0x25, "abs": 0x2D},
+    "ora": {"dpx": 0x15, "absx": 0x1D, "absy": 0x19, "imm": 0x09, "dp": 0x05, "abs": 0x0D},
+    "eor": {"dpx": 0x55, "absx": 0x5D, "absy": 0x59, "imm": 0x49, "dp": 0x45, "abs": 0x4D},
+    "adc": {"dpx": 0x75, "absx": 0x7D, "absy": 0x79, "imm": 0x69, "dp": 0x65, "abs": 0x6D},
+    "sbc": {"dpx": 0xF5, "absx": 0xFD, "absy": 0xF9, "imm": 0xE9, "dp": 0xE5, "abs": 0xED},
     "bit": {"imm": 0x89, "dp": 0x24, "abs": 0x2C},
-    "asl": {"acc": 0x0A, "dp": 0x06, "abs": 0x0E},
-    "lsr": {"acc": 0x4A, "dp": 0x46, "abs": 0x4E},
-    "rol": {"acc": 0x2A, "dp": 0x26, "abs": 0x2E},
-    "ror": {"acc": 0x6A, "dp": 0x66, "abs": 0x6E},
+    "asl": {"dpx": 0x16, "absx": 0x1E, "acc": 0x0A, "dp": 0x06, "abs": 0x0E},
+    "lsr": {"dpx": 0x56, "absx": 0x5E, "acc": 0x4A, "dp": 0x46, "abs": 0x4E},
+    "rol": {"dpx": 0x36, "absx": 0x3E, "acc": 0x2A, "dp": 0x26, "abs": 0x2E},
+    "ror": {"dpx": 0x76, "absx": 0x7E, "acc": 0x6A, "dp": 0x66, "abs": 0x6E},
     "jsr": {"abs": 0x20},
     "jmp": {"abs": 0x4C},
     # rep y sep llevan siempre un inmediato de un byte, sea cual sea el ancho
@@ -474,8 +474,9 @@ class Assembler:
         mode, expression = self.decode(mnemonic, operand, modes)
         if mode not in modes:
             raise Error("%s no acepta el modo %s" % (mnemonic, mode))
-        width = {"imp": 0, "acc": 0, "dp": 1, "dpil": 1, "dpi": 1,
-                 "imm8": 1, "abs": 2}.get(mode)
+        width = {"imp": 0, "acc": 0, "dp": 1, "dpx": 1, "dpy": 1,
+                 "dpil": 1, "dpi": 1, "imm8": 1,
+                 "abs": 2, "absx": 2, "absy": 2}.get(mode)
         if mode == "imm":
             wide = self.i16 if mnemonic in INDEX_WIDTH else self.a16
             width = 2 if wide else 1
@@ -485,6 +486,15 @@ class Assembler:
         """Qué modo de direccionamiento pide este operando."""
         if not operand or operand.lower() == "a":
             return "acc", None
+
+        # Los modos indexados se reconocen por el sufijo. Van después de mirar
+        # el inmediato y los indirectos, que no lo llevan.
+        index = ""
+        if not operand.startswith("#") and not operand.endswith(("]", ")")):
+            match = re.match(r"^(.*?)\s*,\s*([xXyY])$", operand)
+            if match:
+                operand, index = match.group(1), match.group(2).lower()
+
         if operand.startswith("#"):
             return ("imm8" if "imm8" in modes else "imm",
                     Expression(operand[1:]))
@@ -507,7 +517,8 @@ class Assembler:
                 direct = expression.value(self.symbols) < 0x100
             except Error:
                 direct = False
-        return ("dp" if direct and "dp" in modes else "abs"), expression
+        mode = "dp" if direct and ("dp" + index) in modes else "abs"
+        return mode + index, expression
 
     def target(self, text):
         """Una expresión, resolviendo el alcance de las etiquetas locales."""

@@ -20,6 +20,7 @@ INIDISP  = $2100        ; brillo y blanking
 NMITIMEN = $4200        ; habilitación de NMI y joypads
 RDNMI    = $4210        ; leerlo baja la bandera de NMI
 HVBJOY   = $4212        ; bit 7: estamos en vblank
+HDMAEN   = $420C        ; canales de DMA por scanline
 APUIO0   = $2140        ; los cuatro puertos hacia el SPC700
 APUIO1   = $2141
 APUIO2   = $2142
@@ -35,6 +36,9 @@ VMAIN    = $2115        ; cómo avanza el puntero de VRAM tras cada escritura
 VMADDL   = $2116        ; dirección de VRAM, en palabras
 CGADD    = $2121        ; índice de CGRAM
 TM       = $212C        ; qué capas se ven en la pantalla principal
+OBSEL    = $2101        ; tamaño de los sprites y dónde viven sus tiles
+OAMADDL  = $2102        ; índice dentro de OAM, en palabras
+OBJSEL_TM = $212C
 JOY1H    = $4219        ; control 1: arriba, abajo, izquierda, derecha y más
 
 ; Los bits del control que nos interesan, tal como aparecen en JOY1H.
@@ -55,7 +59,31 @@ MDMAEN   = $420B        ; arrancar
 ; en la $6000, que deja 24K palabras para tiles: mucho más de las 1024 que el
 ; tilemap puede nombrar.
 VRAM_TILES = $0000
+VRAM_SPRITE = $2000     ; los tiles de los sprites, en su propia página
 VRAM_MAP   = $6000
+
+; OBSEL: tamaño 8x8/32x32 en los bits altos, y la página de arriba en los bajos.
+; Las poses de RM2k son de 24x32 y la SNES no tiene ese tamaño, así que se usa
+; el objeto de 32x32 y sobra un poco a los costados.
+OBSEL_VALUE = $21
+
+; Las 12 poses: 3 frames de caminata por 4 direcciones. En RM2k las direcciones
+; van 0=arriba, 1=derecha, 2=abajo, 3=izquierda, y el frame del medio es la
+; pose parada.
+DIR_UP    = 0
+DIR_RIGHT = 1
+DIR_DOWN  = 2
+DIR_LEFT  = 3
+
+; A velocidad 4, que es la del héroe, se avanzan dos pixeles por cuadro y la
+; animación cambia de frame cada seis.
+WALK_SPEED = 2
+ANIM_FRAMES = 6
+
+; El sprite se dibuja centrado sobre su celda de 16x16 y apoyado por los pies.
+; Al objeto de 32 hay que restarle además los 4 que sobran de cada lado.
+SPRITE_OFF_X = 8
+SPRITE_OFF_Y = 16
 
 ; Filas visibles. La pantalla muestra 28 de las 32 del tilemap.
 SCREEN_ROWS = 28
@@ -70,6 +98,13 @@ camara_x:   .res 2      ; dónde está mirando la cámara, en pixeles
 camara_y:   .res 2
 scroll_y:   .res 2      ; lo mismo menos uno, que es lo que el PPU quiere
 pad:        .res 1      ; lo que el control tenía apretado este cuadro
+temp:       .res 4      ; cuentas intermedias
+hero_x:     .res 2      ; dónde está el héroe en el mapa, en pixeles
+hero_y:     .res 2
+hero_dir:   .res 1      ; hacia dónde mira
+anim_step:  .res 1      ; en qué punto del ciclo de caminata va
+anim_timer: .res 1      ; cuántos cuadros faltan para el frame siguiente
+moving:     .res 1      ; si se movió este cuadro
 wait_frames: .res 1     ; cuántos cuadros faltan para el próximo evento
 token:      .res 1      ; testigo del handshake con el SPC700
 
@@ -90,6 +125,10 @@ token:      .res 1      ; testigo del handshake con el SPC700
 .a8
     lda #$80
     sta INIDISP                 ; blanking forzado: la VRAM sólo se toca así
+    jsr ppu_reset               ; la consola no arranca limpia; el emulador sí
+
+    ; Después del reset, no antes: ppu_reset apaga NMITIMEN junto con todo lo
+    ; demás, así que habilitarlo primero no serviría de nada.
     lda #$01
     sta NMITIMEN                ; que la consola lea los controles sola
 
@@ -136,6 +175,123 @@ in:
     bpl in
     rts
 .endproc
+
+; --- puesta a cero del PPU -------------------------------------------------
+; El emulador arranca con todos los registros en cero. La consola real no: se
+; queda con lo que dejó el programa anterior, que en un EverDrive es su menú.
+; Si ese menú dejó encendido el color math, el sub-screen, una ventana o un
+; canal de HDMA, todo eso sigue funcionando debajo de nuestro mapa aunque
+; nosotros no lo hayamos pedido.
+;
+; Por eso no alcanza con escribir los registros que usamos: hay que escribir
+; todos. Es la misma lección que el registro 23 del VDP en la Mega Drive, donde
+; también andaba en emulador y no en consola.
+.proc ppu_reset
+.a8
+.i16
+    lda #$80
+    sta INIDISP                 ; blanking forzado antes de tocar nada
+
+    ; Lo primero es cortar el DMA por scanline: si quedó un canal activo, sigue
+    ; escribiendo registros del PPU en cada línea y nada de lo que hagamos acá
+    ; se sostiene.
+    stz HDMAEN
+    stz MDMAEN
+    stz NMITIMEN
+
+    ; Los registros del PPU con valores conocidos, en dos tramos: los de scroll
+    ; quedan en el medio y necesitan otro tratamiento.
+    ldx #$0000
+bajos:
+    lda ppu_bajos, x
+    sta $2101, x
+    inx
+    cpx #(ppu_bajos_end - ppu_bajos)
+    bne bajos
+
+    ldx #$0000
+altos:
+    lda ppu_altos, x
+    sta $2115, x
+    inx
+    cpx #(ppu_altos_end - ppu_altos)
+    bne altos
+
+    ; Los ocho registros de scroll: cada uno se escribe dos veces, byte bajo y
+    ; byte alto, o el latch queda a medias.
+    ldx #$0000
+scrolls:
+    stz $210D, x
+    stz $210D, x
+    inx
+    cpx #8
+    bne scrolls
+
+    ; La VRAM entera a cero, por DMA con la fuente fija en un byte nulo. Sin
+    ; esto quedan los tiles del menú donde no llegan los nuestros.
+    lda #$80
+    sta VMAIN
+    ldx #$0000
+    stx VMADDL
+    ldx #.loword(cero)
+    stx A1T0L
+    lda #^cero
+    sta A1B0
+    ldx #$0000                  ; 0 significa 65536: la VRAM completa
+    stx DAS0L
+    lda #$09                    ; dos registros, de a palabras, fuente fija
+    sta DMAP0
+    lda #$18
+    sta BBAD0
+    lda #$01
+    sta MDMAEN
+
+    ; Y CGRAM, que si no deja la paleta del menú en los colores que no usamos.
+    stz CGADD
+    ldx #.loword(cero)
+    stx A1T0L
+    lda #^cero
+    sta A1B0
+    ldx #512
+    stx DAS0L
+    lda #$08                    ; un registro, de a bytes, fuente fija
+    sta DMAP0
+    lda #$22
+    sta BBAD0
+    lda #$01
+    sta MDMAEN
+    rts
+.endproc
+
+; De $2101 a $210C: objetos, modo, mosaico y dónde vive cada capa. Todo en
+; cero, que es "nada encendido".
+.segment "RODATA"
+ppu_bajos:
+    .byte $00,$00,$00,$00       ; $2101 OBSEL, $2102-3 OAMADD, $2104 OAMDATA
+    .byte $00,$00,$00,$00       ; $2105 BGMODE, $2106 MOSAIC, $2107-8 BG1-2SC
+    .byte $00,$00,$00,$00       ; $2109-A BG3-4SC, $210B-C BGxNBA
+ppu_bajos_end:
+
+; De $2115 a $2133: VRAM, modo 7, CGRAM, ventanas, capas visibles y color math.
+; Los tres que no son cero son los que importan.
+ppu_altos:
+    .byte $80,$00,$00           ; $2115 VMAIN: avanzar tras el byte alto
+    .byte $00,$00               ; $2118-9 VMDATA
+    .byte $00,$00,$00,$00,$00   ; $211A-E modo 7
+    .byte $00,$00               ; $211F-20 modo 7
+    .byte $00,$00               ; $2121 CGADD, $2122 CGDATA
+    .byte $00,$00,$00           ; $2123-5 selección de ventanas
+    .byte $00,$00,$00,$00       ; $2126-9 posiciones de ventanas
+    .byte $00,$00               ; $212A-B lógica de ventanas
+    .byte $00,$00               ; $212C TM, $212D TS: ninguna capa visible
+    .byte $00,$00               ; $212E TMW, $212F TSW
+    .byte $30,$00               ; $2130 CGWSEL: color math apagado. $2131
+    .byte $E0,$00               ; $2132 COLDATA: color fijo negro. $2133
+ppu_altos_end:
+cero:
+    .byte $00,$00
+
+.segment "CODE"
 
 ; --- el PPU ----------------------------------------------------------------
 ; Modo 3: BG1 con 8 bits por pixel. Ahí cada pixel es un índice directo a CGRAM
@@ -229,6 +385,100 @@ in:
     rts
 .endproc
 
+; --- los sprites -----------------------------------------------------------
+.proc load_sprite
+.a8
+.i16
+    lda #$80
+    sta VMAIN
+    ldx #VRAM_SPRITE
+    stx VMADDL
+    ldx #.loword(sprite_tiles)
+    stx A1T0L
+    lda #^sprite_tiles
+    sta A1B0
+    ldy #(SPRITE_TILES * 32)
+    sty DAS0L
+    lda #$01
+    sta DMAP0
+    lda #$18
+    sta BBAD0
+    lda #$01
+    sta MDMAEN
+
+    ; La paleta va a la mitad de arriba de CGRAM, que es la de los sprites: la
+    ; 8 arranca en el color 128.
+    lda #128
+    sta CGADD
+    ldx #.loword(sprite_cgram)
+    stx A1T0L
+    lda #^sprite_cgram
+    sta A1B0
+    ldy #(SPRITE_CGRAM * 2)
+    sty DAS0L
+    lda #$00
+    sta DMAP0
+    lda #$22
+    sta BBAD0
+    lda #$01
+    sta MDMAEN
+
+    lda #OBSEL_VALUE
+    sta OBSEL
+    rts
+.endproc
+
+; --- OAM -------------------------------------------------------------------
+; Todos los objetos arrancan escondidos. Un objeto de 32 de alto en la fila 224
+; ocupa de la 224 a la 255, o sea entero fuera de las 224 que se ven, y sin
+; darle la vuelta al contador.
+.proc clear_oam
+.a8
+.i16
+    ldx #$0000
+borrar:
+    lda #$E0
+    sta oam + 1, x              ; la Y de cada objeto
+    inx
+    inx
+    inx
+    inx
+    cpx #512
+    bne borrar
+
+    ; La tabla chica: dos bits por objeto, el alto dice si es grande. Sólo el
+    ; objeto 0 lo es; el resto quedan chicos y escondidos igual.
+    ldx #$0000
+chica:
+    stz oam_high, x
+    inx
+    cpx #32
+    bne chica
+    lda #$02
+    sta oam_high                ; objeto 0: tamaño grande
+    rts
+.endproc
+
+.proc push_oam
+.a8
+.i16
+    stz OAMADDL
+    stz OAMADDL + 1
+    ldx #.loword(oam)
+    stx A1T0L
+    lda #^oam
+    sta A1B0
+    ldy #544                    ; los 512 de la tabla grande más los 32 chicos
+    sty DAS0L
+    lda #$00
+    sta DMAP0
+    lda #$04
+    sta BBAD0                   ; destino: OAMDATA
+    lda #$01
+    sta MDMAEN
+    rts
+.endproc
+
 ; --- la cámara -------------------------------------------------------------
 ; El scroll es por hardware: mover la cámara es escribir dos registros. Lo único
 ; que hay que cuidar es no salirse del mapa, que es lo que hacen las
@@ -310,6 +560,196 @@ no_arriba:
     sta BG1VOFS
     lda scroll_y + 1
     sta BG1VOFS
+    rts
+.endproc
+
+; --- el héroe --------------------------------------------------------------
+; Sin colisión todavía: lo único que lo frena son los bordes del mapa. Mirar
+; hacia un lado y caminar son la misma tecla, así que la dirección se actualiza
+; aunque el movimiento no llegue a pasar.
+.proc move_hero
+.a8
+.i16
+    stz moving
+
+    lda pad
+    and #PAD_UP
+    beq no_arriba
+    lda #DIR_UP
+    sta hero_dir
+    inc moving
+    rep #$20
+.a16
+    lda hero_y
+    beq tope_arriba
+    sec
+    sbc #WALK_SPEED
+    bpl guarda_arriba
+    lda #0                      ; no pasarse de largo cerca del borde
+guarda_arriba:
+    sta hero_y
+tope_arriba:
+    sep #$20
+.a8
+no_arriba:
+
+    lda pad
+    and #PAD_DOWN
+    beq no_abajo
+    lda #DIR_DOWN
+    sta hero_dir
+    inc moving
+    rep #$20
+.a16
+    lda hero_y
+    clc
+    adc #WALK_SPEED
+    cmp #HERO_MAX_Y
+    bcc guarda_abajo
+    lda #HERO_MAX_Y
+guarda_abajo:
+    sta hero_y
+    sep #$20
+.a8
+no_abajo:
+
+    lda pad
+    and #PAD_LEFT
+    beq no_izquierda
+    lda #DIR_LEFT
+    sta hero_dir
+    inc moving
+    rep #$20
+.a16
+    lda hero_x
+    beq tope_izquierda
+    sec
+    sbc #WALK_SPEED
+    bpl guarda_izquierda
+    lda #0
+guarda_izquierda:
+    sta hero_x
+tope_izquierda:
+    sep #$20
+.a8
+no_izquierda:
+
+    lda pad
+    and #PAD_RIGHT
+    beq no_derecha
+    lda #DIR_RIGHT
+    sta hero_dir
+    inc moving
+    rep #$20
+.a16
+    lda hero_x
+    clc
+    adc #WALK_SPEED
+    cmp #HERO_MAX_X
+    bcc guarda_derecha
+    lda #HERO_MAX_X
+guarda_derecha:
+    sta hero_x
+    sep #$20
+.a8
+no_derecha:
+    rts
+.endproc
+
+; --- animación de caminata -------------------------------------------------
+; El ciclo son cuatro pasos sobre tres frames del CharSet: 0, 1, 2, 1. El del
+; medio es la pose parada, y es a la que se vuelve al soltar la cruceta.
+.proc animate_hero
+.a8
+.i16
+    lda moving
+    bne caminando
+    lda #1                      ; quieto: el frame del medio
+    sta anim_step
+    lda #ANIM_FRAMES
+    sta anim_timer
+    rts
+
+caminando:
+    dec anim_timer
+    bne listo
+    lda #ANIM_FRAMES
+    sta anim_timer
+    lda anim_step
+    inc a
+    and #$03                    ; el ciclo son cuatro pasos
+    sta anim_step
+listo:
+    rts
+.endproc
+
+; --- el héroe en OAM -------------------------------------------------------
+.proc draw_hero
+.a8
+.i16
+    ; El frame del CharSet: los pasos 0 y 2 son los de los costados, y los
+    ; pasos 1 y 3 son los dos la pose del medio.
+    lda anim_step
+    cmp #$03
+    bne sin_ajuste
+    lda #$01
+sin_ajuste:
+    sta temp
+
+    ; La pose es dirección*3 + frame, y cada una ocupa un bloque de 4x4 tiles
+    ; dentro de una grilla de 16 de ancho: cuatro por fila de bloques.
+    lda hero_dir
+    asl a
+    clc
+    adc hero_dir                ; dirección * 3
+    clc
+    adc temp                    ; más el frame
+    sta temp                    ; = número de pose, de 0 a 11
+
+    lsr a
+    lsr a                       ; pose / 4 = fila de bloques
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a                       ; * 64 tiles por fila de bloques
+    sta temp + 1
+    lda temp
+    and #$03                    ; pose módulo 4 = columna de bloques
+    asl a
+    asl a                       ; * 4 tiles
+    clc
+    adc temp + 1
+    sta oam + 2                 ; el número de tile del objeto 0
+
+    ; Posición en pantalla: donde está en el mapa, menos donde mira la cámara,
+    ; menos lo que el sprite sobresale de su celda.
+    rep #$20
+.a16
+    lda hero_x
+    sec
+    sbc camara_x
+    sec
+    sbc #SPRITE_OFF_X
+    sta temp
+    lda hero_y
+    sec
+    sbc camara_y
+    sec
+    sbc #SPRITE_OFF_Y
+    sta temp + 2
+    sep #$20
+.a8
+    lda temp
+    sta oam                     ; X
+    lda temp + 2
+    sta oam + 1                 ; Y
+
+    ; Prioridad 2 —por encima del fondo— y la paleta 0 de los sprites, que en
+    ; CGRAM es la 8.
+    lda #$30
+    sta oam + 3
     rts
 .endproc
 
@@ -439,6 +879,12 @@ done:
 
 .segment "BSS"
 port0: .res 1
+
+; OAM se arma en RAM y se manda entero por DMA cada cuadro. Es más simple que
+; escribir entradas sueltas, y es lo que va a hacer falta cuando haya NPCs.
+; Son 128 objetos de cuatro bytes más una tabla chica de dos bits por objeto.
+oam:      .res 512
+oam_high: .res 32
 
 .segment "CODE"
 

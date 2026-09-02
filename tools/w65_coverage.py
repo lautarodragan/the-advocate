@@ -73,6 +73,8 @@ def lines():
 
     out.append("; --- el resto de los modos ---")
     forms = [("acc", "%s a"), ("dp", "%s zp_sym"), ("abs", "%s abs_sym"),
+             ("dpx", "%s zp_sym,x"), ("dpy", "%s zp_sym,y"),
+             ("absx", "%s abs_sym,x"), ("absy", "%s abs_sym,y"),
              ("dpil", "%s [zp_sym]"), ("dpi", "%s (zp_sym)")]
     for mnemonic, modes in sorted(w65.OPCODES.items()):
         for mode, form in forms:

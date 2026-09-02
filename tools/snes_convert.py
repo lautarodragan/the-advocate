@@ -42,7 +42,8 @@ import lcf
 import md_convert
 from md_convert import (CELL, cut_tiles, flips, reduce_colors, tile_colors,
                         to_indices)
-from render_map import GAME_DIR, REPO, Renderer
+from render_map import (GAME_DIR, REPO, RTP_DIR, Renderer, find_resource,
+                        load_image)
 
 # El PPU direcciona 1024 tiles por capa: diez bits en cada celda del tilemap.
 MAX_TILES = 1024
@@ -103,6 +104,92 @@ def entry(tile, horizontal, vertical, priority=0):
     alcanza CGRAM entero y el PPU los ignora.
     """
     return (tile | (priority << 13) | (horizontal << 14) | (vertical << 15))
+
+
+# --- el sprite del personaje ------------------------------------------------
+#
+# Un CharSet de RM2k son 4 personajes de ancho por 2 de alto; cada uno ocupa
+# 72x128 y tiene 12 poses de 24x32: 3 frames de caminata por 4 direcciones.
+#
+# La SNES no tiene sprites de 24x32. El más chico que cubre esa pose es 32x32,
+# así que se rellena con transparente a los costados y se pierde una cuarta
+# parte de los tiles. La alternativa era partir cada pose en varios objetos de
+# 16x32, que gasta lo mismo y multiplica las entradas de OAM.
+#
+# Los sprites son siempre de 4 bits por pixel, sin excepción: no hay un modo 3
+# para ellos. O sea que Talan tiene que entrar en 15 colores, y son 36.
+
+SPRITE_W, SPRITE_H = 24, 32
+OBJ_W = OBJ_H = 32                 # el tamaño real del objeto en pantalla
+OBJ_COLORS = 15                    # 4 bits por pixel, y el 0 es transparente
+SPRITE_POSES = 12
+SPRITE_PALETTE = 8                 # los sprites usan las paletas 8 a 15
+
+# La tabla de nombres de OAM tiene 16 tiles de ancho, así que un objeto de
+# 32x32 no ocupa 16 tiles seguidos sino un bloque de 4x4 dentro de esa grilla.
+OBJ_ROW = 16
+
+
+def pose_origin(index, pose):
+    """Dónde empieza una pose dentro del CharSet."""
+    return ((index % 4) * SPRITE_W * 3 + (pose % 3) * SPRITE_W,
+            (index // 4) * SPRITE_H * 4 + (pose // 3) * SPRITE_H)
+
+
+def sprite_colors(image, index):
+    """Los colores del personaje, con cuántos pixeles usa cada uno."""
+    base_x = (index % 4) * SPRITE_W * 3
+    base_y = (index // 4) * SPRITE_H * 4
+    counts = collections.Counter()
+    for y in range(SPRITE_H * 4):
+        for x in range(SPRITE_W * 3):
+            red, green, blue, alpha = image.getpixel((base_x + x, base_y + y))
+            if alpha:
+                counts[(red >> 3, green >> 3, blue >> 3)] += 1
+    return counts
+
+
+def build_sprite(image, index=0):
+    """Las 12 poses del personaje como tiles de 4 bits, más su paleta.
+
+    Devuelve (tiles, paleta, cuántos colores se fusionaron).
+    """
+    counts = sprite_colors(image, index)
+    if len(counts) <= OBJ_COLORS:
+        mapping = {c: c for c in counts}
+        merged = []
+    else:
+        mapping, merged = md_convert.merge_least_used(counts, OBJ_COLORS)
+    palette = sorted(set(mapping.values()))
+    lookup = {color: i + 1 for i, color in enumerate(palette)}
+
+    # Cada pose es un bloque de 4x4 tiles dentro de una grilla de 16 de ancho,
+    # así que entran cuatro poses por fila de bloques y hacen falta tres filas.
+    block_rows = (SPRITE_POSES + 3) // 4
+    tiles = bytearray(block_rows * 4 * OBJ_ROW * 32)
+    for pose in range(SPRITE_POSES):
+        ox, oy = pose_origin(index, pose)
+        block = (pose // 4) * 4 * OBJ_ROW + (pose % 4) * 4
+        for ty in range(4):
+            for tx in range(4):
+                cell = []
+                for y in range(CELL):
+                    row = []
+                    for x in range(CELL):
+                        # La pose de 24 se centra en el objeto de 32.
+                        sx = tx * CELL + x - (OBJ_W - SPRITE_W) // 2
+                        sy = ty * CELL + y
+                        if 0 <= sx < SPRITE_W and 0 <= sy < SPRITE_H:
+                            r, g, b, a = image.getpixel((ox + sx, oy + sy))
+                            row.append(lookup[mapping[(r >> 3, g >> 3, b >> 3)]]
+                                       if a else 0)
+                        else:
+                            row.append(0)
+                    cell.append(tuple(row))
+                number = block + ty * OBJ_ROW + tx
+                tiles[number * 32:(number + 1) * 32] = pack_tile(tuple(cell),
+                                                                planes=4)
+    return bytes(tiles), palette, len(merged)
 
 
 # --- conversión -------------------------------------------------------------
@@ -207,7 +294,7 @@ def screen_order(tilemap):
     return cells, LAYOUTS[(across, down)]
 
 
-def emit(path, name, tile_data, cram, tilemap):
+def emit(path, name, tile_data, cram, tilemap, sprite=None):
     """El .inc que arma w65.py junto con main.s."""
     height, width = len(tilemap), len(tilemap[0])
 
@@ -240,14 +327,38 @@ def emit(path, name, tile_data, cram, tilemap):
             "; Hasta dónde puede llegar la cámara sin salirse del mapa, en\n"
             "; pixeles: el ancho del mapa menos el de la pantalla.\n"
             "CAM_MAX_X   = %d\n"
-            "CAM_MAX_Y   = %d\n\n"
-            '.segment "RODATA"\n%s\n%s\n%s\n'
+            "CAM_MAX_Y   = %d\n"
+            "; El héroe se para en una celda de 16x16 y no puede salirse del\n"
+            "; mapa. Arranca en el centro, alineado a esa grilla.\n"
+            "HERO_MAX_X  = %d\n"
+            "HERO_MAX_Y  = %d\n"
+            "HERO_START_X = %d\n"
+            "HERO_START_Y = %d\n"
+            "SPRITE_TILES = %d\n"
+            "SPRITE_CGRAM = %d\n\n"
+            '.segment "RODATA"\n%s\n%s\n%s\n%s\n%s\n'
             % (name, width, height, len(tile_data) // BYTES_PER_TILE, len(cram),
                layout, len(cells),
                max(0, width * CELL - 256), max(0, height * CELL - 224),
+               width * CELL - 16, height * CELL - 16,
+               (width * CELL // 2) & ~15, (height * CELL // 2) & ~15,
+               len(sprite[0]) // 32 if sprite else 0,
+               len(sprite[1]) if sprite else 0,
                block("map_tiles", tile_data),
                block("map_cgram", colors),
-               block("map_tilemap", words)))
+               block("map_tilemap", words),
+               block("sprite_tiles", sprite[0] if sprite else b""),
+               block("sprite_cgram", sprite_colors_bytes(sprite))))
+
+
+def sprite_colors_bytes(sprite):
+    """La paleta del sprite como bytes de CGRAM, con el 0 transparente."""
+    if not sprite:
+        return b""
+    out = bytearray(cgram_word(BACKDROP).to_bytes(2, "little"))
+    for color in sprite[1]:
+        out += cgram_word(color).to_bytes(2, "little")
+    return bytes(out)
 
 
 def main():
@@ -257,6 +368,10 @@ def main():
     parser.add_argument("--game-dir", default=GAME_DIR)
     parser.add_argument("-o", "--output",
                         default=os.path.join(REPO, "snes/src/mapdata.inc"))
+    parser.add_argument("--charset", default="Future1",
+                        help="CharSet del personaje (default: el de Talan)")
+    parser.add_argument("--charset-index", type=int, default=0,
+                        help="cuál de los 8 personajes del CharSet")
     parser.add_argument("--reference", help="PNG del render de Python, para comparar")
     args = parser.parse_args()
 
@@ -270,6 +385,12 @@ def main():
 
     tile_data, cram, tilemap, summary = convert(base)
 
+    charset_path = find_resource([REPO, args.game_dir, RTP_DIR], "CharSet",
+                                 args.charset)
+    if not charset_path:
+        sys.exit("no encuentro el CharSet %r" % args.charset)
+    sprite = build_sprite(load_image(charset_path), args.charset_index)
+
     print("Mapa %d %r: %dx%d celdas de %dx%d px"
           % (args.map_id, name, len(tilemap[0]), len(tilemap),
              CELL, CELL))
@@ -279,7 +400,10 @@ def main():
           % (summary["tiles"], summary["celdas"],
              100.0 * (1 - summary["tiles"] / summary["celdas"])))
 
-    emit(args.output, name, tile_data, cram, tilemap)
+    print("  sprite %s: %d tiles, paleta de %d, %d colores fusionados"
+          % (args.charset, len(sprite[0]) // 32, len(sprite[1]), sprite[2]))
+
+    emit(args.output, name, tile_data, cram, tilemap, sprite)
     print("  tiles %d B, cgram %d B, tilemap %d B -> %s"
           % (len(tile_data), 2 * len(cram),
              2 * summary["celdas"], args.output))
