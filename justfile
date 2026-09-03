@@ -257,6 +257,52 @@ snes-pagina mapa="121" arranca="10" nombre=("pagina-" + mapa):
       --saltar {{snes_pngs}}/saltar-{{nombre}}.txt \
       -o {{snes_pngs}}/comparacion-{{nombre}}.png
 
+# La segunda opinión: los mismos casos, pero en mednafen y con ventana.
+#
+# La tanda corre en snes9x por libretro, y snes9x es permisivo en cosas donde la
+# consola real no lo es. En un mismo día se colaron dos errores que sólo mednafen
+# ve, los dos con la tanda en verde: `ruta_n`/`ruta_i` sin inicializar —snes9x
+# arranca la RAM en cero y por eso no se notaba, y el héroe no respondía al
+# control— y el tinte escribiendo CGRAM fuera del vblank, que snes9x acepta y
+# mednafen no.
+#
+# Dos casos alcanzan porque cubren las dos clases: uno que tiñe desde un evento
+# —CGRAM y el intérprete— y uno que camina —la RAM del control—. Cuesta como un
+# minuto de reloj, que es el precio de mirar lo que el camino rápido no puede.
+#
+# Se compara contra las mismas referencias de Python que usa la tanda: lo que se
+# cruza son dos emuladores contra un mismo tercero, no uno contra el otro.
+snes-mednafen:
+  #!/usr/bin/env bash
+  set -euo pipefail
+  mkdir -p {{snes_pngs}} {{snes_inc}}
+
+  # 1) la apertura: dos switches, un tinte y un teletransporte.
+  python3 tools/snes_convert.py --grupo {{grupo}} --map-id 4 --mapas 1 \
+      -o {{snes_inc}}/mapdata.inc
+  just snes-build
+  python3 tools/snes_expect.py --grupo {{grupo}} --map-id 4 --mapas 1 \
+      --saltar {{snes_pngs}}/saltar-med-evento.txt \
+      -o {{snes_pngs}}/esperado-med-evento.png
+  rom/mednafen.sh {{snes_rom}} {{snes_pngs}}/med-evento.png 5 ""
+  python3 tools/snes_compare.py {{snes_pngs}}/med-evento.png \
+      {{snes_pngs}}/esperado-med-evento.png \
+      --saltar {{snes_pngs}}/saltar-med-evento.txt \
+      -o {{snes_pngs}}/comparacion-med-evento.png
+
+  # 2) caminar: si el control no responde, acá se ve.
+  python3 tools/snes_convert.py --grupo {{grupo}} --map-id 73 \
+      -o {{snes_inc}}/mapdata.inc
+  just snes-build
+  python3 tools/snes_expect.py --grupo {{grupo}} --map-id 73 --walk right \
+      --saltar {{snes_pngs}}/saltar-med-walk.txt \
+      -o {{snes_pngs}}/esperado-med-walk.png
+  rom/mednafen.sh {{snes_rom}} {{snes_pngs}}/med-walk.png 8 "Right"
+  python3 tools/snes_compare.py {{snes_pngs}}/med-walk.png \
+      {{snes_pngs}}/esperado-med-walk.png \
+      --saltar {{snes_pngs}}/saltar-med-walk.txt \
+      -o {{snes_pngs}}/comparacion-med-walk.png
+
 # Que una espera espere de verdad, con una página inventada.
 #
 # El intérprete corre cuadro a cuadro desde que dejó de colapsar el tiempo, pero

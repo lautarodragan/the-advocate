@@ -161,6 +161,11 @@ commit narra lo hecho; los supuestos no tienen dónde vivir. Acá.
   encendida, así que entraba a medias —CGRAM no acepta escrituras mientras el
   PPU dibuja—. snes9x las acepta igual; mednafen no. Las dos las encontró taro
   jugando, con la tanda en verde.
+  Mitigado el mismo día con `snes-mednafen`, que corre dos casos por el otro
+  emulador y compara contra las mismas referencias: uno que tiñe desde un evento
+  y uno que camina, que son las dos clases. Está en la tanda, así que se corre.
+  No reemplaza a lo de abajo: mednafen es el parche barato y bsnes la solución,
+  porque su `bsnes_entropy` habría atrapado el de la RAM solo.
   Es la trampa que el LEEME ya tenía anotada, ahora cobrada en serio. Y tiene una
   salida concreta: **bsnes tiene `bsnes_entropy`, que aleatoriza la RAM al
   encender**. Es la segunda razón para hacerlo andar —la primera era tener una

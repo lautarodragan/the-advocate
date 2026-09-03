@@ -35,3 +35,4 @@ snes-caminando 6 down "40 60 80"
 snes-pagina 121 10 grupo-121
 snes-pagina 74 21 ruta-74
 snes-espera
+snes-mednafen
