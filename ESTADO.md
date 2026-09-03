@@ -107,7 +107,27 @@ commit narra lo hecho; los supuestos no tienen dónde vivir. Acá.
   difieren en 284 pixeles, o sea que el par no da cero por casualidad. El
   Package igual entró en la tanda, por el orden capa-antes-que-Y. Ver "Cómo se
   verifica" en `rom/LEEME.md`.
-* **Moverse por una ruta forzada.** Anotado el 2026-09-03. De los comandos de
+* **Moverse por una ruta forzada: a 410 pixeles de coincidir.** Retomado el
+  2026-09-03 con el intérprete ya corriendo en el tiempo, que es lo que hacía
+  falta. La maquinaria está de los dos lados: la ROM la camina en
+  `paso_de_ruta` —consume la ruta antes que el pad, como RM2k— y la referencia
+  en `Estado.cuadro_de_ruta`. **Pero no coinciden, y el comando sigue sin
+  aceptarse** en `_compilar`: emitir un opcode que los dos lados ejecutan
+  distinto es peor que no tenerlo.
+  Dónde quedó la depuración, para no rederivarlo: con una ruta
+  `face_up, move_up x3` en el mapa 18, en el cuadro asentado **el héroe queda en
+  la misma celda (10,6) y mirando para el mismo lado** —contra un
+  `--hero-tile 10 6 --dir up` la diferencia es 410 pixeles, y contra las otras
+  tres direcciones es mayor—, así que lo que difiere es **la columna del ciclo
+  de caminata**: la ROM no vuelve a la pose parada al terminar la ruta. El
+  sospechoso es que quede un paso a medias (`step_left` distinto de cero) y
+  `animate_hero` siga ciclando.
+  Ya se descartaron: el desfasaje de arranque (se barrió de 5 a 9 y el error no
+  se mueve), el offset de pixeles del paso en curso, y la pose calculada por
+  cuadros moviéndose. Y se arregló un error real de la ROM en el camino: `tax`
+  con X de 16 bits se llevaba el byte alto del acumulador y la ruta leía basura,
+  con lo que el héroe caminaba una celda de tres y no había ningún error.
+* **Moverse por una ruta forzada (nota vieja).** Anotado el 2026-09-03. De los comandos de
   ruta de `MoveEvent` hoy se aceptan sólo los cuatro de girar y la espera;
   `move_up` y compañía no compilan. No es pereza: en RM2k el personaje camina
   celda por celda a lo largo de varios cuadros y hay que decidir qué pasa

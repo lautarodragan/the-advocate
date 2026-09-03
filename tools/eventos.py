@@ -43,7 +43,15 @@ MOVE_EVENT = 11330
 # agrega acá; mientras tanto, una ruta que se mueva no compila.
 RUTA_HEROE = 10001
 RUTA_MIRAR = {12: 0, 13: 1, 14: 2, 15: 3}   # face_up/right/down/left
+RUTA_MOVER = {0: 0, 1: 1, 2: 2, 3: 3}       # move_up/right/down/left
 RUTA_ESPERAR = 23
+
+# Cómo consume el tiempo una ruta forzada, y es una decisión de modelo que los
+# dos lados tienen que compartir: girar es instantáneo —se pasa al comando
+# siguiente en el mismo cuadro—, esperar consume un cuadro, y moverse arranca un
+# paso de una celda, que la ROM recorre a WALK_SPEED = 2 pixeles por cuadro como
+# cualquier otro paso. Un movimiento bloqueado se saltea: la alternativa de RM2k
+# es reintentar para siempre, y una prueba colgada no le dice nada a nadie.
 
 # ChangePartyMembers: el primer parámetro dice si agrega o saca, el segundo de
 # dónde sale el id del actor, y el tercero el id. De liblcf y de
@@ -106,6 +114,9 @@ MAX_RANGO = 64
 
 # RM2k mide las esperas en décimas de segundo.
 CUADROS_POR_DECIMA = 6
+
+# Un paso son dieciséis pixeles a WALK_SPEED = 2 por cuadro.
+CUADROS_POR_CELDA = 8
 
 TRIGGER_AUTOMATICO = 3
 
@@ -179,7 +190,15 @@ def _compilar(cmd, indice_de_mapa):
         if not ruta or len(ruta) > 255:
             raise NoSePuede()
         for orden in ruta:
-            if orden not in RUTA_MIRAR and orden != RUTA_ESPERAR:
+            # Moverse por una ruta forzada todavía no se acepta. La maquinaria
+            # está de los dos lados —la ROM la camina en `paso_de_ruta` y la
+            # referencia en `Estado.cuadro_de_ruta`— pero no coinciden: en el
+            # cuadro asentado el héroe queda en la misma celda y mirando para el
+            # mismo lado, y aun así hay 410 pixeles de diferencia, que es la
+            # columna del ciclo de caminata. Está en la lista de ESTADO.md con
+            # lo que ya se descartó. Aceptarlo sin que coincida sería emitir un
+            # opcode que los dos lados ejecutan distinto.
+            if (orden not in RUTA_MIRAR and orden != RUTA_ESPERAR):
                 raise NoSePuede()
         return bytes([OP_RUTA, len(ruta)]) + bytes(ruta)
 
@@ -232,6 +251,45 @@ class Estado:
         # Hacia dónde mira el héroe si una ruta forzada se lo dijo. None es
         # "lo decide la caminata", que es lo de siempre.
         self.mirando = None
+        # La ruta forzada pendiente y el paso en curso, en cuadros.
+        self.ruta = []
+        self.paso_dir = None
+        self.paso_cuadros = 0
+        # Cuántos cuadros seguidos lleva moviéndose, para la pose de caminata.
+        # `animate_hero` lo reinicia en cuanto se queda quieto.
+        self.cuadros_moviendose = 0
+
+    def cuadro_de_ruta(self, puede):
+        """Un cuadro de la ruta forzada. `puede(direccion)` dice si se puede dar
+        el paso; devuelve la dirección del paso que se está dando, o None.
+
+        Girar no consume cuadro y se sigue con el comando siguiente; esperar sí;
+        y moverse arranca un paso de una celda, que dura CUADROS_POR_CELDA.
+        """
+        if self.paso_cuadros:
+            self.paso_cuadros -= 1
+            self.cuadros_moviendose += 1
+            direccion = self.paso_dir
+            if not self.paso_cuadros:
+                self.paso_dir = None
+            return direccion
+        while self.ruta:
+            orden = self.ruta.pop(0)
+            if orden in RUTA_MIRAR:
+                self.mirando = RUTA_MIRAR[orden]
+                continue
+            if orden == RUTA_ESPERAR:
+                return None
+            direccion = RUTA_MOVER[orden]
+            self.mirando = direccion
+            if not puede(direccion):
+                continue            # bloqueado: se saltea
+            self.paso_dir = direccion
+            self.paso_cuadros = CUADROS_POR_CELDA - 1
+            self.cuadros_moviendose += 1
+            return direccion
+        self.cuadros_moviendose = 0
+        return None
 
     def encendido(self, numero):
         return numero in self.switches
@@ -274,8 +332,8 @@ def pagina_activa(paginas, evento, estado):
     return elegida
 
 
-def pagina_de_prueba(espera, tinte):
-    """Una página automática inventada: esperar N cuadros y después teñir.
+def pagina_de_prueba(espera=0, tinte=(), ruta=()):
+    """Una página automática inventada: una ruta forzada, una espera, un tinte.
 
     No sale de ningún dato del juego, y ésa es la idea. El intérprete corre
     cuadro a cuadro desde que dejó de colapsar el tiempo, pero **ninguna página
@@ -292,9 +350,14 @@ def pagina_de_prueba(espera, tinte):
     La escribe el conversor con `--pagina-de-prueba` y la corre la referencia
     con la misma función, que es lo que garantiza que sea el mismo programa.
     """
-    return (bytes([OP_ESPERAR, espera & 0xFF, espera >> 8])
-            + bytes([OP_TINTE]) + bytes(tinte) + bytes([TINTE_NEUTRO])
-            + bytes([OP_FIN]))
+    codigo = b""
+    if ruta:
+        codigo += bytes([OP_RUTA, len(ruta)]) + bytes(ruta)
+    if espera:
+        codigo += bytes([OP_ESPERAR, espera & 0xFF, espera >> 8])
+    if tinte:
+        codigo += bytes([OP_TINTE]) + bytes(tinte) + bytes([TINTE_NEUTRO])
+    return codigo + bytes([OP_FIN])
 
 
 class Interprete:
@@ -416,12 +479,11 @@ def ejecutar(codigo, estado, desde=0):
             cuadros = codigo[i + 1] | (codigo[i + 2] << 8)
             return (i + 3, cuadros, False)
         elif op == OP_RUTA:
+            # La ruta se encola y la camina el héroe, no el intérprete: en RM2k
+            # `ForceMoveRoute` es asincrónico y la página sigue. Quien la hace
+            # avanzar es `Estado.cuadro_de_ruta`, una vez por cuadro.
             cuantos = codigo[i + 1]
-            for orden in codigo[i + 2:i + 2 + cuantos]:
-                if orden in RUTA_MIRAR:
-                    estado.mirando = RUTA_MIRAR[orden]
-                # La espera no hace nada: acá la página corre entera de una, lo
-                # mismo que con OP_ESPERAR.
+            estado.ruta = list(codigo[i + 2:i + 2 + cuantos])
             i += 2 + cuantos
         elif op == OP_GRUPO:
             estado.cambiar_grupo(codigo[i + 1], codigo[i + 2])

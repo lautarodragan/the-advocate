@@ -79,6 +79,8 @@ STAND = 1                       # el frame del medio del ciclo de caminata
 
 # Las direcciones de RM2k, en el orden en que están en el CharSet.
 DIRECTIONS = {"up": 0, "right": 1, "down": 2, "left": 3}
+# Los mismos, como desplazamiento en celdas.
+PASOS = {0: (0, -1), 1: (1, 0), 2: (0, 1), 3: (-1, 0)}
 WALK = {"none": None, "up": (0, -1), "down": (0, 1),
         "left": (-1, 0), "right": (1, 0)}
 
@@ -109,9 +111,13 @@ class Mundo:
             if self.prueba is not None and map_id == self.ids[0]:
                 # La página inventada va sólo en el mapa donde arranca la ROM,
                 # que es el mismo que el conversor le agrega la suya.
+                espera, tinte = 0, ()
+                if self.prueba[0] is not None:
+                    espera, *tinte = self.prueba[0]
                 paginas = paginas + [dict(EVENTO_DE_PRUEBA,
                                           codigo=eventos.pagina_de_prueba(
-                                              self.prueba[0], self.prueba[1:]))]
+                                              espera, tinte,
+                                              self.prueba[1] or ()))]
             self.paginas_cache[map_id] = paginas
         return self.paginas_cache[map_id]
 
@@ -139,6 +145,31 @@ SALTOS_MAX = 8
 EVENTO_DE_PRUEBA = {"evento": 9999, "pagina": 0,
                     "trigger": eventos.TRIGGER_AUTOMATICO,
                     "switch_a": 0, "switch_b": 0, "actor": 0, "codigo": b""}
+
+
+def paso_de_ruta(estado, passable, game_map, x, y):
+    """Un cuadro de la ruta forzada del héroe, en celdas.
+
+    La celda se mueve al **empezar** el paso y los pixeles van detrás, que es lo
+    que hace la ROM: `begin_step` deja el índice en la celda nueva con dieciséis
+    pixeles por recorrer, y `advance_step` los va comiendo de a dos por cuadro.
+    Los pixeles que faltan quedan en `estado.paso_cuadros`, y `hero_position`
+    los descuenta: sin eso la referencia mostraba al héroe ya en la celda de
+    destino mientras la ROM lo mostraba a mitad de camino. En el cuadro final da
+    igual —por eso no se notó hasta comparar durante la caminata— y en los
+    intermedios son 560 pixeles de diferencia.
+    """
+    def puede(direccion):
+        dx, dy = PASOS[direccion]
+        return rm2k.puede_pasar(passable, game_map.width, game_map.height,
+                                x, y, dx, dy)
+
+    antes = estado.paso_cuadros
+    direccion = estado.cuadro_de_ruta(puede)
+    if direccion is not None and antes == 0:
+        dx, dy = PASOS[direccion]
+        return x + dx, y + dy       # el paso arranca: la celda ya es la nueva
+    return x, y
 
 
 def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None):
@@ -172,9 +203,29 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None):
         # tiene que haber corrido los mismos.
         if cuadros is None:
             salto = eventos.correr_automaticos(mundo.paginas(map_id), estado)
+            # Sin presupuesto de cuadros la ruta forzada igual tiene que
+            # caminarse entera: lo que se compara es dónde queda todo. Antes el
+            # giro lo aplicaba el intérprete y esto no hacía falta; ahora la
+            # ruta la camina el héroe, y saltearla dejaba al héroe mirando a
+            # cámara mientras la ROM lo mostraba mirando arriba.
+            for _ in range(10000):
+                if not estado.ruta and not estado.paso_cuadros:
+                    break
+                x, y = paso_de_ruta(estado, passable, game_map, x, y)
         else:
-            salto = eventos.correr_automaticos(mundo.paginas(map_id), estado,
-                                               cuadros)
+            # Cuadro a cuadro, con el intérprete y la ruta forzada del héroe
+            # avanzando juntos: en RM2k `ForceMoveRoute` es asincrónico, la
+            # página sigue y quien camina es el personaje.
+            salto = None
+            interprete = eventos.Interprete(mundo.paginas(map_id), estado)
+            for _ in range(cuadros):
+                if interprete.cuadro():
+                    salto = estado.salto
+                    break
+                x, y = paso_de_ruta(estado, passable, game_map, x, y)
+                if interprete.terminado and not estado.ruta \
+                        and not estado.paso_cuadros:
+                    break
         if salto is None:
             return map_id, x, y
         saltos -= 1
@@ -203,7 +254,15 @@ def hero_position(mundo, estado, map_id, direction_name, inicio=None,
         # Sin caminata, hacia dónde mira lo puede haber dicho una ruta forzada;
         # si no, mira a cámara, que es como RM2k deja al héroe.
         quieto = estado.mirando if estado.mirando is not None else DIRECTIONS["down"]
-        return map_id, x * TILE, y * TILE, quieto, 0
+        # Los pixeles que le faltan al paso en curso, descontados de la celda de
+        # destino: dos por cuadro, como los come `advance_step`.
+        px, py = x * TILE, y * TILE
+        if estado.paso_cuadros and estado.paso_dir is not None:
+            dx, dy = PASOS[estado.paso_dir]
+            faltan = estado.paso_cuadros * 2
+            px -= dx * faltan
+            py -= dy * faltan
+        return map_id, px, py, quieto, 0
     desde = (x, y)
 
     # Cuántas celdas camina. Hasta ahora este número se calculaba y se tiraba;
@@ -390,6 +449,11 @@ def main():
                              "emulador corrió N cuadros y esto tiene que haber "
                              "corrido los mismos. Sin esto, las páginas corren "
                              "hasta terminar")
+    parser.add_argument("--ruta-de-prueba", nargs="+", type=int, default=None,
+                        metavar="ORDEN",
+                        help="agrega a la página de prueba una ruta forzada "
+                             "sobre el héroe, con los códigos de "
+                             "rpg::MoveCommand::Code: 0..3 mover, 12..15 girar")
     parser.add_argument("--pagina-de-prueba", nargs=4, type=int, default=None,
                         metavar=("ESPERA", "R", "G", "B"),
                         help="agrega una página automática inventada que espera "
@@ -435,7 +499,10 @@ def main():
     if not 0 <= args.inicial < len(tabla):
         sys.exit("--inicial %d pero la tabla tiene %d mapas"
                  % (args.inicial, len(tabla)))
-    mundo = Mundo(renderer, args.game_dir, tabla, args.pagina_de_prueba)
+    mundo = Mundo(renderer, args.game_dir, tabla,
+                  (args.pagina_de_prueba, args.ruta_de_prueba)
+                  if (args.pagina_de_prueba or args.ruta_de_prueba)
+                  else None)
 
     # Los CharSets y los mapas ya convertidos se comparten entre las
     # direcciones. Convertir un mapa es lo más caro de todo esto —el 52 son
@@ -544,10 +611,14 @@ def main():
         # La pose: parado al final de la caminata, y la del ciclo cuando se
         # pide un avance. El héroe se mueve WALK_SPEED = 2 pixeles por cuadro,
         # así que los cuadros que lleva moviéndose son el avance sobre dos.
-        if avance is None:
-            columna = STAND
-        else:
+        if avance is not None:
             columna = columna_de_caminata(avance // 2)
+        elif estado.cuadros_moviendose:
+            # Caminando por una ruta forzada: la pose sale del mismo ciclo que
+            # `animate_hero`, contando los cuadros que lleva moviéndose.
+            columna = columna_de_caminata(estado.cuadros_moviendose - 1)
+        else:
+            columna = STAND
         actors.append((snes_convert.sort_key(rm2k.LAYER_SAME, y),
                        charset, charset_index,
                        direction * 3 + columna, x, y, args.heroe_encima))

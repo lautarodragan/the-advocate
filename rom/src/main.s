@@ -241,6 +241,13 @@ cola_i:      .res 1     ; cuál sigue
 ev_cur:      .res 2     ; el cursor dentro de la página que corre
 ev_activo:   .res 1     ; si hay una página a medio correr
 ev_esperando: .res 2    ; cuántos cuadros faltan de la espera en curso
+; La ruta forzada del héroe. En RM2k `ForceMoveRoute` es asincrónico: la página
+; sigue corriendo y quien camina es el personaje, así que esto no vive en el
+; intérprete sino acá, y lo come `move_hero` en vez del pad.
+RUTA_MAX = 32
+ruta:        .res 32
+ruta_n:      .res 1
+ruta_i:      .res 1
 ; El grupo, en orden. El gráfico del héroe es el del primero —RM2k lo decide
 ; así, y `AddActor`/`RemoveActor` llaman los dos a `ResetGraphic`—, o sea que
 ; esto no es contabilidad: se ve en la pantalla. `hero_poses` apunta a las doce
@@ -1126,22 +1133,28 @@ op_switch:
 ; 0, 1, 2 y 3 en el mismo orden, así que restar doce alcanza. La espera, 23, no
 ; hace nada: la página corre entera de una, igual que con OP_ESPERAR.
 op_ruta:
+    ; La ruta se copia a RAM y la camina `move_hero`, no el intérprete: en RM2k
+    ; `ForceMoveRoute` es asincrónico y la página sigue de largo.
     lda [cod_ptr], y            ; cuántos comandos trae
     sta temp
     iny
-cada_orden:
+    stz ruta_i
+    ldx #$0000
+copiar_orden:
     lda temp
-    beq fin_ruta
+    beq fin_copia
     dec temp
+    cpx #RUTA_MAX
+    bcs saltear                 ; no entra: se consume pero no se guarda
     lda [cod_ptr], y
+    sta ruta, x
+    inx
+saltear:
     iny
-    sec
-    sbc #12
-    cmp #4
-    bcs cada_orden              ; no es un face_*: se saltea
-    sta hero_dir
-    bra cada_orden
-fin_ruta:
+    bra copiar_orden
+fin_copia:
+    txa                         ; X no pasa de RUTA_MAX, así que el byte alcanza
+    sta ruta_n
     jmp otro                    ; `bra` no llega: el lazo quedó lejos
 
 op_grupo:
@@ -1631,6 +1644,69 @@ sin_lider16:
     sep #$20
 .a8
 sin_lider:
+    rts
+.endproc
+
+; Un comando de la ruta forzada. Girar no consume cuadro y se sigue con el
+; siguiente; esperar sí; y moverse arranca un paso de una celda, que después
+; camina `advance_step` como cualquier otro. Un movimiento bloqueado se saltea:
+; RM2k reintentaría para siempre y una prueba colgada no dice nada.
+.proc paso_de_ruta
+.a8
+.i16
+otra_orden:
+    lda ruta_i
+    cmp ruta_n
+    bcs listo                   ; se terminó la ruta
+    ; El índice a X pasando por A de dieciséis bits y limpiando el alto: `tax`
+    ; transfiere los dos bytes del acumulador aunque A esté en ocho, y el alto
+    ; trae lo que dejó la operación anterior. Es la trampa que ya está anotada
+    ; en el LEEME, y acá hacía que la ruta leyera basura y se cortara al primer
+    ; paso: el héroe caminaba una celda de tres y no había ningún error.
+    rep #$20
+.a16
+    lda ruta_i
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda ruta, x
+    inc ruta_i
+
+    cmp #23                     ; wait: consume el cuadro y nada más
+    beq listo
+    cmp #12
+    bcc mover                   ; 0..3 son los move_*
+    sec
+    sbc #12
+    cmp #4
+    bcs otra_orden              ; ni girar ni mover: se ignora
+    sta hero_dir                ; face_*: instantáneo, sigue el que viene
+    bra otra_orden
+
+mover:
+    sta hero_dir                ; move_* mira hacia donde va
+    cmp #DIR_UP
+    bne no_es_arriba
+    jsr try_up
+    bra ver_si_arranco
+no_es_arriba:
+    cmp #DIR_RIGHT
+    bne no_es_derecha
+    jsr try_right
+    bra ver_si_arranco
+no_es_derecha:
+    cmp #DIR_DOWN
+    bne no_es_abajo
+    jsr try_down
+    bra ver_si_arranco
+no_es_abajo:
+    jsr try_left
+ver_si_arranco:
+    lda step_left
+    bne listo                   ; arrancó el paso
+    bra otra_orden              ; bloqueado: se saltea y se prueba el siguiente
+listo:
     rts
 .endproc
 
@@ -2648,6 +2724,15 @@ PASS_UP    = $08
 
 quieto:
     stz moving
+    ; Una ruta forzada manda sobre el pad: mientras quede, el jugador no mueve
+    ; al héroe. Es lo que hace RM2k, y es lo que permite que una cinemática lo
+    ; camine sola.
+    lda ruta_i
+    cmp ruta_n
+    bcs sin_ruta
+    jsr paso_de_ruta
+    rts
+sin_ruta:
     lda pad
     and #PAD_UP
     beq no_arriba
