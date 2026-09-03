@@ -23,7 +23,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from PIL import Image
 
-from render_map import REPO
+from render_map import GAME_DIR, REPO
 
 BACKDROP = (255, 0, 255)   # el color de fondo que pone la ROM, fuera del área activa
 
@@ -105,7 +105,7 @@ def npc_rects(map_id, cam_x, cam_y):
     import lcf
     from md_convert import collect_npcs
 
-    game_map = lcf.Map(os.path.join(REPO, "Maps", "Map%04d.lmu" % map_id))
+    game_map = lcf.Map(os.path.join(GAME_DIR, "Map%04d.lmu" % map_id))
     return [(n["x"] * TILE - (SPRITE_W - TILE) // 2 - cam_x,
              n["y"] * TILE - (SPRITE_H - TILE) - cam_y, SPRITE_W, SPRITE_H)
             for n in collect_npcs(game_map)]
@@ -127,7 +127,7 @@ def simulate(map_id, direction):
     from md_convert import collect_npcs, hero_start, passability_map, walk
 
     renderer = Renderer()
-    game_map = lcf.Map(os.path.join(REPO, "Maps", "Map%04d.lmu" % map_id))
+    game_map = lcf.Map(os.path.join(GAME_DIR, "Map%04d.lmu" % map_id))
     flags = build_passability(renderer.database.chipsets[game_map.chipset_id])
     passable = passability_map(game_map, flags)
     # Los NPCs que están en capa "same" también tapan el paso.

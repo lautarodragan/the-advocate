@@ -16,7 +16,7 @@ de muestras más las muestras en BRR) y el stream de escrituras al DSP, que el
 65816 va escupiendo cuadro a cuadro.
 
 Uso:
-    python3 tools/snes_music.py --map-id 67 -o snes/src/musicdata.inc
+    python3 tools/snes_music.py --map-id 67 -o rom/src/musicdata.inc
 """
 
 import argparse
@@ -390,7 +390,7 @@ def main():
     parser.add_argument("--map-id", type=int, default=67)
     parser.add_argument("--game-dir", default=GAME_DIR)
     parser.add_argument("-o", "--output",
-                        default=os.path.join(REPO, "snes/src/musicdata.inc"))
+                        default=os.path.join(REPO, "rom/src/musicdata.inc"))
     args = parser.parse_args()
 
     name, driver, samples, stream, seconds, summary = build(args.map_id,

@@ -145,12 +145,12 @@ md-play-mudo region="overseas_pal":
 # w65.py contra ca65. No se necesita para compilar.
 
 # Una corrida aislada. `CORRIDA=algo just snes-hitos` deja el mapdata, la ROM y
-# las capturas adentro de snes/build/algo/ y no toca nada de lo de siempre; sin
+# las capturas adentro de rom/build/algo/ y no toca nada de lo de siempre; sin
 # CORRIDA, todo queda exactamente donde estaba, para que `mednafen
-# snes/build/abl.sfc` y las rutas escritas en el LEEME sigan valiendo.
+# rom/build/abl.sfc` y las rutas escritas en el LEEME sigan valiendo.
 #
 # Existe por dos cosas que hasta ahora hacían imposible compilar mientras algo
-# corría: snes/src/mapdata.inc es estado global —lo pisa cualquier
+# corría: rom/src/mapdata.inc es estado global —lo pisa cualquier
 # snes-convert— y la ROM tenía un solo nombre posible. La ROM además se llama
 # como la corrida, que además la hace reconocible cuando se la abre a mano.
 # Con qué grupo arrancan las pruebas. En RM2k el gráfico del héroe es el del
@@ -166,10 +166,10 @@ md-play-mudo region="overseas_pal":
 # grupo de verdad.
 grupo    := env_var_or_default("GRUPO", "11")
 corrida  := env_var_or_default("CORRIDA", "")
-snes_dir := if corrida == "" { "snes/build" } else { "snes/build" / corrida }
+snes_dir := if corrida == "" { "rom/build" } else { "rom/build" / corrida }
 snes_rom := snes_dir / (if corrida == "" { "abl.sfc" } else { corrida + ".sfc" })
-snes_inc := if corrida == "" { "snes/src" } else { snes_dir }
-snes_pngs := if corrida == "" { "snes/shots" } else { snes_dir / "shots" }
+snes_inc := if corrida == "" { "rom/src" } else { snes_dir }
+snes_pngs := if corrida == "" { "rom/shots" } else { snes_dir / "shots" }
 
 # ChipSet + mapa -> tiles de 8x8 a 8bpp, paleta de 15 bits y tilemap, más el
 # render de Python contra el que se compara después.
@@ -179,7 +179,7 @@ snes-convert mapa="7":
       --reference {{snes_pngs}}/python.png
 
 snes-build:
-  python3 tools/w65.py snes/src/main.s -I {{snes_inc}} -o {{snes_rom}}
+  python3 tools/w65.py rom/src/main.s -I {{snes_inc}} -o {{snes_rom}}
 
 # Corre la ROM sin pantalla y captura lo que dibuja. Las teclas se mantienen
 # apretadas mientras corre, para capturar con la cámara movida.
@@ -259,7 +259,7 @@ snes-puerta origen="30" destino="28" direccion="down" nombre=("puerta-" + origen
 # La captura sin teñir sale de plantar al héroe en el destino del
 # teletransporte, que es la misma pantalla sin el evento:
 #     just snes-parado 1 7 65 destino
-snes-tinte sin="snes/shots/destino.png" con="snes/shots/evento.png" r="0" g="0" b="100":
+snes-tinte sin="rom/shots/destino.png" con="rom/shots/evento.png" r="0" g="0" b="100":
   python3 tools/snes_tinte.py {{sin}} {{con}} --tinte {{r}} {{g}} {{b}}
 
 # El intérprete de eventos, para mirarlo con los ojos. El juego arranca en el
@@ -483,7 +483,7 @@ snes-recorrido desde="66":
 # Cuántos cuadros dura cada caminata no se elige: lo dice la referencia, que
 # camina celda por celda y sabe cuántas son. Ver `snes-caminando`.
 #
-# La lista vive en snes/hitos.txt y no acá, para que ésta y snes-hitos-paralelo
+# La lista vive en rom/hitos.txt y no acá, para que ésta y snes-hitos-paralelo
 # corran la misma: escrita dos veces, la que se olvide un caso sigue dando
 # verde y nadie se entera.
 snes-hitos:
@@ -497,7 +497,7 @@ snes-hitos:
   while read -r caso; do
     echo "=== $caso ==="
     eval "just $caso" || fallo=1
-  done < <(grep -v '^#' snes/hitos.txt | grep -v '^$')
+  done < <(grep -v '^#' rom/hitos.txt | grep -v '^$')
   exit $fallo
 
 # Los mismos casos, uno por proceso y cada uno en su propia corrida aislada.
@@ -512,30 +512,30 @@ snes-hitos:
 snes-hitos-paralelo trabajos="4":
   #!/usr/bin/env bash
   set -uo pipefail
-  mkdir -p snes/build
+  mkdir -p rom/build
   # Por xargs viajan números de línea y no los casos. xargs procesa comillas y
   # se come las de `snes-evento 4 "7 19 1" tabla`, que entonces le llega a just
   # como seis argumentos sueltos; el caso se cae y la tanda sigue con uno menos.
   # Pasando el número y releyendo la línea adentro, el texto no cruza nunca el
   # quoting de xargs.
-  casos=$(grep -v '^#' snes/hitos.txt | grep -v '^$')
+  casos=$(grep -v '^#' rom/hitos.txt | grep -v '^$')
   total=$(printf '%s\n' "$casos" | wc -l)
   # Los rojos se anotan en archivos y no en el código de salida del bash
   # interno. Si éste saliera con 1, xargs deja de largar trabajo nuevo y una
   # tanda con un caso roto no llega a correr los demás, que para una prueba de
   # regresión es justo al revés de lo que uno quiere: se corre todo y se
   # informa al final.
-  rm -f snes/build/hito-*.rojo
+  rm -f rom/build/hito-*.rojo
   seq 1 "$total" | xargs -P {{trabajos}} -I{} bash -c '
-      caso=$(grep -v "^#" snes/hitos.txt | grep -v "^$" | sed -n "{}p")
-      salida=snes/build/hito-{}.log
+      caso=$(grep -v "^#" rom/hitos.txt | grep -v "^$" | sed -n "{}p")
+      salida=rom/build/hito-{}.log
       if CORRIDA=hito-{} eval "just $caso" >"$salida" 2>&1; then
         echo "ok    $caso"
       else
         echo "ROJO  $caso  -> $salida"
-        : > snes/build/hito-{}.rojo
+        : > rom/build/hito-{}.rojo
       fi'
-  rojos=$(ls snes/build/hito-*.rojo 2>/dev/null | wc -l)
+  rojos=$(ls rom/build/hito-*.rojo 2>/dev/null | wc -l)
   if [ "$rojos" -gt 0 ]; then
     echo "$rojos caso(s) en rojo de $total"
     exit 1
@@ -620,18 +620,18 @@ _cam-y:
 # banco de muestras creció. A cambio, el layout sí se verifica de punta a punta
 # cada vez que la ROM arranca y suena en el emulador.
 #
-# snes/snes.cfg y snes/Makefile existen sólo para esto.
+# rom/snes.cfg y rom/Makefile existen sólo para esto.
 
 snes-image:
   podman build -t abl-snes snes
 
 snes-validar:
-  python3 tools/w65_coverage.py -o snes/build/cobertura.s
+  python3 tools/w65_coverage.py -o rom/build/cobertura.s
   podman run --rm --network=none --mount=type=bind,src=.,dst=/abl -w /abl/snes abl-snes \
       sh -c 'ca65 --cpu 65816 -o build/cobertura.o build/cobertura.s \
              && ld65 -C snes.cfg -o build/cobertura-ca65.sfc build/cobertura.o'
-  python3 tools/w65.py --sin-checksum snes/build/cobertura.s -o snes/build/cobertura-w65.sfc
-  python3 tools/w65_check.py snes/build/cobertura-w65.sfc snes/build/cobertura-ca65.sfc
+  python3 tools/w65.py --sin-checksum rom/build/cobertura.s -o rom/build/cobertura-w65.sfc
+  python3 tools/w65_check.py rom/build/cobertura-w65.sfc rom/build/cobertura-ca65.sfc
 
 # El MIDI del mapa a muestras BRR y un stream para el DSP.
 # La música de un mapa a mano. Normalmente no hace falta: `snes-convert` ya la
@@ -646,7 +646,7 @@ snes-music mapa="67":
 # sonando se mide su energía y la de un señuelo un cuarto de tono más arriba.
 snes-check mapa="67" segundos="60":
   mkdir -p {{snes_pngs}} {{snes_inc}}
-  snes/record.sh {{snes_rom}} {{snes_pngs}}/tema.wav {{segundos}}
+  rom/record.sh {{snes_rom}} {{snes_pngs}}/tema.wav {{segundos}}
   python3 tools/snes_check.py {{snes_pngs}}/tema.wav --map-id {{mapa}}
 
 # El mismo MIDI tocado por FluidSynth en la PC, con el mismo SoundFont del que
@@ -654,10 +654,10 @@ snes-check mapa="67" segundos="60":
 # de lo que falta es culpa nuestra y cuánto es de la medición.
 snes-referencia mapa="67" banco="/extras/soundfonts/Microsoft GS Wavetable Synth.sf2":
   mkdir -p {{snes_pngs}} {{snes_inc}}
-  fluidsynth -F snes/shots/referencia.wav -r 48000 \
+  fluidsynth -F rom/shots/referencia.wav -r 48000 \
       "{{banco}}" \
       "$(python3 tools/midi_path.py --map-id {{mapa}})"
-  python3 tools/snes_check.py snes/shots/referencia.wav --map-id {{mapa}}
+  python3 tools/snes_check.py rom/shots/referencia.wav --map-id {{mapa}}
 
 # Todo junto: convertir, compilar y verificar.
 snes mapa="67": (snes-music mapa) snes-build (snes-check mapa)

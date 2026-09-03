@@ -28,7 +28,7 @@ paletas 8 a 15, o sea los índices 128 a 255, y en 8 bits el fondo llega hasta e
 255: quedarse abajo evita pisarlos.
 
 Uso:
-    python3 tools/snes_convert.py --map-id 7 -o snes/src/mapdata.inc
+    python3 tools/snes_convert.py --map-id 7 -o rom/src/mapdata.inc
 """
 
 import argparse
@@ -982,7 +982,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=()):
         "; Su prioridad de objeto. $10 —debajo de la capa de encima— en\n"
         "; toda ROM que no sea la de `snes-encima`, que la sube a $20\n"
         "; para ejercitar la prioridad 2. Ningún evento del juego llega\n"
-        "; a ejercitarla: ver 'Cómo se verifica' en snes/LEEME.md.\n"
+        "; a ejercitarla: ver 'Cómo se verifica' en rom/LEEME.md.\n"
         "HERO_PRIORITY = $%02X\n\n"
         % (", ".join("%d %s" % (m["id"], m["nombre"]) for m in mapas),
            len(mapas), MAPA_STRIDE, inicial,
@@ -1128,7 +1128,7 @@ def main():
     parser.add_argument("--map-id", type=int, default=7)
     parser.add_argument("--game-dir", default=GAME_DIR)
     parser.add_argument("-o", "--output",
-                        default=os.path.join(REPO, "snes/src/mapdata.inc"))
+                        default=os.path.join(REPO, "rom/src/mapdata.inc"))
     parser.add_argument("--heroe-encima", action="store_true",
                         help="el héroe en prioridad 2 de objeto, por "
                              "encima de la capa que debería taparlo. "
@@ -1248,7 +1248,7 @@ def main():
     #
     # Suena el tema del mapa donde la ROM arranca. Que la música siga al mapa
     # cuando uno se teletransporta pide varios bancos de muestras en el
-    # cartucho, y no está: ver 'Lo que falta' en snes/LEEME.md.
+    # cartucho, y no está: ver 'Lo que falta' en rom/LEEME.md.
     musica = os.path.join(os.path.dirname(os.path.abspath(args.output)),
                           "musicdata.inc")
     nombre, driver, muestras, stream, _segundos, _resumen = snes_music.build(

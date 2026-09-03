@@ -1,4 +1,3 @@
-render/
 __pycache__/
 
 # RTP de Don Miguel, extraído de RTPE.EXE. No es nuestro para redistribuir;
@@ -13,9 +12,9 @@ md/bisect/
 wt/
 md/src/musicdata.c
 md/src/musicdata.h
-snes/build/
-snes/shots/
-snes/src/musicdata.inc
+rom/build/
+rom/shots/
+rom/src/musicdata.inc
 
 # El sandbox de Claude Code tapa los archivos de configuración que podrían
 # ejecutar algo, montándoles /dev/null encima. Como acá no existían, quedan como
@@ -34,4 +33,4 @@ snes/src/musicdata.inc
 .mcp.json
 .ripgreprc
 .vscode
-snes/src/mapdata.inc
+rom/src/mapdata.inc

@@ -9,161 +9,161 @@
       "name": "Introduction",
       "parent": 0,
       "type": "map",
-      "file": "Map0001.json"
+      "file": "maps/Map0001.json"
     },
     {
       "id": 2,
       "name": "Linkage Block",
       "parent": 1,
       "type": "map",
-      "file": "Map0002.json"
+      "file": "maps/Map0002.json"
     },
     {
       "id": 3,
       "name": "Emitter Room",
       "parent": 1,
       "type": "map",
-      "file": "Map0003.json"
+      "file": "maps/Map0003.json"
     },
     {
       "id": 4,
       "name": "Blank (Leave START here)",
       "parent": 1,
       "type": "map",
-      "file": "Map0004.json"
+      "file": "maps/Map0004.json"
     },
     {
       "id": 5,
       "name": "Core Retrospective",
       "parent": 1,
       "type": "map",
-      "file": "Map0005.json"
+      "file": "maps/Map0005.json"
     },
     {
       "id": 6,
       "name": "CoreRetro II",
       "parent": 5,
       "type": "map",
-      "file": "Map0006.json"
+      "file": "maps/Map0006.json"
     },
     {
       "id": 7,
       "name": "Talan's Pad",
       "parent": 15,
       "type": "map",
-      "file": "Map0007.json"
+      "file": "maps/Map0007.json"
     },
     {
       "id": 8,
       "name": "Lashe City - 34,35",
       "parent": 15,
       "type": "map",
-      "file": "Map0008.json"
+      "file": "maps/Map0008.json"
     },
     {
       "id": 9,
       "name": "Lashe City 33,36",
       "parent": 15,
       "type": "map",
-      "file": "Map0009.json"
+      "file": "maps/Map0009.json"
     },
     {
       "id": 10,
       "name": "Lashe City Interiors",
       "parent": 15,
       "type": "map",
-      "file": "Map0010.json"
+      "file": "maps/Map0010.json"
     },
     {
       "id": 11,
       "name": "Lazer Teeth HQ",
       "parent": 9,
       "type": "map",
-      "file": "Map0011.json"
+      "file": "maps/Map0011.json"
     },
     {
       "id": 12,
       "name": "Trash Dump 004",
       "parent": 8,
       "type": "map",
-      "file": "Map0012.json"
+      "file": "maps/Map0012.json"
     },
     {
       "id": 13,
       "name": "Hover-Tram",
       "parent": 9,
       "type": "map",
-      "file": "Map0013.json"
+      "file": "maps/Map0013.json"
     },
     {
       "id": 14,
       "name": "NV Get Talan to Work",
       "parent": 15,
       "type": "map",
-      "file": "Map0014.json"
+      "file": "maps/Map0014.json"
     },
     {
       "id": 15,
       "name": "Lashe City",
       "parent": 0,
       "type": "map",
-      "file": "Map0015.json"
+      "file": "maps/Map0015.json"
     },
     {
       "id": 16,
       "name": "Running To Work Scene",
       "parent": 15,
       "type": "map",
-      "file": "Map0016.json"
+      "file": "maps/Map0016.json"
     },
     {
       "id": 17,
       "name": "Delcentric Factory",
       "parent": 15,
       "type": "map",
-      "file": "Map0017.json"
+      "file": "maps/Map0017.json"
     },
     {
       "id": 18,
       "name": "Auditorium",
       "parent": 17,
       "type": "map",
-      "file": "Map0018.json"
+      "file": "maps/Map0018.json"
     },
     {
       "id": 19,
       "name": "Talan and the Director",
       "parent": 17,
       "type": "map",
-      "file": "Map0019.json"
+      "file": "maps/Map0019.json"
     },
     {
       "id": 20,
       "name": "Sector 30 Back Alleys",
       "parent": 15,
       "type": "map",
-      "file": "Map0020.json"
+      "file": "maps/Map0020.json"
     },
     {
       "id": 21,
       "name": "Rat Tracks B1",
       "parent": 22,
       "type": "map",
-      "file": "Map0021.json"
+      "file": "maps/Map0021.json"
     },
     {
       "id": 22,
       "name": "The Rat Tracks",
       "parent": 15,
       "type": "map",
-      "file": "Map0022.json"
+      "file": "maps/Map0022.json"
     },
     {
       "id": 23,
       "name": "Beggar's Hideout",
       "parent": 21,
       "type": "map",
-      "file": "Map0023.json"
+      "file": "maps/Map0023.json"
     },
     {
       "id": 24,
@@ -184,7 +184,7 @@
       "name": "Rat Tracks B2",
       "parent": 22,
       "type": "map",
-      "file": "Map0026.json"
+      "file": "maps/Map0026.json"
     },
     {
       "id": 27,
@@ -198,21 +198,21 @@
       "name": "Sector 27 Back Alleys",
       "parent": 15,
       "type": "map",
-      "file": "Map0028.json"
+      "file": "maps/Map0028.json"
     },
     {
       "id": 29,
       "name": "Sector 27 Item Shop",
       "parent": 28,
       "type": "map",
-      "file": "Map0029.json"
+      "file": "maps/Map0029.json"
     },
     {
       "id": 30,
       "name": "Sector 27 Workshop",
       "parent": 28,
       "type": "map",
-      "file": "Map0030.json"
+      "file": "maps/Map0030.json"
     },
     {
       "id": 31,
@@ -226,21 +226,21 @@
       "name": "Sector 27 Warehouse",
       "parent": 15,
       "type": "map",
-      "file": "Map0032.json"
+      "file": "maps/Map0032.json"
     },
     {
       "id": 33,
       "name": "Escape From 27 Scene",
       "parent": 32,
       "type": "map",
-      "file": "Map0033.json"
+      "file": "maps/Map0033.json"
     },
     {
       "id": 34,
       "name": "AfterGettingCarCutscene",
       "parent": 15,
       "type": "map",
-      "file": "Map0034.json"
+      "file": "maps/Map0034.json"
     },
     {
       "id": 35,
@@ -254,1008 +254,1008 @@
       "name": "LasheCityVehicle",
       "parent": 34,
       "type": "map",
-      "file": "Map0036.json"
+      "file": "maps/Map0036.json"
     },
     {
       "id": 37,
       "name": "Sector 35 With Car",
       "parent": 15,
       "type": "map",
-      "file": "Map0037.json"
+      "file": "maps/Map0037.json"
     },
     {
       "id": 38,
       "name": "Sector 34 With Car",
       "parent": 15,
       "type": "map",
-      "file": "Map0038.json"
+      "file": "maps/Map0038.json"
     },
     {
       "id": 39,
       "name": "Talan's Pad With Car",
       "parent": 37,
       "type": "map",
-      "file": "Map0039.json"
+      "file": "maps/Map0039.json"
     },
     {
       "id": 40,
       "name": "Boss Wick's Den",
       "parent": 37,
       "type": "map",
-      "file": "Map0040.json"
+      "file": "maps/Map0040.json"
     },
     {
       "id": 41,
       "name": "ScreenToneAdjuster",
       "parent": 37,
       "type": "map",
-      "file": "Map0041.json"
+      "file": "maps/Map0041.json"
     },
     {
       "id": 42,
       "name": "The Vidcasts (Factory)",
       "parent": 37,
       "type": "map",
-      "file": "Map0042.json"
+      "file": "maps/Map0042.json"
     },
     {
       "id": 43,
       "name": "Vidcasts (Office)",
       "parent": 42,
       "type": "map",
-      "file": "Map0043.json"
+      "file": "maps/Map0043.json"
     },
     {
       "id": 44,
       "name": "Talan Stats",
       "parent": 42,
       "type": "map",
-      "file": "Map0044.json"
+      "file": "maps/Map0044.json"
     },
     {
       "id": 45,
       "name": "Security Footage",
       "parent": 42,
       "type": "map",
-      "file": "Map0045.json"
+      "file": "maps/Map0045.json"
     },
     {
       "id": 46,
       "name": "Security Footage 2",
       "parent": 45,
       "type": "map",
-      "file": "Map0046.json"
+      "file": "maps/Map0046.json"
     },
     {
       "id": 47,
       "name": "Sector 33 With Car",
       "parent": 15,
       "type": "map",
-      "file": "Map0047.json"
+      "file": "maps/Map0047.json"
     },
     {
       "id": 48,
       "name": "Sector 32 With Car",
       "parent": 15,
       "type": "map",
-      "file": "Map0048.json"
+      "file": "maps/Map0048.json"
     },
     {
       "id": 49,
       "name": "Escape Lashe City - LV1",
       "parent": 55,
       "type": "map",
-      "file": "Map0049.json"
+      "file": "maps/Map0049.json"
     },
     {
       "id": 50,
       "name": "ResetRace",
       "parent": 55,
       "type": "map",
-      "file": "Map0050.json"
+      "file": "maps/Map0050.json"
     },
     {
       "id": 51,
       "name": "Jumping the Bridge",
       "parent": 55,
       "type": "map",
-      "file": "Map0051.json"
+      "file": "maps/Map0051.json"
     },
     {
       "id": 52,
       "name": "Escape Lashe City - LV2",
       "parent": 55,
       "type": "map",
-      "file": "Map0052.json"
+      "file": "maps/Map0052.json"
     },
     {
       "id": 53,
       "name": "RaceFinished",
       "parent": 55,
       "type": "map",
-      "file": "Map0053.json"
+      "file": "maps/Map0053.json"
     },
     {
       "id": 54,
       "name": "Escape Lashe City - LV3",
       "parent": 55,
       "type": "map",
-      "file": "Map0054.json"
+      "file": "maps/Map0054.json"
     },
     {
       "id": 55,
       "name": "Escape From Lashe City",
       "parent": 15,
       "type": "map",
-      "file": "Map0055.json"
+      "file": "maps/Map0055.json"
     },
     {
       "id": 56,
       "name": "Sector 33 Discount Items",
       "parent": 47,
       "type": "map",
-      "file": "Map0056.json"
+      "file": "maps/Map0056.json"
     },
     {
       "id": 57,
       "name": "Stash's Emporium",
       "parent": 48,
       "type": "map",
-      "file": "Map0057.json"
+      "file": "maps/Map0057.json"
     },
     {
       "id": 58,
       "name": "Aura Tutorial",
       "parent": 161,
       "type": "map",
-      "file": "Map0058.json"
+      "file": "maps/Map0058.json"
     },
     {
       "id": 59,
       "name": "Outside Recycling Plant",
       "parent": 48,
       "type": "map",
-      "file": "Map0059.json"
+      "file": "maps/Map0059.json"
     },
     {
       "id": 60,
       "name": "Floor 1",
       "parent": 59,
       "type": "map",
-      "file": "Map0060.json"
+      "file": "maps/Map0060.json"
     },
     {
       "id": 61,
       "name": "Floor 0",
       "parent": 59,
       "type": "map",
-      "file": "Map0061.json"
+      "file": "maps/Map0061.json"
     },
     {
       "id": 62,
       "name": "Floor 2",
       "parent": 59,
       "type": "map",
-      "file": "Map0062.json"
+      "file": "maps/Map0062.json"
     },
     {
       "id": 63,
       "name": "Tunnel Into Lashe City",
       "parent": 48,
       "type": "map",
-      "file": "Map0063.json"
+      "file": "maps/Map0063.json"
     },
     {
       "id": 64,
       "name": "Leaving Lashe City Scene",
       "parent": 15,
       "type": "map",
-      "file": "Map0064.json"
+      "file": "maps/Map0064.json"
     },
     {
       "id": 65,
       "name": "Northern World",
       "parent": 0,
       "type": "map",
-      "file": "Map0065.json"
+      "file": "maps/Map0065.json"
     },
     {
       "id": 66,
       "name": "Lashe Area",
       "parent": 65,
       "type": "map",
-      "file": "Map0066.json"
+      "file": "maps/Map0066.json"
     },
     {
       "id": 67,
       "name": "Yun Town",
       "parent": 66,
       "type": "map",
-      "file": "Map0067.json"
+      "file": "maps/Map0067.json"
     },
     {
       "id": 68,
       "name": "Drust Camp",
       "parent": 66,
       "type": "map",
-      "file": "Map0068.json"
+      "file": "maps/Map0068.json"
     },
     {
       "id": 69,
       "name": "Sorbe Village",
       "parent": 66,
       "type": "map",
-      "file": "Map0069.json"
+      "file": "maps/Map0069.json"
     },
     {
       "id": 70,
       "name": "Green Cuisine Deli",
       "parent": 67,
       "type": "map",
-      "file": "Map0070.json"
+      "file": "maps/Map0070.json"
     },
     {
       "id": 71,
       "name": "Armor Shop",
       "parent": 67,
       "type": "map",
-      "file": "Map0071.json"
+      "file": "maps/Map0071.json"
     },
     {
       "id": 72,
       "name": "Yun Inn",
       "parent": 67,
       "type": "map",
-      "file": "Map0072.json"
+      "file": "maps/Map0072.json"
     },
     {
       "id": 73,
       "name": "Yun Mayor's House",
       "parent": 67,
       "type": "map",
-      "file": "Map0073.json"
+      "file": "maps/Map0073.json"
     },
     {
       "id": 74,
       "name": "Tasgarde Military Base",
       "parent": 66,
       "type": "map",
-      "file": "Map0074.json"
+      "file": "maps/Map0074.json"
     },
     {
       "id": 75,
       "name": "Battle Rink Ladder",
       "parent": 199,
       "type": "map",
-      "file": "Map0075.json"
+      "file": "maps/Map0075.json"
     },
     {
       "id": 76,
       "name": "Sorbe Mountain",
       "parent": 69,
       "type": "map",
-      "file": "Map0076.json"
+      "file": "maps/Map0076.json"
     },
     {
       "id": 77,
       "name": "Health Spa",
       "parent": 69,
       "type": "map",
-      "file": "Map0077.json"
+      "file": "maps/Map0077.json"
     },
     {
       "id": 78,
       "name": "Sorbe Inn",
       "parent": 69,
       "type": "map",
-      "file": "Map0078.json"
+      "file": "maps/Map0078.json"
     },
     {
       "id": 79,
       "name": "Weapon Shop",
       "parent": 69,
       "type": "map",
-      "file": "Map0079.json"
+      "file": "maps/Map0079.json"
     },
     {
       "id": 80,
       "name": "Sorbe Mayor's House",
       "parent": 69,
       "type": "map",
-      "file": "Map0080.json"
+      "file": "maps/Map0080.json"
     },
     {
       "id": 81,
       "name": "Dr. Vago's House",
       "parent": 69,
       "type": "map",
-      "file": "Map0081.json"
+      "file": "maps/Map0081.json"
     },
     {
       "id": 82,
       "name": "Director'sOfficeNextStep",
       "parent": 66,
       "type": "map",
-      "file": "Map0082.json"
+      "file": "maps/Map0082.json"
     },
     {
       "id": 83,
       "name": "Dalia at the Factory",
       "parent": 15,
       "type": "map",
-      "file": "Map0083.json"
+      "file": "maps/Map0083.json"
     },
     {
       "id": 84,
       "name": "OutsideFactory",
       "parent": 83,
       "type": "map",
-      "file": "Map0084.json"
+      "file": "maps/Map0084.json"
     },
     {
       "id": 85,
       "name": "Tasgarde Lab",
       "parent": 74,
       "type": "map",
-      "file": "Map0085.json"
+      "file": "maps/Map0085.json"
     },
     {
       "id": 86,
       "name": "Eisen's Story",
       "parent": 66,
       "type": "map",
-      "file": "Map0086.json"
+      "file": "maps/Map0086.json"
     },
     {
       "id": 87,
       "name": "Director's Proposal",
       "parent": 86,
       "type": "map",
-      "file": "Map0087.json"
+      "file": "maps/Map0087.json"
     },
     {
       "id": 88,
       "name": "Construction",
       "parent": 86,
       "type": "map",
-      "file": "Map0088.json"
+      "file": "maps/Map0088.json"
     },
     {
       "id": 89,
       "name": "Recoding",
       "parent": 86,
       "type": "map",
-      "file": "Map0089.json"
+      "file": "maps/Map0089.json"
     },
     {
       "id": 90,
       "name": "Consolidation Speech",
       "parent": 86,
       "type": "map",
-      "file": "Map0090.json"
+      "file": "maps/Map0090.json"
     },
     {
       "id": 91,
       "name": "Advocate Online",
       "parent": 86,
       "type": "map",
-      "file": "Map0091.json"
+      "file": "maps/Map0091.json"
     },
     {
       "id": 92,
       "name": "Surl Launching Missiles",
       "parent": 86,
       "type": "map",
-      "file": "Map0092.json"
+      "file": "maps/Map0092.json"
     },
     {
       "id": 93,
       "name": "TasgardeIncomingMissiles",
       "parent": 86,
       "type": "map",
-      "file": "Map0093.json"
+      "file": "maps/Map0093.json"
     },
     {
       "id": 94,
       "name": "Missiles On Their Way1",
       "parent": 86,
       "type": "map",
-      "file": "Map0094.json"
+      "file": "maps/Map0094.json"
     },
     {
       "id": 95,
       "name": "Into The Machine",
       "parent": 86,
       "type": "map",
-      "file": "Map0095.json"
+      "file": "maps/Map0095.json"
     },
     {
       "id": 96,
       "name": "Backup",
       "parent": 19,
       "type": "map",
-      "file": "Map0096.json"
+      "file": "maps/Map0096.json"
     },
     {
       "id": 97,
       "name": "Backup",
       "parent": 34,
       "type": "map",
-      "file": "Map0097.json"
+      "file": "maps/Map0097.json"
     },
     {
       "id": 98,
       "name": "Backup",
       "parent": 45,
       "type": "map",
-      "file": "Map0098.json"
+      "file": "maps/Map0098.json"
     },
     {
       "id": 99,
       "name": "Missiles On Their Way2",
       "parent": 94,
       "type": "map",
-      "file": "Map0099.json"
+      "file": "maps/Map0099.json"
     },
     {
       "id": 100,
       "name": "General's Scheme",
       "parent": 95,
       "type": "map",
-      "file": "Map0100.json"
+      "file": "maps/Map0100.json"
     },
     {
       "id": 101,
       "name": "Lab After Eisen's Story",
       "parent": 74,
       "type": "map",
-      "file": "Map0101.json"
+      "file": "maps/Map0101.json"
     },
     {
       "id": 102,
       "name": "Eisen's Sim - ThroneRoom",
       "parent": 74,
       "type": "map",
-      "file": "Map0102.json"
+      "file": "maps/Map0102.json"
     },
     {
       "id": 103,
       "name": "Drust Mines",
       "parent": 68,
       "type": "map",
-      "file": "Map0103.json"
+      "file": "maps/Map0103.json"
     },
     {
       "id": 104,
       "name": "Overlook Memory",
       "parent": 219,
       "type": "map",
-      "file": "Map0104.json"
+      "file": "maps/Map0104.json"
     },
     {
       "id": 105,
       "name": "Mountain Path",
       "parent": 66,
       "type": "map",
-      "file": "Map0105.json"
+      "file": "maps/Map0105.json"
     },
     {
       "id": 106,
       "name": "TalanGetsAmnesty",
       "parent": 108,
       "type": "map",
-      "file": "Map0106.json"
+      "file": "maps/Map0106.json"
     },
     {
       "id": 107,
       "name": "TunnelToParadise",
       "parent": 108,
       "type": "map",
-      "file": "Map0107.json"
+      "file": "maps/Map0107.json"
     },
     {
       "id": 108,
       "name": "Distant Paradise",
       "parent": 0,
       "type": "map",
-      "file": "Map0108.json"
+      "file": "maps/Map0108.json"
     },
     {
       "id": 109,
       "name": "Paradise Overlook",
       "parent": 108,
       "type": "map",
-      "file": "Map0109.json"
+      "file": "maps/Map0109.json"
     },
     {
       "id": 110,
       "name": "Council Chambers",
       "parent": 112,
       "type": "map",
-      "file": "Map0110.json"
+      "file": "maps/Map0110.json"
     },
     {
       "id": 111,
       "name": "CustomMenuTest",
       "parent": 1,
       "type": "map",
-      "file": "Map0111.json"
+      "file": "maps/Map0111.json"
     },
     {
       "id": 112,
       "name": "ParadiseInteriors",
       "parent": 108,
       "type": "map",
-      "file": "Map0112.json"
+      "file": "maps/Map0112.json"
     },
     {
       "id": 113,
       "name": "Emily's House",
       "parent": 112,
       "type": "map",
-      "file": "Map0113.json"
+      "file": "maps/Map0113.json"
     },
     {
       "id": 114,
       "name": "Talan's House",
       "parent": 112,
       "type": "map",
-      "file": "Map0114.json"
+      "file": "maps/Map0114.json"
     },
     {
       "id": 115,
       "name": "House1",
       "parent": 112,
       "type": "map",
-      "file": "Map0115.json"
+      "file": "maps/Map0115.json"
     },
     {
       "id": 116,
       "name": "House2",
       "parent": 112,
       "type": "map",
-      "file": "Map0116.json"
+      "file": "maps/Map0116.json"
     },
     {
       "id": 117,
       "name": "House3",
       "parent": 112,
       "type": "map",
-      "file": "Map0117.json"
+      "file": "maps/Map0117.json"
     },
     {
       "id": 118,
       "name": "House4",
       "parent": 112,
       "type": "map",
-      "file": "Map0118.json"
+      "file": "maps/Map0118.json"
     },
     {
       "id": 119,
       "name": "Weapons and Armor",
       "parent": 112,
       "type": "map",
-      "file": "Map0119.json"
+      "file": "maps/Map0119.json"
     },
     {
       "id": 120,
       "name": "ConstructionTent",
       "parent": 112,
       "type": "map",
-      "file": "Map0120.json"
+      "file": "maps/Map0120.json"
     },
     {
       "id": 121,
       "name": "Bandit Ambush",
       "parent": 158,
       "type": "map",
-      "file": "Map0121.json"
+      "file": "maps/Map0121.json"
     },
     {
       "id": 122,
       "name": "DreamSequence",
       "parent": 109,
       "type": "map",
-      "file": "Map0122.json"
+      "file": "maps/Map0122.json"
     },
     {
       "id": 123,
       "name": "Talan'sDream1",
       "parent": 109,
       "type": "map",
-      "file": "Map0123.json"
+      "file": "maps/Map0123.json"
     },
     {
       "id": 124,
       "name": "Talan'sDream2",
       "parent": 109,
       "type": "map",
-      "file": "Map0124.json"
+      "file": "maps/Map0124.json"
     },
     {
       "id": 125,
       "name": "AG7 in the Rain",
       "parent": 114,
       "type": "map",
-      "file": "Map0125.json"
+      "file": "maps/Map0125.json"
     },
     {
       "id": 126,
       "name": "OverlookAtDay",
       "parent": 109,
       "type": "map",
-      "file": "Map0126.json"
+      "file": "maps/Map0126.json"
     },
     {
       "id": 127,
       "name": "ParadiseFarmland",
       "parent": 108,
       "type": "map",
-      "file": "Map0127.json"
+      "file": "maps/Map0127.json"
     },
     {
       "id": 128,
       "name": "Grove",
       "parent": 127,
       "type": "map",
-      "file": "Map0128.json"
+      "file": "maps/Map0128.json"
     },
     {
       "id": 129,
       "name": "Theatre Ruins",
       "parent": 158,
       "type": "map",
-      "file": "Map0129.json"
+      "file": "maps/Map0129.json"
     },
     {
       "id": 130,
       "name": "Ground Floor",
       "parent": 129,
       "type": "map",
-      "file": "Map0130.json"
+      "file": "maps/Map0130.json"
     },
     {
       "id": 131,
       "name": "Floor Two",
       "parent": 129,
       "type": "map",
-      "file": "Map0131.json"
+      "file": "maps/Map0131.json"
     },
     {
       "id": 132,
       "name": "Stage",
       "parent": 129,
       "type": "map",
-      "file": "Map0132.json"
+      "file": "maps/Map0132.json"
     },
     {
       "id": 133,
       "name": "Room1",
       "parent": 130,
       "type": "map",
-      "file": "Map0133.json"
+      "file": "maps/Map0133.json"
     },
     {
       "id": 134,
       "name": "Room2",
       "parent": 130,
       "type": "map",
-      "file": "Map0134.json"
+      "file": "maps/Map0134.json"
     },
     {
       "id": 135,
       "name": "Room3",
       "parent": 130,
       "type": "map",
-      "file": "Map0135.json"
+      "file": "maps/Map0135.json"
     },
     {
       "id": 136,
       "name": "Room4",
       "parent": 130,
       "type": "map",
-      "file": "Map0136.json"
+      "file": "maps/Map0136.json"
     },
     {
       "id": 137,
       "name": "Room5",
       "parent": 131,
       "type": "map",
-      "file": "Map0137.json"
+      "file": "maps/Map0137.json"
     },
     {
       "id": 138,
       "name": "Room6",
       "parent": 131,
       "type": "map",
-      "file": "Map0138.json"
+      "file": "maps/Map0138.json"
     },
     {
       "id": 139,
       "name": "Room7",
       "parent": 131,
       "type": "map",
-      "file": "Map0139.json"
+      "file": "maps/Map0139.json"
     },
     {
       "id": 140,
       "name": "Room8",
       "parent": 131,
       "type": "map",
-      "file": "Map0140.json"
+      "file": "maps/Map0140.json"
     },
     {
       "id": 141,
       "name": "Storage Room",
       "parent": 129,
       "type": "map",
-      "file": "Map0141.json"
+      "file": "maps/Map0141.json"
     },
     {
       "id": 142,
       "name": "SecondMonthRehearsal",
       "parent": 129,
       "type": "map",
-      "file": "Map0142.json"
+      "file": "maps/Map0142.json"
     },
     {
       "id": 143,
       "name": "Garagaraboren",
       "parent": 142,
       "type": "map",
-      "file": "Map0143.json"
+      "file": "maps/Map0143.json"
     },
     {
       "id": 144,
       "name": "Shop In Garagaraboren",
       "parent": 142,
       "type": "map",
-      "file": "Map0144.json"
+      "file": "maps/Map0144.json"
     },
     {
       "id": 145,
       "name": "The Stage - fixed",
       "parent": 129,
       "type": "map",
-      "file": "Map0145.json"
+      "file": "maps/Map0145.json"
     },
     {
       "id": 146,
       "name": "Entrance - fixed",
       "parent": 129,
       "type": "map",
-      "file": "Map0146.json"
+      "file": "maps/Map0146.json"
     },
     {
       "id": 147,
       "name": "AgencyComesToParadise",
       "parent": 108,
       "type": "map",
-      "file": "Map0147.json"
+      "file": "maps/Map0147.json"
     },
     {
       "id": 148,
       "name": "Paradise Burning",
       "parent": 147,
       "type": "map",
-      "file": "Map0148.json"
+      "file": "maps/Map0148.json"
     },
     {
       "id": 149,
       "name": "DefendersOffDuty",
       "parent": 147,
       "type": "map",
-      "file": "Map0149.json"
+      "file": "maps/Map0149.json"
     },
     {
       "id": 150,
       "name": "Rock Quarry",
       "parent": 158,
       "type": "map",
-      "file": "Map0150.json"
+      "file": "maps/Map0150.json"
     },
     {
       "id": 151,
       "name": "Inside The Rock Quarry",
       "parent": 150,
       "type": "map",
-      "file": "Map0151.json"
+      "file": "maps/Map0151.json"
     },
     {
       "id": 152,
       "name": "Farmland Sheds",
       "parent": 127,
       "type": "map",
-      "file": "Map0152.json"
+      "file": "maps/Map0152.json"
     },
     {
       "id": 153,
       "name": "Shed1",
       "parent": 152,
       "type": "map",
-      "file": "Map0153.json"
+      "file": "maps/Map0153.json"
     },
     {
       "id": 154,
       "name": "Shed2",
       "parent": 152,
       "type": "map",
-      "file": "Map0154.json"
+      "file": "maps/Map0154.json"
     },
     {
       "id": 155,
       "name": "Shed3",
       "parent": 152,
       "type": "map",
-      "file": "Map0155.json"
+      "file": "maps/Map0155.json"
     },
     {
       "id": 156,
       "name": "Shed4",
       "parent": 152,
       "type": "map",
-      "file": "Map0156.json"
+      "file": "maps/Map0156.json"
     },
     {
       "id": 157,
       "name": "Bandit Raid",
       "parent": 127,
       "type": "map",
-      "file": "Map0157.json"
+      "file": "maps/Map0157.json"
     },
     {
       "id": 158,
       "name": "Paradise Area",
       "parent": 65,
       "type": "map",
-      "file": "Map0158.json"
+      "file": "maps/Map0158.json"
     },
     {
       "id": 159,
       "name": "Ill Marshes",
       "parent": 158,
       "type": "map",
-      "file": "Map0159.json"
+      "file": "maps/Map0159.json"
     },
     {
       "id": 160,
       "name": "Fighting Bandits in Farm",
       "parent": 127,
       "type": "map",
-      "file": "Map0160.json"
+      "file": "maps/Map0160.json"
     },
     {
       "id": 161,
       "name": "Tutorials",
       "parent": 1,
       "type": "map",
-      "file": "Map0161.json"
+      "file": "maps/Map0161.json"
     },
     {
       "id": 162,
       "name": "Arden Tutorial",
       "parent": 161,
       "type": "map",
-      "file": "Map0162.json"
+      "file": "maps/Map0162.json"
     },
     {
       "id": 163,
       "name": "Saldra Tutorial",
       "parent": 161,
       "type": "map",
-      "file": "Map0163.json"
+      "file": "maps/Map0163.json"
     },
     {
       "id": 164,
       "name": "AG7-17 Tutorial",
       "parent": 161,
       "type": "map",
-      "file": "Map0164.json"
+      "file": "maps/Map0164.json"
     },
     {
       "id": 165,
       "name": "Bandit Hideout Inside",
       "parent": 121,
       "type": "map",
-      "file": "Map0165.json"
+      "file": "maps/Map0165.json"
     },
     {
       "id": 166,
       "name": "The Lair",
       "parent": 165,
       "type": "map",
-      "file": "Map0166.json"
+      "file": "maps/Map0166.json"
     },
     {
       "id": 167,
       "name": "Outside the Bandit HQ",
       "parent": 121,
       "type": "map",
-      "file": "Map0167.json"
+      "file": "maps/Map0167.json"
     },
     {
       "id": 168,
       "name": "The Line Narrows",
       "parent": 108,
       "type": "map",
-      "file": "Map0168.json"
+      "file": "maps/Map0168.json"
     },
     {
       "id": 169,
       "name": "Eisen's Lab",
       "parent": 168,
       "type": "map",
-      "file": "Map0169.json"
+      "file": "maps/Map0169.json"
     },
     {
       "id": 170,
       "name": "Vago Taken Away",
       "parent": 168,
       "type": "map",
-      "file": "Map0170.json"
+      "file": "maps/Map0170.json"
     },
     {
       "id": 171,
       "name": "The Tomb",
       "parent": 168,
       "type": "map",
-      "file": "Map0171.json"
+      "file": "maps/Map0171.json"
     },
     {
       "id": 172,
       "name": "Freeing Dalia",
       "parent": 168,
       "type": "map",
-      "file": "Map0172.json"
+      "file": "maps/Map0172.json"
     },
     {
       "id": 173,
       "name": "Leaving the Tomb",
       "parent": 168,
       "type": "map",
-      "file": "Map0173.json"
+      "file": "maps/Map0173.json"
     },
     {
       "id": 174,
       "name": "Pierson and Kersh",
       "parent": 168,
       "type": "map",
-      "file": "Map0174.json"
+      "file": "maps/Map0174.json"
     },
     {
       "id": 175,
       "name": "Mountain Flashback",
       "parent": 110,
       "type": "map",
-      "file": "Map0175.json"
+      "file": "maps/Map0175.json"
     },
     {
       "id": 176,
       "name": "Overlook",
       "parent": 110,
       "type": "map",
-      "file": "Map0176.json"
+      "file": "maps/Map0176.json"
     },
     {
       "id": 177,
       "name": "Paradise Found ;)",
       "parent": 110,
       "type": "map",
-      "file": "Map0177.json"
+      "file": "maps/Map0177.json"
     },
     {
       "id": 178,
       "name": "Bottom of the Pond",
       "parent": 159,
       "type": "map",
-      "file": "Map0178.json"
+      "file": "maps/Map0178.json"
     },
     {
       "id": 179,
       "name": "Murgator Cave",
       "parent": 159,
       "type": "map",
-      "file": "Map0179.json"
+      "file": "maps/Map0179.json"
     },
     {
       "id": 180,
@@ -1325,7 +1325,7 @@
       "name": "ParadiseTunnel",
       "parent": 220,
       "type": "map",
-      "file": "Map0189.json"
+      "file": "maps/Map0189.json"
     },
     {
       "id": 190,
@@ -1388,1036 +1388,1036 @@
       "name": "BehindMayor'sHouse",
       "parent": 69,
       "type": "map",
-      "file": "Map0198.json"
+      "file": "maps/Map0198.json"
     },
     {
       "id": 199,
       "name": "Battle Rink",
       "parent": 68,
       "type": "map",
-      "file": "Map0199.json"
+      "file": "maps/Map0199.json"
     },
     {
       "id": 200,
       "name": "Drust Tavern",
       "parent": 68,
       "type": "map",
-      "file": "Map0200.json"
+      "file": "maps/Map0200.json"
     },
     {
       "id": 201,
       "name": "Net's Droid Emporium",
       "parent": 68,
       "type": "map",
-      "file": "Map0201.json"
+      "file": "maps/Map0201.json"
     },
     {
       "id": 202,
       "name": "The Flight From Paradise",
       "parent": 108,
       "type": "map",
-      "file": "Map0202.json"
+      "file": "maps/Map0202.json"
     },
     {
       "id": 203,
       "name": "Up The Overlook",
       "parent": 202,
       "type": "map",
-      "file": "Map0203.json"
+      "file": "maps/Map0203.json"
     },
     {
       "id": 204,
       "name": "Splashdown",
       "parent": 203,
       "type": "map",
-      "file": "Map0204.json"
+      "file": "maps/Map0204.json"
     },
     {
       "id": 205,
       "name": "Beach Scene",
       "parent": 202,
       "type": "map",
-      "file": "Map0205.json"
+      "file": "maps/Map0205.json"
     },
     {
       "id": 206,
       "name": "Sandy Cave",
       "parent": 205,
       "type": "map",
-      "file": "Map0206.json"
+      "file": "maps/Map0206.json"
     },
     {
       "id": 207,
       "name": "Memnosyne's Adobe",
       "parent": 210,
       "type": "map",
-      "file": "Map0207.json"
+      "file": "maps/Map0207.json"
     },
     {
       "id": 208,
       "name": "Inside Memnosyne's Adobe",
       "parent": 207,
       "type": "map",
-      "file": "Map0208.json"
+      "file": "maps/Map0208.json"
     },
     {
       "id": 209,
       "name": "Max Powertrain's Story",
       "parent": 205,
       "type": "map",
-      "file": "Map0209.json"
+      "file": "maps/Map0209.json"
     },
     {
       "id": 210,
       "name": "The Kingdom of Surl",
       "parent": 0,
       "type": "map",
-      "file": "Map0210.json"
+      "file": "maps/Map0210.json"
     },
     {
       "id": 211,
       "name": "Memories of Surl",
       "parent": 207,
       "type": "map",
-      "file": "Map0211.json"
+      "file": "maps/Map0211.json"
     },
     {
       "id": 212,
       "name": "Phone Call",
       "parent": 211,
       "type": "map",
-      "file": "Map0212.json"
+      "file": "maps/Map0212.json"
     },
     {
       "id": 213,
       "name": "Boy Running",
       "parent": 211,
       "type": "map",
-      "file": "Map0213.json"
+      "file": "maps/Map0213.json"
     },
     {
       "id": 214,
       "name": "Surl Graveyard",
       "parent": 211,
       "type": "map",
-      "file": "Map0214.json"
+      "file": "maps/Map0214.json"
     },
     {
       "id": 215,
       "name": "Agency Tanks - Before",
       "parent": 211,
       "type": "map",
-      "file": "Map0215.json"
+      "file": "maps/Map0215.json"
     },
     {
       "id": 216,
       "name": "Agency Tanks - After",
       "parent": 211,
       "type": "map",
-      "file": "Map0216.json"
+      "file": "maps/Map0216.json"
     },
     {
       "id": 217,
       "name": "Kersh's Mind",
       "parent": 211,
       "type": "map",
-      "file": "Map0217.json"
+      "file": "maps/Map0217.json"
     },
     {
       "id": 218,
       "name": "Talan and Memnosyne",
       "parent": 207,
       "type": "map",
-      "file": "Map0218.json"
+      "file": "maps/Map0218.json"
     },
     {
       "id": 219,
       "name": "Emily and Memnosyne",
       "parent": 207,
       "type": "map",
-      "file": "Map0219.json"
+      "file": "maps/Map0219.json"
     },
     {
       "id": 220,
       "name": "Lerle and Memnosyne",
       "parent": 207,
       "type": "map",
-      "file": "Map0220.json"
+      "file": "maps/Map0220.json"
     },
     {
       "id": 221,
       "name": "Radin and Memnosyne",
       "parent": 207,
       "type": "map",
-      "file": "Map0221.json"
+      "file": "maps/Map0221.json"
     },
     {
       "id": 222,
       "name": "Sern and Memnosyne",
       "parent": 207,
       "type": "map",
-      "file": "Map0222.json"
+      "file": "maps/Map0222.json"
     },
     {
       "id": 223,
       "name": "Paradise Aflame",
       "parent": 218,
       "type": "map",
-      "file": "Map0223.json"
+      "file": "maps/Map0223.json"
     },
     {
       "id": 224,
       "name": "Overlook Memory",
       "parent": 218,
       "type": "map",
-      "file": "Map0224.json"
+      "file": "maps/Map0224.json"
     },
     {
       "id": 225,
       "name": "Paradise Tunnel Memory",
       "parent": 218,
       "type": "map",
-      "file": "Map0225.json"
+      "file": "maps/Map0225.json"
     },
     {
       "id": 226,
       "name": "Sorbe Memory",
       "parent": 218,
       "type": "map",
-      "file": "Map0226.json"
+      "file": "maps/Map0226.json"
     },
     {
       "id": 227,
       "name": "Leaving Lashe Memory",
       "parent": 218,
       "type": "map",
-      "file": "Map0227.json"
+      "file": "maps/Map0227.json"
     },
     {
       "id": 228,
       "name": "Assassination Memory",
       "parent": 218,
       "type": "map",
-      "file": "Map0228.json"
+      "file": "maps/Map0228.json"
     },
     {
       "id": 229,
       "name": "Work Memory",
       "parent": 218,
       "type": "map",
-      "file": "Map0229.json"
+      "file": "maps/Map0229.json"
     },
     {
       "id": 230,
       "name": "Apartment Memory",
       "parent": 218,
       "type": "map",
-      "file": "Map0230.json"
+      "file": "maps/Map0230.json"
     },
     {
       "id": 231,
       "name": "Childhood",
       "parent": 218,
       "type": "map",
-      "file": "Map0231.json"
+      "file": "maps/Map0231.json"
     },
     {
       "id": 232,
       "name": "Party Sleeping",
       "parent": 207,
       "type": "map",
-      "file": "Map0232.json"
+      "file": "maps/Map0232.json"
     },
     {
       "id": 233,
       "name": "Sloping Tunnel",
       "parent": 210,
       "type": "map",
-      "file": "Map0233.json"
+      "file": "maps/Map0233.json"
     },
     {
       "id": 234,
       "name": "Memnosyne's Story",
       "parent": 207,
       "type": "map",
-      "file": "Map0234.json"
+      "file": "maps/Map0234.json"
     },
     {
       "id": 235,
       "name": "Sloping Tunnel Entrance",
       "parent": 207,
       "type": "map",
-      "file": "Map0235.json"
+      "file": "maps/Map0235.json"
     },
     {
       "id": 236,
       "name": "Kersh On The Overlook",
       "parent": 203,
       "type": "map",
-      "file": "Map0236.json"
+      "file": "maps/Map0236.json"
     },
     {
       "id": 237,
       "name": "Humanoid's Lair",
       "parent": 233,
       "type": "map",
-      "file": "Map0237.json"
+      "file": "maps/Map0237.json"
     },
     {
       "id": 238,
       "name": "KershClimbingPath",
       "parent": 207,
       "type": "map",
-      "file": "Map0238.json"
+      "file": "maps/Map0238.json"
     },
     {
       "id": 239,
       "name": "Kersh and Little Sally",
       "parent": 211,
       "type": "map",
-      "file": "Map0239.json"
+      "file": "maps/Map0239.json"
     },
     {
       "id": 240,
       "name": "Emily As Child",
       "parent": 219,
       "type": "map",
-      "file": "Map0240.json"
+      "file": "maps/Map0240.json"
     },
     {
       "id": 241,
       "name": "Tram to Prima",
       "parent": 288,
       "type": "map",
-      "file": "Map0241.json"
+      "file": "maps/Map0241.json"
     },
     {
       "id": 242,
       "name": "Dorm Hallway",
       "parent": 222,
       "type": "map",
-      "file": "Map0242.json"
+      "file": "maps/Map0242.json"
     },
     {
       "id": 243,
       "name": "Emily Sick",
       "parent": 219,
       "type": "map",
-      "file": "Map0243.json"
+      "file": "maps/Map0243.json"
     },
     {
       "id": 244,
       "name": "Isabella's Dorm Room",
       "parent": 222,
       "type": "map",
-      "file": "Map0244.json"
+      "file": "maps/Map0244.json"
     },
     {
       "id": 245,
       "name": "Northern Surl Road",
       "parent": 210,
       "type": "map",
-      "file": "Map0245.json"
+      "file": "maps/Map0245.json"
     },
     {
       "id": 246,
       "name": "Northern Surl Camp",
       "parent": 210,
       "type": "map",
-      "file": "Map0246.json"
+      "file": "maps/Map0246.json"
     },
     {
       "id": 247,
       "name": "PathToMemnosyne",
       "parent": 210,
       "type": "map",
-      "file": "Map0247.json"
+      "file": "maps/Map0247.json"
     },
     {
       "id": 248,
       "name": "Lower Level Sandy",
       "parent": 206,
       "type": "map",
-      "file": "Map0248.json"
+      "file": "maps/Map0248.json"
     },
     {
       "id": 249,
       "name": "PathToParadiseRuins",
       "parent": 210,
       "type": "map",
-      "file": "Map0249.json"
+      "file": "maps/Map0249.json"
     },
     {
       "id": 250,
       "name": "Return to Paradise",
       "parent": 210,
       "type": "map",
-      "file": "Map0250.json"
+      "file": "maps/Map0250.json"
     },
     {
       "id": 251,
       "name": "Inside Storage",
       "parent": 250,
       "type": "map",
-      "file": "Map0251.json"
+      "file": "maps/Map0251.json"
     },
     {
       "id": 252,
       "name": "The Fate of Pierson",
       "parent": 250,
       "type": "map",
-      "file": "Map0252.json"
+      "file": "maps/Map0252.json"
     },
     {
       "id": 253,
       "name": "The Agency and Advocate",
       "parent": 0,
       "type": "map",
-      "file": "Map0253.json"
+      "file": "maps/Map0253.json"
     },
     {
       "id": 254,
       "name": "Emily Depths",
       "parent": 233,
       "type": "map",
-      "file": "Map0254.json"
+      "file": "maps/Map0254.json"
     },
     {
       "id": 255,
       "name": "Under the Bridge",
       "parent": 259,
       "type": "map",
-      "file": "Map0255.json"
+      "file": "maps/Map0255.json"
     },
     {
       "id": 256,
       "name": "Teaser Trailer",
       "parent": 1,
       "type": "map",
-      "file": "Map0256.json"
+      "file": "maps/Map0256.json"
     },
     {
       "id": 257,
       "name": "Surl Ruins 1",
       "parent": 210,
       "type": "map",
-      "file": "Map0257.json"
+      "file": "maps/Map0257.json"
     },
     {
       "id": 258,
       "name": "Surl Ruins 2",
       "parent": 210,
       "type": "map",
-      "file": "Map0258.json"
+      "file": "maps/Map0258.json"
     },
     {
       "id": 259,
       "name": "Northern Highway Bridge",
       "parent": 66,
       "type": "map",
-      "file": "Map0259.json"
+      "file": "maps/Map0259.json"
     },
     {
       "id": 260,
       "name": "Surl Highway",
       "parent": 210,
       "type": "map",
-      "file": "Map0260.json"
+      "file": "maps/Map0260.json"
     },
     {
       "id": 261,
       "name": "\"Refinery\"",
       "parent": 210,
       "type": "map",
-      "file": "Map0261.json"
+      "file": "maps/Map0261.json"
     },
     {
       "id": 262,
       "name": "Talan's Scenario Stairs",
       "parent": 263,
       "type": "map",
-      "file": "Map0262.json"
+      "file": "maps/Map0262.json"
     },
     {
       "id": 263,
       "name": "Talan's Scenario",
       "parent": 261,
       "type": "map",
-      "file": "Map0263.json"
+      "file": "maps/Map0263.json"
     },
     {
       "id": 264,
       "name": "Surl Ruins 1 at Night",
       "parent": 257,
       "type": "map",
-      "file": "Map0264.json"
+      "file": "maps/Map0264.json"
     },
     {
       "id": 265,
       "name": "Kersh Tampering",
       "parent": 264,
       "type": "map",
-      "file": "Map0265.json"
+      "file": "maps/Map0265.json"
     },
     {
       "id": 266,
       "name": "Kills Guards",
       "parent": 264,
       "type": "map",
-      "file": "Map0266.json"
+      "file": "maps/Map0266.json"
     },
     {
       "id": 267,
       "name": "Kersh and the Droid Army",
       "parent": 264,
       "type": "map",
-      "file": "Map0267.json"
+      "file": "maps/Map0267.json"
     },
     {
       "id": 268,
       "name": "Emitter Room",
       "parent": 256,
       "type": "map",
-      "file": "Map0268.json"
+      "file": "maps/Map0268.json"
     },
     {
       "id": 269,
       "name": "Surl Ruins 1 Rightside",
       "parent": 257,
       "type": "map",
-      "file": "Map0269.json"
+      "file": "maps/Map0269.json"
     },
     {
       "id": 270,
       "name": "Surl Ruins 1 Bend",
       "parent": 257,
       "type": "map",
-      "file": "Map0270.json"
+      "file": "maps/Map0270.json"
     },
     {
       "id": 271,
       "name": "Surl Ruins 2 Southside",
       "parent": 258,
       "type": "map",
-      "file": "Map0271.json"
+      "file": "maps/Map0271.json"
     },
     {
       "id": 272,
       "name": "Surl Ruins 2 Broken City",
       "parent": 258,
       "type": "map",
-      "file": "Map0272.json"
+      "file": "maps/Map0272.json"
     },
     {
       "id": 273,
       "name": "Surl Ruins 2 Exit",
       "parent": 258,
       "type": "map",
-      "file": "Map0273.json"
+      "file": "maps/Map0273.json"
     },
     {
       "id": 274,
       "name": "Ship Flash",
       "parent": 273,
       "type": "map",
-      "file": "Map0274.json"
+      "file": "maps/Map0274.json"
     },
     {
       "id": 275,
       "name": "Eisen's Simulation",
       "parent": 253,
       "type": "map",
-      "file": "Map0275.json"
+      "file": "maps/Map0275.json"
     },
     {
       "id": 276,
       "name": "Throne Room",
       "parent": 275,
       "type": "map",
-      "file": "Map0276.json"
+      "file": "maps/Map0276.json"
     },
     {
       "id": 277,
       "name": "Eisen's Lab",
       "parent": 253,
       "type": "map",
-      "file": "Map0277.json"
+      "file": "maps/Map0277.json"
     },
     {
       "id": 278,
       "name": "The Castle",
       "parent": 275,
       "type": "map",
-      "file": "Map0278.json"
+      "file": "maps/Map0278.json"
     },
     {
       "id": 279,
       "name": "Castle Dungeon",
       "parent": 278,
       "type": "map",
-      "file": "Map0279.json"
+      "file": "maps/Map0279.json"
     },
     {
       "id": 280,
       "name": "Area 1 Catacombs",
       "parent": 279,
       "type": "map",
-      "file": "Map0280.json"
+      "file": "maps/Map0280.json"
     },
     {
       "id": 281,
       "name": "Room A",
       "parent": 280,
       "type": "map",
-      "file": "Map0281.json"
+      "file": "maps/Map0281.json"
     },
     {
       "id": 282,
       "name": "Room B",
       "parent": 280,
       "type": "map",
-      "file": "Map0282.json"
+      "file": "maps/Map0282.json"
     },
     {
       "id": 283,
       "name": "Room C",
       "parent": 280,
       "type": "map",
-      "file": "Map0283.json"
+      "file": "maps/Map0283.json"
     },
     {
       "id": 284,
       "name": "Eisen Trapped",
       "parent": 253,
       "type": "map",
-      "file": "Map0284.json"
+      "file": "maps/Map0284.json"
     },
     {
       "id": 285,
       "name": "Tasgarde Mainframe",
       "parent": 253,
       "type": "map",
-      "file": "Map0285.json"
+      "file": "maps/Map0285.json"
     },
     {
       "id": 286,
       "name": "Reset Game",
       "parent": 285,
       "type": "map",
-      "file": "Map0286.json"
+      "file": "maps/Map0286.json"
     },
     {
       "id": 287,
       "name": "The Advocate Escapes",
       "parent": 253,
       "type": "map",
-      "file": "Map0287.json"
+      "file": "maps/Map0287.json"
     },
     {
       "id": 288,
       "name": "A Gain... and a Loss",
       "parent": 261,
       "type": "map",
-      "file": "Map0288.json"
+      "file": "maps/Map0288.json"
     },
     {
       "id": 289,
       "name": "Talan's Scenario Floor 3",
       "parent": 263,
       "type": "map",
-      "file": "Map0289.json"
+      "file": "maps/Map0289.json"
     },
     {
       "id": 290,
       "name": "Talan Computer Room",
       "parent": 263,
       "type": "map",
-      "file": "Map0290.json"
+      "file": "maps/Map0290.json"
     },
     {
       "id": 291,
       "name": "Talan Upperlevel Room",
       "parent": 263,
       "type": "map",
-      "file": "Map0291.json"
+      "file": "maps/Map0291.json"
     },
     {
       "id": 292,
       "name": "Emily's Scenario",
       "parent": 261,
       "type": "map",
-      "file": "Map0292.json"
+      "file": "maps/Map0292.json"
     },
     {
       "id": 293,
       "name": "Emily's Scenario Pipes",
       "parent": 292,
       "type": "map",
-      "file": "Map0293.json"
+      "file": "maps/Map0293.json"
     },
     {
       "id": 294,
       "name": "Emily Warehouse Annex",
       "parent": 292,
       "type": "map",
-      "file": "Map0294.json"
+      "file": "maps/Map0294.json"
     },
     {
       "id": 295,
       "name": "Emily Lowerlevel Room",
       "parent": 292,
       "type": "map",
-      "file": "Map0295.json"
+      "file": "maps/Map0295.json"
     },
     {
       "id": 296,
       "name": "Quarry II",
       "parent": 249,
       "type": "map",
-      "file": "Map0296.json"
+      "file": "maps/Map0296.json"
     },
     {
       "id": 297,
       "name": "Skill Systems",
       "parent": 0,
       "type": "map",
-      "file": "Map0297.json"
+      "file": "maps/Map0297.json"
     },
     {
       "id": 298,
       "name": "Radin Chemistry",
       "parent": 297,
       "type": "map",
-      "file": "Map0298.json"
+      "file": "maps/Map0298.json"
     },
     {
       "id": 299,
       "name": "AgentMob",
       "parent": 256,
       "type": "map",
-      "file": "Map0299.json"
+      "file": "maps/Map0299.json"
     },
     {
       "id": 300,
       "name": "Missiles2",
       "parent": 256,
       "type": "map",
-      "file": "Map0300.json"
+      "file": "maps/Map0300.json"
     },
     {
       "id": 301,
       "name": "The Overlook",
       "parent": 256,
       "type": "map",
-      "file": "Map0301.json"
+      "file": "maps/Map0301.json"
     },
     {
       "id": 302,
       "name": "Screen Adjust",
       "parent": 256,
       "type": "map",
-      "file": "Map0302.json"
+      "file": "maps/Map0302.json"
     },
     {
       "id": 303,
       "name": "Tram to Prima",
       "parent": 256,
       "type": "map",
-      "file": "Map0303.json"
+      "file": "maps/Map0303.json"
     },
     {
       "id": 304,
       "name": "Army Marches",
       "parent": 256,
       "type": "map",
-      "file": "Map0304.json"
+      "file": "maps/Map0304.json"
     },
     {
       "id": 305,
       "name": "Agency Prison",
       "parent": 256,
       "type": "map",
-      "file": "Map0305.json"
+      "file": "maps/Map0305.json"
     },
     {
       "id": 306,
       "name": "Outside Ship",
       "parent": 256,
       "type": "map",
-      "file": "Map0306.json"
+      "file": "maps/Map0306.json"
     },
     {
       "id": 307,
       "name": "Shadow Over Paradise",
       "parent": 256,
       "type": "map",
-      "file": "Map0307.json"
+      "file": "maps/Map0307.json"
     },
     {
       "id": 308,
       "name": "One Month",
       "parent": 256,
       "type": "map",
-      "file": "Map0308.json"
+      "file": "maps/Map0308.json"
     },
     {
       "id": 309,
       "name": "DestructionBlock",
       "parent": 256,
       "type": "map",
-      "file": "Map0309.json"
+      "file": "maps/Map0309.json"
     },
     {
       "id": 310,
       "name": "New Tangle Forest",
       "parent": 66,
       "type": "map",
-      "file": "Map0310.json"
+      "file": "maps/Map0310.json"
     },
     {
       "id": 311,
       "name": "Clearing",
       "parent": 310,
       "type": "map",
-      "file": "Map0311.json"
+      "file": "maps/Map0311.json"
     },
     {
       "id": 312,
       "name": "Burning Forest",
       "parent": 310,
       "type": "map",
-      "file": "Map0312.json"
+      "file": "maps/Map0312.json"
     },
     {
       "id": 313,
       "name": "Agency Tram",
       "parent": 311,
       "type": "map",
-      "file": "Map0313.json"
+      "file": "maps/Map0313.json"
     },
     {
       "id": 314,
       "name": "DefenderFail",
       "parent": 220,
       "type": "map",
-      "file": "Map0314.json"
+      "file": "maps/Map0314.json"
     },
     {
       "id": 315,
       "name": "FarmerFail",
       "parent": 220,
       "type": "map",
-      "file": "Map0315.json"
+      "file": "maps/Map0315.json"
     },
     {
       "id": 316,
       "name": "LawyerFail",
       "parent": 220,
       "type": "map",
-      "file": "Map0316.json"
+      "file": "maps/Map0316.json"
     },
     {
       "id": 317,
       "name": "OutsideActing",
       "parent": 220,
       "type": "map",
-      "file": "Map0317.json"
+      "file": "maps/Map0317.json"
     },
     {
       "id": 318,
       "name": "The Show",
       "parent": 220,
       "type": "map",
-      "file": "Map0318.json"
+      "file": "maps/Map0318.json"
     },
     {
       "id": 319,
       "name": "Grove",
       "parent": 220,
       "type": "map",
-      "file": "Map0319.json"
+      "file": "maps/Map0319.json"
     },
     {
       "id": 320,
       "name": "PortableConsole Test",
       "parent": 297,
       "type": "map",
-      "file": "Map0320.json"
+      "file": "maps/Map0320.json"
     },
     {
       "id": 321,
       "name": "Sern Forging",
       "parent": 297,
       "type": "map",
-      "file": "Map0321.json"
+      "file": "maps/Map0321.json"
     },
     {
       "id": 322,
       "name": "Area 2 Dark Catacombs",
       "parent": 279,
       "type": "map",
-      "file": "Map0322.json"
+      "file": "maps/Map0322.json"
     },
     {
       "id": 323,
       "name": "Dalia Die In Sim",
       "parent": 278,
       "type": "map",
-      "file": "Map0323.json"
+      "file": "maps/Map0323.json"
     },
     {
       "id": 324,
       "name": "Room D",
       "parent": 280,
       "type": "map",
-      "file": "Map0324.json"
+      "file": "maps/Map0324.json"
     },
     {
       "id": 325,
       "name": "Room E",
       "parent": 280,
       "type": "map",
-      "file": "Map0325.json"
+      "file": "maps/Map0325.json"
     },
     {
       "id": 326,
       "name": "Room F",
       "parent": 280,
       "type": "map",
-      "file": "Map0326.json"
+      "file": "maps/Map0326.json"
     },
     {
       "id": 327,
       "name": "Room G",
       "parent": 280,
       "type": "map",
-      "file": "Map0327.json"
+      "file": "maps/Map0327.json"
     },
     {
       "id": 328,
       "name": "Room H",
       "parent": 280,
       "type": "map",
-      "file": "Map0328.json"
+      "file": "maps/Map0328.json"
     },
     {
       "id": 329,
       "name": "Room I",
       "parent": 280,
       "type": "map",
-      "file": "Map0329.json"
+      "file": "maps/Map0329.json"
     },
     {
       "id": 330,
       "name": "Room J",
       "parent": 280,
       "type": "map",
-      "file": "Map0330.json"
+      "file": "maps/Map0330.json"
     },
     {
       "id": 331,
       "name": "Room A",
       "parent": 322,
       "type": "map",
-      "file": "Map0331.json"
+      "file": "maps/Map0331.json"
     },
     {
       "id": 332,
       "name": "Room B",
       "parent": 322,
       "type": "map",
-      "file": "Map0332.json"
+      "file": "maps/Map0332.json"
     },
     {
       "id": 333,
       "name": "Room C",
       "parent": 322,
       "type": "map",
-      "file": "Map0333.json"
+      "file": "maps/Map0333.json"
     },
     {
       "id": 334,
       "name": "Room D",
       "parent": 322,
       "type": "map",
-      "file": "Map0334.json"
+      "file": "maps/Map0334.json"
     },
     {
       "id": 335,
       "name": "Room E",
       "parent": 322,
       "type": "map",
-      "file": "Map0335.json"
+      "file": "maps/Map0335.json"
     },
     {
       "id": 336,
       "name": "Room F",
       "parent": 322,
       "type": "map",
-      "file": "Map0336.json"
+      "file": "maps/Map0336.json"
     },
     {
       "id": 337,
       "name": "Room G",
       "parent": 322,
       "type": "map",
-      "file": "Map0337.json"
+      "file": "maps/Map0337.json"
     },
     {
       "id": 338,
       "name": "Room H",
       "parent": 322,
       "type": "map",
-      "file": "Map0338.json"
+      "file": "maps/Map0338.json"
     },
     {
       "id": 339,
       "name": "Room I",
       "parent": 322,
       "type": "map",
-      "file": "Map0339.json"
+      "file": "maps/Map0339.json"
     },
     {
       "id": 340,
       "name": "Room J",
       "parent": 322,
       "type": "map",
-      "file": "Map0340.json"
+      "file": "maps/Map0340.json"
     },
     {
       "id": 341,
       "name": "Area 3 Aqueduct",
       "parent": 279,
       "type": "map",
-      "file": "Map0341.json"
+      "file": "maps/Map0341.json"
     },
     {
       "id": 342,
       "name": "Room A",
       "parent": 341,
       "type": "map",
-      "file": "Map0342.json"
+      "file": "maps/Map0342.json"
     },
     {
       "id": 343,
       "name": "Room B",
       "parent": 341,
       "type": "map",
-      "file": "Map0343.json"
+      "file": "maps/Map0343.json"
     },
     {
       "id": 344,
       "name": "Room C",
       "parent": 341,
       "type": "map",
-      "file": "Map0344.json"
+      "file": "maps/Map0344.json"
     },
     {
       "id": 345,
       "name": "Squad Postings",
       "parent": 222,
       "type": "map",
-      "file": "Map0345.json"
+      "file": "maps/Map0345.json"
     },
     {
       "id": 346,
@@ -2431,35 +2431,35 @@
       "name": "Squad Test",
       "parent": 222,
       "type": "map",
-      "file": "Map0347.json"
+      "file": "maps/Map0347.json"
     },
     {
       "id": 348,
       "name": "Small General Store",
       "parent": 66,
       "type": "map",
-      "file": "Map0348.json"
+      "file": "maps/Map0348.json"
     },
     {
       "id": 349,
       "name": "Walking in Paradise",
       "parent": 221,
       "type": "map",
-      "file": "Map0349.json"
+      "file": "maps/Map0349.json"
     },
     {
       "id": 350,
       "name": "Farmland",
       "parent": 221,
       "type": "map",
-      "file": "Map0350.json"
+      "file": "maps/Map0350.json"
     },
     {
       "id": 351,
       "name": "Meeting With Bandits",
       "parent": 221,
       "type": "map",
-      "file": "Map0351.json"
+      "file": "maps/Map0351.json"
     }
   ]
 }

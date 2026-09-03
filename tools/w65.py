@@ -14,12 +14,12 @@ ensamblador es correcto para todo lo que el proyecto usa — comprobado, no
 prometido.
 
 No pretende ser un ca65 completo. Cubre el subconjunto que aparece en
-snes/src/main.s y falla ruidosamente ante cualquier otra cosa, que para una
+rom/src/main.s y falla ruidosamente ante cualquier otra cosa, que para una
 herramienta interna es la conducta correcta: es preferible un error a una ROM
 sutilmente distinta.
 
 Uso:
-    python3 tools/w65.py snes/src/main.s -o snes/build/abl.sfc
+    python3 tools/w65.py rom/src/main.s -o rom/build/abl.sfc
 """
 
 import argparse
@@ -415,7 +415,7 @@ class Assembler:
         Los -I van adelante a propósito. Es lo que permite ensamblar con un
         mapdata.inc que no es el del árbol —uno recién generado en el
         directorio de una corrida— sin pisar el que otra tanda esté usando:
-        `snes/src/mapdata.inc` es estado global y compartido, y hasta que
+        `rom/src/mapdata.inc` es estado global y compartido, y hasta que
         existió esto la única forma de armar otra ROM era sobreescribirlo.
         """
         for base in list(self.incluir) + [directory]:

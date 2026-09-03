@@ -16,7 +16,7 @@ Si las notas del MIDI le ganan sistemáticamente a sus señuelos, la cadena ente
 —reparto de voces, muestras en BRR, registro de altura del DSP— está bien.
 
 Uso:
-    python3 tools/snes_check.py snes/shots/tema.wav --map-id 67
+    python3 tools/snes_check.py rom/shots/tema.wav --map-id 67
 """
 
 import argparse

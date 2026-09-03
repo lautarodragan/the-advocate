@@ -796,7 +796,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--map-id", type=int, default=7)
-    parser.add_argument("--maps-dir", default=os.path.join(REPO, "Maps"))
+    parser.add_argument("--maps-dir", default=GAME_DIR)
     parser.add_argument("--game-dir", default=GAME_DIR)
     parser.add_argument("--rtp-dir", default=RTP_DIR)
     parser.add_argument("-o", "--output", default=os.path.join(REPO, "md/src/mapdata"),

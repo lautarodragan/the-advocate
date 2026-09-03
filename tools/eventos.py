@@ -78,7 +78,7 @@ IGNORABLES = {
 # un comando más. Lo que se pierde: una página que cambie la música deja la que
 # venía sonando. La pantalla no lo nota, pero `snes-check` compararía el audio
 # contra el MIDI del mapa y no contra el tema que la página pidió, así que ahí
-# la prueba mediría lo que no es. Ver "Lo que falta" en snes/LEEME.md.
+# la prueba mediría lo que no es. Ver "Lo que falta" en rom/LEEME.md.
 ACEPTADOS_SIN_HACER = {
     PLAY_BGM,
 }

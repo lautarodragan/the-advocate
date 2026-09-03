@@ -14,7 +14,7 @@ import traceback
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import lcf
-from render_map import REPO, Renderer, find_resource
+from render_map import GAME_DIR, REPO, Renderer, find_resource
 
 
 def main():
@@ -27,7 +27,7 @@ def main():
     failures = []
 
     for map_id in sorted(renderer.tree.map_names):
-        path = os.path.join(REPO, "Maps", "Map%04d.lmu" % map_id)
+        path = os.path.join(GAME_DIR, "Map%04d.lmu" % map_id)
         if not os.path.exists(path):
             continue
 

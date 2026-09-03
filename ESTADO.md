@@ -96,7 +96,7 @@ commit narra lo hecho; los supuestos no tienen dónde vivir. Acá.
   lados coinciden en 0, y las dos referencias —prioridad 1 y prioridad 2—
   difieren en 284 pixeles, o sea que el par no da cero por casualidad. El
   Package igual entró en la tanda, por el orden capa-antes-que-Y. Ver "Cómo se
-  verifica" en `snes/LEEME.md`.
+  verifica" en `rom/LEEME.md`.
 * **Moverse por una ruta forzada.** Anotado el 2026-09-03. De los comandos de
   ruta de `MoveEvent` hoy se aceptan sólo los cuatro de girar y la espera;
   `move_up` y compañía no compilan. No es pereza: en RM2k el personaje camina
@@ -196,6 +196,6 @@ commit narra lo hecho; los supuestos no tienen dónde vivir. Acá.
 * **La saturación del tinte.** El conversor sólo deja pasar la neutra, así que
   una página que la use no se emite. Aceptarla sin aplicarla sería el error de
   siempre: la referencia haría lo mismo mal.
-* **Los builds numerados de `snes/build/`.** No están en git y no los produce
+* **Los builds numerados de `rom/build/`.** No están en git y no los produce
   ninguna receta salvo el 12. Armar uno a mano es cómo se terminó mirando el
   mapa 6 creyendo que era la demo del hito 12 —ver `AGENTS.md`—.

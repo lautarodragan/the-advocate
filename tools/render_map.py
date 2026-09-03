@@ -216,7 +216,7 @@ def main():
     parser.add_argument("--map", help="ruta a un .lmu concreto")
     parser.add_argument("--map-id", type=int, default=DEFAULT_MAP_ID,
                         help="número de mapa (default: %d)" % DEFAULT_MAP_ID)
-    parser.add_argument("--maps-dir", default=os.path.join(REPO, "Maps"))
+    parser.add_argument("--maps-dir", default=GAME_DIR)
     parser.add_argument("--game-dir", default=GAME_DIR,
                         help="proyecto RM2k original, para RPG_RT.ldb/.lmt y chipsets")
     parser.add_argument("--rtp-dir", default=RTP_DIR,

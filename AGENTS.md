@@ -5,7 +5,7 @@ fuentes mejores, y hay que ir a ellas antes que a este archivo:
 
     ESTADO.md        dónde quedamos: lo que está a medias y lo que se supone
     justfile         qué se puede correr; los comentarios explican el porqué
-    snes/LEEME.md    el port a SNES entero, con sus trampas y "Lo que falta"
+    rom/LEEME.md     el port a SNES entero, con sus trampas y "Lo que falta"
     README.md        el juego original y el port a Mega Drive
     git log          los mensajes son largos a propósito: son el registro
 
@@ -62,6 +62,12 @@ que revela menos y da más margen. Hoy tiene:
     /extras/abl-rm      el juego original. Es lo que lee GAME_DIR
     /extras/ref         liblcf, easyrpg-player y Game-Decompilations
     /extras/soundfonts  de donde salen las muestras
+    /extras/capturas    donde taro deja capturas para que yo las mire
+
+Las capturas van ahí y no a `/tmp` por una razón concreta: el contenedor corre
+con `--rm --replace`, así que `/tmp` se muere con él y `/extras` no. Antes esto
+era un directorio `screenshots-manuales/` adentro del repo, que ensuciaba el
+árbol con archivos que nunca fueron del proyecto.
 
 **Los repos de `/extras/ref` están clonados adentro y no son los del host.**
 `liblcf` es de donde se genera `tools/event_codes.py`: los códigos de comando
@@ -70,7 +76,7 @@ filtro de puertas los puso de memoria y tres estaban mal. Si hace falta algo
 que no se consigue desde acá, se le pide a taro que lo copie a `/extras`.
 
 El host y el contenedor son casi simétricos a propósito, así que un comando
-que se le pida a taro —`mednafen snes/build/abl.sfc`, una receta de `just`—
+que se le pida a taro —`mednafen rom/build/abl.sfc`, una receta de `just`—
 suele valer tal cual de los dos lados. Las versiones pueden driftear, porque
 los paquetes no se comparten.
 
@@ -94,7 +100,7 @@ y se tira.
 
 ## Trampas del entorno
 
-**`snes/src/mapdata.inc` es estado global.** Lo pisa cualquier `snes-convert`,
+**`rom/src/mapdata.inc` es estado global.** Lo pisa cualquier `snes-convert`,
 y no está en git. Una ROM ensamblada a mano se lleva los datos del último mapa
 que se haya convertido, aunque el código sea el correcto: así se terminó
 mirando el mapa 6 creyendo que era la demo del hito 12. **Las ROMs salen de una

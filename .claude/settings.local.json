@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//home/taro/git/gaming/abl-rm/**)",
+      "Read(//home/taro/git/gaming/easyrpg/**)",
+      "Read(//home/taro/git/taro/tarocodes/**)"
+    ]
+  },
+  "sandbox": {
+    "enabled": true,
+    "autoAllowBashIfSandboxed": false
+  }
+}

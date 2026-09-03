@@ -11,7 +11,7 @@ conversor eligió mal un color, o el tilemap apuntó al tile equivocado, o el
 formato de bits está invertido, acá salta.
 
 Uso:
-    python3 tools/snes_compare.py snes/shots/mapa.png /tmp/ref7.png
+    python3 tools/snes_compare.py rom/shots/mapa.png /tmp/ref7.png
 """
 
 import argparse

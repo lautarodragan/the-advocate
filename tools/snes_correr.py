@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Corre la ROM en un core de libretro y guarda lo que dibuja.
 
-El reemplazo de `snes/screenshot.sh`. Aquél levanta un servidor X, arranca
+El reemplazo de `rom/screenshot.sh`. Aquél levanta un servidor X, arranca
 mednafen, duerme unos segundos de reloj, le manda teclas con xdotool, le saca
 una foto a la pantalla entera y después la recorta. Acá no hay nada de eso:
 `retro_run()` avanza un cuadro exacto, la cruceta se contesta cuadro por cuadro

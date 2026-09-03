@@ -5,7 +5,7 @@ Es la razón por la que se puede confiar en un ensamblador propio. Mientras el
 contenedor de Debian con cc65 exista, se ensambla el mismo fuente con las dos
 cadenas y se comparan los 32.768 bytes. Si son idénticos, w65.py es correcto
 para todo lo que este proyecto usa; y como el proyecto no usa nada que no esté
-en snes/src/main.s, eso alcanza.
+en rom/src/main.s, eso alcanza.
 
 Cuando difieren, mostrar el primer byte distinto no sirve de mucho: un byte de
 más corre todo lo que sigue y parecen miles de diferencias. Por eso se informa
@@ -13,7 +13,7 @@ también cuántas hay y en qué región caen, que es lo que dice si el problema 
 un opcode suelto o un tamaño mal calculado.
 
 Uso:
-    python3 tools/w65_check.py snes/build/abl.sfc snes/build/referencia.sfc
+    python3 tools/w65_check.py rom/build/abl.sfc rom/build/referencia.sfc
 """
 
 import sys

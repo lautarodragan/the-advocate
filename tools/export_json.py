@@ -7,8 +7,8 @@ ni de un parser binario para ver qué cambió.
 
 Por mapa salen dos archivos:
 
-    data/Map0001.json    metadata, chipset, y los eventos con sus scripts
-    data/Map0001.tiles   las dos capas de tiles, una fila por línea
+    data/maps/Map0001.json    metadata, chipset, y los eventos con sus scripts
+    data/maps/Map0001.tiles   las dos capas de tiles, una fila por línea
 
 Más dos archivos compartidos, data/maps.json (el árbol de mapas y la posición
 inicial) y data/chipsets.json (la tabla de chipsets con su passability).
@@ -278,7 +278,7 @@ def tree_json(tree, exported):
                   "name": tree.map_names[i],
                   "parent": tree.map_parents[i],
                   "type": "folder" if tree.map_types[i] == 2 else "map",
-                  "file": "Map%04d.json" % i if i in exported else None}
+                  "file": "maps/Map%04d.json" % i if i in exported else None}
                  for i in sorted(tree.map_names) if i != 0],
     }
 
@@ -287,7 +287,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--game-dir", default=GAME_DIR)
-    parser.add_argument("--maps-dir", default=os.path.join(REPO, "Maps"))
+    parser.add_argument("--maps-dir", default=GAME_DIR)
     parser.add_argument("-o", "--out-dir", default=os.path.join(REPO, "data"))
     parser.add_argument("--verify", action="store_true",
                         help="releer lo exportado y comparar contra los .lmu")
@@ -296,6 +296,10 @@ def main():
     database = lcf.Database(os.path.join(args.game_dir, "RPG_RT.ldb"))
     tree = lcf.TreeMap(os.path.join(args.game_dir, "RPG_RT.lmt"))
     os.makedirs(args.out_dir, exist_ok=True)
+    # Un mapa por archivo son 656 archivos; en un directorio propio
+    # para que `data/` deje ver de un vistazo qué otras cosas hay.
+    mapas_dir = os.path.join(args.out_dir, "maps")
+    os.makedirs(mapas_dir, exist_ok=True)
 
     exported = {}
     for map_id in sorted(tree.map_names):
@@ -307,9 +311,9 @@ def main():
         chipset = database.chipsets[game_map.chipset_id]
         exported[map_id] = game_map
 
-        write(os.path.join(args.out_dir, "Map%04d.json" % map_id),
+        write(os.path.join(mapas_dir, "Map%04d.json" % map_id),
               dumps(map_json(map_id, game_map, tree, chipset)))
-        write(os.path.join(args.out_dir, "Map%04d.tiles" % map_id),
+        write(os.path.join(mapas_dir, "Map%04d.tiles" % map_id),
               tiles_text(map_id, game_map, chipset))
 
     write(os.path.join(args.out_dir, "maps.json"), dumps(tree_json(tree, exported)))
@@ -366,7 +370,8 @@ def verify(out_dir, exported):
     """Releer los .tiles y revisar que lo exportado tenga sentido."""
     bad = []
     for map_id, game_map in exported.items():
-        with open(os.path.join(out_dir, "Map%04d.tiles" % map_id)) as handle:
+        with open(os.path.join(out_dir, "maps",
+                               "Map%04d.tiles" % map_id)) as handle:
             layers = parse_tiles(handle.read())
         if (layers.get("lower") != game_map.lower_layer
                 or layers.get("upper") != game_map.upper_layer):
