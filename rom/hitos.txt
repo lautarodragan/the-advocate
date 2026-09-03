@@ -36,3 +36,4 @@ snes-pagina 121 10 grupo-121
 snes-pagina 74 21 ruta-74
 snes-espera
 snes-mednafen
+snes-bsnes

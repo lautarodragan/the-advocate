@@ -37,18 +37,19 @@ prueba lo esperaba durmiendo. Ahora:
     just snes-hitos              2m23s    19 casos, 56 comparaciones en 0
     just snes-hitos-paralelo 6   0m32s    lo mismo, repartido en procesos
 
+Hoy, con `snes-mednafen` y `snes-bsnes` adentro, son 24 casos y 64
+comparaciones: 4m01s en serie y 1m14s repartida en seis. El minuto y medio que
+se sumó es casi todo mednafen, que corre en tiempo real con ventana; bsnes
+cuesta veinte segundos.
+
 Lo que se ganó además del tiempo, que era el punto: los cuadros salen de la
 referencia y no de un número elegido a ojo, la prueba dejó de depender de la
 carga de la máquina, y `snes-caminando` compara al héroe **a mitad de camino**
 —cosa que antes no se hacía nunca, porque en el cuadro final está chocando
 contra la pared y la única pose que se comparaba era la parada—.
 
-Quedó una deuda acotada y con valor claro: **completar el frontend de libretro**.
-Hoy anda sólo con snes9x; bsnes queda negro y mesen-s segfaultea, los dos porque
-`tools/retro.py` implementa el mínimo del contrato. Con eso resuelto, la segunda
-opinión sale gratis —`snes_correr.py --core` ya existe— y encima bsnes es el más
-preciso y el que aleatoriza la RAM al encender, que es lo más parecido a la
-consola de verdad.
+Quedó una deuda acotada, **completar el frontend de libretro**, que se pagó el
+mismo día: ver más abajo.
 
 **En curso: el intérprete corre cuadro a cuadro.** Hecho el 2026-09-03 de los
 dos lados. Antes `cargar_mapa` ejecutaba todas las páginas de una sola pasada,
@@ -72,37 +73,52 @@ de diferencia, así que si la espera no esperara se vería.
 
 Falta lo que esto habilita: las rutas forzadas caminando y el clima.
 
-**El corte siguiente, decidido: hacer andar bsnes.** Pasó de deuda anotada a
-prioridad el 2026-09-03, cuando en un mismo día se colaron dos errores que la
-tanda no podía ver —`ruta_n`/`ruta_i` sin inicializar y el tinte escribiendo
-CGRAM fuera del vblank—, los dos porque snes9x es permisivo donde la consola no
-lo es, y los dos encontrados jugando. `snes-mednafen` los mitiga; bsnes los
-resolvería: su `bsnes_entropy` aleatoriza la RAM al encender, así que el primero
-lo habría atrapado la tanda sola.
+**Cerrado el 2026-09-03: andan los tres cores.** Era el corte en curso, y la
+causa no era ni la ROM ni el core sino `tools/retro.py`, que implementaba el
+mínimo del contrato de libretro. Tres errores, uno por core y todos en silencio:
 
-Por dónde arrancar, con lo que ya se midió y para no rederivarlo:
+* **bsnes declara `need_fullpath` y su `retro_load_game` ignora `game->data`**:
+  hace `superFamicom.location = string(game->path)` y abre el archivo él mismo.
+  Le pasábamos el path en NULL, así que cargaba "" —y devolvía true igual—: la
+  ROM nunca entraba. De ahí la pantalla negra con el audio sonando, que era el
+  APU corriendo sin ROM.
+* **mesen-s guarda los callbacks adentro de un objeto que crea `retro_init`**,
+  así que ponerlos antes escribía en la nada. Ése era el segfault. El orden
+  bueno —entorno, `retro_init`, y recién ahí video, audio e input— es el de
+  RetroArch.
+* **mesen-s además corta `retro_load_game` en la primera línea** si
+  `GET_SYSTEM_DIRECTORY` contesta que no.
 
-* El core está en `/usr/lib/libretro/bsnes_libretro.so` (paquete
-  `libretro-bsnes`, bsnes 115). `tools/retro.py` lo carga, `retro_load_game`
-  devuelve true, **suena el audio** y `retro_run` avanza —o sea que la ROM
-  corre— pero el framebuffer viene en cero para cualquier cantidad de cuadros.
-* **La culpa es del frontend, no de la ROM ni del core**: bajo RetroArch, el
-  mismo core con la misma ROM dibuja bien. Se verificó adentro del contenedor.
-* Descartados: la entropía, `ppu_fast`, los defaults de las opciones y la
-  respuesta a `GET_OVERSCAN`. Durante `retro_run` sólo pide
-  `GET_VARIABLE_UPDATE` (17) y `GET_FASTFORWARDING` (65585). En `retro_init`
-  pide 11, 16, 27, 34, 35, 52 y 69, y a todos se les contesta que no salvo el
-  16 y el 27.
-* El sospechoso más probable es alguno de esos comandos de `retro_init` sin
-  contestar. `mesen-s` **segfaultea** con el mismo frontend, lo que apunta a lo
-  mismo: `retro.py` implementa el mínimo del contrato y snes9x es el único
-  tolerante.
-* Una rareza suelta que puede o no estar relacionada: bsnes reporta
-  `retro_get_region` = PAL, 50,007 fps, con una cabecera que dice `$01` = NTSC.
-* Cuando ande, la segunda opinión sale gratis: `snes_correr.py --core` ya es un
-  flag, mismo código, mismos cuadros, mismo determinismo.
+Verificado corriendo: los tres cores dibujan **el mismo cuadro a 15 bits** —0
+pixeles de 57344, mapa 7 a los 180 cuadros—, y `just snes-hitos` queda en 24
+casos y 64 comparaciones, todas en 0.
 
-Después de eso, **la cinemática de apertura**.
+La tanda sigue en snes9x por una razón medida y no por costumbre: bsnes emula
+121 cuadros por segundo contra 2747, o sea 23 veces más lento, y correrla entera
+con él la mandaría de vuelta a la media hora. Entra por **`snes-bsnes`**, que
+corre los mismos dos casos que `snes-mednafen` —uno que tiñe desde un evento y
+uno que camina— y cuesta veinte segundos. Cualquier otro caso se puede mirar con
+`CORE=bsnes just snes-heroe 7`.
+
+Y lo que se buscaba de bsnes se consiguió: corre con **`bsnes_entropy=High`**,
+o sea con la WRAM llena de basura al encender, como la consola. Medido contra el
+error de verdad: comentando las dos líneas que inicializan `ruta_n`/`ruta_i` en
+`main.s` y corriendo veinte veces el mapa 7, el cuadro sale mal 11 veces de 20
+con `High`, 3 con `Low` y 0 con `None`. Con la ROM sana, 20 de 20 dan el mismo
+cuadro. O sea: la tanda ahora ve esa clase de error sola la mitad de las veces,
+y no se vuelve inestable a cambio.
+
+De paso salió un error viejo que nadie había pisado: `snes-caminando` con un
+solo avance escribía la referencia como `-right` y después la buscaba como
+`-60`, así que la receta no andaba con menos de dos avances. La etiqueta ahora
+es el avance siempre que se pida uno.
+
+`snes-mednafen` se queda. No es redundante: mednafen no es un core de libretro,
+así que es lo único que probaría que `tools/retro.py` no se está equivocando
+parejo con los tres cores a la vez —el error de siempre en este repo, ahora
+aplicado al frontend—.
+
+**El corte siguiente, decidido: la cinemática de apertura.**
 El mapa 4 ya prende el switch 20, que es la condición de la página que abre el
 mapa 1, así que el enganche funciona. Falta que exista un grupo —la condición
 pide `actor`— y cuatro comandos: `PlayBGM`, `WeatherEffects`, `MoveEvent` y
@@ -191,17 +207,19 @@ commit narra lo hecho; los supuestos no tienen dónde vivir. Acá.
   encendida, así que entraba a medias —CGRAM no acepta escrituras mientras el
   PPU dibuja—. snes9x las acepta igual; mednafen no. Las dos las encontró taro
   jugando, con la tanda en verde.
-  Mitigado el mismo día con `snes-mednafen`, que corre dos casos por el otro
-  emulador y compara contra las mismas referencias: uno que tiñe desde un evento
-  y uno que camina, que son las dos clases. Está en la tanda, así que se corre.
-  No reemplaza a lo de abajo: mednafen es el parche barato y bsnes la solución,
-  porque su `bsnes_entropy` habría atrapado el de la RAM solo.
-  Es la trampa que el LEEME ya tenía anotada, ahora cobrada en serio. Y tiene una
-  salida concreta: **bsnes tiene `bsnes_entropy`, que aleatoriza la RAM al
-  encender**. Es la segunda razón para hacerlo andar —la primera era tener una
-  segunda opinión—, y con eso la tanda vería esta clase de error sola.
-* **Por qué bsnes devuelve una pantalla negra.** Pasó a ser el corte en curso;
-  todo lo que se midió está arriba, en "En vuelo".
+  Mitigado el mismo día con `snes-mednafen`, y **cerrado a la tarde con
+  `snes-bsnes`**, que corre los mismos dos casos —uno que tiñe desde un evento y
+  uno que camina— con `bsnes_entropy=High`, o sea con la WRAM llena de basura al
+  encender. Los dos están en la tanda.
+  Lo que queda sin cerrar es que la detección es probabilística: con el error de
+  `ruta_n`/`ruta_i` puesto de vuelta a mano, el cuadro sale mal 11 corridas de
+  20. Es mucho mejor que las 0 de 20 de snes9x, pero no es una garantía: un
+  error de esta clase puede pasar una tanda y caerse en la siguiente. Si eso
+  molesta, la salida sería correr el caso de bsnes varias veces, que a veinte
+  segundos por vez es barato.
+* ~~**Por qué bsnes devuelve una pantalla negra.**~~ Cerrado el 2026-09-03. Era
+  `tools/retro.py` pasándole `game->path` en NULL a un core que declara
+  `need_fullpath` y no mira `game->data`. El detalle está arriba, en "En vuelo".
 * **El orden de la tabla de mapas.** Cerrado a medias el 2026-09-03, y la
   mitad que queda no se puede cerrar comparando. Lo que sí se corre ahora es
   que la ROM resuelva un índice compilado que no sea 0 ni 1: `snes-hitos` corre

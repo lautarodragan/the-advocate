@@ -374,15 +374,22 @@ se lee una vez por cuadro y el primero se pierde—. Cruzar una puerta lleva
 dieciséis, porque obliga a cargar el mapa entero y eso la referencia no lo
 modela: medido, siete cuadros.
 
-**Hoy el único core que funciona es snes9x.** El frontend implementa el mínimo
-del contrato de libretro, y con eso bsnes devuelve una pantalla negra —bajo
-RetroArch el mismo core dibuja bien, así que falta algo de este lado— y mesen-s
-directamente segfaultea. Que dos emuladores independientes coincidan sería
-evidencia más fuerte que uno, y el camino para tenerlo es completar el frontend:
-`snes_correr.py --core` ya está, es un flag. Antes de esto había un `MOTOR=mednafen`
-que corría la tanda por el camino viejo, y se sacó: mantenía cinco ramas y los
-segundos elegidos a ojo, y no lo corría nadie. Un camino que ninguna prueba
-ejecuta es, en este repo, la manera en que sobreviven los errores.
+**Andan los tres cores instalados —snes9x, bsnes y mesen-s— y los tres dibujan
+el mismo cuadro a 15 bits**, que es la precisión a la que se compara: 0 pixeles
+de 57344, medido en el mapa 7 a los 180 cuadros. Que tres emuladores
+independientes coincidan es lo que vuelve creíble a cualquiera de ellos. Los
+tres tardaron en andar por errores del frontend y no de ellos —bsnes ignora los
+datos de la ROM y abre el archivo él mismo, mesen-s quiere los callbacks después
+de `retro_init` y un directorio de sistema—; el detalle de qué pedía cada uno
+está en el docstring de `tools/retro.py`.
+
+Se elige con `CORE`: `CORE=bsnes just snes-heroe 7`. La tanda corre en snes9x
+porque es 23 veces más rápido —2747 cuadros por segundo contra 121—, y bsnes
+entra por `snes-bsnes`, dos casos que cuestan veinte segundos. Antes de todo
+esto había un `MOTOR=mednafen` que corría la tanda por el camino viejo, y se
+sacó: mantenía cinco ramas y los segundos elegidos a ojo, y no lo corría nadie.
+Un camino que ninguna prueba ejecuta es, en este repo, la manera en que
+sobreviven los errores.
 
 `just snes-hitos` corre seis mapas, uno por cada cosa que puede romperse:
 
@@ -786,6 +793,22 @@ resto no, según qué escritura pescara el vblank.
 
 Lo segundo no lo vio la tanda: snes9x acepta esas escrituras y mednafen no. Lo
 encontró taro jugando, dos veces seguidas.
+
+**La RAM arranca con basura, y el emulador rápido la arranca en cero.** Ésta es
+la trampa que hace invisibles a las otras. snes9x —el core de la tanda— llena la
+WRAM de ceros al encender; la consola no, y mednafen y bsnes tampoco. Una
+variable que nadie inicializa da verde en las 56 comparaciones y falla en
+hardware real: pasó con `ruta_n`/`ruta_i`, que sin poner en cero hacían creer a
+`move_hero` que había una ruta forzada pendiente, y el héroe no leía el pad
+nunca. La tanda entera estaba verde.
+
+Contra eso está `snes-bsnes`, que corre dos casos con `bsnes_entropy=High`:
+bsnes llena la WRAM de basura, como la consola. Comentando esas dos líneas de
+`main.s` y corriendo veinte veces el mapa 7, la basura rompe el cuadro 11 veces
+de 20 —con `Low`, 3; con `None`, ninguna—. O sea que no lo agarra siempre, pero
+lo agarra la mitad de las veces y sin que nadie tenga que jugar. Con la ROM sana
+las veinte corridas dan el mismo cuadro, así que esto no vuelve inestable a la
+tanda.
 
 La carga de mapa se arregla apagando la pantalla, como ya hacía `cruzar_puerta`.
 Para el tinte se intentó primero diferirlo a `flush_video`, que corre en el

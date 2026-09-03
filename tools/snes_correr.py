@@ -25,11 +25,6 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from retro import Consola, CORE
 
-# El core con el que están verificadas las 46 comparaciones bit-exactas contra
-# el harness de mednafen. bsnes devuelve una pantalla negra con este frontend y
-# todavía no sabemos por qué: ver `tools/retro.py` y ESTADO.md.
-CORE_POR_DEFECTO = "/usr/lib/libretro/snes9x_libretro.so"
-
 # Cuántos cuadros se le dan a la ROM antes de apretar nada. screenshot.sh
 # dormía tres segundos de reloj por la misma razón: que arranque y dibuje el
 # mapa antes de que empiece la caminata.
@@ -92,7 +87,11 @@ def main():
     parser.add_argument("--quieto", type=int, default=QUIETO,
                         help="cuántos cuadros idénticos seguidos cuentan como "
                              "pantalla quieta")
-    parser.add_argument("--core", default=CORE_POR_DEFECTO)
+    parser.add_argument("--core", default=CORE,
+                        help="el .so del core de libretro. Andan los tres "
+                             "que hay instalados y dibujan lo mismo a 15 bits; "
+                             "el default es snes9x porque es 23 veces más "
+                             "rápido")
     args = parser.parse_args()
 
     if args.teclas is not None:

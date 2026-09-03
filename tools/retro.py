@@ -7,30 +7,40 @@ apretado y mirá el cuadro N". Eso arregla las dos cosas a la vez: la tanda deja
 de esperar en tiempo real, y deja de depender de cuántos cuadros alcanzó a
 emular la máquina mientras dormíamos.
 
-ESTO ES UN SPIKE. Anda con snes9x y está verificado contra el harness viejo: 46
-comparaciones bit-exactas —el caso estático y los ocho mapas de snes-heroe por
-cinco direcciones— contra los mismos PNG esperados que usa `just snes-hitos`, a
-los 15 bits que compara snes_compare.py, honrando las líneas de --saltar.
+Andan los tres cores que hay instalados —snes9x, bsnes y mesen-s— y los tres
+dibujan **el mismo cuadro a 15 bits**, que es la precisión a la que compara
+`snes_compare.py`: 0 pixeles de diferencia de 57344, medido en el mapa 7 a los
+180 cuadros. Que tres emuladores independientes coincidan es lo que vuelve
+creíble a cualquiera de ellos como segunda opinión.
 
-Y CON BSNES DEVUELVE UNA PANTALLA NEGRA, SIN DECIR NADA. El core carga la ROM,
-suena el audio, retro_run avanza, y el framebuffer viene en cero para cualquier
-cantidad de cuadros. No es la entropía, ni ppu_fast, ni las opciones, ni la
-respuesta a GET_OVERSCAN; durante retro_run sólo pide GET_VARIABLE_UPDATE y
-GET_FASTFORWARDING. Lo que sí se sabe es de quién es la culpa: **bajo RetroArch,
-el mismo core con la misma ROM dibuja bien**. O sea que falta algo de este
-frontend, no de la ROM. Mientras eso no se resuelva, este archivo sirve para
-snes9x y para nada más — y falla en silencio, que es la peor manera.
+Los tres tardaron en andar por errores de este archivo, no de ellos, y los tres
+fallaban en silencio o de una manera que no señalaba la causa. Vale la pena
+dejar escrito qué pedía cada uno, porque el contrato de libretro no lo dice tan
+claro:
 
-De paso, tres cosas que aprendimos y que valen para cualquier frontend:
+  * **El orden de las llamadas.** Los callbacks de video, audio e input van
+    DESPUÉS de `retro_init`, no antes; sólo el de entorno va antes. mesen-s
+    guarda el puntero adentro de un objeto que crea `retro_init`, así que
+    llamarlo antes escribe en la nada: segfault en `retro_set_video_refresh`,
+    sin un mensaje. Es el orden que usa RetroArch.
+  * **`need_fullpath`.** bsnes lo declara en `retro_get_system_info` y su
+    `retro_load_game` **ignora `game->data` por completo**: hace
+    `program->superFamicom.location = string(game->path)` y abre el archivo él
+    mismo. Con `path` en NULL cargaba "" y devolvía true igual, así que la ROM
+    nunca entraba: la pantalla quedaba negra, el audio sonaba —el APU corre sin
+    ROM— y nadie decía nada. Acá se le pasa siempre el path, y los datos sólo a
+    quien no pide el archivo.
+  * **El directorio del sistema.** mesen-s corta `retro_load_game` en la
+    primera línea si `GET_SYSTEM_DIRECTORY` contesta que no. Devolvía false y
+    listo.
+  * **Contestar "no hay variable" a `GET_VARIABLE` no es neutral.** El core se
+    queda con valores que uno no eligió. Acá se contesta el primer valor de cada
+    lista, que es el default por convención de libretro, y encima de eso van las
+    de OPCIONES.
 
-  * Contestar "no hay variable" a GET_VARIABLE no es neutral. bsnes se queda con
-    valores que uno no eligió y devuelve una pantalla negra con el audio
-    sonando. Acá se contesta el primer valor de cada lista, que es el default
-    por convención de libretro.
-  * bsnes_entropy viene en "Low": bsnes aleatoriza la RAM al encender, a
-    propósito. Para una prueba determinista hay que forzarlo a "None".
-  * bsnes_ppu_no_sprite_limit viene en OFF, que es lo que queremos: el límite de
-    sprites por línea es real y es justo lo que hoy esquiva --saltar.
+Lo que queda afuera a propósito: `GET_LOG_INTERFACE` se contesta que no. El
+callback es un printf variádico y ctypes no los arma; los tres cores se lo
+bancan y sólo se pierden mensajes de diagnóstico.
 """
 import ctypes
 import os
@@ -38,15 +48,46 @@ import sys
 
 from PIL import Image
 
-CORE = "/usr/lib/libretro/bsnes_libretro.so"
+# El de la tanda. No es el más preciso —bsnes lo es— sino el más rápido por
+# lejos: 2747 cuadros por segundo contra 121. El justfile elige con CORE.
+CORE = "/usr/lib/libretro/snes9x_libretro.so"
 
-# Los pocos comandos de entorno que hacen falta. El resto se contesta que no,
-# que es legal: el core tiene que arreglarse con sus valores por defecto.
+# Los comandos de entorno que hacen falta. Al resto se le contesta que no, que
+# es legal: el core tiene que arreglarse con sus valores por defecto.
 ENV_GET_OVERSCAN = 2
+ENV_GET_CAN_DUPE = 3
+ENV_GET_SYSTEM_DIRECTORY = 9
 ENV_SET_PIXEL_FORMAT = 10
 ENV_GET_VARIABLE = 15
 ENV_SET_VARIABLES = 16
+ENV_GET_SAVE_DIRECTORY = 31
 FORMATOS = {0: "0RGB1555", 1: "XRGB8888", 2: "RGB565"}
+
+# Las líneas que compara el proyecto. Cada core devuelve el alto que quiere
+# —bsnes y snes9x 224, mesen-s 239— y lo de más se recorta al centro, que es
+# donde cae la ventana de siempre: con mesen-s el recorte da (239-224)/2 = 7 y
+# es exactamente el que hace coincidir los tres cores en 0 pixeles.
+ALTO = 224
+
+# Lo que hay que forzarle a cada core para que dibuje lo mismo que los otros, y
+# para que la prueba mida lo que queremos. La clave es el `library_name` que
+# declara el core, no el nombre del archivo.
+OPCIONES = {
+    # El gamma de 150% es el de un televisor, y acá se compara contra una
+    # referencia en Python que no lo modela: con el default, bsnes difiere de
+    # snes9x en 56189 pixeles de 57344; con 100 difiere en 0.
+    #
+    # Y la entropía va al máximo a propósito, que es la razón por la que este
+    # core vale la pena: bsnes llena la WRAM de basura al encender, como la
+    # consola de verdad, y snes9x la deja en cero. Comentando las dos líneas
+    # que inicializan `ruta_n`/`ruta_i` en main.s —el error que taro encontró
+    # jugando y que la tanda no vio— sobre 20 corridas del mapa 7: con "None"
+    # difieren 0, con "Low" 3 y con "High" 11. Con la ROM sana, 20 corridas de
+    # 20 dan el mismo cuadro, así que esto no vuelve inestable a la tanda: sólo
+    # a un rojo que no siempre se repite, y un rojo así es un error de verdad.
+    # Para reproducirlo, `bsnes_entropy=None`.
+    "bsnes": {"bsnes_video_gamma": "100", "bsnes_entropy": "High"},
+}
 
 # RETRO_DEVICE_JOYPAD, en el orden en que los numera libretro.
 BOTONES = {"b": 0, "y": 1, "select": 2, "start": 3, "up": 4, "down": 5,
@@ -91,6 +132,15 @@ class Consola:
         self.lib.retro_get_system_info(ctypes.byref(info))
         self.nombre = "%s %s" % (info.library_name.decode(),
                                  info.library_version.decode())
+        # bsnes abre el archivo él mismo y ni mira `data`. Ver el docstring.
+        pide_archivo = info.need_fullpath
+        self._forzadas = dict(OPCIONES.get(info.library_name.decode(), {}),
+                              **self._forzadas)
+
+        # Adonde el core guarda partidas y busca BIOS. Al lado de la ROM, que
+        # es un directorio que ya es descartable; mesen-s no carga sin esto.
+        self._directorio = ctypes.c_char_p(
+            os.path.dirname(os.path.abspath(rom)).encode())
 
         # Los callbacks se guardan en self: si se los deja como temporales, el
         # recolector de Python los libera y el core llama a memoria muerta.
@@ -100,21 +150,28 @@ class Consola:
                                        ctypes.c_uint, ctypes.c_size_t)(self._on_video)
         self._audio = ctypes.CFUNCTYPE(ctypes.c_size_t, ctypes.c_void_p,
                                        ctypes.c_size_t)(self._on_audio)
+        self._audio_uno = ctypes.CFUNCTYPE(None, ctypes.c_int16,
+                                           ctypes.c_int16)(lambda i, d: None)
         self._poll = ctypes.CFUNCTYPE(None)(lambda: None)
         self._state = ctypes.CFUNCTYPE(ctypes.c_int16, ctypes.c_uint,
                                        ctypes.c_uint, ctypes.c_uint,
                                        ctypes.c_uint)(self._on_state)
 
+        # El de entorno antes de retro_init, el resto después: es el orden de
+        # RetroArch, y el único con el que mesen-s no se cae. Ver el docstring.
         self.lib.retro_set_environment(self._env)
+        self.lib.retro_init()
         self.lib.retro_set_video_refresh(self._video)
+        self.lib.retro_set_audio_sample(self._audio_uno)
         self.lib.retro_set_audio_sample_batch(self._audio)
         self.lib.retro_set_input_poll(self._poll)
         self.lib.retro_set_input_state(self._state)
-        self.lib.retro_init()
 
         datos = open(rom, "rb").read()
         self._buf = ctypes.create_string_buffer(datos, len(datos))
-        juego = GameInfo(None, ctypes.cast(self._buf, ctypes.c_void_p),
+        juego = GameInfo(os.path.abspath(rom).encode(),
+                         None if pide_archivo
+                         else ctypes.cast(self._buf, ctypes.c_void_p),
                          len(datos), None)
         # snes9x escribe "Map_LoROMMap" en la salida estándar al cargar. Es un
         # printf del core, no de Python, así que taparlo pide mover el descriptor
@@ -168,6 +225,14 @@ class Consola:
             # captura la consola, no lo que un televisor dejaría ver.
             ctypes.cast(data, ctypes.POINTER(ctypes.c_bool))[0] = True
             return True
+        if cmd == ENV_GET_CAN_DUPE:
+            # Sí: un cuadro repetido llega con data en NULL y `_on_video` se
+            # queda con el anterior, que es justo lo que la consola muestra.
+            ctypes.cast(data, ctypes.POINTER(ctypes.c_bool))[0] = True
+            return True
+        if cmd in (ENV_GET_SYSTEM_DIRECTORY, ENV_GET_SAVE_DIRECTORY) and data:
+            ctypes.cast(data, ctypes.POINTER(ctypes.c_char_p))[0] = self._directorio
+            return True
         return False
 
     def _on_video(self, data, w, h, pitch):
@@ -192,12 +257,15 @@ class Consola:
             self.lib.retro_run()
 
     def imagen(self):
-        """El último cuadro como PIL, a 8 bits por canal."""
+        """El último cuadro como PIL, a 8 bits por canal y recortado a ALTO."""
         datos, w, h, pitch = self.cuadro
         if self.formato == 1:                      # XRGB8888
             img = Image.frombuffer("RGBX", (pitch // 4, h), datos,
                                    "raw", "BGRX", 0, 1)
-            return img.convert("RGB").crop((0, 0, w, h))
-        modo = "BGR;16" if self.formato == 2 else "BGR;15"
-        img = Image.frombuffer("RGB", (pitch // 2, h), datos, "raw", modo, 0, 1)
-        return img.crop((0, 0, w, h))
+            img = img.convert("RGB")
+        else:
+            modo = "BGR;16" if self.formato == 2 else "BGR;15"
+            img = Image.frombuffer("RGB", (pitch // 2, h), datos, "raw", modo,
+                                   0, 1)
+        arriba = max(0, (h - ALTO) // 2)
+        return img.crop((0, arriba, w, arriba + min(h, ALTO)))

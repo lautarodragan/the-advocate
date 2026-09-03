@@ -440,9 +440,9 @@ def main():
                              "caminata, y en la pose de caminata que le toca. "
                              "Sin esto se dibuja donde termina, que es la "
                              "única pose que las pruebas miraban hasta ahora. "
-                             "Con varios avances el mapa se convierte una sola "
-                             "vez y el {} de -o lleva el avance en vez de la "
-                             "dirección")
+                             "Con avances el {} de -o lleva el avance en vez "
+                             "de la dirección, y si se piden varios el mapa se "
+                             "convierte una sola vez")
     parser.add_argument("--cuadros", type=int, default=None, metavar="N",
                         help="cuántos cuadros del intérprete simular. Hace "
                              "falta para comparar durante una espera: el "
@@ -545,22 +545,26 @@ def main():
     def salida(patron, etiqueta):
         """El nombre de archivo de esta vuelta.
 
-        La etiqueta es la dirección, o el avance cuando se piden varios. Con una
-        sola vuelta y sin `{}` el nombre queda igual que siempre, que es lo que
-        mantiene andando a las recetas que pasan una dirección sola.
+        La etiqueta es el avance si se pidió alguno, y si no la dirección. Con
+        una sola vuelta y sin `{}` el nombre queda igual que siempre, que es lo
+        que mantiene andando a las recetas que pasan una dirección sola.
         """
         return patron.format(etiqueta) if "{}" in patron else patron
 
-    # Qué se recorre: o varias direcciones, o varios avances de una misma
+    # Qué se recorre: o varias direcciones, o los avances de una misma
     # dirección. Los dos casos comparten la conversión del mapa, que es lo caro,
     # y en los dos el {} de -o lleva lo que está variando.
-    if args.avance and len(args.avance) > 1:
+    #
+    # Con avance la etiqueta es el avance aunque haya uno solo. Antes eso
+    # dependía de si eran uno o varios, y `snes-caminando` con un solo avance
+    # escribía la referencia como `-right` y después la buscaba como `-60`: la
+    # receta no andaba con menos de dos.
+    if args.avance:
         if len(args.walk) != 1:
-            sys.exit("con varios avances hay que pedir una sola dirección")
+            sys.exit("con avances hay que pedir una sola dirección")
         vueltas = [(args.walk[0], px, str(px)) for px in args.avance]
     else:
-        px = args.avance[0] if args.avance else None
-        vueltas = [(w, px, w) for w in args.walk]
+        vueltas = [(w, None, w) for w in args.walk]
 
     plan = []
     for walk, avance, etiqueta in vueltas:

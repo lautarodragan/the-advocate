@@ -46,6 +46,15 @@ export:
 # está acá y no escondida en un default: `GRUPO=10 just snes-hitos` corre con el
 # grupo de verdad.
 grupo    := env_var_or_default("GRUPO", "11")
+# Con qué core de libretro se corre. snes9x es el de la tanda por una razón
+# medida: bsnes emula 121 cuadros por segundo contra 2747 de snes9x, y con él
+# los cuatro minutos de `snes-hitos` se irían a media hora. bsnes entra por
+# `snes-bsnes`, que corre dos casos y cuesta veinte segundos. Para mirar
+# cualquier otro caso con otro core: `CORE=bsnes just snes-heroe 7`. Los tres
+# que hay instalados —snes9x, bsnes y mesen-s— dibujan el mismo cuadro a 15
+# bits; ver `tools/retro.py`.
+core     := env_var_or_default("CORE", "snes9x")
+nucleo   := "/usr/lib/libretro/" + core + "_libretro.so"
 corrida  := env_var_or_default("CORRIDA", "")
 snes_dir := if corrida == "" { "rom/build" } else { "rom/build" / corrida }
 snes_rom := snes_dir / (if corrida == "" { "abl.sfc" } else { corrida + ".sfc" })
@@ -65,7 +74,7 @@ snes-build:
 # Corre la ROM sin pantalla y captura lo que dibuja. Las teclas se mantienen
 # apretadas mientras corre, para capturar con la cámara movida.
 snes-shot nombre="mapa" cuadros="240" teclas="":
-  python3 tools/snes_correr.py {{snes_rom}} -o {{snes_pngs}}/{{nombre}}.png \
+  python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o {{snes_pngs}}/{{nombre}}.png \
       --cuadros {{cuadros}} --teclas $(echo "{{teclas}}" | tr 'A-Z' 'a-z')
 
 # La captura contra el render de Python, pixel por pixel y a 15 bits.
@@ -92,7 +101,7 @@ snes-walk mapa="7" direccion="none" mapas="" inicial="0" nombre=(mapa + "-" + di
       --saltar {{snes_pngs}}/saltar-{{nombre}}.txt \
       --plan {{snes_pngs}}/plan-{{nombre}}.txt \
       -o {{snes_pngs}}/esperado-{{nombre}}.png
-  python3 tools/snes_correr.py {{snes_rom}} -o {{snes_pngs}}/{{nombre}}.png \
+  python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o {{snes_pngs}}/{{nombre}}.png \
       --walk {{direccion}} --plan {{snes_pngs}}/plan-{{nombre}}.txt
   python3 tools/snes_compare.py {{snes_pngs}}/{{nombre}}.png \
       {{snes_pngs}}/esperado-{{nombre}}.png \
@@ -123,7 +132,7 @@ snes-puerta origen="30" destino="28" direccion="down" nombre=("puerta-" + origen
       --walk {{direccion}} --saltar {{snes_pngs}}/saltar-{{nombre}}.txt \
       --plan {{snes_pngs}}/plan-{{nombre}}.txt \
       -o {{snes_pngs}}/esperado-{{nombre}}.png
-  python3 tools/snes_correr.py {{snes_rom}} -o {{snes_pngs}}/{{nombre}}.png \
+  python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o {{snes_pngs}}/{{nombre}}.png \
       --walk {{direccion}} --plan {{snes_pngs}}/plan-{{nombre}}.txt \
       --margen 16
   python3 tools/snes_compare.py {{snes_pngs}}/{{nombre}}.png \
@@ -250,7 +259,7 @@ snes-pagina mapa="121" arranca="10" nombre=("pagina-" + mapa):
   python3 tools/snes_expect.py --grupo {{arranca}} --map-id {{mapa}} \
       --walk none --saltar {{snes_pngs}}/saltar-{{nombre}}.txt \
       -o {{snes_pngs}}/esperado-{{nombre}}.png
-  python3 tools/snes_correr.py {{snes_rom}} -o {{snes_pngs}}/{{nombre}}.png \
+  python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o {{snes_pngs}}/{{nombre}}.png \
       --walk none --cuadros 240
   python3 tools/snes_compare.py {{snes_pngs}}/{{nombre}}.png \
       {{snes_pngs}}/esperado-{{nombre}}.png \
@@ -303,6 +312,33 @@ snes-mednafen:
       --saltar {{snes_pngs}}/saltar-med-walk.txt \
       -o {{snes_pngs}}/comparacion-med-walk.png
 
+# La otra segunda opinión, la que sí sale gratis: los mismos casos en bsnes.
+#
+# bsnes es el emulador preciso, y sobre todo es el que **llena la WRAM de basura
+# al encender** —`bsnes_entropy`, que acá va en "High"—, que es lo que hace la
+# consola de verdad y lo que snes9x no hace: snes9x arranca la RAM en cero, y
+# por eso la tanda entera daba verde con `ruta_n`/`ruta_i` sin inicializar. Con
+# esto la tanda ve esa clase de error sola, sin que nadie tenga que jugar.
+#
+# Cuánto ve, medido y no supuesto: comentando esas dos líneas de `main.s`, sobre
+# 20 corridas del mapa 7, con "None" difieren 0 cuadros, con "Low" 3 y con
+# "High" 11. O sea que no lo agarra siempre —la basura tiene que caer en un
+# valor que rompa—, pero lo agarra la mitad de las veces y no cuesta nada. Con
+# la ROM sana, 20 de 20 dan el mismo cuadro.
+#
+# Son los mismos dos casos que `snes-mednafen` y por lo mismo: uno que tiñe
+# desde un evento —CGRAM y el intérprete— y uno que camina —la RAM del control—.
+# No la reemplaza: mednafen no es un core de libretro, así que también prueba
+# que `tools/retro.py` no se esté equivocando parejo con los tres cores.
+#
+# Va por CORE y no por `just --set` porque las recetas se llaman entre ellas: la
+# variable de entorno cruza a los `just` de adentro y el `--set` no.
+snes-bsnes:
+  #!/usr/bin/env bash
+  set -euo pipefail
+  CORE=bsnes just snes-evento 4 1 bsnes-evento
+  CORE=bsnes just snes-caminando 73 right 60 bsnes-73-right
+
 # Que una espera espere de verdad, con una página inventada.
 #
 # El intérprete corre cuadro a cuadro desde que dejó de colapsar el tiempo, pero
@@ -330,7 +366,7 @@ snes-espera mapa="73" espera="120" antes="60" despues="400" nombre="espera":
         --pagina-de-prueba {{espera}} 0 0 50 --cuadros $n \
         --saltar {{snes_pngs}}/saltar-{{nombre}}-$n.txt \
         -o {{snes_pngs}}/esperado-{{nombre}}-$n.png
-    python3 tools/snes_correr.py {{snes_rom}} -o {{snes_pngs}}/{{nombre}}-$n.png \
+    python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o {{snes_pngs}}/{{nombre}}-$n.png \
         --walk none --cuadros $n --arranque 0
     python3 tools/snes_compare.py {{snes_pngs}}/{{nombre}}-$n.png \
         {{snes_pngs}}/esperado-{{nombre}}-$n.png \
@@ -351,7 +387,7 @@ snes-espera mapa="73" espera="120" antes="60" despues="400" nombre="espera":
 # Los avances por defecto caen en columnas distintas del ciclo: 40 px son 20
 # cuadros moviéndose y da la columna 0, 60 da la 2 y 80 da la 1. Errarle por un
 # solo cuadro mueve unos 25000 pixeles, así que la prueba es de las filosas.
-snes-caminando mapa="73" direccion="right" avances="40 60 80":
+snes-caminando mapa="73" direccion="right" avances="40 60 80" nombre=(mapa + "-" + direccion):
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
@@ -360,12 +396,12 @@ snes-caminando mapa="73" direccion="right" avances="40 60 80":
   # Las referencias de todos los avances salen de una sola corrida, por lo
   # mismo que las de las cinco direcciones: convertir el mapa es lo caro y no
   # depende del avance.
-  pre={{snes_pngs}}/{{mapa}}-{{direccion}}
+  pre={{snes_pngs}}/{{nombre}}
   python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk {{direccion}} \
       --avance {{avances}} --saltar $pre-{}.saltar.txt \
       -o $pre-{}.esperado.png
   for px in {{avances}}; do
-    python3 tools/snes_correr.py {{snes_rom}} -o $pre-$px.png \
+    python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre-$px.png \
         --walk {{direccion}} --avance $px
     python3 tools/snes_compare.py $pre-$px.png $pre-$px.esperado.png \
         --saltar $pre-$px.saltar.txt -o $pre-$px.comparacion.png
@@ -525,7 +561,7 @@ snes-heroe mapa="7":
       --saltar {{snes_pngs}}/saltar-{{mapa}}-{}.txt \
       --plan {{snes_pngs}}/plan-{{mapa}}.txt \
       -o {{snes_pngs}}/esperado-{{mapa}}-{}.png
-  python3 tools/snes_correr.py {{snes_rom}} \
+  python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} \
       -o {{snes_pngs}}/{{mapa}}-{}.png --walk none right left up down \
       --plan {{snes_pngs}}/plan-{{mapa}}.txt
   for d in none right left up down; do
