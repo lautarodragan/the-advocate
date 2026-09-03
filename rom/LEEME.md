@@ -776,6 +776,19 @@ de encima mandaba una paleta vacía y arrasaba CGRAM entera, paletas de sprites
 incluidas. Cualquier tamaño que salga de un conteo tiene que garantizarse
 distinto de cero.
 
+**CGRAM y VRAM sólo aceptan escrituras con el PPU sin dibujar.** Obvio dicho
+así, y sin embargo mordió dos veces el mismo día, las dos cuando el intérprete
+de eventos se mudó de `cargar_mapa` —donde la pantalla estaba apagada— al lazo
+principal, donde no. Un teletransporte cargaba el mapa nuevo y no llegaba nada a
+la VRAM: se seguía viendo el viejo, como si el salto no hubiera ocurrido. Y un
+tinte entraba **a medias**: quedaban teñidos la capa de encima y un sprite, y el
+resto no, según qué escritura pescara el vblank.
+
+Lo segundo no lo vio la tanda: snes9x acepta esas escrituras y mednafen no. Lo
+encontró taro jugando. La carga de mapa se arregla apagando la pantalla, como ya
+hacía `cruzar_puerta`; el tinte, difiriéndolo a `flush_video`, que corre en el
+vblank.
+
 **Un bloque de cero bytes no es un bloque.** La subida al SPC700 va por el
 protocolo del IPL —dirección, un puerto en no-cero, el índice—, y con cero bytes
 del otro lado nadie contesta: la ROM se queda esperando el handshake. Pasaba con

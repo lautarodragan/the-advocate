@@ -157,6 +157,10 @@ commit narra lo hecho; los supuestos no tienen dónde vivir. Acá.
   `ruta_i` sin inicializar hacían que `move_hero` creyera que había una ruta
   forzada pendiente y no leyera el pad nunca; el héroe no se movía y la tanda no
   se enteraba.
+  Y no fue la única: el tinte pedido por un evento se aplicaba con la pantalla
+  encendida, así que entraba a medias —CGRAM no acepta escrituras mientras el
+  PPU dibuja—. snes9x las acepta igual; mednafen no. Las dos las encontró taro
+  jugando, con la tanda en verde.
   Es la trampa que el LEEME ya tenía anotada, ahora cobrada en serio. Y tiene una
   salida concreta: **bsnes tiene `bsnes_entropy`, que aleatoriza la RAM al
   encender**. Es la segunda razón para hacerlo andar —la primera era tener una

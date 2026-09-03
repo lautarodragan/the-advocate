@@ -248,6 +248,8 @@ RUTA_MAX = 32
 ruta:        .res 32
 ruta_n:      .res 1
 ruta_i:      .res 1
+; Un tinte pedido por un evento, para aplicarlo en el vblank siguiente.
+tinte_pendiente: .res 1
 ; El grupo, en orden. El gráfico del héroe es el del primero —RM2k lo decide
 ; así, y `AddActor`/`RemoveActor` llaman los dos a `ResetGraphic`—, o sea que
 ; esto no es contabilidad: se ve en la pantalla. `hero_poses` apunta a las doce
@@ -370,6 +372,7 @@ grupo_listo:
     stz cola_i
     stz ruta_n                  ; sin ruta forzada pendiente
     stz ruta_i
+    stz tinte_pendiente
     rep #$20
 .a16
     stz ev_esperando
@@ -1205,9 +1208,15 @@ op_tinte:
     iny
     iny                         ; la saturación: el conversor sólo deja pasar
                                 ; la neutra, así que no hay nada que hacer
-    phy
-    jsr aplicar_tinte
-    ply
+    ; El tinte no se aplica acá: se pide, y lo hace `flush_video` en el vblank
+    ; siguiente. `aplicar_tinte` sube tres paletas a CGRAM por DMA, y con el PPU
+    ; dibujando esas escrituras se pierden. Mientras el intérprete corría adentro
+    ; de `cargar_mapa`, con la pantalla apagada, no hacía falta; al mudarlo al
+    ; lazo principal pasó a ejecutarse con la pantalla encendida y el tinte
+    ; entraba a medias —quedaban teñidos la capa de encima y un sprite, y el
+    ; resto no, según qué escritura pescara el vblank—.
+    lda #1
+    sta tinte_pendiente
     jmp otro                    ; `bra` no llega: el lazo quedó lejos
 
 op_teleport:
@@ -2566,6 +2575,13 @@ columna:
 .proc flush_video
 .a8
 .i16
+    ; Lo primero, que es lo que más vblank consume: el tinte que haya pedido un
+    ; evento. CGRAM sólo acepta escrituras con el PPU sin dibujar.
+    lda tinte_pendiente
+    beq sin_tinte
+    stz tinte_pendiente
+    jsr aplicar_tinte
+sin_tinte:
     jsr push_oam
 
     ; Los dos registros de scroll son de escritura doble: primero el byte bajo
