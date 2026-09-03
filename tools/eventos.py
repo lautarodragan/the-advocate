@@ -89,7 +89,8 @@ ACEPTADOS_SIN_HACER = {
 OP_FIN      = 0x00
 OP_SWITCH   = 0x01      # id (word), valor (byte)
 OP_TELEPORT = 0x02      # mapa (byte), x (word), y (word)
-OP_ESPERAR  = 0x03      # cuadros (byte)
+OP_ESPERAR  = 0x03      # cuadros (word): la cinemática espera seis
+                        # segundos, o sea 360, y no entran en un byte
 OP_TINTE    = 0x04      # r, g, b, sat (byte cada uno)
 OP_GRUPO    = 0x05      # operación (byte), actor (byte)
 OP_RUTA     = 0x06      # cuántos comandos (byte), y los comandos
@@ -186,9 +187,9 @@ def _compilar(cmd, indice_de_mapa):
         if len(p) < 1:
             raise NoSePuede()
         cuadros = p[0] * CUADROS_POR_DECIMA
-        if cuadros > 255:
-            raise NoSePuede()       # una espera larga pide un contador de 16
-        return bytes([OP_ESPERAR, cuadros])
+        if cuadros > 0xFFFF:
+            raise NoSePuede()
+        return bytes([OP_ESPERAR, cuadros & 0xFF, cuadros >> 8])
 
     if cmd.code == TINT_SCREEN:
         if len(p) < 4:
@@ -273,8 +274,65 @@ def pagina_activa(paginas, evento, estado):
     return elegida
 
 
-def correr_automaticos(paginas, estado):
-    """Corre las páginas automáticas activas del mapa. Devuelve el salto.
+class Interprete:
+    """El intérprete corriendo, con su cursor y su espera, cuadro a cuadro.
+
+    Antes esto era una sola pasada: la página entera se ejecutaba de golpe, con
+    la pantalla apagada mientras se cargaba el mapa, y las esperas se salteaban.
+    Eso colapsaba el tiempo. Todo lo que en RM2k pasa *durante* una página —una
+    espera de seis segundos, un NPC caminando su ruta, un fundido— no existía:
+    quedaba nada más el estado final. Y como el 46% de las páginas automáticas
+    del juego terminan en un teletransporte, lo que ocurría antes del salto era
+    además imposible de verificar, porque el cuadro que se compara ya está en el
+    mapa de destino.
+
+    Ahora avanza un cuadro por vuelta, igual que `eventos_tick` en la ROM:
+    ejecuta opcodes hasta toparse con una espera o con un teletransporte, y ahí
+    devuelve el control.
+    """
+
+    def __init__(self, paginas, estado):
+        self.estado = estado
+        # Las páginas elegidas, en el orden en que la ROM recorre los eventos.
+        self.cola = []
+        for evento in sorted({p["evento"] for p in paginas}):
+            pagina = pagina_activa(paginas, evento, estado)
+            if (pagina is not None
+                    and pagina["trigger"] == TRIGGER_AUTOMATICO
+                    and pagina["codigo"]):
+                self.cola.append(pagina["codigo"])
+        self.codigo = None
+        self.cursor = 0
+        self.esperando = 0
+
+    @property
+    def terminado(self):
+        return self.codigo is None and not self.cola
+
+    def cuadro(self):
+        """Avanza un cuadro. Devuelve True si en éste se pidió un salto."""
+        if self.esperando:
+            self.esperando -= 1
+            return False
+        while True:
+            if self.codigo is None:
+                if not self.cola:
+                    return False
+                self.codigo, self.cursor = self.cola.pop(0), 0
+            corte = ejecutar(self.codigo, self.estado, self.cursor)
+            if corte is None:               # la página terminó
+                self.codigo = None
+                continue
+            self.cursor, self.esperando, salto = corte
+            return salto
+
+
+def correr_automaticos(paginas, estado, cuadros=100000):
+    """Corre las páginas automáticas del mapa hasta que pidan un salto.
+
+    Atajo para quien no necesita mirar el tiempo: adelanta cuadros hasta que el
+    intérprete pida mudarse o se quede sin páginas. Lo que sí mira el tiempo
+    —la referencia de la pantalla— usa `Interprete` directamente.
 
     El salto pendiente se borra al entrar, que es el `stz salto_hay` de la ROM:
     sin eso, el primer mapa que teletransporta dejaría el salto puesto y el
@@ -282,25 +340,27 @@ def correr_automaticos(paginas, estado):
     ningún evento.
     """
     estado.salto = None
-    for evento in sorted({p["evento"] for p in paginas}):
-        pagina = pagina_activa(paginas, evento, estado)
-        if pagina is None or pagina["trigger"] != TRIGGER_AUTOMATICO:
-            continue
-        if not pagina["codigo"]:
-            continue
-        ejecutar(pagina["codigo"], estado)
-        if estado.salto:
+    interprete = Interprete(paginas, estado)
+    for _ in range(cuadros):
+        if interprete.cuadro():
             return estado.salto
+        if interprete.terminado:
+            break
     return None
 
 
-def ejecutar(codigo, estado):
-    """Un opcode por vuelta hasta el FIN, igual que correr_codigo en la ROM."""
-    i = 0
+def ejecutar(codigo, estado, desde=0):
+    """Corre la página desde `desde` hasta toparse con una espera o el final.
+
+    Devuelve None si la página terminó, o (cursor, cuadros_a_esperar, salto) si
+    hay que devolver el control. Igual que `correr_codigo` en la ROM, que ahora
+    también vuelve con el cursor guardado en vez de correr la página entera.
+    """
+    i = desde
     while i < len(codigo):
         op = codigo[i]
         if op == OP_FIN:
-            return
+            return None
         if op == OP_SWITCH:
             numero = codigo[i + 1] | (codigo[i + 2] << 8)
             if codigo[i + 3]:
@@ -325,9 +385,13 @@ def ejecutar(codigo, estado):
             estado.salto = (codigo[i + 1],
                             codigo[i + 2] | (codigo[i + 3] << 8),
                             codigo[i + 4] | (codigo[i + 5] << 8))
-            i += 6
+            return (i + 6, 0, True)     # corta el cuadro, como `return false`
         elif op == OP_ESPERAR:
-            i += 2              # la espera se saltea, igual que en la ROM
+            # Y acá se devuelve el control. Antes se salteaba: "no tenemos
+            # cuadros que dejar pasar", decía el comentario, y era cierto
+            # mientras la página corriera entera con la pantalla apagada.
+            cuadros = codigo[i + 1] | (codigo[i + 2] << 8)
+            return (i + 3, cuadros, False)
         elif op == OP_RUTA:
             cuantos = codigo[i + 1]
             for orden in codigo[i + 2:i + 2 + cuantos]:
@@ -344,6 +408,7 @@ def ejecutar(codigo, estado):
             i += 5
         else:
             raise ValueError("opcode %d que no conozco" % op)
+    return None
 
 
 def tenir(palabra, tinte):

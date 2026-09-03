@@ -50,6 +50,18 @@ opinión sale gratis —`snes_correr.py --core` ya existe— y encima bsnes es e
 preciso y el que aleatoriza la RAM al encender, que es lo más parecido a la
 consola de verdad.
 
+**En curso: el intérprete corre cuadro a cuadro.** Hecho el 2026-09-03 de los
+dos lados. Antes `cargar_mapa` ejecutaba todas las páginas de una sola pasada,
+con la pantalla apagada, y las esperas se salteaban: el tiempo quedaba
+colapsado y nada de lo que en RM2k pasa *durante* una página existía. Como el
+46% de las páginas automáticas del juego terminan en un teletransporte, eso
+además volvía imposible de verificar todo lo anterior al salto.
+
+Ahora las páginas elegidas se encolan al cargar el mapa y el lazo principal las
+va comiendo; las esperas esperan y el teletransporte corta el cuadro, como el
+`return false` de easyrpg-player. Falta lo que esto habilita: las rutas
+forzadas caminando y el clima.
+
 El corte siguiente, sin empezar: **la cinemática de apertura**.
 El mapa 4 ya prende el switch 20, que es la condición de la página que abre el
 mapa 1, así que el enganche funciona. Falta que exista un grupo —la condición

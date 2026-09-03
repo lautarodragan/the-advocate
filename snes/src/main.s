@@ -229,6 +229,18 @@ salto_x:     .res 2     ; y a qué celda. salto_hay dice si hay uno pendiente
 salto_y:     .res 2
 salto_hay:   .res 1
 saltos_restantes: .res 1 ; cuántas cadenas de teletransporte quedan permitidas
+; El intérprete corre de a un cuadro, no de una sola pasada. Antes `cargar_mapa`
+; ejecutaba todas las páginas del tirón con la pantalla apagada y las esperas se
+; salteaban: eso colapsaba el tiempo, y todo lo que en RM2k pasa *durante* una
+; página no existía. Ahora las páginas elegidas se encolan al cargar el mapa y
+; el lazo principal las va comiendo.
+COLA_MAX = 8
+cola:        .res 24    ; hasta ocho punteros de tres bytes
+cola_n:      .res 1     ; cuántas hay
+cola_i:      .res 1     ; cuál sigue
+ev_cur:      .res 2     ; el cursor dentro de la página que corre
+ev_activo:   .res 1     ; si hay una página a medio correr
+ev_esperando: .res 2    ; cuántos cuadros faltan de la espera en curso
 ; El grupo, en orden. El gráfico del héroe es el del primero —RM2k lo decide
 ; así, y `AddActor`/`RemoveActor` llaman los dos a `ResetGraphic`—, o sea que
 ; esto no es contabilidad: se ve en la pantalla. `hero_poses` apunta a las doce
@@ -334,6 +346,22 @@ grupo_listo:
     sep #$20
 .a8
 
+    ; El intérprete, en cero antes de cargar nada. La RAM arranca con basura y
+    ; `eventos_tick` la lee en el primer cuadro: con `ev_esperando` en cualquier
+    ; cosa se queda descontando para siempre y ninguna página corre nunca. Es la
+    ; tercera vez hoy que un estado nuevo se inicializa del lado equivocado de
+    ; `cargar_mapa`; el patrón es siempre el mismo y el síntoma también, que la
+    ; ROM parece andar y no hace nada.
+    stz ev_activo
+    stz cola_n
+    stz cola_i
+    rep #$20
+.a16
+    stz ev_esperando
+    stz ev_cur
+    sep #$20
+.a8
+
     ; Mirando a cámara, como arranca RM2k. Va antes de cargar el primer mapa
     ; porque ahí corren sus eventos, y una ruta forzada puede girarlo: si esto
     ; quedara después, pisaría lo que la ruta acaba de decidir.
@@ -371,6 +399,7 @@ loop:
     ; significaría esperar al cuadro siguiente: medio cuadro por vuelta.
     jsr read_pad
     jsr flush_video             ; lo del cuadro anterior, todavía en vblank
+    jsr eventos_tick
     jsr move_hero
     jsr animate_hero
     jsr follow_camera
@@ -697,10 +726,64 @@ puesto:
     sta saltos_restantes        ; con stx serían dos bytes y pisaría el de al lado
     pla
     jsr cargar_mapa_sin_eventos
-otra_vez:
-    jsr correr_eventos
+    jsr encolar_eventos
+    rts
+.endproc
+
+; Un cuadro del intérprete, desde el lazo principal.
+;
+; Acá estaba el cambio de fondo: antes `cargar_mapa` corría todas las páginas de
+; una, con la pantalla apagada, y volvía con todo hecho. El tiempo quedaba
+; colapsado —las esperas se salteaban, y lo que pasaba antes de un
+; teletransporte no se veía nunca— y por eso nada de eso se podía verificar.
+;
+; Un teletransporte se atiende acá y no adentro del intérprete: llamar a
+; `cargar_mapa` desde ahí sería recursión, y dos mapas que se apuntan entre sí
+; la harían infinita. El tope de saltos sigue por la misma razón.
+.proc eventos_tick
+.a8
+.i16
+    rep #$20
+.a16
+    lda ev_esperando
+    beq sin_espera
+    dec a
+    sta ev_esperando
+    sep #$20
+.a8
+    rts
+sin_espera:
+    sep #$20
+.a8
+
+    lda ev_activo
+    bne corriendo
+    ; No hay página a medio correr: se toma la siguiente de la cola.
+    lda cola_i
+    cmp cola_n
+    beq nada                    ; no queda ninguna
+    asl a
+    clc
+    adc cola_i                  ; índice * 3, en ocho bits
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    lda cola, x
+    sta cod_ptr
+    stz ev_cur
+    sep #$20
+.a8
+    lda cola + 2, x
+    sta cod_ptr + 2
+    inc cola_i
+    lda #1
+    sta ev_activo
+
+corriendo:
+    jsr correr_codigo
     lda salto_hay
-    beq listo
+    beq nada
     stz salto_hay
     rep #$20
 .a16
@@ -711,11 +794,24 @@ otra_vez:
     sep #$20
 .a8
     dec saltos_restantes
-    beq listo                   ; demasiadas vueltas: se queda en este mapa
+    beq nada                    ; demasiadas vueltas: se queda donde está
+    ; La pantalla se apaga para cargar, igual que al cruzar una puerta:
+    ; `cargar_mapa_sin_eventos` escribe VRAM y CGRAM por DMA, y con el PPU
+    ; dibujando esas escrituras se pierden. Antes esto no hacía falta porque el
+    ; intérprete corría adentro de `cargar_mapa`, con la pantalla ya apagada;
+    ; al mudarlo al lazo principal el teletransporte pasó a ejecutarse con la
+    ; pantalla encendida y el mapa nuevo simplemente no llegaba a la VRAM: se
+    ; veía el mapa viejo, teñido, como si el salto no hubiera ocurrido.
+    lda #$80
+    sta INIDISP
     lda salto_mapa
     jsr cargar_mapa_sin_eventos
-    bra otra_vez
-listo:
+    lda #$0F
+    sta INIDISP
+    ; La página que pidió el salto sigue corriendo del otro lado: su código está
+    ; en la ROM y el cursor quedó guardado. Las páginas del mapa nuevo se
+    ; encolan recién cuando ésta termine.
+nada:
     rts
 .endproc
 
@@ -728,9 +824,11 @@ listo:
 ;
 ; Sólo se corren las automáticas. Las de contacto ya las cubren las puertas, y
 ; las de botón necesitan que haya un botón que apretar.
-.proc correr_eventos
+.proc encolar_eventos
 .a8
 .i16
+    stz cola_n
+    stz cola_i
     ldx mapa_ofs
     rep #$20
 .a16
@@ -942,8 +1040,30 @@ falla:
 .a8
     lda elegida + 2
     sta cod_ptr + 2
-    stz elegida_hay             ; que no se ejecute dos veces
-    jsr correr_codigo
+    stz elegida_hay             ; que no se encole dos veces
+    ; A la cola en vez de ejecutarla: el lazo principal la va a correr cuadro a
+    ; cuadro. Si la cola está llena se descarta, que es preferible a pisar RAM
+    ; de al lado; ningún mapa del juego llega a ocho páginas automáticas.
+    lda cola_n
+    cmp #COLA_MAX
+    beq no
+    ; El índice por tres, en ocho bits. En dieciséis, `adc cola_n` leería dos
+    ; bytes y se llevaría puesto el de al lado: es la trampa del ancho que ya
+    ; mordió dos veces hoy.
+    asl a                       ; 2n
+    clc
+    adc cola_n                  ; 3n
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    lda elegida
+    sta cola, x
+    sep #$20
+.a8
+    lda elegida + 2
+    sta cola + 2, x
+    inc cola_n
 no:
     rts
 .endproc
@@ -961,7 +1081,7 @@ no:
 .proc correr_codigo
 .a8
 .i16
-    ldy #$0000
+    ldy ev_cur                  ; donde quedó el cuadro anterior
 otro:
     lda [cod_ptr], y
     iny
@@ -977,7 +1097,8 @@ otro:
     beq op_grupo
     cmp #OP_RUTA
     beq op_ruta
-    rts                         ; OP_FIN, o algo que no conocemos: se corta
+    stz ev_activo               ; OP_FIN, o algo que no conocemos: se corta
+    rts
 
 op_switch:
     rep #$20
@@ -1035,11 +1156,21 @@ op_grupo:
     bra otro
 
 op_esperar:
-    ; La espera se saltea. No tenemos cuadros que dejar pasar acá: esto corre
-    ; con la pantalla apagada mientras se carga el mapa, y lo que se compara es
-    ; la pantalla ya asentada. Lo que se pierde es el tiempo, no la imagen.
+    ; Y acá se devuelve el control. Antes se salteaba, y el comentario decía
+    ; que no había cuadros que dejar pasar porque esto corría con la pantalla
+    ; apagada mientras se cargaba el mapa. Eso dejó de ser cierto: el intérprete
+    ; corre desde el lazo principal, con la pantalla encendida, y una espera de
+    ; RM2k es tiempo que el jugador ve pasar.
+    rep #$20
+.a16
+    lda [cod_ptr], y            ; cuántos cuadros, de dieciséis bits
+    sta ev_esperando
+    sep #$20
+.a8
     iny
-    bra otro
+    iny
+    sty ev_cur
+    rts
 
 op_tinte:
     lda [cod_ptr], y
@@ -1056,7 +1187,7 @@ op_tinte:
     phy
     jsr aplicar_tinte
     ply
-    bra otro
+    jmp otro                    ; `bra` no llega: el lazo quedó lejos
 
 op_teleport:
     lda [cod_ptr], y
@@ -1076,19 +1207,15 @@ op_teleport:
     sta salto_hay
     iny                         ; los dos bytes de la Y, que se leyeron sin
     iny                         ; avanzar el cursor
-    ; Y se sigue con el resto de la página. Acá había un `rts` que decía "el
-    ; resto no corre: RM2k tampoco", y era falso: en
-    ; `Game_Interpreter_Map::CommandTeleport` el motor *reserva* el
-    ; teletransporte, hace `index++` y devuelve false, o sea que corta el cuadro
-    ; pero retoma en el comando siguiente una vez hecho el cambio de mapa.
-    ;
-    ; Acá la página entera corre de una, así que "retomar después" y "seguir" es
-    ; lo mismo, y con dos teletransportes gana el último —que es también dónde
-    ; RM2k deja al héroe—. Ninguna página del juego que hoy compile tiene
-    ; comandos después de un teletransporte, así que este camino todavía no lo
-    ; ejercita ninguna prueba: está en la lista de ESTADO.md. Lo va a ejercitar
-    ; la cinemática de apertura, que tiene once comandos después del primero.
-    jmp otro                    ; `bra` no llega: el lazo quedó lejos
+    ; Y corta el cuadro, que es exactamente lo que hace
+    ; `Game_Interpreter_Map::CommandTeleport` en easyrpg-player: reserva el
+    ; salto, hace `index++` y devuelve false. El mapa se carga entre este cuadro
+    ; y el siguiente, y la página retoma en el comando de después con el cursor
+    ; guardado acá. Ninguna página del juego que hoy compile tiene comandos
+    ; después de un teletransporte —está en la lista de ESTADO.md—; la
+    ; cinemática de apertura tiene once.
+    sty ev_cur
+    rts
 .endproc
 
 ; --- el tinte de pantalla --------------------------------------------------
