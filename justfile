@@ -257,6 +257,41 @@ snes-pagina mapa="121" arranca="10" nombre=("pagina-" + mapa):
       --saltar {{snes_pngs}}/saltar-{{nombre}}.txt \
       -o {{snes_pngs}}/comparacion-{{nombre}}.png
 
+# Que una espera espere de verdad, con una página inventada.
+#
+# El intérprete corre cuadro a cuadro desde que dejó de colapsar el tiempo, pero
+# **ninguna página del juego que compile tiene una espera**, así que ese camino
+# —el corazón del cambio— no lo ejercitaba nada. Es el mismo caso que
+# `snes-encima`, que existe porque ningún evento del juego llega a la prioridad
+# 2: lo sintético es la entrada, no la comparación. Los dos lados corren el mismo
+# bytecode y se comparan como siempre, la ROM contra la referencia.
+#
+# Se mira antes y después, no el cuadro exacto en que cambia. El arranque de la
+# ROM incluye la subida al SPC700 —unos 42 cuadros cuando el mapa tiene música—
+# y la referencia no modela eso, así que el borde cae en cuadros distintos de
+# cada lado. Con margen a los dos lados eso no importa y la prueba sigue siendo
+# filosa: si la espera no esperara, a los 60 cuadros ya estaría teñida. Entre las
+# dos capturas hay 57247 pixeles de diferencia.
+snes-espera mapa="73" espera="120" antes="60" despues="400" nombre="espera":
+  #!/usr/bin/env bash
+  set -euo pipefail
+  mkdir -p {{snes_pngs}} {{snes_inc}}
+  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
+      --pagina-de-prueba {{espera}} 0 0 50 -o {{snes_inc}}/mapdata.inc
+  just snes-build
+  for n in {{antes}} {{despues}}; do
+    python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
+        --pagina-de-prueba {{espera}} 0 0 50 --cuadros $n \
+        --saltar {{snes_pngs}}/saltar-{{nombre}}-$n.txt \
+        -o {{snes_pngs}}/esperado-{{nombre}}-$n.png
+    python3 tools/snes_correr.py {{snes_rom}} -o {{snes_pngs}}/{{nombre}}-$n.png \
+        --walk none --cuadros $n --arranque 0
+    python3 tools/snes_compare.py {{snes_pngs}}/{{nombre}}-$n.png \
+        {{snes_pngs}}/esperado-{{nombre}}-$n.png \
+        --saltar {{snes_pngs}}/saltar-{{nombre}}-$n.txt \
+        -o {{snes_pngs}}/comparacion-{{nombre}}-$n.png
+  done
+
 # El héroe a mitad de camino: se lo captura con N pixeles andados, en la pose
 # de caminata que le toca, y se compara contra la referencia calculada para ese
 # mismo avance.

@@ -59,8 +59,18 @@ además volvía imposible de verificar todo lo anterior al salto.
 
 Ahora las páginas elegidas se encolan al cargar el mapa y el lazo principal las
 va comiendo; las esperas esperan y el teletransporte corta el cuadro, como el
-`return false` de easyrpg-player. Falta lo que esto habilita: las rutas
-forzadas caminando y el clima.
+`return false` de easyrpg-player.
+
+Y ya está verificado. Ninguna página del juego que compile tiene una espera, así
+que `snes-espera` corre una **página inventada** —esperar N cuadros y después
+teñir—, del mismo modo que `snes-encima` existe porque ningún evento del juego
+llega a la prioridad 2: lo sintético es la entrada, no la comparación. Se mira
+antes y después con margen y no el cuadro exacto del borde, porque el arranque
+de la ROM incluye la subida al SPC700 —unos 42 cuadros cuando el mapa tiene
+música— y la referencia no modela eso. Entre las dos capturas hay 57247 pixeles
+de diferencia, así que si la espera no esperara se vería.
+
+Falta lo que esto habilita: las rutas forzadas caminando y el clima.
 
 El corte siguiente, sin empezar: **la cinemática de apertura**.
 El mapa 4 ya prende el switch 20, que es la condición de la página que abre el

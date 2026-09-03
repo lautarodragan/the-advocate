@@ -274,6 +274,29 @@ def pagina_activa(paginas, evento, estado):
     return elegida
 
 
+def pagina_de_prueba(espera, tinte):
+    """Una página automática inventada: esperar N cuadros y después teñir.
+
+    No sale de ningún dato del juego, y ésa es la idea. El intérprete corre
+    cuadro a cuadro desde que dejó de colapsar el tiempo, pero **ninguna página
+    del juego que compile tiene una espera**, así que ese camino —el corazón del
+    cambio— no lo ejercitaba nada. Es el mismo caso que `snes-encima`, que
+    existe porque ningún evento del juego llega a la prioridad 2.
+
+    Lo sintético es la entrada, no la comparación: los dos lados corren este
+    bytecode y se comparan como siempre, la ROM contra la referencia. Y es una
+    prueba filosa por construcción: antes del cuadro N la pantalla está sin
+    teñir y después está teñida, así que si la ROM y la referencia no cuentan
+    los mismos cuadros, se ve.
+
+    La escribe el conversor con `--pagina-de-prueba` y la corre la referencia
+    con la misma función, que es lo que garantiza que sea el mismo programa.
+    """
+    return (bytes([OP_ESPERAR, espera & 0xFF, espera >> 8])
+            + bytes([OP_TINTE]) + bytes(tinte) + bytes([TINTE_NEUTRO])
+            + bytes([OP_FIN]))
+
+
 class Interprete:
     """El intérprete corriendo, con su cursor y su espera, cuadro a cuadro.
 

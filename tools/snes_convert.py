@@ -1130,6 +1130,11 @@ def main():
     parser.add_argument("--game-dir", default=GAME_DIR)
     parser.add_argument("-o", "--output",
                         default=os.path.join(REPO, "rom/src/mapdata.inc"))
+    parser.add_argument("--pagina-de-prueba", nargs=4, type=int, default=None,
+                        metavar=("ESPERA", "R", "G", "B"),
+                        help="agrega al mapa inicial una página automática "
+                             "inventada que espera N cuadros y después tiñe. "
+                             "El otro lado del mismo flag de snes_expect.py")
     parser.add_argument("--heroe-encima", action="store_true",
                         help="el héroe en prioridad 2 de objeto, por "
                              "encima de la capa que debería taparlo. "
@@ -1206,6 +1211,17 @@ def main():
         # Los eventos automáticos: sus páginas con las condiciones, y el código
         # de las que se pueden ejecutar, todo seguido en un solo bloque.
         paginas = eventos.paginas_del_mapa(mapa["game_map"], indices.get)
+        if args.pagina_de_prueba and mapa is mapas[args.inicial]:
+            # La página inventada, sólo en el mapa donde arranca la ROM. No sale
+            # de ningún dato del juego: existe porque ninguna página que compile
+            # tiene una espera, así que el intérprete cuadro a cuadro no lo
+            # ejercitaba nada. La referencia arma la misma con la misma función.
+            espera, *tinte = args.pagina_de_prueba
+            paginas = paginas + [{
+                "evento": 9999, "pagina": 0,
+                "trigger": eventos.TRIGGER_AUTOMATICO,
+                "switch_a": 0, "switch_b": 0, "actor": 0,
+                "codigo": eventos.pagina_de_prueba(espera, tinte)}]
         codigo = bytearray()
         for pagina in paginas:
             pagina["offset"] = len(codigo)

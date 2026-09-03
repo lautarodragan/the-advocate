@@ -92,7 +92,8 @@ class Mundo:
     otro mapa y la comparación mediría dos ROMs distintas.
     """
 
-    def __init__(self, renderer, game_dir, ids):
+    def __init__(self, renderer, game_dir, ids, prueba=None):
+        self.prueba = prueba
         self.renderer = renderer
         self.game_dir = game_dir
         self.ids = list(ids)
@@ -103,8 +104,15 @@ class Mundo:
     def paginas(self, map_id):
         """Las páginas de evento del mapa, compiladas como las compiló la ROM."""
         if map_id not in self.paginas_cache:
-            self.paginas_cache[map_id] = eventos.paginas_del_mapa(
-                self.mapa(map_id)[0], self.indices.get)
+            paginas = eventos.paginas_del_mapa(self.mapa(map_id)[0],
+                                               self.indices.get)
+            if self.prueba is not None and map_id == self.ids[0]:
+                # La página inventada va sólo en el mapa donde arranca la ROM,
+                # que es el mismo que el conversor le agrega la suya.
+                paginas = paginas + [dict(EVENTO_DE_PRUEBA,
+                                          codigo=eventos.pagina_de_prueba(
+                                              self.prueba[0], self.prueba[1:]))]
+            self.paginas_cache[map_id] = paginas
         return self.paginas_cache[map_id]
 
     def mapa(self, map_id):
@@ -126,7 +134,14 @@ class Mundo:
 SALTOS_MAX = 8
 
 
-def entrar_al_mapa(mundo, estado, map_id, entrada=None):
+# Cómo se ve la página inventada en la tabla. El número de evento es alto a
+# propósito: tiene que no chocar con ninguno del mapa.
+EVENTO_DE_PRUEBA = {"evento": 9999, "pagina": 0,
+                    "trigger": eventos.TRIGGER_AUTOMATICO,
+                    "switch_a": 0, "switch_b": 0, "actor": 0, "codigo": b""}
+
+
+def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None):
     """Entra a un mapa y le corre los eventos automáticos, como `cargar_mapa`.
 
     Primero se para al héroe —donde diga la puerta o el teletransporte que nos
@@ -151,7 +166,15 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None):
         else:
             x, y = entrada
             entrada = None
-        salto = eventos.correr_automaticos(mundo.paginas(map_id), estado)
+        # Con un presupuesto de cuadros el intérprete avanza sólo esos; sin él,
+        # hasta que las páginas terminen. Lo primero hace falta para comparar
+        # *durante* una espera: el emulador corrió N cuadros y la referencia
+        # tiene que haber corrido los mismos.
+        if cuadros is None:
+            salto = eventos.correr_automaticos(mundo.paginas(map_id), estado)
+        else:
+            salto = eventos.correr_automaticos(mundo.paginas(map_id), estado,
+                                               cuadros)
         if salto is None:
             return map_id, x, y
         saltos -= 1
@@ -162,7 +185,7 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None):
 
 
 def hero_position(mundo, estado, map_id, direction_name, inicio=None,
-                  avance=None):
+                  avance=None, cuadros=None):
     """En qué mapa y en qué celda termina el héroe, y hacia dónde mira.
 
     No se estima: se entra al mapa como entra la ROM —corriéndole los eventos—
@@ -173,7 +196,7 @@ def hero_position(mundo, estado, map_id, direction_name, inicio=None,
 
     Devuelve (mapa, x, y, dirección) con x e y en pixeles.
     """
-    map_id, x, y = entrar_al_mapa(mundo, estado, map_id, inicio)
+    map_id, x, y = entrar_al_mapa(mundo, estado, map_id, inicio, cuadros)
     step = WALK[direction_name]
     direction = DIRECTIONS.get(direction_name, DIRECTIONS["down"])
     if step is None:
@@ -361,6 +384,18 @@ def main():
                              "Con varios avances el mapa se convierte una sola "
                              "vez y el {} de -o lleva el avance en vez de la "
                              "dirección")
+    parser.add_argument("--cuadros", type=int, default=None, metavar="N",
+                        help="cuántos cuadros del intérprete simular. Hace "
+                             "falta para comparar durante una espera: el "
+                             "emulador corrió N cuadros y esto tiene que haber "
+                             "corrido los mismos. Sin esto, las páginas corren "
+                             "hasta terminar")
+    parser.add_argument("--pagina-de-prueba", nargs=4, type=int, default=None,
+                        metavar=("ESPERA", "R", "G", "B"),
+                        help="agrega una página automática inventada que espera "
+                             "N cuadros y después tiñe. Ningún dato del juego "
+                             "ejercita las esperas, y sin esto el intérprete "
+                             "cuadro a cuadro no lo prueba nada")
     parser.add_argument("--plan", help="archivo donde anotar, por dirección, "
                         "cuántas celdas camina el héroe y cuántos cuadros le "
                         "lleva. Es lo que le dice al emulador cuánto correr, "
@@ -400,7 +435,7 @@ def main():
     if not 0 <= args.inicial < len(tabla):
         sys.exit("--inicial %d pero la tabla tiene %d mapas"
                  % (args.inicial, len(tabla)))
-    mundo = Mundo(renderer, args.game_dir, tabla)
+    mundo = Mundo(renderer, args.game_dir, tabla, args.pagina_de_prueba)
 
     # Los CharSets y los mapas ya convertidos se comparten entre las
     # direcciones. Convertir un mapa es lo más caro de todo esto —el 52 son
@@ -474,7 +509,7 @@ def main():
         map_id, x, y, direction, pasos = hero_position(mundo, estado,
                                                        tabla[args.inicial],
                                                        walk, inicio,
-                                                       avance)
+                                                       avance, args.cuadros)
         if args.hero_tile and args.dir:
             direction = DIRECTIONS[args.dir]
 
