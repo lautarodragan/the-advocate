@@ -30,7 +30,35 @@ El hito 12 —el intérprete de eventos— quedó cerrado de los dos lados el
 
     just snes-hitos    50 comparaciones, todas en 0 pixeles de 57344
 
-El corte siguiente que se propuso, sin empezar: **la cinemática de apertura**.
+**El corte en curso: pasar el harness a libretro in-process.** Decidido el
+2026-09-03 después de un spike que ya está en `tools/retro.py`. La tanda tarda
+19m30s y el 100% de eso es el emulador corriendo en tiempo real mientras la
+prueba lo espera con un `sleep`: 50 capturas y 742 segundos de reloj pedidos.
+Peor que lento, eso es no determinista —cuántos cuadros se emularon en esos
+segundos depende de la carga— y hoy pasa sólo porque el requisito es de un solo
+lado: la referencia camina hasta la pared, así que sobra tiempo. Es robustez por
+holgura, y la holgura es exactamente lo que se paga.
+
+Manejando el core desde Python con `ctypes`, `retro_run()` avanza un cuadro
+exacto, la cruceta entra cuadro por cuadro y el framebuffer sale por el
+callback: se van Xvfb, xdotool, `import`, `snes_crop.py` y todos los `sleep`.
+Medido, con snes9x y contra los mismos PNG esperados de la tanda:
+
+    46 comparaciones bit-exactas   el caso estático y snes-heroe x 5 direcciones
+    snes-heroe 73 8                59,5 s con mednafen -> 3,9 s   (15x)
+    emulación sola                 660 cuadros en 0,23 s          (48x)
+    la barrida de 40 casos         201 s, de los cuales 15 son emulación
+
+O sea que el emulador deja de ser la pared y pasa a serlo `snes_expect.py`, que
+rehace la conversión completa del mapa una vez por dirección: 14,3 s la del mapa
+52, cinco veces por mapa, cuando las cinco comparten toda la parte cara. Ahí hay
+otro 5x que no es especulación.
+
+**El plan es migrar con la ROM congelada**, que es la única forma de saber si una
+diferencia es del emulador o del código; las 46 comparaciones en cero son
+justamente esa congelación. La cinemática espera a que esto esté.
+
+El corte siguiente, sin empezar: **la cinemática de apertura**.
 El mapa 4 ya prende el switch 20, que es la condición de la página que abre el
 mapa 1, así que el enganche funciona. Falta que exista un grupo —la condición
 pide `actor`— y cuatro comandos: `PlayBGM`, `WeatherEffects`, `MoveEvent` y
@@ -65,6 +93,18 @@ commit narra lo hecho; los supuestos no tienen dónde vivir. Acá.
   difieren en 284 pixeles, o sea que el par no da cero por casualidad. El
   Package igual entró en la tanda, por el orden capa-antes-que-Y. Ver "Cómo se
   verifica" en `snes/LEEME.md`.
+* **Por qué bsnes devuelve una pantalla negra.** Abierto el 2026-09-03. Con
+  `tools/retro.py`, el core de bsnes carga la ROM, suena el audio y `retro_run`
+  avanza, pero el framebuffer viene en cero para cualquier cantidad de cuadros.
+  Descartados: la entropía, `ppu_fast`, los defaults de las opciones y la
+  respuesta a `GET_OVERSCAN`; durante `retro_run` sólo pide
+  `GET_VARIABLE_UPDATE` y `GET_FASTFORWARDING`. Lo que sí está establecido es
+  de quién es la culpa: **bajo RetroArch el mismo core con la misma ROM
+  dibuja**, así que falta algo de nuestro frontend y no es un problema de la
+  ROM. Importa porque bsnes es el más preciso de los tres y es la segunda
+  opinión que haría que "los dos emuladores coinciden" valga de verdad. De paso
+  quedó otra rareza sin explicar: bsnes reporta `retro_get_region` = PAL,
+  50,007 fps, con una cabecera que dice `$01` = NTSC.
 * **El orden de la tabla de mapas.** Cerrado a medias el 2026-09-03, y la
   mitad que queda no se puede cerrar comparando. Lo que sí se corre ahora es
   que la ROM resuelva un índice compilado que no sea 0 ni 1: `snes-hitos` corre
