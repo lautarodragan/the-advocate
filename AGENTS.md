@@ -61,6 +61,7 @@ referencia: se clona o se descarga acá adentro en vez de montar algo del host,
 que revela menos y da más margen. Hoy tiene:
 
     /extras/abl-rm      el juego original. Es lo que lee GAME_DIR
+    /extras/rtp         el RTP de Don Miguel, sin el cual faltan 22 assets
     /extras/ref         liblcf, easyrpg-player y Game-Decompilations
     /extras/soundfonts  de donde salen las muestras
     /extras/capturas    donde taro deja capturas para que yo las mire

@@ -34,7 +34,12 @@ GAME_DIR = os.environ.get("ABL_GAME_DIR", "/extras/abl-rm")
 # "oficial": el RPG Maker 2000 que se usaba fuera de Japón era su traducción, y
 # de paso le agregó archivos propios (Future1-3, entre otros) que ABL usa. El
 # RTP libre de EasyRPG no sirve acá: es un reemplazo con arte distinto.
-RTP_DIR = os.path.join(REPO, "RTP")
+# El RTP de Don Miguel vive en /extras, del mismo lado que el juego original y
+# por la misma razón: no es nuestro para redistribuir y no tiene por qué estar
+# en el árbol. Antes era `RTP/` adentro del repo, excluido por .gitignore, que
+# es la peor combinación —ocupaba lugar, no se versionaba, y parecía del
+# proyecto—. Con ABL_RTP_DIR se apunta a otra copia.
+RTP_DIR = os.environ.get("ABL_RTP_DIR", "/extras/rtp")
 
 DEFAULT_MAP_ID = 1
 

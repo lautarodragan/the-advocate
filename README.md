@@ -150,12 +150,16 @@ el japonés — `Future1-3`, por ejemplo. El RTP libre de EasyRPG **no sirve**: 
 un reemplazo con arte distinto y otros nombres (`Actor1-4` en vez de
 `Chara1-4`).
 
-`RTP/` no está en git. Para reponerlo, de `RTPE.EXE` (un SFX de RAR):
+No está en el repo: vive en `/extras/rtp`, del mismo lado que el juego original
+y por la misma razón —no es nuestro para redistribuir—. Para reponerlo, de
+`RTPE.EXE` (un SFX de RAR):
 
-    7z x -oRTP-tmp RTPE.EXE && mv RTP-tmp/Data/RTP RTP && rm -rf RTP-tmp
+    7z x -oRTP-tmp RTPE.EXE && mv RTP-tmp/Data/RTP /extras/rtp && rm -rf RTP-tmp
+
+Se puede apuntar a otra copia con `--rtp-dir` o con `ABL_RTP_DIR`.
 
 Con eso, los 328 mapas renderizan sin faltantes. `just maps` avisa si falta
-algo. Se puede apuntar a otra copia con `--rtp-dir`.
+algo.
 
 ### Referencias
 

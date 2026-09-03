@@ -1,8 +1,5 @@
 __pycache__/
 
-# RTP de Don Miguel, extraído de RTPE.EXE. No es nuestro para redistribuir;
-# ver README para reponerlo.
-RTP/
 wt/
 rom/build/
 rom/shots/
