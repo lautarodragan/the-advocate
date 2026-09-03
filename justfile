@@ -343,21 +343,23 @@ snes-encima mapa="1" tx="66" ty="40" nombre="encima":
       --saltar {{snes_pngs}}/saltar-{{nombre}}.txt \
       -o {{snes_pngs}}/comparacion-{{nombre}}.png
 
-# El grupo cambiando en caliente. `ChangePartyMembers` saca y mete actores, y
-# en RM2k el gráfico del héroe es el del primero del grupo —`AddActor` y
-# `RemoveActor` llaman los dos a `ResetGraphic`—, así que esto se ve en la
-# pantalla.
+# Corre los eventos automáticos de un mapa con un grupo dado y compara el cuadro
+# ya asentado. Es la receta para las páginas cuyo efecto se ve en el héroe.
 #
-# Va con el grupo de verdad del juego y no con el de las pruebas, porque es el
-# único que hace que el caso signifique algo: el mapa 121 saca al actor 10 y
-# agrega al 14 y al 28, y arrancando con [10] el líder pasa de `DummyHero`
-# —una celda vacía, o sea que no se dibuja nada— a Talan. Arrancando con [11]
-# el 10 no está, sacarlo no hace nada, y Kersh sigue al frente: la prueba no
-# probaría nada.
+# El grupo se pide explícito y no sale del default de las pruebas porque en
+# estos casos es parte del caso, no decoración:
 #
-# Es también el único caso de la tanda donde el intérprete cambia algo que no
-# es un switch ni el tinte.
-snes-grupo mapa="121" arranca="10" nombre=("grupo-" + mapa):
+#   121  `ChangePartyMembers` saca al actor 10 y agrega al 14 y al 28. En RM2k
+#        el gráfico del héroe es el del primero del grupo —`AddActor` y
+#        `RemoveActor` llaman los dos a `ResetGraphic`—, así que arrancando con
+#        [10] el héroe pasa de `DummyHero`, que es una celda vacía y no se
+#        dibuja, a Talan. Arrancando con [11] el 10 no está, sacarlo no hace
+#        nada, Kersh sigue al frente y la prueba no probaría nada.
+#
+#   74   Una ruta forzada de `MoveEvent` sobre el héroe: `face_up` y una espera.
+#        Su página pide al actor 21 en el grupo, así que sin arrancar con él no
+#        corre. Es la única página del juego que compila y ejercita una ruta.
+snes-pagina mapa="121" arranca="10" nombre=("pagina-" + mapa):
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}

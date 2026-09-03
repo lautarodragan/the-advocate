@@ -177,7 +177,10 @@ def hero_position(mundo, estado, map_id, direction_name, inicio=None,
     step = WALK[direction_name]
     direction = DIRECTIONS.get(direction_name, DIRECTIONS["down"])
     if step is None:
-        return map_id, x * TILE, y * TILE, DIRECTIONS["down"], 0
+        # Sin caminata, hacia dónde mira lo puede haber dicho una ruta forzada;
+        # si no, mira a cámara, que es como RM2k deja al héroe.
+        quieto = estado.mirando if estado.mirando is not None else DIRECTIONS["down"]
+        return map_id, x * TILE, y * TILE, quieto, 0
     desde = (x, y)
 
     # Cuántas celdas camina. Hasta ahora este número se calculaba y se tiraba;

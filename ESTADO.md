@@ -85,6 +85,15 @@ commit narra lo hecho; los supuestos no tienen dónde vivir. Acá.
   difieren en 284 pixeles, o sea que el par no da cero por casualidad. El
   Package igual entró en la tanda, por el orden capa-antes-que-Y. Ver "Cómo se
   verifica" en `snes/LEEME.md`.
+* **Moverse por una ruta forzada.** Anotado el 2026-09-03. De los comandos de
+  ruta de `MoveEvent` hoy se aceptan sólo los cuatro de girar y la espera;
+  `move_up` y compañía no compilan. No es pereza: en RM2k el personaje camina
+  celda por celda a lo largo de varios cuadros y hay que decidir qué pasa
+  cuando lo bloquean, y **ninguna página del juego que compile lo ejercita** —de
+  las 3509 rutas del juego, la única que compila es la del mapa 74, que sólo
+  gira—. Implementarlo sin con qué compararlo es cómo sobrevivieron los cinco
+  errores anteriores. La cinemática de apertura lo va a pedir: mueve al héroe
+  tres celdas hacia arriba.
 * **Que la página siga después de un teletransporte.** Anotado el 2026-09-03.
   El intérprete cortaba la página en el primer `Teleport`, con un comentario
   que decía "RM2k tampoco". Es falso: en

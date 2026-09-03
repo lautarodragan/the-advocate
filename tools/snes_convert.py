@@ -964,6 +964,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=()):
         "OP_ESPERAR  = $%02X\n"
         "OP_TINTE    = $%02X\n"
         "OP_GRUPO    = $%02X\n"
+        "OP_RUTA     = $%02X\n"
         "TRIGGER_AUTOMATICO = %d\n"
         "TINTE_NEUTRO = %d\n"
         "; Un bit por switch. El más alto que el juego consulta es el 1003.\n"
@@ -987,6 +988,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=()):
            PUERTA_BYTES, PAGINA_BYTES,
            eventos.OP_FIN, eventos.OP_SWITCH, eventos.OP_TELEPORT,
            eventos.OP_ESPERAR, eventos.OP_TINTE, eventos.OP_GRUPO,
+           eventos.OP_RUTA,
            eventos.TRIGGER_AUTOMATICO, eventos.TINTE_NEUTRO, SWITCH_BYTES,
            eventos.GRUPO_MAX, len(grupo_inicial), ACTOR_BYTES,
            md_convert.LAYER_SAME,

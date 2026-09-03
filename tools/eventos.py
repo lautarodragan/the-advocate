@@ -29,6 +29,20 @@ TINT_SCREEN = 11030
 WAIT = 11410
 CHANGE_SAVE_ACCESS = 11930
 CHANGE_PARTY_MEMBERS = 10330
+MOVE_EVENT = 11330
+
+# Una ruta forzada de MoveEvent. Los parámetros son (a quién, frecuencia, un
+# bitmask de repetición, si es salteable) y de ahí en adelante los comandos de
+# la ruta, con los códigos de `rpg::MoveCommand::Code` de liblcf.
+#
+# De todos ellos hoy se aceptan sólo los cuatro de girar y la espera. Moverse
+# por una ruta forzada no está: en RM2k el personaje camina celda por celda a lo
+# largo de varios cuadros y hay que decidir qué pasa cuando lo bloquean, y no
+# hay ninguna página del juego que compile y lo ejercite. Cuando la haya se
+# agrega acá; mientras tanto, una ruta que se mueva no compila.
+RUTA_HEROE = 10001
+RUTA_MIRAR = {12: 0, 13: 1, 14: 2, 15: 3}   # face_up/right/down/left
+RUTA_ESPERAR = 23
 
 # ChangePartyMembers: el primer parámetro dice si agrega o saca, el segundo de
 # dónde sale el id del actor, y el tercero el id. De liblcf y de
@@ -57,6 +71,7 @@ OP_TELEPORT = 0x02      # mapa (byte), x (word), y (word)
 OP_ESPERAR  = 0x03      # cuadros (byte)
 OP_TINTE    = 0x04      # r, g, b, sat (byte cada uno)
 OP_GRUPO    = 0x05      # operación (byte), actor (byte)
+OP_RUTA     = 0x06      # cuántos comandos (byte), y los comandos
 
 # ControlSwitches: el primer parámetro dice de dónde salen los ids y el último
 # qué hacer con ellos (liblcf, ControlSwitches::Operation).
@@ -132,6 +147,17 @@ def _compilar(cmd, indice_de_mapa):
             raise NoSePuede()
         return bytes([OP_GRUPO, p[0], p[2]])
 
+    if cmd.code == MOVE_EVENT:
+        if len(p) < 4 or p[0] != RUTA_HEROE:
+            raise NoSePuede()   # mover otro evento pide que los NPCs se muevan
+        ruta = list(p[4:])
+        if not ruta or len(ruta) > 255:
+            raise NoSePuede()
+        for orden in ruta:
+            if orden not in RUTA_MIRAR and orden != RUTA_ESPERAR:
+                raise NoSePuede()
+        return bytes([OP_RUTA, len(ruta)]) + bytes(ruta)
+
     if cmd.code == WAIT:
         if len(p) < 1:
             raise NoSePuede()
@@ -178,6 +204,9 @@ class Estado:
         # El grupo, en orden. El gráfico del héroe es el del primero, así que
         # esto no es contabilidad: se ve en la pantalla que se compara.
         self.grupo = list(grupo)
+        # Hacia dónde mira el héroe si una ruta forzada se lo dijo. None es
+        # "lo decide la caminata", que es lo de siempre.
+        self.mirando = None
 
     def encendido(self, numero):
         return numero in self.switches
@@ -275,6 +304,14 @@ def ejecutar(codigo, estado):
             i += 6
         elif op == OP_ESPERAR:
             i += 2              # la espera se saltea, igual que en la ROM
+        elif op == OP_RUTA:
+            cuantos = codigo[i + 1]
+            for orden in codigo[i + 2:i + 2 + cuantos]:
+                if orden in RUTA_MIRAR:
+                    estado.mirando = RUTA_MIRAR[orden]
+                # La espera no hace nada: acá la página corre entera de una, lo
+                # mismo que con OP_ESPERAR.
+            i += 2 + cuantos
         elif op == OP_GRUPO:
             estado.cambiar_grupo(codigo[i + 1], codigo[i + 2])
             i += 3

@@ -333,14 +333,18 @@ grupo_listo:
     sep #$20
 .a8
 
+    ; Mirando a cámara, como arranca RM2k. Va antes de cargar el primer mapa
+    ; porque ahí corren sus eventos, y una ruta forzada puede girarlo: si esto
+    ; quedara después, pisaría lo que la ruta acaba de decidir.
+    lda #DIR_DOWN
+    sta hero_dir
+
     lda #MAPA_INICIAL
     jsr cargar_mapa
     jsr clear_oam
 
     stz step_left               ; parado, sin paso en curso
     stz pad                     ; la RAM arranca con basura y move_hero la lee
-    lda #DIR_DOWN
-    sta hero_dir                ; mirando a cámara, como arranca RM2k
     lda #1
     sta anim_step               ; el frame del medio: la pose parada
     lda #ANIM_FRAMES
@@ -970,6 +974,8 @@ otro:
     beq op_tinte
     cmp #OP_GRUPO
     beq op_grupo
+    cmp #OP_RUTA
+    beq op_ruta
     rts                         ; OP_FIN, o algo que no conocemos: se corta
 
 op_switch:
@@ -987,6 +993,34 @@ op_switch:
     jsr poner_switch
     ply
     bra otro
+
+; Una ruta forzada de MoveEvent, siempre sobre el héroe. De todos los comandos
+; de ruta de RM2k acá se aceptan sólo los cuatro de girar y la espera: el
+; conversor no emite ningún otro. Moverse por una ruta forzada no está, porque
+; ninguna página del juego que compile lo ejercita —y sin con qué compararlo, ya
+; se sabe cómo termina—.
+;
+; face_up/right/down/left son 12, 13, 14 y 15, y nuestras direcciones son
+; 0, 1, 2 y 3 en el mismo orden, así que restar doce alcanza. La espera, 23, no
+; hace nada: la página corre entera de una, igual que con OP_ESPERAR.
+op_ruta:
+    lda [cod_ptr], y            ; cuántos comandos trae
+    sta temp
+    iny
+cada_orden:
+    lda temp
+    beq fin_ruta
+    dec temp
+    lda [cod_ptr], y
+    iny
+    sec
+    sbc #12
+    cmp #4
+    bcs cada_orden              ; no es un face_*: se saltea
+    sta hero_dir
+    bra cada_orden
+fin_ruta:
+    jmp otro                    ; `bra` no llega: el lazo quedó lejos
 
 op_grupo:
     lda [cod_ptr], y            ; 0 = agregar, 1 = sacar
@@ -1053,7 +1087,7 @@ op_teleport:
     ; comandos después de un teletransporte, así que este camino todavía no lo
     ; ejercita ninguna prueba: está en la lista de ESTADO.md. Lo va a ejercitar
     ; la cinemática de apertura, que tiene once comandos después del primero.
-    bra otro
+    jmp otro                    ; `bra` no llega: el lazo quedó lejos
 .endproc
 
 ; --- el tinte de pantalla --------------------------------------------------
