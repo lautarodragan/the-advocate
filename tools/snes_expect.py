@@ -40,6 +40,14 @@ from md_convert import (collect_doors, collect_npcs, passability_map,
 from render_map import (GAME_DIR, REPO, RTP_DIR, Renderer, build_passability,
                         find_resource, load_image)
 
+# El paso del héroe son dieciséis pixeles y la ROM avanza WALK_SPEED = 2 por
+# cuadro, así que cada celda cuesta ocho cuadros. Este número es el puente entre
+# la referencia —que sabe cuántas celdas se camina— y el emulador, que ahora
+# corre cuadros exactos en vez de segundos de reloj. Si alguna vez cambia
+# WALK_SPEED en main.s, cambia acá: son los dos lados de la misma cuenta y
+# separarlos es el error que este repo ya cometió cinco veces.
+CUADROS_POR_CELDA = 8
+
 SCREEN_W, SCREEN_H = 256, 224
 
 # En una misma línea de pantalla la consola no dibuja más de 34 tiles de 8x8 de
@@ -152,7 +160,14 @@ def hero_position(mundo, estado, map_id, direction_name, inicio=None):
     step = WALK[direction_name]
     direction = DIRECTIONS.get(direction_name, DIRECTIONS["down"])
     if step is None:
-        return map_id, x * TILE, y * TILE, DIRECTIONS["down"]
+        return map_id, x * TILE, y * TILE, DIRECTIONS["down"], 0
+
+    # Cuántas celdas camina. Hasta ahora este número se calculaba y se tiraba;
+    # es el que dice cuántos cuadros tarda la ROM en llegar, porque el paso son
+    # dieciséis pixeles a WALK_SPEED = 2 por cuadro, o sea ocho cuadros por
+    # celda. Antes la prueba pedía "45 segundos, seguro alcanza"; con esto pide
+    # un número que sale de la misma referencia contra la que se compara.
+    pasos = 0
 
     # El tope es por si dos puertas se apuntan entre sí: la ROM se quedaría
     # rebotando y la referencia también, y colgar una prueba no ayuda a nadie.
@@ -166,12 +181,13 @@ def hero_position(mundo, estado, map_id, direction_name, inicio=None):
                            x, y, step[0], step[1]):
             break
         x, y = x + step[0], y + step[1]
+        pasos += 1
         puerta = puertas.get((x, y))
         if puerta is None:
             continue
         map_id, x, y = entrar_al_mapa(mundo, estado, puerta["mapa"],
                                       (puerta["destino_x"], puerta["destino_y"]))
-    return map_id, x * TILE, y * TILE, direction
+    return map_id, x * TILE, y * TILE, direction, pasos
 
 
 def tenir_imagen(view, tinte):
@@ -291,6 +307,10 @@ def main():
     parser.add_argument("--game-dir", default=GAME_DIR)
     parser.add_argument("--saltar", help="archivo donde anotar las líneas que "
                         "pasan el límite de sprites")
+    parser.add_argument("--plan", help="archivo donde anotar, por dirección, "
+                        "cuántas celdas camina el héroe y cuántos cuadros le "
+                        "lleva. Es lo que le dice al emulador cuánto correr, "
+                        "en vez de un número de segundos elegido a ojo")
     parser.add_argument("--mapas", nargs="*", type=int, default=[], metavar="ID",
                         help="los otros mapas que entraron en la ROM, en el "
                              "mismo orden que le pasaste al conversor. Sin esto "
@@ -365,6 +385,7 @@ def main():
         """
         return patron.format(walk) if "{}" in patron else patron
 
+    plan = []
     for walk in args.walk:
         # Los switches arrancan apagados y la pantalla sin teñir, como una
         # partida nueva de RM2k, y cada dirección arranca de cero: el estado lo
@@ -375,9 +396,9 @@ def main():
         # puertas que cruce la caminata, el mapa que hay que dibujar bien puede
         # no ser el que se pidió.
         inicio = tuple(args.hero_tile) if args.hero_tile else None
-        map_id, x, y, direction = hero_position(mundo, estado,
-                                                tabla[args.inicial], walk,
-                                                inicio)
+        map_id, x, y, direction, pasos = hero_position(mundo, estado,
+                                                       tabla[args.inicial],
+                                                       walk, inicio)
         if args.hero_tile and args.dir:
             direction = DIRECTIONS[args.dir]
 
@@ -434,6 +455,7 @@ def main():
         # encima y los sprites.
         view = tenir_imagen(view, estado.tinte)
 
+        plan.append((walk, pasos, pasos * CUADROS_POR_CELDA))
         destino = salida(args.output, walk)
         view.convert("RGB").save(destino)
         print("esperado -> %s: mapa %d, héroe en (%d,%d) mirando %s, cámara en"
@@ -442,6 +464,14 @@ def main():
                  walk if walk != "none" else "abajo", cam_x, cam_y,
                  "" if estado.tinte == (eventos.TINTE_NEUTRO,) * 3
                  else ", tinte %d/%d/%d" % estado.tinte))
+        if pasos:
+            print("  camina %d celdas = %d cuadros a %d por celda"
+                  % (pasos, pasos * CUADROS_POR_CELDA, CUADROS_POR_CELDA))
+
+    if args.plan:
+        with open(args.plan, "w") as handle:
+            for walk, pasos, cuadros in plan:
+                handle.write("%s %d %d\n" % (walk, pasos, cuadros))
 
 
 if __name__ == "__main__":

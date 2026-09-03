@@ -206,11 +206,20 @@ snes-compare nombre="mapa" x="0" y="0":
 # el mismo mapa y la misma dirección —snes-varios contra snes-heroe— pasa el
 # nombre a mano.
 snes-walk mapa="7" direccion="none" segundos="8" mapas="" inicial="0" nombre=(mapa + "-" + direccion):
-  just snes-shot {{nombre}} {{segundos}} "$(just _tecla {{direccion}})"
+  #!/usr/bin/env bash
+  set -euo pipefail
+  mkdir -p {{snes_pngs}}
   python3 tools/snes_expect.py --map-id {{mapa}} --walk {{direccion}} \
       --mapas {{mapas}} --inicial {{inicial}} \
       --saltar {{snes_pngs}}/saltar-{{nombre}}.txt \
+      --plan {{snes_pngs}}/plan-{{nombre}}.txt \
       -o {{snes_pngs}}/esperado-{{nombre}}.png
+  if [ "{{motor}}" = "libretro" ]; then
+    python3 tools/snes_correr.py {{snes_rom}} -o {{snes_pngs}}/{{nombre}}.png \
+        --walk {{direccion}} --plan {{snes_pngs}}/plan-{{nombre}}.txt
+  else
+    just snes-shot {{nombre}} {{segundos}} "$(just _tecla {{direccion}})"
+  fi
   python3 tools/snes_compare.py {{snes_pngs}}/{{nombre}}.png \
       {{snes_pngs}}/esperado-{{nombre}}.png \
       --saltar {{snes_pngs}}/saltar-{{nombre}}.txt \
@@ -223,15 +232,30 @@ snes-walk mapa="7" direccion="none" segundos="8" mapas="" inicial="0" nombre=(ma
 #
 # La referencia recibe la misma lista de mapas que la ROM: una puerta a un mapa
 # que no entró en el cartucho no lleva a ningún lado, ni en la consola ni acá.
+#
+# El margen va en 16 y no en los 8 de siempre porque cruzar la puerta le cuesta
+# a la ROM cargar el mapa entero, y eso son cuadros que la referencia no modela:
+# ella cuenta celdas caminadas y nada más. Medido en este caso, la pantalla
+# queda quieta en el cuadro 79 contra los 72 que dice el plan, o sea siete de
+# carga; 16 es una celda más de aire sobre eso.
 snes-puerta origen="30" destino="28" direccion="down" segundos="8" nombre=("puerta-" + origen + "-" + destino):
+  #!/usr/bin/env bash
+  set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
   python3 tools/snes_convert.py --map-id {{origen}} --mapas {{destino}} \
       -o {{snes_inc}}/mapdata.inc
   just snes-build
-  just snes-shot {{nombre}} {{segundos}} "$(just _tecla {{direccion}})"
   python3 tools/snes_expect.py --map-id {{origen}} --mapas {{destino}} \
       --walk {{direccion}} --saltar {{snes_pngs}}/saltar-{{nombre}}.txt \
+      --plan {{snes_pngs}}/plan-{{nombre}}.txt \
       -o {{snes_pngs}}/esperado-{{nombre}}.png
+  if [ "{{motor}}" = "libretro" ]; then
+    python3 tools/snes_correr.py {{snes_rom}} -o {{snes_pngs}}/{{nombre}}.png \
+        --walk {{direccion}} --plan {{snes_pngs}}/plan-{{nombre}}.txt \
+        --margen 16
+  else
+    just snes-shot {{nombre}} {{segundos}} "$(just _tecla {{direccion}})"
+  fi
   python3 tools/snes_compare.py {{snes_pngs}}/{{nombre}}.png \
       {{snes_pngs}}/esperado-{{nombre}}.png \
       --saltar {{snes_pngs}}/saltar-{{nombre}}.txt \
@@ -478,18 +502,23 @@ snes-heroe mapa="7" segundos="8":
   set -euo pipefail
   just snes-convert {{mapa}}
   just snes-build
+  # La referencia va primero porque es la que dice cuántos cuadros dura cada
+  # caminata: sabe cuántas celdas se recorren, y el paso son ocho cuadros. Antes
+  # el orden daba igual, porque el emulador corría un número de segundos
+  # elegido a ojo.
+  python3 tools/snes_expect.py --map-id {{mapa}} --walk none right left up down \
+      --saltar {{snes_pngs}}/saltar-{{mapa}}-{}.txt \
+      --plan {{snes_pngs}}/plan-{{mapa}}.txt \
+      -o {{snes_pngs}}/esperado-{{mapa}}-{}.png
   if [ "{{motor}}" = "libretro" ]; then
     python3 tools/snes_correr.py {{snes_rom}} \
         -o {{snes_pngs}}/{{mapa}}-{}.png --walk none right left up down \
-        --cuadros $(( {{segundos}} * 60 ))
+        --plan {{snes_pngs}}/plan-{{mapa}}.txt
   else
     for d in none right left up down; do
       just snes-shot {{mapa}}-$d {{segundos}} "$(just _tecla $d)"
     done
   fi
-  python3 tools/snes_expect.py --map-id {{mapa}} --walk none right left up down \
-      --saltar {{snes_pngs}}/saltar-{{mapa}}-{}.txt \
-      -o {{snes_pngs}}/esperado-{{mapa}}-{}.png
   for d in none right left up down; do
     python3 tools/snes_compare.py {{snes_pngs}}/{{mapa}}-$d.png \
         {{snes_pngs}}/esperado-{{mapa}}-$d.png \

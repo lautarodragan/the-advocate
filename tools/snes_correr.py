@@ -35,6 +35,18 @@ CORE_POR_DEFECTO = "/usr/lib/libretro/snes9x_libretro.so"
 # mapa antes de que empiece la caminata.
 ARRANQUE = 180
 
+# Cuánto se corre de más después de los cuadros que dice el plan. La ROM llega
+# uno o dos cuadros después de `pasos x 8` —el pad se lee una vez por cuadro y
+# el primero se pierde, y según la dirección la cámara termina de acomodarse un
+# cuadro más tarde—, así que el plan solo se queda corto. Ocho es una celda
+# entera: alcanza de sobra y sigue siendo un número exacto de cuadros, no una
+# holgura de reloj. Medido en el mapa 73: right y up llegan en +1, left y down
+# en +2.
+MARGEN = 8
+
+# Cuántos cuadros seguidos idénticos cuentan como "la pantalla se quedó quieta".
+QUIETO = 4
+
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__,
@@ -55,6 +67,16 @@ def main():
                              "la forma de pedir dos a la vez —`right down`— "
                              "que --walk no cubre. Sin botones, no aprieta "
                              "nada")
+    parser.add_argument("--plan", help="el archivo que escribe snes_expect.py "
+                        "con --plan: por dirección, cuántas celdas camina el "
+                        "héroe y cuántos cuadros le lleva. Con esto los "
+                        "cuadros salen de la referencia y no de un número "
+                        "elegido a ojo, y --cuadros pasa a ser sólo el tope")
+    parser.add_argument("--margen", type=int, default=MARGEN,
+                        help="cuadros de más sobre lo que dice el plan")
+    parser.add_argument("--quieto", type=int, default=QUIETO,
+                        help="cuántos cuadros idénticos seguidos cuentan como "
+                             "pantalla quieta")
     parser.add_argument("--core", default=CORE_POR_DEFECTO)
     args = parser.parse_args()
 
@@ -70,19 +92,68 @@ def main():
                  args.arranque + args.cuadros, args.arranque))
         return
 
+    # El plan dice, por dirección, cuántos cuadros dura la caminata. Sale de la
+    # misma referencia contra la que se compara, así que la prueba pasa de
+    # "dormí 45 segundos, seguro alcanza" a "corré exactamente los cuadros que
+    # esta caminata dura". El de arranque no sale de ahí y sigue siendo fijo,
+    # pero eso no es una holgura del reloj: 180 cuadros son 180 cuadros en
+    # cualquier máquina, y cuestan un milisegundo de CPU.
+    plan = {}
+    if args.plan:
+        for linea in open(args.plan):
+            if linea.split():
+                direccion, _pasos, cuadros = linea.split()
+                plan[direccion] = int(cuadros)
+
     for walk in args.walk:
         destino = args.output.format(walk) if "{}" in args.output else args.output
         # Una consola nueva por dirección: arrancar de cero es parte de lo que
         # se está comparando, y reusar una traería el estado de la caminata
         # anterior.
         consola = Consola(args.rom, core=args.core)
+        del_plan = walk in plan
+        cuadros = plan[walk] + args.margen if del_plan else args.cuadros
         consola.correr(args.arranque)
         if walk != "none":
             consola.apretar(walk)
-        consola.correr(args.cuadros)
+
+        # Se corren los cuadros de a uno para poder mirar desde qué cuadro la
+        # pantalla ya no cambia más. El que se compara es siempre el último, o
+        # sea un número exacto y fijo: esto no elige el cuadro, sólo informa.
+        # Si eligiera, la prueba dependería de una heurística.
+        #
+        # Y se busca el último tramo quieto, no el primero: caminando el mapa 52
+        # hacia arriba hay tres tramos de cinco cuadros o más sin que cambie
+        # nada —en el 97, en el 103 y en el 161— y sólo el último es el héroe
+        # que llegó. Los otros dos son la ROM que se queda un momento a mitad de
+        # camino; ese mapa es de 1000x80 y no entra en la ventana del PPU, así
+        # que va redibujando mientras se scrollea. Quedarse con el primer tramo
+        # informaba "quieta en el 97" cuando la caminata dura 160.
+        quieto_desde = None
+        anterior = None
+        for n in range(1, cuadros + 1):
+            consola.correr(1)
+            actual = consola.cuadro[0]
+            if actual != anterior:
+                quieto_desde = n
+            anterior = actual
+
         consola.imagen().save(destino)
-        print("captura -> %s: %s, %d cuadros (%d de arranque)"
-              % (destino, walk, args.arranque + args.cuadros, args.arranque))
+        aviso = ""
+        if del_plan and quieto_desde is not None and plan[walk]:
+            # El plan dice cuántos cuadros tendría que durar la caminata, y la
+            # pantalla deja de cambiar cuando el héroe llegó. Los dos números
+            # tienen que dar casi lo mismo. Es lo más cerca que estamos hoy de
+            # medir la *velocidad* del héroe: las comparaciones sólo miran dónde
+            # termina, nunca cuánto tardó en llegar. Es un dato, no una
+            # aserción; para que lo fuera habría que comparar contra la
+            # referencia a mitad de camino, que todavía no se hace.
+            aviso = ", quieta desde el %d (el plan dice %d)" % (quieto_desde,
+                                                                plan[walk])
+        print("captura -> %s: %s, %d cuadros%s (%d de arranque)%s"
+              % (destino, walk, cuadros,
+                 " = plan %d + margen %d" % (plan[walk], args.margen)
+                 if del_plan else "", args.arranque, aviso))
 
 
 if __name__ == "__main__":
