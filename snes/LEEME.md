@@ -366,6 +366,19 @@ carga desde un registro que no es el primero de la tabla —con el índice 0 el
 desplazamiento es cero y cualquier cuenta mal hecha da bien por casualidad— y
 una puerta cruzada de punta a punta.
 
+El evento del mapa 4 va dos veces, con una tabla de dos mapas y otra de cuatro.
+Un teletransporte compilado guarda **el índice en la tabla**, no el número de
+mapa, y con la tabla de dos ese índice es 1: el desplazamiento es un solo
+`MAPA_STRIDE`, que es la cuenta que más fácil sale bien por casualidad. Con la
+tabla `[4,7,19,1]` el mismo salto compila a 3. Bajarlo a mano a 2 —o sea,
+mandar la ROM al mapa 19— mueve 55336 de los 57344 pixeles.
+
+Lo que eso **no** prueba es la convención con la que se arma la tabla: el mapa
+de `--map-id` primero y después los de `--mapas` sin repetir. Está escrita igual
+en el conversor y en la referencia a propósito, porque si no compararían dos
+mundos distintos, y por eso mismo equivocarla los equivoca a los dos juntos y la
+comparación sigue dando cero. Ese lado se revisa leyendo, no corriendo.
+
 Y tres más para las prioridades de objeto contra la capa de encima, que es por
 donde ya se coló el cuarto error. `snes-evento` deja al héroe tapado, pero
 entero: los 768 pixeles de su sprite están debajo de la capa, así que un héroe

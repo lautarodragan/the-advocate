@@ -15,11 +15,20 @@ es la misma operación con pérdida que compactar, sólo que a un archivo.
 Se está tapando la lista de más abajo: supuestos escritos de los dos lados y
 corridos de ninguno. Cerrado el primero, **la prioridad de objeto contra la capa
 de encima**, con tres casos nuevos en `snes-hitos` y una receta `snes-encima`.
+Cerrada la mitad corrible del segundo, **el orden de la tabla de mapas**, con un
+cuarto caso. Y relevados los tres que quedaban —el tope de ocho saltos, la
+guarda de la paleta vacía y las 29 páginas a puro `FIN`—, que no pedían pruebas
+nuevas sino medir: dos de los tres tenían la premisa mal escrita.
+
+La lista queda entonces sin nada "sin correr por falta de ganas": lo que sobra
+es de dos clases, o inalcanzable con los datos del juego, o compartido entre la
+ROM y la referencia y por lo tanto no comprobable comparando. Las dos clases
+están dichas con todas las letras abajo.
 
 El hito 12 —el intérprete de eventos— quedó cerrado de los dos lados el
 2026-09-02, en `f337a02` y `fe2767d`.
 
-    just snes-hitos    49 comparaciones, todas en 0 pixeles de 57344
+    just snes-hitos    50 comparaciones, todas en 0 pixeles de 57344
 
 El corte siguiente que se propuso, sin empezar: **la cinemática de apertura**.
 El mapa 4 ya prende el switch 20, que es la condición de la página que abre el
@@ -56,20 +65,47 @@ commit narra lo hecho; los supuestos no tienen dónde vivir. Acá.
   difieren en 284 pixeles, o sea que el par no da cero por casualidad. El
   Package igual entró en la tanda, por el orden capa-antes-que-Y. Ver "Cómo se
   verifica" en `snes/LEEME.md`.
-* **El orden de la tabla de mapas.** La referencia ahora la recibe entera, y es
-  necesario porque un teletransporte compilado guarda el índice y no el número
-  de mapa. Pero ningún mapa de `snes-hitos` teletransporta por evento salvo el
-  4, y ahí la tabla tiene dos entradas: equivocarse de orden no lo detectaría
-  ninguna prueba actual.
-* **El tope de ocho saltos.** La referencia modela el `dec/beq` de la ROM, que
-  se queda en el mapa donde estaba. Nada encadena ocho teletransportes, así que
-  el caso límite está escrito de los dos lados y corrido de ninguno.
-* **La guarda de la paleta vacía** en `tenir_paleta`. Se puso porque el
-  conversor emite `SPRITE_CGRAM = 0` cuando un mapa no declara sprites. No se
-  relevaron los 335 mapas para ver si alguno lo hace de verdad.
-* **Las 29 páginas que compilan a puro `FIN`.** Se asume que no se ven porque
-  todos sus comandos son de los "ignorables". Es por construcción, no por
-  medición mapa por mapa.
+* **El orden de la tabla de mapas.** Cerrado a medias el 2026-09-03, y la
+  mitad que queda no se puede cerrar comparando. Lo que sí se corre ahora es
+  que la ROM resuelva un índice compilado que no sea 0 ni 1: `snes-hitos` corre
+  el mismo evento del mapa 4 dos veces, con la tabla de dos y con `[4,7,19,1]`,
+  donde el salto compila a 3. Bajarlo a mano a 2 manda la ROM al mapa 19 y
+  mueve 55336 de los 57344 pixeles.
+  Lo que no se puede probar así es **la convención**: cómo se arma la tabla
+  —el de `--map-id` primero, después los de `--mapas` sin repetir— está escrito
+  igual en el conversor y en la referencia, a propósito, porque si no
+  compararían dos mundos distintos. Justamente por eso, equivocarla los
+  equivoca a los dos juntos y la comparación sigue dando cero. Es el mismo
+  agujero de siempre y no tiene salida por este lado: se revisa leyendo los dos
+  lados, no corriéndolos.
+* **El tope de ocho saltos.** Medido el 2026-09-03, y sigue sin correrse pero
+  ahora se sabe por qué. Con los 328 mapas en la tabla —lo más largo que puede
+  dar— hay **un solo** mapa cuya página automática teletransporta al entrar: el
+  4 al 1. La cadena más larga es de un salto sobre ocho, y no hay ningún ciclo.
+  Ojo con esto: no es estable. En cuanto entren los comandos que hoy hacen que
+  una página no compile —los de la cinemática—, van a compilar más páginas
+  automáticas y las cadenas pueden crecer. Vale la pena volver a correr la
+  medición después de ese corte: está en el historial de la sesión como
+  `saltos.py`, son veinte líneas.
+* **La guarda de la paleta vacía** en `tenir_paleta`. Relevado el 2026-09-03,
+  y la premisa que estaba escrita acá era falsa. El conversor **no** emite cero
+  cuando un mapa no declara sprites: `poses` arranca siempre con el CharSet del
+  héroe, así que siempre hay al menos una paleta de sprites, y la capa de
+  encima también recibe una aunque esté vacía. Medido en los mapas 4, 18, 19,
+  261 y 1, los tres contadores —fondo, encima, sprites— dan como mínimo 2, 16 y
+  16; ninguno da cero. El mapa 7 tiene la capa de encima **completamente
+  vacía** y aun así emite `ABOVE_CGRAM = 16`.
+  O sea que hoy la guarda protege una condición que el conversor no puede
+  producir: sacarla y capturar el mapa 7 da 0 pixeles de diferencia. Se deja
+  igual —el error que arregló fue real, está en "Trampas del hardware" del
+  `LEEME.md`, y un DMA de cero bytes transfiere 64 KB—, pero como código
+  inalcanzable, no como camino sin probar. Si alguna vez el conversor deja de
+  forzar esa paleta mínima, esto vuelve a la lista.
+* ~~**Las 29 páginas que compilan a puro `FIN`.**~~ Medido el 2026-09-03, y la
+  respuesta es más simple que el supuesto: **las 29 tienen cero comandos**. No
+  es que todos sus comandos sean de los "ignorables" —no hay comandos—. Están
+  en 25 mapas, y dos de ellos, el 18 y el 52, ya están en `snes-hitos`: el
+  intérprete corre esas páginas en cada tanda, no es un camino muerto.
 
 ## Lo que se dejó afuera a propósito
 

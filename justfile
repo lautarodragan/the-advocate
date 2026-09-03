@@ -220,18 +220,18 @@ snes-tinte sin="snes/shots/destino.png" con="snes/shots/evento.png" r="0" g="0" 
 # hace nada. Con el mapa 4 solo, la pantalla se queda en negro y eso es correcto.
 #
 # Después de esto, `just snes-play` lo muestra con sonido.
-snes-evento origen="4" destino="1":
+snes-evento origen="4" destino="1" nombre="evento":
   mkdir -p snes/shots
   python3 tools/snes_convert.py --map-id {{origen}} --mapas {{destino}}
   just snes-build
-  just snes-shot evento 4 ""
+  just snes-shot {{nombre}} 4 ""
   python3 tools/snes_expect.py --map-id {{origen}} --mapas {{destino}} \
-      --saltar snes/shots/saltar-evento.txt \
-      -o snes/shots/esperado-evento.png
-  python3 tools/snes_compare.py snes/shots/evento.png \
-      snes/shots/esperado-evento.png \
-      --saltar snes/shots/saltar-evento.txt \
-      -o snes/shots/comparacion-evento.png
+      --saltar snes/shots/saltar-{{nombre}}.txt \
+      -o snes/shots/esperado-{{nombre}}.png
+  python3 tools/snes_compare.py snes/shots/{{nombre}}.png \
+      snes/shots/esperado-{{nombre}}.png \
+      --saltar snes/shots/saltar-{{nombre}}.txt \
+      -o snes/shots/comparacion-{{nombre}}.png
 
 # Varios mapas en la misma ROM. Lo que prueba no es que cada uno se vea bien
 # —eso ya lo cubre snes-hitos— sino que se vea bien cuando su registro no está
@@ -335,6 +335,14 @@ snes-recorrido desde="66":
 # bytecode, así que lo que se compara es que las dos implementaciones del
 # intérprete estén de acuerdo, no que una de las dos ande.
 #
+# Ese mismo evento va dos veces, con una tabla de dos mapas y otra de cuatro.
+# Un teletransporte compilado guarda el índice en la tabla, no el número de
+# mapa, y con la tabla de dos el índice es 1: el desplazamiento es un solo
+# MAPA_STRIDE y varias cuentas mal hechas dan bien igual. Con [4,7,19,1] el
+# mismo salto compila a 3. Cambiarlo a mano a 2 —o sea, mandar la ROM al mapa
+# 19— mueve 55336 de los 57344 pixeles, así que el caso no se puede pasar por
+# casualidad.
+#
 # Los tres del final son las prioridades de objeto contra la capa de encima.
 # `snes-evento` ya deja al héroe tapado, pero entero —768 de 768 pixeles—, y un
 # héroe que no se dibujara en absoluto daría la misma pantalla. Los dos de la
@@ -367,6 +375,7 @@ snes-hitos:
   just snes-varios
   just snes-puerta
   just snes-evento
+  just snes-evento 4 "7 19 1" tabla
   just snes-parado 1 66 40 tapado
   just snes-encima
   just snes-parado 261 59 2 paquete
