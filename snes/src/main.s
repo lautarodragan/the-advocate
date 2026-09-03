@@ -974,7 +974,21 @@ op_teleport:
 .a8
     lda #1
     sta salto_hay
-    rts                         ; el resto de la página no corre: RM2k tampoco
+    iny                         ; los dos bytes de la Y, que se leyeron sin
+    iny                         ; avanzar el cursor
+    ; Y se sigue con el resto de la página. Acá había un `rts` que decía "el
+    ; resto no corre: RM2k tampoco", y era falso: en
+    ; `Game_Interpreter_Map::CommandTeleport` el motor *reserva* el
+    ; teletransporte, hace `index++` y devuelve false, o sea que corta el cuadro
+    ; pero retoma en el comando siguiente una vez hecho el cambio de mapa.
+    ;
+    ; Acá la página entera corre de una, así que "retomar después" y "seguir" es
+    ; lo mismo, y con dos teletransportes gana el último —que es también dónde
+    ; RM2k deja al héroe—. Ninguna página del juego que hoy compile tiene
+    ; comandos después de un teletransporte, así que este camino todavía no lo
+    ; ejercita ninguna prueba: está en la lista de ESTADO.md. Lo va a ejercitar
+    ; la cinemática de apertura, que tiene once comandos después del primero.
+    bra otro
 .endproc
 
 ; --- el tinte de pantalla --------------------------------------------------

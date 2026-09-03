@@ -217,10 +217,23 @@ def ejecutar(codigo, estado):
                 estado.switches.discard(numero)
             i += 4
         elif op == OP_TELEPORT:
+            # El resto de la página sí corre. En
+            # `Game_Interpreter_Map::CommandTeleport` el motor reserva el
+            # teletransporte, hace `index++` y devuelve false: corta el cuadro,
+            # pero retoma en el comando siguiente una vez cambiado el mapa. Acá
+            # la página corre entera de una, así que seguir es lo mismo que
+            # retomar, y con dos teletransportes gana el último —que es también
+            # dónde RM2k deja al héroe—.
+            #
+            # Lo que este modelo no hace es correr los eventos automáticos del
+            # mapa intermedio, que RM2k sí correría entre un teletransporte y el
+            # siguiente. En la cinemática de apertura los dos van al mismo mapa,
+            # así que no cambia nada; si alguna vez aparece una página que salte
+            # entre mapas distintos, esto hay que mirarlo de nuevo.
             estado.salto = (codigo[i + 1],
                             codigo[i + 2] | (codigo[i + 3] << 8),
                             codigo[i + 4] | (codigo[i + 5] << 8))
-            return              # el resto de la página no corre
+            i += 6
         elif op == OP_ESPERAR:
             i += 2              # la espera se saltea, igual que en la ROM
         elif op == OP_TINTE:

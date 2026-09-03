@@ -85,6 +85,20 @@ commit narra lo hecho; los supuestos no tienen dónde vivir. Acá.
   difieren en 284 pixeles, o sea que el par no da cero por casualidad. El
   Package igual entró en la tanda, por el orden capa-antes-que-Y. Ver "Cómo se
   verifica" en `snes/LEEME.md`.
+* **Que la página siga después de un teletransporte.** Anotado el 2026-09-03.
+  El intérprete cortaba la página en el primer `Teleport`, con un comentario
+  que decía "RM2k tampoco". Es falso: en
+  `Game_Interpreter_Map::CommandTeleport` de easyrpg-player el motor reserva el
+  salto, hace `index++` y devuelve false, o sea que corta el cuadro pero retoma
+  en el comando siguiente después del cambio de mapa. Ya está arreglado de los
+  dos lados, pero **no lo ejercita ninguna prueba**: de las 335 páginas
+  automáticas del juego, las que hoy compilan y tienen comandos después de un
+  teletransporte son **cero**. Lo va a ejercitar la cinemática de apertura, que
+  tiene once comandos después del primero.
+  Y queda una aproximación adentro: no se corren los eventos automáticos del
+  mapa intermedio, que RM2k sí correría entre un salto y el siguiente. En la
+  cinemática los dos van al mismo mapa; si aparece una que salte entre mapas
+  distintos, hay que volver acá.
 * **Por qué bsnes devuelve una pantalla negra.** Abierto el 2026-09-03. Con
   `tools/retro.py`, el core de bsnes carga la ROM, suena el audio y `retro_run`
   avanza, pero el framebuffer viene en cero para cualquier cantidad de cuadros.
