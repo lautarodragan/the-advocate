@@ -228,6 +228,15 @@ salto_x:     .res 2     ; y a qué celda. salto_hay dice si hay uno pendiente
 salto_y:     .res 2
 salto_hay:   .res 1
 saltos_restantes: .res 1 ; cuántas cadenas de teletransporte quedan permitidas
+; El grupo, en orden. El gráfico del héroe es el del primero —RM2k lo decide
+; así, y `AddActor`/`RemoveActor` llaman los dos a `ResetGraphic`—, o sea que
+; esto no es contabilidad: se ve en la pantalla. `hero_poses` apunta a las doce
+; palabras de la tabla de actores del mapa que dicen qué tile es cada pose, y
+; `hero_pal` a con qué paleta se dibuja.
+grupo:       .res 4
+grupo_n:     .res 2
+hero_poses:  .res 3
+hero_pal:    .res 1
 ; La página que se está mirando, ya leída de la tabla. Se copia en vez de
 ; leerse en el lugar porque Y hace de cursor de la tabla, y usarlo además para
 ; indexar el bitmap de switches vuelve el código imposible de seguir.
@@ -238,6 +247,8 @@ pg_trigger:  .res 1
 pg_sa:       .res 2
 pg_sb:       .res 2
 pg_cod:      .res 3
+pg_actor:    .res 1     ; el actor que pide en el grupo, o 0
+act_ptr:     .res 3     ; cursor de la tabla de actores del mapa
 tinte_r:     .res 1     ; el tinte de pantalla, de 0 a 200 con 100 neutro
 tinte_g:     .res 1
 tinte_b:     .res 1
@@ -301,6 +312,27 @@ borrar_switches:
     sta tinte_g
     sta tinte_b
     stz salto_hay
+    ; El grupo va antes de cargar el primer mapa: `cargar_mapa` elige con
+    ; qué se dibuja el héroe, y sin esto leería la basura con la que
+    ; arranca la RAM. El grupo con el que arranca la partida la partida, de la base del juego. El gráfico
+    ; del héroe sale del primero, así que esto decide qué sprite se ve; que en
+    ; este juego el actor 10 sea invisible es dato del juego, no un error.
+    ldx #$0000
+copiar_grupo:
+    cpx #GRUPO_INICIAL_N
+    beq grupo_listo
+    lda grupo_inicial, x
+    sta grupo, x
+    inx
+    bra copiar_grupo
+grupo_listo:
+    rep #$20
+.a16
+    lda #GRUPO_INICIAL_N
+    sta grupo_n                 ; de 16 bits: X e Y lo comparan enteros
+    sep #$20
+.a8
+
     lda #MAPA_INICIAL
     jsr cargar_mapa
     jsr clear_oam
@@ -629,6 +661,9 @@ puesto:
     jsr load_above
     jsr load_sprite
     jsr load_npcs
+    ; La tabla de actores es de este mapa, así que dónde caen las poses del
+    ; líder cambia al cambiar de mapa aunque el grupo sea el mismo.
+    jsr elegir_grafico_heroe
     jsr fill_window             ; deja listo tira_paso_col, que el otro usa
     jsr init_hero_ptr
 
@@ -812,6 +847,9 @@ nada:
     iny
     lda [pag_ptr], y            ; +10 y su banco
     sta pg_cod + 2
+    iny
+    lda [pag_ptr], y            ; +11 el actor que pide en el grupo, o 0
+    sta pg_actor
     rts
 .endproc
 
@@ -832,6 +870,20 @@ mirar_b:
     jsr switch_encendido
     beq falla
 cumple:
+    sep #$20
+.a8
+    ; Y la condición de grupo: un 0 quiere decir "esta página no pide a nadie".
+    lda pg_actor
+    beq cumple8
+    jsr en_el_grupo
+    beq falla8
+cumple8:
+    lda #1                      ; Z=0
+    rts
+falla8:
+    lda #0                      ; Z=1
+    rts
+sin_usar:
     sep #$20
 .a8
     lda #1                      ; Z=0
@@ -916,6 +968,8 @@ otro:
     beq op_esperar
     cmp #OP_TINTE
     beq op_tinte
+    cmp #OP_GRUPO
+    beq op_grupo
     rts                         ; OP_FIN, o algo que no conocemos: se corta
 
 op_switch:
@@ -931,6 +985,17 @@ op_switch:
     iny
     phy
     jsr poner_switch
+    ply
+    bra otro
+
+op_grupo:
+    lda [cod_ptr], y            ; 0 = agregar, 1 = sacar
+    sta temp
+    iny
+    lda [cod_ptr], y            ; el actor
+    iny
+    phy
+    jsr cambiar_grupo
     ply
     bra otro
 
@@ -1236,6 +1301,174 @@ subir:
     sep #$20
 .a8
     jsr tenir_paleta
+    rts
+.endproc
+
+; ¿Está el actor de A en el grupo? Vuelve con Z=0 si sí.
+.proc en_el_grupo
+.a8
+.i16
+    ldx #$0000
+busca:
+    cpx grupo_n                 ; grupo_n es de 16 bits a propósito: con .i16
+    beq no_esta                 ; esta comparación lee dos bytes igual
+    cmp grupo, x
+    beq esta
+    inx
+    bra busca
+esta:
+    lda #1                      ; Z=0
+    rts
+no_esta:
+    lda #0                      ; Z=1
+    rts
+.endproc
+
+; Agrega o saca un actor del grupo y recalcula con qué se dibuja el héroe.
+; A = el actor, temp = 0 para agregar y 1 para sacar.
+;
+; Las reglas son las de `Game_Party::AddActor` y `RemoveActor`: agregar a
+; alguien que ya está no lo duplica ni lo mueve de lugar, agregar con el grupo
+; lleno no hace nada, y sacar a alguien que no está tampoco. El orden importa
+; porque el primero es el que se dibuja.
+.proc cambiar_grupo
+.a8
+.i16
+    ldx #$0000
+buscar:
+    cpx grupo_n
+    beq no_estaba
+    cmp grupo, x
+    beq estaba
+    inx
+    bra buscar
+
+estaba:
+    ; `temp` se mira con A y no con `ldy temp`: con .i16 eso leería dos bytes y
+    ; el de al lado no es nuestro. Es la trampa del ancho de los índices, que ya
+    ; está anotada en el LEEME, y acá dio exactamente el síntoma que promete:
+    ; ningún cambio de grupo tenía efecto y no había ningún error.
+    pha
+    lda temp
+    beq era_agregar             ; agregar uno que ya está: nada que hacer
+    pla
+    ; Sacarlo: se corren los de atrás un lugar.
+correr:
+    inx
+    cpx grupo_n
+    beq acortar
+    lda grupo, x
+    sta grupo - 1, x
+    bra correr
+acortar:
+    rep #$20
+.a16
+    dec grupo_n
+    sep #$20
+.a8
+    bra listo
+era_agregar:
+    pla
+    bra listo
+
+no_estaba:
+    pha
+    lda temp
+    bne era_sacar               ; sacar uno que no está: nada que hacer
+    pla
+    cpx #GRUPO_MAX
+    beq listo                   ; lleno: RM2k tampoco lo agrega
+    sta grupo, x
+    rep #$20
+.a16
+    inc grupo_n
+    sep #$20
+.a8
+    bra listo
+era_sacar:
+    pla
+
+listo:
+    jsr elegir_grafico_heroe
+    rts
+.endproc
+
+; Con qué se dibuja el héroe: se busca al primero del grupo en la tabla de
+; actores del mapa y se guardan sus doce poses y su paleta.
+;
+; Antes esto no existía: el héroe era siempre el personaje 0 del banco de
+; sprites y el tile de cada pose salía de una cuenta. Con el grupo cambiando en
+; caliente ya no alcanza, y además el tile puede pasar de ocho bits cuando hay
+; varios personajes, así que se lee de una tabla.
+.proc elegir_grafico_heroe
+.a8
+.i16
+    stz hero_pal
+    rep #$20
+.a16
+    stz hero_poses
+    sep #$20
+.a8
+    stz hero_poses + 2
+    lda grupo_n
+    beq sin_lider               ; grupo vacío: no se dibuja nada
+
+    ldx mapa_ofs
+    rep #$20
+.a16
+    lda mapa_tabla + M_ACTOR_COUNT, x
+    beq sin_lider16
+    sta temp + 2
+    lda mapa_tabla + M_PTR_ACTOR_TABLE, x
+    sta act_ptr
+    sep #$20
+.a8
+    lda mapa_tabla + M_PTR_ACTOR_TABLE + 2, x
+    sta act_ptr + 2
+
+    ldy #$0000
+    lda grupo                   ; el líder
+    sta temp
+cada_actor:
+    lda [act_ptr], y
+    cmp temp
+    beq lo_encontre
+    rep #$20
+.a16
+    tya
+    clc
+    adc #ACTOR_BYTES
+    tay
+    dec temp + 2
+    sep #$20
+.a8
+    bne cada_actor
+    bra sin_lider
+
+lo_encontre:
+    iny
+    lda [act_ptr], y            ; su paleta, ya corrida a su lugar en vhoopppN
+    asl a
+    and #$0E
+    sta hero_pal
+    iny                         ; y acá arrancan las doce palabras
+    rep #$20
+.a16
+    tya
+    clc
+    adc act_ptr
+    sta hero_poses
+    sep #$20
+.a8
+    lda act_ptr + 2
+    adc #0
+    sta hero_poses + 2
+    rts
+
+sin_lider16:
+    sep #$20
+.a8
+sin_lider:
     rts
 .endproc
 
@@ -2814,33 +3047,42 @@ cerrar:
 sin_ajuste:
     sta temp
 
-    ; La pose es dirección*3 + frame, y cada una ocupa un bloque de 4x4 tiles
-    ; dentro de una grilla de 16 de ancho: cuatro por fila de bloques.
+    ; La pose es dirección*3 + frame, y qué tile le toca lo dice la tabla del
+    ; actor que está al frente del grupo. Antes se calculaba —el héroe era
+    ; siempre el personaje 0 del banco, así que su bloque salía de una cuenta—,
+    ; y eso dejó de valer cuando `ChangePartyMembers` puede cambiar el líder en
+    ; caliente. La tabla además da lugar a tiles de más de ocho bits, que es lo
+    ; que pasa en cuanto hay unos cuantos personajes en el banco.
     lda hero_dir
     asl a
     clc
     adc hero_dir                ; dirección * 3
     clc
     adc temp                    ; más el frame
+    asl a                       ; dos bytes por pose
+    rep #$20
+.a16
+    and #$00FF
+    tay
+    lda [hero_poses], y
     sta temp
-
-    lsr a
-    lsr a                       ; pose / 4 = fila de bloques
-    asl a
-    asl a
-    asl a
-    asl a
-    asl a
-    asl a                       ; * 64 tiles por fila de bloques
-    sta temp + 1
+    sep #$20
+.a8
+    ; $FFFF es el centinela de "este actor no tiene gráfico". Le pasa al actor
+    ; 10, DummyHero, que es con el que el juego arranca: RM2k tampoco dibuja
+    ; nada. Sin grupo el puntero queda en cero y también se sale por acá.
     lda temp
-    and #$03                    ; pose módulo 4 = columna de bloques
-    asl a
-    asl a                       ; * 4 tiles
-    clc
-    adc temp + 1
+    and temp + 1
+    cmp #$FF
+    beq sin_dibujar
+    lda hero_poses + 2
+    beq sin_dibujar
+
+    lda temp
     sta obj_tile
     lda #HERO_PRIORITY          ; por debajo de la capa que lo tapa
+    ora hero_pal
+    ora temp + 1                ; el bit 8 del tile, que va en el bit 0
     sta obj_attr
 
     rep #$20
@@ -2860,6 +3102,7 @@ sin_ajuste:
     sep #$20
 .a8
     jsr emit_object
+sin_dibujar:
     rts
 .endproc
 

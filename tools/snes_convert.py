@@ -736,6 +736,7 @@ MAPA_ESCALARES = [
     ("SPRITE_TILES", ""),
     ("SPRITE_CGRAM", ""),
     ("NPC_COUNT", "cuántos NPCs con CharSet"),
+    ("ACTOR_COUNT", "cuántos candidatos a líder del grupo"),
     ("PUERTA_COUNT", "cuántas puertas salen de este mapa"),
     ("PAGINA_COUNT", "cuántas páginas de evento hay que resolver"),
 ]
@@ -746,7 +747,8 @@ MAPA_BYTES = [
 ]
 MAPA_PUNTEROS = ["map_tiles", "map_cgram", "above_tiles", "above_cgram",
                  "sprite_tiles", "sprite_cgram", "map_celdas", "map_bloques",
-                 "bloque_pass", "npc_table", "puertas", "paginas"]
+                 "bloque_pass", "npc_table", "actor_table", "puertas",
+                 "paginas"]
 MAPA_PTR_BASE = 48                       # dónde arrancan los punteros
 MAPA_PTR_PASO = 4
 
@@ -760,6 +762,8 @@ PUERTA_BYTES = 16
 # le permite a la ROM elegir la última que cumple sus condiciones en una sola
 # pasada, sin llevar una tabla por evento.
 PAGINA_BYTES = 16
+ACTOR_BYTES = 26     # id, paleta y doce tiles de 16 bits
+ACTOR_INVISIBLE = 0xFFFF   # un actor sin gráfico: la ROM no lo dibuja
 
 # Un bit por switch. El juego consulta hasta el 1003 en las condiciones de
 # página, así que con 1024 alcanza y sobra: son 128 bytes de RAM.
@@ -788,6 +792,7 @@ def campos_del_mapa(mapa):
         # también ocupa su lugar en CGRAM.
         "SPRITE_CGRAM": COLORS_PER_PALETTE * len(sprite[1]) if sprite else 0,
         "NPC_COUNT": len(sprite[3]) if sprite else 0,
+        "ACTOR_COUNT": len(sprite[4]) if sprite else 0,
         "PUERTA_COUNT": len(mapa["puertas"]) // PUERTA_BYTES,
         "PAGINA_COUNT": len(mapa["paginas"]),
         "OBSEL_VALUE": 0x20 | (layout["sprites"][0] // 0x2000),
@@ -890,7 +895,9 @@ def tabla_de_paginas(mapa, numero):
         out.append("    .word %-4d ; +4  switch que pide, o 0" % pagina["switch_a"])
         out.append("    .word %-4d ; +6  el segundo, o 0" % pagina["switch_b"])
         out.append("    .byte %s ; +8  su código" % puntero)
-        out.append("    .byte " + ",".join(["$00"] * (PAGINA_BYTES - 11)))
+        out.append("    .byte %-4d ; +11 el actor que pide en el grupo, o 0"
+                   % pagina["actor"])
+        out.append("    .byte " + ",".join(["$00"] * (PAGINA_BYTES - 12)))
     if not mapa["paginas"]:
         out.append("    .byte $00")     # una etiqueta no puede quedar vacía
     return "\n".join(out)
@@ -909,6 +916,7 @@ def datos_del_mapa(mapa, numero):
         ("map_bloques", mapa["bloques"]),
         ("bloque_pass", mapa["pass"]),
         ("npc_table", npc_bytes(sprite[3]) if sprite else b""),
+        ("actor_table", actor_bytes(sprite[4]) if sprite else b""),
         ("puertas", mapa["puertas"]),
         ("evcodigo", mapa["evcodigo"]),
     ]
@@ -919,7 +927,7 @@ def datos_del_mapa(mapa, numero):
     return "\n".join(out)
 
 
-def emit(path, mapas, inicial=0, heroe_encima=False):
+def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=()):
     """El .inc que arma w65.py junto con main.s."""
     for numero, mapa in enumerate(mapas):
         layout = mapa["layout"]
@@ -955,10 +963,17 @@ def emit(path, mapas, inicial=0, heroe_encima=False):
         "OP_TELEPORT = $%02X\n"
         "OP_ESPERAR  = $%02X\n"
         "OP_TINTE    = $%02X\n"
+        "OP_GRUPO    = $%02X\n"
         "TRIGGER_AUTOMATICO = %d\n"
         "TINTE_NEUTRO = %d\n"
         "; Un bit por switch. El más alto que el juego consulta es el 1003.\n"
         "SWITCH_BYTES = %d\n"
+        "; El grupo con el que arranca la partida, y su tope. En RM2k el\n"
+        "; gráfico del héroe es el del primero, así que esto decide qué\n"
+        "; sprite se dibuja; `ChangePartyMembers` lo mueve en caliente.\n"
+        "GRUPO_MAX      = %d\n"
+        "GRUPO_INICIAL_N = %d\n"
+        "ACTOR_BYTES    = %d\n"
         "; La capa del héroe, para ordenarlo contra los NPCs.\n"
         "HERO_LAYER  = %d\n"
         "; Su prioridad de objeto. $10 —debajo de la capa de encima— en\n"
@@ -971,8 +986,9 @@ def emit(path, mapas, inicial=0, heroe_encima=False):
            VRAM_MAP, VRAM_ABOVE_MAP, MAP_LAYOUT, NPC_STRIDE, NPC_MAX,
            PUERTA_BYTES, PAGINA_BYTES,
            eventos.OP_FIN, eventos.OP_SWITCH, eventos.OP_TELEPORT,
-           eventos.OP_ESPERAR, eventos.OP_TINTE,
+           eventos.OP_ESPERAR, eventos.OP_TINTE, eventos.OP_GRUPO,
            eventos.TRIGGER_AUTOMATICO, eventos.TINTE_NEUTRO, SWITCH_BYTES,
+           eventos.GRUPO_MAX, len(grupo_inicial), ACTOR_BYTES,
            md_convert.LAYER_SAME,
            OBJ_PRIORITY_ABOVE if heroe_encima else OBJ_PRIORITY))
 
@@ -991,6 +1007,8 @@ def emit(path, mapas, inicial=0, heroe_encima=False):
             handle.write(datos_del_mapa(mapa, numero))
             handle.write("\n")
         handle.write('\n.segment "TABLAS"\n')
+        handle.write("grupo_inicial:\n    .byte %s\n\n"
+                     % ",".join("%d" % a for a in grupo_inicial) or "0")
         handle.write(tabla_de_mapas(mapas))
         handle.write("\n")
 
@@ -1054,6 +1072,22 @@ def sort_key(layer, y):
     hace que una sola comparación de 16 bits decida las dos cosas.
     """
     return (layer << 12) | (y & 0x0FFF)
+
+
+def actor_bytes(actores):
+    """Los candidatos a líder: id, paleta, y el tile de cada una de sus poses.
+
+    Veintiséis bytes por actor. La ROM recorre la tabla buscando el id del
+    primero del grupo; son dos o tres entradas, así que buscar linealmente sale
+    más barato que indexar por id, que pediría 256 huecos.
+    """
+    out = bytearray()
+    for actor, paleta, tiles in actores:
+        out.append(actor & 0xFF)
+        out.append(paleta & 0x07)
+        for tile in tiles:
+            out += (tile & 0xFFFF).to_bytes(2, "little")
+    return bytes(out)
 
 
 def npc_bytes(table):
@@ -1141,6 +1175,13 @@ def main():
     if args.charset_index is None:
         args.charset_index = 0
 
+    # Los candidatos a líder se calculan con todos los mapas de la ROM juntos,
+    # porque el grupo es estado global: una página del mapa A puede meter a
+    # alguien que después camina por el mapa B.
+    args_game_dir[0] = args.game_dir
+    todos = [args.map_id] + [m for m in (args.mapas or []) if m != args.map_id]
+    args.lideres = lideres_posibles(renderer, todos, grupo)
+
     mapas = [convertir(renderer, map_id, args,
                        inicio=args.inicio if map_id == args.map_id else None)
              for map_id in ([args.map_id] + [m for m in (args.mapas or [])
@@ -1174,7 +1215,7 @@ def main():
 
     if not 0 <= args.inicial < len(mapas):
         sys.exit("--inicial %d pero hay %d mapas" % (args.inicial, len(mapas)))
-    emit(args.output, mapas, args.inicial, args.heroe_encima)
+    emit(args.output, mapas, args.inicial, args.heroe_encima, grupo)
     print("%d mapa(s) -> %s, arranca en el %d (mapa %d)"
           % (len(mapas), args.output, args.inicial, mapas[args.inicial]["id"]))
 
@@ -1205,6 +1246,55 @@ def inicio_del_mapa(renderer, map_id, passable, width, height, ocupadas=()):
     return hero_start(passable, width, height, ocupadas)
 
 
+def images_de(renderer, args, charset):
+    """El CharSet de un actor, cargado y cacheado."""
+    if charset not in _charsets:
+        path = find_resource([REPO, args.game_dir, RTP_DIR], "CharSet", charset)
+        if not path:
+            sys.exit("no encuentro el CharSet %r" % charset)
+        _charsets[charset] = load_image(path)
+    return _charsets[charset]
+
+
+_charsets = {}
+
+
+def lideres_posibles(renderer, map_ids, grupo):
+    """Los actores que pueden llegar a dibujarse como héroe en esta ROM.
+
+    El grupo con el que se arranca, más todos los que agregue un
+    `ChangePartyMembers` de alguna página que compile. Sacar a alguien también
+    cambia el líder, pero al siguiente de la lista, que ya está contado.
+
+    Hace falta porque los tiles del héroe viven en VRAM y no se cargan en
+    caliente: si el líder puede cambiar a mitad de mapa, los sprites de todos
+    los candidatos tienen que estar puestos desde el principio.
+    """
+    actores = list(grupo)
+    indices = {m: i for i, m in enumerate(map_ids)}
+    for map_id in map_ids:
+        game_map = lcf.Map(os.path.join(args_game_dir[0],
+                                        "Map%04d.lmu" % map_id))
+        for evento in game_map.events:
+            for page in evento.pages:
+                if eventos.compilar_pagina(page, indices.get) is None:
+                    continue
+                for cmd in page.commands:
+                    if cmd.code != eventos.CHANGE_PARTY_MEMBERS:
+                        continue
+                    p = cmd.parameters
+                    if (len(p) >= 3 and p[1] == eventos.GRUPO_ID_FIJO
+                            and p[0] == eventos.GRUPO_AGREGAR
+                            and p[2] not in actores):
+                        actores.append(p[2])
+    return actores
+
+
+# El directorio del juego, para `lideres_posibles`. Es feo pero es un solo
+# lugar: la alternativa era pasarlo por tres funciones que no lo usan.
+args_game_dir = [GAME_DIR]
+
+
 def convertir(renderer, map_id, args, inicio=None):
     """Un mapa entero: tiles, colores, sprites, colisión y bloques."""
     game_map = lcf.Map(os.path.join(args.game_dir, "Map%04d.lmu" % map_id))
@@ -1222,13 +1312,21 @@ def convertir(renderer, map_id, args, inicio=None):
     # comparten paleta y tiles sin que haya que hacer nada.
     npcs = collect_npcs(game_map)
     poses = collections.defaultdict(set)
-    poses[(args.charset, args.charset_index)] = set(range(SPRITE_POSES))
+    # Cada candidato a líder con sus doce poses, porque cualquiera puede
+    # terminar caminando. El primero de la lista va primero en el banco, que es
+    # el orden que espera el resto: `sorted` de más abajo lo respeta.
+    for actor in args.lideres:
+        a = renderer.database.actors[actor]
+        if not sprite_colors(images_de(renderer, args, a.charset),
+                             a.charset_index):
+            continue            # no tiene un solo pixel opaco: no se dibuja
+        poses[(a.charset, a.charset_index)] |= set(range(SPRITE_POSES))
     for npc in npcs:
         poses[(npc["charset"], npc["index"])].add(npc["pose"])
 
     images, characters = {}, []
-    for charset, index in sorted(poses, key=lambda k: k != (args.charset,
-                                                            args.charset_index)):
+    primero = renderer.database.lider(args.lideres)
+    for charset, index in sorted(poses, key=lambda k: k != primero):
         if charset not in images:
             path = find_resource([REPO, args.game_dir, RTP_DIR],
                                  "CharSet", charset)
@@ -1243,7 +1341,24 @@ def convertir(renderer, map_id, args, inicio=None):
 
     tiles, palettes, where = build_characters(images, characters)
     table = npc_table(npcs, where)
-    sprite = (tiles, palettes, where, table)
+    # Por cada candidato a líder, dónde caen sus doce poses y con qué paleta. La
+    # ROM no calcula el tile a partir de la pose —eso valía cuando el héroe era
+    # siempre el personaje 0 del banco—: lo busca acá.
+    actores = []
+    for actor in args.lideres:
+        a = renderer.database.actors[actor]
+        if (a.charset, a.charset_index, 0) not in where:
+            # Un actor con el gráfico vacío. `DummyHero`, el 10, es así: sus
+            # ocho poses no tienen un pixel opaco, y RM2k no dibuja nada. Va con
+            # el tile centinela y la ROM se saltea el objeto, que además evita
+            # gastarle doce bloques del banco a algo invisible.
+            actores.append((actor, 0, [ACTOR_INVISIBLE] * SPRITE_POSES))
+            continue
+        bloques = [where[(a.charset, a.charset_index, pose)]
+                   for pose in range(SPRITE_POSES)]
+        actores.append((actor, bloques[0][1],
+                        [block_tile(b) for b, _slot in bloques]))
+    sprite = (tiles, palettes, where, table, actores)
 
     # La colisión: un byte por celda de 16x16 con los cuatro bits de dirección
     # ya resueltos. Toda la lógica de RM2k —que la capa alta manda salvo que sea

@@ -28,6 +28,14 @@ TELEPORT = 10810
 TINT_SCREEN = 11030
 WAIT = 11410
 CHANGE_SAVE_ACCESS = 11930
+CHANGE_PARTY_MEMBERS = 10330
+
+# ChangePartyMembers: el primer parámetro dice si agrega o saca, el segundo de
+# dónde sale el id del actor, y el tercero el id. De liblcf y de
+# `Game_Interpreter::CommandChangePartyMember` en easyrpg-player.
+GRUPO_AGREGAR, GRUPO_SACAR = 0, 1
+GRUPO_ID_FIJO = 0
+GRUPO_MAX = 4           # `Game_Party::AddActor` no agrega si ya hay cuatro
 
 # Comandos que se aceptan sin hacer nada, porque no hacer nada no se ve. Es el
 # mismo criterio que el de las puertas, y hay que aplicarlo con la misma
@@ -48,6 +56,7 @@ OP_SWITCH   = 0x01      # id (word), valor (byte)
 OP_TELEPORT = 0x02      # mapa (byte), x (word), y (word)
 OP_ESPERAR  = 0x03      # cuadros (byte)
 OP_TINTE    = 0x04      # r, g, b, sat (byte cada uno)
+OP_GRUPO    = 0x05      # operación (byte), actor (byte)
 
 # ControlSwitches: el primer parámetro dice de dónde salen los ids y el último
 # qué hacer con ellos (liblcf, ControlSwitches::Operation).
@@ -116,6 +125,13 @@ def _compilar(cmd, indice_de_mapa):
         return bytes([OP_TELEPORT, destino,
                       p[1] & 0xFF, p[1] >> 8, p[2] & 0xFF, p[2] >> 8])
 
+    if cmd.code == CHANGE_PARTY_MEMBERS:
+        if len(p) < 3 or p[1] != GRUPO_ID_FIJO:
+            raise NoSePuede()   # el id sale de una variable, y no las leemos
+        if p[0] not in (GRUPO_AGREGAR, GRUPO_SACAR) or not 0 <= p[2] <= 255:
+            raise NoSePuede()
+        return bytes([OP_GRUPO, p[0], p[2]])
+
     if cmd.code == WAIT:
         if len(p) < 1:
             raise NoSePuede()
@@ -155,13 +171,34 @@ def _compilar(cmd, indice_de_mapa):
 class Estado:
     """Lo que el intérprete recuerda entre páginas y entre mapas."""
 
-    def __init__(self):
+    def __init__(self, grupo=()):
         self.switches = set()
         self.tinte = (TINTE_NEUTRO, TINTE_NEUTRO, TINTE_NEUTRO)
         self.salto = None       # (mapa, x, y) si una página pidió mudarse
+        # El grupo, en orden. El gráfico del héroe es el del primero, así que
+        # esto no es contabilidad: se ve en la pantalla que se compara.
+        self.grupo = list(grupo)
 
     def encendido(self, numero):
         return numero in self.switches
+
+    def cambiar_grupo(self, operacion, actor):
+        """Agrega o saca un actor, con las reglas de RM2k.
+
+        Agregar uno que ya está no lo duplica y no lo mueve de lugar, agregar
+        con el grupo lleno no hace nada, y sacar uno que no está tampoco: es lo
+        que hace `Game_Party::AddActor`/`RemoveActor` en easyrpg-player, que
+        además llama a `ResetGraphic` en los dos casos. Importa porque el orden
+        decide quién es el líder, o sea qué sprite se dibuja.
+        """
+        if operacion == GRUPO_SACAR:
+            if actor in self.grupo:
+                self.grupo.remove(actor)
+        elif actor not in self.grupo and len(self.grupo) < GRUPO_MAX:
+            self.grupo.append(actor)
+
+    def lider(self):
+        return self.grupo[0] if self.grupo else None
 
 
 def pagina_activa(paginas, evento, estado):
@@ -176,6 +213,8 @@ def pagina_activa(paginas, evento, estado):
         if pagina["switch_a"] and not estado.encendido(pagina["switch_a"]):
             continue
         if pagina["switch_b"] and not estado.encendido(pagina["switch_b"]):
+            continue
+        if pagina["actor"] and pagina["actor"] not in estado.grupo:
             continue
         elegida = pagina
     return elegida
@@ -236,6 +275,9 @@ def ejecutar(codigo, estado):
             i += 6
         elif op == OP_ESPERAR:
             i += 2              # la espera se saltea, igual que en la ROM
+        elif op == OP_GRUPO:
+            estado.cambiar_grupo(codigo[i + 1], codigo[i + 2])
+            i += 3
         elif op == OP_TINTE:
             estado.tinte = (codigo[i + 1], codigo[i + 2], codigo[i + 3])
             i += 5
@@ -275,7 +317,7 @@ def paginas_del_mapa(game_map, indice_de_mapa):
         # evaluar —un ítem, un héroe en el grupo, un cronómetro— entonces no se
         # sabe cuál página está activa, y correr la equivocada es peor que no
         # correr ninguna. El evento entero queda afuera.
-        if any(c not in ("switch_a", "switch_b")
+        if any(c not in ("switch_a", "switch_b", "actor")
                for page in event.pages for c in page.condition.active):
             continue
 
@@ -291,6 +333,7 @@ def paginas_del_mapa(game_map, indice_de_mapa):
                 "trigger": page.trigger,
                 "switch_a": cond.ids["switch_a"] if "switch_a" in cond.active else 0,
                 "switch_b": cond.ids["switch_b"] if "switch_b" in cond.active else 0,
+                "actor": cond.ids["actor"] if "actor" in cond.active else 0,
                 "codigo": codigo,
             })
 

@@ -343,6 +343,37 @@ snes-encima mapa="1" tx="66" ty="40" nombre="encima":
       --saltar {{snes_pngs}}/saltar-{{nombre}}.txt \
       -o {{snes_pngs}}/comparacion-{{nombre}}.png
 
+# El grupo cambiando en caliente. `ChangePartyMembers` saca y mete actores, y
+# en RM2k el gráfico del héroe es el del primero del grupo —`AddActor` y
+# `RemoveActor` llaman los dos a `ResetGraphic`—, así que esto se ve en la
+# pantalla.
+#
+# Va con el grupo de verdad del juego y no con el de las pruebas, porque es el
+# único que hace que el caso signifique algo: el mapa 121 saca al actor 10 y
+# agrega al 14 y al 28, y arrancando con [10] el líder pasa de `DummyHero`
+# —una celda vacía, o sea que no se dibuja nada— a Talan. Arrancando con [11]
+# el 10 no está, sacarlo no hace nada, y Kersh sigue al frente: la prueba no
+# probaría nada.
+#
+# Es también el único caso de la tanda donde el intérprete cambia algo que no
+# es un switch ni el tinte.
+snes-grupo mapa="121" arranca="10" nombre=("grupo-" + mapa):
+  #!/usr/bin/env bash
+  set -euo pipefail
+  mkdir -p {{snes_pngs}} {{snes_inc}}
+  python3 tools/snes_convert.py --grupo {{arranca}} --map-id {{mapa}} \
+      -o {{snes_inc}}/mapdata.inc
+  just snes-build
+  python3 tools/snes_expect.py --grupo {{arranca}} --map-id {{mapa}} \
+      --walk none --saltar {{snes_pngs}}/saltar-{{nombre}}.txt \
+      -o {{snes_pngs}}/esperado-{{nombre}}.png
+  python3 tools/snes_correr.py {{snes_rom}} -o {{snes_pngs}}/{{nombre}}.png \
+      --walk none --cuadros 240
+  python3 tools/snes_compare.py {{snes_pngs}}/{{nombre}}.png \
+      {{snes_pngs}}/esperado-{{nombre}}.png \
+      --saltar {{snes_pngs}}/saltar-{{nombre}}.txt \
+      -o {{snes_pngs}}/comparacion-{{nombre}}.png
+
 # El héroe a mitad de camino: se lo captura con N pixeles andados, en la pose
 # de caminata que le toca, y se compara contra la referencia calculada para ese
 # mismo avance.

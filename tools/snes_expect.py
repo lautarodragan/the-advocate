@@ -387,12 +387,6 @@ def main():
     # comparación lo tenían igual de mal, así que el cero no lo delataba.
     # --charset queda para forzarlo a mano cuando hace falta.
     grupo = args.grupo if args.grupo else renderer.database.party
-    if args.charset is None:
-        args.charset, indice = renderer.database.lider(grupo)
-        if args.charset_index is None:
-            args.charset_index = indice
-    if args.charset_index is None:
-        args.charset_index = 0
 
     # El mundo son los mapas que entraron en la ROM, en el mismo orden y armado
     # con la misma regla que usa el conversor, incluido que un mapa repetido en
@@ -468,7 +462,7 @@ def main():
         # Los switches arrancan apagados y la pantalla sin teñir, como una
         # partida nueva de RM2k, y cada dirección arranca de cero: el estado lo
         # mueven los eventos y no puede filtrarse de una caminata a la otra.
-        estado = eventos.Estado()
+        estado = eventos.Estado(grupo)
 
         # Adónde se llega es lo primero: entre los eventos del arranque y las
         # puertas que cruce la caminata, el mapa que hay que dibujar bien puede
@@ -480,6 +474,17 @@ def main():
                                                        avance)
         if args.hero_tile and args.dir:
             direction = DIRECTIONS[args.dir]
+
+        # Con qué se dibuja al héroe se decide *después* de correr los eventos,
+        # no antes: `ChangePartyMembers` puede cambiar el líder del grupo, y en
+        # RM2k el gráfico del héroe es el del líder —`AddActor` y `RemoveActor`
+        # llaman los dos a `ResetGraphic`—. La página del mapa 121 hace
+        # exactamente eso: saca al 10 y mete al 14, así que el héroe pasa de
+        # `DummyHero`, que es una celda vacía, a Talan.
+        if args.charset is not None:
+            charset, charset_index = args.charset, args.charset_index or 0
+        else:
+            charset, charset_index = renderer.database.lider(estado.grupo)
 
         game_map, mapa, encima_todo = convertir(map_id)
         cam_x, cam_y = camera_for(x, y, game_map.width * 2, game_map.height * 2)
@@ -506,7 +511,7 @@ def main():
         else:
             columna = columna_de_caminata(avance // 2)
         actors.append((snes_convert.sort_key(md_convert.LAYER_SAME, y),
-                       args.charset, args.charset_index,
+                       charset, charset_index,
                        direction * 3 + columna, x, y, args.heroe_encima))
 
         # En OAM van del frente hacia el fondo, que es al revés del orden en que

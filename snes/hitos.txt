@@ -32,3 +32,4 @@ snes-evento
 snes-evento 4 "7 19 1" tabla
 snes-caminando 73 right "40 60 80"
 snes-caminando 6 down "40 60 80"
+snes-grupo
