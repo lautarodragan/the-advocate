@@ -1,0 +1,27 @@
+# Los casos de `just snes-hitos`, uno por línea, con los argumentos tal cual se
+# le pasan a `just`. El archivo existe para que la tanda en serie y la
+# repartida en procesos corran exactamente la misma lista: tenerla escrita dos
+# veces es la duplicación de siempre, y acá se notaría tarde y mal —una tanda
+# verde que dejó de correr un caso—.
+#
+# El porqué de cada caso está en el comentario de `snes-hitos`, en el justfile.
+# El orden es de mayor a menor: la repartida los toma de a uno, así que empezar
+# por el más largo es lo que evita que el último trabajador arranque los 45
+# segundos del mapa 52 cuando todos los demás ya terminaron.
+snes-heroe 52 45
+snes-heroe 8 25
+snes-heroe 6 18
+snes-heroe 1 18
+snes-heroe 73 8
+snes-heroe 18 8
+snes-heroe 119 8
+snes-heroe 348 8
+snes-varios
+snes-puerta
+snes-parado 1 75 88 borde
+snes-parado 1 75 90 medias
+snes-parado 1 66 40 tapado
+snes-parado 261 59 2 paquete
+snes-encima
+snes-evento
+snes-evento 4 "7 19 1" tabla

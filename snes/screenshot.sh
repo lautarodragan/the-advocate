@@ -15,15 +15,29 @@ out=${2:?$usage}
 seconds=${3:-4}
 keys=${4:-}
 
+# Todo lo de esta corrida vive en un directorio propio y se va con ella. Antes
+# eran tres cosas fijas —el display :99, HOME y el log— y las tres hacían que
+# dos capturas simultáneas se pisaran: comparten un solo servidor X, y como
+# acá se captura la raíz del display entero y la ventana se busca por el
+# basename de la ROM, la segunda captura podía salir de la ROM equivocada sin
+# que nada avisara.
+#
 # Configuración propia: mednafen guarda al salir lo que se le pase por línea de
 # comandos, y el -sound 0 de acá le arruinaba la grabación a record.sh.
-export HOME=/tmp/mednafen-video
+tmp=$(mktemp -d)
+export HOME="$tmp/mednafen"
 mkdir -p "$HOME"
+log="$tmp/mednafen.log"
+pid=""
 
-Xvfb :99 -screen 0 640x480x24 >/dev/null 2>&1 &
+# -displayfd deja que el servidor elija un display libre y lo informe, en vez
+# de clavar uno: dos corridas a la vez no tienen por qué pelearse por :99.
+Xvfb -displayfd 3 -screen 0 640x480x24 3>"$tmp/display" >/dev/null 2>&1 &
 xvfb_pid=$!
-trap 'kill $xvfb_pid $pid 2>/dev/null || true' EXIT
-export DISPLAY=:99 SDL_AUDIODRIVER=dummy
+trap 'kill $xvfb_pid ${pid:-} 2>/dev/null || true; rm -rf "$tmp"' EXIT
+for _ in $(seq 100); do [ -s "$tmp/display" ] && break; sleep 0.1; done
+[ -s "$tmp/display" ] || { echo "Xvfb no arrancó" >&2; exit 1; }
+export DISPLAY=":$(tr -d '[:space:]' <"$tmp/display")" SDL_AUDIODRIVER=dummy
 for _ in $(seq 50); do xdpyinfo >/dev/null 2>&1 && break; sleep 0.1; done
 
 # La cruceta va atada a las flechas. Por defecto mednafen usa WASD, que además
@@ -38,7 +52,7 @@ timeout "$((seconds + 20))" mednafen \
     -snes.correct_aspect 0 \
     -snes.stretch 0 \
     -snes.xscale 1 -snes.yscale 1 \
-    "$rom" >/tmp/mednafen.log 2>&1 &
+    "$rom" >"$log" 2>&1 &
 pid=$!
 sleep 3
 
@@ -77,11 +91,11 @@ win_x=$(printf '%s\n' "$geom" | sed -n 's/^X=//p')
 win_y=$(printf '%s\n' "$geom" | sed -n 's/^Y=//p')
 
 mkdir -p "$(dirname "$out")"
-import -display :99 -window root -silent "$out.raw.png" 2>/dev/null
+import -display "$DISPLAY" -window root -silent "$out.raw.png" 2>/dev/null
 kill $pid 2>/dev/null || true
 wait $pid 2>/dev/null || true
 
-[ -s "$out.raw.png" ] || { echo "no salió captura" >&2; tail -20 /tmp/mednafen.log >&2; exit 1; }
+[ -s "$out.raw.png" ] || { echo "no salió captura" >&2; tail -20 "$log" >&2; exit 1; }
 python3 "$(dirname "$0")/../tools/snes_crop.py" "$out.raw.png" "$out" \
     ${win_x:+--en "$win_x" "$win_y"}
 rm -f "$out.raw.png"

@@ -15,30 +15,40 @@ rom=${1:?$usage}
 out=${2:?$usage}
 seconds=${3:-4}
 
-# Configuración propia, separada de la de screenshot.sh: mednafen guarda las
-# opciones de la línea de comandos al salir, y aquél pasa -sound 0. Compartiendo
-# HOME, esto grababa silencio sin decir nada.
-export HOME=/tmp/mednafen-audio
+# Todo lo de esta corrida en un directorio propio, igual que screenshot.sh y
+# por lo mismo: dos de éstos a la vez peleaban por el display :99 y por el WAV
+# de salida. Que HOME salga de acá arregla de paso lo que antes había que
+# recordar a mano —mednafen guarda al salir las opciones de la línea de
+# comandos, y screenshot.sh pasa -sound 0; compartiendo HOME, esto grababa
+# silencio sin decir nada—.
+tmp=$(mktemp -d)
+export HOME="$tmp/mednafen"
 mkdir -p "$HOME"
-Xvfb :99 -screen 0 640x480x24 >/dev/null 2>&1 &
+log="$tmp/mednafen.log"
+wav="$tmp/out.wav"
+pid=""
+
+Xvfb -displayfd 3 -screen 0 640x480x24 3>"$tmp/display" >/dev/null 2>&1 &
 xvfb_pid=$!
-trap 'kill $xvfb_pid 2>/dev/null || true' EXIT
-export DISPLAY=:99 SDL_AUDIODRIVER=dummy
+trap 'kill $xvfb_pid ${pid:-} 2>/dev/null || true; rm -rf "$tmp"' EXIT
+for _ in $(seq 100); do [ -s "$tmp/display" ] && break; sleep 0.1; done
+[ -s "$tmp/display" ] || { echo "Xvfb no arrancó" >&2; exit 1; }
+export DISPLAY=":$(tr -d '[:space:]' <"$tmp/display")" SDL_AUDIODRIVER=dummy
 for _ in $(seq 50); do xdpyinfo >/dev/null 2>&1 && break; sleep 0.1; done
 
-rm -f /tmp/out.wav
 timeout "$((seconds + 8))" mednafen \
-    -soundrecord /tmp/out.wav \
+    -soundrecord "$wav" \
     -sound 1 \
     -sound.driver dummy \
     -video.driver 0 \
     -snes.correct_aspect 0 \
-    "$rom" >/tmp/mednafen.log 2>&1 &
+    "$rom" >"$log" 2>&1 &
 pid=$!
 sleep "$seconds"
 kill $pid 2>/dev/null || true
 wait $pid 2>/dev/null || true
 
-[ -s /tmp/out.wav ] || { echo "no salió WAV" >&2; tail -20 /tmp/mednafen.log >&2; exit 1; }
-cp /tmp/out.wav "$out"
+[ -s "$wav" ] || { echo "no salió WAV" >&2; tail -20 "$log" >&2; exit 1; }
+mkdir -p "$(dirname "$out")"
+cp "$wav" "$out"
 echo "wav -> $out ($(stat -c %s "$out") bytes)"

@@ -144,38 +144,62 @@ md-play-mudo region="overseas_pal":
 # El contenedor sigue existiendo para una sola cosa, snes-validar, que compara
 # w65.py contra ca65. No se necesita para compilar.
 
+# Una corrida aislada. `CORRIDA=algo just snes-hitos` deja el mapdata, la ROM y
+# las capturas adentro de snes/build/algo/ y no toca nada de lo de siempre; sin
+# CORRIDA, todo queda exactamente donde estaba, para que `mednafen
+# snes/build/abl.sfc` y las rutas escritas en el LEEME sigan valiendo.
+#
+# Existe por dos cosas que hasta ahora hacían imposible compilar mientras algo
+# corría: snes/src/mapdata.inc es estado global —lo pisa cualquier
+# snes-convert— y la ROM tenía un solo nombre posible. La ROM además se llama
+# como la corrida porque screenshot.sh busca la ventana del emulador por el
+# basename del archivo: dos ROMs llamadas las dos `abl` no se distinguen.
+corrida  := env_var_or_default("CORRIDA", "")
+snes_dir := if corrida == "" { "snes/build" } else { "snes/build" / corrida }
+snes_rom := snes_dir / (if corrida == "" { "abl.sfc" } else { corrida + ".sfc" })
+snes_inc := if corrida == "" { "snes/src" } else { snes_dir }
+snes_pngs := if corrida == "" { "snes/shots" } else { snes_dir / "shots" }
+
 # ChipSet + mapa -> tiles de 8x8 a 8bpp, paleta de 15 bits y tilemap, más el
 # render de Python contra el que se compara después.
 snes-convert mapa="7":
-  mkdir -p snes/shots
-  python3 tools/snes_convert.py --map-id {{mapa}} --reference snes/shots/python.png
+  mkdir -p {{snes_pngs}} {{snes_inc}}
+  python3 tools/snes_convert.py --map-id {{mapa}} -o {{snes_inc}}/mapdata.inc \
+      --reference {{snes_pngs}}/python.png
 
 snes-build:
-  python3 tools/w65.py snes/src/main.s -o snes/build/abl.sfc
+  python3 tools/w65.py snes/src/main.s -I {{snes_inc}} -o {{snes_rom}}
 
 # Corre la ROM sin pantalla y captura lo que dibuja. Las teclas se mantienen
 # apretadas mientras corre, para capturar con la cámara movida.
 snes-shot nombre="mapa" segundos="4" teclas="":
-  snes/screenshot.sh snes/build/abl.sfc snes/shots/{{nombre}}.png {{segundos}} "{{teclas}}"
+  snes/screenshot.sh {{snes_rom}} {{snes_pngs}}/{{nombre}}.png {{segundos}} "{{teclas}}"
 
 # La captura contra el render de Python, pixel por pixel y a 15 bits.
 snes-compare nombre="mapa" x="0" y="0":
-  python3 tools/snes_compare.py snes/shots/{{nombre}}.png snes/shots/python.png \
-      --camara {{x}} {{y}} -o snes/shots/comparacion-{{nombre}}.png
+  python3 tools/snes_compare.py {{snes_pngs}}/{{nombre}}.png {{snes_pngs}}/python.png \
+      --camara {{x}} {{y}} -o {{snes_pngs}}/comparacion-{{nombre}}.png
 
 # Camina en una dirección hasta chocar contra el borde del mapa y compara lo que
 # la consola muestra contra lo que Python calcula que tendría que mostrar:
 # el mapa, la cámara siguiendo al héroe, y el héroe en su pose parada.
-snes-walk mapa="7" direccion="none" segundos="8" mapas="" inicial="0":
-  just snes-shot {{direccion}} {{segundos}} "$(just _tecla {{direccion}})"
+#
+# El nombre de la captura lleva el mapa además de la dirección. Con sólo la
+# dirección, una tanda escribía `none.png` nueve veces y `down.png` otras
+# nueve: en serie es sobreescritura inofensiva, pero cuando algo falla el PNG
+# que uno querría mirar ya lo pisó un mapa posterior. Quien tenga dos casos con
+# el mismo mapa y la misma dirección —snes-varios contra snes-heroe— pasa el
+# nombre a mano.
+snes-walk mapa="7" direccion="none" segundos="8" mapas="" inicial="0" nombre=(mapa + "-" + direccion):
+  just snes-shot {{nombre}} {{segundos}} "$(just _tecla {{direccion}})"
   python3 tools/snes_expect.py --map-id {{mapa}} --walk {{direccion}} \
       --mapas {{mapas}} --inicial {{inicial}} \
-      --saltar snes/shots/saltar-{{direccion}}.txt \
-      -o snes/shots/esperado-{{direccion}}.png
-  python3 tools/snes_compare.py snes/shots/{{direccion}}.png \
-      snes/shots/esperado-{{direccion}}.png \
-      --saltar snes/shots/saltar-{{direccion}}.txt \
-      -o snes/shots/comparacion-{{direccion}}.png
+      --saltar {{snes_pngs}}/saltar-{{nombre}}.txt \
+      -o {{snes_pngs}}/esperado-{{nombre}}.png
+  python3 tools/snes_compare.py {{snes_pngs}}/{{nombre}}.png \
+      {{snes_pngs}}/esperado-{{nombre}}.png \
+      --saltar {{snes_pngs}}/saltar-{{nombre}}.txt \
+      -o {{snes_pngs}}/comparacion-{{nombre}}.png
 
 # Una puerta: el héroe camina, la pisa, y aparece en el otro mapa. Lo que se
 # compara es la pantalla entera después de cruzar, así que cubre de una vez el
@@ -184,18 +208,19 @@ snes-walk mapa="7" direccion="none" segundos="8" mapas="" inicial="0":
 #
 # La referencia recibe la misma lista de mapas que la ROM: una puerta a un mapa
 # que no entró en el cartucho no lleva a ningún lado, ni en la consola ni acá.
-snes-puerta origen="30" destino="28" direccion="down" segundos="8":
-  mkdir -p snes/shots
-  python3 tools/snes_convert.py --map-id {{origen}} --mapas {{destino}}
+snes-puerta origen="30" destino="28" direccion="down" segundos="8" nombre=("puerta-" + origen + "-" + destino):
+  mkdir -p {{snes_pngs}} {{snes_inc}}
+  python3 tools/snes_convert.py --map-id {{origen}} --mapas {{destino}} \
+      -o {{snes_inc}}/mapdata.inc
   just snes-build
-  just snes-shot puerta {{segundos}} "$(just _tecla {{direccion}})"
+  just snes-shot {{nombre}} {{segundos}} "$(just _tecla {{direccion}})"
   python3 tools/snes_expect.py --map-id {{origen}} --mapas {{destino}} \
-      --walk {{direccion}} --saltar snes/shots/saltar-puerta.txt \
-      -o snes/shots/esperado-puerta.png
-  python3 tools/snes_compare.py snes/shots/puerta.png \
-      snes/shots/esperado-puerta.png \
-      --saltar snes/shots/saltar-puerta.txt \
-      -o snes/shots/comparacion-puerta.png
+      --walk {{direccion}} --saltar {{snes_pngs}}/saltar-{{nombre}}.txt \
+      -o {{snes_pngs}}/esperado-{{nombre}}.png
+  python3 tools/snes_compare.py {{snes_pngs}}/{{nombre}}.png \
+      {{snes_pngs}}/esperado-{{nombre}}.png \
+      --saltar {{snes_pngs}}/saltar-{{nombre}}.txt \
+      -o {{snes_pngs}}/comparacion-{{nombre}}.png
 
 # El tinte solo, contra la cuenta de Python y sin referencia de por medio: toma
 # la misma pantalla capturada de la consola sin teñir y teñida, y pregunta si la
@@ -221,45 +246,47 @@ snes-tinte sin="snes/shots/destino.png" con="snes/shots/evento.png" r="0" g="0" 
 #
 # Después de esto, `just snes-play` lo muestra con sonido.
 snes-evento origen="4" destino="1" nombre="evento":
-  mkdir -p snes/shots
-  python3 tools/snes_convert.py --map-id {{origen}} --mapas {{destino}}
+  mkdir -p {{snes_pngs}} {{snes_inc}}
+  python3 tools/snes_convert.py --map-id {{origen}} --mapas {{destino}} \
+      -o {{snes_inc}}/mapdata.inc
   just snes-build
   just snes-shot {{nombre}} 4 ""
   python3 tools/snes_expect.py --map-id {{origen}} --mapas {{destino}} \
-      --saltar snes/shots/saltar-{{nombre}}.txt \
-      -o snes/shots/esperado-{{nombre}}.png
-  python3 tools/snes_compare.py snes/shots/{{nombre}}.png \
-      snes/shots/esperado-{{nombre}}.png \
-      --saltar snes/shots/saltar-{{nombre}}.txt \
-      -o snes/shots/comparacion-{{nombre}}.png
+      --saltar {{snes_pngs}}/saltar-{{nombre}}.txt \
+      -o {{snes_pngs}}/esperado-{{nombre}}.png
+  python3 tools/snes_compare.py {{snes_pngs}}/{{nombre}}.png \
+      {{snes_pngs}}/esperado-{{nombre}}.png \
+      --saltar {{snes_pngs}}/saltar-{{nombre}}.txt \
+      -o {{snes_pngs}}/comparacion-{{nombre}}.png
 
 # Varios mapas en la misma ROM. Lo que prueba no es que cada uno se vea bien
 # —eso ya lo cubre snes-hitos— sino que se vea bien cuando su registro no está
 # al principio de la tabla: con el índice 0 el desplazamiento es cero y
 # cualquier cuenta mal hecha da el resultado correcto por casualidad.
 snes-varios primero="18" otros="7 19" indice="2":
-  mkdir -p snes/shots
+  mkdir -p {{snes_pngs}} {{snes_inc}}
   python3 tools/snes_convert.py --map-id {{primero}} --mapas {{otros}} \
-      --inicial {{indice}}
+      --inicial {{indice}} -o {{snes_inc}}/mapdata.inc
   just snes-build
-  just snes-walk {{primero}} none 8 "{{otros}}" {{indice}}
-  just snes-walk {{primero}} down 8 "{{otros}}" {{indice}}
+  just snes-walk {{primero}} none 8 "{{otros}}" {{indice}} varios-{{primero}}-none
+  just snes-walk {{primero}} down 8 "{{otros}}" {{indice}} varios-{{primero}}-down
 
 # Planta al héroe en una celda elegida y compara sin caminar. Llegar a un lugar
 # puntual caminando depende de cuántos segundos se mantenga la cruceta, que es
 # frágil; acá la cámara queda donde uno quiere y la captura no se negocia.
 snes-parado mapa="1" tx="75" ty="88" nombre="parado":
-  mkdir -p snes/shots
-  python3 tools/snes_convert.py --map-id {{mapa}} --inicio {{tx}} {{ty}}
+  mkdir -p {{snes_pngs}} {{snes_inc}}
+  python3 tools/snes_convert.py --map-id {{mapa}} --inicio {{tx}} {{ty}} \
+      -o {{snes_inc}}/mapdata.inc
   just snes-build
   just snes-shot {{nombre}} 4 ""
   python3 tools/snes_expect.py --map-id {{mapa}} --hero-tile {{tx}} {{ty}} \
-      --dir down --saltar snes/shots/saltar-{{nombre}}.txt \
-      -o snes/shots/esperado-{{nombre}}.png
-  python3 tools/snes_compare.py snes/shots/{{nombre}}.png \
-      snes/shots/esperado-{{nombre}}.png \
-      --saltar snes/shots/saltar-{{nombre}}.txt \
-      -o snes/shots/comparacion-{{nombre}}.png
+      --dir down --saltar {{snes_pngs}}/saltar-{{nombre}}.txt \
+      -o {{snes_pngs}}/esperado-{{nombre}}.png
+  python3 tools/snes_compare.py {{snes_pngs}}/{{nombre}}.png \
+      {{snes_pngs}}/esperado-{{nombre}}.png \
+      --saltar {{snes_pngs}}/saltar-{{nombre}}.txt \
+      -o {{snes_pngs}}/comparacion-{{nombre}}.png
 
 # Lo mismo, pero con el héroe en prioridad 2 de objeto: la que llevan los
 # eventos marcados "above", y que en el orden del modo 3 queda por encima de
@@ -275,18 +302,18 @@ snes-parado mapa="1" tx="75" ty="88" nombre="parado":
 # equivocada la comparación se va a 284 pixeles, que es lo que se midió
 # poniendo #OBJ_PRIORITY_ABOVE a mano en place_hero.
 snes-encima mapa="1" tx="66" ty="40" nombre="encima":
-  mkdir -p snes/shots
+  mkdir -p {{snes_pngs}} {{snes_inc}}
   python3 tools/snes_convert.py --map-id {{mapa}} --inicio {{tx}} {{ty}} \
-      --heroe-encima
+      --heroe-encima -o {{snes_inc}}/mapdata.inc
   just snes-build
   just snes-shot {{nombre}} 4 ""
   python3 tools/snes_expect.py --map-id {{mapa}} --hero-tile {{tx}} {{ty}} \
-      --dir down --heroe-encima --saltar snes/shots/saltar-{{nombre}}.txt \
-      -o snes/shots/esperado-{{nombre}}.png
-  python3 tools/snes_compare.py snes/shots/{{nombre}}.png \
-      snes/shots/esperado-{{nombre}}.png \
-      --saltar snes/shots/saltar-{{nombre}}.txt \
-      -o snes/shots/comparacion-{{nombre}}.png
+      --dir down --heroe-encima --saltar {{snes_pngs}}/saltar-{{nombre}}.txt \
+      -o {{snes_pngs}}/esperado-{{nombre}}.png
+  python3 tools/snes_compare.py {{snes_pngs}}/{{nombre}}.png \
+      {{snes_pngs}}/esperado-{{nombre}}.png \
+      --saltar {{snes_pngs}}/saltar-{{nombre}}.txt \
+      -o {{snes_pngs}}/comparacion-{{nombre}}.png
 
 # Pasa los 335 mapas por los límites del hardware sin armar ninguna ROM: dice
 # cuáles no entran y por qué. Correr cuando se toque el conversor o el reparto
@@ -361,24 +388,50 @@ snes-recorrido desde="66":
 #
 # Los segundos son cuánto se mantiene la cruceta: tiene que alcanzar para
 # cruzar el mapa a 2 pixeles por cuadro.
+#
+# La lista vive en snes/hitos.txt y no acá, para que ésta y snes-hitos-paralelo
+# corran la misma: escrita dos veces, la que se olvide un caso sigue dando
+# verde y nadie se entera.
 snes-hitos:
-  just snes-heroe 73 8
-  just snes-heroe 18 8
-  just snes-heroe 119 8
-  just snes-heroe 6 18
-  just snes-heroe 8 25
-  just snes-heroe 52 45
-  just snes-heroe 1 18
-  just snes-heroe 348 8
-  just snes-parado 1 75 88 borde
-  just snes-parado 1 75 90 medias
-  just snes-varios
-  just snes-puerta
-  just snes-evento
-  just snes-evento 4 "7 19 1" tabla
-  just snes-parado 1 66 40 tapado
-  just snes-encima
-  just snes-parado 261 59 2 paquete
+  #!/usr/bin/env bash
+  set -uo pipefail
+  falló=0
+  while read -r caso; do
+    echo "=== $caso ==="
+    eval "just $caso" || falló=1
+  done < <(grep -v '^#' snes/hitos.txt | grep -v '^$')
+  exit $falló
+
+# Los mismos casos, uno por proceso y cada uno en su propia corrida aislada.
+# Con la tanda en serie son unos 16 minutos de reloj de los cuales casi todo es
+# el emulador durmiendo: 49 capturas y 738 segundos de sleep pedido. El piso
+# acá es el caso más largo —los 45 segundos por dirección del mapa 52, o sea
+# unos 4 minutos— así que de cuatro trabajadores para arriba no baja mucho más.
+#
+# Un rojo acá se vuelve a correr solo antes de creerle. Mednafen emula en
+# tiempo real: si la máquina se sobresuscribe emula menos cuadros en los mismos
+# segundos de reloj, el héroe queda corto de la pared y la comparación se va a
+# miles de pixeles. Falla ruidosamente, que es lo importante, pero se parece
+# demasiado a una regresión de verdad.
+snes-hitos-paralelo trabajos="4":
+  #!/usr/bin/env bash
+  set -uo pipefail
+  mkdir -p snes/build
+  # Por xargs viajan números de línea y no los casos. xargs procesa comillas y
+  # se come las de `snes-evento 4 "7 19 1" tabla`, que entonces le llega a just
+  # como seis argumentos sueltos; el caso se cae y la tanda sigue con uno menos.
+  # Pasando el número y releyendo la línea adentro, el texto no cruza nunca el
+  # quoting de xargs.
+  casos=$(grep -v '^#' snes/hitos.txt | grep -v '^$')
+  total=$(printf '%s\n' "$casos" | wc -l)
+  seq 1 "$total" | xargs -P {{trabajos}} -I{} bash -c '
+      caso=$(grep -v "^#" snes/hitos.txt | grep -v "^$" | sed -n "{}p")
+      salida=snes/build/hito-{}.log
+      if CORRIDA=hito-{} eval "just $caso" >"$salida" 2>&1; then
+        echo "ok    $caso"
+      else
+        echo "ROJO  $caso  -> $salida"
+      fi'
 
 # El héroe: parado y caminando en las cuatro direcciones.
 snes-heroe mapa="7" segundos="8":
@@ -403,14 +456,14 @@ _tecla direccion:
 snes-mapa mapa="7" segundos="5":
   just snes-convert {{mapa}}
   just snes-build
-  just snes-shot centro {{segundos}}
-  just snes-compare centro 0 0
-  just snes-shot derecha {{segundos}} "Right"
-  just snes-compare derecha $(just _cam-x) 0
-  just snes-shot abajo {{segundos}} "Down"
-  just snes-compare abajo 0 $(just _cam-y)
-  just snes-shot esquina {{segundos}} "Right Down"
-  just snes-compare esquina $(just _cam-x) $(just _cam-y)
+  just snes-shot {{mapa}}-centro {{segundos}}
+  just snes-compare {{mapa}}-centro 0 0
+  just snes-shot {{mapa}}-derecha {{segundos}} "Right"
+  just snes-compare {{mapa}}-derecha $(just _cam-x) 0
+  just snes-shot {{mapa}}-abajo {{segundos}} "Down"
+  just snes-compare {{mapa}}-abajo 0 $(just _cam-y)
+  just snes-shot {{mapa}}-esquina {{segundos}} "Right Down"
+  just snes-compare {{mapa}}-esquina $(just _cam-x) $(just _cam-y)
 
 # Los topes de la cámara salen del .inc que generó el conversor, así que las
 # recetas no repiten números que dependen del mapa.
@@ -458,15 +511,15 @@ snes-music mapa="67":
 # MIDI. Sirve para verificar sin escuchar: para cada nota que debería estar
 # sonando se mide su energía y la de un señuelo un cuarto de tono más arriba.
 snes-check mapa="67" segundos="60":
-  mkdir -p snes/shots
-  snes/record.sh snes/build/abl.sfc snes/shots/tema.wav {{segundos}}
-  python3 tools/snes_check.py snes/shots/tema.wav --map-id {{mapa}}
+  mkdir -p {{snes_pngs}} {{snes_inc}}
+  snes/record.sh {{snes_rom}} {{snes_pngs}}/tema.wav {{segundos}}
+  python3 tools/snes_check.py {{snes_pngs}}/tema.wav --map-id {{mapa}}
 
 # El mismo MIDI tocado por FluidSynth en la PC, con el mismo SoundFont del que
 # salen nuestras muestras, y medido con la misma vara. Es el techo: dice cuánto
 # de lo que falta es culpa nuestra y cuánto es de la medición.
 snes-referencia mapa="67" banco="/extras/soundfonts/Microsoft GS Wavetable Synth.sf2":
-  mkdir -p snes/shots
+  mkdir -p {{snes_pngs}} {{snes_inc}}
   fluidsynth -F snes/shots/referencia.wav -r 48000 \
       "{{banco}}" \
       "$(python3 tools/midi_path.py --map-id {{mapa}})"
@@ -477,4 +530,4 @@ snes mapa="67": (snes-music mapa) snes-build (snes-check mapa)
 
 # La ROM en una ventana, con sonido. Corre en el host por lo mismo que md-play.
 snes-play:
-  mednafen -command.exit "keyboard 0x0 20+ctrl" -sound.driver sdl snes/build/abl.sfc
+  mednafen -command.exit "keyboard 0x0 20+ctrl" -sound.driver sdl {{snes_rom}}

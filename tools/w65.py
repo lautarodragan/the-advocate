@@ -387,8 +387,9 @@ OPERAND = re.compile(r"^(?P<mnemonic>[A-Za-z]+)(?:\s+(?P<operand>.*))?$")
 
 class Assembler:
 
-    def __init__(self, checksum=True):
+    def __init__(self, checksum=True, incluir=()):
         self.checksum = checksum
+        self.incluir = [os.path.abspath(d) for d in incluir]
         self.items = {name: [] for name in SEGMENTS}
         self.segment = "CODE"
         self.origen = "?"       # de qué línea salió lo último que se agregó
@@ -407,6 +408,22 @@ class Assembler:
         self.read(path)
         self.place()
         return self.emit()
+
+    def buscar(self, nombre, directory):
+        """Dónde está un `.include`: primero los -I, después el del fuente.
+
+        Los -I van adelante a propósito. Es lo que permite ensamblar con un
+        mapdata.inc que no es el del árbol —uno recién generado en el
+        directorio de una corrida— sin pisar el que otra tanda esté usando:
+        `snes/src/mapdata.inc` es estado global y compartido, y hasta que
+        existió esto la única forma de armar otra ROM era sobreescribirlo.
+        """
+        for base in list(self.incluir) + [directory]:
+            candidato = os.path.join(base, nombre)
+            if os.path.exists(candidato):
+                return candidato
+        raise Error("no encuentro %r; busqué en %s"
+                    % (nombre, ", ".join(list(self.incluir) + [directory])))
 
     def read(self, path):
         directory = os.path.dirname(os.path.abspath(path))
@@ -490,7 +507,7 @@ class Assembler:
             self.scope = rest + "::"
             return
         if name == ".include":
-            self.read(os.path.join(directory, rest.strip('"')))
+            self.read(self.buscar(rest.strip('"'), directory))
             return
         if name == ".bloque":
             self.add(BankFit(Expression(rest).value(self.symbols)))
@@ -779,12 +796,19 @@ def main():
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("source")
     parser.add_argument("-o", "--output", required=True)
+    parser.add_argument("-I", "--incluir", action="append", default=[],
+                        metavar="DIR",
+                        help="dónde buscar los .include antes que en el "
+                             "directorio del fuente. Se puede repetir. Es lo "
+                             "que permite armar una ROM con un mapdata.inc "
+                             "propio sin tocar el del árbol")
     parser.add_argument("--sin-checksum", action="store_true",
                         help="no completar el checksum de la cabecera, para "
                              "poder comparar contra ca65, que no lo escribe")
     args = parser.parse_args()
 
-    assembler = Assembler(checksum=not args.sin_checksum)
+    assembler = Assembler(checksum=not args.sin_checksum,
+                          incluir=args.incluir)
     try:
         rom = assembler.assemble(args.source)
     except Error as error:
