@@ -38,6 +38,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+import event_codes
 import eventos
 import lcf
 import md_convert
@@ -1215,6 +1216,22 @@ def main():
         if paginas:
             print("  mapa %d: %d página(s) de evento automático, %d ejecutable(s)"
                   % (mapa["id"], len(paginas), corribles))
+        # Las deudas se avisan. Una página que se acepta sin hacer todo lo que
+        # pide es una diferencia con el juego original, y callarla es cómo se
+        # vuelve invisible: acá se nombra el comando y qué se pierde.
+        deudas = set()
+        for evento in mapa["game_map"].events:
+            for page in evento.pages:
+                if page.trigger != eventos.TRIGGER_AUTOMATICO:
+                    continue
+                if eventos.compilar_pagina(page, indices.get) is None:
+                    continue
+                deudas |= set(eventos.deudas_de_la_pagina(page))
+        for codigo_cmd in sorted(deudas):
+            print("  mapa %d: AVISO, una página usa %s y la ROM no lo hace; "
+                  "ver ACEPTADOS_SIN_HACER en tools/eventos.py"
+                  % (mapa["id"], event_codes.EVENT_CODES.get(codigo_cmd,
+                                                             codigo_cmd)))
 
     if not 0 <= args.inicial < len(mapas):
         sys.exit("--inicial %d pero hay %d mapas" % (args.inicial, len(mapas)))

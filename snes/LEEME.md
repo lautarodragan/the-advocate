@@ -890,6 +890,23 @@ comparación.
   cinemáticas con variables y condiciones que todavía no modelamos. El del mapa
   donde el juego arranca ya no: es automático, entra con los cinco comandos que
   la ROM entiende, y `Blank (Leave START here)` ahora se sale solo.
+* **Cambiar la música desde un evento (`PlayBGM`).** Decidido dejarlo afuera el
+  2026-09-03, y aceptado igual: una página que lo use compila, y la ROM sigue
+  con el tema que venía sonando. No es una equivalencia sino una deuda, y está
+  en `ACEPTADOS_SIN_HACER` de `tools/eventos.py` con ese nombre a propósito.
+
+  Cuesta caro porque la ROM sube **un solo banco de muestras** al SPC700 al
+  arrancar: cambiar de tema en caliente pide varios bancos en el cartucho y
+  volver a subir en mitad del juego, con la pantalla andando. Es una feature de
+  audio, no un comando más.
+
+  Lo que se pierde no se ve en la pantalla que se compara, que es el criterio
+  por el que se acepta. Pero sí se oye, y hay un segundo efecto que conviene
+  tener presente: `snes-check` compara el audio contra el MIDI **del mapa**, así
+  que en un mapa donde una página cambia el tema esa prueba estaría midiendo
+  contra el tema equivocado. Hoy no pasa —ninguna página que compile usa
+  `PlayBGM`— y el conversor avisa por pantalla en cuanto pase.
+
 * **La cinemática de apertura.** El mapa 4 prende el switch 20, que es la
   condición de la página que abre el mapa 1: el enganche ya funciona, y si esa
   página se pudiera correr, arrancaría sola. No se puede por dos motivos, los

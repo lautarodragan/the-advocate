@@ -167,6 +167,20 @@ commit narra lo hecho; los supuestos no tienen dónde vivir. Acá.
 * **Que un NPC frene al héroe.** La referencia tampoco lo modela, y es a
   propósito: modelar de este lado algo que la consola no hace inventa una
   diferencia. Los dos lados se mueven juntos o ninguno.
+* **`PlayBGM`, aceptado sin hacerlo.** Decidido el 2026-09-03. Una página que
+  cambie la música compila igual y la ROM sigue con el tema que venía sonando.
+  Es distinto de los comandos "ignorables", que no hacen nada porque no hay nada
+  que hacer: esto sí hace algo y nosotros no lo hacemos. Se acepta porque lo que
+  deja sin hacer no aparece en la pantalla que se compara, y a cambio deja
+  correr páginas que si no quedarían afuera enteras —la cinemática de apertura,
+  entre ellas—.
+  Vive en `ACEPTADOS_SIN_HACER` de `tools/eventos.py`, en una lista aparte de
+  los ignorables justamente para que la diferencia no se pierda, y el conversor
+  avisa por pantalla cuando emite una página con deuda. Hoy no avisa nunca:
+  aceptarlo no desbloquea ninguna página, se midió. Detalle a no olvidar:
+  `snes-check` compara el audio contra el MIDI del mapa, así que el día que una
+  página cambie el tema esa prueba va a estar midiendo contra el equivocado.
+
 * **La saturación del tinte.** El conversor sólo deja pasar la neutra, así que
   una página que la use no se emite. Aceptarla sin aplicarla sería el error de
   siempre: la referencia haría lo mismo mal.

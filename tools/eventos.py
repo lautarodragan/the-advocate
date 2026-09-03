@@ -29,6 +29,7 @@ TINT_SCREEN = 11030
 WAIT = 11410
 CHANGE_SAVE_ACCESS = 11930
 CHANGE_PARTY_MEMBERS = 10330
+PLAY_BGM = 11510
 MOVE_EVENT = 11330
 
 # Una ruta forzada de MoveEvent. Los parámetros son (a quién, frecuencia, un
@@ -60,6 +61,26 @@ IGNORABLES = {
     CHANGE_SAVE_ACCESS,   # habilita o no el menú de guardar, que no existe
     MESSAGE_OPTIONS,      # dónde y cómo se dibuja la ventana de mensaje, que
                           # sin mensajes no se dibuja en ningún lado
+}
+
+# Y esto es otra cosa, y la diferencia importa. Los de arriba no hacen nada
+# porque no hay nada que hacer: el menú de guardar no existe y las ventanas de
+# mensaje tampoco. Los de acá **sí** hacen algo y nosotros no lo hacemos; se
+# aceptan igual porque lo que dejan sin hacer no aparece en la pantalla que se
+# compara, y a cambio dejan correr páginas que si no quedarían afuera enteras.
+#
+# Es una deuda, no una equivalencia, y por eso está en una lista aparte con
+# nombre propio: quien agregue algo acá tiene que poder decir qué se rompe.
+#
+# PlayBGM cambia el tema que suena. La ROM sube un solo banco de muestras al
+# SPC700 al arrancar, así que cambiar de tema en caliente pide varios bancos en
+# el cartucho y volver a subir en mitad del juego; es una feature de audio, no
+# un comando más. Lo que se pierde: una página que cambie la música deja la que
+# venía sonando. La pantalla no lo nota, pero `snes-check` compararía el audio
+# contra el MIDI del mapa y no contra el tema que la página pidió, así que ahí
+# la prueba mediría lo que no es. Ver "Lo que falta" en snes/LEEME.md.
+ACEPTADOS_SIN_HACER = {
+    PLAY_BGM,
 }
 
 # --- los opcodes que emitimos -----------------------------------------------
@@ -116,6 +137,9 @@ def _compilar(cmd, indice_de_mapa):
 
     if cmd.code == END or cmd.code in IGNORABLES:
         return b""
+
+    if cmd.code in ACEPTADOS_SIN_HACER:
+        return b""     # se acepta con la deuda declarada arriba
 
     if cmd.code == CONTROL_SWITCHES:
         if len(p) < 4 or p[0] not in (SWITCH_UNICO, SWITCH_RANGO):
@@ -335,6 +359,15 @@ def tenir(palabra, tinte):
     for numero, (canal, valor) in enumerate(zip(canales, tinte)):
         salida |= min(31, canal * valor // 100) << (numero * 5)
     return salida
+
+
+def deudas_de_la_pagina(page):
+    """Qué comandos de esta página se aceptan sin hacerlos.
+
+    Para que el conversor pueda avisar en vez de que la deuda quede muda.
+    """
+    return sorted({cmd.code for cmd in page.commands
+                   if cmd.code in ACEPTADOS_SIN_HACER})
 
 
 def paginas_del_mapa(game_map, indice_de_mapa):
