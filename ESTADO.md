@@ -150,6 +150,17 @@ commit narra lo hecho; los supuestos no tienen dónde vivir. Acá.
   mapa intermedio, que RM2k sí correría entre un salto y el siguiente. En la
   cinemática los dos van al mismo mapa; si aparece una que salte entre mapas
   distintos, hay que volver acá.
+* **La tanda no puede ver la RAM sin inicializar.** Descubierto el 2026-09-03,
+  jugando. `snes9x` —el core con el que corre toda la tanda— **arranca la RAM en
+  cero**, y mednafen no. Una variable nueva que nadie inicializa da verde en las
+  60 comparaciones y falla en mednafen y en hardware real. Ya pasó: `ruta_n` y
+  `ruta_i` sin inicializar hacían que `move_hero` creyera que había una ruta
+  forzada pendiente y no leyera el pad nunca; el héroe no se movía y la tanda no
+  se enteraba.
+  Es la trampa que el LEEME ya tenía anotada, ahora cobrada en serio. Y tiene una
+  salida concreta: **bsnes tiene `bsnes_entropy`, que aleatoriza la RAM al
+  encender**. Es la segunda razón para hacerlo andar —la primera era tener una
+  segunda opinión—, y con eso la tanda vería esta clase de error sola.
 * **Por qué bsnes devuelve una pantalla negra.** Abierto el 2026-09-03. Con
   `tools/retro.py`, el core de bsnes carga la ROM, suena el audio y `retro_run`
   avanza, pero el framebuffer viene en cero para cualquier cantidad de cuadros.

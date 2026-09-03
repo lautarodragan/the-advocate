@@ -353,15 +353,23 @@ grupo_listo:
     sep #$20
 .a8
 
-    ; El intérprete, en cero antes de cargar nada. La RAM arranca con basura y
-    ; `eventos_tick` la lee en el primer cuadro: con `ev_esperando` en cualquier
-    ; cosa se queda descontando para siempre y ninguna página corre nunca. Es la
-    ; tercera vez hoy que un estado nuevo se inicializa del lado equivocado de
-    ; `cargar_mapa`; el patrón es siempre el mismo y el síntoma también, que la
-    ; ROM parece andar y no hace nada.
+    ; El intérprete y la ruta, en cero antes de cargar nada. La RAM arranca con
+    ; basura y esto la lee en el primer cuadro: con `ev_esperando` en cualquier
+    ; cosa se queda descontando para siempre y ninguna página corre, y con
+    ; `ruta_i` menor que `ruta_n` `move_hero` cree que hay una ruta forzada
+    ; pendiente y no lee el pad nunca —el héroe no se mueve—.
+    ;
+    ; Lo de la ruta lo encontró taro jugando en mednafen, no la tanda, y ésa es
+    ; la parte que importa: **snes9x arranca la RAM en cero y mednafen no**. La
+    ; tanda entera daba verde con este error adentro. Es la trampa que el LEEME
+    ; ya tenía anotada —"la consola arranca con lo que dejó el programa
+    ; anterior, el emulador arranca en cero"— y acá se cobró en serio: en
+    ; hardware real habría fallado igual que en mednafen.
     stz ev_activo
     stz cola_n
     stz cola_i
+    stz ruta_n                  ; sin ruta forzada pendiente
+    stz ruta_i
     rep #$20
 .a16
     stz ev_esperando
