@@ -72,7 +72,37 @@ de diferencia, así que si la espera no esperara se vería.
 
 Falta lo que esto habilita: las rutas forzadas caminando y el clima.
 
-El corte siguiente, sin empezar: **la cinemática de apertura**.
+**El corte siguiente, decidido: hacer andar bsnes.** Pasó de deuda anotada a
+prioridad el 2026-09-03, cuando en un mismo día se colaron dos errores que la
+tanda no podía ver —`ruta_n`/`ruta_i` sin inicializar y el tinte escribiendo
+CGRAM fuera del vblank—, los dos porque snes9x es permisivo donde la consola no
+lo es, y los dos encontrados jugando. `snes-mednafen` los mitiga; bsnes los
+resolvería: su `bsnes_entropy` aleatoriza la RAM al encender, así que el primero
+lo habría atrapado la tanda sola.
+
+Por dónde arrancar, con lo que ya se midió y para no rederivarlo:
+
+* El core está en `/usr/lib/libretro/bsnes_libretro.so` (paquete
+  `libretro-bsnes`, bsnes 115). `tools/retro.py` lo carga, `retro_load_game`
+  devuelve true, **suena el audio** y `retro_run` avanza —o sea que la ROM
+  corre— pero el framebuffer viene en cero para cualquier cantidad de cuadros.
+* **La culpa es del frontend, no de la ROM ni del core**: bajo RetroArch, el
+  mismo core con la misma ROM dibuja bien. Se verificó adentro del contenedor.
+* Descartados: la entropía, `ppu_fast`, los defaults de las opciones y la
+  respuesta a `GET_OVERSCAN`. Durante `retro_run` sólo pide
+  `GET_VARIABLE_UPDATE` (17) y `GET_FASTFORWARDING` (65585). En `retro_init`
+  pide 11, 16, 27, 34, 35, 52 y 69, y a todos se les contesta que no salvo el
+  16 y el 27.
+* El sospechoso más probable es alguno de esos comandos de `retro_init` sin
+  contestar. `mesen-s` **segfaultea** con el mismo frontend, lo que apunta a lo
+  mismo: `retro.py` implementa el mínimo del contrato y snes9x es el único
+  tolerante.
+* Una rareza suelta que puede o no estar relacionada: bsnes reporta
+  `retro_get_region` = PAL, 50,007 fps, con una cabecera que dice `$01` = NTSC.
+* Cuando ande, la segunda opinión sale gratis: `snes_correr.py --core` ya es un
+  flag, mismo código, mismos cuadros, mismo determinismo.
+
+Después de eso, **la cinemática de apertura**.
 El mapa 4 ya prende el switch 20, que es la condición de la página que abre el
 mapa 1, así que el enganche funciona. Falta que exista un grupo —la condición
 pide `actor`— y cuatro comandos: `PlayBGM`, `WeatherEffects`, `MoveEvent` y
@@ -170,18 +200,8 @@ commit narra lo hecho; los supuestos no tienen dónde vivir. Acá.
   salida concreta: **bsnes tiene `bsnes_entropy`, que aleatoriza la RAM al
   encender**. Es la segunda razón para hacerlo andar —la primera era tener una
   segunda opinión—, y con eso la tanda vería esta clase de error sola.
-* **Por qué bsnes devuelve una pantalla negra.** Abierto el 2026-09-03. Con
-  `tools/retro.py`, el core de bsnes carga la ROM, suena el audio y `retro_run`
-  avanza, pero el framebuffer viene en cero para cualquier cantidad de cuadros.
-  Descartados: la entropía, `ppu_fast`, los defaults de las opciones y la
-  respuesta a `GET_OVERSCAN`; durante `retro_run` sólo pide
-  `GET_VARIABLE_UPDATE` y `GET_FASTFORWARDING`. Lo que sí está establecido es
-  de quién es la culpa: **bajo RetroArch el mismo core con la misma ROM
-  dibuja**, así que falta algo de nuestro frontend y no es un problema de la
-  ROM. Importa porque bsnes es el más preciso de los tres y es la segunda
-  opinión que haría que "los dos emuladores coinciden" valga de verdad. De paso
-  quedó otra rareza sin explicar: bsnes reporta `retro_get_region` = PAL,
-  50,007 fps, con una cabecera que dice `$01` = NTSC.
+* **Por qué bsnes devuelve una pantalla negra.** Pasó a ser el corte en curso;
+  todo lo que se midió está arriba, en "En vuelo".
 * **El orden de la tabla de mapas.** Cerrado a medias el 2026-09-03, y la
   mitad que queda no se puede cerrar comparando. Lo que sí se corre ahora es
   que la ROM resuelva un índice compilado que no sea 0 ni 1: `snes-hitos` corre
