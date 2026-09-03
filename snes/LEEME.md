@@ -774,6 +774,21 @@ de encima mandaba una paleta vacía y arrasaba CGRAM entera, paletas de sprites
 incluidas. Cualquier tamaño que salga de un conteo tiene que garantizarse
 distinto de cero.
 
+**Un bloque de cero bytes no es un bloque.** La subida al SPC700 va por el
+protocolo del IPL —dirección, un puerto en no-cero, el índice—, y con cero bytes
+del otro lado nadie contesta: la ROM se queda esperando el handshake. Pasaba con
+cualquier mapa sin música, que son la mayoría. Lo peor era el síntoma: el
+cuelgue es *después* de encender la pantalla y dibujar el mapa, así que la ROM
+tenía toda la pinta de andar y lo único raro era que el héroe no se movía. Es la
+misma familia que el DMA de tamaño cero, y la misma lección: cualquier cantidad
+que salga de un conteo hay que garantizarla distinta de cero antes de usarla.
+
+Su primo: **un stream de música vacío colgaba `music_frame`**, porque al llegar
+al final vuelve a empezar y lo primero que encuentra es otro final. Los dos
+estuvieron escondidos mientras `musicdata.inc` lo generaba una receta aparte y
+siempre tenía un tema de verdad; aparecieron el mismo día, apenas el conversor
+empezó a emitir la música del mapa.
+
 **Un DMA no sigue el mapeo de LoROM.** Su dirección de origen se incrementa
 linealmente, y el byte que sigue a `$02FFFF` no es la ROM del banco 3 sino la
 RAM. Un bloque que cruce ese límite se sube bien hasta ahí y basura después.

@@ -193,6 +193,7 @@ wait_frames: .res 1     ; cuántos cuadros faltan para el próximo evento
 token:      .res 1      ; testigo del handshake con el SPC700
 es_pal:     .res 1      ; 1 si la consola corre a 50 cuadros por segundo
 pal_tick:   .res 1      ; para meter el cuadro de música que falta
+reinicio:   .res 1      ; si el stream ya volvió al principio en este cuadro
 
 ; El mapa que está cargado. Todo esto salía de constantes del .inc cuando había
 ; un mapa solo; ahora sale de su registro en `mapa_tabla` y vive acá mientras
@@ -3343,6 +3344,16 @@ wait_ready:
     jsr spc_block
 
     ; --- las muestras y su directorio ---
+    ; Un mapa sin música no tiene muestras, y un bloque de cero bytes no es un
+    ; bloque: el protocolo del IPL pide dirección, un puerto en no-cero y el
+    ; índice, y del otro lado nadie contesta. La ROM se quedaba esperando en
+    ; `wait_start` con la pantalla ya encendida y el mapa dibujado, o sea con
+    ; toda la pinta de andar. Estuvo escondido mientras `musicdata.inc` lo
+    ; generaba una receta aparte y siempre tenía un tema; apareció apenas el
+    ; conversor empezó a emitir la música del mapa, y la mayoría no tiene.
+    ldy #SPC_SAMPLES_SIZE
+    cpy #$0000
+    beq sin_muestras
     ldx #.loword(spc_samples)
     stx source
     lda #^spc_samples
@@ -3350,6 +3361,7 @@ wait_ready:
     ldx #SPC_SAMPLES_ADDR
     ldy #SPC_SAMPLES_SIZE
     jsr spc_block
+sin_muestras:
 
     ; --- cerrar y saltar al driver ---
     ldx #SPC_DRIVER_ADDR
@@ -3498,9 +3510,23 @@ listo:
     rts
 .endproc
 
+; Un cuadro de música. El stream se recorre hasta toparse con una espera, y al
+; llegar al final vuelve a empezar.
+;
+; Volver a empezar tiene una trampa: un stream **vacío** es un OP_END solo, así
+; que reiniciar lleva a leer OP_END otra vez y el lazo no sale nunca. La ROM se
+; colgaba en el primer cuadro, con la pantalla ya encendida y el mapa dibujado
+; —o sea que parecía andar—. Estuvo escondido todo este tiempo porque
+; `musicdata.inc` lo generaba una receta aparte y siempre tenía un tema de
+; verdad; apareció apenas el conversor empezó a emitir la música del mapa, y la
+; mayoría de los mapas del juego no tienen ninguna.
+;
+; La guarda es no reiniciar dos veces en el mismo cuadro: si después de volver
+; al principio lo primero que hay es otro final, no hay nada que tocar.
 .proc music_frame
 .a8
 .i16
+    stz reinicio
     lda wait_frames
     beq run
     dec wait_frames
@@ -3511,8 +3537,13 @@ run:
     jsr advance
     cmp #OP_END
     bne check_wait
+    lda reinicio
+    bne mudo
+    inc reinicio
     jsr music_start             ; se terminó: de nuevo desde arriba
     bra run
+mudo:
+    rts
 
 check_wait:
     cmp #OP_WAIT

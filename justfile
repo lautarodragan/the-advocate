@@ -634,8 +634,12 @@ snes-validar:
   python3 tools/w65_check.py snes/build/cobertura-w65.sfc snes/build/cobertura-ca65.sfc
 
 # El MIDI del mapa a muestras BRR y un stream para el DSP.
+# La música de un mapa a mano. Normalmente no hace falta: `snes-convert` ya la
+# genera junto con el mapdata, que es lo que garantiza que los dos describan la
+# misma ROM. Esto queda para mirar un tema suelto sin armar nada más.
 snes-music mapa="67":
-  python3 tools/snes_music.py --map-id {{mapa}}
+  mkdir -p {{snes_inc}}
+  python3 tools/snes_music.py --map-id {{mapa}} -o {{snes_inc}}/musicdata.inc
 
 # Corre la ROM sin pantalla, graba el audio y compara lo que suena contra el
 # MIDI. Sirve para verificar sin escuchar: para cada nota que debería estar

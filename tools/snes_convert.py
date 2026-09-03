@@ -41,6 +41,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import eventos
 import lcf
 import md_convert
+import snes_music
 from md_convert import (CELL, collect_npcs, cut_tiles, flips, hero_start,
                         passability_map, reduce_colors, tile_colors, to_indices)
 from render_map import (GAME_DIR, REPO, RTP_DIR, Renderer, build_passability,
@@ -1220,6 +1221,23 @@ def main():
     emit(args.output, mapas, args.inicial, args.heroe_encima, grupo)
     print("%d mapa(s) -> %s, arranca en el %d (mapa %d)"
           % (len(mapas), args.output, args.inicial, mapas[args.inicial]["id"]))
+
+    # La música sale de acá y no de una receta aparte. `musicdata.inc` era
+    # estado global como lo fue `mapdata.inc`, con el agravante de que nadie lo
+    # regeneraba: una ROM armada para los mapas 4, 7, 19 y 1 —que no tienen
+    # música— sonaba con el tema del mapa 348, que era el último que alguien
+    # había generado a mano. Emitirlos juntos es lo único que garantiza que los
+    # dos describan la misma ROM.
+    #
+    # Suena el tema del mapa donde la ROM arranca. Que la música siga al mapa
+    # cuando uno se teletransporta pide varios bancos de muestras en el
+    # cartucho, y no está: ver 'Lo que falta' en snes/LEEME.md.
+    musica = os.path.join(os.path.dirname(os.path.abspath(args.output)),
+                          "musicdata.inc")
+    nombre, driver, muestras, stream, _segundos, _resumen = snes_music.build(
+        mapas[args.inicial]["id"], args.game_dir)
+    snes_music.emit(musica, nombre, driver, muestras, stream)
+    print("música -> %s: %s" % (musica, nombre or "ninguna, sale muda"))
 
     if args.reference:
         mapas[args.inicial]["base"].save(args.reference)
