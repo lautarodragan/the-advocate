@@ -95,8 +95,12 @@ MDMAEN   = $420B        ; arrancar
 ; sea que el valor va corrido cuatro lugares: prioridad 1 es $10 y no $20. Con
 ; $20 el héroe quedaba en prioridad 2, que en este orden está *adelante* de
 ; BG2 1, y entonces se dibujaba encima de la capa que tenía que taparlo.
-OBJ_PRIORITY = $10      ; prioridad 1: por debajo de la capa de encima
-OBJ_PRIORITY_ABOVE = $20
+;
+; Los dos valores los arma el conversor —la de cada NPC ya viene en su byte de
+; atributos— y la del héroe llega como HERO_PRIORITY en mapdata.inc. Tenerlos
+; acá además era la duplicación de siempre: dos lados que se pueden equivocar
+; igual y una comparación que da cero. La del héroe es $10 en toda ROM que no
+; sea la de `snes-encima`, que la sube a $20 para ejercitar la prioridad 2.
 
 ; Las poses de RM2k son de 24x32 y la SNES no tiene ese tamaño, así que se usa
 ; el objeto de 32x32 y sobra un poco a los costados. El valor de OBSEL, que
@@ -2822,7 +2826,7 @@ sin_ajuste:
     clc
     adc temp + 1
     sta obj_tile
-    lda #OBJ_PRIORITY           ; por debajo de la capa que lo tapa
+    lda #HERO_PRIORITY          ; por debajo de la capa que lo tapa
     sta obj_attr
 
     rep #$20

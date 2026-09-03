@@ -261,6 +261,33 @@ snes-parado mapa="1" tx="75" ty="88" nombre="parado":
       --saltar snes/shots/saltar-{{nombre}}.txt \
       -o snes/shots/comparacion-{{nombre}}.png
 
+# Lo mismo, pero con el héroe en prioridad 2 de objeto: la que llevan los
+# eventos marcados "above", y que en el orden del modo 3 queda por encima de
+# BG2. Es la única manera de ejercitarla. El juego tiene un solo evento "above"
+# —el Package del mapa 261, en (59,1)— y la capa de encima de ese mapa llega
+# hasta x=938 mientras que el sprite arranca en x=940: no se tocan por dos
+# pixeles, así que con datos de verdad las prioridades 1 y 2 dan la misma
+# pantalla y la comparación no las distingue.
+#
+# La celda por defecto se eligió midiendo: en (66,40) del mapa 1 la capa de
+# encima tapa 512 de los 768 pixeles del sprite, así que el héroe queda partido
+# y la silueta tiene que coincidir de los dos lados. Con la prioridad
+# equivocada la comparación se va a 284 pixeles, que es lo que se midió
+# poniendo #OBJ_PRIORITY_ABOVE a mano en place_hero.
+snes-encima mapa="1" tx="66" ty="40" nombre="encima":
+  mkdir -p snes/shots
+  python3 tools/snes_convert.py --map-id {{mapa}} --inicio {{tx}} {{ty}} \
+      --heroe-encima
+  just snes-build
+  just snes-shot {{nombre}} 4 ""
+  python3 tools/snes_expect.py --map-id {{mapa}} --hero-tile {{tx}} {{ty}} \
+      --dir down --heroe-encima --saltar snes/shots/saltar-{{nombre}}.txt \
+      -o snes/shots/esperado-{{nombre}}.png
+  python3 tools/snes_compare.py snes/shots/{{nombre}}.png \
+      snes/shots/esperado-{{nombre}}.png \
+      --saltar snes/shots/saltar-{{nombre}}.txt \
+      -o snes/shots/comparacion-{{nombre}}.png
+
 # Pasa los 335 mapas por los límites del hardware sin armar ninguna ROM: dice
 # cuáles no entran y por qué. Correr cuando se toque el conversor o el reparto
 # de la VRAM.
@@ -308,6 +335,22 @@ snes-recorrido desde="66":
 # bytecode, así que lo que se compara es que las dos implementaciones del
 # intérprete estén de acuerdo, no que una de las dos ande.
 #
+# Los tres del final son las prioridades de objeto contra la capa de encima.
+# `snes-evento` ya deja al héroe tapado, pero entero —768 de 768 pixeles—, y un
+# héroe que no se dibujara en absoluto daría la misma pantalla. Los dos de la
+# celda (66,40) del mapa 1 son la misma escena con un solo bit distinto: ahí la
+# capa tapa 512 de 768, así que la silueta tiene que partirse en el lugar
+# exacto, primero con el héroe en prioridad 1 —debajo— y después en prioridad 2
+# —encima—. Entre las dos referencias hay 284 pixeles de diferencia, o sea que
+# el par no puede dar cero por casualidad.
+#
+# El tercero es el único evento marcado "above" del juego: el Package del mapa
+# 261. Su prioridad no se puede ejercitar ahí —la capa de encima de ese mapa no
+# lo toca por dos pixeles, ver `snes-encima`—, pero sí el resto del camino: con
+# el héroe en (59,2) los dos sprites se pisan, y el Package tiene que quedar
+# adelante aunque el héroe esté más abajo en la pantalla. Tratarlo como un NPC
+# común mueve 79 pixeles.
+#
 # Los segundos son cuánto se mantiene la cruceta: tiene que alcanzar para
 # cruzar el mapa a 2 pixeles por cuadro.
 snes-hitos:
@@ -324,6 +367,9 @@ snes-hitos:
   just snes-varios
   just snes-puerta
   just snes-evento
+  just snes-parado 1 66 40 tapado
+  just snes-encima
+  just snes-parado 261 59 2 paquete
 
 # El héroe: parado y caminando en las cuatro direcciones.
 snes-heroe mapa="7" segundos="8":

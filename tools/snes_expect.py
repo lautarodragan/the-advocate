@@ -279,6 +279,10 @@ def main():
     parser.add_argument("--map-id", type=int, default=7)
     parser.add_argument("--walk", default="none", choices=sorted(WALK))
     parser.add_argument("--charset", default="Future1")
+    parser.add_argument("--heroe-encima", action="store_true",
+                        help="el héroe en prioridad 2, por encima de "
+                             "la capa que debería taparlo. El otro "
+                             "lado del mismo flag de snes_convert.py")
     parser.add_argument("--charset-index", type=int, default=0)
     parser.add_argument("--game-dir", default=GAME_DIR)
     parser.add_argument("--saltar", help="archivo donde anotar las líneas que "
@@ -363,9 +367,14 @@ def main():
                npc["x"] * TILE, npc["y"] * TILE,
                npc["layer"] == md_convert.LAYER_ABOVE)
               for npc in collect_npcs(game_map)]
+    # El último campo es si va por encima de la capa de encima. Para el
+    # héroe es falso salvo en la ROM de `snes-encima`, donde su prioridad
+    # de objeto sube a 2 —el mismo bit que llevan los eventos "above"— y
+    # el hardware lo pone adelante de BG2. Su capa para ordenarlo contra
+    # los NPCs no cambia: la prioridad es de la PPU y la capa es de RM2k.
     actors.append((snes_convert.sort_key(md_convert.LAYER_SAME, y),
                    args.charset, args.charset_index,
-                   direction * 3 + STAND, x, y, False))
+                   direction * 3 + STAND, x, y, args.heroe_encima))
 
     # En OAM van del frente hacia el fondo, que es al revés del orden en que se
     # pintan. La consola recorre ese mismo orden para decidir qué entra en cada

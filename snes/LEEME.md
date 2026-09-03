@@ -366,6 +366,30 @@ carga desde un registro que no es el primero de la tabla —con el índice 0 el
 desplazamiento es cero y cualquier cuenta mal hecha da bien por casualidad— y
 una puerta cruzada de punta a punta.
 
+Y tres más para las prioridades de objeto contra la capa de encima, que es por
+donde ya se coló el cuarto error. `snes-evento` deja al héroe tapado, pero
+entero: los 768 pixeles de su sprite están debajo de la capa, así que un héroe
+que directamente no se dibujara daría la misma pantalla. Las dos paradas en la
+celda (66,40) del mapa 1 son la misma escena con un solo bit distinto —ahí la
+capa tapa 512 de 768 y la silueta tiene que partirse en el lugar exacto—:
+primero con el héroe en prioridad 1, debajo, y después con `snes-encima`, que lo
+sube a prioridad 2 y lo pone adelante. Entre las dos referencias hay 284 pixeles
+de diferencia, así que el par no puede dar cero por casualidad.
+
+La prioridad 2 es la que llevan los eventos marcados "above", y no hay forma de
+ejercitarla con los eventos del juego. Se relevaron los 335 mapas: **hay
+exactamente uno con gráfico en esa capa**, el Package del mapa 261 en la celda
+(59,1), y la capa de encima de ese mapa termina en x=938 mientras que su sprite
+arranca en x=940. Por dos pixeles no se tocan, y donde no hay capa de encima las
+prioridades 1 y 2 dibujan lo mismo. Por eso la prueba pasa por el héroe, que es
+el mismo byte de atributos y el mismo `emit_object`: lo que se verifica es el
+orden del hardware, no quién lo pide.
+
+El Package igual entra en la tanda, con el héroe en (59,2). Ahí los dos sprites
+se pisan y el Package tiene que quedar adelante aunque el héroe esté más abajo
+en la pantalla, que es la regla de RM2k de ordenar primero por capa y recién
+después por Y. Tratarlo como un NPC común mueve 79 pixeles.
+
 Qué mapa elegir para eso no se adivina mirando el tamaño —uno enorme lleno de
 paredes frena en la tercera celda—, así que `tools/snes_recorrido.py` camina
 todos los mapas con las mismas reglas que la ROM y dice cuánto se recorre en
@@ -776,6 +800,12 @@ con `tax` funciona mientras ese byte alto sea cero.
 en el modo 3 el orden es `objetos 3 / BG1 1 / objetos 2 / BG2 1 / objetos 1 /
 BG1 0 / objetos 0`, así que ese lugar de más cruza justo la capa de encima. El
 sprite se sigue viendo, sólo que del lado equivocado de una capa.
+
+Los dos valores viven en un solo lugar, `tools/snes_convert.py`: el de cada NPC
+va armado dentro de su byte de atributos y el del héroe llega a la ROM como
+`HERO_PRIORITY` en `mapdata.inc`. Tenerlos también escritos en `main.s` era la
+duplicación de siempre —dos lados que se pueden equivocar igual— y así fue como
+este error sobrevivió a la primera comparación.
 
 **Un `jsr` te devuelve `X` e `Y` como se le da la gana.** No hay convención de
 llamada acá: cada rutina usa los índices para lo suyo. Cuando un registro es un

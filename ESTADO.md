@@ -8,14 +8,18 @@ justamente para eso.
 Se escribe **mientras se trabaja**, no al final. Un resumen escrito al cerrar
 es la misma operación con pérdida que compactar, sólo que a un archivo.
 
-Última vez que se tocó: 2026-09-02.
+Última vez que se tocó: 2026-09-03.
 
 ## En vuelo
 
-Nada a medias. El hito 12 —el intérprete de eventos— quedó cerrado de los dos
-lados el 2026-09-02, en `f337a02` y `fe2767d`.
+Se está tapando la lista de más abajo: supuestos escritos de los dos lados y
+corridos de ninguno. Cerrado el primero, **la prioridad de objeto contra la capa
+de encima**, con tres casos nuevos en `snes-hitos` y una receta `snes-encima`.
 
-    just snes-hitos    46 comparaciones, todas en 0 pixeles de 57344
+El hito 12 —el intérprete de eventos— quedó cerrado de los dos lados el
+2026-09-02, en `f337a02` y `fe2767d`.
+
+    just snes-hitos    49 comparaciones, todas en 0 pixeles de 57344
 
 El corte siguiente que se propuso, sin empezar: **la cinemática de apertura**.
 El mapa 4 ya prende el switch 20, que es la condición de la página que abre el
@@ -40,11 +44,18 @@ Esta sección existe porque el commit `c64e4d9` decía "Verificado" sobre un
 camino que ninguna prueba ejecutaba, y eso costó tres errores encadenados. Un
 commit narra lo hecho; los supuestos no tienen dónde vivir. Acá.
 
-* **`OBJ_PRIORITY_ABOVE = $20`.** La prioridad del héroe (`$10`) la fija
-  `snes-evento`, que da cero parándolo debajo de la capa de encima. La de los
-  eventos marcados "above" no la ejercita **ninguna** prueba: haría falta uno
-  de ésos parado sobre una celda de la capa de encima. Es el mismo tipo de
-  agujero que escondió a los cuatro anteriores.
+* ~~**`OBJ_PRIORITY_ABOVE = $20`.**~~ Cerrado el 2026-09-03. La respuesta
+  resultó ser que con los datos del juego **no se puede** ejercitar: se
+  relevaron los 335 mapas y hay un solo evento con gráfico en esa capa —el
+  Package del mapa 261— y la capa de encima de ese mapa no llega a pisarlo por
+  dos pixeles. Donde no hay capa de encima, las prioridades 1 y 2 dibujan lo
+  mismo. Así que la prueba pasa por el héroe: `snes-encima` lo sube a prioridad
+  2 en una celda donde la capa lo tapa a medias, que es el mismo byte de
+  atributos y el mismo `emit_object` que usaría un evento "above". Los dos
+  lados coinciden en 0, y las dos referencias —prioridad 1 y prioridad 2—
+  difieren en 284 pixeles, o sea que el par no da cero por casualidad. El
+  Package igual entró en la tanda, por el orden capa-antes-que-Y. Ver "Cómo se
+  verifica" en `snes/LEEME.md`.
 * **El orden de la tabla de mapas.** La referencia ahora la recibe entera, y es
   necesario porque un teletransporte compilado guarda el índice y no el número
   de mapa. Pero ningún mapa de `snes-hitos` teletransporta por evento salvo el

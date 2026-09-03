@@ -90,6 +90,13 @@ def bg_budget(first):
 # orden de RM2k sale del hardware sin trucos.
 PRIORITY_ABOVE = 1                       # para las celdas de BG2
 
+# Y las de los objetos, ya corridas a su lugar en el byte vhoopppN: la
+# prioridad son los bits 5 y 4. Estos dos valores son los únicos del
+# programa: la ROM recibe el del héroe en HERO_PRIORITY y el de cada NPC
+# viene armado en su byte de atributos.
+OBJ_PRIORITY = 0x10                      # prioridad 1: debajo de BG2 1
+OBJ_PRIORITY_ABOVE = 0x20                # prioridad 2: por encima
+
 # El color 0 de CGRAM es el fondo: se ve donde ninguna capa dibuja, y también
 # donde un tile usa el índice 0. Magenta, que no aparece en ningún mapa, así que
 # si asoma dentro de la pantalla es que algo está mal.
@@ -912,7 +919,7 @@ def datos_del_mapa(mapa, numero):
     return "\n".join(out)
 
 
-def emit(path, mapas, inicial=0):
+def emit(path, mapas, inicial=0, heroe_encima=False):
     """El .inc que arma w65.py junto con main.s."""
     for numero, mapa in enumerate(mapas):
         layout = mapa["layout"]
@@ -953,7 +960,12 @@ def emit(path, mapas, inicial=0):
         "; Un bit por switch. El más alto que el juego consulta es el 1003.\n"
         "SWITCH_BYTES = %d\n"
         "; La capa del héroe, para ordenarlo contra los NPCs.\n"
-        "HERO_LAYER  = %d\n\n"
+        "HERO_LAYER  = %d\n"
+        "; Su prioridad de objeto. $10 —debajo de la capa de encima— en\n"
+        "; toda ROM que no sea la de `snes-encima`, que la sube a $20\n"
+        "; para ejercitar la prioridad 2. Ningún evento del juego llega\n"
+        "; a ejercitarla: ver 'Cómo se verifica' en snes/LEEME.md.\n"
+        "HERO_PRIORITY = $%02X\n\n"
         % (", ".join("%d %s" % (m["id"], m["nombre"]) for m in mapas),
            len(mapas), MAPA_STRIDE, inicial,
            VRAM_MAP, VRAM_ABOVE_MAP, MAP_LAYOUT, NPC_STRIDE, NPC_MAX,
@@ -961,7 +973,8 @@ def emit(path, mapas, inicial=0):
            eventos.OP_FIN, eventos.OP_SWITCH, eventos.OP_TELEPORT,
            eventos.OP_ESPERAR, eventos.OP_TINTE,
            eventos.TRIGGER_AUTOMATICO, eventos.TINTE_NEUTRO, SWITCH_BYTES,
-           md_convert.LAYER_SAME))
+           md_convert.LAYER_SAME,
+           OBJ_PRIORITY_ABOVE if heroe_encima else OBJ_PRIORITY))
 
     with open(path, "w") as handle:
         handle.write(cabecera)
@@ -1063,7 +1076,9 @@ def npc_bytes(table):
         # cuatro lugares. Los eventos marcados "above" van en prioridad 2, que
         # es lo único que queda por encima de BG2 1; el resto comparten con el
         # héroe la prioridad 1, y como esa capa los tapa, caminan por debajo.
-        prioridad = 0x20 if npc["layer"] == md_convert.LAYER_ABOVE else 0x10
+        prioridad = (OBJ_PRIORITY_ABOVE
+                     if npc["layer"] == md_convert.LAYER_ABOVE
+                     else OBJ_PRIORITY)
         out.append(prioridad | ((npc["palette"] & 0x07) << 1)
                    | ((npc["tile"] >> 8) & 0x01))
     return bytes(out)
@@ -1076,6 +1091,12 @@ def main():
     parser.add_argument("--game-dir", default=GAME_DIR)
     parser.add_argument("-o", "--output",
                         default=os.path.join(REPO, "snes/src/mapdata.inc"))
+    parser.add_argument("--heroe-encima", action="store_true",
+                        help="el héroe en prioridad 2 de objeto, por "
+                             "encima de la capa que debería taparlo. "
+                             "Es la única forma de ejercitarla: el "
+                             "único evento above del juego no llega a "
+                             "pisar la capa de encima")
     parser.add_argument("--charset", default="Future1",
                         help="CharSet del personaje (default: el de Talan)")
     parser.add_argument("--charset-index", type=int, default=0,
@@ -1130,7 +1151,7 @@ def main():
 
     if not 0 <= args.inicial < len(mapas):
         sys.exit("--inicial %d pero hay %d mapas" % (args.inicial, len(mapas)))
-    emit(args.output, mapas, args.inicial)
+    emit(args.output, mapas, args.inicial, args.heroe_encima)
     print("%d mapa(s) -> %s, arranca en el %d (mapa %d)"
           % (len(mapas), args.output, args.inicial, mapas[args.inicial]["id"]))
 
