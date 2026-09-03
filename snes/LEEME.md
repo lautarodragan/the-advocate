@@ -351,6 +351,38 @@ referencia que ejecutar**.
 
 ### Cómo se verifica
 
+La ROM la corre un core de libretro manejado desde Python con `ctypes`
+—`tools/retro.py`—, no un emulador con ventana. `retro_run()` avanza **un cuadro
+exacto**, la cruceta se contesta cuadro por cuadro y el framebuffer sale del
+callback ya en 256x224. No hay servidor X, ni capturas de pantalla, ni recortes,
+ni un solo `sleep`.
+
+Eso no es sólo velocidad —la tanda pasó de 19m30s a medio minuto—, es lo que
+hace que la prueba signifique algo. Antes decía "apretá derecha ocho segundos,
+seguro alcanza": cuántos cuadros se emulaban en esos segundos dependía de la
+carga de la máquina, y una máquina ocupada dejaba al héroe corto de la pared y
+disparaba la comparación sin que nada estuviera roto. Ahora N cuadros son N
+cuadros.
+
+Y los cuadros tampoco se eligen. La referencia camina celda por celda hasta
+chocar, así que sabe cuántas son; el paso del héroe son dieciséis pixeles a
+`WALK_SPEED = 2` por cuadro, o sea ocho cuadros por celda. `snes_expect.py`
+escribe ese plan y `snes_correr.py` lo lee. El único número puesto a mano es el
+margen: ocho cuadros, una celda, porque la ROM llega uno o dos después —el pad
+se lee una vez por cuadro y el primero se pierde—. Cruzar una puerta lleva
+dieciséis, porque obliga a cargar el mapa entero y eso la referencia no lo
+modela: medido, siete cuadros.
+
+**Hoy el único core que funciona es snes9x.** El frontend implementa el mínimo
+del contrato de libretro, y con eso bsnes devuelve una pantalla negra —bajo
+RetroArch el mismo core dibuja bien, así que falta algo de este lado— y mesen-s
+directamente segfaultea. Que dos emuladores independientes coincidan sería
+evidencia más fuerte que uno, y el camino para tenerlo es completar el frontend:
+`snes_correr.py --core` ya está, es un flag. Antes de esto había un `MOTOR=mednafen`
+que corría la tanda por el camino viejo, y se sacó: mantenía cinco ramas y los
+segundos elegidos a ojo, y no lo corría nadie. Un camino que ninguna prueba
+ejecuta es, en este repo, la manera en que sobreviven los errores.
+
 `just snes-hitos` corre seis mapas, uno por cada cosa que puede romperse:
 
     73, 18, 119   los que cerraron los hitos anteriores: tienen que seguir en cero

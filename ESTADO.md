@@ -30,44 +30,25 @@ El hito 12 —el intérprete de eventos— quedó cerrado de los dos lados el
 
     just snes-hitos    50 comparaciones, todas en 0 pixeles de 57344
 
-**El corte en curso: pasar el harness a libretro in-process.** Decidido el
-2026-09-03 después de un spike que ya está en `tools/retro.py`. La tanda tarda
-19m30s y el 100% de eso es el emulador corriendo en tiempo real mientras la
-prueba lo espera con un `sleep`: 50 capturas y 742 segundos de reloj pedidos.
-Peor que lento, eso es no determinista —cuántos cuadros se emularon en esos
-segundos depende de la carga— y hoy pasa sólo porque el requisito es de un solo
-lado: la referencia camina hasta la pared, así que sobra tiempo. Es robustez por
-holgura, y la holgura es exactamente lo que se paga.
+**Terminada la migración del harness a libretro in-process**, el 2026-09-03.
+La tanda corría 19m30s y el 100% era el emulador en tiempo real mientras la
+prueba lo esperaba durmiendo. Ahora:
 
-Manejando el core desde Python con `ctypes`, `retro_run()` avanza un cuadro
-exacto, la cruceta entra cuadro por cuadro y el framebuffer sale por el
-callback: se van Xvfb, xdotool, `import`, `snes_crop.py` y todos los `sleep`.
-Medido, con snes9x y contra los mismos PNG esperados de la tanda:
+    just snes-hitos              2m23s    19 casos, 56 comparaciones en 0
+    just snes-hitos-paralelo 6   0m32s    lo mismo, repartido en procesos
 
-    46 comparaciones bit-exactas   el caso estático y snes-heroe x 5 direcciones
-    snes-heroe 73 8                59,5 s con mednafen -> 3,9 s   (15x)
-    emulación sola                 660 cuadros en 0,23 s          (48x)
-    la barrida de 40 casos         201 s, de los cuales 15 son emulación
+Lo que se ganó además del tiempo, que era el punto: los cuadros salen de la
+referencia y no de un número elegido a ojo, la prueba dejó de depender de la
+carga de la máquina, y `snes-caminando` compara al héroe **a mitad de camino**
+—cosa que antes no se hacía nunca, porque en el cuadro final está chocando
+contra la pared y la única pose que se comparaba era la parada—.
 
-O sea que el emulador deja de ser la pared y pasa a serlo `snes_expect.py`, que
-rehace la conversión completa del mapa una vez por dirección: 14,3 s la del mapa
-52, cinco veces por mapa, cuando las cinco comparten toda la parte cara. Ahí hay
-otro 5x que no es especulación.
-
-**El plan es migrar con la ROM congelada**, que es la única forma de saber si una
-diferencia es del emulador o del código; las 46 comparaciones en cero son
-justamente esa congelación. La cinemática espera a que esto esté.
-
-Hechos los dos primeros pasos, con la tanda completa verde de las dos formas:
-
-    just snes-hitos              19m30s con mednafen -> 2m23s   50 casos en 0
-    just snes-hitos-paralelo 6                          0m31s   50 casos en 0
-
-`MOTOR=mednafen` vuelve al camino viejo y existe para poder correr la misma
-tanda de las dos maneras, que es como se está verificando cada paso. Lo que
-falta: que los cuadros salgan de la referencia en vez de ser `segundos x 60`,
-comparar a mitad de camino y no sólo en el cuadro final, y recién ahí sacar
-`screenshot.sh` de la tanda.
+Quedó una deuda acotada y con valor claro: **completar el frontend de libretro**.
+Hoy anda sólo con snes9x; bsnes queda negro y mesen-s segfaultea, los dos porque
+`tools/retro.py` implementa el mínimo del contrato. Con eso resuelto, la segunda
+opinión sale gratis —`snes_correr.py --core` ya existe— y encima bsnes es el más
+preciso y el que aleatoriza la RAM al encender, que es lo más parecido a la
+consola de verdad.
 
 El corte siguiente, sin empezar: **la cinemática de apertura**.
 El mapa 4 ya prende el switch 20, que es la condición de la página que abre el

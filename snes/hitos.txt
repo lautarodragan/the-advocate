@@ -9,16 +9,18 @@
 # demás comparan el cuadro final, donde el héroe ya chocó contra la pared y
 # está en la pose parada.
 # El orden es de mayor a menor: la repartida los toma de a uno, así que empezar
-# por el más largo es lo que evita que el último trabajador arranque los 45
-# segundos del mapa 52 cuando todos los demás ya terminaron.
-snes-heroe 52 45
-snes-heroe 8 25
-snes-heroe 6 18
-snes-heroe 1 18
-snes-heroe 73 8
-snes-heroe 18 8
-snes-heroe 119 8
-snes-heroe 348 8
+# por el más largo evita que el último trabajador arranque el mapa 52 —dos mil
+# cuadros por dirección— cuando todos los demás ya terminaron. Los segundos que
+# esta lista llevaba al lado de cada mapa no están más: cuántos cuadros dura
+# cada caminata lo dice la referencia.
+snes-heroe 52
+snes-heroe 8
+snes-heroe 6
+snes-heroe 1
+snes-heroe 73
+snes-heroe 18
+snes-heroe 119
+snes-heroe 348
 snes-varios
 snes-puerta
 snes-parado 1 75 88 borde
