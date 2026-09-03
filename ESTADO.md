@@ -58,6 +58,17 @@ otro 5x que no es especulación.
 diferencia es del emulador o del código; las 46 comparaciones en cero son
 justamente esa congelación. La cinemática espera a que esto esté.
 
+Hechos los dos primeros pasos, con la tanda completa verde de las dos formas:
+
+    just snes-hitos              19m30s con mednafen -> 2m23s   50 casos en 0
+    just snes-hitos-paralelo 6                          0m31s   50 casos en 0
+
+`MOTOR=mednafen` vuelve al camino viejo y existe para poder correr la misma
+tanda de las dos maneras, que es como se está verificando cada paso. Lo que
+falta: que los cuadros salgan de la referencia en vez de ser `segundos x 60`,
+comparar a mitad de camino y no sólo en el cuadro final, y recién ahí sacar
+`screenshot.sh` de la tanda.
+
 El corte siguiente, sin empezar: **la cinemática de apertura**.
 El mapa 4 ya prende el switch 20, que es la condición de la página que abre el
 mapa 1, así que el enganche funciona. Falta que exista un grupo —la condición

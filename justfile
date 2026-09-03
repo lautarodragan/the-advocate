@@ -154,6 +154,12 @@ md-play-mudo region="overseas_pal":
 # snes-convert— y la ROM tenía un solo nombre posible. La ROM además se llama
 # como la corrida porque screenshot.sh busca la ventana del emulador por el
 # basename del archivo: dos ROMs llamadas las dos `abl` no se distinguen.
+# Con qué se corre la ROM. `libretro` maneja el core desde Python cuadro por
+# cuadro —sin X, sin reloj, sin sleeps— y es lo verificado bit-exacto contra el
+# otro. `MOTOR=mednafen` vuelve al camino viejo, el de screenshot.sh; existe
+# para poder correr la misma tanda de las dos formas y compararlas, que es como
+# se está haciendo la migración.
+motor    := env_var_or_default("MOTOR", "libretro")
 corrida  := env_var_or_default("CORRIDA", "")
 snes_dir := if corrida == "" { "snes/build" } else { "snes/build" / corrida }
 snes_rom := snes_dir / (if corrida == "" { "abl.sfc" } else { corrida + ".sfc" })
@@ -173,7 +179,16 @@ snes-build:
 # Corre la ROM sin pantalla y captura lo que dibuja. Las teclas se mantienen
 # apretadas mientras corre, para capturar con la cámara movida.
 snes-shot nombre="mapa" segundos="4" teclas="":
-  snes/screenshot.sh {{snes_rom}} {{snes_pngs}}/{{nombre}}.png {{segundos}} "{{teclas}}"
+  #!/usr/bin/env bash
+  set -euo pipefail
+  mkdir -p {{snes_pngs}}
+  if [ "{{motor}}" = "libretro" ]; then
+    python3 tools/snes_correr.py {{snes_rom}} -o {{snes_pngs}}/{{nombre}}.png \
+        --cuadros $(( {{segundos}} * 60 )) \
+        --teclas $(echo "{{teclas}}" | tr 'A-Z' 'a-z')
+  else
+    snes/screenshot.sh {{snes_rom}} {{snes_pngs}}/{{nombre}}.png {{segundos}} "{{teclas}}"
+  fi
 
 # La captura contra el render de Python, pixel por pixel y a 15 bits.
 snes-compare nombre="mapa" x="0" y="0":
@@ -395,12 +410,16 @@ snes-recorrido desde="66":
 snes-hitos:
   #!/usr/bin/env bash
   set -uo pipefail
-  falló=0
+  # Sin tilde a propósito: bash no admite acentos en los nombres de variable,
+  # así que `falló=1` no es una asignación sino un comando que no existe, y
+  # `$falló` se lee como `$fall` seguido de una ó. Con `set -u` eso hacía que la
+  # receta saliera con código 1 siempre, hubiera fallado algo o no.
+  fallo=0
   while read -r caso; do
     echo "=== $caso ==="
-    eval "just $caso" || falló=1
+    eval "just $caso" || fallo=1
   done < <(grep -v '^#' snes/hitos.txt | grep -v '^$')
-  exit $falló
+  exit $fallo
 
 # Los mismos casos, uno por proceso y cada uno en su propia corrida aislada.
 # Con la tanda en serie son unos 16 minutos de reloj de los cuales casi todo es
@@ -424,6 +443,12 @@ snes-hitos-paralelo trabajos="4":
   # quoting de xargs.
   casos=$(grep -v '^#' snes/hitos.txt | grep -v '^$')
   total=$(printf '%s\n' "$casos" | wc -l)
+  # Los rojos se anotan en archivos y no en el código de salida del bash
+  # interno. Si éste saliera con 1, xargs deja de largar trabajo nuevo y una
+  # tanda con un caso roto no llega a correr los demás, que para una prueba de
+  # regresión es justo al revés de lo que uno quiere: se corre todo y se
+  # informa al final.
+  rm -f snes/build/hito-*.rojo
   seq 1 "$total" | xargs -P {{trabajos}} -I{} bash -c '
       caso=$(grep -v "^#" snes/hitos.txt | grep -v "^$" | sed -n "{}p")
       salida=snes/build/hito-{}.log
@@ -431,17 +456,46 @@ snes-hitos-paralelo trabajos="4":
         echo "ok    $caso"
       else
         echo "ROJO  $caso  -> $salida"
+        : > snes/build/hito-{}.rojo
       fi'
+  rojos=$(ls snes/build/hito-*.rojo 2>/dev/null | wc -l)
+  if [ "$rojos" -gt 0 ]; then
+    echo "$rojos caso(s) en rojo de $total"
+    exit 1
+  fi
+  echo "$total casos, todos en verde"
 
 # El héroe: parado y caminando en las cuatro direcciones.
+#
+# Las cinco referencias salen de una sola corrida de snes_expect.py y no de
+# cinco. Convertir el mapa es lo más caro de toda la tanda —el 52 son 14
+# segundos— y las cinco direcciones comparten todo eso: tiles, reparto de
+# paletas, reuso y espejados. Lo único que cambia es dónde termina el héroe y
+# dónde queda la cámara. Medido en el mapa 52: 71,6 s de a una contra 15,0 s
+# todas juntas, con los PNG y los archivos de --saltar idénticos.
 snes-heroe mapa="7" segundos="8":
+  #!/usr/bin/env bash
+  set -euo pipefail
   just snes-convert {{mapa}}
   just snes-build
-  just snes-walk {{mapa}} none {{segundos}}
-  just snes-walk {{mapa}} right {{segundos}}
-  just snes-walk {{mapa}} left {{segundos}}
-  just snes-walk {{mapa}} up {{segundos}}
-  just snes-walk {{mapa}} down {{segundos}}
+  if [ "{{motor}}" = "libretro" ]; then
+    python3 tools/snes_correr.py {{snes_rom}} \
+        -o {{snes_pngs}}/{{mapa}}-{}.png --walk none right left up down \
+        --cuadros $(( {{segundos}} * 60 ))
+  else
+    for d in none right left up down; do
+      just snes-shot {{mapa}}-$d {{segundos}} "$(just _tecla $d)"
+    done
+  fi
+  python3 tools/snes_expect.py --map-id {{mapa}} --walk none right left up down \
+      --saltar {{snes_pngs}}/saltar-{{mapa}}-{}.txt \
+      -o {{snes_pngs}}/esperado-{{mapa}}-{}.png
+  for d in none right left up down; do
+    python3 tools/snes_compare.py {{snes_pngs}}/{{mapa}}-$d.png \
+        {{snes_pngs}}/esperado-{{mapa}}-$d.png \
+        --saltar {{snes_pngs}}/saltar-{{mapa}}-$d.txt \
+        -o {{snes_pngs}}/comparacion-{{mapa}}-$d.png
+  done
 
 _tecla direccion:
   @case {{direccion}} in up) echo Up;; down) echo Down;; left) echo Left;; right) echo Right;; *) echo "";; esac
@@ -468,9 +522,9 @@ snes-mapa mapa="7" segundos="5":
 # Los topes de la cámara salen del .inc que generó el conversor, así que las
 # recetas no repiten números que dependen del mapa.
 _cam-x:
-  @grep -oP 'CAM_MAX_X\s*=\s*\K\d+' snes/src/mapdata.inc
+  @grep -oP 'CAM_MAX_X\s*=\s*\K\d+' {{snes_inc}}/mapdata.inc
 _cam-y:
-  @grep -oP 'CAM_MAX_Y\s*=\s*\K\d+' snes/src/mapdata.inc
+  @grep -oP 'CAM_MAX_Y\s*=\s*\K\d+' {{snes_inc}}/mapdata.inc
 
 # --- verificación del ensamblador ------------------------------------------
 # w65.py reemplaza a ca65 y ld65. Que se pueda confiar en él no es una promesa:

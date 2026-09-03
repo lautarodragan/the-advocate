@@ -277,7 +277,11 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--map-id", type=int, default=7)
-    parser.add_argument("--walk", default="none", choices=sorted(WALK))
+    parser.add_argument("--walk", nargs="+", default=["none"],
+                        choices=sorted(WALK),
+                        help="una o varias direcciones. Con varias, -o y --saltar\n"
+                             "tienen que llevar un {} donde va la dirección: se\n"
+                             "convierte el mapa una sola vez para todas")
     parser.add_argument("--charset", default="Future1")
     parser.add_argument("--heroe-encima", action="store_true",
                         help="el héroe en prioridad 2, por encima de "
@@ -315,41 +319,15 @@ def main():
                  % (args.inicial, len(tabla)))
     mundo = Mundo(renderer, args.game_dir, tabla)
 
-    # Los switches arrancan apagados y la pantalla sin teñir, como una partida
-    # nueva de RM2k. De acá en adelante el estado lo mueven los eventos.
-    estado = eventos.Estado()
-
-    # Adónde se llega es lo primero: entre los eventos del arranque y las
-    # puertas que cruce la caminata, el mapa que hay que dibujar bien puede no
-    # ser el que se pidió.
-    inicio = tuple(args.hero_tile) if args.hero_tile else None
-    map_id, x, y, direction = hero_position(mundo, estado, tabla[args.inicial],
-                                            args.walk, inicio)
-    if args.hero_tile and args.dir:
-        direction = DIRECTIONS[args.dir]
-
-    game_map = mundo.mapa(map_id)[0]
-    base, above_img = renderer.render_layers(game_map)
-    if base is None:
-        sys.exit("no encuentro el chipset del mapa %d" % map_id)
-
-    # La referencia se arma desde los datos convertidos, no desde el render:
-    # entre uno y otro están la fusión de colores, el reparto en paletas, el
-    # reuso de tiles y los espejados, y todo eso aparecería como diferencia
-    # aunque la consola hiciera exactamente lo que se le pidió.
-    # Las dos capas juntas, con la misma función que usa el conversor: el
-    # reparto de CGRAM depende de las dos, y si la referencia lo calculara por
-    # su cuenta compararía contra una ROM que no existe.
-    (tile_data, cram, tilemap, _resumen), above_data = \
-        snes_convert.convert_layers(base, above_img)
-    mapa = snes_convert.render_converted(tile_data, cram, tilemap)
-    encima_todo = snes_convert.render_above(cram, above_data)
-
-    cam_x, cam_y = camera_for(x, y, game_map.width * 2, game_map.height * 2)
-
-    view = mapa.crop((cam_x, cam_y, cam_x + SCREEN_W, cam_y + SCREEN_H))
-
+    # Los CharSets y los mapas ya convertidos se comparten entre las
+    # direcciones. Convertir un mapa es lo más caro de todo esto —el 52 son
+    # 14 segundos— y las cinco direcciones de un mapa comparten absolutamente
+    # todo lo caro: los tiles, el reparto de paletas, el reuso y los
+    # espejados. Lo único que cambia entre ellas es dónde termina el héroe y
+    # dónde queda la cámara. Antes cada dirección era un proceso aparte y
+    # rehacía la conversión entera; ahora se hace una vez por mapa.
     images = {}
+    convertidos = {}
 
     def charset_image(name):
         if name not in images:
@@ -359,61 +337,111 @@ def main():
             images[name] = load_image(path)
         return images[name]
 
-    # Todo lo que se dibuja encima del mapa, con la clave con la que RM2k lo
-    # ordena: primero por capa y recién después por Y. Se pinta de atrás hacia
-    # adelante, que es al revés del orden en que van a OAM.
-    actors = [(snes_convert.sort_key(npc["layer"], npc["y"] * TILE),
-               npc["charset"], npc["index"], npc["pose"],
-               npc["x"] * TILE, npc["y"] * TILE,
-               npc["layer"] == md_convert.LAYER_ABOVE)
-              for npc in collect_npcs(game_map)]
-    # El último campo es si va por encima de la capa de encima. Para el
-    # héroe es falso salvo en la ROM de `snes-encima`, donde su prioridad
-    # de objeto sube a 2 —el mismo bit que llevan los eventos "above"— y
-    # el hardware lo pone adelante de BG2. Su capa para ordenarlo contra
-    # los NPCs no cambia: la prioridad es de la PPU y la capa es de RM2k.
-    actors.append((snes_convert.sort_key(md_convert.LAYER_SAME, y),
-                   args.charset, args.charset_index,
-                   direction * 3 + STAND, x, y, args.heroe_encima))
+    def convertir(map_id):
+        if map_id not in convertidos:
+            game_map = mundo.mapa(map_id)[0]
+            base, above_img = renderer.render_layers(game_map)
+            if base is None:
+                sys.exit("no encuentro el chipset del mapa %d" % map_id)
+            # La referencia se arma desde los datos convertidos, no desde el
+            # render: entre uno y otro están la fusión de colores, el reparto en
+            # paletas, el reuso de tiles y los espejados, y todo eso aparecería
+            # como diferencia aunque la consola hiciera exactamente lo que se le
+            # pidió. Las dos capas van juntas con la misma función que usa el
+            # conversor, porque el reparto de CGRAM depende de las dos.
+            (tile_data, cram, tilemap, _resumen), above_data = \
+                snes_convert.convert_layers(base, above_img)
+            convertidos[map_id] = (
+                game_map,
+                snes_convert.render_converted(tile_data, cram, tilemap),
+                snes_convert.render_above(cram, above_data))
+        return convertidos[map_id]
 
-    # En OAM van del frente hacia el fondo, que es al revés del orden en que se
-    # pintan. La consola recorre ese mismo orden para decidir qué entra en cada
-    # línea, así que hay que respetarlo para reproducir lo que se pierde.
-    order = sorted(actors, key=lambda a: a[0], reverse=True)
-    sprites = []
-    for _key, name, index, pose, px, py, arriba in order:
-        sprites.append((pose_image(charset_image(name), index, pose),
-                        px - 4 - cam_x, py - 16 - cam_y, arriba))
+    def salida(patron, walk):
+        """El nombre de archivo de esta dirección.
 
-    # La capa que va por encima del héroe se compone entre los sprites comunes y
-    # los eventos marcados "above", que es el orden de RM2k y el que el hardware
-    # reproduce con las prioridades del modo 3.
-    encima = encima_todo.crop((cam_x, cam_y,
-                               cam_x + SCREEN_W, cam_y + SCREEN_H))
-    excedidas = draw_actors(view, sprites, encima)
-    if excedidas:
-        print("  %d líneas pasan el límite de sprites de la consola: ahí se"
-              " pierden objetos y no se comparan" % len(excedidas))
-    # El archivo se escribe siempre, aunque no haya nada que excluir. Si sólo se
-    # escribiera cuando sobran sprites, al cambiar de mapa quedaría el del
-    # anterior y la comparación seguiría salteando líneas que ya no
-    # corresponden: aflojaría la prueba justo donde nadie está mirando.
-    if args.saltar:
-        with open(args.saltar, "w") as handle:
-            handle.write("".join("%d\n" % y for y in excedidas))
+        Con una sola caminata y sin `{}` el nombre queda igual que siempre, que
+        es lo que mantiene andando a las recetas que pasan una dirección sola.
+        """
+        return patron.format(walk) if "{}" in patron else patron
 
-    # El tinte va al final, sobre todo lo que se dibujó: en la consola es una
-    # transformación de CGRAM, y CGRAM la comparten el fondo, la capa de encima
-    # y los sprites.
-    view = tenir_imagen(view, estado.tinte)
+    for walk in args.walk:
+        # Los switches arrancan apagados y la pantalla sin teñir, como una
+        # partida nueva de RM2k, y cada dirección arranca de cero: el estado lo
+        # mueven los eventos y no puede filtrarse de una caminata a la otra.
+        estado = eventos.Estado()
 
-    view.convert("RGB").save(args.output)
-    print("esperado -> %s: mapa %d, héroe en (%d,%d) mirando %s, cámara en"
-          " (%d,%d)%s"
-          % (args.output, map_id, x, y,
-             args.walk if args.walk != "none" else "abajo", cam_x, cam_y,
-             "" if estado.tinte == (eventos.TINTE_NEUTRO,) * 3
-             else ", tinte %d/%d/%d" % estado.tinte))
+        # Adónde se llega es lo primero: entre los eventos del arranque y las
+        # puertas que cruce la caminata, el mapa que hay que dibujar bien puede
+        # no ser el que se pidió.
+        inicio = tuple(args.hero_tile) if args.hero_tile else None
+        map_id, x, y, direction = hero_position(mundo, estado,
+                                                tabla[args.inicial], walk,
+                                                inicio)
+        if args.hero_tile and args.dir:
+            direction = DIRECTIONS[args.dir]
+
+        game_map, mapa, encima_todo = convertir(map_id)
+        cam_x, cam_y = camera_for(x, y, game_map.width * 2, game_map.height * 2)
+        view = mapa.crop((cam_x, cam_y, cam_x + SCREEN_W, cam_y + SCREEN_H))
+
+        # Todo lo que se dibuja encima del mapa, con la clave con la que RM2k lo
+        # ordena: primero por capa y recién después por Y. Se pinta de atrás
+        # hacia adelante, que es al revés del orden en que van a OAM.
+        actors = [(snes_convert.sort_key(npc["layer"], npc["y"] * TILE),
+                   npc["charset"], npc["index"], npc["pose"],
+                   npc["x"] * TILE, npc["y"] * TILE,
+                   npc["layer"] == md_convert.LAYER_ABOVE)
+                  for npc in collect_npcs(game_map)]
+        # El último campo es si va por encima de la capa de encima. Para el
+        # héroe es falso salvo en la ROM de `snes-encima`, donde su prioridad
+        # de objeto sube a 2 —el mismo bit que llevan los eventos "above"— y
+        # el hardware lo pone adelante de BG2. Su capa para ordenarlo contra
+        # los NPCs no cambia: la prioridad es de la PPU y la capa es de RM2k.
+        actors.append((snes_convert.sort_key(md_convert.LAYER_SAME, y),
+                       args.charset, args.charset_index,
+                       direction * 3 + STAND, x, y, args.heroe_encima))
+
+        # En OAM van del frente hacia el fondo, que es al revés del orden en que
+        # se pintan. La consola recorre ese mismo orden para decidir qué entra
+        # en cada línea, así que hay que respetarlo para reproducir lo que se
+        # pierde.
+        order = sorted(actors, key=lambda a: a[0], reverse=True)
+        sprites = []
+        for _key, name, index, pose, px, py, arriba in order:
+            sprites.append((pose_image(charset_image(name), index, pose),
+                            px - 4 - cam_x, py - 16 - cam_y, arriba))
+
+        # La capa que va por encima del héroe se compone entre los sprites
+        # comunes y los eventos marcados "above", que es el orden de RM2k y el
+        # que el hardware reproduce con las prioridades del modo 3.
+        encima = encima_todo.crop((cam_x, cam_y,
+                                   cam_x + SCREEN_W, cam_y + SCREEN_H))
+        excedidas = draw_actors(view, sprites, encima)
+        if excedidas:
+            print("  %d líneas pasan el límite de sprites de la consola: ahí se"
+                  " pierden objetos y no se comparan" % len(excedidas))
+        # El archivo se escribe siempre, aunque no haya nada que excluir. Si
+        # sólo se escribiera cuando sobran sprites, al cambiar de mapa quedaría
+        # el del anterior y la comparación seguiría salteando líneas que ya no
+        # corresponden: aflojaría la prueba justo donde nadie está mirando.
+        if args.saltar:
+            with open(salida(args.saltar, walk), "w") as handle:
+                handle.write("".join("%d\n" % y for y in excedidas))
+
+        # El tinte va al final, sobre todo lo que se dibujó: en la consola es
+        # una transformación de CGRAM, y CGRAM la comparten el fondo, la capa de
+        # encima y los sprites.
+        view = tenir_imagen(view, estado.tinte)
+
+        destino = salida(args.output, walk)
+        view.convert("RGB").save(destino)
+        print("esperado -> %s: mapa %d, héroe en (%d,%d) mirando %s, cámara en"
+              " (%d,%d)%s"
+              % (destino, map_id, x, y,
+                 walk if walk != "none" else "abajo", cam_x, cam_y,
+                 "" if estado.tinte == (eventos.TINTE_NEUTRO,) * 3
+                 else ", tinte %d/%d/%d" % estado.tinte))
 
 
 if __name__ == "__main__":

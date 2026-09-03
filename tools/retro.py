@@ -33,6 +33,9 @@ De paso, tres cosas que aprendimos y que valen para cualquier frontend:
     sprites por línea es real y es justo lo que hoy esquiva --saltar.
 """
 import ctypes
+import os
+import sys
+
 from PIL import Image
 
 CORE = "/usr/lib/libretro/bsnes_libretro.so"
@@ -113,7 +116,25 @@ class Consola:
         self._buf = ctypes.create_string_buffer(datos, len(datos))
         juego = GameInfo(None, ctypes.cast(self._buf, ctypes.c_void_p),
                          len(datos), None)
-        if not self.lib.retro_load_game(ctypes.byref(juego)):
+        # snes9x escribe "Map_LoROMMap" en la salida estándar al cargar. Es un
+        # printf del core, no de Python, así que taparlo pide mover el descriptor
+        # y no redirigir sys.stdout. Ensuciaría el log de cada caso de la tanda.
+        # Y hay que vaciar el buffer de libc antes de devolver el descriptor:
+        # el printf no escribe al toque, se queda en el buffer y sale recién al
+        # terminar el proceso, o sea cuando la redirección ya no está.
+        libc = ctypes.CDLL(None)
+        guardado = os.dup(1)
+        nulo = os.open(os.devnull, os.O_WRONLY)
+        sys.stdout.flush()
+        os.dup2(nulo, 1)
+        try:
+            cargo = self.lib.retro_load_game(ctypes.byref(juego))
+        finally:
+            libc.fflush(None)
+            os.dup2(guardado, 1)
+            os.close(nulo)
+            os.close(guardado)
+        if not cargo:
             raise SystemExit("el core no pudo cargar %s" % rom)
 
     def _on_env(self, cmd, data):
