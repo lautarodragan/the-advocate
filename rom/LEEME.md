@@ -1,8 +1,9 @@
 # El port a Super Nintendo
 
-Dibuja el mapa y reproduce su tema. No reemplaza nada del port a Mega Drive: es
-una rama aparte que se abrió para ver si la SNES se acerca más al original, y la
-respuesta fue que sí.
+Dibuja el mapa y reproduce su tema. Empezó como una rama aparte del port a Mega
+Drive, para ver si la SNES se acercaba más al original; la respuesta fue que sí,
+y el port a Mega Drive se mudó a su propio repo. Las comparaciones con él que
+aparecen más abajo se quedan porque explican por qué las cosas son como son.
 
 ## Por qué
 
@@ -498,7 +499,8 @@ la pantalla.
 
 ## La colisión
 
-Toda la lógica de RM2k vive en el conversor y la comparte con la Mega Drive: que
+Toda la lógica de RM2k vive en `tools/rm2k.py`, fuera del conversor y de esta
+consola: que
 cruzar de una celda a la de al lado pide permiso a las dos —la de origen tiene
 que dejar salir por ese lado y la de destino dejar entrar por el opuesto—, que
 la capa alta manda sobre la baja salvo que sea decorado, y que las caras de

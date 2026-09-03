@@ -33,10 +33,10 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import eventos
 import lcf
-import md_convert
+import rm2k
+import pixeles
 import snes_convert
-from md_convert import (collect_doors, collect_npcs, passability_map,
-                        puede_pasar)
+from rm2k import collect_doors, collect_npcs, passability_map, puede_pasar
 from render_map import (GAME_DIR, REPO, RTP_DIR, Renderer, build_passability,
                         find_resource, load_image)
 
@@ -271,7 +271,7 @@ def pose_image(charset, index, pose):
     if len(counts) <= snes_convert.OBJ_COLORS:
         mapping = {c: c for c in counts}
     else:
-        mapping, _ = md_convert.merge_least_used(counts,
+        mapping, _ = pixeles.merge_least_used(counts,
                                                  snes_convert.OBJ_COLORS)
 
     ox, oy = snes_convert.pose_origin(index, pose)
@@ -499,7 +499,7 @@ def main():
         actors = [(snes_convert.sort_key(npc["layer"], npc["y"] * TILE),
                    npc["charset"], npc["index"], npc["pose"],
                    npc["x"] * TILE, npc["y"] * TILE,
-                   npc["layer"] == md_convert.LAYER_ABOVE)
+                   npc["layer"] == rm2k.LAYER_ABOVE)
                   for npc in collect_npcs(game_map)]
         # El último campo es si va por encima de la capa de encima. Para el
         # héroe es falso salvo en la ROM de `snes-encima`, donde su prioridad
@@ -513,7 +513,7 @@ def main():
             columna = STAND
         else:
             columna = columna_de_caminata(avance // 2)
-        actors.append((snes_convert.sort_key(md_convert.LAYER_SAME, y),
+        actors.append((snes_convert.sort_key(rm2k.LAYER_SAME, y),
                        charset, charset_index,
                        direction * 3 + columna, x, y, args.heroe_encima))
 

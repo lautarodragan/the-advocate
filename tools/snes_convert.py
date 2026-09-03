@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Convierte un mapa de A Blurred Line a datos que consume el PPU de la SNES.
 
-Es el equivalente de md_convert.py, y comparte con él todo lo que no depende del
+Comparte con el resto de las herramientas todo lo que no depende del
 chip: el reparto de colores en paletas, la fusión de los menos usados cuando no
 entran, y el reuso de tiles espejados. Esos problemas son los mismos en las dos
 consolas y el código vive allá.
@@ -41,10 +41,11 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import event_codes
 import eventos
 import lcf
-import md_convert
+import rm2k
+import pixeles
 import snes_music
-from md_convert import (CELL, collect_npcs, cut_tiles, flips, hero_start,
-                        passability_map, reduce_colors, tile_colors, to_indices)
+from pixeles import CELL, cut_tiles, flips, reduce_colors, tile_colors, to_indices
+from rm2k import collect_npcs, hero_start, passability_map
 from render_map import (GAME_DIR, REPO, RTP_DIR, Renderer, build_passability,
                         find_resource, load_image)
 
@@ -160,7 +161,7 @@ def convert_above(image, palettes=None, grid=None):
     limite = MAX_ABOVE_PALETTES if palettes is None else palettes
     sets = {tile_colors(t) for row in grid for t in row}
     sets = {s for s in sets if s}
-    groups = md_convert.try_pack(sets, limite) if sets else []
+    groups = pixeles.try_pack(sets, limite) if sets else []
     merged = []
     if sets and groups is None:
         # Repartiendo no entra. Hay dos motivos y se confundían en uno solo:
@@ -171,7 +172,7 @@ def convert_above(image, palettes=None, grid=None):
         # Los dos los arregla lo mismo: fusionar el color menos usado con su
         # vecino más cercano y reintentar. Es lo que la Mega Drive ya hacía con
         # el fondo, y el código vive allá.
-        grid, groups, merged, _ = md_convert.reduce_colors(grid, limite)
+        grid, groups, merged, _ = pixeles.reduce_colors(grid, limite)
     palettes = [sorted(g) for g in groups]
     # Sin capa de encima no se reserva nada, pero el DMA igual manda una paleta
     # vacía (ver abajo), así que el corte se cuenta como si hubiera una.
@@ -288,7 +289,7 @@ def build_sprite(image, index=0):
         mapping = {c: c for c in counts}
         merged = []
     else:
-        mapping, merged = md_convert.merge_least_used(counts, OBJ_COLORS)
+        mapping, merged = pixeles.merge_least_used(counts, OBJ_COLORS)
     palette = sorted(set(mapping.values()))
     lookup = {color: i + 1 for i, color in enumerate(palette)}
 
@@ -360,7 +361,7 @@ def build_characters(images, characters):
         if len(counts) <= OBJ_COLORS:
             mapping = {c: c for c in counts}
         else:
-            mapping, _ = md_convert.merge_least_used(counts, OBJ_COLORS)
+            mapping, _ = pixeles.merge_least_used(counts, OBJ_COLORS)
         palette = sorted(set(mapping.values()))
         lookup = {color: i + 1 for i, color in enumerate(palette)}
         slot = len(palettes)
@@ -433,7 +434,7 @@ def build_palette(grid, bg_colors):
     if len(counts) <= bg_colors:
         return sorted(counts), grid, []
 
-    mapping, merged = md_convert.merge_least_used(counts, bg_colors)
+    mapping, merged = pixeles.merge_least_used(counts, bg_colors)
     grid = [[tuple(tuple(mapping.get(p) for p in line) for line in tile)
              for tile in row] for row in grid]
     return sorted({c for c in mapping.values()}), grid, merged
@@ -993,7 +994,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=()):
            eventos.OP_RUTA,
            eventos.TRIGGER_AUTOMATICO, eventos.TINTE_NEUTRO, SWITCH_BYTES,
            eventos.GRUPO_MAX, len(grupo_inicial), ACTOR_BYTES,
-           md_convert.LAYER_SAME,
+           rm2k.LAYER_SAME,
            OBJ_PRIORITY_ABOVE if heroe_encima else OBJ_PRIORITY))
 
     with open(path, "w") as handle:
@@ -1115,7 +1116,7 @@ def npc_bytes(table):
         # es lo único que queda por encima de BG2 1; el resto comparten con el
         # héroe la prioridad 1, y como esa capa los tapa, caminan por debajo.
         prioridad = (OBJ_PRIORITY_ABOVE
-                     if npc["layer"] == md_convert.LAYER_ABOVE
+                     if npc["layer"] == rm2k.LAYER_ABOVE
                      else OBJ_PRIORITY)
         out.append(prioridad | ((npc["palette"] & 0x07) << 1)
                    | ((npc["tile"] >> 8) & 0x01))
@@ -1468,7 +1469,7 @@ def convertir(renderer, map_id, args, inicio=None):
         "bloques": bloques, "pass": block_pass,
         "layout": vram_layout(len(tile_data) // BYTES_PER_TILE),
         "resumen": summary, "base": base,
-        "puertas_crudas": md_convert.collect_doors(game_map),
+        "puertas_crudas": rm2k.collect_doors(game_map),
         # Se guarda el mapa entero porque las puertas y los eventos no se
         # pueden resolver hasta que estén todos: los dos traducen ids de mapa a
         # índices de la tabla.

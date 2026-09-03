@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Convierte el MIDI de un mapa a muestras BRR y un stream para el S-DSP.
 
-Es el equivalente de md_music.py para la Super Nintendo, y comparte con él todo
+Es el equivalente de musica.py para la Super Nintendo, y comparte con él todo
 lo que no depende del chip: leer el MIDI, pasar los tiempos a cuadros y repartir
 las voces entre los canales según cuánta cobertura gana cada una.
 
@@ -28,14 +28,14 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import brr
 import lcf
-import md_music
+import musica
 import midi
 import sdsp
 import snes_samples
 import spc700
 from render_map import GAME_DIR, REPO, find_resource
 
-TICKS_PER_SECOND = md_music.TICKS_PER_SECOND
+TICKS_PER_SECOND = musica.TICKS_PER_SECOND
 
 # Dónde vive cada cosa en los 64 KB del SPC700. Los primeros $200 bytes se los
 # queda la ROM de arranque para sus variables, así que se empieza más arriba.
@@ -114,12 +114,12 @@ def assign(notes):
     drums = any(n.channel == midi.DRUM_CHANNEL for n in notes)
     budget = sdsp.VOICES - (DRUM_VOICES if drums else 0)
 
-    spans = {channel: md_music.note_time(ns) for channel, ns in melodic.items()}
+    spans = {channel: musica.note_time(ns) for channel, ns in melodic.items()}
     busiest = sorted(spans, key=lambda c: -sum(a * b for a, b in spans[c].items()))
     kept = busiest[:budget]
 
     voices, next_voice = {}, 0
-    for channel, count in md_music.share_voices({c: spans[c] for c in kept},
+    for channel, count in musica.share_voices({c: spans[c] for c in kept},
                                                 budget).items():
         voices[channel] = list(range(next_voice, next_voice + count))
         next_voice += count
@@ -337,14 +337,14 @@ def build(map_id, game_dir=GAME_DIR):
         return name, driver, build_samples([]), bytes([OP_END]), 0.0, {}
 
     notes, tempos, division, programs = midi.read(path)
-    length = md_music.timeline(notes, tempos, division)
+    length = musica.timeline(notes, tempos, division)
     voices = assign(notes)
     drum_voices = set(voices.get(midi.DRUM_CHANNEL, []))
 
     frames, bank = build_events(notes, voices, programs, drum_voices)
     stream = pack(frames, length, init_writes(len(bank), drum_voices))
 
-    spans = {c: md_music.note_time([n for n in notes if n.channel == c])
+    spans = {c: musica.note_time([n for n in notes if n.channel == c])
              for c in {n.channel for n in notes}}
     total = sum(sum(a * b for a, b in spans[c].items()) for c in spans)
     summary = {
@@ -353,7 +353,7 @@ def build(map_id, game_dir=GAME_DIR):
                    for c in sorted(voices) if c != midi.DRUM_CHANNEL},
         "bank": ["%s (%.0f Hz, %d B)" % (v.name.strip(), v.rate, len(v.data))
                  for v in bank],
-        "coverage": sum(md_music.coverage(spans[c], len(voices.get(c, [])))
+        "coverage": sum(musica.coverage(spans[c], len(voices.get(c, [])))
                         * sum(a * b for a, b in spans[c].items())
                         for c in spans) / max(1, total),
     }
@@ -381,7 +381,7 @@ def emit(path, name, driver, samples, stream):
                SAMPLES_ADDR, len(samples),
                block("spc_driver", driver),
                block("spc_samples", samples),
-               block("md_music", stream)))
+               block("tema_stream", stream)))
 
 
 def main():

@@ -3,15 +3,7 @@ __pycache__/
 # RTP de Don Miguel, extraído de RTPE.EXE. No es nuestro para redistribuir;
 # ver README para reponerlo.
 RTP/
-md/build/
-md/shots/
-md/src/mapdata.c
-md/src/mapdata.h
-md/edlink.exe
-md/bisect/
 wt/
-md/src/musicdata.c
-md/src/musicdata.h
 rom/build/
 rom/shots/
 rom/src/musicdata.inc

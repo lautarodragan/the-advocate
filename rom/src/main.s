@@ -3629,9 +3629,9 @@ listo:
 .proc music_start
 .a8
 .i16
-    ldx #.loword(md_music)
+    ldx #.loword(tema_stream)
     stx music
-    lda #^md_music
+    lda #^tema_stream
     sta music + 2
     stz wait_frames
     rts

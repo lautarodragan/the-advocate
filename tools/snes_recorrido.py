@@ -6,7 +6,7 @@ alto. Para que una prueba diga algo sobre el redibujado hay que elegir un mapa
 donde la caminata cruce esos límites de verdad, y eso no se adivina mirando el
 tamaño: un mapa enorme lleno de paredes frena en la tercera celda.
 
-Se camina con las mismas reglas que la ROM —las de md_convert, que son las que
+Se camina con las mismas reglas que la ROM —las de rm2k.py, que son las que
 usa también la referencia— así que lo que dice es lo que va a pasar.
 
 Uso:
@@ -20,7 +20,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import lcf
-from md_convert import collect_npcs, hero_start, passability_map, walk
+from rm2k import collect_npcs, hero_start, passability_map, walk
 from render_map import GAME_DIR, Renderer, build_passability
 
 PASOS = {"derecha": (1, 0), "izquierda": (-1, 0),

@@ -30,7 +30,7 @@ import wave
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import lcf
-import md_music
+import musica
 import midi
 import sdsp
 import snes_music
@@ -74,7 +74,7 @@ def expected_notes(map_id, game_dir):
     path = find_resource([game_dir], "Music", music["name"], (".mid", ".wav"))
 
     notes, tempos, division, programs = midi.read(path)
-    length = md_music.timeline(notes, tempos, division)
+    length = musica.timeline(notes, tempos, division)
     voices = snes_music.assign(notes)
 
     sounding = collections.defaultdict(set)
@@ -107,7 +107,7 @@ def score(samples, rate, sounding, offset, windows, length):
         if not expected:
             continue
 
-        at = offset + int(frame * rate / md_music.TICKS_PER_SECOND)
+        at = offset + int(frame * rate / musica.TICKS_PER_SECOND)
         window = samples[at:at + WINDOW]
         if len(window) < WINDOW:
             break
@@ -152,16 +152,16 @@ def main():
     first = next((i for i, s in enumerate(samples) if abs(s) > quiet), 0)
     print("silencio inicial: %.2f s (la subida al SPC700)" % (first / rate))
 
-    recorded = int((len(samples) - first) / rate * md_music.TICKS_PER_SECOND)
+    recorded = int((len(samples) - first) / rate * musica.TICKS_PER_SECOND)
     length = min(length, recorded - 30)
     if length <= 0:
         print("la grabación es más corta que el arranque")
         return 1
 
-    base = int(first / rate * md_music.TICKS_PER_SECOND)
+    base = int(first / rate * musica.TICKS_PER_SECOND)
     best = (0.0, first, base)
     for delta in range(-20, 21, 2):
-        offset = int((base + delta) * rate / md_music.TICKS_PER_SECOND)
+        offset = int((base + delta) * rate / musica.TICKS_PER_SECOND)
         if offset < 0:
             continue
         wins, total, _ = score(samples, rate, sounding, offset, 20, length)

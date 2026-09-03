@@ -1,4 +1,4 @@
-# Renderiza un mapa a render/MapXXXX.png. Sin dependencias que instalar:
+# Renderiza un mapa a un PNG. Sin dependencias que instalar:
 # usa Pillow, que ya está en el sistema.
 #   just render        -> mapa 1
 #   just render 8
@@ -17,129 +17,10 @@ check:
 export:
   python3 tools/export_json.py --verify
 
-# --- Mega Drive ------------------------------------------------------------
-# El cross-compiler de m68k y el emulador viven en un contenedor: no se instala
-# nada en el sistema. La imagen base va pinneada por digest.
-
-# edlink es de krikzz y vive en el repo de recursos del EverDrive; no lo
-# copiamos a git, se toma de ahí al armar la imagen.
-edlink := "/home/taro/git/gaming/mega-ed-pub/edlink.exe"
-
-md-image:
-  cp {{edlink}} md/edlink.exe
-  podman build -t abl-md md
-
-# ChipSet + mapa -> tiles de 8x8 a 4bpp, paletas de 9 bits y tilemap, más el
-# render de Python contra el que se compara después.
-md-convert map_id="8":
-  mkdir -p md/shots
-  python3 tools/md_convert.py --map-id {{map_id}} -o md/src/mapdata \
-      --reference md/shots/reference.png
-  python3 tools/md_music.py --map-id {{map_id}} -o md/src/musicdata
-  python3 tools/render_map.py --map-id {{map_id}} --no-events -o md/shots/python.png
-
-md-build:
-  podman run --rm --network=none --mount=type=bind,src=.,dst=/abl -w /abl/md abl-md make
-
-# Corre la ROM sin pantalla y saca un screenshot. Las teclas son la cruceta del
-# control 1: se mantienen apretadas para mover la cámara antes de capturar.
-md-shot region="E" nombre="origen" teclas="" segundos="4":
-  podman run --rm --network=none --mount=type=bind,src=.,dst=/abl abl-md \
-      /abl/md/screenshot.sh /abl/md/build/abl.bin \
-      /abl/md/shots/{{region}}-{{nombre}}.png 3 {{region}} "{{teclas}}" {{segundos}}
-
-# Simula la caminata con las mismas reglas que la ROM para saber en qué tile
-# tuvo que frenar, y de ahí saca la cámara y el rectángulo del sprite.
-md-compare region="E" nombre="parado" map_id="8" walk="none":
-  python3 tools/md_compare.py md/shots/{{region}}-{{nombre}}.png \
-      md/shots/reference.png md/shots/python.png \
-      --map-id {{map_id}} --walk {{walk}} \
-      -o md/shots/comparacion-{{region}}-{{nombre}}.png
-
-# Todo el camino. El personaje arranca en el tile abierto más cercano al centro
-# y se lo camina en cada dirección sin soltar, hasta que choca. Dónde frena se
-# calcula en Python con las mismas reglas de colisión: si la ROM y la
-# simulación no coinciden, queda en otro tile y la comparación falla. O sea que
-# esto verifica la colisión, no sólo el render.
-#
-# `segundos` es cuánto se mantiene la cruceta: tiene que alcanzar para cruzar
-# el mapa a 2 px por cuadro. Para mapas grandes, subilo.
-md map_id="8" segundos="12":
-  just md-convert {{map_id}}
-  just md-build
-  just md-shot E parado
-  just md-compare E parado {{map_id}} none
-  just md-shot E derecha "Right" {{segundos}}
-  just md-compare E derecha {{map_id}} right
-  just md-shot E izquierda "Left" {{segundos}}
-  just md-compare E izquierda {{map_id}} left
-  just md-shot E arriba "Up" {{segundos}}
-  just md-compare E arriba {{map_id}} up
-  just md-shot E abajo "Down" {{segundos}}
-  just md-compare E abajo {{map_id}} down
-  just md-shot U parado
-  just md-compare U parado {{map_id}} none
-  just md-shot U derecha "Right" {{segundos}}
-  just md-compare U derecha {{map_id}} right
-
-# --- EverDrive por USB -----------------------------------------------------
-# El cartucho aparece como un puerto serie. Si no es /dev/ttyACM0, pasale otro.
-# Hace falta permiso sobre el dispositivo: normalmente, estar en el grupo
-# `uucp` o `dialout`.
-
-# Sube la ROM al EverDrive y la arranca. Sin sacar la SD.
-md-upload dev="/dev/ttyACM0":
-  podman run --rm --network=none --device {{dev}} --mount=type=bind,src=.,dst=/abl \
-      abl-md mono /opt/edlink/edlink.exe run --file /abl/md/build/abl.bin
-
-# Escucha lo que la ROM escriba en el FIFO del cartucho: un printf por USB.
-md-usb dev="/dev/ttyACM0":
-  podman run --rm --network=none --device {{dev}} \
-      abl-md mono /opt/edlink/edlink.exe usbrd --len -1 --tout -1 --print
-
-# Datos del cartucho, para verificar que el USB conecta.
-md-devinfo dev="/dev/ttyACM0":
-  podman run --rm --network=none --device {{dev}} \
-      abl-md mono /opt/edlink/edlink.exe devinf
-
-# Graba lo que la ROM le escribe al PSG y lo compara con lo que pidió el
-# conversor de música. Si coinciden, suena exactamente lo que se generó.
-md-music map_id="8" segundos="12":
-  podman run --rm --network=none --mount=type=bind,src=.,dst=/abl abl-md \
-      /abl/md/vgmlog.sh /abl/md/build/abl.bin /abl/md/shots/musica.vgm {{segundos}}
-  python3 tools/md_music_check.py md/shots/musica.vgm --map-id {{map_id}}
-
-# La ROM en una ventana de verdad, para moverla con las flechas.
-#
-# Esta corre en el host, no en un contenedor, y es a propósito. Para abrir una
-# ventana había que compartirle /tmp/.X11-unix, y eso le da al contenedor un
-# cliente X con acceso al servidor entero: puede leer el teclado de todas las
-# ventanas e inyectar eventos en otras. Con ese agujero abierto el contenedor ya
-# no aislaba nada, así que no valía lo que costaba.
-#
-# El emulador es mednafen, de pacman. blastem sería más fiel para Mega Drive,
-# pero el único que hay es un binario precompilado bajado de la web en 2019, y
-# eso no se corre en el host. Sigue usándose para verificar (md-shot, md-music),
-# donde va adentro del contenedor, sin red y sin sockets.
-#
-# -sound.driver sdl es obligatorio: el driver ALSA propio de mednafen abre el
-# dispositivo crudo hw:0, que PipeWire tiene tomado en exclusiva, y falla con
-# "Device or resource busy". Por SDL sale por PipeWire y convive con todo.
-md-play region="overseas_pal":
-  mednafen -command.exit "keyboard 0x0 20+ctrl" -force_module md -md.region {{region}} -sound.driver sdl \
-      md/build/abl.bin
-
-# Lo mismo pero mudo.
-md-play-mudo region="overseas_pal":
-  mednafen -command.exit "keyboard 0x0 20+ctrl" -force_module md -md.region {{region}} -sound 0 md/build/abl.bin
-
 # --- Super Nintendo --------------------------------------------------------
-# Rama aparte, para ver si la SNES se acerca más al original que la Mega Drive.
-# No toca nada del port a Mega Drive.
-#
-# Ya no hace falta ningún contenedor acá. El ensamblador de 65816 es nuestro
-# (tools/w65.py) y el emulador es mednafen, que está en pacman. Todo el
-# toolchain son dos cosas: python y mednafen.
+# El port. Todo el toolchain son dos cosas: python y un core de libretro. El
+# ensamblador de 65816 es nuestro (tools/w65.py) y la ROM se corre desde Python
+# cuadro a cuadro (tools/retro.py), sin emulador con ventana ni servidor X.
 #
 # El contenedor sigue existiendo para una sola cosa, snes-validar, que compara
 # w65.py contra ca65. No se necesita para compilar.
@@ -662,6 +543,7 @@ snes-referencia mapa="67" banco="/extras/soundfonts/Microsoft GS Wavetable Synth
 # Todo junto: convertir, compilar y verificar.
 snes mapa="67": (snes-music mapa) snes-build (snes-check mapa)
 
-# La ROM en una ventana, con sonido. Corre en el host por lo mismo que md-play.
+# La ROM en una ventana, con sonido. Va en el host: acá adentro no hay
+# dispositivo de audio, y el ALSA propio de mednafen abre hw:0.
 snes-play:
   mednafen -command.exit "keyboard 0x0 20+ctrl" -sound.driver sdl {{snes_rom}}
