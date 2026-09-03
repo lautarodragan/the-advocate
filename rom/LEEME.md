@@ -429,6 +429,16 @@ primero con el héroe en prioridad 1, debajo, y después con `snes-encima`, que 
 sube a prioridad 2 y lo pone adelante. Entre las dos referencias hay 284 pixeles
 de diferencia, así que el par no puede dar cero por casualidad.
 
+Y una ruta forzada, `snes-ruta`, que es la única prueba que compara al héroe
+**mientras** camina un guión y no donde termina. La diferencia importa: los dos
+errores que destapó —los dos de la referencia, no de la ROM— eran del contador
+de cuadros del ciclo de animación, y ninguno de los dos se ve en el cuadro
+final, donde el héroe ya está parado. Compara cuatro cuadros de una ruta de doce
+celdas con esperas en el medio, elegidos de modo que cada error conocido dé rojo;
+el comentario de la receta dice cuáles y por qué. Corre en el mapa 6 porque es
+mudo: para comparar un cuadro intermedio hay que saber cuántos cuadros de más
+lleva la ROM en el arranque, y sin música son 10 —con música, 44—.
+
 La prioridad 2 es la que llevan los eventos marcados "above", y no hay forma de
 ejercitarla con los eventos del juego. Se relevaron los 335 mapas: **hay
 exactamente uno con gráfico en esa capa**, el Package del mapa 261 en la celda
@@ -955,13 +965,29 @@ comparación.
 
 * **La cinemática de apertura.** El mapa 4 prende el switch 20, que es la
   condición de la página que abre el mapa 1: el enganche ya funciona, y si esa
-  página se pudiera correr, arrancaría sola. No se puede por dos motivos, los
-  dos de la regla de todo o nada: la condición pide `actor` —que el héroe 10
-  esté en el grupo, y todavía no hay grupo— y entre sus comandos hay cuatro
-  que no modelamos: `PlayBGM`, `WeatherEffects`, `MoveEvent` y
-  `ChangePartyMembers`.
+  página se pudiera correr, arrancaría sola. No se puede por la regla de todo o
+  nada: la condición pide `actor` —que el héroe 10 esté en el grupo, y todavía
+  no hay grupo— y le faltan comandos. De los cuatro que le faltaban, `PlayBGM`
+  ya se acepta y `MoveEvent` caminando también, desde el 2026-09-03; quedan
+  `WeatherEffects` y `ChangePartyMembers`.
   Mientras tanto el héroe queda parado adentro del caño, que es donde RM2k
   también lo deja: ahí no camina nadie, sigue el script.
+* **Lo que le falta al juego entero, medido.** De las 519 páginas automáticas
+  del juego se cortan 473, y esto es qué comando las corta —el primero de cada
+  una, así que las de más abajo están tapadas por las de arriba—:
+
+      ShowMessage          144      PanScreen             10
+      CallEvent             98      WeatherEffects         5
+      MoveEvent             60      ChangeEventLocation    5
+      ConditionalBranch     47      ChangeSystemBGM        5
+      FlashSprite           23
+      TintScreen            16
+      PlaySound             16
+      ControlVars           11
+
+  Sirve para elegir por dónde seguir: los cuadros de texto son de lejos lo que
+  más desbloquearía. De las 60 de `MoveEvent`, 46 mueven **otro evento** y no al
+  héroe, o sea que piden que los NPCs caminen, que es una feature aparte.
 * **El mapa entero en un cartucho.** Los 328 mapas suman 3,7 MB y LoROM llega a
   4, así que hoy entra un puñado por ROM y se elige al compilar. La salida
   probable es compartir los tiles entre los mapas que usan el mismo chipset:

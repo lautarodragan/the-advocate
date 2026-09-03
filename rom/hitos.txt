@@ -32,6 +32,7 @@ snes-evento
 snes-evento 4 "7 19 1" tabla
 snes-caminando 73 right "40 60 80"
 snes-caminando 6 down "40 60 80"
+snes-ruta
 snes-pagina 121 10 grupo-121
 snes-pagina 74 21 ruta-74
 snes-espera

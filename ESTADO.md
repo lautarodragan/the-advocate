@@ -37,10 +37,10 @@ prueba lo esperaba durmiendo. Ahora:
     just snes-hitos              2m23s    19 casos, 56 comparaciones en 0
     just snes-hitos-paralelo 6   0m32s    lo mismo, repartido en procesos
 
-Hoy, con `snes-mednafen` y `snes-bsnes` adentro, son 24 casos y 64
-comparaciones: 4m01s en serie y 1m14s repartida en seis. El minuto y medio que
-se sumó es casi todo mednafen, que corre en tiempo real con ventana; bsnes
-cuesta veinte segundos.
+Hoy, con `snes-mednafen`, `snes-bsnes` y `snes-ruta` adentro, son 25 casos y 68
+comparaciones: 3m34s en serie y 1m04s repartida en seis. Lo que se sumó es casi
+todo mednafen, que corre en tiempo real con ventana; bsnes cuesta veinte
+segundos y `snes-ruta` unos pocos.
 
 Lo que se ganó además del tiempo, que era el punto: los cuadros salen de la
 referencia y no de un número elegido a ojo, la prueba dejó de depender de la
@@ -90,7 +90,7 @@ mínimo del contrato de libretro. Tres errores, uno por core y todos en silencio
   `GET_SYSTEM_DIRECTORY` contesta que no.
 
 Verificado corriendo: los tres cores dibujan **el mismo cuadro a 15 bits** —0
-pixeles de 57344, mapa 7 a los 180 cuadros—, y `just snes-hitos` queda en 24
+pixeles de 57344, mapa 7 a los 180 cuadros—, y `just snes-hitos` quedó en 24
 casos y 64 comparaciones, todas en 0.
 
 La tanda sigue en snes9x por una razón medida y no por costumbre: bsnes emula
@@ -118,12 +118,70 @@ así que es lo único que probaría que `tools/retro.py` no se está equivocando
 parejo con los tres cores a la vez —el error de siempre en este repo, ahora
 aplicado al frontend—.
 
+**Cerrado el 2026-09-03: las rutas forzadas caminan y coinciden.** `MoveEvent`
+con `move_*` ya se acepta en `_compilar`. Lo que estaba escrito acá —"a 410
+pixeles de coincidir", "la ROM no vuelve a la pose parada"— **era falso**, y vale
+la pena decir por qué, porque la manera en que se equivocó se va a repetir.
+
+La ROM nunca estuvo mal: reconstruida la de `483c043` —el commit que reportó los
+410— y comparada contra la referencia de hoy, da 0. Los 410 salieron de comparar
+contra una referencia puesta a mano, y de un log que mentía: `snes_expect.py`
+imprimía "mirando abajo" **siempre** que se corriera con `--walk none`, aunque una
+ruta forzada hubiera girado al héroe. Era una cadena fija, no la dirección. Ya no.
+
+Los dos errores de verdad estaban en la referencia, y los dos en el contador de
+cuadros caminando:
+
+* `columna_de_caminata(cuadros_moviendose - 1)` para la ruta, contra
+  `columna_de_caminata(cuadros_moviendose)` para la caminata con el pad. En la
+  ROM `advance_step` prende `moving` y `animate_hero` corre en la misma vuelta,
+  así que el `-1` sobra. Se veía **sólo en los múltiplos de ANIM_FRAMES = 6**.
+* El contador no volvía a cero ni al terminar la ruta ni durante una espera,
+  porque el lazo de `entrar_al_mapa` cortaba antes de simular el cuadro en que
+  la ROM apaga `moving`. Se veía sólo si la columna en la que quedaba el ciclo
+  no era casualmente la parada.
+
+Los dos son de la misma familia y ninguno se veía comparando el cuadro final:
+sólo aparecen **durante** la caminata. La prueba que faltaba es `snes-ruta`, que
+compara cuatro cuadros de una ruta de doce celdas con esperas en el medio. Está
+en la tanda.
+
+Cómo se eligió qué comparar, porque a ojo no alcanzaba: los tres errores se
+volvieron a meter de a uno y se verificó que cada uno da rojo. La primera ruta
+que probé —doce celdas de corrido— los dejaba pasar dos de tres, porque 96
+cuadros moviéndose caen justo en la pose parada. De ahí las tres patas de cuatro
+celdas y las esperas.
+
+Y hay una medición que hacía falta: barrida cuadro por cuadro, la ROM y la
+referencia coinciden en **115 de 115 cuadros** de esa ruta, y en 104 de 104 de
+otra de doce celdas sin esperas. Eso pide un desfasaje de arranque, que es real
+y está medido: la ROM tarda 10 cuadros en el mapa 6 —que es mudo— y 44 en el 73,
+que tiene música y sube el banco al SPC700. `snes-ruta` corre en el 6 por eso.
+
+Lo que esto **no** desbloquea, dicho con todas las letras: **cero páginas del
+juego**. Siguen compilando las mismas 35. De las 60 páginas automáticas que
+corta `MoveEvent`, 46 mueven otro evento y no al héroe, y las demás usan órdenes
+de ruta que seguimos sin aceptar. Así que lo único que ejercita esto es
+`snes-ruta`, que es sintético, igual que `snes-encima` y `snes-espera`. Y por lo
+mismo, el tope de ocho saltos no hace falta volver a medirlo: no compila ninguna
+página nueva, así que ninguna cadena de teletransportes cambió.
+
 **El corte siguiente, decidido: la cinemática de apertura.**
 El mapa 4 ya prende el switch 20, que es la condición de la página que abre el
-mapa 1, así que el enganche funciona. Falta que exista un grupo —la condición
-pide `actor`— y cuatro comandos: `PlayBGM`, `WeatherEffects`, `MoveEvent` y
-`ChangePartyMembers`. Mientras tanto el héroe queda parado adentro del caño,
-que es donde RM2k también lo deja.
+mapa 1, así que el enganche funciona. De los cuatro comandos que le faltaban ya
+están dos —`PlayBGM` aceptado sin hacerlo, `MoveEvent` caminando de verdad—;
+quedan `ChangePartyMembers` y `WeatherEffects`, más que exista un grupo, porque
+la condición pide `actor`. Mientras tanto el héroe queda parado adentro del
+caño, que es donde RM2k también lo deja.
+
+**`WeatherEffects` va último**, decidido por taro el 2026-09-03. No bloquea
+nada, es atómico, y es de los caros. La idea que dejó anotada y que conviene no
+perder: que se pueda **apagar**, porque si el clima dibuja encima cambian todas
+las referencias PNG de los mapas que lo usen. Son 5 páginas del juego.
+
+Y el orden de lo que sigue después no es opinión: de las 519 páginas automáticas
+del juego se cortan 473, y el comando que más corta es `ShowMessage`, con 144.
+La tabla entera está en "Lo que falta" de `rom/LEEME.md`.
 
 Después del hito, el mismo día, se armó la documentación de proceso: este
 archivo y `AGENTS.md` en `92509fc`, y el contenedor y `snes-tinte` en `d7597cc`
@@ -153,35 +211,12 @@ commit narra lo hecho; los supuestos no tienen dónde vivir. Acá.
   difieren en 284 pixeles, o sea que el par no da cero por casualidad. El
   Package igual entró en la tanda, por el orden capa-antes-que-Y. Ver "Cómo se
   verifica" en `rom/LEEME.md`.
-* **Moverse por una ruta forzada: a 410 pixeles de coincidir.** Retomado el
-  2026-09-03 con el intérprete ya corriendo en el tiempo, que es lo que hacía
-  falta. La maquinaria está de los dos lados: la ROM la camina en
-  `paso_de_ruta` —consume la ruta antes que el pad, como RM2k— y la referencia
-  en `Estado.cuadro_de_ruta`. **Pero no coinciden, y el comando sigue sin
-  aceptarse** en `_compilar`: emitir un opcode que los dos lados ejecutan
-  distinto es peor que no tenerlo.
-  Dónde quedó la depuración, para no rederivarlo: con una ruta
-  `face_up, move_up x3` en el mapa 18, en el cuadro asentado **el héroe queda en
-  la misma celda (10,6) y mirando para el mismo lado** —contra un
-  `--hero-tile 10 6 --dir up` la diferencia es 410 pixeles, y contra las otras
-  tres direcciones es mayor—, así que lo que difiere es **la columna del ciclo
-  de caminata**: la ROM no vuelve a la pose parada al terminar la ruta. El
-  sospechoso es que quede un paso a medias (`step_left` distinto de cero) y
-  `animate_hero` siga ciclando.
-  Ya se descartaron: el desfasaje de arranque (se barrió de 5 a 9 y el error no
-  se mueve), el offset de pixeles del paso en curso, y la pose calculada por
-  cuadros moviéndose. Y se arregló un error real de la ROM en el camino: `tax`
-  con X de 16 bits se llevaba el byte alto del acumulador y la ruta leía basura,
-  con lo que el héroe caminaba una celda de tres y no había ningún error.
-* **Moverse por una ruta forzada (nota vieja).** Anotado el 2026-09-03. De los comandos de
-  ruta de `MoveEvent` hoy se aceptan sólo los cuatro de girar y la espera;
-  `move_up` y compañía no compilan. No es pereza: en RM2k el personaje camina
-  celda por celda a lo largo de varios cuadros y hay que decidir qué pasa
-  cuando lo bloquean, y **ninguna página del juego que compile lo ejercita** —de
-  las 3509 rutas del juego, la única que compila es la del mapa 74, que sólo
-  gira—. Implementarlo sin con qué compararlo es cómo sobrevivieron los cinco
-  errores anteriores. La cinemática de apertura lo va a pedir: mueve al héroe
-  tres celdas hacia arriba.
+* ~~**Moverse por una ruta forzada.**~~ Cerrado el 2026-09-03, y la premisa que
+  estaba escrita acá era falsa de punta a punta: la ROM ya coincidía, los 410
+  pixeles salieron de una referencia puesta a mano y de un log que mentía, y los
+  dos errores de verdad estaban en la referencia. Está contado arriba, en "En
+  vuelo". Lo ejercita `snes-ruta`, que es sintético porque ninguna página del
+  juego lo pide todavía.
 * **Que la página siga después de un teletransporte.** Anotado el 2026-09-03.
   El intérprete cortaba la página en el primer `Teleport`, con un comentario
   que decía "RM2k tampoco". Es falso: en

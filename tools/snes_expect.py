@@ -79,6 +79,9 @@ STAND = 1                       # el frame del medio del ciclo de caminata
 
 # Las direcciones de RM2k, en el orden en que están en el CharSet.
 DIRECTIONS = {"up": 0, "right": 1, "down": 2, "left": 3}
+# Para el log, que antes decía "abajo" siempre que no se caminara —aunque una
+# ruta forzada hubiera girado al héroe—, y mandó a buscar un error que no era.
+NOMBRE_DIR = {0: "arriba", 1: "derecha", 2: "abajo", 3: "izquierda"}
 # Los mismos, como desplazamiento en celdas.
 PASOS = {0: (0, -1), 1: (1, 0), 2: (0, 1), 3: (-1, 0)}
 WALK = {"none": None, "up": (0, -1), "down": (0, 1),
@@ -209,7 +212,8 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None):
             # ruta la camina el héroe, y saltearla dejaba al héroe mirando a
             # cámara mientras la ROM lo mostraba mirando arriba.
             for _ in range(10000):
-                if not estado.ruta and not estado.paso_cuadros:
+                if not estado.ruta and not estado.paso_cuadros \
+                        and not estado.cuadros_moviendose:
                     break
                 x, y = paso_de_ruta(estado, passable, game_map, x, y)
         else:
@@ -224,7 +228,8 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None):
                     break
                 x, y = paso_de_ruta(estado, passable, game_map, x, y)
                 if interprete.terminado and not estado.ruta \
-                        and not estado.paso_cuadros:
+                        and not estado.paso_cuadros \
+                        and not estado.cuadros_moviendose:
                     break
         if salto is None:
             return map_id, x, y
@@ -443,7 +448,8 @@ def main():
                              "Con avances el {} de -o lleva el avance en vez "
                              "de la dirección, y si se piden varios el mapa se "
                              "convierte una sola vez")
-    parser.add_argument("--cuadros", type=int, default=None, metavar="N",
+    parser.add_argument("--cuadros", type=int, nargs="+", default=None,
+                        metavar="N",
                         help="cuántos cuadros del intérprete simular. Hace "
                              "falta para comparar durante una espera: el "
                              "emulador corrió N cuadros y esto tiene que haber "
@@ -559,15 +565,25 @@ def main():
     # dependía de si eran uno o varios, y `snes-caminando` con un solo avance
     # escribía la referencia como `-right` y después la buscaba como `-60`: la
     # receta no andaba con menos de dos.
+    #
+    # Y lo mismo con --cuadros: varios presupuestos de cuadros de una misma
+    # dirección comparten la conversión. Es lo que hace falta para comparar una
+    # ruta forzada *mientras* camina y no sólo donde termina, que es donde el
+    # ciclo de caminata se vuelve visible.
     if args.avance:
         if len(args.walk) != 1:
             sys.exit("con avances hay que pedir una sola dirección")
-        vueltas = [(args.walk[0], px, str(px)) for px in args.avance]
+        vueltas = [(args.walk[0], px, None, str(px)) for px in args.avance]
+    elif args.cuadros and len(args.cuadros) > 1:
+        if len(args.walk) != 1:
+            sys.exit("con varios --cuadros hay que pedir una sola dirección")
+        vueltas = [(args.walk[0], None, n, str(n)) for n in args.cuadros]
     else:
-        vueltas = [(w, None, w) for w in args.walk]
+        n = args.cuadros[0] if args.cuadros else None
+        vueltas = [(w, None, n, w) for w in args.walk]
 
     plan = []
-    for walk, avance, etiqueta in vueltas:
+    for walk, avance, cuadros, etiqueta in vueltas:
         # Los switches arrancan apagados y la pantalla sin teñir, como una
         # partida nueva de RM2k, y cada dirección arranca de cero: el estado lo
         # mueven los eventos y no puede filtrarse de una caminata a la otra.
@@ -580,7 +596,7 @@ def main():
         map_id, x, y, direction, pasos = hero_position(mundo, estado,
                                                        tabla[args.inicial],
                                                        walk, inicio,
-                                                       avance, args.cuadros)
+                                                       avance, cuadros)
         if args.hero_tile and args.dir:
             direction = DIRECTIONS[args.dir]
 
@@ -619,8 +635,15 @@ def main():
             columna = columna_de_caminata(avance // 2)
         elif estado.cuadros_moviendose:
             # Caminando por una ruta forzada: la pose sale del mismo ciclo que
-            # `animate_hero`, contando los cuadros que lleva moviéndose.
-            columna = columna_de_caminata(estado.cuadros_moviendose - 1)
+            # `animate_hero`, contando los cuadros que lleva moviéndose. Sin
+            # `-1`, que es el mismo número que usa la caminata con el pad de acá
+            # arriba: en la ROM `advance_step` prende `moving` y `animate_hero`
+            # corre en la misma vuelta, así que a los N cuadros moviéndose el
+            # contador de animación ya bajó N veces. Con el `-1` los dos lados
+            # cambiaban de columna en cuadros distintos y sólo se notaba en los
+            # múltiplos de ANIM_FRAMES: barriendo los 70 cuadros de una ruta de
+            # ocho celdas, fallaban exactamente el 6, el 12, el 18 y así.
+            columna = columna_de_caminata(estado.cuadros_moviendose)
         else:
             columna = STAND
         actors.append((snes_convert.sort_key(rm2k.LAYER_SAME, y),
@@ -665,7 +688,8 @@ def main():
         print("esperado -> %s: mapa %d, héroe en (%d,%d) mirando %s, cámara en"
               " (%d,%d)%s"
               % (destino, map_id, x, y,
-                 walk if walk != "none" else "abajo", cam_x, cam_y,
+                 walk if walk != "none" else NOMBRE_DIR[direction],
+                 cam_x, cam_y,
                  "" if estado.tinte == (eventos.TINTE_NEUTRO,) * 3
                  else ", tinte %d/%d/%d" % estado.tinte))
         if pasos:
@@ -674,8 +698,8 @@ def main():
 
     if args.plan:
         with open(args.plan, "w") as handle:
-            for walk, pasos, cuadros in plan:
-                handle.write("%s %d %d\n" % (walk, pasos, cuadros))
+            for walk, pasos, duracion in plan:
+                handle.write("%s %d %d\n" % (walk, pasos, duracion))
 
 
 if __name__ == "__main__":

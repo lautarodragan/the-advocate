@@ -36,11 +36,12 @@ MOVE_EVENT = 11330
 # bitmask de repetición, si es salteable) y de ahí en adelante los comandos de
 # la ruta, con los códigos de `rpg::MoveCommand::Code` de liblcf.
 #
-# De todos ellos hoy se aceptan sólo los cuatro de girar y la espera. Moverse
-# por una ruta forzada no está: en RM2k el personaje camina celda por celda a lo
-# largo de varios cuadros y hay que decidir qué pasa cuando lo bloquean, y no
-# hay ninguna página del juego que compile y lo ejercite. Cuando la haya se
-# agrega acá; mientras tanto, una ruta que se mueva no compila.
+# Se aceptan los cuatro de girar, los cuatro de mover y la espera. Los de mover
+# entraron últimos porque en RM2k el personaje camina celda por celda a lo largo
+# de varios cuadros, y eso hay que compararlo *mientras* camina: comparar sólo
+# dónde termina deja pasar el ciclo de animación entero. Un movimiento bloqueado
+# se saltea, que es la decisión de modelo que comparten los dos lados —RM2k
+# reintentaría para siempre y una prueba colgada no dice nada—.
 RUTA_HEROE = 10001
 RUTA_MIRAR = {12: 0, 13: 1, 14: 2, 15: 3}   # face_up/right/down/left
 RUTA_MOVER = {0: 0, 1: 1, 2: 2, 3: 3}       # move_up/right/down/left
@@ -190,15 +191,14 @@ def _compilar(cmd, indice_de_mapa):
         if not ruta or len(ruta) > 255:
             raise NoSePuede()
         for orden in ruta:
-            # Moverse por una ruta forzada todavía no se acepta. La maquinaria
-            # está de los dos lados —la ROM la camina en `paso_de_ruta` y la
-            # referencia en `Estado.cuadro_de_ruta`— pero no coinciden: en el
-            # cuadro asentado el héroe queda en la misma celda y mirando para el
-            # mismo lado, y aun así hay 410 pixeles de diferencia, que es la
-            # columna del ciclo de caminata. Está en la lista de ESTADO.md con
-            # lo que ya se descartó. Aceptarlo sin que coincida sería emitir un
-            # opcode que los dos lados ejecutan distinto.
-            if (orden not in RUTA_MIRAR and orden != RUTA_ESPERAR):
+            # Girar, esperar y moverse. Los `move_*` entraron el 2026-09-03,
+            # cuando los dos lados empezaron a coincidir *durante* la caminata y
+            # no sólo al final: lo prueba `snes-ruta`, que compara cuatro
+            # cuadros de una ruta de doce celdas con esperas en el medio. Todo
+            # lo demás de `rpg::MoveCommand::Code` —saltar, cambiar el gráfico,
+            # atravesar paredes, la velocidad, la frecuencia— sigue afuera.
+            if (orden not in RUTA_MIRAR and orden not in RUTA_MOVER
+                    and orden != RUTA_ESPERAR):
                 raise NoSePuede()
         return bytes([OP_RUTA, len(ruta)]) + bytes(ruta)
 
@@ -279,7 +279,7 @@ class Estado:
                 self.mirando = RUTA_MIRAR[orden]
                 continue
             if orden == RUTA_ESPERAR:
-                return None
+                break               # el cuadro se consume, pero quieto
             direccion = RUTA_MOVER[orden]
             self.mirando = direccion
             if not puede(direccion):
@@ -288,6 +288,11 @@ class Estado:
             self.paso_cuadros = CUADROS_POR_CELDA - 1
             self.cuadros_moviendose += 1
             return direccion
+        # Ningún paso en este cuadro: el contador vuelve a cero, que es lo que
+        # hace `animate_hero` cuando `moving` está apagado —la pose parada, y el
+        # ciclo empezando de nuevo en el paso siguiente—. La espera cae acá por
+        # `break` y no por `return`: en la ROM una espera de ruta deja al héroe
+        # quieto, igual que el final de la ruta, y antes acá seguía contando.
         self.cuadros_moviendose = 0
         return None
 

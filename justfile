@@ -312,6 +312,57 @@ snes-mednafen:
       --saltar {{snes_pngs}}/saltar-med-walk.txt \
       -o {{snes_pngs}}/comparacion-med-walk.png
 
+# Una ruta forzada, comparada **mientras camina** y no sólo donde termina.
+#
+# Es el caso que faltaba para poder aceptar los `move_*` de MoveEvent. Lo que
+# hay que verificar no es dónde queda el héroe —eso ya lo mira cualquier
+# comparación del cuadro final— sino la trayectoria: la celda, la cámara y sobre
+# todo **la columna del ciclo de caminata**, que es donde estaban los dos
+# errores que esto destapó, los dos de la referencia y no de la ROM.
+#
+# El mapa por defecto es el 6 por dos razones concretas: es 100x100 y está
+# abierto al 100%, así que una ruta camina en cualquier dirección sin chocar; y
+# **es mudo**, que es lo que hace usable el desfasaje de arranque. La ROM no
+# empieza a interpretar en el cuadro 0 —hay reset, carga de mapa y subida al
+# SPC700— y la referencia no modela nada de eso, así que para comparar un cuadro
+# intermedio hay que decir cuántos cuadros de más lleva la ROM. Medido: 10 en el
+# mapa 6, contra 44 en el 73, que tiene música. Si algún día los tres cuadros
+# dan rojo a la vez y el asentado no, es esto: volver a medirlo barriendo el
+# desfasaje contra un cuadro cualquiera.
+#
+# Ni la ruta ni los cuadros son cualquiera, y elegirlos a ojo hacía que la
+# prueba pasara con los errores adentro. La ruta son tres patas de cuatro celdas
+# —derecha, abajo, arriba— con **dos cuadros de espera** entre pata y pata, o
+# sea 100 cuadros. Los que se comparan son el 18 y el 86 —caminando, y a 18
+# cuadros del arranque de su pata, que es múltiplo de ANIM_FRAMES = 6 y por lo
+# tanto donde el ciclo cambia de columna—, el 34 —la primera espera, con el
+# héroe quieto— y el 400, asentado.
+#
+# El porqué de que sean cuatro celdas por pata y no doce de corrido: los errores
+# de contador sólo se ven si la columna en la que queda el ciclo **no** es la
+# parada, y 8 cuadros por celda por 12 celdas da 96, que cae justo en la parada.
+# Con cuatro celdas da 32, que cae en la columna 2. Elegido midiendo: los tres
+# errores se volvieron a meter de a uno y los tres dan rojo. Ver ESTADO.md.
+snes-ruta mapa="6" ruta="1 1 1 1 23 23 2 2 2 2 23 23 0 0 0 0" cuadros="18 34 86 400" arranque="10" nombre="ruta":
+  #!/usr/bin/env bash
+  set -euo pipefail
+  mkdir -p {{snes_pngs}} {{snes_inc}}
+  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
+      --ruta-de-prueba {{ruta}} -o {{snes_inc}}/mapdata.inc
+  just snes-build
+  pre={{snes_pngs}}/{{nombre}}
+  # Las referencias de todos los cuadros salen de una sola conversión, por lo
+  # mismo que las de los avances de snes-caminando.
+  python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
+      --ruta-de-prueba {{ruta}} --cuadros {{cuadros}} \
+      --saltar $pre-{}.saltar.txt -o $pre-{}.esperado.png
+  for n in {{cuadros}}; do
+    python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre-$n.png \
+        --walk none --cuadros $n --arranque {{arranque}}
+    python3 tools/snes_compare.py $pre-$n.png $pre-$n.esperado.png \
+        --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
+  done
+
 # La otra segunda opinión, la que sí sale gratis: los mismos casos en bsnes.
 #
 # bsnes es el emulador preciso, y sobre todo es el que **llena la WRAM de basura
