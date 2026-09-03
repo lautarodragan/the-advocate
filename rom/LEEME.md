@@ -785,9 +785,17 @@ tinte entraba **a medias**: quedaban teñidos la capa de encima y un sprite, y e
 resto no, según qué escritura pescara el vblank.
 
 Lo segundo no lo vio la tanda: snes9x acepta esas escrituras y mednafen no. Lo
-encontró taro jugando. La carga de mapa se arregla apagando la pantalla, como ya
-hacía `cruzar_puerta`; el tinte, difiriéndolo a `flush_video`, que corre en el
-vblank.
+encontró taro jugando, dos veces seguidas.
+
+La carga de mapa se arregla apagando la pantalla, como ya hacía `cruzar_puerta`.
+Para el tinte se intentó primero diferirlo a `flush_video`, que corre en el
+vblank, **y no alcanza**: `aplicar_tinte` arma tres tablas de canal de treinta y
+dos entradas y sube tres paletas por DMA, y eso se pasa del vblank. El resultado
+era un tinte a medias distinto en cada intento —una vez la capa de encima y un
+sprite; otra el fondo teñido, el héroe en negro y los NPCs sin tocar—. La única
+forma que aguanta es apagar la pantalla, igual que para cargar un mapa: cuesta
+un cuadro en negro, que en RM2k tampoco desentona porque el motor original funde
+a negro en las transiciones.
 
 **Un bloque de cero bytes no es un bloque.** La subida al SPC700 va por el
 protocolo del IPL —dirección, un puerto en no-cero, el índice—, y con cero bytes

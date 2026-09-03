@@ -418,6 +418,7 @@ loop:
     jsr read_pad
     jsr flush_video             ; lo del cuadro anterior, todavía en vblank
     jsr eventos_tick
+    jsr tinte_de_evento
     jsr move_hero
     jsr animate_hero
     jsr follow_camera
@@ -745,6 +746,34 @@ puesto:
     pla
     jsr cargar_mapa_sin_eventos
     jsr encolar_eventos
+    rts
+.endproc
+
+; El tinte que haya pedido un evento, con la pantalla apagada mientras dura.
+;
+; CGRAM no acepta escrituras con el PPU dibujando, así que esto no puede correr
+; en cualquier momento. Se intentó primero meterlo en `flush_video`, que corre en
+; el vblank, y no entra: `aplicar_tinte` arma tres tablas de canal de treinta y
+; dos entradas y sube tres paletas por DMA. Lo que se pasaba del vblank caía con
+; el PPU dibujando, y el resultado era un tinte a medias distinto cada vez —una
+; vez la capa de encima y un sprite, otra vez el fondo con el héroe en negro y
+; los NPCs sin teñir—.
+;
+; Apagar la pantalla es lo que ya hacen `cruzar_puerta` y el teletransporte por
+; la misma razón. Cuesta un cuadro en negro, que en RM2k tampoco desentona: el
+; motor original funde a negro en las transiciones.
+.proc tinte_de_evento
+.a8
+.i16
+    lda tinte_pendiente
+    beq nada
+    stz tinte_pendiente
+    lda #$80
+    sta INIDISP
+    jsr aplicar_tinte
+    lda #$0F
+    sta INIDISP
+nada:
     rts
 .endproc
 
@@ -2575,13 +2604,6 @@ columna:
 .proc flush_video
 .a8
 .i16
-    ; Lo primero, que es lo que más vblank consume: el tinte que haya pedido un
-    ; evento. CGRAM sólo acepta escrituras con el PPU sin dibujar.
-    lda tinte_pendiente
-    beq sin_tinte
-    stz tinte_pendiente
-    jsr aplicar_tinte
-sin_tinte:
     jsr push_oam
 
     ; Los dos registros de scroll son de escritura doble: primero el byte bajo
