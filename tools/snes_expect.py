@@ -330,12 +330,21 @@ def main():
                         help="una o varias direcciones. Con varias, -o y --saltar\n"
                              "tienen que llevar un {} donde va la dirección: se\n"
                              "convierte el mapa una sola vez para todas")
-    parser.add_argument("--charset", default="Future1")
+    parser.add_argument("--grupo", nargs="+", type=int, default=None,
+                        metavar="ACTOR",
+                        help="el grupo con el que arranca, por ids de actor. El gráfico "
+                             "del héroe es el del primero, que es como lo decide "
+                             "RM2k. Por defecto, el de la base: este juego "
+                             "arranca con el actor 10, DummyHero, cuyo sprite es "
+                             "una celda vacía a propósito")
+    parser.add_argument("--charset", default=None,
+                        help="forzar el CharSet del héroe; por defecto sale\n"
+                             "del primero del grupo, que es como lo decide RM2k")
     parser.add_argument("--heroe-encima", action="store_true",
                         help="el héroe en prioridad 2, por encima de "
                              "la capa que debería taparlo. El otro "
                              "lado del mismo flag de snes_convert.py")
-    parser.add_argument("--charset-index", type=int, default=0)
+    parser.add_argument("--charset-index", type=int, default=None)
     parser.add_argument("--game-dir", default=GAME_DIR)
     parser.add_argument("--saltar", help="archivo donde anotar las líneas que "
                         "pasan el límite de sprites")
@@ -370,6 +379,21 @@ def main():
     args = parser.parse_args()
 
     renderer = Renderer(args.game_dir)
+
+    # El gráfico del héroe sale del grupo, no de acá. En RM2k lo da el primero
+    # de la lista, y este juego arranca con el actor 10 —'DummyHero', que es
+    # Chubby2[2]—. Hasta ahora había un default puesto a mano que daba
+    # Future1[0], o sea el sprite de otro personaje; los dos lados de la
+    # comparación lo tenían igual de mal, así que el cero no lo delataba.
+    # --charset queda para forzarlo a mano cuando hace falta.
+    grupo = args.grupo if args.grupo else renderer.database.party
+    if args.charset is None:
+        args.charset, indice = renderer.database.lider(grupo)
+        if args.charset_index is None:
+            args.charset_index = indice
+    if args.charset_index is None:
+        args.charset_index = 0
+
     # El mundo son los mapas que entraron en la ROM, en el mismo orden y armado
     # con la misma regla que usa el conversor, incluido que un mapa repetido en
     # --mapas no entra dos veces. Sin --mapas es uno solo y no hay puerta que

@@ -1097,9 +1097,17 @@ def main():
                              "Es la única forma de ejercitarla: el "
                              "único evento above del juego no llega a "
                              "pisar la capa de encima")
-    parser.add_argument("--charset", default="Future1",
-                        help="CharSet del personaje (default: el de Talan)")
-    parser.add_argument("--charset-index", type=int, default=0,
+    parser.add_argument("--grupo", nargs="+", type=int, default=None,
+                        metavar="ACTOR",
+                        help="el grupo con el que arranca, por ids de actor. El gráfico "
+                             "del héroe es el del primero, que es como lo decide "
+                             "RM2k. Por defecto, el de la base: este juego "
+                             "arranca con el actor 10, DummyHero, cuyo sprite es "
+                             "una celda vacía a propósito")
+    parser.add_argument("--charset", default=None,
+                        help="forzar el CharSet del héroe; por defecto sale "
+                             "del primero del grupo, que es como lo decide RM2k")
+    parser.add_argument("--charset-index", type=int, default=None,
                         help="cuál de los 8 personajes del CharSet")
     parser.add_argument("--reference", help="PNG del render de Python, para comparar")
     parser.add_argument("--mapas", nargs="+", type=int, metavar="ID",
@@ -1118,6 +1126,21 @@ def main():
     args = parser.parse_args()
 
     renderer = Renderer(args.game_dir)
+
+    # El gráfico del héroe sale del grupo, no de acá. En RM2k lo da el primero
+    # de la lista, y este juego arranca con el actor 10 —'DummyHero', que es
+    # Chubby2[2]—. Hasta ahora había un default puesto a mano que daba
+    # Future1[0], o sea el sprite de otro personaje; los dos lados de la
+    # comparación lo tenían igual de mal, así que el cero no lo delataba.
+    # --charset queda para forzarlo a mano cuando hace falta.
+    grupo = args.grupo if args.grupo else renderer.database.party
+    if args.charset is None:
+        args.charset, indice = renderer.database.lider(grupo)
+        if args.charset_index is None:
+            args.charset_index = indice
+    if args.charset_index is None:
+        args.charset_index = 0
+
     mapas = [convertir(renderer, map_id, args,
                        inicio=args.inicio if map_id == args.map_id else None)
              for map_id in ([args.map_id] + [m for m in (args.mapas or [])

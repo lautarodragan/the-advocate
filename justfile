@@ -153,6 +153,18 @@ md-play-mudo region="overseas_pal":
 # corría: snes/src/mapdata.inc es estado global —lo pisa cualquier
 # snes-convert— y la ROM tenía un solo nombre posible. La ROM además se llama
 # como la corrida, que además la hace reconocible cuando se la abre a mano.
+# Con qué grupo arrancan las pruebas. En RM2k el gráfico del héroe es el del
+# primero del grupo, y este juego arranca con el actor 10 —`DummyHero`, cuyo
+# sprite en Chubby2 es una celda **vacía a propósito**: la apertura es una
+# cinemática y ahí no hay personaje que mostrar—. Fiel, pero con él ninguna
+# prueba verificaría un solo sprite del héroe: se irían las poses, el ciclo de
+# caminata y la prioridad de objeto contra la capa de encima.
+#
+# Así que las pruebas arrancan con Kersh, el actor 11, que es a quien el jugador
+# maneja después de la cinemática. Es una decisión de banco de pruebas y por eso
+# está acá y no escondida en un default: `GRUPO=10 just snes-hitos` corre con el
+# grupo de verdad.
+grupo    := env_var_or_default("GRUPO", "11")
 corrida  := env_var_or_default("CORRIDA", "")
 snes_dir := if corrida == "" { "snes/build" } else { "snes/build" / corrida }
 snes_rom := snes_dir / (if corrida == "" { "abl.sfc" } else { corrida + ".sfc" })
@@ -163,7 +175,7 @@ snes_pngs := if corrida == "" { "snes/shots" } else { snes_dir / "shots" }
 # render de Python contra el que se compara después.
 snes-convert mapa="7":
   mkdir -p {{snes_pngs}} {{snes_inc}}
-  python3 tools/snes_convert.py --map-id {{mapa}} -o {{snes_inc}}/mapdata.inc \
+  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} -o {{snes_inc}}/mapdata.inc \
       --reference {{snes_pngs}}/python.png
 
 snes-build:
@@ -194,7 +206,7 @@ snes-walk mapa="7" direccion="none" mapas="" inicial="0" nombre=(mapa + "-" + di
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}}
-  python3 tools/snes_expect.py --map-id {{mapa}} --walk {{direccion}} \
+  python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk {{direccion}} \
       --mapas {{mapas}} --inicial {{inicial}} \
       --saltar {{snes_pngs}}/saltar-{{nombre}}.txt \
       --plan {{snes_pngs}}/plan-{{nombre}}.txt \
@@ -223,10 +235,10 @@ snes-puerta origen="30" destino="28" direccion="down" nombre=("puerta-" + origen
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
-  python3 tools/snes_convert.py --map-id {{origen}} --mapas {{destino}} \
+  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{origen}} --mapas {{destino}} \
       -o {{snes_inc}}/mapdata.inc
   just snes-build
-  python3 tools/snes_expect.py --map-id {{origen}} --mapas {{destino}} \
+  python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{origen}} --mapas {{destino}} \
       --walk {{direccion}} --saltar {{snes_pngs}}/saltar-{{nombre}}.txt \
       --plan {{snes_pngs}}/plan-{{nombre}}.txt \
       -o {{snes_pngs}}/esperado-{{nombre}}.png
@@ -263,11 +275,11 @@ snes-tinte sin="snes/shots/destino.png" con="snes/shots/evento.png" r="0" g="0" 
 # Después de esto, `just snes-play` lo muestra con sonido.
 snes-evento origen="4" destino="1" nombre="evento":
   mkdir -p {{snes_pngs}} {{snes_inc}}
-  python3 tools/snes_convert.py --map-id {{origen}} --mapas {{destino}} \
+  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{origen}} --mapas {{destino}} \
       -o {{snes_inc}}/mapdata.inc
   just snes-build
   just snes-shot {{nombre}} 240 ""
-  python3 tools/snes_expect.py --map-id {{origen}} --mapas {{destino}} \
+  python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{origen}} --mapas {{destino}} \
       --saltar {{snes_pngs}}/saltar-{{nombre}}.txt \
       -o {{snes_pngs}}/esperado-{{nombre}}.png
   python3 tools/snes_compare.py {{snes_pngs}}/{{nombre}}.png \
@@ -281,7 +293,7 @@ snes-evento origen="4" destino="1" nombre="evento":
 # cualquier cuenta mal hecha da el resultado correcto por casualidad.
 snes-varios primero="18" otros="7 19" indice="2":
   mkdir -p {{snes_pngs}} {{snes_inc}}
-  python3 tools/snes_convert.py --map-id {{primero}} --mapas {{otros}} \
+  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{primero}} --mapas {{otros}} \
       --inicial {{indice}} -o {{snes_inc}}/mapdata.inc
   just snes-build
   just snes-walk {{primero}} none "{{otros}}" {{indice}} varios-{{primero}}-none
@@ -292,11 +304,11 @@ snes-varios primero="18" otros="7 19" indice="2":
 # fija y la captura no se negocia.
 snes-parado mapa="1" tx="75" ty="88" nombre="parado":
   mkdir -p {{snes_pngs}} {{snes_inc}}
-  python3 tools/snes_convert.py --map-id {{mapa}} --inicio {{tx}} {{ty}} \
+  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} --inicio {{tx}} {{ty}} \
       -o {{snes_inc}}/mapdata.inc
   just snes-build
   just snes-shot {{nombre}} 240 ""
-  python3 tools/snes_expect.py --map-id {{mapa}} --hero-tile {{tx}} {{ty}} \
+  python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --hero-tile {{tx}} {{ty}} \
       --dir down --saltar {{snes_pngs}}/saltar-{{nombre}}.txt \
       -o {{snes_pngs}}/esperado-{{nombre}}.png
   python3 tools/snes_compare.py {{snes_pngs}}/{{nombre}}.png \
@@ -319,11 +331,11 @@ snes-parado mapa="1" tx="75" ty="88" nombre="parado":
 # poniendo #OBJ_PRIORITY_ABOVE a mano en place_hero.
 snes-encima mapa="1" tx="66" ty="40" nombre="encima":
   mkdir -p {{snes_pngs}} {{snes_inc}}
-  python3 tools/snes_convert.py --map-id {{mapa}} --inicio {{tx}} {{ty}} \
+  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} --inicio {{tx}} {{ty}} \
       --heroe-encima -o {{snes_inc}}/mapdata.inc
   just snes-build
   just snes-shot {{nombre}} 240 ""
-  python3 tools/snes_expect.py --map-id {{mapa}} --hero-tile {{tx}} {{ty}} \
+  python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --hero-tile {{tx}} {{ty}} \
       --dir down --heroe-encima --saltar {{snes_pngs}}/saltar-{{nombre}}.txt \
       -o {{snes_pngs}}/esperado-{{nombre}}.png
   python3 tools/snes_compare.py {{snes_pngs}}/{{nombre}}.png \
@@ -348,13 +360,13 @@ snes-caminando mapa="73" direccion="right" avances="40 60 80":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
-  python3 tools/snes_convert.py --map-id {{mapa}} -o {{snes_inc}}/mapdata.inc
+  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} -o {{snes_inc}}/mapdata.inc
   just snes-build
   # Las referencias de todos los avances salen de una sola corrida, por lo
   # mismo que las de las cinco direcciones: convertir el mapa es lo caro y no
   # depende del avance.
   pre={{snes_pngs}}/{{mapa}}-{{direccion}}
-  python3 tools/snes_expect.py --map-id {{mapa}} --walk {{direccion}} \
+  python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk {{direccion}} \
       --avance {{avances}} --saltar $pre-{}.saltar.txt \
       -o $pre-{}.esperado.png
   for px in {{avances}}; do
@@ -514,7 +526,7 @@ snes-heroe mapa="7":
   # caminata: sabe cuántas celdas se recorren, y el paso son ocho cuadros. Antes
   # el orden daba igual, porque el emulador corría un número de segundos
   # elegido a ojo.
-  python3 tools/snes_expect.py --map-id {{mapa}} --walk none right left up down \
+  python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none right left up down \
       --saltar {{snes_pngs}}/saltar-{{mapa}}-{}.txt \
       --plan {{snes_pngs}}/plan-{{mapa}}.txt \
       -o {{snes_pngs}}/esperado-{{mapa}}-{}.png

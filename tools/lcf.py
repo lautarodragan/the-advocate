@@ -177,7 +177,17 @@ def enum_name(names, value):
     """El nombre del enum, o el número crudo si está fuera de rango."""
     return names[value] if 0 <= value < len(names) and names[value] else value
 
+DB_ACTORS = 0x0B
 DB_CHIPSETS = 0x14
+DB_SYSTEM = 0x16
+
+# Del esquema de liblcf, igual que todo lo demás de este archivo: los números no
+# se ponen de memoria. Ya pasó una vez con los códigos de comando de las puertas
+# —tres estaban mal— y por eso event_codes.py se genera desde ahí.
+ACTOR_NAME = 0x01
+ACTOR_CHARSET = 0x03
+ACTOR_CHARSET_INDEX = 0x04
+SYSTEM_PARTY = 0x16
 
 CHIPSET_NAME = 0x01
 CHIPSET_FILENAME = 0x02
@@ -473,8 +483,17 @@ class Chipset:
         self.terrain = to_i16_array(fields.get(CHIPSET_TERRAIN, b""))
 
 
+class Actor:
+    """Un personaje de la base: de acá sale con qué gráfico se lo dibuja."""
+
+    def __init__(self, fields):
+        self.name = to_string(fields.get(ACTOR_NAME, b""))
+        self.charset = to_string(fields.get(ACTOR_CHARSET, b""))
+        self.charset_index = to_int(fields.get(ACTOR_CHARSET_INDEX, b"\x00"))
+
+
 class Database:
-    """RPG_RT.ldb, del que sólo nos interesa la lista de chipsets."""
+    """RPG_RT.ldb: los chipsets, los personajes y el grupo con el que se arranca."""
 
     def __init__(self, path):
         reader = Reader(open(path, "rb").read())
@@ -485,6 +504,29 @@ class Database:
         self.fields = reader.read_struct()
         self.chipsets = {i: Chipset(f) for i, f in Reader(
             self.fields.get(DB_CHIPSETS, b"\x00")).read_struct_array().items()}
+        self.actors = {i: Actor(f) for i, f in Reader(
+            self.fields.get(DB_ACTORS, b"\x00")).read_struct_array().items()}
+
+        # El grupo con el que empieza la partida. En RM2k el gráfico del héroe
+        # es el del primero de la lista, así que este dato es el que decide con
+        # qué sprite se dibuja: hasta ahora salía de un default de la línea de
+        # comandos del conversor, que daba Future1[0] cuando el juego arranca
+        # con el actor 10, 'DummyHero', que es Chubby2[2].
+        sistema = Reader(self.fields.get(DB_SYSTEM, b"\x00")).read_struct()
+        self.party = to_i16_array(sistema.get(SYSTEM_PARTY, b""))
+
+    def lider(self, party=None):
+        """El CharSet del primero del grupo: (nombre, índice).
+
+        Un grupo vacío no tiene con qué dibujar al héroe. Pasa en RM2k —se
+        puede sacar a todos— y ahí el motor no dibuja nada; acá se corta, que es
+        más honesto que inventar un sprite.
+        """
+        grupo = self.party if party is None else party
+        if not grupo:
+            raise ValueError("el grupo está vacío: no hay con qué dibujar al héroe")
+        actor = self.actors[grupo[0]]
+        return actor.charset, actor.charset_index
 
     def decode(self, unknown=None):
         """La base entera como dicts, para volcarla a JSON."""
