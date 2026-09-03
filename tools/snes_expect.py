@@ -48,6 +48,22 @@ from render_map import (GAME_DIR, REPO, RTP_DIR, Renderer, build_passability,
 # separarlos es el error que este repo ya cometió cinco veces.
 CUADROS_POR_CELDA = 8
 
+# El ciclo de caminata de la ROM, de `animate_hero` en main.s: cuatro pasos
+# sobre tres columnas del CharSet —0, 1, 2, 1—, uno cada ANIM_FRAMES cuadros, y
+# quieto vuelve al del medio. Se arranca en el 1 con el contador lleno.
+#
+# Esto no lo modelaba nadie de este lado, y por eso las poses de caminata no las
+# verificaba ninguna prueba: cuando el héroe choca contra la pared `moving` es
+# cero, así que la única pose que llegaba a compararse era la parada.
+ANIM_FRAMES = 6
+ANIM_INICIAL = 1
+
+
+def columna_de_caminata(cuadros_moviendose):
+    """En qué columna del CharSet está el héroe tras N cuadros caminando."""
+    paso = (ANIM_INICIAL + cuadros_moviendose // ANIM_FRAMES) % 4
+    return 1 if paso == 3 else paso
+
 SCREEN_W, SCREEN_H = 256, 224
 
 # En una misma línea de pantalla la consola no dibuja más de 34 tiles de 8x8 de
@@ -145,7 +161,8 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None):
         entrada = (salto[1], salto[2])
 
 
-def hero_position(mundo, estado, map_id, direction_name, inicio=None):
+def hero_position(mundo, estado, map_id, direction_name, inicio=None,
+                  avance=None):
     """En qué mapa y en qué celda termina el héroe, y hacia dónde mira.
 
     No se estima: se entra al mapa como entra la ROM —corriéndole los eventos—
@@ -161,6 +178,7 @@ def hero_position(mundo, estado, map_id, direction_name, inicio=None):
     direction = DIRECTIONS.get(direction_name, DIRECTIONS["down"])
     if step is None:
         return map_id, x * TILE, y * TILE, DIRECTIONS["down"], 0
+    desde = (x, y)
 
     # Cuántas celdas camina. Hasta ahora este número se calculaba y se tiraba;
     # es el que dice cuántos cuadros tarda la ROM en llegar, porque el paso son
@@ -185,8 +203,22 @@ def hero_position(mundo, estado, map_id, direction_name, inicio=None):
         puerta = puertas.get((x, y))
         if puerta is None:
             continue
+        if avance is not None:
+            # Un avance a mitad de camino no cruza puertas: del otro lado el
+            # mapa es otro y la cuenta de pixeles desde el arranque no
+            # significa nada. Se corta acá en vez de dibujar cualquier cosa.
+            sys.exit("el avance pedido cruza una puerta en el paso %d; este "
+                     "caso no sirve para comparar a mitad de camino" % pasos)
         map_id, x, y = entrar_al_mapa(mundo, estado, puerta["mapa"],
                                       (puerta["destino_x"], puerta["destino_y"]))
+    if avance is not None:
+        if avance > pasos * TILE:
+            sys.exit("se pidió un avance de %d px pero la caminata son %d "
+                     "celdas = %d px" % (avance, pasos, pasos * TILE))
+        return (map_id,
+                desde[0] * TILE + step[0] * avance,
+                desde[1] * TILE + step[1] * avance,
+                direction, pasos)
     return map_id, x * TILE, y * TILE, direction, pasos
 
 
@@ -307,6 +339,16 @@ def main():
     parser.add_argument("--game-dir", default=GAME_DIR)
     parser.add_argument("--saltar", help="archivo donde anotar las líneas que "
                         "pasan el límite de sprites")
+    parser.add_argument("--avance", type=int, nargs="+", default=None,
+                        metavar="PX",
+                        help="dibujar al héroe a mitad de camino, con este "
+                             "avance en pixeles desde donde arrancó la "
+                             "caminata, y en la pose de caminata que le toca. "
+                             "Sin esto se dibuja donde termina, que es la "
+                             "única pose que las pruebas miraban hasta ahora. "
+                             "Con varios avances el mapa se convierte una sola "
+                             "vez y el {} de -o lleva el avance en vez de la "
+                             "dirección")
     parser.add_argument("--plan", help="archivo donde anotar, por dirección, "
                         "cuántas celdas camina el héroe y cuántos cuadros le "
                         "lleva. Es lo que le dice al emulador cuánto correr, "
@@ -377,16 +419,28 @@ def main():
                 snes_convert.render_above(cram, above_data))
         return convertidos[map_id]
 
-    def salida(patron, walk):
-        """El nombre de archivo de esta dirección.
+    def salida(patron, etiqueta):
+        """El nombre de archivo de esta vuelta.
 
-        Con una sola caminata y sin `{}` el nombre queda igual que siempre, que
-        es lo que mantiene andando a las recetas que pasan una dirección sola.
+        La etiqueta es la dirección, o el avance cuando se piden varios. Con una
+        sola vuelta y sin `{}` el nombre queda igual que siempre, que es lo que
+        mantiene andando a las recetas que pasan una dirección sola.
         """
-        return patron.format(walk) if "{}" in patron else patron
+        return patron.format(etiqueta) if "{}" in patron else patron
+
+    # Qué se recorre: o varias direcciones, o varios avances de una misma
+    # dirección. Los dos casos comparten la conversión del mapa, que es lo caro,
+    # y en los dos el {} de -o lleva lo que está variando.
+    if args.avance and len(args.avance) > 1:
+        if len(args.walk) != 1:
+            sys.exit("con varios avances hay que pedir una sola dirección")
+        vueltas = [(args.walk[0], px, str(px)) for px in args.avance]
+    else:
+        px = args.avance[0] if args.avance else None
+        vueltas = [(w, px, w) for w in args.walk]
 
     plan = []
-    for walk in args.walk:
+    for walk, avance, etiqueta in vueltas:
         # Los switches arrancan apagados y la pantalla sin teñir, como una
         # partida nueva de RM2k, y cada dirección arranca de cero: el estado lo
         # mueven los eventos y no puede filtrarse de una caminata a la otra.
@@ -398,7 +452,8 @@ def main():
         inicio = tuple(args.hero_tile) if args.hero_tile else None
         map_id, x, y, direction, pasos = hero_position(mundo, estado,
                                                        tabla[args.inicial],
-                                                       walk, inicio)
+                                                       walk, inicio,
+                                                       avance)
         if args.hero_tile and args.dir:
             direction = DIRECTIONS[args.dir]
 
@@ -419,9 +474,16 @@ def main():
         # de objeto sube a 2 —el mismo bit que llevan los eventos "above"— y
         # el hardware lo pone adelante de BG2. Su capa para ordenarlo contra
         # los NPCs no cambia: la prioridad es de la PPU y la capa es de RM2k.
+        # La pose: parado al final de la caminata, y la del ciclo cuando se
+        # pide un avance. El héroe se mueve WALK_SPEED = 2 pixeles por cuadro,
+        # así que los cuadros que lleva moviéndose son el avance sobre dos.
+        if avance is None:
+            columna = STAND
+        else:
+            columna = columna_de_caminata(avance // 2)
         actors.append((snes_convert.sort_key(md_convert.LAYER_SAME, y),
                        args.charset, args.charset_index,
-                       direction * 3 + STAND, x, y, args.heroe_encima))
+                       direction * 3 + columna, x, y, args.heroe_encima))
 
         # En OAM van del frente hacia el fondo, que es al revés del orden en que
         # se pintan. La consola recorre ese mismo orden para decidir qué entra
@@ -447,7 +509,7 @@ def main():
         # el del anterior y la comparación seguiría salteando líneas que ya no
         # corresponden: aflojaría la prueba justo donde nadie está mirando.
         if args.saltar:
-            with open(salida(args.saltar, walk), "w") as handle:
+            with open(salida(args.saltar, etiqueta), "w") as handle:
                 handle.write("".join("%d\n" % y for y in excedidas))
 
         # El tinte va al final, sobre todo lo que se dibujó: en la consola es
@@ -456,7 +518,7 @@ def main():
         view = tenir_imagen(view, estado.tinte)
 
         plan.append((walk, pasos, pasos * CUADROS_POR_CELDA))
-        destino = salida(args.output, walk)
+        destino = salida(args.output, etiqueta)
         view.convert("RGB").save(destino)
         print("esperado -> %s: mapa %d, héroe en (%d,%d) mirando %s, cámara en"
               " (%d,%d)%s"

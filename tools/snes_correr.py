@@ -47,6 +47,17 @@ MARGEN = 8
 # Cuántos cuadros seguidos idénticos cuentan como "la pantalla se quedó quieta".
 QUIETO = 4
 
+# El cuadro que se ve en pantalla muestra el estado de la vuelta ANTERIOR del
+# lazo principal: `flush_video` sube el OAM que armó `build_oam` la vuelta
+# pasada, y por eso está al principio del lazo y no al final. De ahí sale este
+# +1, que no es un ajuste sino una consecuencia del orden de main.s.
+#
+# Con eso, para ver al héroe con N pixeles de avance hay que correr N/2 + 1
+# cuadros desde que se aprieta: se mueve WALK_SPEED = 2 por cuadro. Medido en el
+# mapa 73 a 40, 60 y 80 px: exacto da 0, y errarle por un cuadro para cualquier
+# lado da unos 25000 pixeles de diferencia.
+RETRASO_DE_PANTALLA = 1
+
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__,
@@ -67,6 +78,10 @@ def main():
                              "la forma de pedir dos a la vez —`right down`— "
                              "que --walk no cubre. Sin botones, no aprieta "
                              "nada")
+    parser.add_argument("--avance", type=int, default=None, metavar="PX",
+                        help="capturar a mitad de camino, cuando el héroe lleva "
+                             "andados estos pixeles. Los cuadros salen de la "
+                             "cuenta, no de un número suelto")
     parser.add_argument("--plan", help="el archivo que escribe snes_expect.py "
                         "con --plan: por dirección, cuántas celdas camina el "
                         "héroe y cuántos cuadros le lleva. Con esto los "
@@ -112,7 +127,13 @@ def main():
         # anterior.
         consola = Consola(args.rom, core=args.core)
         del_plan = walk in plan
-        cuadros = plan[walk] + args.margen if del_plan else args.cuadros
+        if args.avance is not None:
+            del_plan = False
+            cuadros = args.avance // 2 + RETRASO_DE_PANTALLA
+        elif del_plan:
+            cuadros = plan[walk] + args.margen
+        else:
+            cuadros = args.cuadros
         consola.correr(args.arranque)
         if walk != "none":
             consola.apretar(walk)

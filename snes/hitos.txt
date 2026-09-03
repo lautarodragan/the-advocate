@@ -5,6 +5,9 @@
 # verde que dejó de correr un caso—.
 #
 # El porqué de cada caso está en el comentario de `snes-hitos`, en el justfile.
+# Los `snes-caminando` son los únicos que miran el movimiento en sí: todos los
+# demás comparan el cuadro final, donde el héroe ya chocó contra la pared y
+# está en la pose parada.
 # El orden es de mayor a menor: la repartida los toma de a uno, así que empezar
 # por el más largo es lo que evita que el último trabajador arranque los 45
 # segundos del mapa 52 cuando todos los demás ya terminaron.
@@ -25,3 +28,5 @@ snes-parado 261 59 2 paquete
 snes-encima
 snes-evento
 snes-evento 4 "7 19 1" tabla
+snes-caminando 73 right "40 60 80"
+snes-caminando 6 down "40 60 80"

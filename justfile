@@ -354,6 +354,39 @@ snes-encima mapa="1" tx="66" ty="40" nombre="encima":
       --saltar {{snes_pngs}}/saltar-{{nombre}}.txt \
       -o {{snes_pngs}}/comparacion-{{nombre}}.png
 
+# El héroe a mitad de camino: se lo captura con N pixeles andados, en la pose
+# de caminata que le toca, y se compara contra la referencia calculada para ese
+# mismo avance.
+#
+# Es la única prueba que mira el movimiento en sí. Todas las demás comparan el
+# cuadro final, y ahí el héroe está chocando contra una pared: `moving` vale
+# cero, así que la pose es siempre la parada y las tres columnas del ciclo de
+# caminata no las verificaba nada. Acá además se ejercitan la velocidad —dos
+# pixeles por cuadro— y la cámara a mitad del scroll.
+#
+# Los avances por defecto caen en columnas distintas del ciclo: 40 px son 20
+# cuadros moviéndose y da la columna 0, 60 da la 2 y 80 da la 1. Errarle por un
+# solo cuadro mueve unos 25000 pixeles, así que la prueba es de las filosas.
+snes-caminando mapa="73" direccion="right" avances="40 60 80":
+  #!/usr/bin/env bash
+  set -euo pipefail
+  mkdir -p {{snes_pngs}} {{snes_inc}}
+  python3 tools/snes_convert.py --map-id {{mapa}} -o {{snes_inc}}/mapdata.inc
+  just snes-build
+  # Las referencias de todos los avances salen de una sola corrida, por lo
+  # mismo que las de las cinco direcciones: convertir el mapa es lo caro y no
+  # depende del avance.
+  pre={{snes_pngs}}/{{mapa}}-{{direccion}}
+  python3 tools/snes_expect.py --map-id {{mapa}} --walk {{direccion}} \
+      --avance {{avances}} --saltar $pre-{}.saltar.txt \
+      -o $pre-{}.esperado.png
+  for px in {{avances}}; do
+    python3 tools/snes_correr.py {{snes_rom}} -o $pre-$px.png \
+        --walk {{direccion}} --avance $px
+    python3 tools/snes_compare.py $pre-$px.png $pre-$px.esperado.png \
+        --saltar $pre-$px.saltar.txt -o $pre-$px.comparacion.png
+  done
+
 # Pasa los 335 mapas por los límites del hardware sin armar ninguna ROM: dice
 # cuáles no entran y por qué. Correr cuando se toque el conversor o el reparto
 # de la VRAM.
