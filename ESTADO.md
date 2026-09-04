@@ -486,14 +486,44 @@ vez pasada: imprimía la dirección **pedida** y no la dibujada, así que decía
 "mirando right" mientras dibujaba al héroe mirando abajo. Ahora imprime la que
 se dibuja siempre.
 
-**Lo que falta ahora**, en orden:
+**En vuelo, y con una decisión pendiente: seguir el scroll no alcanza.** Se
+implementó —`stream_map` marca el cruce, `flush_video` reestampa la franja en el
+vblank— y la prueba que lo destapa es `snes-anclada`, una ruta forzada en el
+mapa 6 con la ventana abierta. **Está roja a propósito y afuera de
+`snes-hitos`.**
 
-* **Enganchar el estampado en `stream_map`**, para que la ventana siga quieta
-  mientras la cámara se mueve. Hoy se estampa una sola vez al abrirla, y con la
-  cámara quieta eso alcanza. **Jugando se ve**: el texto se va con el mapa, que
-  es lo que reportó taro. Con el pad ya bloqueado, lo único que mueve la cámara
-  durante un mensaje es una ruta forzada, así que la prueba que hace falta es
-  `snes-cerrar` con `--ruta-de-prueba`.
+Lo que salió, en orden de gravedad:
+
+* **El desfasaje sub-celda no tiene arreglo por este camino.** El tilemap se
+  dibuja en celdas de 8 pixeles y la cámara se mueve de a 2, así que la ventana
+  estampada en celdas cae a `camara_x mod 8` pixeles de donde va. Medido con la
+  cámara moviéndose sólo en horizontal: restos 0, 2, 4, 6, 0 dan 238, 2627,
+  2717, 3198 y 272 pixeles. Y que sea exactamente el resto está comprobado
+  corriendo la referencia esos mismos pixeles, que la baja a los 238 de siempre.
+  O sea: **un cuadro de cada cuatro por eje**, y ningún estampado lo arregla.
+* **La fila que sale de la franja no la redibuja nadie.** `stream_map` sólo arma
+  la que entra a la pantalla. Bajando doce celdas quedan doce filas de basura
+  arriba del cuadro de texto.
+* **Hay que reestampar la franja entera**, no la columna que entra. Lo que
+  decía acá —"el mismo puñado de celdas que el scroll ya sube, o sea gratis"—
+  era falso: la ventana es fija en la pantalla, así que al correrse el ancla
+  *todas* sus celdas caen en otro lugar del tilemap.
+* Y el estampado se pasa del vblank por poco: 238 pixeles en las últimas ocho
+  celdas, que con la pantalla apagada bajan a 32.
+
+**La salida pide HDMA sí o sí**, y con HDMA adentro conviene la opción que acá
+se llamó "la más limpia" y se descartó por 2 KB que no había: un tilemap propio
+de 32x32 para la ventana, elegido con HDMA sobre `BG2SC`, y `BG2HOFS`/`BG2VOFS`
+clavados en esas líneas. Ahí la ventana se estampa una sola vez, no hay nada que
+reestampar, no hay fila que reparar, y **`redibujar_franja` se borra**: cerrar
+el mensaje es apagar el HDMA.
+
+**Y los 2 KB ahora se sabe de dónde salen.** Relevados los 318 mapas que
+convierten, el que más gasta usa **380 tiles de sprite de los 512** que el
+reparto le da: 253 mapas usan 192 o menos, 58 están entre 193 y 256, y 7 entre
+257 y 380. Bajando los sprites de 512 a 448 quedan 2 KB libres al final de su
+banco, en la palabra $1C00 —múltiplo de 1024, o sea base válida de tilemap— y
+ningún mapa del juego se entera.
 * **Componer el texto en caliente**, que es lo que separa al opcode de que
   compilen las 144 páginas de `ShowMessage`. Pide la fuente en la ROM y armar
   los 240 tiles desde el 65816.
