@@ -1215,12 +1215,11 @@ comparación.
 
 ## Lo que falta
 
-* **Que un evento con gráfico camine su ruta forzada.** La mitad de las rutas
-  del juego son sobre eventos **sin** gráfico y ésas ya andan: de ellos no se ve
-  nada, así que lo único comparable es cuánto tardan. Mover uno visible pide que
-  camine en pantalla —la pose de caminata, el orden de dibujado contra el héroe,
-  que la tabla de NPCs se reordene cuando cambia la Y— y son +9 páginas, medidas
-  con `just snes-destraba`.
+* **Las órdenes de ruta que faltan.** Los eventos ya caminan, visibles e
+  invisibles, pero sólo con las nueve órdenes que la ROM entiende: mover en los
+  cuatro sentidos, girar en los cuatro y esperar. Faltan los saltos, cambiar el
+  gráfico en mitad de la ruta, las diagonales y moverse hacia el héroe. Es lo
+  que más corta de lo que queda: 169 páginas.
 * **Que un NPC frene al héroe.** En RM2k los eventos de la capa del héroe
   bloquean el paso; la ROM todavía no lo mira. La tabla ya trae el dato.
 * **Los teletransportes que siguen sin resolverse.** Los que están adentro de

@@ -546,6 +546,24 @@ class Assembler:
         name = parts[0].lower()
         rest = parts[1].strip() if len(parts) > 1 else ""
 
+        if name == ".controlar":
+            # Una condición que tiene que valer al ensamblar. Existe para atar
+            # una cuenta escrita a mano a la constante de la que depende: la
+            # ROM multiplica por doce con dos corrimientos y una suma, y eso
+            # estuvo de acuerdo con NPC_STRIDE hasta que la ranura creció y
+            # nadie se enteró. Con esto no se puede volver a pasar.
+            partes = rest.split(",", 1)
+            izq, _, der = partes[0].partition("=")
+            if not der:
+                raise Error(".controlar quiere `expresión = expresión`")
+            a = Expression(izq.strip()).value(self.symbols)
+            b = Expression(der.strip()).value(self.symbols)
+            if a != b:
+                raise Error("%s vale %d y %s vale %d%s"
+                            % (izq.strip(), a, der.strip(), b,
+                               ": " + partes[1].strip().strip('"')
+                               if len(partes) > 1 else ""))
+            return
         if name in (".p816", ".smart", ".endproc", ".setcpu", ".feature"):
             if name == ".endproc":
                 self.scope = ""

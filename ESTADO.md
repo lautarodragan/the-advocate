@@ -722,6 +722,37 @@ partida —mitad con la paleta vieja y mitad con la nueva— y la referencia no
 modela eso. No es margen: un cuadro de más o de menos corre el borde y el 89 o
 el 91 se caen.
 
+**Hecho el 2026-09-04: la segunda mitad, los eventos con gráfico.** Un evento
+visible camina dibujado: se mueve en pixeles a mitad de paso, cambia de pose con
+el ciclo de caminata y se reacomoda en el orden de dibujado cuando cruza a
+alguien. Las páginas que compilan enteras pasaron de **78 a 87**, y con eso
+`MoveEvent` sobre otro evento queda cerrado: su columna realista en
+`snes-destraba` da +0.
+
+Tres cosas que costaron su decisión:
+
+* **Quién se lleva las doce poses.** Un evento que camina necesita las doce
+  poses del ciclo en la VRAM y los demás una sola, así que el conversor tiene
+  que saber **antes de armar el banco de sprites** quién va a caminar. Se
+  compilan las páginas para averiguarlo y se tira lo compilado: es trabajo
+  repetido, pero no una regla repetida. Dárselas a cualquiera que aparezca en un
+  `MoveEvent` era más simple y no entra: hay mapas con siete, y son 1232 tiles.
+* **El orden de dibujado se arregla de a una fila.** La tabla de NPCs está
+  ordenada por el conversor; el que camina cambia de fila todo el tiempo, así
+  que se lo sube o se lo baja de a un lugar hasta que queda donde va. Ordenar la
+  tabla entera todos los cuadros costaría lo mismo aunque no se moviera nadie.
+* **La ranura de la tabla de NPCs creció de 8 a 12 bytes**, y con eso apareció
+  que la ROM multiplicaba por ocho con tres corrimientos escritos a mano. Ahora
+  `w65.py` tiene un `.controlar`, que es una condición que se comprueba al
+  ensamblar: ata esa cuenta a `NPC_STRIDE` y no se puede volver a desincronizar
+  en silencio.
+
+Lo prueba `snes-npc`: el evento 3 del mapa 6 baja cuatro celdas —o sea le pasa
+por encima al héroe—, camina dos a la derecha y termina girando hacia arriba.
+Los cuatro cuadros están elegidos uno por cosa, y las cuatro se verificaron
+rompiéndolas: sin reacomodar la fila da 203 pixeles, sin descontar los pixeles
+del paso 349, con la pose siempre parada 228 y sin girar hacia donde camina 268.
+
 **Y de acá salió el control de anchos del ensamblador, que es lo más valioso del
 día.** El error que costó la depuración larga fue éste: una etiqueta a la que se
 llega por un `bra` que se saltea un `sep`/`rep`. El ensamblador lleva el ancho en

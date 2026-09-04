@@ -436,7 +436,7 @@ def npc_table(npcs, where, movibles=()):
             "x": npc["x"] * 16, "y": npc["y"] * 16,
             "tile": block_tile(block), "palette": slot,
             "layer": npc["layer"], "blocks": npc["blocks"],
-            "evento": npc["evento"],
+            "evento": npc["evento"], "dir": npc["pose"] // 3,
             "poses": [block_tile(where[(npc["charset"], npc["index"], pose)][0])
                       for pose in range(SPRITE_POSES)]
             if npc["evento"] in movibles else None,
@@ -1027,7 +1027,7 @@ MAPA_BYTES = [
 MAPA_PUNTEROS = ["map_tiles", "map_cgram", "above_tiles", "above_cgram",
                  "sprite_tiles", "sprite_cgram", "map_celdas", "map_bloques",
                  "bloque_pass", "npc_table", "actor_table", "puertas",
-                 "paginas", "ev_pos"]
+                 "paginas", "ev_pos", "npc_poses"]
 MAPA_PTR_PASO = 4
 # Dónde arrancan los punteros: justo después de los escalares y de los bytes,
 # redondeado al paso. **Se calcula y no se escribe a mano**, porque escrito a
@@ -1211,6 +1211,7 @@ def datos_del_mapa(mapa, numero):
         ("map_bloques", mapa["bloques"]),
         ("bloque_pass", mapa["pass"]),
         ("npc_table", npc_bytes(sprite[3]) if sprite else b""),
+        ("npc_poses", npc_poses_bytes(sprite[3]) if sprite else b""),
         ("ev_pos", mapa["ev_pos"]),
         ("actor_table", actor_bytes(sprite[4]) if sprite else b""),
         ("puertas", mapa["puertas"]),
@@ -1467,7 +1468,18 @@ EV_MAX = 128
 # una ruta sobrevive al final de su página, así que puede haber otra corriendo
 # encima. Ocho da margen y cuesta 88 bytes de RAM.
 RUTA_EV_MAX = 8
-NPC_STRIDE = 8
+# Un NPC en la RAM de la ROM. Eran ocho bytes; los cuatro de más son para los
+# que caminan: a cuál evento corresponden y dónde está su tabla de poses.
+#
+#   +0 x, +2 y   en pixeles
+#   +4 clave     capa y Y, que es lo que compara `build_oam`
+#   +6 tile, +7 atributos
+#   +8 evento    su índice en la tabla de eventos, o $FF si no camina
+#   +9 poses     su entrada en `npc_poses`, o $FF
+#   +10 dir      hacia dónde mira su página, para la primera pose de una ruta
+#   +11 relleno, para que la ranura se indexe con dos corrimientos
+NPC_STRIDE = 12
+NPC_QUIETO = 0xFF        # en +8 y +9: este NPC no camina
 
 # La tabla de NPCs del mapa que está cargado se copia a RAM, porque build_oam la
 # recorre con un índice y eso direcciona el banco de datos. El tope no es una
@@ -1607,13 +1619,18 @@ def ev_pos_bytes(game_map):
 
 
 def npc_bytes(table):
-    """La tabla de NPCs: ocho bytes por cada uno.
+    """La tabla de NPCs: NPC_STRIDE bytes por cada uno.
 
     Posición en el mapa, la clave con la que se ordena contra el héroe, qué tile
     de sprite le toca, y el byte de atributos ya armado con su paleta. La ROM
     sólo resta la cámara y lo copia a OAM.
+
+    Los que caminan llevan además a qué evento corresponden y dónde está su
+    tabla de doce poses, que es lo que le permite a la ROM cambiarles el tile
+    mientras dan un paso.
     """
     out = bytearray()
+    movibles = [n for n in table if n["poses"] is not None]
     for npc in table:
         out += npc["x"].to_bytes(2, "little")
         out += npc["y"].to_bytes(2, "little")
@@ -1639,6 +1656,34 @@ def npc_bytes(table):
                      else OBJ_PRIORITY)
         out.append(prioridad | ((npc["palette"] & 0x07) << 1)
                    | ((npc["tile"] >> 8) & 0x01))
+        # El índice del evento va **siempre**, aunque el NPC no camine: es el
+        # último desempate del orden de dibujado, y la referencia lo usa para
+        # todos. Lo que distingue a los que caminan es la tabla de poses.
+        out.append(npc["evento"])
+        out.append(NPC_QUIETO if npc["poses"] is None
+                   else movibles.index(npc))
+        # Hacia dónde mira su página. Una ruta forzada que todavía no dio
+        # ninguna orden de girar lo deja mirando para acá, que es de donde sale
+        # la primera pose que se dibuja.
+        out.append(npc["dir"])
+        out.append(0)               # relleno hasta NPC_STRIDE
+    assert len(out) == NPC_STRIDE * len(table)
+    return bytes(out)
+
+
+def npc_poses_bytes(table):
+    """Las doce poses de cada NPC que camina: el tile de cada una.
+
+    Es la misma tabla que la de los candidatos a líder y por la misma razón: la
+    ROM no calcula el tile a partir de la pose, lo busca. Van sólo los que
+    caminan, que son pocos —el mapa que más tiene de este juego mueve tres—.
+    """
+    out = bytearray()
+    for npc in table:
+        if npc["poses"] is None:
+            continue
+        for tile in npc["poses"]:
+            out += (tile & 0xFFFF).to_bytes(2, "little")
     return bytes(out)
 
 
@@ -1987,9 +2032,16 @@ def convertir(renderer, map_id, args, inicio=None):
     npcs = collect_npcs(game_map)
     # Quiénes van a caminar. A ésos les hacen falta las doce poses del ciclo, y
     # el resto se queda con la única que declara su página.
+    orden = orden_de_mapas(args)
     movibles = eventos_movibles(game_map,
-                                {m: i for i, m in
-                                 enumerate(orden_de_mapas(args))}.get)
+                                {m: i for i, m in enumerate(orden)}.get)
+    # La ruta inventada de `--ruta-de-evento` también manda a caminar a alguien,
+    # y su página no sale de `paginas_del_mapa`: hay que sumarla a mano o el NPC
+    # caminaría con una sola pose. Va sólo en el mapa donde arranca la ROM, que
+    # es donde el conversor mete esa página.
+    prueba_ev = ruta_de_evento(args.ruta_de_evento)
+    if prueba_ev and map_id == orden[args.inicial]:
+        movibles = movibles | {prueba_ev[0] - 1}
     poses = collections.defaultdict(set)
     # Cada candidato a líder con sus doce poses, porque cualquiera puede
     # terminar caminando. El primero de la lista va primero en el banco, que es

@@ -229,6 +229,8 @@ celdas_ptr: .res 3      ; el mismo, mientras se recorre para armar una tira
 ; direcciona la página directa: con el puntero en BSS el ensamblador emitiría el
 ; byte bajo y la ROM leería de otro lado. Ya pasó una vez, con `msg_ptr`.
 ruta_ptr:   .res 3
+; La tabla de poses de los NPCs que caminan, del mapa cargado.
+poses_ptr:  .res 3
 win_col:    .res 2      ; la celda de 8x8 que quedó en el borde de la ventana
 win_row:    .res 2      ; el cuadro pasado, para saber si la cámara la cruzó
 win_block:  .res 2      ; y la fila de bloques a la que apunta `celdas`
@@ -764,14 +766,20 @@ cero:
     sta cam_max_y
     lda mapa_tabla + M_NPC_COUNT, x
     asl a
-    asl a
-    asl a                       ; NPC_STRIDE bytes por NPC
+    asl a                       ; por cuatro
+    sta temp
+    asl a                       ; y por ocho: NPC_STRIDE = 12 es la suma
+    clc
+    adc temp
+.controlar NPC_STRIDE = 12, "la cuenta de arriba multiplica por doce a mano"
     sta npc_total
 
     ; Los punteros a las dos tablas que se leen desde la ROM. El segundo apunta
     ; ocho bytes más adelante, que es donde cada bloque guarda su capa de
     ; encima; sumar ocho no puede desbordar el banco porque `.bloque` garantiza
     ; que la tabla entera entra en uno.
+    lda mapa_tabla + M_PTR_NPC_POSES, x
+    sta poses_ptr
     lda mapa_tabla + M_PTR_MAP_BLOQUES, x
     sta bloques_ptr
     clc
@@ -786,6 +794,8 @@ cero:
     sta bloques8_ptr + 2
     lda mapa_tabla + M_PTR_BLOQUE_PASS + 2, x
     sta pass_ptr + 2
+    lda mapa_tabla + M_PTR_NPC_POSES + 2, x
+    sta poses_ptr + 2
 
     ; Dónde arranca el héroe: donde diga el registro, salvo que quien llamó haya
     ; dejado una entrada puesta, que es lo que hace una puerta. La cámara se
@@ -2386,8 +2396,12 @@ chica:
 .a16
     lda mapa_tabla + M_NPC_COUNT, x
     asl a
-    asl a
-    asl a                       ; NPC_STRIDE bytes por NPC
+    asl a                       ; por cuatro
+    sta temp
+    asl a                       ; y por ocho: NPC_STRIDE = 12 es la suma
+    clc
+    adc temp
+.controlar NPC_STRIDE = 12, "la cuenta de arriba multiplica por doce a mano"
     sta temp
     sep #$20
 .a8
@@ -2541,7 +2555,14 @@ puesta:
     lda ruta_cuantas
     sta ruta_ev + 4, x
     stz ruta_ev + 5, x          ; recién empieza
+    stz ruta_ev + 6, x
     stz ruta_ev + 7, x          ; y sin paso en curso
+    lda #RUTA_EV_SIN_MIRAR
+    sta ruta_ev + 8, x          ; mira adonde diga su página hasta que gire
+    lda #1
+    sta ruta_ev + 10, x         ; el frame del medio, como `animate_hero`
+    lda #ANIM_FRAMES
+    sta ruta_ev + 11, x
     rts
 .endproc
 
@@ -2549,6 +2570,7 @@ puesta:
 .proc mover_eventos
 .a8
 .i16
+    stz rutas_movieron
     ldx #$0000
 otra:
     lda ruta_ev, x
@@ -2557,6 +2579,14 @@ otra:
     phx
     jsr cuadro_de_ruta_ev
     plx
+    phx
+    jsr animar_ruta_ev
+    plx
+    phx
+    jsr refrescar_npc
+    plx
+    lda #1
+    sta rutas_movieron
 siguiente:
     rep #$20
 .a16
@@ -2578,12 +2608,18 @@ siguiente:
 .proc cuadro_de_ruta_ev
 .a8
 .i16
+    ; Si este cuadro es parte de un paso se anota, porque es lo que hace avanzar
+    ; el ciclo de caminata. Vale también el cuadro en que el paso **termina**:
+    ; allá `Ruta.cuadro` devuelve la dirección y suma uno a `cuadros_moviendose`.
+    stz ruta_ev + 6, x
     ; ¿Hay un paso en curso? Entonces sólo se le descuenta un cuadro: la celda
     ; ya se movió al **empezar** el paso, igual que `begin_step`.
     lda ruta_ev + 7, x
     beq sin_paso
     dec a
     sta ruta_ev + 7, x
+    lda #1
+    sta ruta_ev + 6, x
     rts
 
 sin_paso:
@@ -2642,6 +2678,8 @@ mover:
     plx
     lda #CUADROS_POR_CELDA - 1
     sta ruta_ev + 7, x
+    lda #1
+    sta ruta_ev + 6, x
 listo:
     rts
 .endproc
@@ -2719,6 +2757,422 @@ no_izquierda:
     inc a
     sta ev_pos_buf, y
 fin:
+    sep #$20
+.a8
+    rts
+.endproc
+
+; --- los eventos que se dibujan caminando ------------------------------------
+;
+; Un evento con gráfico que camina cambia de tres cosas por cuadro: dónde está
+; en pixeles, qué pose le toca del ciclo, y con qué clave se ordena contra los
+; demás. Las tres se escriben en su fila de la tabla de NPCs, que es de donde
+; `build_oam` lee.
+
+; Un cuadro del ciclo de caminata de la ranura X. Es `animate_hero`, letra por
+; letra, y por eso las dos hacen lo mismo: la referencia usa una sola fórmula
+; —`columna_de_caminata`— para el héroe y para los eventos.
+.proc animar_ruta_ev
+.a8
+.i16
+    lda ruta_ev + 6, x
+    bne caminando
+    lda #1                      ; quieto: el frame del medio
+    sta ruta_ev + 10, x
+    lda #ANIM_FRAMES
+    sta ruta_ev + 11, x
+    rts
+caminando:
+    dec ruta_ev + 11, x
+    bne listo
+    lda #ANIM_FRAMES
+    sta ruta_ev + 11, x
+    lda ruta_ev + 10, x
+    inc a
+    and #$03                    ; el ciclo son cuatro pasos
+    sta ruta_ev + 10, x
+listo:
+    rts
+.endproc
+
+; La fila de la tabla de NPCs del evento que trae A, en Y, o $FFFF si no tiene.
+; Todas las filas llevan su índice de evento, y los índices son únicos, así que
+; a lo sumo matchea una. Un evento sin gráfico no tiene fila y devuelve $FFFF.
+.proc npc_de_evento
+.a8
+.i16
+    sta temp
+    ldy #$0000
+buscar:
+    cpy npc_total
+    beq no_hay
+    lda npc_buf + 8, y
+    cmp temp
+    beq listo
+    rep #$20
+.a16
+    tya
+    clc
+    adc #NPC_STRIDE
+    tay
+    sep #$20
+.a8
+    bra buscar
+no_hay:
+    ldy #$FFFF
+listo:
+    rts
+.endproc
+
+; Deja la fila del NPC de la ranura X donde el evento está ahora: la posición en
+; pixeles, la clave con la que se ordena, y el tile de la pose que le toca.
+;
+; Lo primero que hace es copiarse de la ranura lo que necesita, y recién después
+; usa X para otra cosa. Es más largo de leer y mucho más difícil de romper:
+; adentro se llaman tres rutinas y todas usan índices.
+.proc refrescar_npc
+.a8
+.i16
+    jsr celda_del_evento        ; deja su celda en celda_x/celda_y, y usa X
+    lda ruta_ev + 7, x
+    sta slot_cuadros
+    lda ruta_ev + 8, x
+    sta slot_mira
+    lda ruta_ev + 10, x
+    sta slot_paso
+    lda ruta_ev + 0, x
+    jsr npc_de_evento
+    sty npc_fila
+    cpy #$FFFF
+    bne hay_fila
+    rts                         ; el evento no tiene gráfico: no hay qué mover
+hay_fila:
+
+    ; Dónde está, en pixeles: la celda por dieciséis, menos lo que le falte al
+    ; paso en curso a WALK_SPEED por cuadro. Es `eventos.pixeles_del_paso`.
+    rep #$20
+.a16
+    lda celda_x
+    asl a
+    asl a
+    asl a
+    asl a
+    sta npc_px
+    lda celda_y
+    asl a
+    asl a
+    asl a
+    asl a
+    sta npc_py
+    lda slot_cuadros
+    and #$00FF
+    asl a                       ; los pixeles que faltan, a WALK_SPEED
+    sta temp
+    sep #$20
+.a8
+    lda slot_cuadros
+    beq puesto                  ; sin paso en curso, ya está en su celda
+
+    ; La dirección del paso es hacia donde mira: mientras el paso dura no se
+    ; consume ninguna orden más, así que no puede haber girado en el medio.
+    lda slot_mira
+    cmp #DIR_UP
+    bne no_arriba
+    jsr sumar_a_py              ; venía de abajo: todavía le falta subir
+    bra puesto
+no_arriba:
+    cmp #DIR_DOWN
+    bne no_abajo
+    jsr restar_a_py
+    bra puesto
+no_abajo:
+    cmp #DIR_LEFT
+    bne no_izquierda
+    jsr sumar_a_px
+    bra puesto
+no_izquierda:
+    jsr restar_a_px
+
+puesto:
+    ; A la fila: la posición, y la clave con la capa que ya traía.
+    ldy npc_fila
+    rep #$20
+.a16
+    lda npc_px
+    sta npc_buf + 0, y
+    lda npc_py
+    sta npc_buf + 2, y
+    lda npc_buf + 4, y
+    and #$F000                  ; la capa se queda; la Y se reemplaza
+    sta temp
+    lda npc_py
+    and #$0FFF
+    ora temp
+    sta npc_buf + 4, y
+    sep #$20
+.a8
+
+    ; La pose: hacia dónde mira por tres, más la columna del ciclo. La columna 3
+    ; dibuja la misma que la 1, que es como RM2k arma un ciclo de cuatro con
+    ; tres columnas.
+    lda slot_mira
+    cmp #RUTA_EV_SIN_MIRAR
+    bne tiene_dir
+    lda npc_buf + 10, y         ; todavía no giró: mira adonde dice su página
+tiene_dir:
+    sta temp
+    asl a
+    clc
+    adc temp                    ; por tres
+    sta temp
+    lda slot_paso
+    cmp #$03
+    bne sin_ajuste
+    lda #$01
+sin_ajuste:
+    clc
+    adc temp                    ; la pose, de 0 a 11
+    asl a                       ; dos bytes por pose
+    sta temp
+    stz temp + 1
+
+    ; Y su tile, de `npc_poses`: doce palabras por cada NPC que camina.
+    lda npc_buf + 9, y
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    asl a
+    asl a                       ; por ocho
+    sta temp + 2
+    asl a                       ; por dieciséis
+    clc
+    adc temp + 2                ; ocho más dieciséis son veinticuatro
+    clc
+    adc temp                    ; más la pose
+    tay
+    lda [poses_ptr], y
+    sta temp                    ; el tile, de dieciséis bits
+    sep #$20
+.a8
+    ldy npc_fila
+    lda temp
+    sta npc_buf + 6, y
+    lda npc_buf + 7, y
+    and #$FE                    ; el bit 8 del tile vive en los atributos
+    ora temp + 1
+    sta npc_buf + 7, y
+    jmp acomodar_npc            ; y la fila, a donde le toque ahora
+.endproc
+
+; Si la fila `cmp_a` va **antes** que la `cmp_b` en el orden de dibujado.
+; Devuelve A distinto de cero si sí.
+;
+; El orden es el de RM2k: mayor Y —que va adentro de la clave, junto con la
+; capa—, después mayor X, y después mayor id. Los tres desempates hacen falta
+; porque un evento que camina cambia de fila todo el tiempo y empata con
+; cualquiera; con NPCs quietos casi nunca se notaba.
+.proc npc_va_antes
+.a8
+.i16
+    rep #$20
+.a16
+    ldy cmp_a
+    lda npc_buf + 4, y
+    ldy cmp_b
+    cmp npc_buf + 4, y
+    beq por_x
+    sep #$20
+.a8
+    bcc no
+    bra si
+por_x:
+.a16                            ; se llega en dieciséis, desde el `beq` de arriba
+    ldy cmp_a
+    lda npc_buf + 0, y
+    ldy cmp_b
+    cmp npc_buf + 0, y
+    beq por_evento
+    sep #$20
+.a8
+    bcc no
+    bra si
+por_evento:
+.a16                            ; ídem: el `sep` de abajo lo achica
+    sep #$20
+.a8
+    ldy cmp_a
+    lda npc_buf + 8, y
+    ldy cmp_b
+    cmp npc_buf + 8, y
+    bcc no
+    beq no                      ; iguales: no hay nada que reacomodar
+si:
+    lda #1
+    rts
+no:
+    lda #0
+    rts
+.endproc
+
+; Intercambia las dos filas que apuntan `cmp_a` y `cmp_b`, de a palabras.
+.proc npc_swap
+.a8
+.i16
+    ldx #$0000
+otra:
+    rep #$20
+.a16
+    txa
+    clc
+    adc cmp_a
+    tay
+    lda npc_buf, y
+    sta temp
+    txa
+    clc
+    adc cmp_b
+    tay
+    lda npc_buf, y
+    pha
+    lda temp
+    sta npc_buf, y
+    txa
+    clc
+    adc cmp_a
+    tay
+    pla
+    sta npc_buf, y
+    txa
+    clc
+    adc #2
+    tax
+    cpx #NPC_STRIDE
+    sep #$20
+.a8
+    bcc otra
+    rts
+.endproc
+
+; Deja la fila `npc_fila` donde le toca ahora, con la tabla ya ordenada.
+;
+; Sólo se mueve la que cambió, y a lo sumo unos pocos lugares: la Y cambia de a
+; dos pixeles por cuadro. Ordenar la tabla entera todos los cuadros costaría lo
+; mismo aunque no se moviera nadie.
+.proc acomodar_npc
+.a8
+.i16
+subir:
+    lda npc_fila
+    ora npc_fila + 1
+    beq bajar                   ; ya es la primera
+    rep #$20
+.a16
+    lda npc_fila
+    sta cmp_a
+    sec
+    sbc #NPC_STRIDE
+    sta cmp_b
+    sep #$20
+.a8
+    jsr npc_va_antes
+    beq bajar
+    jsr npc_swap
+    rep #$20
+.a16
+    lda cmp_b
+    sta npc_fila
+    sep #$20
+.a8
+    bra subir
+
+bajar:
+    rep #$20
+.a16
+    lda npc_fila
+    clc
+    adc #NPC_STRIDE
+    cmp npc_total
+    sep #$20
+.a8
+    bcs listo                   ; ya es la última
+    rep #$20
+.a16
+    lda npc_fila
+    sta cmp_b
+    clc
+    adc #NPC_STRIDE
+    sta cmp_a
+    sep #$20
+.a8
+    jsr npc_va_antes
+    beq listo
+    jsr npc_swap
+    rep #$20
+.a16
+    lda cmp_a
+    sta npc_fila
+    sep #$20
+.a8
+    bra bajar
+listo:
+    rts
+.endproc
+
+; Las cuatro sumas del paso en curso, con `temp` trayendo los pixeles que
+; faltan. Están aparte porque el `rep`/`sep` de cada una adentro del `cmp`
+; alargaba el procedimiento hasta que los saltos no llegaban.
+.proc sumar_a_py
+.a8
+.i16
+    rep #$20
+.a16
+    lda npc_py
+    clc
+    adc temp
+    sta npc_py
+    sep #$20
+.a8
+    rts
+.endproc
+
+.proc restar_a_py
+.a8
+.i16
+    rep #$20
+.a16
+    lda npc_py
+    sec
+    sbc temp
+    sta npc_py
+    sep #$20
+.a8
+    rts
+.endproc
+
+.proc sumar_a_px
+.a8
+.i16
+    rep #$20
+.a16
+    lda npc_px
+    clc
+    adc temp
+    sta npc_px
+    sep #$20
+.a8
+    rts
+.endproc
+
+.proc restar_a_px
+.a8
+.i16
+    rep #$20
+.a16
+    lda npc_px
+    sec
+    sbc temp
+    sta npc_px
     sep #$20
 .a8
     rts
@@ -5328,15 +5782,19 @@ ev_pos_buf: .res EV_MAX * EV_STRIDE
 ;   +1  ptr        puntero de 24 bits a la primera orden, en el bytecode
 ;   +4  n          cuántas órdenes trae
 ;   +5  i          en cuál va
-;   +6  paso_dir   la dirección del paso en curso, $FF si no hay ninguno
-;   +7  cuadros    cuántos cuadros le faltan a ese paso
-;   +8  mirando    hacia dónde quedó mirando, que es lo que la fase B va a
-;                  dibujar; hoy se lleva y no se usa
+;   +6  movio      si este cuadro fue parte de un paso, que es lo que hace
+;                  avanzar el ciclo de caminata
+;   +7  cuadros    cuántos cuadros le faltan al paso en curso
+;   +8  mirando    hacia dónde mira, o $FF si la ruta todavía no lo giró: ahí
+;                  vale la dirección que trae su página
+;   +10 paso       en qué punto del ciclo de caminata va
+;   +11 timer      cuántos cuadros faltan para el frame siguiente
 ;
 ; El paso es de 16 y no de 9 para que la ranura se indexe con cuatro
 ; corrimientos en vez de con una multiplicación.
 RUTA_EV_STRIDE = 16
 RUTA_EV_LIBRE = $FF
+RUTA_EV_SIN_MIRAR = $FF     ; en +8: la ruta todavía no lo giró
 ruta_ev:  .res RUTA_EV_MAX * RUTA_EV_STRIDE
 
 ; La celda que se está consultando, para `ptr_de_celda` y `puede_celda`. Va acá
@@ -5345,6 +5803,20 @@ ruta_ev:  .res RUTA_EV_MAX * RUTA_EV_STRIDE
 ; con `[dp], y`, y ahí quedan doce bytes contados.
 celda_x:  .res 2
 celda_y:  .res 2
+; La fila del NPC que se está refrescando, y dónde queda en pixeles.
+npc_fila: .res 2
+npc_px:   .res 2
+npc_py:   .res 2
+; Lo que `refrescar_npc` se copia de la ranura antes de usar X para otra cosa.
+; Si en este cuadro alguna ranura de ruta hizo algo. Es lo que decide si hay que
+; volver a ordenar la tabla de NPCs, que si no cuesta todos los cuadros.
+rutas_movieron: .res 1
+; Las dos filas que se están comparando o intercambiando.
+cmp_a:    .res 2
+cmp_b:    .res 2
+slot_cuadros: .res 1
+slot_mira:    .res 1
+slot_paso:    .res 1
 ; Las dos direcciones en curso. Van en dos bytes con el alto en cero porque se
 ; usan como índice, y X e Y son de dieciséis: `ldx dir` de un byte se llevaría
 ; puesto el de al lado. `ruta_dir` es la de la orden que se está ejecutando y

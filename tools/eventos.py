@@ -180,7 +180,9 @@ MAX_RANGO = 64
 CUADROS_POR_DECIMA = 6
 
 # Un paso son dieciséis pixeles a WALK_SPEED = 2 por cuadro.
-CUADROS_POR_CELDA = 8
+CELDA_PX = 16
+WALK_SPEED = 2
+CUADROS_POR_CELDA = CELDA_PX // WALK_SPEED
 
 TRIGGER_AUTOMATICO = 3
 
@@ -763,6 +765,26 @@ def blancos_de_ruta(paginas):
             else:
                 raise ValueError("opcode %d que no conozco" % op)
     return blancos
+
+
+def pixeles_del_paso(x, y, ruta):
+    """Dónde está en pixeles quien está a mitad de un paso, desde su celda.
+
+    La celda se mueve al **empezar** el paso y los pixeles van detrás: a la
+    celda de destino se le descuentan los que falten, a WALK_SPEED por cuadro,
+    que es como los come `advance_step` en la ROM. Sin esto, quien camina
+    aparece en la celda nueva un paso antes de tiempo; en el cuadro final da
+    igual, y por eso no se notó hasta comparar *durante* la caminata.
+
+    Lo usan el héroe y los eventos, que es la razón de que viva acá.
+    """
+    px, py = x * CELDA_PX, y * CELDA_PX
+    if ruta.paso_cuadros and ruta.paso_dir is not None:
+        dx, dy = RUTA_PASOS[ruta.paso_dir]
+        faltan = ruta.paso_cuadros * WALK_SPEED
+        px -= dx * faltan
+        py -= dy * faltan
+    return px, py
 
 
 def pagina_activa(paginas, evento, estado):

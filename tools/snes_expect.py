@@ -318,13 +318,9 @@ def hero_position(mundo, estado, map_id, direction_name, inicio=None,
         # si no, mira a cámara, que es como RM2k deja al héroe.
         quieto = estado.mirando if estado.mirando is not None else DIRECTIONS["down"]
         # Los pixeles que le faltan al paso en curso, descontados de la celda de
-        # destino: dos por cuadro, como los come `advance_step`.
-        px, py = x * TILE, y * TILE
-        if estado.paso_cuadros and estado.paso_dir is not None:
-            dx, dy = PASOS[estado.paso_dir]
-            faltan = estado.paso_cuadros * 2
-            px -= dx * faltan
-            py -= dy * faltan
+        # destino. La cuenta es la misma que la de un evento caminando, y por eso
+        # vive en `eventos.pixeles_del_paso` y no acá.
+        px, py = eventos.pixeles_del_paso(x, y, estado.ruta_heroe)
         return map_id, px, py, quieto, 0
     desde = (x, y)
 
@@ -722,12 +718,27 @@ def main():
         # La clave lleva los tres desempates de RM2k: capa y Y en la palabra
         # que la consola compara, y después X e id, que allá los resuelve el
         # orden de la tabla. Ver `orden_de_dibujo` en snes_convert.py.
-        actors = [((snes_convert.sort_key(npc["layer"], npc["y"] * TILE),
-                    npc["x"] * TILE, npc["evento"]),
-                   npc["charset"], npc["index"], npc["pose"],
-                   npc["x"] * TILE, npc["y"] * TILE,
-                   npc["layer"] == rm2k.LAYER_ABOVE)
-                  for npc in collect_npcs(game_map)]
+        actors = []
+        for npc in collect_npcs(game_map):
+            # Un evento que recibió una ruta forzada se dibuja donde está
+            # **ahora** y con la pose del ciclo de caminata; el resto, donde y
+            # como los dejó su página. La ruta sobrevive a su propio final, así
+            # que después de caminar el evento queda mirando adonde caminó, que
+            # es lo que hace RM2k.
+            ruta = estado.rutas_ev.get(npc["evento"])
+            if ruta is None:
+                px, py, pose = npc["x"] * TILE, npc["y"] * TILE, npc["pose"]
+            else:
+                cx, cy = estado.pos_ev[npc["evento"]]
+                px, py = eventos.pixeles_del_paso(cx, cy, ruta)
+                mira = (ruta.mirando if ruta.mirando is not None
+                        else npc["pose"] // 3)
+                pose = mira * 3 + (columna_de_caminata(ruta.cuadros_moviendose)
+                                   if ruta.cuadros_moviendose else STAND)
+            actors.append(((snes_convert.sort_key(npc["layer"], py), px,
+                            npc["evento"]),
+                           npc["charset"], npc["index"], pose, px, py,
+                           npc["layer"] == rm2k.LAYER_ABOVE))
         # El último campo es si va por encima de la capa de encima. Para el
         # héroe es falso salvo en la ROM de `snes-encima`, donde su prioridad
         # de objeto sube a 2 —el mismo bit que llevan los eventos "above"— y

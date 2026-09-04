@@ -66,14 +66,13 @@ ORDENES = (set(eventos.RUTA_MIRAR) | set(eventos.RUTA_MOVER)
 
 
 def mover_otro(cmd, pagina):
-    """Si este `MoveEvent` es uno que la ROM va a poder hacer.
+    """Si este `MoveEvent` es uno que la ROM ya sabe hacer.
 
-    Lo que queda de este candidato son los eventos **con gráfico**: los
-    invisibles ya se mueven, y por eso entran en la base y no acá. Mover uno
-    visible pide que camine en pantalla —la pose, el orden de dibujado contra el
-    héroe, la colisión—, que es otro trabajo.
+    Desde que los eventos con gráfico caminan, esto es lo que la ROM hace, así
+    que la columna realista de este candidato da +0 y lo que queda es el techo:
+    las órdenes de ruta que no sabemos caminar.
 
-    Tres cosas más, y las tres se midieron porque las tres pasan en este juego:
+    Tres cosas, y las tres se midieron porque las tres pasan en este juego:
     el blanco tiene que ser el héroe o un evento **que el mapa tenga** —hay
     rutas apuntadas a vehículos y a eventos que ya no existen—, y la ruta tiene
     que estar hecha de órdenes que sabemos caminar.
@@ -106,7 +105,11 @@ CANDIDATOS = [
     ("ControlVars", {10220}, None),
     # ProceedWithMovement es "esperá a que termine de caminar": va con las
     # rutas forzadas y sin él no sirven de mucho.
-    ("MoveEvent de otro evento", {MOVE_EVENT, PROCEED}, mover_otro),
+    # Ya está hecho lo que el filtro deja pasar, así que su columna realista
+    # da +0. Lo que queda es el techo: las órdenes de ruta que no sabemos
+    # caminar —saltar, cambiar el gráfico, las diagonales— y los blancos que no
+    # existen.
+    ("MoveEvent, las órdenes que faltan", {MOVE_EVENT, PROCEED}, mover_otro),
     ("TintScreen con saturación", {11030}, None),
     ("ChangeEventLocation", {10860}, None),
     ("ConditionalBranch", {12010, 22010, 22011}, None),

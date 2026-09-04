@@ -478,6 +478,46 @@ snes-ruta-evento mapa="6" ruta="3 0 0 0 0 0 0 3 3 3 23 2 2 1 13" cuadros="89 91"
         --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
   done
 
+# Un evento **con gráfico** caminando en pantalla.
+#
+# Es la otra mitad de MoveEvent. `snes-ruta-evento` mueve a uno invisible y lo
+# único que se ve de él es cuánto tarda; acá el evento se dibuja, así que se
+# comparan tres cosas más que allá no existían:
+#
+#   la posición a mitad de paso   la celda se mueve al empezar el paso y los
+#                                 pixeles van detrás, dos por cuadro
+#   la pose del ciclo             la misma cuenta que `animate_hero`, con el
+#                                 ciclo de cuatro sobre tres columnas
+#   el orden de dibujado          al cambiar de fila cruza al héroe, y la tabla
+#                                 de NPCs hay que reacomodarla
+#
+# El mapa 6 otra vez, por mudo y abierto, con el héroe puesto a mano en (22,12)
+# —una celda debajo del evento 3, que arranca en (22,9)—. La ruta lo hace bajar
+# cuatro celdas, o sea **pasarle por encima al héroe**, después ir dos a la
+# derecha, y al final girar hacia arriba.
+#
+# Los cuatro cuadros están elegidos uno por cosa: en el 10 va bajando a mitad de
+# celda, en el 27 ya cambió de columna del ciclo, en el 40 va hacia la derecha
+# —otra dirección, otras poses— y en el 60 terminó y quedó parado mirando
+# arriba, que es donde lo dejó el último comando.
+snes-npc mapa="6" ruta="4 2 2 2 2 1 1 12" celda="22 12" cuadros="10 27 40 60" arranque="10" nombre="npc":
+  #!/usr/bin/env bash
+  set -euo pipefail
+  mkdir -p {{snes_pngs}} {{snes_inc}}
+  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
+      --inicio {{celda}} --ruta-de-evento {{ruta}} -o {{snes_inc}}/mapdata.inc
+  just snes-build
+  pre={{snes_pngs}}/{{nombre}}
+  python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
+      --hero-tile {{celda}} --ruta-de-evento {{ruta}} --cuadros {{cuadros}} \
+      --saltar $pre-{}.saltar.txt -o $pre-{}.esperado.png
+  for n in {{cuadros}}; do
+    python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre-$n.png \
+        --walk none --cuadros $n --arranque {{arranque}}
+    python3 tools/snes_compare.py $pre-$n.png $pre-$n.esperado.png \
+        --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
+  done
+
 # El texto del juego, no el que le dictamos a la ROM.
 #
 # Todo lo que hay arriba —`snes-ventana`, `snes-cerrar`, `snes-anclada`— usa
