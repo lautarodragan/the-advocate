@@ -401,28 +401,43 @@ tiras que dejó `stream_map` en ese mismo cuadro. `redibujar_franja` arranca
 poniendo `col_addr` y `row_addr` en cero, así que sin eso la columna o la fila
 que la cámara acababa de destapar se perdería.
 
+**Con un mensaje en pantalla el pad no mueve al héroe**, y la ruta forzada sí.
+No es una inconsistencia: son dos lugares distintos de easyrpg.
+`UpdateNextMovementAction` llama primero a `UpdateMoveRoute` y recién después
+vuelve si `Game_Message::IsMessageActive()`, así que la ruta camina y el input
+no. Un paso ya empezado se termina igual, porque en RM2k no se frena a mitad de
+celda.
+
 **Cómo se verifica.** `just snes-ventana` compara el dibujo —marco, fondo,
 fuente, sombra y paleta— contra la referencia, en cuatro mapas elegidos por
-cómo les pega el reparto de paletas. `just snes-cerrar` compara las otras dos
-mitades, con la misma forma que `snes-espera`: dos cuadros con margen, uno antes
-y uno después de apretar A.
+cómo les pega el reparto de paletas. `just snes-cerrar` compara todo lo demás,
+con la misma forma que `snes-espera`: dos cuadros con margen, uno antes y uno
+después de apretar A.
 
     cuadro  60   la ventana en pantalla y la página frenada: sin teñir
     cuadro 400   la ventana borrada y el tinte puesto
 
 Los dos cuadros difieren en 52637 pixeles de 57344, así que la prueba tiene de
-dónde agarrarse, y cada mitad se verificó rompiéndola a propósito:
+dónde agarrarse. Con una dirección —`snes-cerrar 7 200 cerrar-right right`—
+además se mantiene la cruceta apretada, y el cuadro 60 mide que el héroe no se
+haya movido ni girado.
+
+Cada mitad se verificó rompiéndola a propósito, que es la única forma de saber
+que la prueba mira lo que dice mirar:
 
     sin `redibujar_franja` al cerrar   el cuadro 400 se va a 15789 pixeles
     sin bloquear la página             el cuadro 60 se va a 36848
+    sin el guard del pad               el cuadro 60 de `right` se va a 22658
 
 Es la única prueba que ejercita `redibujar_franja`, que hasta que existió el
 opcode era el único pedazo de código del repo que no corría nadie.
 
-Lo que **no** prueba, dicho con todas las letras: la cámara no se mueve en ese
-caso, así que el estampado siguiendo al scroll no lo ejercita nada todavía. Hoy
-la ventana se estampa una sola vez al abrirla; falta engancharlo en
-`stream_map` para que siga quieta mientras la cámara se mueve.
+Lo que **no** prueba, dicho con todas las letras: en ninguno de los dos casos se
+mueve la cámara —con el pad bloqueado, lo único que la movería durante un
+mensaje es una ruta forzada— así que **el estampado siguiendo al scroll no lo
+ejercita nada todavía**, y jugando se ve: el texto se va con el mapa. Hoy la
+ventana se estampa una sola vez al abrirla; falta engancharlo en `stream_map`,
+y la prueba que va a hacer falta es `snes-cerrar` con `--ruta-de-prueba`.
 
 ### Cómo se verifica
 

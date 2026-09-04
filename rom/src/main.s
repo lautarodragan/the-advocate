@@ -3204,6 +3204,14 @@ quieto:
     jsr paso_de_ruta
     rts
 sin_ruta:
+    ; Y un mensaje en pantalla manda sobre el pad, igual que la ruta forzada.
+    ; Es lo que hace `Game_Player::UpdateNextMovementAction` de easyrpg, que
+    ; vuelve sin mirar el input si `Game_Message::IsMessageActive()`. Va acá
+    ; abajo y no arriba de todo a propósito: la ruta forzada **sí** camina con
+    ; el mensaje abierto —`UpdateMoveRoute` corre antes del guard— y un paso ya
+    ; empezado se termina, porque en RM2k no se frena a mitad de celda.
+    lda msg_abierto
+    bne no_derecha
     lda pad
     and #PAD_UP
     beq no_arriba

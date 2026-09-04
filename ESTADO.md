@@ -472,12 +472,28 @@ de 10 en rojo y bsnes 2 de 10. Sea cual sea el valor que deja, hace que
 `ruta_i < ruta_n` dé falso las diez veces. `msg_abierto` no tiene con quién
 empatar y se ve siempre.
 
+**Hecho el 2026-09-04, y lo encontró taro jugando: el pad movía al héroe con el
+mensaje abierto.** No era una decisión, era un agujero, y del peor tipo: la
+referencia hacía lo mismo, así que `snes-cerrar` daba cero. En easyrpg,
+`Game_Player::UpdateNextMovementAction` llama primero a `UpdateMoveRoute` y
+recién después vuelve si `IsMessageActive()`, o sea que la ruta forzada camina y
+el input no. Arreglado de los dos lados, y lo prueba `snes-cerrar 7 200
+cerrar-right right`, que mantiene la cruceta apretada: sin el guard, el cuadro
+60 se va a 22658 pixeles.
+
+De paso, el log de `snes_expect.py` mentía otra vez, y en el mismo lugar que la
+vez pasada: imprimía la dirección **pedida** y no la dibujada, así que decía
+"mirando right" mientras dibujaba al héroe mirando abajo. Ahora imprime la que
+se dibuja siempre.
+
 **Lo que falta ahora**, en orden:
 
 * **Enganchar el estampado en `stream_map`**, para que la ventana siga quieta
   mientras la cámara se mueve. Hoy se estampa una sola vez al abrirla, y con la
-  cámara quieta eso alcanza; con una ruta forzada del héroe caminando, no. Es
-  también lo que `snes-cerrar` no prueba: ahí la cámara no se mueve.
+  cámara quieta eso alcanza. **Jugando se ve**: el texto se va con el mapa, que
+  es lo que reportó taro. Con el pad ya bloqueado, lo único que mueve la cámara
+  durante un mensaje es una ruta forzada, así que la prueba que hace falta es
+  `snes-cerrar` con `--ruta-de-prueba`.
 * **Componer el texto en caliente**, que es lo que separa al opcode de que
   compilen las 144 páginas de `ShowMessage`. Pide la fuente en la ROM y armar
   los 240 tiles desde el 65816.

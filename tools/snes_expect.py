@@ -263,6 +263,14 @@ def hero_position(mundo, estado, map_id, direction_name, inicio=None,
                                   apretar_a)
     step = WALK[direction_name]
     direction = DIRECTIONS.get(direction_name, DIRECTIONS["down"])
+    if estado.mensaje:
+        # Con un mensaje en pantalla el pad no mueve al héroe, así que la
+        # caminata es como no haber apretado nada. Es el guard de
+        # `Game_Player::UpdateNextMovementAction`: vuelve sin mirar el input si
+        # `Game_Message::IsMessageActive()`. La ruta forzada es otra cosa y sí
+        # sigue —la mueve `entrar_al_mapa`, más arriba— porque allá
+        # `UpdateMoveRoute` corre antes del guard.
+        step = None
     if step is None:
         # Sin caminata, hacia dónde mira lo puede haber dicho una ruta forzada;
         # si no, mira a cámara, que es como RM2k deja al héroe.
@@ -722,10 +730,14 @@ def main():
         plan.append((walk, pasos, pasos * CUADROS_POR_CELDA))
         destino = salida(args.output, etiqueta)
         view.convert("RGB").save(destino)
+        # La dirección que se imprime es la que se dibuja, no la que se pidió
+        # caminar. Antes se imprimía `walk` cuando había caminata, y eso miente
+        # justo donde importa: con un mensaje abierto el pad no mueve ni gira al
+        # héroe, así que `--walk right` dibuja al héroe mirando abajo. Es el
+        # mismo error que el "mirando abajo" fijo que ya costó un rato.
         print("esperado -> %s: mapa %d, héroe en (%d,%d) mirando %s, cámara en"
               " (%d,%d)%s"
-              % (destino, map_id, x, y,
-                 walk if walk != "none" else NOMBRE_DIR[direction],
+              % (destino, map_id, x, y, NOMBRE_DIR[direction],
                  cam_x, cam_y,
                  ("" if estado.tinte == (eventos.TINTE_NEUTRO,) * 3
                   else ", tinte %d/%d/%d" % estado.tinte)

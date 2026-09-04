@@ -389,20 +389,42 @@ snes-ventana mapa="7" nombre="ventana":
 #
 # El `--pagina-de-prueba 0 0 0 50` es el tinte de atrás del mensaje, con espera
 # en cero: es lo que hace visible que la página siguió.
-snes-cerrar mapa="7" apretar="200" nombre="cerrar":
+#
+# Con una dirección en vez de `none` se prueba además que **el pad no mueva al
+# héroe mientras hay un mensaje**, que es el guard de
+# `Game_Player::UpdateNextMovementAction`: vuelve sin mirar el input si
+# `Game_Message::IsMessageActive()`. La ruta forzada es otra cosa y sí camina,
+# porque allá `UpdateMoveRoute` corre antes del guard.
+#
+# Con dirección el arranque no puede ser cero. La cruceta se mantiene apretada
+# desde que termina, y si empezara antes de que la página abra el mensaje el
+# héroe daría unos pasos que la referencia no modela. Treinta cuadros alcanzan
+# de sobra —el mapa 7 es mudo y la ROM llega al primer cuadro del intérprete en
+# diez— y no hace falta que el número sea exacto: lo que se compara es que el
+# héroe no se haya movido **nada**.
+snes-cerrar mapa="7" apretar="200" nombre="cerrar" direccion="none" arranque="30":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
   linea1="SEWELL"
   linea2="There you are, Talan. Ready for"
   linea3="the big night?"
-  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}}       --mensaje-de-prueba "$linea1" "$linea2" "$linea3"       --pagina-de-prueba 0 0 0 50 -o {{snes_inc}}/mapdata.inc
+  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
+      --mensaje-de-prueba "$linea1" "$linea2" "$linea3" \
+      --pagina-de-prueba 0 0 0 50 -o {{snes_inc}}/mapdata.inc
   just snes-build
   pre={{snes_pngs}}/{{nombre}}
-  python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none       --mensaje-de-prueba "$linea1" "$linea2" "$linea3"       --pagina-de-prueba 0 0 0 50 --cuadros 60 400 --apretar-a {{apretar}}       --saltar $pre-{}.saltar.txt -o $pre-{}.esperado.png
+  python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} \
+      --walk {{direccion}} \
+      --mensaje-de-prueba "$linea1" "$linea2" "$linea3" \
+      --pagina-de-prueba 0 0 0 50 --cuadros 60 400 --apretar-a {{apretar}} \
+      --saltar $pre-{}.saltar.txt -o $pre-{}.esperado.png
   for n in 60 400; do
-    python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre-$n.png         --walk none --cuadros $n --arranque 0 --apretar-a {{apretar}}
-    python3 tools/snes_compare.py $pre-$n.png $pre-$n.esperado.png         --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
+    python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre-$n.png \
+        --walk {{direccion}} --cuadros $n --arranque {{arranque}} \
+        --apretar-a {{apretar}}
+    python3 tools/snes_compare.py $pre-$n.png $pre-$n.esperado.png \
+        --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
   done
 
 # El juego original corriendo en EasyRPG, capturado sin pantalla, y nuestra
