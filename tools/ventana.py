@@ -25,6 +25,8 @@ import os
 
 from PIL import Image
 
+import render_map
+
 # El tamaño y el lugar de la ventana de mensaje. En RM2k la pantalla es de
 # 320x240 y la ventana ocupa 320x80 abajo; acá la pantalla son 256x224, así que
 # la ventana es de 256x80 y el texto pierde 64 px de ancho. Lo que no entra se
@@ -37,11 +39,22 @@ LINEAS = 4
 
 
 def skin(game_dir, nombre):
-    """El System del juego, en RGB."""
+    """El System del juego, en RGBA y con el color key ya resuelto.
+
+    Va por `render_map.load_image` y no por `Image.open` a propósito: en RM2k
+    **el índice 0 de la paleta es transparente**, y esa regla ya está escrita
+    ahí. Escribirla de nuevo acá sería tener dos convenciones que hay que
+    mantener iguales.
+
+    No es un detalle: en `ablskin` el índice 0 es un naranja fuerte, y el marco
+    de la ventana lo usa para todo su interior. Dibujarlo opaco daba un marco
+    naranja de 8 px donde el juego tiene uno de 2 y el resto transparente. Lo
+    encontró la captura de EasyRPG, no el ojo.
+    """
     for base in (os.path.join(game_dir, "System"), game_dir):
         ruta = os.path.join(base, nombre + ".png")
         if os.path.exists(ruta):
-            return Image.open(ruta).convert("RGB")
+            return render_map.load_image(ruta)
     raise FileNotFoundError("no está el System %r en %s" % (nombre, game_dir))
 
 
@@ -57,11 +70,16 @@ def color_de_sombra(sys_img):
 
 def _repetido(origen, ancho, alto):
     """`TiledBlit`: repetir un recorte hasta llenar ancho x alto."""
-    salida = Image.new("RGB", (ancho, alto))
+    salida = Image.new("RGBA", (ancho, alto), (0, 0, 0, 0))
     for y in range(0, alto, origen.height):
         for x in range(0, ancho, origen.width):
             salida.paste(origen, (x, y))
     return salida.crop((0, 0, ancho, alto))
+
+
+def _pegar(destino, trozo, x, y):
+    """Pegar respetando el color key, como `chipset.blit`."""
+    destino.paste(trozo, (x, y), trozo)
 
 
 def ventana(sys_img, ancho=ANCHO, alto=ALTO):
@@ -70,18 +88,18 @@ def ventana(sys_img, ancho=ANCHO, alto=ALTO):
     fondo = sys_img.crop((0, 0, 32, 32)).resize((ancho, alto), Image.NEAREST)
     marco = fondo.copy()
     # Los bordes de arriba y de abajo, repetidos entre las esquinas.
-    marco.paste(_repetido(sys_img.crop((40, 0, 56, 8)), ancho - 16, 8), (8, 0))
-    marco.paste(_repetido(sys_img.crop((40, 24, 56, 32)), ancho - 16, 8),
-                (8, alto - 8))
+    _pegar(marco, _repetido(sys_img.crop((40, 0, 56, 8)), ancho - 16, 8), 8, 0)
+    _pegar(marco, _repetido(sys_img.crop((40, 24, 56, 32)), ancho - 16, 8),
+           8, alto - 8)
     # Los de los costados.
-    marco.paste(_repetido(sys_img.crop((32, 8, 40, 24)), 8, alto - 16), (0, 8))
-    marco.paste(_repetido(sys_img.crop((56, 8, 64, 24)), 8, alto - 16),
-                (ancho - 8, 8))
+    _pegar(marco, _repetido(sys_img.crop((32, 8, 40, 24)), 8, alto - 16), 0, 8)
+    _pegar(marco, _repetido(sys_img.crop((56, 8, 64, 24)), 8, alto - 16),
+           ancho - 8, 8)
     # Y las cuatro esquinas, que van últimas porque pisan a los bordes.
-    marco.paste(sys_img.crop((32, 0, 40, 8)), (0, 0))
-    marco.paste(sys_img.crop((56, 0, 64, 8)), (ancho - 8, 0))
-    marco.paste(sys_img.crop((32, 24, 40, 32)), (0, alto - 8))
-    marco.paste(sys_img.crop((56, 24, 64, 32)), (ancho - 8, alto - 8))
+    _pegar(marco, sys_img.crop((32, 0, 40, 8)), 0, 0)
+    _pegar(marco, sys_img.crop((56, 0, 64, 8)), ancho - 8, 0)
+    _pegar(marco, sys_img.crop((32, 24, 40, 32)), 0, alto - 8)
+    _pegar(marco, sys_img.crop((56, 24, 64, 32)), ancho - 8, alto - 8)
     return marco
 
 
@@ -98,7 +116,8 @@ TEXTO_OFS = (2, 4)
 SOMBRA_ORIGEN = (16, 32)
 
 
-def dibujar_linea(destino, sys_img, x, y, texto, color=0):
+def dibujar_linea(destino, sys_img, x, y, texto, color=0,
+                  font_id=None):
     """Una línea de texto sobre `destino`, con su sombra, como RM2k.
 
     Devuelve en qué x quedó. Lo que se pase del ancho de `destino` se recorta
@@ -106,26 +125,31 @@ def dibujar_linea(destino, sys_img, x, y, texto, color=0):
     escrita en ESTADO.md.
     """
     import fuente
+    if font_id is None:
+        font_id = fuente.MINCHO
     bloque = color_de_texto(sys_img, color)
     sombra = color_de_sombra(sys_img)
     ox, oy = TEXTO_OFS
     for ch in texto:
-        for px, py in fuente.pixeles(ch):
+        for px, py in fuente.pixeles(ch, font_id):
             # La sombra va primero y corrida uno, así el texto la pisa donde se
             # superponen. Es el orden de easyrpg y se nota en las diagonales.
             for dx, dy, fuente_color, fx, fy in (
                     (1, 1, sombra, px, py), (0, 0, bloque, ox + px, oy + py)):
                 dx, dy = x + px + dx, y + py + dy
-                if 0 <= dx < destino.width and 0 <= dy < destino.height:
-                    destino.putpixel((dx, dy), fuente_color.getpixel((fx, fy)))
+                color = fuente_color.getpixel((fx, fy))
+                if (0 <= dx < destino.width and 0 <= dy < destino.height
+                        and color[3]):
+                    destino.putpixel((dx, dy), color)
         x += fuente.ANCHO
     return x
 
 
-def pagina(sys_img, lineas, ancho=ANCHO, alto=ALTO):
+def pagina(sys_img, lineas, ancho=ANCHO, alto=ALTO, font_id=None):
     """La ventana con hasta cuatro líneas de texto adentro."""
     vista = ventana(sys_img, ancho, alto)
     for n, texto in enumerate(lineas[:LINEAS]):
-        dibujar_linea(vista, sys_img, BORDE, BORDE + TEXTO_Y + n * ALTO_LINEA,
-                      texto)
+        dibujar_linea(vista, sys_img, BORDE,
+                      BORDE + TEXTO_Y + n * ALTO_LINEA, texto,
+                      font_id=font_id)
     return vista

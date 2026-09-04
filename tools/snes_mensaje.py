@@ -52,6 +52,40 @@ def paginas_del_mapa(game_map):
     return paginas
 
 
+def comparar(vista, captura):
+    """Nuestra ventana contra una captura de EasyRPG, a 15 bits.
+
+    La captura es de 320x240 y la ventana de mensaje ocupa las 80 filas de
+    abajo. Devuelve 0 si sólo difiere en la flecha, que es lo esperado.
+    """
+    from PIL import Image
+    llana = Image.alpha_composite(
+        Image.new("RGBA", vista.size, (0, 0, 0, 255)), vista).convert("RGB")
+    entera = Image.open(captura).convert("RGB")
+    caja = entera.crop((0, entera.height - vista.height,
+                        vista.width, entera.height))
+    a = [tuple(v >> 3 for v in p) for p in caja.get_flattened_data()]
+    b = [tuple(v >> 3 for v in p) for p in llana.get_flattened_data()]
+    distintos = [i for i, (x, y) in enumerate(zip(a, b)) if x != y]
+    print("contra %s: %d pixeles distintos de %d (%.2f%%)"
+          % (captura, len(distintos), len(a), 100.0 * len(distintos) / len(a)))
+    if not distintos:
+        return 0
+    xs = [i % vista.width for i in distintos]
+    ys = [i // vista.width for i in distintos]
+    print("   zona: x %d..%d  y %d..%d" % (min(xs), max(xs), min(ys), max(ys)))
+    # La flecha roja de "seguir" que EasyRPG anima mientras espera al jugador
+    # sale del System y nosotros no la dibujamos. Es lo único que puede
+    # diferir sin que sea un error, y por eso se acota por dónde cae y no por
+    # cuántos pixeles son.
+    solo_flecha = all(vista.width // 2 - 12 <= x <= vista.width // 2 + 12
+                      and y >= vista.height - 12 for x, y in zip(xs, ys))
+    if solo_flecha:
+        print("   sólo la flecha de seguir, que no dibujamos: lo demás coincide")
+        return 0
+    return 1
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -61,6 +95,12 @@ def main():
     parser.add_argument("--game-dir", default=GAME_DIR)
     parser.add_argument("--escala", type=int, default=1,
                         help="agrandar el PNG por este factor, para mirarlo")
+    parser.add_argument("--contra", metavar="CAPTURA",
+                        help="una captura de EasyRPG de 320x240 de esta misma "
+                             "página. Compara nuestra ventana contra ella a 15 "
+                             "bits, que es el único oráculo externo que tiene "
+                             "este repo: si la referencia y la ROM se "
+                             "equivocan igual, comparar entre ellas da cero")
     parser.add_argument("-o", "--output", required=True)
     args = parser.parse_args()
 
@@ -76,7 +116,12 @@ def main():
     base = lcf.Database(os.path.join(args.game_dir, "RPG_RT.ldb"))
     lineas = paginas[args.indice]
     skin = ventana.skin(args.game_dir, base.system_name)
-    vista = ventana.pagina(skin, lineas)
+    # Contra una captura se dibuja a 320, que es el ancho de RM2k; el de la
+    # consola son 256 y ahí el texto se trunca, que es otra cosa.
+    ancho = 320 if args.contra else ventana.ANCHO
+    vista = ventana.pagina(skin, lineas, ancho=ancho, font_id=base.font_id)
+    if args.contra:
+        salir = comparar(vista, args.contra)
     if args.escala > 1:
         vista = vista.resize((vista.width * args.escala,
                               vista.height * args.escala), 0)
@@ -87,6 +132,8 @@ def main():
     for n, linea in enumerate(lineas):
         cabe = len(linea) * 6 <= ventana.ANCHO - 2 * ventana.BORDE
         print("   %d %-42r %s" % (n, linea, "" if cabe else "SE TRUNCA"))
+    if args.contra:
+        sys.exit(salir)
 
 
 if __name__ == "__main__":

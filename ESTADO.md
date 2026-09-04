@@ -190,12 +190,49 @@ caracteres, 306 px—. Medido sobre las 18.614 líneas de mensaje:
 El ancho variable queda anotado como fase posterior, y puede que nunca haga
 falta.
 
+**Y ya hay un oráculo externo, que es la novedad grande.** EasyRPG corre acá
+adentro sin pantalla —`rom/easyrpg.sh`, Xvfb más las capturas automáticas del
+propio player— así que se puede comparar nuestra ventana contra **el juego de
+verdad** y no sólo contra nuestra propia referencia. Es la primera vez que este
+repo tiene con qué romper el empate de "si los dos lados se equivocan igual, la
+comparación da cero".
+
+Lo cobró enseguida, con dos errores que **se veían perfectamente bien**:
+
+* **El índice 0 de la paleta de los PNG de RM2k es transparente**, y en
+  `ablskin` ese índice es un naranja fuerte que el marco de la ventana usa para
+  todo su interior. Dibujado opaco daba un marco naranja de 8 px donde el juego
+  tiene uno de 2 y el resto deja ver el fondo. La regla ya estaba escrita en
+  `render_map.load_image`; `ventana.py` no la usaba.
+* **La fuente del juego es `rmg2000`, no `ttyp0`.** `Font::Default()` de easyrpg
+  elige una u otra según `font_id` del System, y este juego tiene `font_id = 1`
+  —Mincho—, que le toca rmg2000. Yo había elegido ttyp0 leyendo el camino del
+  código y sin mirar el dato. Los colores daban exactos y las letras no: 4,57%
+  de los pixeles.
+
+Con las dos arregladas, `just snes-oraculo` da **0 pixeles de diferencia de
+25600** en el mapa 145 y 18 en el 167, y esos 18 son la flecha roja de "seguir"
+que EasyRPG anima mientras espera al jugador y que nosotros todavía no
+dibujamos. La receta la deja pasar por dónde cae, no por cuántos son.
+
+No entra en `snes-hitos` y es a propósito: levanta un Xvfb, corre el juego medio
+minuto y depende de que EasyRPG esté bajado en `/extras`. Se corre a mano cuando
+se toca la ventana o la fuente.
+
+Trampa del entorno que costó un rato: el binario oficial de EasyRPG para Linux
+**trae su propio SDL2 compilado sin el backend de wayland**. Con
+`SDL_VIDEODRIVER=wayland` en el entorno —común en Arch— falla con
+`wayland not available`, y el mensaje no dice que la culpa es de la variable.
+Desde el host se arregla con `SDL_VIDEODRIVER=x11`; acá adentro corre sobre
+Xvfb y no aplica.
+
 Lo que ya está hecho, y es **sólo el lado de la referencia**:
 
-* `tools/fuente.py`, generada desde el ttyp0 de easyrpg-player, igual que
-  `event_codes.py` se genera desde liblcf y por la misma razón. 6x12, medio
-  ancho, los 95 caracteres ASCII imprimibles. El texto del juego es ASCII puro
-  —93 caracteres distintos, sin acentos— así que alcanza y sobra.
+* `tools/fuente.py`, generada desde easyrpg-player igual que `event_codes.py` se
+  genera desde liblcf y por la misma razón. Trae **las dos** fuentes de 6x12
+  —ttyp0 y rmg2000— y cuál se usa lo dice `font_id` del juego, no una constante
+  nuestra. Los 95 caracteres ASCII imprimibles; el texto del juego es ASCII
+  puro, 93 distintos y sin acentos.
 * `tools/ventana.py`, la ventana de mensaje armada desde el System del juego,
   que es `ablskin`. Las reglas salen de `Window::RefreshBackground`,
   `Window::RefreshFrame` y `Font::Render` de easyrpg-player, con los números que

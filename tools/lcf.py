@@ -191,6 +191,9 @@ SYSTEM_PARTY = 0x16
 # El System del juego: el PNG con el marco de la ventana, los colores de texto
 # y la sombra. Este juego usa `ablskin`, no el `BLSys` que también trae.
 SYSTEM_NAME = 0x13
+# Con qué fuente dibuja el texto: 0 Gothic, 1 Mincho. easyrpg elige ttyp0 o
+# rmg2000 con esto, y las letras salen distintas. Este juego pide Mincho.
+SYSTEM_FONT_ID = 0x48
 
 CHIPSET_NAME = 0x01
 CHIPSET_FILENAME = 0x02
@@ -519,6 +522,7 @@ class Database:
         self.party = to_i16_array(sistema.get(SYSTEM_PARTY, b""))
         self.system_name = sistema.get(SYSTEM_NAME, b"").decode(
             "cp1252", "replace")
+        self.font_id = sistema.get(SYSTEM_FONT_ID, b"\x00")[0]
 
     def lider(self, party=None):
         """El CharSet del primero del grupo: (nombre, índice).

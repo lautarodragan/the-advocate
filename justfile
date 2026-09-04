@@ -312,6 +312,57 @@ snes-mednafen:
       --saltar {{snes_pngs}}/saltar-med-walk.txt \
       -o {{snes_pngs}}/comparacion-med-walk.png
 
+# El juego original corriendo en EasyRPG, capturado sin pantalla, y nuestra
+# ventana comparada contra eso.
+#
+# Es el único oráculo externo del repo: todo lo demás compara la ROM contra
+# nuestra propia referencia, y si las dos se equivocan igual da cero. Esto ya lo
+# cobró: encontró que el índice 0 de la paleta del System es transparente —el
+# marco salía naranja y macizo donde el juego lo tiene de 2 px— y que la fuente
+# del juego es rmg2000 y no ttyp0, que era lo que decía el camino del código que
+# leí. Las dos veces la ventana se veía perfectamente bien.
+#
+# No entra en `snes-hitos` y es a propósito: levanta un Xvfb, corre el juego
+# durante medio minuto y depende de EasyRPG bajado a /extras. Se corre a mano
+# cuando se toca la ventana o la fuente. El detalle está en `rom/easyrpg.sh`.
+#
+# Lo único que puede diferir sin ser un error es la flecha roja de "seguir" que
+# EasyRPG anima mientras espera al jugador, que nosotros no dibujamos.
+snes-oraculo mapa="145" segundos="20":
+  #!/usr/bin/env bash
+  set -euo pipefail
+  rom/easyrpg.sh {{mapa}} {{segundos}}
+  # De la tanda de capturas, la que tenga texto en la franja de la ventana.
+  # La última con ventana, no la que más texto tenga: sin avanzar, el primer
+  # mensaje se queda quieto esperando, así que las de más al final lo tienen
+  # entero y ya terminó de escribirse letra por letra.
+  #
+  # Y "con ventana" se decide por la esquina del marco y no por cuánto blanco
+  # hay abajo: en un mapa claro el piso solo pasaba cualquier umbral de brillo
+  # y la comparación terminaba midiendo la ventana contra el suelo.
+  mejor=$(python3 - <<'PY'
+  import glob, sys
+  sys.path.insert(0, "tools")
+  from PIL import Image
+  import lcf, ventana
+  skin = ventana.skin("/extras/abl-rm",
+                      lcf.Database("/extras/abl-rm/RPG_RT.ldb").system_name)
+  esquina = ventana.ventana(skin, 320, 80).convert("RGB").crop((0, 0, 8, 8))
+  patron = list(esquina.get_flattened_data())
+  ultima = ""
+  for f in sorted(glob.glob("/extras/capturas/easyrpg/*.png")):
+      im = Image.open(f).convert("RGB")
+      if list(im.crop((0, im.height - 80, 8, im.height - 72))
+              .get_flattened_data()) == patron:
+          ultima = f
+  print(ultima)
+  PY
+  )
+  test -n "$mejor" || { echo "ninguna captura tiene una ventana de mensaje"; exit 1; }
+  echo "la captura con más texto: $mejor"
+  python3 tools/snes_mensaje.py --map-id {{mapa}} --indice 0 --contra "$mejor" \
+      -o {{snes_pngs}}/oraculo-{{mapa}}.png
+
 # Una página de mensaje del juego, dibujada como la dibujaría RM2k.
 #
 # Todavía no hay nada del lado de la ROM, así que esto no compara nada: existe
