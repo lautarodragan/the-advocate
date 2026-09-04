@@ -97,7 +97,7 @@ class Mundo:
     otro mapa y la comparación mediría dos ROMs distintas.
     """
 
-    def __init__(self, renderer, game_dir, ids, prueba=None):
+    def __init__(self, renderer, game_dir, ids, prueba=None, mensajes=None):
         self.prueba = prueba
         self.renderer = renderer
         self.game_dir = game_dir
@@ -105,12 +105,23 @@ class Mundo:
         self.indices = {map_id: i for i, map_id in enumerate(self.ids)}
         self.cache = {}
         self.paginas_cache = {}
+        self.mensajes = mensajes
+        if mensajes is not None:
+            # Con ventana los mapas se compilan **todos y en el orden de la
+            # tabla**, acá y no cuando el héroe pise cada uno. El bloque de
+            # textos es de la ROM entera y los desplazamientos salen del orden
+            # en que se van juntando: compilar el mapa 3 antes que el 1 porque
+            # una puerta llevó para allá le daría al mismo texto otro número
+            # que el que emitió el conversor, y los dos lados dibujarían
+            # mensajes distintos con el mismo bytecode.
+            for otro in self.ids:
+                self.paginas(otro)
 
     def paginas(self, map_id):
         """Las páginas de evento del mapa, compiladas como las compiló la ROM."""
         if map_id not in self.paginas_cache:
             paginas = eventos.paginas_del_mapa(self.mapa(map_id)[0],
-                                               self.indices.get)
+                                               self.indices.get, self.mensajes)
             if self.prueba is not None and map_id == self.ids[0]:
                 # La página inventada va sólo en el mapa donde arranca la ROM,
                 # que es el mismo que el conversor le agrega la suya.
@@ -263,7 +274,7 @@ def hero_position(mundo, estado, map_id, direction_name, inicio=None,
                                   apretar_a)
     step = WALK[direction_name]
     direction = DIRECTIONS.get(direction_name, DIRECTIONS["down"])
-    if estado.mensaje:
+    if estado.mensaje is not None:
         # Con un mensaje en pantalla el pad no mueve al héroe, así que la
         # caminata es como no haber apretado nada. Es el guard de
         # `Game_Player::UpdateNextMovementAction`: vuelve sin mirar el input si
@@ -474,6 +485,12 @@ def main():
     parser.add_argument("--mensaje-de-prueba", nargs="*", metavar="LINEA",
                         help="agrega la página automática que abre una ventana "
                              "de mensaje con estas líneas. El otro lado del "
+                             "mismo flag de snes_convert.py. Implica "
+                             "--con-ventana")
+    parser.add_argument("--con-ventana", action="store_true",
+                        help="la ROM lleva la ventana de mensaje, o sea que "
+                             "los ShowMessage del juego compilan y el reparto "
+                             "de CGRAM le reserva una paleta. El otro lado del "
                              "mismo flag de snes_convert.py")
     parser.add_argument("--apretar-a", type=int, default=None, metavar="N",
                         help="en qué cuadro el jugador aprieta A, que es lo "
@@ -509,6 +526,10 @@ def main():
                         help="hacia dónde mira, si se fija la celda a mano")
     parser.add_argument("-o", "--output", required=True)
     args = parser.parse_args()
+    # La misma cuenta que hace el conversor, y por la misma razón: si un lado
+    # reserva la paleta de la ventana y el otro no, el reparto de CGRAM difiere
+    # y la comparación mide dos ROMs distintas.
+    args.con_ventana = args.con_ventana or args.mensaje_de_prueba is not None
 
     renderer = Renderer(args.game_dir)
 
@@ -531,9 +552,15 @@ def main():
                  % (args.inicial, len(tabla)))
     hay_prueba = (args.pagina_de_prueba or args.ruta_de_prueba
                   or args.mensaje_de_prueba is not None)
+    # El bloque de textos, armado igual que en el conversor y en el mismo orden:
+    # el mensaje de prueba primero —desplazamiento 0— y después los mapas de la
+    # tabla, que los junta `Mundo` al construirse.
+    mensajes = eventos.Mensajes() if args.con_ventana else None
+    prueba = (mensajes.agregar(args.mensaje_de_prueba)
+              if args.mensaje_de_prueba is not None else None)
     mundo = Mundo(renderer, args.game_dir, tabla,
-                  (args.pagina_de_prueba, args.ruta_de_prueba,
-                   args.mensaje_de_prueba is not None) if hay_prueba else None)
+                  (args.pagina_de_prueba, args.ruta_de_prueba, prueba)
+                  if hay_prueba else None, mensajes)
 
     # Los CharSets y los mapas ya convertidos se comparten entre las
     # direcciones. Convertir un mapa es lo más caro de todo esto —el 52 son
@@ -573,7 +600,7 @@ def main():
             (tile_data, cram, tilemap, _resumen), above_data = \
                 snes_convert.convert_layers(
                     base, above_img,
-                    con_ventana=args.mensaje_de_prueba is not None)
+                    con_ventana=args.con_ventana)
             convertidos[map_id] = (
                 game_map,
                 snes_convert.render_converted(tile_data, cram, tilemap),
@@ -716,11 +743,14 @@ def main():
         # La ventana de mensaje va antes del tinte, como en la consola: allá el
         # tinte es una transformación de CGRAM y la paleta de la ventana está
         # en la misma mitad que las del mapa.
-        if estado.mensaje:
+        if estado.mensaje is not None:
             import ventana as ventana_mod
             skin = ventana_mod.skin(args.game_dir,
                                     renderer.database.system_name)
-            caja = ventana_mod.pagina(skin, args.mensaje_de_prueba,
+            # El texto sale del bloque, no del flag: con `--mensaje-de-prueba`
+            # es el que se pidió, y con los ShowMessage del juego es el que el
+            # bytecode nombró. La ROM lee esos mismos bytes del cartucho.
+            caja = ventana_mod.pagina(skin, mensajes.lineas(estado.mensaje),
                                       font_id=renderer.database.font_id)
             view = view.convert("RGBA")
             view.paste(caja, (0, view.height - caja.height), caja)
@@ -742,7 +772,7 @@ def main():
                  ("" if estado.tinte == (eventos.TINTE_NEUTRO,) * 3
                   else ", tinte %d/%d/%d" % estado.tinte)
                  + (", con la ventana de mensaje abierta"
-                    if estado.mensaje else "")))
+                    if estado.mensaje is not None else "")))
         if pasos:
             print("  camina %d celdas = %d cuadros a %d por celda"
                   % (pasos, pasos * CUADROS_POR_CELDA, CUADROS_POR_CELDA))

@@ -12,7 +12,9 @@ Dos trampas que costaron una medición mal hecha cada una:
 
 * **`ShowMessage_2`.** RM2k emite un `ShowMessage` y después un `ShowMessage_2`
   por cada línea de más del mismo cuadro. Contándolos aparte, los cuadros de
-  texto parecían destrabar tres páginas en vez de cincuenta y cinco.
+  texto parecían destrabar tres páginas en vez de cincuenta y cinco. Ahora el
+  agrupado lo hace `eventos.agrupar`, que es el mismo que usa el conversor: la
+  trampa dejó de tener dónde volver a pasar.
 * **`CallEvent`.** Aceptarlo sin hacerlo daba +97, que es mentira: el evento
   común llamado tiene que compilar él también, y los de este juego se cortan
   casi todos en `FullHeal` y en `ControlVars`. Hecho de verdad destraba cero.
@@ -33,7 +35,7 @@ import eventos
 import lcf
 from render_map import GAME_DIR
 
-NOMBRES = {v: k for k, v in vars(event_codes).items() if isinstance(v, int)}
+NOMBRES = event_codes.EVENT_CODES
 
 CALL_EVENT = 12330
 DB_COMMON_EVENTS = 0x19          # el chunk de la base; el 0x16 de cada uno son
@@ -43,8 +45,6 @@ MAX_ANIDADO = 4                  # por si dos eventos comunes se llaman entre s�
 # Los grupos. Un comando no se puede medir suelto cuando RM2k lo emite siempre
 # acompañado: los tres de acá abajo son un solo trabajo cada uno.
 CANDIDATOS = [
-    # Las líneas 2 a 4 de un cuadro de texto, y el retrato de quien habla.
-    ("ShowMessage", {10110, 20110, 10130}),
     ("FlashSprite", {11320}),
     ("PlaySound", {11550}),
     ("ControlVars", {10220}),
@@ -87,10 +87,15 @@ def compila(comandos, extra, con_call, comunes, hondo=0):
 
     `con_call` entra al evento común en vez de aceptarlo, que es la única forma
     honesta de medir CallEvent.
+
+    Se mide **con** el bloque de textos, o sea contando lo que compila una ROM
+    que lleve la ventana de mensaje: sin ella los cuadros de texto no compilan y
+    la base sería otra. El bloque se tira; acá sólo importa si el comando se
+    pudo o no.
     """
     if hondo > MAX_ANIDADO:
         return False
-    for cmd in comandos:
+    for cmd, lineas in eventos.agrupar(comandos):
         if cmd.code == CALL_EVENT and con_call:
             p = list(cmd.parameters)
             if len(p) < 2 or p[0] != 0 or p[1] not in comunes:
@@ -101,7 +106,7 @@ def compila(comandos, extra, con_call, comunes, hondo=0):
         if cmd.code in extra:
             continue
         try:
-            eventos._compilar(cmd, lambda m: 0)
+            eventos._compilar(cmd, lambda m: 0, eventos.Mensajes(), lineas)
         except eventos.NoSePuede:
             return False
     return True
@@ -143,11 +148,11 @@ def main():
     for p in paginas:
         if compila(p.commands, juntas, call, comunes):
             continue
-        for cmd in p.commands:
+        for cmd, lineas in eventos.agrupar(p.commands):
             if cmd.code in juntas or cmd.code == CALL_EVENT:
                 continue
             try:
-                eventos._compilar(cmd, lambda m: 0)
+                eventos._compilar(cmd, lambda m: 0, eventos.Mensajes(), lineas)
             except eventos.NoSePuede:
                 corta[cmd.code] += 1
                 break

@@ -427,6 +427,56 @@ snes-cerrar mapa="7" apretar="200" nombre="cerrar" direccion="none" arranque="30
         --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
   done
 
+# El texto del juego, no el que le dictamos a la ROM.
+#
+# Todo lo que hay arriba —`snes-ventana`, `snes-cerrar`, `snes-anclada`— usa
+# `--mensaje-de-prueba`, o sea tres líneas inventadas que el conversor mete en
+# una página que tampoco sale del juego. Eso probaba el dibujo, el bloqueo y el
+# cierre, pero no el camino que ahora existe: que un `ShowMessage` de RM2k
+# compile, que su texto entre en el bloque de la ROM y que el operando de
+# `OP_MENSAJE` lo vuelva a encontrar. Sin este caso ese camino no lo corría
+# **nada**, que es exactamente cómo sobrevivieron los tres errores del
+# intérprete de eventos.
+#
+# El mapa 255 es el que sirve, y se eligió midiendo. Tiene una página automática
+# **sin condición de switch** —o sea que corre al entrar— cuyo código entero es
+# dos cuadros de texto seguidos y un switch:
+#
+#     07 0000   OP_MENSAJE @0     "BRIDGE OVER THE RIVER LASHE" y tres líneas
+#     07 7c00   OP_MENSAJE @124   otras cuatro
+#     01 5003 01  el switch 848
+#
+# De ahí salen tres cosas que ninguna otra receta mira. Los **desplazamientos**:
+# el segundo mensaje está en el 124 y no en el 0, así que si el operando se
+# ignorara se vería el primero dos veces. Los **cuatro renglones**: el mensaje de
+# prueba tiene tres, y el cuarto es el que ejercita el `msg_lineas` completo.
+# Y el **encadenado**: al apretar A el primero se cierra y el segundo se abre en
+# el mismo cuadro, que es la regla que los dos lados escriben por separado
+# —`eventos_tick` en la ROM, `Interprete.cuadro` en la referencia—.
+#
+# Los cuadros, con margen y no en el borde, por lo de siempre: a los 60 los dos
+# lados tienen el primero abierto hace rato, y a los 400 el segundo. Entre esos
+# dos cuadros la pantalla cambia 2869 pixeles, todos en las filas de la ventana:
+# si el A no avanzara al segundo mensaje, serían cero y la receta daría verde sin
+# probar nada.
+snes-texto mapa="255" apretar="200" nombre="texto":
+  #!/usr/bin/env bash
+  set -euo pipefail
+  mkdir -p {{snes_pngs}} {{snes_inc}}
+  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
+      --con-ventana -o {{snes_inc}}/mapdata.inc
+  just snes-build
+  pre={{snes_pngs}}/{{nombre}}
+  python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
+      --con-ventana --cuadros 60 400 --apretar-a {{apretar}} \
+      --saltar $pre-{}.saltar.txt -o $pre-{}.esperado.png
+  for n in 60 400; do
+    python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre-$n.png \
+        --walk none --cuadros $n --apretar-a {{apretar}}
+    python3 tools/snes_compare.py $pre-$n.png $pre-$n.esperado.png \
+        --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
+  done
+
 # La ventana quieta mientras la cámara se mueve.
 #
 # Es lo único que ni `snes-ventana` ni `snes-cerrar` pueden mirar: en los dos la

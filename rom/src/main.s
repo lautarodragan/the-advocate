@@ -1252,47 +1252,69 @@ no:
 otro:
     lda [cod_ptr], y
     iny
-    ; Las comparaciones van en el mismo orden que los cuerpos, del más cercano
-    ; al más lejano, y eso no es cosmético: son `beq` y no llegan más allá de
-    ; 127 bytes. Con OP_TELEPORT probado segundo —como estaba— su cuerpo, que
-    ; es el último, quedaba a 124: agregar un opcode más lo mandaba a 140 y el
-    ; ensamblador cortaba. Ordenado así hay lugar para varios más.
+    ; Cada opcode se despacha con `bne` al salteo y `jmp` al cuerpo, y no con un
+    ; `beq` derecho al cuerpo, que es lo que había. La diferencia es el alcance:
+    ; un `beq` llega a 127 bytes y el cuerpo del último opcode está detrás de
+    ; todos los demás, así que el límite lo marca la suma de los otros seis.
+    ;
+    ; Eso ya cortó dos veces. La primera, al aparecer OP_MENSAJE, dejó a
+    ; OP_TELEPORT a 140 bytes; se arregló ordenando las comparaciones como los
+    ; cuerpos. La segunda fue darle su operando a OP_MENSAJE: 129 bytes, o sea
+    ; que aquel arreglo duraba exactamente un opcode. Y faltan cuatro —MoveEvent
+    ; sobre otro evento, FlashSprite, PlaySound y ControlVars, en ese orden y
+    ; medidos con `just snes-destraba`—, así que el límite se saca del medio de
+    ; una vez: un `jmp` llega a cualquier parte del banco.
+    ;
+    ; Sale tres bytes y cuatro ciclos por opcode que no matchea, en un despacho
+    ; que corre unas pocas veces por cuadro. El orden ya no significa nada.
     cmp #OP_MENSAJE
-    beq op_mensaje
-    cmp #OP_SWITCH
-    beq op_switch
-    cmp #OP_RUTA
-    beq op_ruta
-    cmp #OP_GRUPO
-    beq op_grupo
-    cmp #OP_ESPERAR
-    beq op_esperar
-    cmp #OP_TINTE
-    beq op_tinte
-    cmp #OP_TELEPORT
-    beq op_teleport
-    stz ev_activo               ; OP_FIN, o algo que no conocemos: se corta
+    bne :+
+    jmp op_mensaje
+:   cmp #OP_SWITCH
+    bne :+
+    jmp op_switch
+:   cmp #OP_RUTA
+    bne :+
+    jmp op_ruta
+:   cmp #OP_GRUPO
+    bne :+
+    jmp op_grupo
+:   cmp #OP_ESPERAR
+    bne :+
+    jmp op_esperar
+:   cmp #OP_TINTE
+    bne :+
+    jmp op_tinte
+:   cmp #OP_TELEPORT
+    bne :+
+    jmp op_teleport
+:   stz ev_activo               ; OP_FIN, o algo que no conocemos: se corta
     rts
 
 ; Abre la ventana de mensaje y corta el cuadro. El cursor ya quedó en el
 ; comando siguiente —el `iny` del lazo— pero `eventos_tick` no vuelve a llamar
 ; acá hasta que el jugador apriete A.
 ;
-; No lleva operandos, y no es una simplificación de paso: una página de mensaje
-; compuesta son unos 240 tiles de 4bpp, o sea 7,5 KB, y emitir una por cada
-; mensaje del juego no entra ni cerca en 256 KB. La salida es la de FF6
-; —componer el texto en tiles desde el 65816, con la fuente en la ROM— y hasta
-; que eso exista la ROM lleva **una sola** ventana ya compuesta. O sea que el
-; `ShowMessage` de RM2k sigue sin compilar: esto es el intérprete aprendiendo a
-; abrir, a bloquear y a cerrar, que es lo que le faltaba.
+; El operando es el desplazamiento del cuadro de texto dentro del bloque
+; `mensajes`, de 16 bits. No es el texto: emitir cada cuadro ya compuesto son
+; 240 tiles de 4bpp, o sea 7,5 KB, y los 2895 del juego serían 21 MB. Lo que
+; viaja en el cartucho es un byte por letra y lo compone el 65816, que es la
+; salida de FF6.
 op_mensaje:
     ; El mensaje no aparece en este cuadro: hay que componerle el texto, y eso
     ; lleva unos cuantos. La ventana se prende sola cuando el compositor
     ; termina; mientras tanto la página ya está bloqueada.
     stz msg_abierto
+    rep #$20
+.a16
+    lda [cod_ptr], y            ; el desplazamiento, que va en A a msg_empezar
+    iny
+    iny
     phy
     jsr msg_empezar
     ply
+    sep #$20
+.a8
     sty ev_cur
     rts
 
@@ -1310,7 +1332,7 @@ op_switch:
     phy
     jsr poner_switch
     ply
-    bra otro
+    jmp otro                    ; `bra` no llega: el lazo quedó lejos
 
 ; Una ruta forzada de MoveEvent, siempre sobre el héroe. De todos los comandos
 ; de ruta de RM2k acá se aceptan sólo los cuatro de girar y la espera: el
@@ -1355,7 +1377,7 @@ op_grupo:
     phy
     jsr cambiar_grupo
     ply
-    bra otro
+    jmp otro                    ; `bra` no llega: el lazo quedó lejos
 
 op_esperar:
     ; Y acá se devuelve el control. Antes se salteaba, y el comentario decía
@@ -2973,21 +2995,26 @@ TEXTO_OFS_Y = 2
 
 ; Arranca un mensaje: deja el puntero en su primer renglón y el compositor en
 ; marcha. La ventana no aparece hasta que termine.
+;
+; **A trae el desplazamiento del cuadro dentro de `mensajes`, en 16 bits**, y se
+; suma al byte bajo y nada más. Alcanza porque el bloque entra entero en un
+; banco —lo garantiza el `.bloque` con que lo emite el conversor— así que la
+; suma no se lleva nada al byte de banco. Es la misma razón por la que el
+; compositor puede hacer `inc msg_ptr` de a 16 bits mientras avanza.
 .proc msg_empezar
-.a8
-.i16
-    lda #VENTANA_TILES
-    bne hay
-    rts                         ; esta ROM no lleva ventana
-hay:
-    rep #$20
 .a16
-    lda #.loword(mensajes)
+.i16
+    clc
+    adc #.loword(mensajes)
     sta msg_ptr
     sep #$20
 .a8
     lda #^mensajes
     sta msg_ptr + 2
+    lda #VENTANA_TILES
+    bne hay
+    rts                         ; esta ROM no lleva ventana
+hay:
     ldy #0
     lda [msg_ptr], y            ; cuántos renglones trae
     sta msg_lineas

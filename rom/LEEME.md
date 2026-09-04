@@ -461,11 +461,33 @@ Lo que cuesta: un mensaje de 51 caracteres tarda unos 15 cuadros en aparecer y
 uno de cuatro renglones llenos tardaría unos 36. En RM2k tampoco desentona: allá
 la ventana se abre con una animación.
 
-**Lo que todavía no está: el operando del opcode.** `OP_MENSAJE` no lleva
-ninguno, así que la ROM muestra el único mensaje que el conversor emitió con
-`--mensaje-de-prueba`. Falta que lleve el desplazamiento dentro del bloque de
-mensajes y que el conversor compile los `ShowMessage` del juego, que es lo que
-destraba las 144 páginas.
+**De dónde sale el texto: el operando del opcode.** `OP_MENSAJE` lleva un
+desplazamiento de 16 bits dentro del bloque `mensajes`, que es de la ROM entera
+y no del mapa. El conversor lo arma mientras compila las páginas —cada
+`ShowMessage` deja su texto y se lleva su desplazamiento— y lo deduplica, que en
+el juego entero son 2477 cuadros distintos de 2895.
+
+Dieciséis bits alcanzan porque el bloque tiene que entrar **entero en un banco**
+de 32 KB, y eso no es una casualidad de tamaño: lo lee `lda [msg_ptr], y` con un
+puntero que el compositor incrementa de a un byte y que **no arrastra al byte de
+banco**. Por eso el conversor lo emite con `.bloque`, que rellena hasta el banco
+siguiente si no entra, y por eso `msg_empezar` puede sumarle el desplazamiento
+al byte bajo y nada más. Si algún día no entra, lo que hay que agrandar es el
+puntero, no el operando.
+
+**Lo que no compila y por qué.** El texto de este juego usa dos códigos de
+escape de RM2k: `\|`, que es una pausa de un segundo, y `\^`, que cierra el
+cuadro sin esperar a que el jugador apriete nada. Son 35 líneas en 17 páginas, y
+las dos cosas son tiempo, no texto. Una página que los use **no compila**:
+dibujarlos como dos letras se vería, y borrarlos calladito sería peor, porque
+con `\^` la ROM quedaría esperando un A que RM2k nunca pidió y la página
+pasaría a durar lo que tarde el jugador. Cuando el compositor sepa pausar y
+autocerrar, esto se cae solo.
+
+Y llevar ventana es una decisión explícita del conversor, **`--con-ventana`**,
+que `--mensaje-de-prueba` implica. Cuesta 8 KB de VRAM y una paleta, así que una
+ROM que no la lleve no tiene dónde dibujar un mensaje y sus `ShowMessage` no
+compilan: el opcode lo habilita la ventana, no al revés.
 
 El ciclo son tres piezas y ninguna corre donde uno esperaría:
 
@@ -530,6 +552,29 @@ justo lo que hundía al intento anterior:
     cuadro  23   camara_x 726, resto 6   antes 3198, ahora 0
     cuadro  50   camara_y 700, resto 4   antes 5964, ahora 0
     cuadro 130   la ruta ya bajó doce celdas   antes 11705, ahora 0
+
+Y que el texto salga **del juego** y no de un flag lo prueba `just snes-texto`,
+que es lo único que corre ese camino. Todo lo demás de la ventana usa
+`--mensaje-de-prueba`: tres líneas inventadas en una página inventada, que
+prueban el dibujo, el bloqueo y el cierre pero no que un `ShowMessage` compile
+ni que el operando encuentre su texto.
+
+El mapa 255 se eligió midiendo. Tiene una página automática **sin condición de
+switch** —o sea que corre al entrar— cuyo código entero es esto:
+
+    07 0000     OP_MENSAJE @0     "BRIDGE OVER THE RIVER LASHE" y tres líneas
+    07 7c00     OP_MENSAJE @124   otras cuatro
+    01 5003 01  el switch 848
+
+De ahí salen las tres cosas que ninguna otra receta mira. El **desplazamiento**:
+el segundo mensaje está en el 124, así que si el operando se ignorara se vería el
+primero dos veces. Los **cuatro renglones**, contra los tres del mensaje de
+prueba. Y el **encadenado**: al apretar A el primero se cierra y el segundo se
+abre en el mismo cuadro, que es la regla que los dos lados escriben por separado.
+
+Los cuadros 60 y 400 dan 0 de 57344, y **entre ellos difieren en 2869 pixeles**,
+todos en las filas de la ventana: si el A no avanzara al segundo mensaje serían
+cero y la receta daría verde sin probar nada.
 
 ### Cómo se verifica
 
@@ -1173,23 +1218,32 @@ comparación.
   Mientras tanto el héroe queda parado adentro del caño, que es donde RM2k
   también lo deja: ahí no camina nadie, sigue el script.
 * **Lo que le falta al juego entero, medido.** De las 489 páginas automáticas
-  con comandos, hoy compilan enteras **16**. Y esto es cuántas pasarían a
-  compilar con cada comando hecho —`just snes-destraba`—:
+  con comandos, hoy compilan enteras **71** —eran 16 antes de que los cuadros de
+  texto compilaran—. Y esto es cuántas pasarían a compilar con cada comando
+  hecho, contando una ROM que lleve la ventana —`just snes-destraba`—:
 
-      ShowMessage               +55      ConditionalBranch      +0
-      FlashSprite               +23      WeatherEffects         +0
-      PlaySound                  +5      FullHeal               +0
-      ControlVars                +4      PanScreen              +0
-      MoveEvent de otro evento   +3      ChangeItems            +0
-      TintScreen con saturación  +2      FadeOutBGM             +0
-      ChangeEventLocation        +1      CallEvent              +0
+      MoveEvent de otro evento  +40      WeatherEffects         +0
+      FlashSprite               +23      FullHeal               +0
+      PlaySound                  +6      ChangeItems            +0
+      ControlVars                +4      CallEvent              +0
+      TintScreen con saturación  +4
+      ConditionalBranch          +3
+      ChangeEventLocation        +1
+      PanScreen                  +1
+      FadeOutBGM                 +1
+
+  Puestos los trece juntos se llega a **305 de 489**. Y lo que seguiría cortando
+  después de todos ésos lo encabeza `ShowBattleAnimation` con 22, seguido de
+  `ShowChoice` con 12 y de los 11 cuadros de texto con códigos de escape.
 
   **Este número no es el que estaba escrito acá antes, y la diferencia importa.**
   Lo de antes contaba qué comando corta **primero** cada página —ShowMessage
   144, CallEvent 98, MoveEvent 60— y eso no es lo que se destraba: una página
   cortada por un cuadro de texto puede estar cortada además por otras cuatro
   cosas. Con el número bueno, la conclusión sobre los cuadros de texto se
-  sostiene igual, pero las de abajo cambian de lugar.
+  sostuvo —eran +55, y hechos dieron exactamente eso— pero las de abajo cambian
+  de lugar, y `MoveEvent` sobre otro evento pasó de +3 a +40 al hacerlos: eran
+  las mismas páginas, contadas detrás del corte que ya no está.
 
   Dos trampas que costaron una medición mal hecha cada una, y que están
   anotadas en `tools/destraba.py` para no volver a pisarlas:

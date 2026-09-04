@@ -32,6 +32,26 @@ CHANGE_PARTY_MEMBERS = 10330
 PLAY_BGM = 11510
 MOVE_EVENT = 11330
 
+# Un cuadro de texto. RM2k emite un `ShowMessage` con la primera línea y un
+# `ShowMessage_2` por cada una de las que siguen del mismo cuadro: son un solo
+# comando —una ventana, una espera del jugador— y quien los cuente por separado
+# mide cualquier cosa. Ya pasó: contándolos aparte, los cuadros de texto
+# parecían destrabar tres páginas en vez de cincuenta y cinco.
+SHOW_MESSAGE = 10110
+SHOW_MESSAGE_2 = 20110
+
+# Los códigos de escape que el texto de este juego usa: `\|` es una pausa de un
+# segundo y `\^` cierra el cuadro sin esperar a que el jugador apriete nada.
+# Los dos son tiempo, no texto, y no los hacemos.
+#
+# Una página que los use no compila, y eso es a propósito. Dibujarlos como dos
+# letras se vería —son 35 líneas del juego—, y borrarlos calladito sería peor:
+# con `\^` el cuadro se cierra solo, así que la ROM quedaría esperando un A que
+# RM2k nunca pidió y la página entera pasaría a durar lo que tarde el jugador.
+# Son 17 páginas de las 279 con texto; cuando el compositor sepa pausar y
+# autocerrar, esto se cae solo.
+ESCAPE = "\\"
+
 # Una ruta forzada de MoveEvent. Los parámetros son (a quién, frecuencia, un
 # bitmask de repetición, si es salteable) y de ahí en adelante los comandos de
 # la ruta, con los códigos de `rpg::MoveCommand::Code` de liblcf.
@@ -103,20 +123,23 @@ OP_ESPERAR  = 0x03      # cuadros (word): la cinemática espera seis
 OP_TINTE    = 0x04      # r, g, b, sat (byte cada uno)
 OP_GRUPO    = 0x05      # operación (byte), actor (byte)
 OP_RUTA     = 0x06      # cuántos comandos (byte), y los comandos
-OP_MENSAJE  = 0x07      # sin operandos: abre la ventana de mensaje de esta ROM
-                        # y bloquea la página hasta que el jugador apriete A
+OP_MENSAJE  = 0x07      # desplazamiento (word) dentro del bloque `mensajes`:
+                        # abre esa ventana y bloquea la página hasta que el
+                        # jugador apriete A
 
-# Por qué no lleva operandos, que es la parte que hay que entender antes de
-# tocar esto. Una página de mensaje compuesta son ~240 tiles de 4bpp, o sea
-# 7,5 KB: emitir una por cada mensaje del juego no entra ni cerca en un
-# cartucho de 256 KB. La salida es la de FF6 —componer el texto en tiles desde
-# el 65816, con la fuente en la ROM— y hasta que eso exista la ROM lleva **una
-# sola** ventana ya compuesta, la que arma `--mensaje-de-prueba`.
+# El operando es un desplazamiento y no un texto, y eso es lo que hace que
+# entre. Una página de mensaje ya compuesta son ~240 tiles de 4bpp, o sea
+# 7,5 KB, y emitir una por cada cuadro de texto del juego no entra ni cerca en
+# un cartucho de 256 KB: los 2895 cuadros serían 21 MB. Lo que se emite es el
+# texto —un byte por letra— y lo compone el 65816 en caliente, con la fuente en
+# la ROM, que es la salida de FF6. Los mismos 2895 cuadros son 180 KB de texto,
+# y un mapa solo bastante menos.
 #
-# O sea que el `ShowMessage` de RM2k **sigue sin compilar**: este opcode existe
-# para que el intérprete sepa abrir, bloquear y cerrar, que es lo que le faltaba
-# y lo que deja de ser código muerto a `redibujar_franja`. Cuando el texto se
-# componga en caliente, el opcode gana un operando y nada más de esto cambia.
+# Dieciséis bits alcanzan porque el bloque tiene que entrar en un banco de
+# 32 KB: lo lee `lda [msg_ptr], y` con un puntero que se incrementa de a un
+# byte y **no** arrastra al byte de banco, así que `bloque()` lo emite con
+# `.bloque`, que rellena para que no cruce. Si algún día no entra, lo que hay
+# que agrandar es el puntero, no el operando.
 
 # ControlSwitches: el primer parámetro dice de dónde salen los ids y el último
 # qué hacer con ellos (liblcf, ControlSwitches::Operation).
@@ -144,22 +167,145 @@ class NoSePuede(Exception):
     """Esta página tiene algo que la ROM todavía no sabe hacer."""
 
 
-def compilar_pagina(page, indice_de_mapa):
+class Mensajes:
+    """El bloque de textos de la ROM, y el desplazamiento de cada cuadro.
+
+    Es de la ROM entera y no del mapa: `OP_MENSAJE` lleva un desplazamiento
+    dentro de este bloque, así que todos los mapas comparten la numeración y el
+    conversor lo emite una sola vez. Lo repetido se guarda una sola vez —el
+    juego repite cuadros enteros, y son 418 de 2895— y sale gratis porque el
+    contenido ya es la clave.
+
+    **Los dos lados lo arman en el mismo orden.** El conversor para emitirlo y
+    la referencia para saber qué texto dibujar cuando el bytecode abra un
+    mensaje; si se juntaran en otro orden, el mismo desplazamiento nombraría
+    otro texto y la comparación mediría dos juegos distintos. Por eso la
+    referencia compila todos los mapas de la tabla al construirse, en vez de
+    hacerlo cuando el héroe pisa cada uno.
+    """
+
+    def __init__(self):
+        self.datos = bytearray()
+        self.donde = {}         # las líneas ya guardadas -> su desplazamiento
+        self.textos = {}        # y la vuelta, que es lo que usa la referencia
+
+    def agregar(self, lineas):
+        """El desplazamiento de este cuadro, guardándolo si es la primera vez.
+
+        El recorte a lo que entra en un renglón se hace **acá**, antes de
+        deduplicar: dos textos que sólo difieran en lo que se corta son el
+        mismo cuadro en pantalla, y darles dos desplazamientos distintos sería
+        emitir dos veces los mismos bytes.
+        """
+        import ventana as ventana_mod
+        lineas = tuple(t[:ventana_mod.COLUMNAS]
+                       for t in list(lineas)[:ventana_mod.LINEAS])
+        if lineas not in self.donde:
+            donde = len(self.datos)
+            self.datos += mensaje_bytes(lineas)
+            if len(self.datos) > 0x10000:
+                raise SystemExit(
+                    "los mensajes de esta ROM son %d bytes y el operando de "
+                    "OP_MENSAJE es de 16 bits" % len(self.datos))
+            self.donde[lineas] = donde
+            self.textos[donde] = lineas
+        return self.donde[lineas]
+
+    def lineas(self, donde):
+        """Las líneas que hay en ese desplazamiento. Es lo que dibuja la
+        referencia: la ROM lee los mismos bytes del cartucho."""
+        return self.textos[donde]
+
+    def marca(self):
+        return len(self.datos)
+
+    def volver(self, marca):
+        """Deshace lo agregado desde `marca`.
+
+        Hace falta porque una página se compila comando por comando y puede
+        cortarse en el último: sin esto, el texto de todas las páginas que **no**
+        compilan quedaría igual en el cartucho. No es una micro-optimización,
+        son los 161 KB del juego entero contra los pocos que hacen falta.
+        """
+        del self.datos[marca:]
+        self.donde = {k: v for k, v in self.donde.items() if v < marca}
+        self.textos = {k: v for k, v in self.textos.items() if k < marca}
+
+    def bytes(self):
+        # Nunca vacío: el ensamblador necesita la etiqueta resuelta aunque la
+        # ROM no vaya a leerla.
+        return bytes(self.datos) or b"\x00"
+
+
+def mensaje_bytes(lineas):
+    """Un cuadro de texto como lo lee la ROM: cuántas líneas, y cada una con su
+    largo.
+
+    Los caracteres van como índice en la tabla de la fuente, o sea el ASCII
+    menos 32. Todo el texto de este juego entra ahí: se midió, y no tiene una
+    sola letra acentuada.
+    """
+    import ventana as ventana_mod
+    out = bytearray([min(len(lineas), ventana_mod.LINEAS)])
+    for texto in list(lineas)[:ventana_mod.LINEAS]:
+        texto = texto[:ventana_mod.COLUMNAS]
+        out.append(len(texto))
+        for ch in texto:
+            if not 32 <= ord(ch) < 127:
+                raise SystemExit("el mensaje tiene un caracter que no está en "
+                                 "la fuente: %r" % ch)
+            out.append(ord(ch) - 32)
+    return bytes(out)
+
+
+def agrupar(comandos):
+    """Los comandos de a uno, salvo los cuadros de texto.
+
+    Devuelve (comando, líneas de más), donde las de más son los
+    `ShowMessage_2` que siguen a un `ShowMessage` y son parte del mismo cuadro.
+    Un `ShowMessage_2` suelto se devuelve solo y no compila, que es lo correcto:
+    sería una línea sin ventana donde ponerla.
+
+    Lo usan los dos que filtran páginas —`compilar_pagina` y `destraba.py`—
+    porque el agrupado es parte del filtro, no del emisor: contar los comandos
+    por separado es lo que hizo medir mal cuánto destrababa hacer los cuadros
+    de texto.
+    """
+    comandos = list(comandos)
+    i = 0
+    while i < len(comandos):
+        j = i + 1
+        if comandos[i].code == SHOW_MESSAGE:
+            while j < len(comandos) and comandos[j].code == SHOW_MESSAGE_2:
+                j += 1
+        yield comandos[i], [c.string for c in comandos[i + 1:j]]
+        i = j
+
+
+def compilar_pagina(page, indice_de_mapa, mensajes=None):
     """Los comandos de una página como bytes, o None si no se puede.
 
     `indice_de_mapa` traduce el id de mapa de RM2k al índice en la tabla de la
     ROM, y devuelve None para los mapas que no entraron en el cartucho: un
     teletransporte hacia uno de ésos hace que la página no sea ejecutable, que
     es más honesto que saltar a cualquier lado.
+
+    `mensajes` es el bloque de textos de la ROM. Sin él los cuadros de texto no
+    compilan, y no es una opción de gusto: la ventana ocupa 8 KB de VRAM y una
+    paleta, así que una ROM que no la lleve no tiene dónde dibujarlos.
     """
+    marca = mensajes.marca() if mensajes is not None else None
     try:
-        return b"".join(_compilar(cmd, indice_de_mapa)
-                        for cmd in page.commands) + bytes([OP_FIN])
+        return b"".join(_compilar(cmd, indice_de_mapa, mensajes, extra)
+                        for cmd, extra in agrupar(page.commands)) \
+            + bytes([OP_FIN])
     except NoSePuede:
+        if mensajes is not None:
+            mensajes.volver(marca)
         return None
 
 
-def _compilar(cmd, indice_de_mapa):
+def _compilar(cmd, indice_de_mapa, mensajes=None, extra=()):
     p = cmd.parameters
 
     if cmd.code == END or cmd.code in IGNORABLES:
@@ -240,6 +386,15 @@ def _compilar(cmd, indice_de_mapa):
         # importa; lo que se pierde es el degradé de un segundo.
         return bytes([OP_TINTE, p[0], p[1], p[2], p[3]])
 
+    if cmd.code == SHOW_MESSAGE:
+        if mensajes is None:
+            raise NoSePuede()   # esta ROM no lleva ventana: no hay dónde
+        lineas = [cmd.string] + list(extra)
+        if any(ESCAPE in t for t in lineas):
+            raise NoSePuede()   # ver ESCAPE, arriba
+        donde = mensajes.agregar(lineas)
+        return bytes([OP_MENSAJE, donde & 0xFF, donde >> 8])
+
     raise NoSePuede()
 
 
@@ -272,10 +427,17 @@ class Estado:
         # Cuántos cuadros seguidos lleva moviéndose, para la pose de caminata.
         # `animate_hero` lo reinicia en cuanto se queda quieto.
         self.cuadros_moviendose = 0
-        # Si hay una ventana de mensaje en pantalla. Mientras esté abierta la
-        # página no avanza —es lo que hace `Game_Message`— pero todo lo demás
-        # sí: la ruta forzada del héroe sigue caminando y la cámara lo sigue.
-        self.mensaje = False
+        # El desplazamiento del cuadro de texto que está en pantalla, o None
+        # si no hay ninguno. Mientras esté abierto la página no avanza —es lo
+        # que hace `Game_Message`— pero todo lo demás sí: la ruta forzada del
+        # héroe sigue caminando y la cámara lo sigue.
+        #
+        # Es None y no False porque el desplazamiento 0 es un mensaje válido, y
+        # de hecho es el que más se usa: `--mensaje-de-prueba` va primero en el
+        # bloque justamente para no depender de en qué orden se compilen los
+        # mapas. Todo lo que pregunte por esto tiene que preguntar `is not
+        # None`.
+        self.mensaje = None
 
     def cuadro_de_ruta(self, puede):
         """Un cuadro de la ruta forzada. `puede(direccion)` dice si se puede dar
@@ -355,7 +517,7 @@ def pagina_activa(paginas, evento, estado):
     return elegida
 
 
-def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=False):
+def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None):
     """Una página automática inventada: una ruta forzada, una espera, un tinte.
 
     No sale de ningún dato del juego, y ésa es la idea. El intérprete corre
@@ -372,16 +534,19 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=False):
 
     La escribe el conversor con `--pagina-de-prueba` y la corre la referencia
     con la misma función, que es lo que garantiza que sea el mismo programa.
+
+    `mensaje` es el desplazamiento del cuadro de texto en el bloque de la ROM,
+    o None si esta página no abre ninguno.
     """
     codigo = b""
     if ruta:
         codigo += bytes([OP_RUTA, len(ruta)]) + bytes(ruta)
-    if mensaje:
+    if mensaje is not None:
         # El mensaje va antes de la espera y del tinte a propósito: bloquea, así
         # que lo que venga después es lo que prueba que la página **siguió**
         # cuando se apretó A. Con el tinte detrás, antes de apretar la pantalla
         # está sin teñir y después está teñida, igual que en `snes-espera`.
-        codigo += bytes([OP_MENSAJE])
+        codigo += bytes([OP_MENSAJE, mensaje & 0xFF, mensaje >> 8])
     if espera:
         codigo += bytes([OP_ESPERAR, espera & 0xFF, espera >> 8])
     if tinte:
@@ -431,14 +596,14 @@ class Interprete:
         que lo tenga apretado: RM2k cierra el mensaje con `IsTriggered`, o sea
         con el flanco. En la ROM eso es `pad_a` contra `pad_a_ant`.
         """
-        if self.estado.mensaje:
+        if self.estado.mensaje is not None:
             if not apreto_a:
                 return False
             # Se cierra y la página sigue **en el mismo cuadro**, que es lo que
             # hace la ROM: `eventos_tick` limpia `msg_abierto` y cae en el
             # `jsr correr_codigo` de siempre. Cerrar acá y seguir el cuadro
             # siguiente sería un cuadro de diferencia entre los dos lados.
-            self.estado.mensaje = False
+            self.estado.mensaje = None
         if self.esperando:
             self.esperando -= 1
             return False
@@ -472,7 +637,7 @@ def correr_automaticos(paginas, estado, cuadros=100000):
     for _ in range(cuadros):
         if interprete.cuadro():
             return estado.salto
-        if interprete.terminado or estado.mensaje:
+        if interprete.terminado or estado.mensaje is not None:
             # Con un mensaje abierto no hay a quién esperar: acá no hay
             # jugador. Se corta con la ventana en pantalla, que es exactamente
             # lo que hace la consola si nadie aprieta nada. Quien quiera
@@ -536,8 +701,8 @@ def ejecutar(codigo, estado, desde=0):
             # siguiente, pero `Interprete.cuadro` no vuelve a llegar acá hasta
             # que alguien apriete A: la página queda bloqueada, que es lo que
             # hace `Game_Message` en RM2k.
-            estado.mensaje = True
-            return (i + 1, 0, False)
+            estado.mensaje = codigo[i + 1] | (codigo[i + 2] << 8)
+            return (i + 3, 0, False)
         elif op == OP_GRUPO:
             estado.cambiar_grupo(codigo[i + 1], codigo[i + 2])
             i += 3
@@ -573,7 +738,7 @@ def deudas_de_la_pagina(page):
                    if cmd.code in ACEPTADOS_SIN_HACER})
 
 
-def paginas_del_mapa(game_map, indice_de_mapa):
+def paginas_del_mapa(game_map, indice_de_mapa, mensajes=None):
     """Las páginas que la ROM necesita para resolver los eventos automáticos.
 
     Se emiten *todas* las páginas de un evento que tenga alguna automática, no
@@ -599,7 +764,7 @@ def paginas_del_mapa(game_map, indice_de_mapa):
             cond = page.condition
             codigo = None
             if page.trigger == TRIGGER_AUTOMATICO:
-                codigo = compilar_pagina(page, indice_de_mapa)
+                codigo = compilar_pagina(page, indice_de_mapa, mensajes)
             grupo.append({
                 "evento": numero_evento,
                 "pagina": numero_pagina,

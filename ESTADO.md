@@ -166,7 +166,8 @@ de ruta que seguimos sin aceptar. Así que lo único que ejercita esto es
 mismo, el tope de ocho saltos no hace falta volver a medirlo: no compila ninguna
 página nueva, así que ninguna cadena de teletransportes cambió.
 
-**En curso: `ShowMessage`.** Decidido el 2026-09-04, y antes que la cinemática,
+**Cerrado el 2026-09-04: `ShowMessage`.** Decidido ese mismo día, y antes que
+la cinemática,
 porque es lo que más destraba: de las 473 páginas automáticas que no compilan,
 **144 las corta un cuadro de texto**, contra 60 de `MoveEvent` y 47 de
 `ConditionalBranch`. La cinemática además tiene texto igual.
@@ -451,12 +452,14 @@ rompiéndola: sin `redibujar_franja` el cuadro 400 da 15789, y sin bloquear el
 cuadro 60 da 36848. Es la primera prueba que ejercita `redibujar_franja`, que
 hasta hoy no la llamaba nadie.
 
-**El `ShowMessage` de RM2k sigue sin compilar, y el opcode no lleva operandos a
-propósito.** Una página de mensaje compuesta son ~240 tiles de 4bpp, o sea
-7,5 KB: emitir una por mensaje no entra ni cerca en 256 KB. La ROM lleva una
-sola ventana ya compuesta hasta que el texto se arme en caliente desde el 65816,
-como FF6. O sea que esto no desbloquea ninguna de las 144 páginas: lo que
-desbloquea es el intérprete, que ya sabe abrir, bloquear y cerrar.
+**El `ShowMessage` de RM2k todavía no compilaba, y el opcode no llevaba
+operandos.** Una página de mensaje ya compuesta son ~240 tiles de 4bpp, o sea
+7,5 KB: emitir una por mensaje no entra ni cerca en 256 KB. Hasta que el texto
+se armara en caliente desde el 65816, como FF6, la ROM llevaba una sola ventana
+compuesta por el conversor. O sea que esto no desbloqueaba ninguna de las 144
+páginas: lo que desbloqueaba era el intérprete, que ya sabía abrir, bloquear y
+cerrar. Las dos cosas que faltaban se hicieron el mismo día —el compositor
+primero y el operando después—; está más abajo.
 
 `snes-cerrar` entró además en `snes-bsnes`, en el lugar de `snes-ventana`:
 cubre lo mismo —su primer cuadro es la ventana dibujada— y algo más.
@@ -547,7 +550,7 @@ Y los tres cores dibujan el mismo cuadro con HDMA adentro, medido sobre el 23.
   una ventana. Por eso el número de mapas sin ventana pasó de 2 a 3: el 2 estaba
   mal contado.
 
-`snes-hitos` quedó en **33 casos**, todos en verde, 72 segundos repartida en
+`snes-hitos` quedó en **34 casos**, todos en verde, 72 segundos repartida en
 seis.
 
 **Hecho el 2026-09-04: la ROM compone el texto.** La fuente está en el
@@ -589,12 +592,80 @@ De paso quedó confirmado con qué llena snes9x la WRAM: **$55**. Se vio leyénd
 en el primer cuadro, `msg_estado = 85`. Es lo que explica que `ruta_n` y
 `ruta_i` sin inicializar quedaran iguales y el error desapareciera.
 
-**Lo que falta de la ventana**, y ahora es chico: **el operando de
-`OP_MENSAJE`**. Hoy no lleva ninguno, así que la ROM muestra el único mensaje
-que el conversor emitió con `--mensaje-de-prueba`. Falta que lleve el
-desplazamiento dentro del bloque de mensajes y que el conversor compile los
-`ShowMessage` del juego, que es lo que destraba las 144 páginas —de 16 a 71,
-medido con `just snes-destraba`—.
+**Hecho el 2026-09-04, y con esto la ventana queda cerrada: el operando de
+`OP_MENSAJE`.** Ahora lleva un desplazamiento de 16 bits dentro del bloque
+`mensajes`, y el conversor compila los `ShowMessage` del juego. Las páginas que
+compilan enteras pasaron de **16 a 71**, medido con `just snes-destraba`, que es
+exactamente el número que se había prometido.
+
+El bloque de textos es de la ROM entera y no del mapa, y lo arma
+`eventos.Mensajes` mientras se compilan las páginas: cada cuadro de texto deja
+su texto ahí y se lleva un desplazamiento. Tres decisiones que no se deducen
+leyendo el código:
+
+* **Los dos lados lo arman en el mismo orden**, porque el desplazamiento sale de
+  ese orden y de nada más. El conversor recorre los mapas de la tabla; la
+  referencia, que hasta ahora compilaba cada mapa cuando el héroe lo pisaba, los
+  compila **todos al construir el `Mundo`**. Si no, una puerta que llevara al
+  mapa 3 antes que al 1 le daría al mismo texto otro número que el que emitió el
+  conversor, y los dos lados dibujarían mensajes distintos con el mismo
+  bytecode. El mensaje de `--mensaje-de-prueba` va primero de todo, así que su
+  desplazamiento es 0 y no depende de nada.
+* **Una página que no compila no deja su texto en el cartucho.** La página se
+  compila comando por comando y puede cortarse en el último; sin deshacer lo
+  agregado, el texto de las 418 páginas que **no** compilan viajaría igual. Son
+  los 161 KB del juego entero contra los pocos que hacen falta.
+* **Llevar ventana es ahora una decisión explícita, `--con-ventana`**, y
+  `--mensaje-de-prueba` la implica. No es de gusto: la ventana cuesta 8 KB de
+  VRAM y una paleta, así que una ROM que no la lleve no tiene dónde dibujar un
+  mensaje y sus `ShowMessage` no compilan. Antes esa cuenta estaba escrita
+  cuatro veces como `getattr(args, "mensaje_de_prueba", None)`, y con eso el
+  reparto de CGRAM y el de VRAM podían contestar cosas distintas.
+
+* **Los otros dos lugares que filtran páginas tuvieron que aprender la misma
+  regla.** El aviso de deudas —el que dice "esta página usa `PlayBGM` y la ROM
+  no lo hace"— y `lideres_posibles`, que decide qué actores pueden llegar a
+  dibujarse como héroe y por lo tanto qué sprites van a la VRAM. Los dos
+  recompilaban las páginas con su propio criterio, y sin el bloque de textos una
+  página que agregue a alguien al grupo después de un cuadro de texto les
+  parecía no compilar: el actor se quedaba sin sus tiles y la ROM lo iba a
+  dibujar con los del anterior. Es la trampa de siempre —dos filtros que dicen
+  cosas distintas sobre el mismo dato— y no la habría visto ninguna comparación
+  de las que hay.
+
+**Lo prueba `snes-texto`, que es lo que ninguna receta anterior probaba.** Todas
+las de la ventana usan `--mensaje-de-prueba`: tres líneas inventadas en una
+página inventada. Eso probaba el dibujo, el bloqueo y el cierre, pero el camino
+nuevo —que un `ShowMessage` compile, que su texto entre al bloque y que el
+operando lo vuelva a encontrar— no lo corría **nada**, que es exactamente cómo
+sobrevivieron los tres errores del intérprete de eventos.
+
+El mapa 255 se eligió midiendo: tiene una página automática sin condición de
+switch cuyo código entero son dos cuadros de texto seguidos y un switch. De ahí
+salen las tres cosas que faltaba mirar —que el segundo mensaje está en el
+desplazamiento 124 y no en el 0, que tiene cuatro renglones y el de prueba tenía
+tres, y que al apretar A el primero se cierra y el segundo se abre en el mismo
+cuadro—. Los cuadros 60 y 400 dan 0 de 57344 contra la referencia, y **entre
+ellos difieren en 2869 pixeles**, todos en las filas de la ventana: si el A no
+avanzara al segundo mensaje serían cero y la receta daría verde sin probar nada.
+
+Lo que **no** compila, dicho con todas las letras: **las páginas con códigos de
+escape**. Este juego usa dos, `\|` —una pausa de un segundo— y `\^` —cerrar el
+cuadro sin esperar al jugador—, en 35 líneas y 17 páginas. Dibujarlos como dos
+letras se vería; borrarlos calladito sería peor, porque con `\^` la ROM quedaría
+esperando un A que RM2k nunca pidió y la página pasaría a durar lo que tarde el
+jugador. Son 11 de las 305 que quedarían si se hiciera todo lo demás.
+
+**Y el despacho del intérprete dejó de tener un límite de alcance.** Era una
+cadena de `beq` al cuerpo de cada opcode, y un `beq` llega a 127 bytes: el
+cuerpo del último opcode está detrás de todos los demás, así que el límite lo
+marca la suma de los otros. Cortó dos veces —OP_MENSAJE dejó a OP_TELEPORT a 140
+bytes, se arregló ordenando las comparaciones como los cuerpos, y darle su
+operando a OP_MENSAJE lo mandó a 129, o sea que aquel arreglo duraba exactamente
+un opcode—. Ahora cada opcode se despacha con `bne :+` y `jmp`, que llega a
+cualquier parte del banco. Sale tres bytes y cuatro ciclos por opcode que no
+matchea, en un despacho que corre unas pocas veces por cuadro, y saca del medio
+un corte que iban a volver a pagar los cuatro comandos que siguen.
 
 Y falta el reacomodo del texto, que taro pidió dejar **para otro hito**: la fase
 1 trunca y queda medio ilegible a propósito. A 40 columnas eso es el 1,06% de

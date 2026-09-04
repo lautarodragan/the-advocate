@@ -846,26 +846,6 @@ def fuente_bytes(font_id):
     return bytes(out)
 
 
-def mensaje_bytes(lineas):
-    """Un mensaje como lo lee la ROM: cuántas líneas, y cada una con su largo.
-
-    Los caracteres van como índice en la tabla de la fuente, o sea el ASCII
-    menos 32. Lo que no entra en MENSAJE_COLS se trunca acá, que es la decisión
-    de la fase 1 y el mismo tope que aplica la referencia.
-    """
-    import ventana as ventana_mod
-    out = bytearray([min(len(lineas), ventana_mod.LINEAS)])
-    for texto in list(lineas)[:ventana_mod.LINEAS]:
-        texto = texto[:ventana_mod.COLUMNAS]
-        out.append(len(texto))
-        for ch in texto:
-            if not 32 <= ord(ch) < 127:
-                raise SystemExit("el mensaje tiene un caracter que no está en "
-                                 "la fuente: %r" % ch)
-            out.append(ord(ch) - 32)
-    return bytes(out)
-
-
 def build_blocks(tilemap, above_tilemap, passable, width, height):
     """El mapa como índices a bloques de 16x16, con su tabla.
 
@@ -1522,9 +1502,15 @@ def main():
                              "que abre una ventana de mensaje con estas "
                              "líneas y espera a que el jugador apriete A. Es "
                              "lo sintético de siempre —como "
-                             "--pagina-de-prueba— y existe porque el "
-                             "ShowMessage del juego todavía no compila: la "
-                             "ROM lleva una sola ventana ya compuesta")
+                             "--pagina-de-prueba—: sirve para comparar la "
+                             "apertura y el cierre sin depender de qué diga "
+                             "el juego. Implica --con-ventana")
+    parser.add_argument("--con-ventana", action="store_true",
+                        help="la ROM lleva la ventana de mensaje: 8 KB de "
+                             "VRAM, una paleta y la fuente. Es lo que hace "
+                             "que los ShowMessage del juego compilen, y lo "
+                             "que se lo cobra a los tiles del mapa —tres "
+                             "mapas del juego no pueden llevarla—")
     parser.add_argument("--ruta-de-prueba", nargs="+", type=int, default=None,
                         metavar="ORDEN",
                         help="agrega a la página de prueba una ruta forzada "
@@ -1568,6 +1554,12 @@ def main():
                              "centro. Sirve para llevar la cámara a un lugar "
                              "puntual sin tener que caminar hasta él")
     args = parser.parse_args()
+    # Llevar ventana no es lo mismo que traer un mensaje de prueba, pero uno
+    # implica al otro. De acá para abajo se pregunta `args.con_ventana` y
+    # nada más: era `getattr(args, "mensaje_de_prueba", None)` repetido en
+    # cuatro lugares, y con eso el reparto de CGRAM y el de VRAM podían
+    # contestar cosas distintas.
+    args.con_ventana = args.con_ventana or args.mensaje_de_prueba is not None
 
     renderer = Renderer(args.game_dir)
 
@@ -1590,7 +1582,7 @@ def main():
     # alguien que después camina por el mapa B.
     args_game_dir[0] = args.game_dir
     todos = [args.map_id] + [m for m in (args.mapas or []) if m != args.map_id]
-    args.lideres = lideres_posibles(renderer, todos, grupo)
+    args.lideres = lideres_posibles(renderer, todos, grupo, args.con_ventana)
 
     mapas = [convertir(renderer, map_id, args,
                        inicio=args.inicio if map_id == args.map_id else None)
@@ -1599,6 +1591,21 @@ def main():
     # Las puertas se resuelven cuando están todos los mapas: una puede llevar a
     # cualquier otro, así que el índice de destino no se sabe hasta el final.
     indices = {mapa["id"]: numero for numero, mapa in enumerate(mapas)}
+
+    # El bloque de textos es de la ROM entera y se arma mientras se compilan las
+    # páginas: cada `ShowMessage` deja su texto acá y se lleva un
+    # desplazamiento, que es lo que va en el bytecode. La referencia arma el
+    # mismo bloque en el mismo orden.
+    #
+    # El mensaje de prueba va **primero**, antes de todos los mapas, y eso no es
+    # estético: así su desplazamiento es 0 y no depende de cuántos textos traiga
+    # el mapa donde arranca la ROM ni de en qué orden se compilen. Es el único
+    # texto que no sale del juego, y el único cuyo desplazamiento alguien podría
+    # querer saber de memoria.
+    mensajes = eventos.Mensajes() if args.con_ventana else None
+    prueba = (mensajes.agregar(args.mensaje_de_prueba)
+              if args.mensaje_de_prueba is not None else None)
+
     for mapa in mapas:
         mapa["puertas"], afuera = puertas_bytes(mapa["puertas_crudas"], indices)
         cuantas = len(mapa["puertas"]) // PUERTA_BYTES
@@ -1610,7 +1617,8 @@ def main():
 
         # Los eventos automáticos: sus páginas con las condiciones, y el código
         # de las que se pueden ejecutar, todo seguido en un solo bloque.
-        paginas = eventos.paginas_del_mapa(mapa["game_map"], indices.get)
+        paginas = eventos.paginas_del_mapa(mapa["game_map"], indices.get,
+                                           mensajes)
         if (args.pagina_de_prueba or args.ruta_de_prueba
                 or args.mensaje_de_prueba is not None) \
                 and mapa is mapas[args.inicial]:
@@ -1626,8 +1634,7 @@ def main():
                 "trigger": eventos.TRIGGER_AUTOMATICO,
                 "switch_a": 0, "switch_b": 0, "actor": 0,
                 "codigo": eventos.pagina_de_prueba(
-                    espera, tinte, args.ruta_de_prueba or (),
-                    args.mensaje_de_prueba is not None)}]
+                    espera, tinte, args.ruta_de_prueba or (), prueba)}]
         codigo = bytearray()
         for pagina in paginas:
             pagina["offset"] = len(codigo)
@@ -1647,7 +1654,13 @@ def main():
             for page in evento.pages:
                 if page.trigger != eventos.TRIGGER_AUTOMATICO:
                     continue
-                if eventos.compilar_pagina(page, indices.get) is None:
+                # Con el mismo bloque de textos que arriba: si acá fuera
+                # None, una página con un cuadro de texto no compilaría y su
+                # deuda —un PlayBGM, digamos— quedaría sin avisar aunque la ROM
+                # sí la corra. Volver a agregar un texto que ya está no crece
+                # el bloque: la clave es el contenido.
+                if eventos.compilar_pagina(page, indices.get,
+                                           mensajes) is None:
                     continue
                 deudas |= set(eventos.deudas_de_la_pagina(page))
         for codigo_cmd in sorted(deudas):
@@ -1659,19 +1672,20 @@ def main():
     if not 0 <= args.inicial < len(mapas):
         sys.exit("--inicial %d pero hay %d mapas" % (args.inicial, len(mapas)))
     ventana_datos = None
-    if args.mensaje_de_prueba is not None:
+    if args.con_ventana:
         import ventana as ventana_mod
         skin = ventana_mod.skin(args.game_dir, renderer.database.system_name)
         font_id = renderer.database.font_id
         ventana_datos = convert_ventana(skin, font_id)
         ventana_datos["fuente"] = fuente_bytes(font_id)
-        ventana_datos["mensajes"] = mensaje_bytes(args.mensaje_de_prueba)
+        ventana_datos["mensajes"] = mensajes.bytes()
         print("  ventana de mensaje: %d tiles fijos + %d de texto, %d colores; "
-              "fuente %d B, mensaje %d B"
+              "fuente %d B, %d cuadro(s) de texto en %d B"
               % (len(ventana_datos["tiles"]) // 32,
                  len(ventana_datos["fondo"]) // 32,
                  sum(1 for w in ventana_datos["cram"] if w),
-                 len(ventana_datos["fuente"]), len(ventana_datos["mensajes"])))
+                 len(ventana_datos["fuente"]), len(mensajes.textos),
+                 len(ventana_datos["mensajes"])))
     emit(args.output, mapas, args.inicial, args.heroe_encima, grupo,
          ventana_datos)
     print("%d mapa(s) -> %s, arranca en el %d (mapa %d)"
@@ -1734,12 +1748,19 @@ def images_de(renderer, args, charset):
 _charsets = {}
 
 
-def lideres_posibles(renderer, map_ids, grupo):
+def lideres_posibles(renderer, map_ids, grupo, con_ventana=False):
     """Los actores que pueden llegar a dibujarse como héroe en esta ROM.
 
     El grupo con el que se arranca, más todos los que agregue un
     `ChangePartyMembers` de alguna página que compile. Sacar a alguien también
     cambia el líder, pero al siguiente de la lista, que ya está contado.
+
+    `con_ventana` tiene que ser el de la ROM que se está armando, porque decide
+    **qué páginas compilan**: una que agregue a alguien al grupo después de un
+    cuadro de texto compila con ventana y no compila sin ella. Filtrar distinto
+    acá que allá dejaría a ese actor sin sus tiles en la VRAM y la ROM lo
+    dibujaría con los del anterior. El bloque de textos que se arma es de
+    descarte: acá sólo importa el sí o el no.
 
     Hace falta porque los tiles del héroe viven en VRAM y no se cargan en
     caliente: si el líder puede cambiar a mitad de mapa, los sprites de todos
@@ -1752,7 +1773,9 @@ def lideres_posibles(renderer, map_ids, grupo):
                                         "Map%04d.lmu" % map_id))
         for evento in game_map.events:
             for page in evento.pages:
-                if eventos.compilar_pagina(page, indices.get) is None:
+                if eventos.compilar_pagina(
+                        page, indices.get,
+                        eventos.Mensajes() if con_ventana else None) is None:
                     continue
                 for cmd in page.commands:
                     if cmd.code != eventos.CHANGE_PARTY_MEMBERS:
@@ -1781,7 +1804,7 @@ def convertir(renderer, map_id, args, inicio=None):
         sys.exit("no encuentro el chipset del mapa %d" % map_id)
 
     (tile_data, cram, tilemap, summary), above_data = convert_layers(
-        base, _above, con_ventana=bool(getattr(args, 'mensaje_de_prueba', None)))
+        base, _above, con_ventana=args.con_ventana)
 
     # Los personajes: el héroe con sus 12 poses porque camina, y cada NPC con la
     # que declara su página. Si un NPC usa el mismo personaje que el héroe,
@@ -1908,7 +1931,7 @@ def convertir(renderer, map_id, args, inicio=None):
         "layout": vram_layout(
             len(tile_data) // BYTES_PER_TILE,
             len(sprite[0]) // 32 if sprite else 0,
-            con_ventana=bool(getattr(args, "mensaje_de_prueba", None))),
+            con_ventana=args.con_ventana),
         "resumen": summary, "base": base,
         "puertas_crudas": rm2k.collect_doors(game_map),
         # Se guarda el mapa entero porque las puertas y los eventos no se
