@@ -322,6 +322,24 @@ snes-mednafen:
 # La cadena entera queda atada de punta a punta: la referencia en Python está
 # verificada contra una captura de EasyRPG por `snes-oraculo`, y esto verifica
 # la consola contra la referencia.
+#
+# Los cuatro mapas de la tanda no son cuatro veces lo mismo. La ventana se lleva
+# la paleta que queda justo debajo de la capa de encima, y quién la paga cambia
+# de mapa en mapa:
+#
+#     7 y 6    al fondo le sobran paletas: no fusiona nada
+#     1        el que descubrió esto —el conversor cortaba— y fusiona 2
+#     348      fusiona 16, el máximo posible, y se ve
+#
+# El 348 está por eso último: es el único donde la fusión llega a la pantalla.
+# Con la referencia armada sin reservar la paleta, difiere en 45 pixeles; en el
+# mapa 1 da 0, porque los 2 colores que fusiona no aparecen en el cuadro. O sea
+# que sin el 348 el reparto con ventana del lado de la referencia no lo
+# ejercitaría nada.
+#
+# Y el 1 no es redundante: es el único de los cuatro que no entra en el tilemap
+# de 64x32, así que es el único que estampa la ventana sobre un mapa que la ROM
+# va redibujando.
 snes-ventana mapa="7" nombre="ventana":
   #!/usr/bin/env bash
   set -euo pipefail
@@ -479,6 +497,13 @@ snes-ruta mapa="6" ruta="1 1 1 1 23 23 2 2 2 2 23 23 0 0 0 0" cuadros="18 34 86 
 # No la reemplaza: mednafen no es un core de libretro, así que también prueba
 # que `tools/retro.py` no se esté equivocando parejo con los tres cores.
 #
+# El tercer caso es la ventana, y no está de adorno: es el código más nuevo y el
+# que más CGRAM y VRAM toca con la pantalla apagada —`load_ventana` sube tiles y
+# una paleta entera—, que es justo la clase de escritura que snes9x perdona.
+# Ahí ya nos mordió dos veces: el tinte que se aplicaba con el PPU dibujando, y
+# `ruta_n`/`ruta_i` sin inicializar. Sale casi gratis: son 200 cuadros, y la
+# receta entera pasó de 16 a 18 segundos.
+#
 # Va por CORE y no por `just --set` porque las recetas se llaman entre ellas: la
 # variable de entorno cruza a los `just` de adentro y el `--set` no.
 snes-bsnes:
@@ -486,6 +511,7 @@ snes-bsnes:
   set -euo pipefail
   CORE=bsnes just snes-evento 4 1 bsnes-evento
   CORE=bsnes just snes-caminando 73 right 60 bsnes-73-right
+  CORE=bsnes just snes-ventana 7 bsnes-ventana
 
 # Que una espera espere de verdad, con una página inventada.
 #

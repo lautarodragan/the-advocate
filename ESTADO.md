@@ -8,7 +8,7 @@ justamente para eso.
 Se escribe **mientras se trabaja**, no al final. Un resumen escrito al cerrar
 es la misma operación con pérdida que compactar, sólo que a un archivo.
 
-Última vez que se tocó: 2026-09-03.
+Última vez que se tocó: 2026-09-04.
 
 ## En vuelo
 
@@ -401,12 +401,43 @@ tramo del tilemap no puede cruzar la columna 32**: las dos pantallas del mapa de
 adelante. Cortando sólo en 64 quedaban cuatro columnas sin escribir y el mapa
 asomaba por el borde derecho de la ventana.
 
+**Hecho el 2026-09-04: la ventana entra en `snes-bsnes`.** Era el caso más nuevo
+y el que más CGRAM y VRAM toca con la pantalla apagada, o sea justo la clase de
+escritura que snes9x perdona y que ya nos mordió dos veces. La receta pasó de 16
+a 18 segundos. Doce corridas seguidas con `bsnes_entropy=High` dan el mismo
+cuadro, así que la ventana no depende de nada sin inicializar. De paso quedó
+medido lo que el `LEEME` afirmaba: los tres cores dibujan este cuadro igual a 15
+bits —los PNG difieren en los bits bajos, que es por lo que la comparación es a
+15 y no por md5—.
+
+**Hecho el 2026-09-04: la paleta de la ventana la paga el fondo.** El conversor
+cortaba en el mapa 1. Ahora, con ventana, el fondo se aprieta en las paletas que
+quedan debajo de la de la ventana y fusiona el excedente.
+
+A quién cobrarle no era obvio y se midió. El fondo va en 8 bits, así que sus
+paletas son un pozo común y una menos le saca 16 entradas: fusiona sólo lo que
+se pase. La capa de encima va en 4 y empaqueta por tile, así que perder una le
+cuesta mucho más. En el mapa 1, quitándosela al fondo se fusionan 2 colores;
+quitándosela a la capa de encima, 16.
+
+Relevados los 328 mapas, la reserva le cuesta al fondo **a lo sumo una paleta**,
+que es lo máximo que puede costar: **290 no fusionan nada** y los 38 que sí van
+de 1 a 16 colores. Los 16 son el techo y los toca el mapa 348.
+
+Y faltaba una pata: `snes_expect.py` llamaba a `convert_layers` **sin**
+`con_ventana`, así que la referencia repartía CGRAM de otra manera. No se veía
+porque en los mapas 7 y 6 el fondo no llega a fusionar y las paletas quedan
+idénticas igual. Arreglado, y ahora lo ejercita `snes-ventana 348`: con la
+referencia vieja difiere en 45 pixeles.
+
+`snes-hitos` quedó en **29 casos**, todos en verde, 69 segundos repartida en
+seis. Los dos casos nuevos de ventana son el mapa 1 —el que descubrió esto, y el
+único de los cuatro que no entra en el tilemap de 64x32, o sea el único que
+estampa la ventana sobre un mapa que la ROM va redibujando— y el 348, que es
+donde la fusión se ve.
+
 **Lo que falta ahora**, en orden:
 
-* **La paleta choca en algunos mapas.** La ventana se lleva la que queda justo
-  debajo de la capa de encima, y en el mapa 1 —el primero del juego— el fondo ya
-  usa esa. El conversor corta diciéndolo. La salida es bajarle una paleta al
-  fondo y dejar que fusione, que es maquinaria que ya existe.
 * **El opcode del intérprete** y que la página espere a que el jugador apriete
   A. Recién ahí se puede cerrar un mensaje y `redibujar_franja` deja de ser
   código muerto.

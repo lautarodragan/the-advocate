@@ -36,6 +36,8 @@ snes-ruta
 snes-pagina 121 10 grupo-121
 snes-pagina 74 21 ruta-74
 snes-espera
+snes-ventana 1 ventana-1
+snes-ventana 348 ventana-348
 snes-ventana
 snes-ventana 6 ventana-6
 snes-mednafen

@@ -543,8 +543,15 @@ def main():
             # como diferencia aunque la consola hiciera exactamente lo que se le
             # pidió. Las dos capas van juntas con la misma función que usa el
             # conversor, porque el reparto de CGRAM depende de las dos.
+            #
+            # Y con ventana el reparto es otro: le reserva una paleta y el
+            # fondo fusiona. Esto faltaba, y no se veía porque en los mapas que
+            # corría `snes-ventana` el fondo no llegaba a fusionar y las
+            # paletas quedaban iguales igual. En el mapa 1 sí llega.
             (tile_data, cram, tilemap, _resumen), above_data = \
-                snes_convert.convert_layers(base, above_img)
+                snes_convert.convert_layers(
+                    base, above_img,
+                    con_ventana=args.mensaje_de_prueba is not None)
             convertidos[map_id] = (
                 game_map,
                 snes_convert.render_converted(tile_data, cram, tilemap),

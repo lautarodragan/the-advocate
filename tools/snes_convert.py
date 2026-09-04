@@ -468,10 +468,16 @@ def convert_layers(base, above_img, con_ventana=False):
     pocos no fusionen.
 
     Con `con_ventana` se reserva además la paleta que queda justo debajo de la
-    capa de encima, que es donde va la de la ventana de mensaje. No se le quita
-    al fondo: se comprueba que el fondo no la esté usando ya, y si la usa el
-    conversor corta. Con los datos del juego eso sólo puede pasar en un mapa que
-    gaste muchos colores de fondo y muchas paletas de encima a la vez.
+    capa de encima, que es donde va la de la ventana de mensaje, y **la paga el
+    fondo**: se lo aprieta en las que quedan y fusiona lo que no entre.
+
+    La elección de a quién cobrarle es medida y no de gusto. El fondo va en 8
+    bits, así que sus paletas son un pozo común: una menos le saca 16 entradas
+    de CGRAM y lo obliga a fusionar sólo el excedente. La capa de encima va en
+    4 y empaqueta por tile, así que una paleta menos le puede costar muchísimo
+    más. En el mapa 1 —el que descubrió esto— el fondo usa 49 colores y la capa
+    de encima 64 justos en 4 paletas: quitándole una al fondo se fusionan 2
+    colores, y quitándosela a la capa de encima habría que fusionar 16.
 
     Devuelve (lo de convert(), lo de convert_above()).
     """
@@ -486,12 +492,15 @@ def convert_layers(base, above_img, con_ventana=False):
     libres = max(1, min(MAX_ABOVE_PALETTES, BG_PALETTES - pide))
 
     above = convert_above(above_img, palettes=libres, grid=above_grid)
-    if con_ventana and pide > above[3] - 1:
+    tope = above[3] - (1 if con_ventana else 0)
+    if tope < 1:
+        # Inalcanzable con los datos del juego —haría falta una capa de encima
+        # que pida las siete paletas— pero si pasa, el fondo se quedaría sin
+        # ninguna y `bg_budget` daría un presupuesto negativo.
         raise SystemExit(
-            "no hay paleta libre para la ventana de mensaje: el fondo necesita "
-            "%d paletas y la capa de encima arranca en la %d, así que la %d ya "
-            "está ocupada" % (pide, above[3], above[3] - 1))
-    return convert(base, bg_budget(above[3]), grid=base_grid), above
+            "no hay paleta libre para la ventana de mensaje: la capa de encima "
+            "arranca en la %d y no queda ninguna para el fondo" % above[3])
+    return convert(base, bg_budget(tope), grid=base_grid), above
 
 
 def convert(image, bg_colors=None, grid=None):
