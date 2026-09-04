@@ -1130,22 +1130,43 @@ comparación.
   `WeatherEffects` y `ChangePartyMembers`.
   Mientras tanto el héroe queda parado adentro del caño, que es donde RM2k
   también lo deja: ahí no camina nadie, sigue el script.
-* **Lo que le falta al juego entero, medido.** De las 519 páginas automáticas
-  del juego se cortan 473, y esto es qué comando las corta —el primero de cada
-  una, así que las de más abajo están tapadas por las de arriba—:
+* **Lo que le falta al juego entero, medido.** De las 489 páginas automáticas
+  con comandos, hoy compilan enteras **16**. Y esto es cuántas pasarían a
+  compilar con cada comando hecho —`just snes-destraba`—:
 
-      ShowMessage          144      PanScreen             10
-      CallEvent             98      WeatherEffects         5
-      MoveEvent             60      ChangeEventLocation    5
-      ConditionalBranch     47      ChangeSystemBGM        5
-      FlashSprite           23
-      TintScreen            16
-      PlaySound             16
-      ControlVars           11
+      ShowMessage               +55      ConditionalBranch      +0
+      FlashSprite               +23      WeatherEffects         +0
+      PlaySound                  +5      FullHeal               +0
+      ControlVars                +4      PanScreen              +0
+      MoveEvent de otro evento   +3      ChangeItems            +0
+      TintScreen con saturación  +2      FadeOutBGM             +0
+      ChangeEventLocation        +1      CallEvent              +0
 
-  Sirve para elegir por dónde seguir: los cuadros de texto son de lejos lo que
-  más desbloquearía. De las 60 de `MoveEvent`, 46 mueven **otro evento** y no al
-  héroe, o sea que piden que los NPCs caminen, que es una feature aparte.
+  **Este número no es el que estaba escrito acá antes, y la diferencia importa.**
+  Lo de antes contaba qué comando corta **primero** cada página —ShowMessage
+  144, CallEvent 98, MoveEvent 60— y eso no es lo que se destraba: una página
+  cortada por un cuadro de texto puede estar cortada además por otras cuatro
+  cosas. Con el número bueno, la conclusión sobre los cuadros de texto se
+  sostiene igual, pero las de abajo cambian de lugar.
+
+  Dos trampas que costaron una medición mal hecha cada una, y que están
+  anotadas en `tools/destraba.py` para no volver a pisarlas:
+
+  * RM2k emite un `ShowMessage` y después un **`ShowMessage_2` por cada línea
+    de más** del mismo cuadro. Contándolos aparte, los cuadros de texto
+    parecían destrabar tres páginas y no cincuenta y cinco.
+  * `CallEvent` aceptado sin hacerlo daba **+97**, que es falso: el evento
+    común llamado tiene que compilar él también, y los de este juego se cortan
+    casi todos en `FullHeal` y en `ControlVars`. Hecho de verdad destraba cero
+    hasta que esos dos existan.
+
+  Puestas todas juntas se llega a 314 de 489, y lo que sigue cortando después
+  es una cola larga: `ShowBattleAnimation` 23, `ShowChoice` 13,
+  `ChangeScreenTransitions` 10, `JumpToLabel` 8.
+
+  Y una nota que sigue valiendo: de las páginas con `MoveEvent`, la mayoría
+  mueve **otro evento** y no al héroe, o sea que piden que los NPCs caminen, que
+  es una feature aparte de la ruta forzada que ya anda.
 * **Componer el texto del mensaje en caliente.** Es lo que separa al opcode que
   ya existe de que esas 144 páginas compilen: hoy la ROM lleva una sola ventana
   ya compuesta por el conversor, porque una por mensaje son 7,5 KB y no entran.

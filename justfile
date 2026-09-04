@@ -479,6 +479,19 @@ snes-anclada mapa="6" ruta="1 1 1 1 1 1 2 2 2 2 2 2" cuadros="21 23 50 130" arra
         --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
   done
 
+# Cuánto destraba cada comando de evento que todavía no hacemos.
+#
+# Es lo que decide por dónde seguir, y existe porque el número que este repo
+# venía usando medía otra cosa: la tabla de "Lo que falta" del LEEME cuenta qué
+# comando corta **primero** cada página, y una página cortada por un cuadro de
+# texto puede estar cortada además por otras cuatro cosas. Lo que hay que contar
+# es cuántas páginas pasan a compilar enteras, que es lo que hace esto.
+#
+# Se corre después de cada feature nueva: el orden cambia a medida que las
+# páginas se van destrabando entre ellas.
+snes-destraba:
+  python3 tools/destraba.py
+
 # El juego original corriendo en EasyRPG, capturado sin pantalla, y nuestra
 # ventana comparada contra eso.
 #

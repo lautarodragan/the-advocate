@@ -574,9 +574,38 @@ nada, es atómico, y es de los caros. La idea que dejó anotada y que conviene n
 perder: que se pueda **apagar**, porque si el clima dibuja encima cambian todas
 las referencias PNG de los mapas que lo usen. Son 5 páginas del juego.
 
-Y el orden de lo que sigue después no es opinión: de las 519 páginas automáticas
-del juego se cortan 473, y el comando que más corta es `ShowMessage`, con 144.
-La tabla entera está en "Lo que falta" de `rom/LEEME.md`.
+**Y el orden de lo que sigue se volvió a medir el 2026-09-04, porque el número
+que se venía usando medía otra cosa.** La tabla vieja contaba qué comando corta
+**primero** cada página —ShowMessage 144, CallEvent 98, MoveEvent 60— y eso no
+es lo que se destraba: una página cortada por un cuadro de texto puede estar
+cortada además por otras cuatro cosas. Lo que hay que contar es cuántas páginas
+pasan a compilar **enteras**, y eso ahora lo dice `just snes-destraba`:
+
+    489 páginas automáticas con comandos, 16 compilan enteras hoy
+
+    ShowMessage               +55      ConditionalBranch      +0
+    FlashSprite               +23      WeatherEffects         +0
+    PlaySound                  +5      FullHeal               +0
+    ControlVars                +4      PanScreen              +0
+    MoveEvent de otro evento   +3      ChangeItems            +0
+    TintScreen con saturación  +2      FadeOutBGM             +0
+    ChangeEventLocation        +1      CallEvent              +0
+
+La conclusión sobre los cuadros de texto se sostiene —siguen siendo de lejos lo
+que más rinde, y ahora se sabe cuánto: de 16 páginas a 71— pero las de abajo
+cambian de lugar, y dos números estaban directamente mal:
+
+* **`CallEvent` no destraba 98 sino cero.** Aceptarlo sin hacerlo daba +97, y es
+  falso: el evento común llamado tiene que compilar él también, y los 45 eventos
+  comunes con comandos de este juego se cortan casi todos en `FullHeal` y en
+  `ControlVars`.
+* **`ShowMessage` parecía destrabar 3.** RM2k emite un `ShowMessage` y después
+  un `ShowMessage_2` por cada línea de más del mismo cuadro; contándolos aparte
+  el número salía mal. Ésa es la trampa que más fácil se repite y por eso está
+  anotada en `tools/destraba.py`.
+
+Puestas las catorce juntas se llega a 314 de 489. La tabla entera y la cola de
+lo que quedaría después están en "Lo que falta" de `rom/LEEME.md`.
 
 Después del hito, el mismo día, se armó la documentación de proceso: este
 archivo y `AGENTS.md` en `92509fc`, y el contenedor y `snes-tinte` en `d7597cc`
