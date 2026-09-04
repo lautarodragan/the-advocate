@@ -340,17 +340,29 @@ snes-mednafen:
 # Y el 1 no es redundante: es el único de los cuatro que no entra en el tilemap
 # de 64x32, así que es el único que estampa la ventana sobre un mapa que la ROM
 # va redibujando.
-snes-ventana mapa="7" nombre="ventana":
+#
+# El quinto caso es el 7 **con el 1 en la misma ROM**. La paleta de la ventana
+# es una para toda la ROM —las celdas se emiten una sola vez con la paleta
+# adentro— y cada mapa la pondría justo debajo de su capa de encima: el 7 en la
+# 6 y el 1 en la 3. Gana la más baja, y el 7, que solo no fusiona nada, acá
+# fusiona 13 colores para dejarle la 3. Se ve: entre el 7 solo y el 7 apretado
+# hay 72 pixeles, así que el cero mide que la ROM y la referencia apretaron
+# igual. Es el caso de la ROM del arranque —mapa 4 con los mapas 1 y 2—, pero
+# con un mapa que se puede mirar en vez de una habitación negra.
+snes-ventana mapa="7" nombre="ventana" mapas="":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
   linea1="SEWELL"
   linea2="There you are, Talan. Ready for"
   linea3="the big night?"
+  mapas="{{mapas}}"
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
+      ${mapas:+--mapas $mapas} \
       --mensaje-de-prueba "$linea1" "$linea2" "$linea3" -o {{snes_inc}}/mapdata.inc
   just snes-build
   python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
+      --mapas $mapas \
       --mensaje-de-prueba "$linea1" "$linea2" "$linea3" \
       --saltar {{snes_pngs}}/saltar-{{nombre}}.txt \
       -o {{snes_pngs}}/esperado-{{nombre}}.png

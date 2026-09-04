@@ -31,16 +31,16 @@ sobre el evento 6, que está en la celda de al lado y compila, y abre su mensaje
 con **0 pixeles** de diferencia. Lo que falla es que la página del evento 2 no
 compila. Le faltan cinco cosas, en el orden en que conviene hacerlas:
 
-1. **La ventana de mensaje en una ROM de varios mapas.** La página tiene 44
-   `ShowMessage`. Hoy el conversor la rechaza con *"los mapas de esta ROM le dan
-   a la capa de encima paletas distintas ([4, 7])"*: las celdas de la ventana se
-   emiten una sola vez con los bits de paleta adentro, así que todos los mapas
-   tienen que coincidir. El culpable es el **mapa 4**, que la arranca en la 7
-   mientras el 1 y el 2 la arrancan en la 4 — y el mapa 4 es una habitación
-   negra de **un solo color**, así que forzarlo a la 4 no le cuesta nada. La
-   idea es que `above[3]` sea el mínimo común de la ROM y no el que elige cada
-   mapa por su cuenta. El costo es el de siempre de la ventana, ya medido:
-   el mapa 1 fusiona **2 colores** de 49 y el mapa 2 fusiona **13** de 60.
+1. **Hecho el 2026-09-04: la ventana de mensaje en una ROM de varios mapas.**
+   La página tiene 44 `ShowMessage` y el conversor rechazaba la ROM porque los
+   mapas le daban a la capa de encima paletas distintas. Salió más chico que lo
+   que decía el traspaso: no se mueve la capa de encima, se decide **la paleta
+   de la ventana** para la ROM entera —la más baja— y sólo el fondo de los mapas
+   que la tenían más arriba se aprieta debajo. Verificado con el caso nuevo
+   `snes-ventana 7 ventana-7-y-1 1`, que fusiona 13 colores visibles y da 0, y
+   con la tanda entera: 51 casos en verde. La ROM del arranque con `--con-ventana`
+   ya convierte, y compila 8 páginas del mapa 1 en vez de 6 y 32 del 2 en vez
+   de 11; el evento 2 del mapa 1 todavía no, por los cuatro puntos que siguen.
 2. **El disparo por contacto al terminar una ruta forzada.** RM2k no mira los
    contactos mientras corre una ruta —`!IsMoveRouteOverwritten()` en
    `Game_Player::UpdateMovement`— pero **sí en el último paso**, porque cuando

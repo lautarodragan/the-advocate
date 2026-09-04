@@ -392,14 +392,18 @@ fondo: se lo aprieta en las que quedan y fusiona lo que no entre. Relevados los
 328 mapas, 290 no fusionan nada y los 38 que sí van de 1 a 16 colores, que es el
 techo —una paleta—.
 
-**Y en una ROM de varios mapas todos tienen que coincidir en cuál es esa
-paleta.** Las celdas de la ventana se emiten una sola vez, con los tres bits de
-paleta ya adentro, así que si dos mapas le dan a la capa de encima una primera
-paleta distinta el conversor corta con un error en vez de dibujar la ventana con
-los colores de otro. Pasa de verdad: en la ROM del arranque el mapa 4 la arranca
-en la 7 y los mapas 1 y 2 en la 4. Lo que falta para destrabarlo es elegir esa
-primera paleta **de la ROM y no de cada mapa** —el mínimo común—; ver el
-traspaso en `ESTADO.md`.
+**Y en una ROM de varios mapas esa paleta es una sola, la de la ROM.** Las
+celdas de la ventana se emiten una sola vez, con los tres bits de paleta ya
+adentro, y cada mapa la pondría justo debajo de su capa de encima, que no
+coincide: en la ROM del arranque el mapa 4 la pondría en la 6 y los mapas 1 y
+2 en la 3. Gana la más baja —`paleta_de_la_ventana`, la misma función en el
+conversor y en la referencia— y los mapas que la tenían más arriba se vuelven a
+convertir con el fondo apretado debajo de ella; la capa de encima no se mueve,
+porque dónde arranca ya se guarda mapa por mapa. Cuesta lo de siempre de la
+ventana, sólo que en mapas que solos no pagaban: el 7 con el 1 en la misma ROM
+fusiona 13 colores de 60, y se ve. Ése es el caso `snes-ventana 7 ventana-7-y-1
+1` de la tanda: el mismo reparto que la ROM del arranque, con un mapa que se
+puede mirar en vez de una habitación negra.
 
 **El tilemap de BG2 se scrollea con la cámara, y la ventana no puede.** No es un
 caso raro: en `game_player.cpp` de easyrpg `UpdateMoveRoute` corre **antes** del

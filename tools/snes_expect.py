@@ -835,6 +835,10 @@ def main():
     # rehacía la conversión entera; ahora se hace una vez por mapa.
     images = {}
     convertidos = {}
+    naturales = {}
+    # La paleta de la ventana, cuando se sepa: es una para la ROM entera y
+    # sale de todos sus mapas, no del que se está dibujando.
+    ventana_paleta = []
 
     def charset_image(name):
         if name not in images:
@@ -844,8 +848,9 @@ def main():
             images[name] = load_image(path)
         return images[name]
 
-    def convertir(map_id):
-        if map_id not in convertidos:
+    def natural(map_id):
+        """Las capas del mapa convertidas como si estuviera solo en la ROM."""
+        if map_id not in naturales:
             game_map = mundo.mapa(map_id)[0]
             base, above_img = renderer.render_layers(game_map)
             if base is None:
@@ -861,10 +866,29 @@ def main():
             # fondo fusiona. Esto faltaba, y no se veía porque en los mapas que
             # corría `snes-ventana` el fondo no llegaba a fusionar y las
             # paletas quedaban iguales igual. En el mapa 1 sí llega.
-            (tile_data, cram, tilemap, _resumen), above_data = \
-                snes_convert.convert_layers(
-                    base, above_img,
-                    con_ventana=args.con_ventana)
+            naturales[map_id] = (game_map, base, above_img,
+                                 snes_convert.convert_layers(
+                                     base, above_img,
+                                     con_ventana=args.con_ventana))
+        return naturales[map_id]
+
+    def convertir(map_id):
+        if map_id not in convertidos:
+            game_map, base, above_img, capas = natural(map_id)
+            if args.con_ventana:
+                # La paleta de la ventana es de la ROM entera, así que hay que
+                # convertir **todos** sus mapas para saberla, aunque acá se
+                # dibuje uno solo: la misma cuenta que hace el conversor, con
+                # la misma función. El mapa que la tenía más arriba se vuelve a
+                # convertir con el fondo apretado debajo de ella.
+                if not ventana_paleta:
+                    ventana_paleta.append(snes_convert.paleta_de_la_ventana(
+                        natural(m)[3][1][3] for m in tabla))
+                if capas[1][3] - 1 != ventana_paleta[0]:
+                    capas = snes_convert.convert_layers(
+                        base, above_img, con_ventana=True,
+                        ventana_paleta=ventana_paleta[0])
+            (tile_data, cram, tilemap, _resumen), above_data = capas
             convertidos[map_id] = (
                 game_map,
                 snes_convert.render_converted(tile_data, cram, tilemap),

@@ -522,7 +522,7 @@ def build_palette(grid, bg_colors):
     return sorted({c for c in mapping.values()}), grid, merged
 
 
-def convert_layers(base, above_img, con_ventana=False):
+def convert_layers(base, above_img, con_ventana=False, ventana_paleta=None):
     """Las dos capas juntas, que es la única forma de repartir CGRAM bien.
 
     El corte entre el fondo y la capa de encima no lo puede decidir ninguna de
@@ -552,6 +552,13 @@ def convert_layers(base, above_img, con_ventana=False):
     de encima 64 justos en 4 paletas: quitándole una al fondo se fusionan 2
     colores, y quitándosela a la capa de encima habría que fusionar 16.
 
+    `ventana_paleta` es esa paleta ya decidida **por la ROM entera** y no por
+    este mapa: ver `paleta_de_la_ventana`. Puede quedar más abajo de donde
+    este mapa la pondría solo, y entonces el fondo se aprieta debajo de ella
+    igual que antes —las paletas que quedan entre el fondo y la capa de encima
+    no las usa nadie—. La capa de encima no se mueve: sus celdas llevan la
+    paleta adentro y dónde arranca se guarda mapa por mapa.
+
     Devuelve (lo de convert(), lo de convert_above()).
     """
     base_grid = cut_tiles(quantize(base))
@@ -566,6 +573,13 @@ def convert_layers(base, above_img, con_ventana=False):
 
     above = convert_above(above_img, palettes=libres, grid=above_grid)
     tope = above[3] - (1 if con_ventana else 0)
+    if ventana_paleta is not None:
+        if ventana_paleta >= above[3]:
+            raise SystemExit(
+                "la ventana de mensaje va en la paleta %d y la capa de encima "
+                "de este mapa arranca en la %d: se pisarían"
+                % (ventana_paleta, above[3]))
+        tope = ventana_paleta
     if tope < 1:
         # Inalcanzable con los datos del juego —haría falta una capa de encima
         # que pida las siete paletas— pero si pasa, el fondo se quedaría sin
@@ -574,6 +588,21 @@ def convert_layers(base, above_img, con_ventana=False):
             "no hay paleta libre para la ventana de mensaje: la capa de encima "
             "arranca en la %d y no queda ninguna para el fondo" % above[3])
     return convert(base, bg_budget(tope), grid=base_grid), above
+
+
+def paleta_de_la_ventana(primeras):
+    """En qué paleta va la ventana de mensaje en una ROM de varios mapas.
+
+    Las celdas de la ventana se emiten una sola vez con los tres bits de
+    paleta adentro, así que la paleta es una para toda la ROM. Cada mapa la
+    pondría justo debajo de su capa de encima, y eso no coincide: en la ROM del
+    arranque el mapa 4 la arranca en la 7 y los mapas 1 y 2 en la 4. Se toma la
+    más baja de todas, que es la única que no se pisa con ninguna capa de
+    encima, y los mapas que la tenían más arriba se vuelven a convertir con el
+    fondo apretado debajo de ella. Es la misma cuenta acá y en la referencia:
+    `primeras` es el `above[3]` de cada mapa de la ROM.
+    """
+    return min(primeras) - 1
 
 
 def convert(image, bg_colors=None, grid=None):
@@ -1433,7 +1462,8 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            eventos.GRUPO_MAX, len(grupo_inicial), ACTOR_BYTES,
            rm2k.LAYER_SAME,
            OBJ_PRIORITY_ABOVE if heroe_encima else OBJ_PRIORITY,
-           (min(m["above"][3] for m in mapas) - 1) * COLORS_PER_PALETTE,
+           paleta_de_la_ventana(m["above"][3] for m in mapas)
+           * COLORS_PER_PALETTE,
            0 if ventana is None else len(ventana["tiles"]) // 32,
            VENTANA_FILAS_INC, VENTANA_COLS_INC,
            0 if ventana is None else ventana["base"],
@@ -1473,16 +1503,21 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             #
             # BG2 va en 4 bits, así que su celda **sí** usa los tres bits de
             # paleta —a diferencia del fondo, que va en 8 y los ignora—. La
-            # ventana se lleva la que queda justo debajo de la capa de encima,
-            # y tiene que ser la misma para todos los mapas de la ROM: las
-            # celdas se emiten una sola vez.
-            primeras = {m["above"][3] for m in mapas}
-            if con_ventana and len(primeras) > 1:
-                raise SystemExit(
-                    "los mapas de esta ROM le dan a la capa de encima paletas "
-                    "distintas (%s) y la ventana necesita una sola"
-                    % sorted(primeras))
-            paleta = min(primeras) - 1
+            # ventana se lleva la que queda justo debajo de la capa de encima
+            # más baja de la ROM, y tiene que ser la misma para todos los
+            # mapas: las celdas se emiten una sola vez. Que el fondo de cada
+            # mapa quede debajo lo garantiza main(), que los reconvierte; acá
+            # se controla, porque si un fondo la pisara la ventana saldría
+            # con los colores del mapa y ninguna comparación de un solo mapa
+            # lo vería.
+            paleta = paleta_de_la_ventana(m["above"][3] for m in mapas)
+            for m in mapas:
+                if con_ventana and len(m["cram_words"]) > \
+                        paleta * COLORS_PER_PALETTE:
+                    raise SystemExit(
+                        "el fondo del mapa %d usa %d entradas de CGRAM y pisa "
+                        "la paleta %d de la ventana: falta reconvertirlo"
+                        % (m["id"], len(m["cram_words"]), paleta))
             handle.write("\n; --- la ventana de mensaje ---\n")
             handle.write(bloque("ventana_tiles", ventana["tiles"]) + "\n")
             handle.write(bloque("ventana_cgram",
@@ -1927,6 +1962,22 @@ def main():
     mapas = [convertir(renderer, map_id, args,
                        inicio=args.inicio if map_id == args.map_id else None)
              for map_id in todos]
+    if args.con_ventana:
+        # La paleta de la ventana es de la ROM y no de cada mapa: ver
+        # `paleta_de_la_ventana`. Sólo se reconvierten los mapas que la tenían
+        # más arriba, y son los de pocas paletas encima, que es lo barato: en
+        # la ROM del arranque es el mapa 4 solo, una habitación de un color.
+        paleta = paleta_de_la_ventana(m["above"][3] for m in mapas)
+        for numero, mapa in enumerate(mapas):
+            if mapa["above"][3] - 1 == paleta:
+                continue
+            print("  mapa %d: la ventana de mensaje va en la paleta %d de toda "
+                  "la ROM y no en la %d; el fondo se aprieta debajo"
+                  % (mapa["id"], paleta, mapa["above"][3] - 1))
+            mapas[numero] = convertir(
+                renderer, mapa["id"], args,
+                inicio=args.inicio if mapa["id"] == args.map_id else None,
+                ventana_paleta=paleta)
     # Las puertas se resuelven cuando están todos los mapas: una puede llevar a
     # cualquier otro, así que el índice de destino no se sabe hasta el final.
     indices = {mapa["id"]: numero for numero, mapa in enumerate(mapas)}
@@ -2239,7 +2290,7 @@ def lideres_posibles(renderer, map_ids, grupo, con_ventana=False):
 args_game_dir = [GAME_DIR]
 
 
-def convertir(renderer, map_id, args, inicio=None):
+def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
     """Un mapa entero: tiles, colores, sprites, colisión y bloques."""
     game_map = lcf.Map(os.path.join(args.game_dir, "Map%04d.lmu" % map_id))
     name = renderer.tree.map_names.get(map_id, "?")
@@ -2250,7 +2301,8 @@ def convertir(renderer, map_id, args, inicio=None):
         sys.exit("no encuentro el chipset del mapa %d" % map_id)
 
     (tile_data, cram, tilemap, summary), above_data = convert_layers(
-        base, _above, con_ventana=args.con_ventana)
+        base, _above, con_ventana=args.con_ventana,
+        ventana_paleta=ventana_paleta)
 
     # Los personajes: el héroe con sus 12 poses porque camina, y cada NPC con la
     # que declara su página. Si un NPC usa el mismo personaje que el héroe,

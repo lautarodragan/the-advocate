@@ -57,6 +57,7 @@ snes-hablar 7 "3 7" 25 25 "20 60" 30 hablar-sin-switch
 snes-cerrar
 snes-cerrar 7 200 cerrar-right right
 snes-ventana 1 ventana-1
+snes-ventana 7 ventana-7-y-1 1
 snes-ventana 348 ventana-348
 snes-ventana 269 ventana-269
 snes-ventana
