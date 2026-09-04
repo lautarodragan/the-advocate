@@ -2035,26 +2035,49 @@ def lideres_posibles(renderer, map_ids, grupo, con_ventana=False):
     Hace falta porque los tiles del héroe viven en VRAM y no se cargan en
     caliente: si el líder puede cambiar a mitad de mapa, los sprites de todos
     los candidatos tienen que estar puestos desde el principio.
+
+    **Y son los que pueden ir primeros, no todos los que entran al grupo.** El
+    gráfico del héroe es el del primero; alguien que siempre entra detrás de
+    otro no se dibuja nunca, y sus doce poses son 192 tiles que no entran. Se
+    nota en la cinemática de apertura, que saca al 10 y mete al 11, al 12 y al
+    13: con los cuatro son 628 tiles de sprite y el reparto da 512.
+
+    Quién va primero se sabe simulando: se aplican los `ChangePartyMembers` de
+    las páginas que compilan, en el orden en que aparecen, con las mismas reglas
+    que `Estado.cambiar_grupo`. Es una aproximación —qué página corre y cuándo
+    depende de switches que acá no se saben— y por eso el orden importa: si
+    alguna vez una ROM dibuja al héroe sin gráfico, empezar mirando acá.
     """
-    actores = list(grupo)
+    estado = eventos.Estado(grupo)
+    actores = list(grupo[:1])
     indices = {m: i for i, m in enumerate(map_ids)}
     for map_id in map_ids:
         game_map = lcf.Map(os.path.join(args_game_dir[0],
                                         "Map%04d.lmu" % map_id))
+        del_mapa = eventos.Eventos(game_map)
         for evento in game_map.events:
             for page in evento.pages:
+                # Con el contexto del mapa, que es el mismo que usa el filtro de
+                # verdad. Sin él, una página que mande a caminar a otro evento no
+                # compila acá aunque sí compile allá, y los actores que agregue
+                # se pierden: la cinemática de apertura suma a Kersh al grupo
+                # justo después de mandar a caminar al evento 8, así que el héroe
+                # se quedaba sin tabla de poses y no se dibujaba.
                 if eventos.compilar_pagina(
                         page, indices.get,
-                        eventos.Mensajes() if con_ventana else None) is None:
+                        eventos.Mensajes() if con_ventana else None,
+                        del_mapa.para(evento.id)) is None:
                     continue
                 for cmd in page.commands:
                     if cmd.code != eventos.CHANGE_PARTY_MEMBERS:
                         continue
                     p = cmd.parameters
-                    if (len(p) >= 3 and p[1] == eventos.GRUPO_ID_FIJO
-                            and p[0] == eventos.GRUPO_AGREGAR
-                            and p[2] not in actores):
-                        actores.append(p[2])
+                    if len(p) < 3 or p[1] != eventos.GRUPO_ID_FIJO:
+                        continue
+                    estado.cambiar_grupo(p[0], p[2])
+                    lider = estado.lider()
+                    if lider is not None and lider not in actores:
+                        actores.append(lider)
     return actores
 
 

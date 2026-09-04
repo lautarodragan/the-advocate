@@ -270,6 +270,7 @@ reinicio:   .res 1      ; si el stream ya volvió al principio en este cuadro
 ; dure. Lo que se usa una sola vez —los tamaños de los DMA, las bases de VRAM—
 ; no se copia: se lee del registro en el momento.
 mapa_ofs:    .res 2     ; el desplazamiento del registro del mapa actual
+mapa_actual: .res 1     ; y su índice, para saber si un salto cambia de mapa
 mapa_ancho:  .res 2     ; su ancho en celdas de 16x16
 mapa_alto:   .res 2
 mapa_cw:     .res 2     ; y en celdas de 8x8, que es el doble. Se guarda hecho
@@ -739,6 +740,7 @@ cero:
 .proc cargar_mapa_sin_eventos
 .a8
 .i16
+    sta mapa_actual             ; para saber si el próximo salto cambia de mapa
     rep #$20
 .a16
     and #$00FF
@@ -1037,16 +1039,77 @@ corriendo:
     ; al mudarlo al lazo principal el teletransporte pasó a ejecutarse con la
     ; pantalla encendida y el mapa nuevo simplemente no llegaba a la VRAM: se
     ; veía el mapa viejo, teñido, como si el salto no hubiera ocurrido.
+    ; Un salto **al mismo mapa** no recarga nada: sólo mueve al héroe. Es el
+    ; `map_changed = (GetMapId() != teleport_target.GetMapId())` de
+    ; `Game_Player::PerformTeleport`. Recargarlo volvía a encolar los eventos
+    ; automáticos, y con eso la cinemática de apertura —que salta dos veces
+    ; adentro del mapa 1— se reiniciaba sola para siempre.
+    lda salto_mapa
+    cmp mapa_actual
+    bne otro_mapa
+    lda #$80
+    sta INIDISP                 ; `fill_window` escribe VRAM
+    jsr mover_heroe_a
+    lda #$0F
+    sta INIDISP
+    bra nada
+otro_mapa:
+    ; La pantalla se apaga para cargar, igual que al cruzar una puerta.
     lda #$80
     sta INIDISP
     lda salto_mapa
     jsr cargar_mapa_sin_eventos
+    ; Y los eventos automáticos del mapa nuevo, a la cola. La página que pidió
+    ; el salto sigue corriendo —su código está en la ROM y el cursor quedó
+    ; guardado— así que éstos arrancan recién cuando ella termine, que es el
+    ; orden de RM2k: `Game_Interpreter_Map::OnMapChange` no toca la pila del
+    ; intérprete, sólo los ids de evento.
+    ;
+    ; Antes no se encolaban nunca. El comentario decía que se encolaban "cuando
+    ; ésta termine" y no lo hacía nadie: después de un teletransporte, los
+    ; eventos del mapa de destino no corrían jamás. Nada lo veía porque la única
+    ; prueba que teletransportaba miraba el tinte, que lo pone el mapa de origen.
+    jsr encolar_eventos
     lda #$0F
     sta INIDISP
     ; La página que pidió el salto sigue corriendo del otro lado: su código está
     ; en la ROM y el cursor quedó guardado. Las páginas del mapa nuevo se
     ; encolan recién cuando ésta termine.
 nada:
+    rts
+.endproc
+
+; Mueve al héroe a (entrada_x, entrada_y) sin tocar el mapa. Es lo que hace un
+; teletransporte que no cambia de mapa: la tabla de eventos, sus posiciones, las
+; rutas que estén corriendo y las páginas encoladas siguen como estaban.
+.proc mover_heroe_a
+.a8
+.i16
+    rep #$20
+.a16
+    lda entrada_x
+    sta tile_x
+    asl a
+    asl a
+    asl a
+    asl a                       ; la celda mide 16 pixeles
+    sta hero_x
+    lda entrada_y
+    sta tile_y
+    asl a
+    asl a
+    asl a
+    asl a
+    sta hero_y
+    lda #$FFFF
+    sta entrada_x               ; consumida
+    sep #$20
+.a8
+    stz step_left               ; un paso a mitad de camino se corta
+    stz moving
+    jsr follow_camera
+    jsr fill_window             ; la cámara saltó: el tilemap se llena de nuevo
+    jsr init_hero_ptr
     rts
 .endproc
 
@@ -1280,14 +1343,10 @@ no:
     ora elegida + 1
     ora elegida + 2
     beq no                      ; sin código: no se pudo compilar
-    rep #$20
-.a16
-    lda elegida
-    sta cod_ptr
-    sep #$20
-.a8
-    lda elegida + 2
-    sta cod_ptr + 2
+    ; Acá se escribía también `cod_ptr`, y era peor que inútil: lo que se encola
+    ; es `elegida`, y `eventos_tick` pone `cod_ptr` al sacar la página de la
+    ; cola. Encolando **mientras otra página corre** —que es lo que pasa al
+    ; teletransportar— le pisaba el puntero a la que estaba corriendo.
     stz elegida_hay             ; que no se encole dos veces
     ; A la cola en vez de ejecutarla: el lazo principal la va a correr cuadro a
     ; cuadro. Si la cola está llena se descarta, que es preferible a pisar RAM

@@ -134,8 +134,34 @@ IGNORABLES = {
 # venía sonando. La pantalla no lo nota, pero `snes-check` compararía el audio
 # contra el MIDI del mapa y no contra el tema que la página pidió, así que ahí
 # la prueba mediría lo que no es. Ver "Lo que falta" en rom/LEEME.md.
+# WeatherEffects prende o apaga la lluvia. Se acepta sin dibujarla, y la deuda
+# es de las grandes, así que va con todas las letras.
+#
+# **En modo 3 no queda capa donde ponerla.** BG1 son los ocho bits del mapa y
+# BG2 la capa de encima más la ventana de mensaje; no hay una tercera. Con
+# objetos tampoco: la lluvia de RM2k son hasta 100 hilos de 6x24 repartidos por
+# toda la pantalla, y la consola dibuja 34 tiles de sprite por línea —un objeto
+# de 32x32 se lleva cuatro—, así que una lluvia que cubra la pantalla revienta
+# el presupuesto en casi todas las líneas. Nuestra propia referencia marca esas
+# líneas como no comparables, así que la prueba dejaría de medir justo ahí.
+#
+# Y aunque entrara: cada gota va con su propia transparencia —`alpha = min((5 +
+# fuerza) * t, 255)` en `Weather::DrawParticles`— y la consola tiene una sola
+# operación de color para toda la pantalla, no una por objeto. Las posiciones
+# además salen de un generador de números al azar que habría que reproducir.
+#
+# Lo que se pierde, medido sobre una captura de EasyRPG de la apertura: hilos
+# diagonales finos de 24 pixeles de alto, que entre dos cuadros seguidos mueven
+# el 3,9% de la pantalla. Se ven sobre todo en las zonas oscuras.
+#
+# Se acepta porque **es lo único que traba la cinemática de apertura**, que es
+# la puerta a los primeros diez minutos del juego. Sin esto la ROM no arranca la
+# historia; con esto arranca, sin lluvia.
+WEATHER_EFFECTS = 11070
+
 ACEPTADOS_SIN_HACER = {
     PLAY_BGM,
+    WEATHER_EFFECTS,
 }
 
 # --- los opcodes que emitimos -----------------------------------------------
@@ -1050,6 +1076,21 @@ class Interprete:
         self.codigo = None
         self.cursor = 0
         self.esperando = 0
+
+    def pendiente(self):
+        """La página que está corriendo, para que sobreviva a un teletransporte.
+
+        En RM2k el salto no reinicia nada: `CommandTeleport` hace `index++` y
+        devuelve false, así que la misma página retoma en el comando siguiente
+        una vez cambiado el mapa. El código vive en el cartucho, que no se mueve.
+        """
+        if self.codigo is None:
+            return None
+        return (self.codigo, self.cursor, self.esperando)
+
+    def retomar(self, pendiente):
+        """Vuelve a poner la página que venía corriendo antes del salto."""
+        self.codigo, self.cursor, self.esperando = pendiente
 
     def ocupado(self):
         """Si hay una página corriendo o esperando su turno."""

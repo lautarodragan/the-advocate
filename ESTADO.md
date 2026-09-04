@@ -851,6 +851,57 @@ De paso apareció `--switch`, que prende switches desde la página de prueba.
 a mano deja al mundo en el estado al que el juego llega solo, igual que
 `--hero-tile` deja al héroe donde llegaría caminando.
 
+**Hecho el 2026-09-04: la cinemática de apertura corre.** El mapa 4 prende dos
+switches, tiñe y teletransporta al 1; ahí arranca la lluvia, se espera, se salta
+dos veces adentro del mismo mapa, se manda a caminar al evento 8, cambia el
+grupo —sale DummyHero y entra Kersh— y el héroe sube tres celdas por una ruta
+forzada. Lo prueba `snes-cinematica`, con la ROM y la referencia en cero.
+
+Para que corriera había que destrabar `WeatherEffects`, y ahí está la decisión
+más grande del día: **se acepta sin dibujar la lluvia**, en
+`ACEPTADOS_SIN_HACER`. La razón es de hardware y está medida: en modo 3 BG1 son
+los ocho bits del mapa y BG2 la capa de encima más la ventana de mensaje, y no
+hay una tercera. Con objetos tampoco entra —la lluvia de RM2k son hasta 100
+hilos de 6x24 por toda la pantalla y la consola dibuja 34 tiles de sprite por
+línea— y aunque entrara, cada gota lleva su propia transparencia y la consola
+tiene una sola operación de color para todo. Lo que se pierde, medido sobre una
+captura de EasyRPG de la apertura: hilos diagonales finos que mueven el 3,9% de
+la pantalla entre dos cuadros seguidos.
+
+Y aparecieron **cuatro cosas rotas o faltantes**, todas del mismo camino, y
+ninguna la veía nadie porque la única prueba que teletransportaba miraba el
+tinte, que lo pone el mapa de origen:
+
+* **La página no sobrevivía al salto.** En RM2k `CommandTeleport` hace `index++`
+  y devuelve false: reserva el salto, corta el cuadro, y la misma página retoma
+  en el comando siguiente. Nosotros la reiniciábamos.
+* **Saltar al mismo mapa recargaba el mapa.** Es el `map_changed = (GetMapId()
+  != teleport_target.GetMapId())` de `Game_Player::PerformTeleport`: si no
+  cambia, sólo se mueve al héroe. Recargándolo se volvían a encolar los eventos
+  automáticos, y la cinemática —que salta dos veces adentro del mapa 1— se
+  reiniciaba sola para siempre.
+* **El mapa de destino no encolaba nada.** El comentario decía que sus páginas
+  se encolaban "cuando ésta termine" y no lo hacía nadie: después de un
+  teletransporte, los eventos del mapa nuevo no corrían jamás.
+* **`encolar_elegida` pisaba `cod_ptr`.** Era inofensivo mientras sólo se
+  encolara con el intérprete parado; encolando durante un salto le pisaba el
+  puntero a la página que estaba corriendo.
+
+Y una quinta, del conversor: **`lideres_posibles` compilaba sin el contexto del
+mapa**, así que la página que suma a Kersh al grupo le parecía imposible y el
+héroe se quedaba sin tabla de poses —invisible— justo después de la cinemática.
+Arreglado eso aparecieron cuatro candidatos a líder y sus 628 tiles de sprite no
+entran en los 512 del reparto, así que ahora se cuentan **los que pueden ir
+primeros** y no todos los que entran al grupo: el gráfico del héroe es el del
+primero, y alguien que siempre entra detrás no se dibuja nunca.
+
+Lo que queda medido y sin cerrar: **la ROM se toma unos seis cuadros en cada
+teletransporte** rellenando el tilemap de 64x32, y la referencia no modela ese
+costo. Entre el salto y unos treinta cuadros después los dos lados quedan a tres
+o seis cuadros de distancia y, como la cámara sigue al héroe, eso corre la
+pantalla entera. Es lo mismo que pasa con el arranque, y por ahora se mira con
+margen: los cuadros de `snes-cinematica` están elegidos afuera de esas ventanas.
+
 **Después: la cinemática de apertura.**
 El mapa 4 ya prende el switch 20, que es la condición de la página que abre el
 mapa 1, así que el enganche funciona. De los cuatro comandos que le faltaban ya

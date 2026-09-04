@@ -616,6 +616,53 @@ snes-hablar mapa="7" celda="3 7" switch="24" apretar="25" cuadros="20 60" arranq
         --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
   done
 
+# La cinemática de apertura, entera.
+#
+# Es la puerta a los primeros diez minutos del juego: el mapa 4 prende dos
+# switches, tiñe y teletransporta al 1; ahí arranca la lluvia, se espera, se
+# salta dos veces **adentro del mismo mapa**, se manda a caminar al evento 8,
+# cambia el grupo —sale el 10, que es DummyHero y no se dibuja, y entra Kersh— y
+# el héroe sube tres celdas por una ruta forzada.
+#
+# Cuatro cosas tuvieron que existir para que esto corriera, y las cuatro estaban
+# rotas o faltaban:
+#
+#   la página sobrevive al salto   RM2k hace `index++` y devuelve false, así que
+#                                  la misma página retoma del otro lado
+#   saltar al mismo mapa no recarga es el `map_changed` de `PerformTeleport`;
+#                                  recargando, la cinemática se reiniciaba sola
+#   el mapa de destino encola      nunca lo hacía: después de un teletransporte
+#                                  los eventos del mapa nuevo no corrían jamás
+#   quién puede ser líder          se miraba sin el contexto del mapa, así que
+#                                  Kersh no entraba y el héroe salía invisible
+#
+# Los cuadros están elegidos afuera de las ventanas de los saltos, y eso está
+# medido: la ROM se toma unos seis cuadros en cada teletransporte rellenando el
+# tilemap de 64x32, y la referencia no modela ese costo —es lo mismo que pasa
+# con el arranque, que incluye la subida al SPC700—. Entre el salto y unos
+# treinta cuadros después los dos lados quedan a tres o seis cuadros de
+# distancia, y como la cámara sigue al héroe, eso corre la pantalla entera.
+#
+# Afuera de esas ventanas dan cero, incluido el cuadro 900, que es la cinemática
+# terminada: el héroe arriba de todo, mirando arriba, con la pantalla teñida.
+snes-cinematica origen="4" destino="1" cuadros="100 400 600 900" arranque="21" nombre="cinematica":
+  #!/usr/bin/env bash
+  set -euo pipefail
+  mkdir -p {{snes_pngs}} {{snes_inc}}
+  python3 tools/snes_convert.py --grupo 10 --map-id {{origen}} \
+      --mapas {{destino}} -o {{snes_inc}}/mapdata.inc
+  just snes-build
+  pre={{snes_pngs}}/{{nombre}}
+  python3 tools/snes_expect.py --grupo 10 --map-id {{origen}} \
+      --mapas {{destino}} --walk none --cuadros {{cuadros}} \
+      --saltar $pre-{}.saltar.txt -o $pre-{}.esperado.png
+  for n in {{cuadros}}; do
+    python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre-$n.png \
+        --walk none --cuadros $n --arranque {{arranque}}
+    python3 tools/snes_compare.py $pre-$n.png $pre-$n.esperado.png \
+        --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
+  done
+
 # El texto del juego, no el que le dictamos a la ROM.
 #
 # Todo lo que hay arriba —`snes-ventana`, `snes-cerrar`, `snes-anclada`— usa

@@ -229,6 +229,18 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
     puesto hasta que otro lo cambie.
     """
     saltos = SALTOS_MAX
+    # El presupuesto de cuadros es de toda la entrada, no de cada mapa: una
+    # página que teletransporta y sigue corriendo cruza el corte, y volver a
+    # contar desde cero en el mapa nuevo le regalaría los cuadros de la espera
+    # que venía haciendo.
+    restantes = cuadros
+    # Y la página que estuviera corriendo sobrevive al teletransporte. En RM2k
+    # `CommandTeleport` hace `index++` y devuelve false: reserva el salto, corta
+    # el cuadro, y **la misma página retoma en el comando siguiente una vez
+    # cambiado el mapa**. Reiniciarla, que es lo que hacíamos, deja a la
+    # cinemática de apertura dando vueltas para siempre: espera, teletransporta
+    # al mismo mapa, y vuelve a empezar.
+    pendiente = None
     while True:
         game_map, passable, ocupadas, _puertas = mundo.mapa(map_id)
         # Dónde arranca cada evento del mapa, en celdas y por índice de la tabla
@@ -270,7 +282,10 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
             # página sigue y quien camina es el personaje.
             salto = None
             interprete = eventos.Interprete(mundo.paginas(map_id), estado)
-            for n in range(1, cuadros + 1):
+            if pendiente is not None:
+                interprete.retomar(pendiente)
+                pendiente = None
+            for n in range(1, restantes + 1):
                 # `apretar_a` es el cuadro en que el jugador aprieta A, y sólo
                 # cuenta ese: RM2k cierra el mensaje con el flanco, no con el
                 # botón sostenido. El emulador aprieta en el mismo número y lo
@@ -288,14 +303,32 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
                         apreta = False
                 if interprete.cuadro(apreto_a=apreta):
                     salto = estado.salto
-                    break
+                    if mundo.ids[salto[0]] == map_id:
+                        # Un teletransporte **al mismo mapa** no recarga nada:
+                        # sólo mueve al héroe. Es el `map_changed = (GetMapId()
+                        # != teleport_target.GetMapId())` de
+                        # `Game_Player::PerformTeleport`. Recargarlo volvía a
+                        # encolar los eventos automáticos, y con eso la
+                        # cinemática de apertura —que salta dos veces adentro
+                        # del mapa 1— se reiniciaba sola para siempre.
+                        x, y = salto[1], salto[2]
+                        estado.salto = salto = None
+                        # Y el cuadro **sigue**: la ROM atiende el salto en
+                        # `eventos_tick` y después corre `move_hero`,
+                        # `mover_eventos` y el resto del lazo igual. Cortarlo
+                        # acá le regalaba un cuadro a cada teletransporte.
+                    else:
+                        restantes -= n  # los que quedan para el mapa nuevo
+                        pendiente = interprete.pendiente()
+                        break
                 x, y = paso_de_ruta(estado, passable, game_map, x, y)
                 cuadro_de_eventos(estado, passable, game_map)
                 if interprete.terminado and not estado.ruta \
                         and not estado.paso_cuadros \
                         and not estado.cuadros_moviendose \
                         and not estado.algo_corriendo() \
-                        and (apretar_a is None or n >= apretar_a):
+                        and (apretar_a is None or n >= apretar_a) \
+                        and restantes is not None:
                     # Y no se corta antes de que el jugador apriete: si el mapa
                     # no tiene nada que correr, el lazo terminaba en el primer
                     # cuadro y la tecla no llegaba a existir.
