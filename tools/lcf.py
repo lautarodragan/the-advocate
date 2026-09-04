@@ -188,6 +188,9 @@ ACTOR_NAME = 0x01
 ACTOR_CHARSET = 0x03
 ACTOR_CHARSET_INDEX = 0x04
 SYSTEM_PARTY = 0x16
+# El System del juego: el PNG con el marco de la ventana, los colores de texto
+# y la sombra. Este juego usa `ablskin`, no el `BLSys` que también trae.
+SYSTEM_NAME = 0x13
 
 CHIPSET_NAME = 0x01
 CHIPSET_FILENAME = 0x02
@@ -514,6 +517,8 @@ class Database:
         # con el actor 10, 'DummyHero', que es Chubby2[2].
         sistema = Reader(self.fields.get(DB_SYSTEM, b"\x00")).read_struct()
         self.party = to_i16_array(sistema.get(SYSTEM_PARTY, b""))
+        self.system_name = sistema.get(SYSTEM_NAME, b"").decode(
+            "cp1252", "replace")
 
     def lider(self, party=None):
         """El CharSet del primero del grupo: (nombre, índice).

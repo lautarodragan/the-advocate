@@ -312,6 +312,21 @@ snes-mednafen:
       --saltar {{snes_pngs}}/saltar-med-walk.txt \
       -o {{snes_pngs}}/comparacion-med-walk.png
 
+# Una página de mensaje del juego, dibujada como la dibujaría RM2k.
+#
+# Todavía no hay nada del lado de la ROM, así que esto no compara nada: existe
+# para poder poner nuestra ventana **al lado de una captura de EasyRPG** de esa
+# misma página. Es la única forma de salir del agujero de siempre —si la
+# referencia y la ROM se equivocan igual, la comparación da cero—, y acá el
+# tercero en discordia es el juego original.
+#
+#   just snes-mensaje 1        la primera página de mensaje del mapa 1
+#   just snes-mensaje 1 4 4    la quinta, agrandada cuatro veces
+snes-mensaje mapa="1" indice="0" escala="1":
+  mkdir -p {{snes_pngs}}
+  python3 tools/snes_mensaje.py --map-id {{mapa}} --indice {{indice}} \
+      --escala {{escala}} -o {{snes_pngs}}/mensaje-{{mapa}}-{{indice}}.png
+
 # Una ruta forzada, comparada **mientras camina** y no sólo donde termina.
 #
 # Es el caso que faltaba para poder aceptar los `move_*` de MoveEvent. Lo que

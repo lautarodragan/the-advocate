@@ -208,6 +208,32 @@ Y una medición que sale bien: la página entera —ventana, marco, texto y somb
 usa **9 colores a 15 bits**. Entra en una sola paleta de 4bpp, así que la
 ventana puede vivir en BG2 sin pelear por CGRAM.
 
+**Cómo lo resuelve un juego de SNES de verdad**, que era la duda razonable —lo
+normal es suponer que usaban glifos de 8 px y listo—. Se miró **Final Fantasy
+VI**, en `/extras/ref/ff6`, que es el caso más parecido: un RPG en inglés con
+mucho texto. No usa 8 px fijos:
+
+* tiene una **tabla de anchos por caracter**, `FontWidth`, con valores de 4 a
+  12, que copia a la WRAM en `$7E9E00` al arrancar (`InitDlgVWF`);
+* **compone el texto en un buffer de WRAM** —`$9183-$9DFF`, "Dialog Text
+  Buffer"— y lo sube, en vez de armarlo con índices del tilemap;
+* y pone **la sombra en los bitplanes 3 y 4**, separada del glifo.
+
+O sea, exactamente la arquitectura que hace falta acá, y por la misma razón: con
+glifos de 8 px el texto en inglés no entra. Medido sobre este juego: a 32
+columnas truncar pierde el **9,23% de los caracteres** —6,1 por línea cortada— y
+envolver manda el 27,4% de las páginas a más de cuatro líneas. A 40 columnas es
+1,06% y 8,6%.
+
+Lo que eso cambia del plan: nada, y ahora se sabe por qué. Componer pixel por
+pixel hace falta para cualquier ancho menor a 8, así que **el ancho fijo no
+ahorra la parte cara**: contra el variable es una tabla de anchos y dos líneas
+más. El ancho fijo de la fase 1 se queda igual, pero por otro motivo del que se
+creía: no es que sea más simple de implementar, es que es **idéntico a
+easyrpg-player pixel por pixel**, y eso convierte una captura de EasyRPG en un
+tercero contra el que comparar. Es lo que este repo nunca tiene. Para eso está
+`just snes-mensaje`, que dibuja una página de mensaje de verdad del juego.
+
 **Lo que falta, que es todo el lado de la ROM.** El problema real es la VRAM:
 estamos en modo 3, que no tiene BG3, y los 64 KB están reeprtidos al 100%. La
 ventana necesita 8 KB —el texto son 240 tiles de 4bpp y no hay forma de bajarlo,
@@ -231,7 +257,12 @@ Falta entonces: el reparto nuevo en el conversor, emitir los tiles de la ventana
 y de la fuente, componer el texto en tiles desde el 65816, el opcode del
 intérprete y que la página espere a que el jugador apriete A. Nada de eso está
 escrito todavía, y por lo tanto nada de esto lo corre ninguna prueba: `fuente.py`
-y `ventana.py` están verificados sólo a ojo, mirando el PNG.
+y `ventana.py` están verificados sólo a ojo, mirando el PNG que saca
+`just snes-mensaje`.
+
+Y falta el reacomodo del texto, que taro pidió dejar **para otro hito**: la fase
+1 trunca y queda medio ilegible a propósito. A 40 columnas eso es el 1,06% de
+los caracteres.
 
 **Después: la cinemática de apertura.**
 El mapa 4 ya prende el switch 20, que es la condición de la página que abre el
