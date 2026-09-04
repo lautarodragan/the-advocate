@@ -50,9 +50,11 @@ compila. Le faltan cinco cosas, en el orden en que conviene hacerlas:
    `snes-ruta-pisa`, los tres rotos a propósito para saber que miran; la tanda
    queda en 54 casos en verde. Lo que quedó sin modelar está en el LEEME, en
    "Pisar un evento".
-3. **`ChangeEventLocation`**, que aparece 6 veces en esa página: es lo que
-   planta a Core y a Manta en escena. Destraba además +5 páginas automáticas en
-   el resto del juego, que es lo tercero que más rinde.
+3. **Hecho el 2026-09-04: `ChangeEventLocation`.** `OP_LUGAR` en los dos
+   lados: la celda y el corte del paso, nada más, que es `MoveTo`. Dos casos
+   nuevos en `snes-lugar`, rotos a propósito los dos; la tanda queda en 56
+   casos en verde y `snes-destraba` en 142 páginas, las +5 prometidas. Ver
+   "Plantar un evento en una celda" en el LEEME.
 4. **`face_hero`** (orden de ruta 21), en dos de sus rutas. Es justo el giro que
    quedó afuera en `a95ac7f`, y sigue bloqueado por lo mismo: el mirado inicial
    de un evento tiene que salir de su página en los dos lados, en vez del

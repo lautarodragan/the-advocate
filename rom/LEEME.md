@@ -271,6 +271,34 @@ referencia no la mira—, y un evento disparado dos veces antes de correr, que
 entra dos veces en la cola y una sola en RM2k. Ninguna ruta del juego hace
 ninguna de las tres.
 
+### Plantar un evento en una celda
+
+`ChangeEventLocation` es `Game_Character::MoveTo`, y lo que importa es lo que
+**no** hace: pone la celda y deja el paso en cero —`SetRemainingStep(0)`—, y
+no toca la ruta, que sigue con la orden siguiente desde ahí, ni hacia dónde
+mira, que en RM2k sólo lo cambia la variante de RM2k3. El juego lo usa 680
+veces con la celda escrita y 129 leyéndola de variables; las segundas no
+compilan, como todo lo indirecto. Sale de la cinemática de apertura, que lo
+usa seis veces para traer a Core, a Manta y al droide a escena, y destraba
+además cinco páginas automáticas, las cinco que decía `snes-destraba`.
+
+En la ROM es `OP_LUGAR`: la celda va a `ev_pos_buf`, que es lo que miran las
+rutas, la tecla de acción y el contacto, y el dibujo la sigue de dos maneras.
+Un evento con ranura de ruta sólo necesita que se le corte el paso y el salto:
+`mover_eventos` lo refresca en el mismo cuadro. Uno sin ranura **no se lleva
+una**: su fila de NPC se mueve a mano, sin tocarle el tile —la pose de su
+página— y se reacomoda en el orden de dibujado. La referencia hace lo mismo
+desde `pos_ev`, que ahora es de donde se dibuja todo NPC, tenga ruta o no.
+
+Lo prueba `just snes-lugar`, en el mapa 6 de `snes-npc`: un evento plantado a
+mitad de un paso queda **exactamente** sobre la celda y sigue con los pasos
+que le faltaban, y uno sin ruta aparece en otra celda con su pose de siempre.
+Los dos se rompieron a propósito: sin el corte del paso el primero da unos 370
+pixeles en los tres cuadros del medio, y sin mover la fila el segundo da 511.
+Y una trampa que costó una vuelta: la primera versión lo plantaba en una celda
+tapada por la capa de encima, y los dos lados lo dibujaban tapado. La prueba
+daba cero con el corte sacado, porque no veía al evento.
+
 ### El arranque de verdad
 
 El juego no empieza donde las pruebas lo ponían. Empieza en **Map0004, `Blank
@@ -1411,18 +1439,18 @@ comparación.
   Mientras tanto el héroe queda parado adentro del caño, que es donde RM2k
   también lo deja: ahí no camina nadie, sigue el script.
 * **Lo que le falta al juego entero, medido.** De las 489 páginas automáticas
-  con comandos, hoy compilan enteras **137**. Eran 16 antes de los cuadros de
+  con comandos, hoy compilan enteras **142**. Eran 16 antes de los cuadros de
   texto, 71 con ellos, 87 con las rutas forzadas sobre eventos, 110 con
-  FlashSprite, 117 aceptando `PlaySound`, 126 con la saturación del tinte y 137
-  con los saltos y las demás órdenes de ruta. El cronómetro no cambió el
-  número: suma cero, y está medido. Y esto es cuántas pasarían a compilar con
-  cada comando que falta —`just snes-destraba`—:
+  FlashSprite, 117 aceptando `PlaySound`, 126 con la saturación del tinte, 137
+  con los saltos y las demás órdenes de ruta y 142 con `ChangeEventLocation`,
+  que dio las cinco que prometía. El cronómetro no cambió el número: suma
+  cero, y está medido. Y esto es cuántas pasarían a compilar con cada comando
+  que falta —`just snes-destraba`—:
 
-      ConditionalBranch          +9      ChangeItems            +2
-      FadeOutBGM                 +9      FullHeal               +1
-      ChangeEventLocation        +5      WeatherEffects         +0
+      ConditionalBranch         +13      ChangeItems            +2
+      FadeOutBGM                +10      FullHeal               +1
+      PanScreen                  +5      WeatherEffects         +0
       ControlVars                +4      CallEvent              +0
-      PanScreen                  +4
 
   Y aparte, `MoveEvent` con las órdenes de ruta que todavía no sabemos caminar:
   +35 de techo. Puestos todos juntos se llega a **213 de 489**, y lo que seguiría

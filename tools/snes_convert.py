@@ -1362,6 +1362,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "OP_FLASH    = $%02X\n"
         "OP_TIMER    = $%02X\n"
         "OP_BGM      = $%02X\n"
+        "OP_LUGAR    = $%02X\n"
         "; Las tres operaciones del cronómetro.\n"
         "TIMER_PONER    = %d\n"
         "TIMER_ARRANCAR = %d\n"
@@ -1449,6 +1450,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            eventos.OP_ESPERAR, eventos.OP_TINTE, eventos.OP_GRUPO,
            eventos.OP_RUTA, eventos.OP_MENSAJE, eventos.OP_RUTAS,
            eventos.OP_FLASH, eventos.OP_TIMER, eventos.OP_BGM,
+           eventos.OP_LUGAR,
            eventos.TIMER_PONER, eventos.TIMER_ARRANCAR,
            TIMER_X, TIMER_Y, TIMER_GLIFO_W, TIMER_GLIFOS - 1,
            eventos.CUADROS_POR_SEGUNDO, eventos.TIMER_CUADROS_DE_MAS,
@@ -1684,7 +1686,8 @@ LARGO_DE_OPCODE = {
     eventos.OP_FIN: 1, eventos.OP_SWITCH: 4, eventos.OP_TELEPORT: 6,
     eventos.OP_ESPERAR: 3, eventos.OP_TINTE: 5, eventos.OP_GRUPO: 3,
     eventos.OP_MENSAJE: 3, eventos.OP_RUTAS: 1, eventos.OP_FLASH: 7,
-    eventos.OP_TIMER: 5, eventos.OP_BGM: 2, eventos.OP_RUTA: None,
+    eventos.OP_TIMER: 5, eventos.OP_BGM: 2, eventos.OP_LUGAR: 6,
+    eventos.OP_RUTA: None,
 }
 
 
@@ -1739,6 +1742,16 @@ def ruta_de_evento(argumento):
     if not argumento or len(argumento) < 2:
         return ()
     return argumento[0], list(argumento[1:])
+
+
+def lugar_de_prueba(argumento):
+    """(blanco, x, y, espera) desde `--lugar-de-prueba`, o () si no hay."""
+    if not argumento:
+        return ()
+    if len(argumento) not in (3, 4):
+        sys.exit("--lugar-de-prueba pide BLANCO X Y y, si se quiere, ESPERA")
+    return (argumento[0], argumento[1], argumento[2],
+            argumento[3] if len(argumento) > 3 else 0)
 
 
 def ev_pos_bytes(game_map):
@@ -1889,6 +1902,13 @@ def main():
                         help="agrega a la página de prueba una ruta forzada "
                              "sobre el héroe, con los códigos de "
                              "rpg::MoveCommand::Code: 0..3 mover, 12..15 girar")
+    parser.add_argument("--lugar-de-prueba", nargs="+", type=int, default=None,
+                        metavar="N",
+                        help="BLANCO X Y [ESPERA]: planta al evento —el índice "
+                             "de la tabla más uno— en esa celda desde la página "
+                             "de prueba, después de esperar esos cuadros. Es "
+                             "ChangeEventLocation, y con --ruta-de-evento la "
+                             "espera cae a mitad de la ruta")
     parser.add_argument("--pagina-de-prueba", nargs="+", type=int, default=None,
                         metavar="N",
                         help="ESPERA R G B [SAT]: agrega una página automática "
@@ -2015,7 +2035,7 @@ def main():
                                            mensajes, temas)
         if (args.pagina_de_prueba or args.ruta_de_prueba
                 or args.ruta_de_evento or args.flash_de_prueba or args.switch
-                or args.timer_de_prueba
+                or args.timer_de_prueba or args.lugar_de_prueba
                 or args.mensaje_de_prueba is not None) \
                 and mapa is mapas[args.inicial]:
             # La página inventada, sólo en el mapa donde arranca la ROM. No sale
@@ -2033,7 +2053,8 @@ def main():
                     espera, tinte, args.ruta_de_prueba or (), prueba,
                     ruta_de_evento(args.ruta_de_evento),
                     args.flash_de_prueba or (), args.switch or (),
-                    args.timer_de_prueba or ())}]
+                    args.timer_de_prueba or (),
+                    lugar_de_prueba(args.lugar_de_prueba))}]
         codigo = bytearray()
         for pagina in paginas:
             pagina["offset"] = len(codigo)

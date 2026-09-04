@@ -530,6 +530,53 @@ snes-npc mapa="6" ruta="4 2 2 2 2 1 1 12" celda="22 12" cuadros="10 27 40 60" ar
         --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
   done
 
+# Plantar a un evento en una celda: ChangeEventLocation.
+#
+# Es `MoveTo`, y la vuelta que tiene está en lo que **no** hace: no toca la ruta
+# ni hacia dónde mira, y corta el paso en curso —`SetRemainingStep(0)`—. Dos
+# casos, en el mapa 6 de `snes-npc`, con el evento 3 que arranca en (22,9):
+#
+# * a mitad de su ruta: cuatro para abajo, y después de esperar 12 cuadros —a
+#   mitad del segundo paso— lo plantan en (21,13). Se dibuja **exactamente**
+#   sobre esa celda y sigue con los dos pasos que le quedaban, hasta (21,15).
+#   Sin el corte del paso quedaría corrido los pixeles que le faltaban; con la
+#   ruta cortada no llegaría.
+# * sin ruta: lo plantan en (21,10) y nada más. Se dibuja ahí con la pose de su
+#   página, y en la ROM sin llevarse ranura ni tocarle el tile.
+#
+# Las celdas son del piso marrón a la vista, y no da lo mismo: la primera
+# versión lo plantaba en (20,14), que cae en la franja de la capa de encima, y
+# los dos lados lo dibujaban tapado. La prueba daba cero con el corte del paso
+# sacado, porque no veía al evento. Cada caso se rompió a propósito para saber
+# que mira lo que dice.
+#
+# Los cuadros del primero no son los de la espera: `OP_ESPERAR 12` suelta la
+# página en el cuadro **14**, no en el 12 —la espera cuenta cuadros enteros y
+# el opcode se lee en el siguiente—, y elegidos a ojo los dos primeros caían
+# antes del corte, así que la ROM sin el corte también daba cero. El 14 es el
+# del corte —el evento arranca el tercer paso desde la celda nueva—, el 15 uno
+# después, el 20 caminando, y el 60 terminó.
+snes-lugar mapa="6" lugar="4 21 13 12" ruta="4 2 2 2 2" celda="22 12" cuadros="14 15 20 60" arranque="10" nombre="lugar":
+  #!/usr/bin/env bash
+  set -euo pipefail
+  mkdir -p {{snes_pngs}} {{snes_inc}}
+  ruta="{{ruta}}"
+  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
+      --inicio {{celda}} ${ruta:+--ruta-de-evento $ruta} \
+      --lugar-de-prueba {{lugar}} -o {{snes_inc}}/mapdata.inc
+  just snes-build
+  pre={{snes_pngs}}/{{nombre}}
+  python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
+      --hero-tile {{celda}} ${ruta:+--ruta-de-evento $ruta} \
+      --lugar-de-prueba {{lugar}} --cuadros {{cuadros}} \
+      --saltar $pre-{}.saltar.txt -o $pre-{}.esperado.png
+  for n in {{cuadros}}; do
+    python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre-$n.png \
+        --walk none --cuadros $n --arranque {{arranque}}
+    python3 tools/snes_compare.py $pre-$n.png $pre-$n.esperado.png \
+        --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
+  done
+
 # Un destello sobre un personaje: FlashSprite.
 #
 # RM2k lo hace mezclando el dibujo del personaje hacia un color durante unos

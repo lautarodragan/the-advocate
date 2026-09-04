@@ -31,6 +31,12 @@ CHANGE_SAVE_ACCESS = 11930
 CHANGE_PARTY_MEMBERS = 10330
 PLAY_BGM = 11510
 MOVE_EVENT = 11330
+# Plantar un evento en una celda. Es `CommandChangeEventLocation`: `MoveTo`,
+# que pone la celda y deja el paso en cero, y nada más —la dirección sólo la
+# toca RM2k3, y este juego es RM2k—. La cinemática de apertura lo usa seis
+# veces para traer a Core, a Manta y al droide a escena.
+CHANGE_EVENT_LOCATION = 10860
+LUGAR_CONSTANTE = 0         # p[1]: 0 es la celda escrita, 1 la lee de variables
 
 # Un cuadro de texto. RM2k emite un `ShowMessage` con la primera línea y un
 # `ShowMessage_2` por cada una de las que siguen del mismo cuadro: son un solo
@@ -348,6 +354,10 @@ OP_RUTAS    = 0x08      # sin operandos: la página no sigue hasta que no quede
                         # ninguna ruta forzada corriendo
 OP_FLASH    = 0x09      # blanco (byte), r, g, b, potencia (byte cada uno, de 0
                         # a 31) y cuántos cuadros dura (byte)
+OP_LUGAR    = 0x0C      # blanco (byte, como en OP_RUTA: el índice del evento
+                        # más uno), x (word), y (word). Planta al evento en la
+                        # celda y le corta el paso en curso; no toca su ruta ni
+                        # hacia dónde mira, que es lo que hace `MoveTo`.
 OP_BGM      = 0x0B      # el índice del tema en `Temas` (byte). La ROM toca el
                         # que le tocó llevar —`TEMA_INDICE`— y con cualquier
                         # otro no hace nada, que es lo que hacía antes con
@@ -810,6 +820,21 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
             raise NoSePuede()
         return bytes([OP_RUTA, blanco, len(ruta)]) + bytes(ruta)
 
+    if cmd.code == CHANGE_EVENT_LOCATION:
+        if len(p) < 4 or p[1] != LUGAR_CONSTANTE:
+            raise NoSePuede()   # la celda sale de variables, y no las leemos
+        if p[0] == RUTA_HEROE or eventos_mapa is None:
+            # Al héroe no lo mueve nadie así en este juego —para eso está
+            # Teleport— y sin el mapa no hay cómo traducir el id.
+            raise NoSePuede()
+        blanco = eventos_mapa.blanco(p[0])
+        if blanco is None:
+            raise NoSePuede()   # un vehículo, o un evento que no existe
+        if not (0 <= p[2] <= 0xFFFF and 0 <= p[3] <= 0xFFFF):
+            raise NoSePuede()
+        return bytes([OP_LUGAR, blanco, p[2] & 0xFF, p[2] >> 8,
+                      p[3] & 0xFF, p[3] >> 8])
+
     if cmd.code == WAIT:
         if len(p) < 1:
             raise NoSePuede()
@@ -887,6 +912,17 @@ class Ruta:
         # Hacia dónde mira si una ruta se lo dijo. None es "lo decide la
         # caminata", que es lo de siempre.
         self.mirando = None
+
+    def cortar_paso(self):
+        """Deja al personaje sobre su celda: sin paso ni salto en curso.
+
+        Es lo que hace `MoveTo` con `SetRemainingStep(0)`. Las órdenes, la
+        espera y hacia dónde mira quedan como estaban.
+        """
+        self.paso_dir = None
+        self.paso_cuadros = 0
+        self.salto_resta = 0
+        self.arranco_salto = None
 
     @property
     def pendiente(self):
@@ -1126,6 +1162,21 @@ class Estado:
             self.rutas_ev[indice] = Ruta()
         return self.rutas_ev[indice]
 
+    def mover_evento(self, indice, x, y):
+        """Planta al evento en la celda, como `Game_Character::MoveTo`.
+
+        La celda es la nueva desde este cuadro y el paso o el salto en curso
+        se cortan —`SetRemainingStep(0)`—: el evento se dibuja exactamente
+        sobre la celda. Lo que **no** se toca es la ruta, que sigue con la
+        orden siguiente desde acá, ni hacia dónde mira. Un evento que nunca
+        recibió una ruta tampoco la recibe por esto: en la ROM no se lleva
+        una ranura, y se dibuja con la pose de su página, sólo que en otra
+        celda.
+        """
+        self.pos_ev[indice] = (x, y)
+        if indice in self.rutas_ev:
+            self.rutas_ev[indice].cortar_paso()
+
     def rutas_pendientes(self):
         """Si queda alguna ruta forzada sin terminar, la del héroe incluida.
 
@@ -1356,7 +1407,7 @@ def pagina_activa(paginas, evento, estado):
 
 
 def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
-                    flash=(), switches=(), timer=()):
+                    flash=(), switches=(), timer=(), lugar=()):
     """Una página automática inventada: una ruta forzada, una espera, un tinte.
 
     No sale de ningún dato del juego, y ésa es la idea. El intérprete corre
@@ -1376,6 +1427,12 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
 
     `mensaje` es el desplazamiento del cuadro de texto en el bloque de la ROM,
     o None si esta página no abre ninguno.
+
+    `lugar` es (blanco, x, y, espera) para plantar a un evento en una celda
+    —OP_LUGAR— después de esperar esos cuadros. Va **entre** la ruta del
+    evento y su OP_RUTAS a propósito: con la espera a mitad de un paso, el
+    corte del paso que hace `MoveTo` es lo que se ve, y la ruta sigue desde la
+    celda nueva.
 
     `ruta_ev` es (blanco, órdenes) para mandar a caminar a un evento, y detrás
     va un OP_RUTAS. Existe por lo mismo que el resto: **ninguna página del juego
@@ -1410,6 +1467,12 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
     if ruta_ev:
         blanco, ordenes = ruta_ev
         codigo += bytes([OP_RUTA, blanco, len(ordenes)]) + bytes(ordenes)
+    if lugar:
+        blanco, x, y, cuadros = lugar
+        if cuadros:
+            codigo += bytes([OP_ESPERAR, cuadros & 0xFF, cuadros >> 8])
+        codigo += bytes([OP_LUGAR, blanco, x & 0xFF, x >> 8, y & 0xFF, y >> 8])
+    if ruta_ev:
         codigo += bytes([OP_RUTAS])
     if mensaje is not None:
         # El mensaje va antes de la espera y del tinte a propósito: bloquea, así
@@ -1658,6 +1721,13 @@ def ejecutar(codigo, estado, desde=0):
             # opcode existe igual porque **ocupa dos bytes** en el bytecode, y
             # los dos lados tienen que recorrer el mismo stream.
             i += 2
+        elif op == OP_LUGAR:
+            # `MoveTo`: la celda cambia ya y el paso en curso se corta. La ruta
+            # sigue desde la celda nueva, y hacia dónde mira no cambia.
+            estado.mover_evento(codigo[i + 1] - 1,
+                                codigo[i + 2] | (codigo[i + 3] << 8),
+                                codigo[i + 4] | (codigo[i + 5] << 8))
+            i += 6
         elif op == OP_TIMER:
             # `CommandTimerOperation`. No corta el cuadro: las tres operaciones
             # son asignaciones, y quien hace correr el cronómetro es

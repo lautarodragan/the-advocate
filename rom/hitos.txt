@@ -44,6 +44,8 @@ snes-anclada
 snes-texto
 snes-ruta-evento
 snes-npc
+snes-lugar
+snes-lugar 6 "4 21 10" "" "22 12" "10 60" 10 lugar-quieto
 snes-destello
 snes-saturar
 snes-saturar 73 "60 100 100 100 0" 30 120 saturar-gris

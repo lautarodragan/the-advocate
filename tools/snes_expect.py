@@ -142,7 +142,8 @@ class Mundo:
                                               self.prueba[3],
                                               self.prueba[4],
                                               self.prueba[5],
-                                              self.prueba[6]))]
+                                              self.prueba[6],
+                                              self.prueba[7]))]
             self.paginas_cache[map_id] = paginas
         return self.paginas_cache[map_id]
 
@@ -785,6 +786,10 @@ def main():
                              "ProceedWithMovement, así que lo que venga "
                              "después de la página no corre hasta que el "
                              "evento termine de caminar")
+    parser.add_argument("--lugar-de-prueba", nargs="+", type=int, default=None,
+                        metavar="N",
+                        help="BLANCO X Y [ESPERA]: el otro lado del mismo flag "
+                             "del conversor")
     parser.add_argument("--ruta-de-prueba", nargs="+", type=int, default=None,
                         metavar="ORDEN",
                         help="agrega a la página de prueba una ruta forzada "
@@ -843,7 +848,7 @@ def main():
                  % (args.inicial, len(tabla)))
     hay_prueba = (args.pagina_de_prueba or args.ruta_de_prueba
                   or args.ruta_de_evento or args.flash_de_prueba or args.switch
-                  or args.timer_de_prueba
+                  or args.timer_de_prueba or args.lugar_de_prueba
                   or args.mensaje_de_prueba is not None)
     # El bloque de textos, armado igual que en el conversor y en el mismo orden:
     # el mensaje de prueba primero —desplazamiento 0— y después los mapas de la
@@ -855,7 +860,8 @@ def main():
                   (args.pagina_de_prueba, args.ruta_de_prueba, prueba,
                    snes_convert.ruta_de_evento(args.ruta_de_evento),
                    args.flash_de_prueba or (), args.switch or (),
-                   args.timer_de_prueba or ())
+                   args.timer_de_prueba or (),
+                   snes_convert.lugar_de_prueba(args.lugar_de_prueba))
                   if hay_prueba else None, mensajes)
 
     # Los CharSets y los mapas ya convertidos se comparten entre las
@@ -1013,11 +1019,14 @@ def main():
             blanco_flash = npc["evento"] + 1
             ruta = estado.rutas_ev.get(npc["evento"])
             altura = 0
+            # Donde está **ahora**, que es la celda de su página salvo que un
+            # ChangeEventLocation lo haya plantado en otra: ahí no hay ruta y
+            # la pose sigue siendo la de la página.
+            cx, cy = estado.pos_ev.get(npc["evento"], (npc["x"], npc["y"]))
             if ruta is None:
-                px, py, pose = npc["x"] * TILE, npc["y"] * TILE, npc["pose"]
+                px, py, pose = cx * TILE, cy * TILE, npc["pose"]
             else:
                 altura = eventos.altura_del_salto(ruta)
-                cx, cy = estado.pos_ev[npc["evento"]]
                 px, py = eventos.pixeles_del_paso(cx, cy, ruta)
                 mira = (ruta.mirando if ruta.mirando is not None
                         else npc["pose"] // 3)

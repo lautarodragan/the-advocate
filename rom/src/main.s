@@ -1466,6 +1466,9 @@ otro:
 :   cmp #OP_BGM
     bne :+
     jmp op_bgm
+:   cmp #OP_LUGAR
+    bne :+
+    jmp op_lugar
 :   cmp #OP_TIMER
     bne :+
     jmp op_timer
@@ -1583,6 +1586,39 @@ op_ruta_evento:
     tay
     sep #$20
 .a8
+    jmp otro
+
+; Planta a un evento en una celda: ChangeEventLocation. Es `MoveTo`, y nada
+; más que `MoveTo`: la celda cambia ya y el paso o el salto en curso se cortan
+; —`SetRemainingStep(0)`—, la ruta que tuviera sigue con la orden siguiente
+; desde acá, y hacia dónde mira no cambia; la dirección la toca sólo RM2k3. La
+; cinemática de apertura lo usa seis veces para traer a Core, a Manta y al
+; droide a escena.
+op_lugar:
+    lda [cod_ptr], y            ; el blanco: el índice del evento más uno
+    dec a
+    sta temp
+    iny
+    rep #$20
+.a16
+    lda temp
+    and #$00FF
+    asl a
+    asl a                       ; EV_STRIDE bytes por evento
+    tax
+    lda [cod_ptr], y
+    sta ev_pos_buf + 0, x       ; la celda, que es lo que miran las rutas, la
+    iny                         ; tecla de acción y el contacto
+    iny
+    lda [cod_ptr], y
+    sta ev_pos_buf + 2, x
+    iny
+    iny
+    sep #$20
+.a8
+    phy
+    jsr plantar_evento
+    ply
     jmp otro
 
 ; "Esperá a que terminen las rutas". Si no queda ninguna corriendo no cuesta ni
@@ -4294,6 +4330,82 @@ buscar:
     bra buscar
 no_hay:
     ldy #$FFFF
+listo:
+    rts
+.endproc
+
+; Lo que le falta a `op_lugar` después de escribir la celda: que el dibujo la
+; siga. Entra con el índice del evento en `temp`.
+;
+; Si el evento tiene ranura de ruta alcanza con cortarle el paso y el salto:
+; `mover_eventos` corre después en este mismo cuadro y `refrescar_npc` lo deja
+; sobre la celda nueva, con la pose que venía. Si no la tiene —un evento que
+; nadie mandó a caminar— no se le da una: no se lleva ranura por esto, y su
+; fila se mueve a mano, sin tocarle el tile, que es la pose de su página. La
+; referencia hace lo mismo: sin `Ruta`, dibuja la pose de la página en la
+; celda de `pos_ev`.
+.proc plantar_evento
+.a8
+.i16
+    ldx #$0000
+buscar:
+    lda ruta_ev, x
+    cmp temp
+    beq con_ranura
+    rep #$20
+.a16
+    txa
+    clc
+    adc #RUTA_EV_STRIDE
+    tax
+    cmp #RUTA_EV_MAX * RUTA_EV_STRIDE
+    sep #$20
+.a8
+    bcc buscar
+
+    ; Sin ranura. Si tampoco tiene gráfico no hay nada que mover.
+    lda temp
+    jsr npc_de_evento
+    cpy #$FFFF
+    beq listo
+    sty npc_fila
+    lda temp
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    asl a
+    tax
+    lda ev_pos_buf + 0, x       ; la celda por dieciséis: está parado en ella
+    asl a
+    asl a
+    asl a
+    asl a
+    sta npc_buf + 0, y
+    lda ev_pos_buf + 2, x
+    asl a
+    asl a
+    asl a
+    asl a
+    sta npc_buf + 2, y
+    sta npc_py
+    lda npc_buf + 4, y
+    and #$F000                  ; la capa se queda; la Y se reemplaza
+    sta temp + 2
+    lda npc_py
+    and #$0FFF
+    ora temp + 2
+    sta npc_buf + 4, y
+    sep #$20
+.a8
+    lda #0
+    sta npc_buf + 11, y         ; sin salto: nada que levantar
+    jmp acomodar_npc            ; y la fila, a donde le toque ahora
+
+con_ranura:
+    lda #0
+    sta ruta_ev + 7, x          ; sin paso en curso
+    sta ruta_ev + 13, x         ; ni salto
 listo:
     rts
 .endproc
