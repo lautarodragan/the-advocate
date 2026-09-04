@@ -166,7 +166,74 @@ de ruta que seguimos sin aceptar. Así que lo único que ejercita esto es
 mismo, el tope de ocho saltos no hace falta volver a medirlo: no compila ninguna
 página nueva, así que ninguna cadena de teletransportes cambió.
 
-**El corte siguiente, decidido: la cinemática de apertura.**
+**En curso: `ShowMessage`.** Decidido el 2026-09-04, y antes que la cinemática,
+porque es lo que más destraba: de las 473 páginas automáticas que no compilan,
+**144 las corta un cuadro de texto**, contra 60 de `MoveEvent` y 47 de
+`ConditionalBranch`. La cinemática además tiene texto igual.
+
+Va en fases, y la primera la eligió taro: **ancho fijo de 6 px, sin envolver, y
+lo que no entra se trunca.** Feo a propósito. La razón es que deja la fase 1 sin
+la parte con más superficie para errores —el reacomodo de líneas— y permite
+comparar contra capturas del ABL original o contra la referencia con menos
+cosas moviéndose. Después se pasa a otra feature y el texto queda visualmente
+roto un tiempo: deja de ser un problema técnico y pasa a ser cosmético.
+
+Por qué hace falta decidirlo: **el texto del juego no entra en la pantalla de
+la SNES**. RM2k dibuja en 320 px y le da 304 al texto; nosotros tenemos 256 y le
+damos 240. El autor escribió pegado al límite de RM2k —la línea más larga son 51
+caracteres, 306 px—. Medido sobre las 18.614 líneas de mensaje:
+
+    ttyp0 fijo de 6 px, en 240 px      entra el 92,26%   1440 líneas se truncan
+    ancho variable, en 240 px          entra el 98,02%    369
+    fijo de 6 px, en 256 px sin borde  entra el 96,25%    698
+
+El ancho variable queda anotado como fase posterior, y puede que nunca haga
+falta.
+
+Lo que ya está hecho, y es **sólo el lado de la referencia**:
+
+* `tools/fuente.py`, generada desde el ttyp0 de easyrpg-player, igual que
+  `event_codes.py` se genera desde liblcf y por la misma razón. 6x12, medio
+  ancho, los 95 caracteres ASCII imprimibles. El texto del juego es ASCII puro
+  —93 caracteres distintos, sin acentos— así que alcanza y sobra.
+* `tools/ventana.py`, la ventana de mensaje armada desde el System del juego,
+  que es `ablskin`. Las reglas salen de `Window::RefreshBackground`,
+  `Window::RefreshFrame` y `Font::Render` de easyrpg-player, con los números que
+  no se adivinan: el fondo se **estira** y no se repite, el marco son cuatro
+  esquinas de 8x8 más bordes repetidos, el color del texto es un **bloque de
+  16x16** que se usa como máscara —por eso las letras salen con degradé— y la
+  sombra sale de (16,32) dibujada primero y corrida un pixel.
+
+Y una medición que sale bien: la página entera —ventana, marco, texto y sombra—
+usa **9 colores a 15 bits**. Entra en una sola paleta de 4bpp, así que la
+ventana puede vivir en BG2 sin pelear por CGRAM.
+
+**Lo que falta, que es todo el lado de la ROM.** El problema real es la VRAM:
+estamos en modo 3, que no tiene BG3, y los 64 KB están reeprtidos al 100%. La
+ventana necesita 8 KB —el texto son 240 tiles de 4bpp y no hay forma de bajarlo,
+porque un glifo de 6 px no se alinea a celdas de 8 y hay que componerlo pixel
+por pixel—. El reparto que cierra, ya calculado:
+
+    sprites   0..16383      16 KB, 512 tiles, base de OBJ en 0
+    fondo     16384..40959  24 KB, 384 tiles de 8bpp
+    encima    40960..49151   8 KB, y acá va la base de BG2
+    ventana   49152..57343   8 KB, o sea los índices 256..511 de BG2
+    tilemaps  57344..65535
+
+BG2 llega a los dos bancos con una sola base porque quedaron pegados, que es lo
+que obliga a poner los sprites primero. Para los mapas que necesitan más de 384
+tiles de fondo hay un segundo reparto con el fondo en 32 KB y los sprites en 8.
+Medido sobre 299 mapas: 290 entran en el primero, 7 en el segundo, y **sólo 2 se
+quedan sin ventana** —el 8, Lashe City, y el 250—, que piden a la vez más de 384
+de fondo y más de 256 de sprites.
+
+Falta entonces: el reparto nuevo en el conversor, emitir los tiles de la ventana
+y de la fuente, componer el texto en tiles desde el 65816, el opcode del
+intérprete y que la página espere a que el jugador apriete A. Nada de eso está
+escrito todavía, y por lo tanto nada de esto lo corre ninguna prueba: `fuente.py`
+y `ventana.py` están verificados sólo a ojo, mirando el PNG.
+
+**Después: la cinemática de apertura.**
 El mapa 4 ya prende el switch 20, que es la condición de la página que abre el
 mapa 1, así que el enganche funciona. De los cuatro comandos que le faltaban ya
 están dos —`PlayBGM` aceptado sin hacerlo, `MoveEvent` caminando de verdad—;
