@@ -21,6 +21,10 @@
 # que la culpa es de la variable. Acá se corre sobre Xvfb, así que no aplica;
 # desde el host, `SDL_VIDEODRIVER=x11`.
 #
+# El `--fps-limit` no es cosmético: con `--no-vsync` y sin tope, un player que
+# sobreviva a su Xvfb corre el lazo libre y se come todos los cores. Ya pasó
+# con un proceso que quedó colgado de una prueba.
+#
 # Las capturas no se piden con F7 sino con las automáticas de EasyRPG, cada un
 # segundo: inyectar la tecla depende de que la ventana ya exista y de que el
 # juego haya terminado de cargar, y eso salía distinto en cada corrida.
@@ -41,7 +45,7 @@ XVFB=$!
 sleep 2
 DISPLAY=:99 "$ERPG/easyrpg-player" --project-path "$JUEGO" \
     --rtp-path /extras/rtp --new-game --start-map-id "$MAPA" --window \
-    --no-vsync --config-path "$CFG" --save-path "$SALIDA" \
+    --no-vsync --fps-limit 60 --config-path "$CFG" --save-path "$SALIDA" \
     </dev/null >"$CFG/log" 2>&1 &
 PLAYER=$!
 sleep 12                        # que cargue la base y el mapa

@@ -571,6 +571,33 @@ LAYOUT_ANCHO = {"tiles": (0x0000, 512), "sprites": (0x4000, 512),
                 "encima": (0x6000, 256)}
 LAYOUT_FONDO = {"tiles": (0x0000, 640), "encima": (0x5000, 256),
                 "sprites": (0x6000, 256)}
+
+# Y los dos que hacen lugar para la ventana de mensaje. La ventana necesita 8 KB
+# propios —el texto son 240 tiles y no hay forma de bajarlo, porque un glifo de
+# 6 px no se alinea a celdas de 8 y hay que componerlo pixel por pixel— y los
+# 64 KB ya estaban repartidos al 100%.
+#
+# Lo que los hace posibles es que `encima` y `ventana` queden **pegados**: BG2
+# tiene una sola base y sus índices de tile son de 10 bits, así que del 0 al 255
+# caen en el primer banco de 8 KB y del 256 al 511 en el que sigue. Eso obliga a
+# poner los sprites primero, porque la base de OBJ va de a 16 KB y la de un
+# fondo de a 8.
+#
+#   sprites  $0000  16 KB  512 tiles de 4bpp   base de OBJ en 0
+#   tiles    $2000  24 KB  384 tiles de 8bpp
+#   encima   $5000   8 KB  256 tiles           <- la base de BG2
+#   ventana  $6000   8 KB  256 tiles           <- los índices 256..511
+#   tilemaps $7000   8 KB
+#
+# El segundo cambia 128 tiles de fondo por 256 de sprite, para los mapas que
+# gastan más fondo. Medido sobre los 299 mapas que se pudieron convertir: 290
+# entran en el primero, 7 en el segundo y **2 se quedan sin ventana** —el 8,
+# Lashe City, y el 250—, que piden a la vez más de 384 de fondo y más de 256 de
+# sprite. Esos dos no pueden mostrar un mensaje y el conversor lo dice.
+LAYOUT_VENTANA = {"sprites": (0x0000, 512), "tiles": (0x2000, 384),
+                  "encima": (0x5000, 256), "ventana": (0x6000, 256)}
+LAYOUT_VENTANA_FONDO = {"sprites": (0x0000, 256), "tiles": (0x1000, 512),
+                        "encima": (0x5000, 256), "ventana": (0x6000, 256)}
 VRAM_MAP = 0x7000
 VRAM_ABOVE_MAP = 0x7800
 
@@ -579,11 +606,24 @@ VRAM_ABOVE_MAP = 0x7800
 MAX_BLOCKS = 1024
 
 
-def vram_layout(tiles):
-    """Cuál de los dos repartos de VRAM le toca a un mapa de estos tiles."""
-    if tiles > LAYOUT_ANCHO["tiles"][1]:
-        return LAYOUT_FONDO
-    return LAYOUT_ANCHO
+def vram_layout(tiles, sprites=0, con_ventana=False):
+    """Qué reparto de VRAM le toca a un mapa, según lo que gasta.
+
+    Sin ventana son los dos de siempre y `sprites` no se mira: el reparto ancho
+    le da 512 a cada uno y sólo los tres mapas que pasan de 512 tiles de fondo
+    necesitan el otro. Con ventana hay que elegir de dónde salen sus 8 KB, y ahí
+    sí importan los dos números.
+    """
+    if not con_ventana:
+        return LAYOUT_FONDO if tiles > LAYOUT_ANCHO["tiles"][1] else LAYOUT_ANCHO
+    if tiles <= LAYOUT_VENTANA["tiles"][1]:
+        return LAYOUT_VENTANA
+    if sprites <= LAYOUT_VENTANA_FONDO["sprites"][1]:
+        return LAYOUT_VENTANA_FONDO
+    raise SystemExit(
+        "este mapa no puede llevar ventana de mensaje: gasta %d tiles de fondo "
+        "y %d de sprite, y no hay reparto que deje 8 KB libres para la ventana. "
+        "Son 2 mapas en todo el juego" % (tiles, sprites))
 
 
 def build_blocks(tilemap, above_tilemap, passable, width, height):
@@ -732,6 +772,7 @@ MAPA_ESCALARES = [
     ("VRAM_TILES", "el reparto de la VRAM, en palabras"),
     ("VRAM_ABOVE", ""),
     ("VRAM_SPRITE", ""),
+    ("VRAM_VENTANA", "0 si esta ROM no lleva ventana de mensaje"),
     ("MAP_TILES", "cuántos tiles de fondo, para el DMA"),
     ("MAP_CGRAM", "cuántas palabras de CGRAM"),
     ("ABOVE_TILES", ""),
@@ -786,6 +827,7 @@ def campos_del_mapa(mapa):
         "HERO_START_X": collision[1] * 16, "HERO_START_Y": collision[2] * 16,
         "VRAM_TILES": layout["tiles"][0], "VRAM_ABOVE": layout["encima"][0],
         "VRAM_SPRITE": layout["sprites"][0],
+        "VRAM_VENTANA": layout.get("ventana", (0, 0))[0],
         "MAP_TILES": len(mapa["tiles"]) // BYTES_PER_TILE,
         "MAP_CGRAM": len(mapa["cram"]) // 2,
         "ABOVE_TILES": len(above[0]) // 32,

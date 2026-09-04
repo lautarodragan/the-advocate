@@ -290,9 +290,35 @@ Medido sobre 299 mapas: 290 entran en el primero, 7 en el segundo, y **sólo 2 s
 quedan sin ventana** —el 8, Lashe City, y el 250—, que piden a la vez más de 384
 de fondo y más de 256 de sprites.
 
-Falta entonces: el reparto nuevo en el conversor, emitir los tiles de la ventana
-y de la fuente, componer el texto en tiles desde el 65816, el opcode del
-intérprete y que la página espere a que el jugador apriete A. Nada de eso está
+**Hecho el 2026-09-04: el reparto de VRAM.** `vram_layout()` ahora toma también
+cuántos tiles de sprite gasta el mapa y si la ROM lleva ventana, y devuelve uno
+de cuatro repartos. Los dos de siempre quedaron intactos y se siguen usando
+cuando no hay ventana, así que **la tanda no cambia**: `snes-heroe 7` da los
+cinco en cero después del cambio. Las direcciones y el porqué de que `encima` y
+`ventana` tengan que quedar pegados están en el comentario de `LAYOUT_VENTANA`.
+
+Y con eso quedó medido lo que faltaba para saber si el plan cierra:
+
+    ventana vacía            4 colores,  15 tiles distintos de 320 celdas
+    con las 4 líneas llenas  8 colores, 224 tiles distintos (entran 256)
+
+O sea que el banco de 8 KB alcanza **en el peor caso**, no en el promedio, y los
+8 colores entran en una sola paleta de 4bpp con el índice 0 libre para la
+transparencia. El texto denso con el que se midió son 39 caracteres por línea de
+letras, números y símbolos, que es más de lo que tiene ninguna página del juego.
+
+Falta entonces: emitir los tiles de la ventana y de la fuente, elegirle una
+paleta de CGRAM, componer el texto en tiles desde el 65816, el opcode del
+intérprete y que la página espere a que el jugador apriete A.
+
+Dos cosas a tener presentes para eso, que ya se pensaron y conviene no
+rederivar. **El tilemap de BG2 es el de la capa de encima y se scrollea con la
+cámara**, así que la ventana no puede escribirse ahí y quedarse quieta... salvo
+que nada se mueva, y durante un mensaje de RM2k efectivamente nada se mueve: el
+jugador no camina. Así que alcanza con escribir las celdas al abrir el mensaje y
+restaurarlas al cerrarlo, sin HDMA. Y **restaurarlas es el trabajo que falta
+pensar**: hoy no hay una rutina que redibuje una franja del tilemap de encima
+sin recargar el mapa entero. Nada de eso está
 escrito todavía, y por lo tanto nada de esto lo corre ninguna prueba: `fuente.py`
 y `ventana.py` están verificados sólo a ojo, mirando el PNG que saca
 `just snes-mensaje`.
