@@ -43,6 +43,7 @@ snes-npc
 snes-destello
 snes-hablar
 snes-cinematica
+snes-pisar
 snes-hablar 7 "3 7" 25 25 "20 60" 30 hablar-sin-switch
 snes-cerrar
 snes-cerrar 7 200 cerrar-right right

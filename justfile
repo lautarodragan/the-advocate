@@ -663,6 +663,43 @@ snes-cinematica origen="4" destino="1" cuadros="100 400 600 900" arranque="21" n
         --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
   done
 
+# Pisar un evento, que es el otro disparo que le faltaba a la ROM.
+#
+# Son 526 páginas del juego que ya compilan, la segunda cantidad de contenido
+# después de la tecla de acción. La regla es `CheckEventTriggerHere` desde
+# `Game_Player::UpdateMovement`: al terminar el paso se mira si en esa celda hay
+# un evento de contacto.
+#
+# Y la capa es al revés que la de la tecla de acción, a propósito: acá tiene que
+# ser **distinta** de la del héroe, porque un evento de su misma capa le
+# bloquearía el paso y nunca llegaría a pisarlo. De las 983 páginas de contacto
+# del juego, 978 son de la capa de abajo.
+#
+# Las puertas son un caso particular de esto —un teletransporte en una página de
+# contacto— y siguen atendiéndose aparte, antes que esto: es un camino que ya
+# está probado y no había razón para moverlo.
+#
+# El mapa 70 tiene uno en (12,4) sin condición de switch, así que caminando para
+# arriba desde (12,8) se lo pisa a las cuatro celdas. La caminata **frena ahí**:
+# mientras el intérprete tiene una página en el frente el pad no mueve, que es el
+# `if (Game_Map::IsAnyEventStarting()) return;` de RM2k. Sin eso el héroe daba un
+# paso de más mientras el mensaje se componía.
+snes-pisar mapa="70" celda="12 8" direccion="up" cuadros="200" arranque="40" nombre="pisar":
+  #!/usr/bin/env bash
+  set -euo pipefail
+  mkdir -p {{snes_pngs}} {{snes_inc}}
+  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
+      --inicio {{celda}} --con-ventana -o {{snes_inc}}/mapdata.inc
+  just snes-build
+  pre={{snes_pngs}}/{{nombre}}
+  python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} \
+      --walk {{direccion}} --hero-tile {{celda}} --con-ventana \
+      --saltar $pre.saltar.txt -o $pre.esperado.png
+  python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre.png \
+      --walk {{direccion}} --cuadros {{cuadros}} --arranque {{arranque}}
+  python3 tools/snes_compare.py $pre.png $pre.esperado.png \
+      --saltar $pre.saltar.txt -o $pre.comparacion.png
+
 # El texto del juego, no el que le dictamos a la ROM.
 #
 # Todo lo que hay arriba —`snes-ventana`, `snes-cerrar`, `snes-anclada`— usa

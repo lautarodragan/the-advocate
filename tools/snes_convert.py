@@ -1275,6 +1275,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "FLASH_MAX   = %d\n"
         "TRIGGER_AUTOMATICO = %d\n"
         "TRIGGER_ACCION     = %d\n"
+        "TRIGGER_TOCA_HEROE = %d\n"
         "; Cuántos cuadros dura un paso de una celda. Sale del modelo y no de\n"
         "; una cuenta en la ROM: es lo que los dos lados tienen que contar\n"
         "; igual para que una ruta forzada termine en el mismo cuadro.\n"
@@ -1329,6 +1330,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            eventos.OP_RUTA, eventos.OP_MENSAJE, eventos.OP_RUTAS,
            eventos.OP_FLASH, FLASH_MAX,
            eventos.TRIGGER_AUTOMATICO, eventos.TRIGGER_ACCION,
+           eventos.TRIGGER_TOCA_HEROE,
            eventos.CUADROS_POR_CELDA,
            eventos.TINTE_NEUTRO, SWITCH_BYTES,
            eventos.GRUPO_MAX, len(grupo_inicial), ACTOR_BYTES,

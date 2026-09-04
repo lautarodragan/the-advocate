@@ -902,6 +902,37 @@ o seis cuadros de distancia y, como la cámara sigue al héroe, eso corre la
 pantalla entera. Es lo mismo que pasa con el arranque, y por ahora se mira con
 margen: los cuadros de `snes-cinematica` están elegidos afuera de esas ventanas.
 
+**Hecho el 2026-09-04: el disparo por contacto.** Pisar un evento lo dispara.
+Con esto la ROM sabe correr **1335 páginas** del juego: 692 de tecla de acción,
+526 de contacto y 117 automáticas. Hace un día eran 110.
+
+La regla es `CheckEventTriggerHere` desde `Game_Player::UpdateMovement`: al
+terminar el paso se mira si en esa celda hay un evento de contacto. Y **la capa
+es al revés que la de la tecla de acción**, a propósito: acá tiene que ser
+distinta de la del héroe, porque un evento de su misma capa le bloquearía el
+paso y nunca llegaría a pisarlo. De las 983 páginas de contacto del juego, 978
+son de la capa de abajo.
+
+Las puertas son un caso particular de esto —un teletransporte en una página de
+contacto— y siguen atendiéndose aparte, antes que esto: es un camino probado y
+no había razón para moverlo.
+
+Y de paso se corrigió la tecla de acción: **miraba también la celda propia**, y
+no debe. En `CheckActionEvent` están las dos, pero la propia pide la capa
+contraria —`CheckEventTriggerHere` con `!= Layers_same`— y ésas no compilan, así
+que mirarla podía disparar algo que RM2k no dispara.
+
+Lo prueba `snes-pisar`, en el mapa 70: caminando para arriba se pisa el evento
+de (12,4) a las cuatro celdas y se abre su mensaje. Verificado rompiéndolo: sin
+disparar el contacto da 21006 pixeles, disparándolo con el trigger equivocado lo
+mismo, y sin frenar el pad 536.
+
+Ese último es el que enseñó algo. **Mientras el intérprete tiene una página en
+el frente, el pad no mueve al héroe**: es el `if (Game_Map::IsAnyEventStarting())
+return;` de `Game_Player::UpdateNextMovementAction`. Sin eso el héroe daba un
+paso de más, porque el mensaje tarda unos cuadros en componerse y `msg_abierto`
+recién se prende al final: la ROM lo dejaba caminar mientras tanto.
+
 **Después: la cinemática de apertura.**
 El mapa 4 ya prende el switch 20, que es la condición de la página que abre el
 mapa 1, así que el enganche funciona. De los cuatro comandos que le faltaban ya

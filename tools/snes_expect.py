@@ -342,6 +342,48 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
         entrada = (salto[1], salto[2])
 
 
+def contacto_al_pisar(mundo, estado, map_id, x, y, passable, game_map):
+    """Corre el evento de contacto de la celda que el héroe acaba de pisar.
+
+    Es `CheckEventTriggerHere` desde `Game_Player::UpdateMovement`: al terminar
+    el paso se mira si en esa celda hay un evento de contacto, y si lo hay se
+    ejecuta. Las puertas son un caso particular de esto —un teletransporte en
+    una página de contacto— y siguen atendiéndose aparte, antes que esto, para
+    no cambiar un camino que ya está probado.
+
+    Acá el tiempo se colapsa, igual que en el resto de la caminata: la página
+    corre hasta terminar o hasta que abra un mensaje. Devuelve dónde queda el
+    héroe y si la caminata tiene que frenar, que es lo que pasa cuando el
+    mensaje se abre: con `Game_Message` activo el pad deja de mover.
+    """
+    # Se construye con la lista vacía y después se le pasan las páginas del
+    # mapa: `Interprete(paginas, ...)` encolaría además las automáticas, y ésas
+    # ya corrieron al entrar.
+    interprete = eventos.Interprete([], estado)
+    interprete.paginas = mundo.paginas(map_id)
+    if not interprete.probar_celda(x, y, eventos.TRIGGER_TOCA_HEROE, estado):
+        return map_id, x, y, False
+    for _ in range(10000):
+        if interprete.cuadro():
+            salto = estado.salto
+            estado.salto = None
+            if mundo.ids[salto[0]] == map_id:
+                x, y = salto[1], salto[2]
+            else:
+                map_id, x, y = entrar_al_mapa(mundo, estado, mundo.ids[salto[0]],
+                                              (salto[1], salto[2]))
+                return map_id, x, y, True
+            continue
+        x, y = paso_de_ruta(estado, passable, game_map, x, y)
+        cuadro_de_eventos(estado, passable, game_map)
+        if estado.mensaje is not None:
+            return map_id, x, y, True
+        if interprete.terminado and not estado.algo_corriendo() \
+                and not estado.paso_cuadros and not estado.cuadros_moviendose:
+            break
+    return map_id, x, y, False
+
+
 def hero_position(mundo, estado, map_id, direction_name, inicio=None,
                   avance=None, cuadros=None, apretar_a=None, mirando=None):
     """En qué mapa y en qué celda termina el héroe, y hacia dónde mira.
@@ -399,6 +441,13 @@ def hero_position(mundo, estado, map_id, direction_name, inicio=None,
         pasos += 1
         puerta = puertas.get((x, y))
         if puerta is None:
+            # Sin puerta, puede haber un evento de contacto.
+            map_id, nx, ny, frena = contacto_al_pisar(
+                mundo, estado, map_id, x, y, passable, game_map)
+            if (nx, ny) != (x, y) or frena:
+                x, y = nx, ny
+                if frena:
+                    break
             continue
         if avance is not None:
             # Un avance a mitad de camino no cruza puertas: del otro lado el

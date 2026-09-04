@@ -3015,7 +3015,7 @@ siguiente:
     lda elegida_hay
     beq no
     lda elegida_trigger
-    cmp #TRIGGER_ACCION
+    cmp trigger_buscado
     bne no
     lda elegida
     ora elegida + 1
@@ -3055,11 +3055,22 @@ no:
     rts
 .endproc
 
-; La tecla de acción, desde el lazo principal.
-.proc probar_accion
+; El evento de contacto de la celda donde el héroe acaba de pararse.
+;
+; Es `CheckEventTriggerHere` desde `Game_Player::UpdateMovement`. Las puertas
+; son un caso particular de esto —un teletransporte en una página de contacto— y
+; se atienden antes, aparte: si hubo puerta, el mapa ya cambió y acá no queda
+; nada que mirar.
+.proc probar_contacto
 .a8
 .i16
-    ; La celda del héroe primero, que es el orden de `CheckActionEvent`.
+    ; Con una página corriendo no se dispara nada: en RM2k el jugador ni se
+    ; mueve mientras el intérprete tiene algo en el frente.
+    lda ev_activo
+    bne no
+    lda cola_i
+    cmp cola_n
+    bne no
     rep #$20
 .a16
     lda tile_x
@@ -3068,12 +3079,27 @@ no:
     sta celda_y
     sep #$20
 .a8
+    lda #TRIGGER_TOCA_HEROE
+    sta trigger_buscado
     jsr accion_en_celda
-    beq de_adelante
+    ldx #TRIGGER_ACCION
+    stx trigger_buscado         ; queda como lo espera la tecla de acción
     rts
+no:
+    lda #0
+    rts
+.endproc
 
-de_adelante:
-    ; Y la de adelante, según hacia dónde mira.
+; La tecla de acción, desde el lazo principal.
+.proc probar_accion
+.a8
+.i16
+    ; Sólo la celda de adelante. La propia también existe en
+    ; `Game_Player::CheckActionEvent`, pero pide la capa contraria
+    ; —`CheckEventTriggerHere` con `GetLayer() != Layers_same`— y ésas no
+    ; compilan: mirarla igual dispararía algo que RM2k no dispara.
+    lda #TRIGGER_ACCION
+    sta trigger_buscado
     rep #$20
 .a16
     lda tile_x
@@ -5506,6 +5532,19 @@ sin_ruta:
     ; empezado se termina, porque en RM2k no se frena a mitad de celda.
     lda msg_abierto
     bne no_derecha
+    ; Y una página corriendo también manda sobre el pad. Es el
+    ; `if (Game_Map::IsAnyEventStarting()) return;` de
+    ; `Game_Player::UpdateNextMovementAction`: mientras el intérprete tiene algo
+    ; en el frente, el jugador no camina.
+    ;
+    ; Sin esto, un evento de contacto se disparaba y el héroe daba **un paso
+    ; más** mientras el mensaje se componía: el mensaje tarda unos cuadros en
+    ; abrirse y `msg_abierto` recién se prende al final.
+    lda ev_activo
+    bne no_derecha
+    lda cola_i
+    cmp cola_n
+    bne no_derecha
     lda pad
     and #PAD_UP
     beq no_arriba
@@ -5857,6 +5896,7 @@ sin_filas:
     sta step_left
     bne sigue                   ; el paso todavía no terminó
     jsr cruzar_puerta           ; recién parado en la celda: ¿había puerta?
+    jsr probar_contacto         ; y si no, ¿hay un evento de contacto?
 sigue:
     rts
 .endproc
@@ -6595,6 +6635,10 @@ celda_y:  .res 2
 ; direccionamiento absoluto.
 ev_total:   .res 2
 ev_buscado: .res 2
+; Qué disparo se está buscando: la tecla de acción o el contacto. Los dos usan
+; la misma búsqueda —el evento de una celda y su página activa— y sólo cambia
+; con qué trigger tiene que coincidir.
+trigger_buscado: .res 2
 ; La fila del NPC que se está refrescando, y dónde queda en pixeles.
 npc_fila: .res 2
 npc_px:   .res 2

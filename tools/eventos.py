@@ -253,7 +253,7 @@ TRIGGER_PARALELO = 4
 
 # Los que la ROM sabe disparar. El resto de las páginas de un evento se emiten
 # igual —hacen falta para saber cuál está activa— pero sin código.
-TRIGGERS = (TRIGGER_ACCION, TRIGGER_AUTOMATICO)
+TRIGGERS = (TRIGGER_ACCION, TRIGGER_TOCA_HEROE, TRIGGER_AUTOMATICO)
 
 # Un evento con gráfico **gira hacia el héroe** cuando le hablás, salvo que
 # tenga la dirección fija: es el `SetFacing(GetDirectionToCharacter(GetPlayer()))`
@@ -460,15 +460,28 @@ def agrupar(comandos):
 def puede_dispararse(page):
     """Si la ROM sabe disparar esta página, aparte de si sus comandos compilan.
 
-    Una de tecla de acción tiene que estar en la capa del héroe —lo pide
-    `CheckEventTriggerThere`— y no puede tener que girar hacia él, que es lo que
-    todavía no se dibuja.
+    Las dos reglas de capa salen de `Game_Player`, y son opuestas a propósito:
+
+    * **Tecla de acción**: se mira la celda de adelante, y ahí sólo cuentan los
+      eventos de la capa del héroe —`CheckEventTriggerThere` pide
+      `GetLayer() == Layers_same`—. Un evento de acción en la celda **propia**
+      sí existe en RM2k, pero pide la capa contraria —`CheckEventTriggerHere`
+      pide `!= Layers_same`— y ésos no los hacemos.
+    * **Contacto**: se dispara al pisar la celda, y ahí es al revés: la capa
+      tiene que ser distinta de la del héroe, porque un evento de su misma capa
+      le bloquea el paso y nunca llegaría a pisarlo. De las 983 páginas de
+      contacto del juego, 978 son de la capa de abajo.
+
+    Y una de tecla de acción no puede tener que girar hacia el héroe, que es lo
+    que todavía no se dibuja.
     """
-    if page.trigger != TRIGGER_ACCION:
-        return True
-    if page.layer != LAYER_MISMA:
-        return False
-    return not page.character_name or page.animation_type in ANIM_FIJAS
+    if page.trigger == TRIGGER_ACCION:
+        if page.layer != LAYER_MISMA:
+            return False
+        return not page.character_name or page.animation_type in ANIM_FIJAS
+    if page.trigger == TRIGGER_TOCA_HEROE:
+        return page.layer != LAYER_MISMA
+    return True
 
 
 def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None):
@@ -1119,30 +1132,38 @@ class Interprete:
         return self.codigo is not None or bool(self.cola)
 
     def probar_accion(self, x, y, mirando, estado):
-        """La tecla de acción: el evento de la celda propia y el de enfrente.
+        """La tecla de acción: el evento de la celda de adelante.
 
-        El orden sale de `Game_Player::CheckActionEvent`: primero la celda del
-        héroe —`CheckEventTriggerHere`— y después la de adelante. Los eventos
-        que se disparan al tocarlos van antes que los dos, pero eso todavía no
-        está, así que acá no aparece.
+        Sólo la de adelante, y no la propia. En `Game_Player::CheckActionEvent`
+        están las dos, pero la propia pide la capa contraria
+        —`CheckEventTriggerHere` con `GetLayer() != Layers_same`— y ésas no
+        compilan: ver `puede_dispararse`. Mirarla igual haría que la ROM
+        disparara algo que RM2k no dispara.
 
-        Lo de "hasta tres mostradores" tampoco: son las celdas de tipo counter,
-        que hacen que se pueda hablar del otro lado de un mostrador. Ver
-        `CheckActionEvent`.
-
-        Devuelve True si encontró algo que disparar.
+        Lo de "hasta tres mostradores" tampoco está: son las celdas de tipo
+        counter, que dejan hablar del otro lado de un mostrador.
         """
         dx, dy = RUTA_PASOS[mirando]
-        for celda in ((x, y), (x + dx, y + dy)):
-            indice = estado.evento_en(celda)
-            if indice is None:
-                continue
-            pagina = pagina_activa(self.paginas, indice, estado)
-            if (pagina is not None
-                    and pagina["trigger"] == TRIGGER_ACCION
-                    and pagina["codigo"]):
-                self.cola.append(pagina["codigo"])
-                return True
+        return self.probar_celda(x + dx, y + dy, TRIGGER_ACCION, estado)
+
+    def probar_contacto(self, x, y, estado):
+        """El contacto: el evento de la celda que el héroe acaba de pisar.
+
+        Es `CheckEventTriggerHere` desde `Game_Player::UpdateMovement`, que
+        corre cuando el paso termina.
+        """
+        return self.probar_celda(x, y, TRIGGER_TOCA_HEROE, estado)
+
+    def probar_celda(self, x, y, trigger, estado):
+        """Encola la página activa del evento de esa celda si la dispara eso."""
+        indice = estado.evento_en((x, y))
+        if indice is None:
+            return False
+        pagina = pagina_activa(self.paginas, indice, estado)
+        if (pagina is not None and pagina["trigger"] == trigger
+                and pagina["codigo"]):
+            self.cola.append(pagina["codigo"])
+            return True
         return False
 
     @property
