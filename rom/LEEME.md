@@ -277,11 +277,43 @@ el tinte y el teletransporte por evento.
 El tinte de pantalla no se podía saltear. En las puertas el fundido termina y la
 pantalla vuelve; acá se tiñe y después se teletransporta, así que el mapa de
 destino se ve teñido. En una consola con paleta eso no es un efecto de pantalla
-sino una transformación de la paleta: la cuenta es `canal * valor / 100` con
-enteros, que la consola hace con sus unidades de multiplicación y división y
-Python repite igual. Y como el tinte es estado del juego y no del mapa, se
-vuelve a aplicar cada vez que se carga uno; con el tinte neutro la cuenta deja
-los colores donde estaban, así que el camino es siempre el mismo.
+sino una transformación de la paleta, que la consola hace con sus unidades de
+multiplicación y división y Python repite igual. Y como el tinte es estado del
+juego y no del mapa, se vuelve a aplicar cada vez que se carga uno; con el tinte
+neutro la cuenta deja los colores donde estaban, así que el camino es siempre el
+mismo.
+
+**La cuenta son dos, y las dos salen de leer `ToneBlit` en easyrpg.** Primero la
+saturación y después el color, en ese orden.
+
+**El color es un hard light**, no una multiplicación: `2ab` para la mitad de
+abajo y el screen `1-2(1-a)(1-b)` para la de arriba. En las unidades de RM2k,
+con 100 neutro, eso es
+
+    valor <= 100:  canal * valor / 100
+    valor  > 100:  31 - (200 - valor) * (31 - canal) / 100
+
+o sea la misma cuenta espejada en los dos ejes, y por eso `tabla_canal` arma
+siempre la de abajo y espeja la tabla terminada si el valor aclara. La mitad de
+abajo es lo que este repo venía haciendo desde el principio; la de arriba
+**estaba mal** —multiplicaba por dos y topaba en 31— y la diferencia con RM2k
+llegaba a 31 de 31 con el valor 200, o sea la pantalla entera. No lo cobró nadie
+porque ninguna página que compilara aclaraba la pantalla; dos de las once que
+destraba la saturación sí, con `(0, 120, 120)`.
+
+**La saturación es una mezcla hacia el gris**, no un factor por canal:
+`saturation_tone` saca la luminancia Y' del color —los pesos 19595, 38470 y
+7471, que suman 65536 exactos y por eso valen igual sobre canales de cinco
+bits— y acerca o aleja los tres canales de ella. Con 0 todo queda gris, con 100
+no pasa nada y con 200 la distancia al gris se triplica. Como necesita los tres
+canales a la vez, **no entra en las tablas de 32 entradas** y hay que hacerla
+color por color; por eso se saltea entera cuando el valor es el neutro, que es
+lo que hace el `apply_sat` de easyrpg.
+
+Medida contra la cuenta de easyrpg sobre ocho bits, esta versión difiere en **un
+valor de 31 como mucho**, para todos los tintes que el juego usa. Viene de que
+RM2k hace la cuenta con ocho bits y la consola tiene cinco, y es la misma
+tolerancia que la mitad de abajo ya tenía.
 
 El intérprete está escrito dos veces —en `main.s` y en `tools/eventos.py`— pero
 el bytecode es uno solo, así que lo que se ejecuta de los dos lados es el mismo
@@ -1267,7 +1299,7 @@ comparación.
   invisibles, pero sólo con las nueve órdenes que la ROM entiende: mover en los
   cuatro sentidos, girar en los cuatro y esperar. Faltan los saltos, cambiar el
   gráfico en mitad de la ruta, las diagonales y moverse hacia el héroe. Es lo
-  que más corta de lo que queda: 169 páginas.
+  que más corta de lo que queda: 170 páginas.
 * **Que un NPC frene al héroe.** En RM2k los eventos de la capa del héroe
   bloquean el paso; la ROM todavía no lo mira. La tabla ya trae el dato.
 * **Los teletransportes que siguen sin resolverse.** Los que están adentro de
@@ -1301,20 +1333,20 @@ comparación.
   Mientras tanto el héroe queda parado adentro del caño, que es donde RM2k
   también lo deja: ahí no camina nadie, sigue el script.
 * **Lo que le falta al juego entero, medido.** De las 489 páginas automáticas
-  con comandos, hoy compilan enteras **117**. Eran 16 antes de los cuadros de
+  con comandos, hoy compilan enteras **126**. Eran 16 antes de los cuadros de
   texto, 71 con ellos, 87 con las rutas forzadas sobre eventos, 110 con
-  FlashSprite y 117 aceptando `PlaySound`. El cronómetro no cambió el número:
-  suma cero, y está medido. Y esto es cuántas pasarían a compilar con cada
-  comando que falta —`just snes-destraba`—:
+  FlashSprite, 117 aceptando `PlaySound` y 126 con la saturación del tinte. El
+  cronómetro no cambió el número: suma cero, y está medido. Y esto es cuántas
+  pasarían a compilar con cada comando que falta —`just snes-destraba`—:
 
-      TintScreen con saturación  +9      ChangeEventLocation    +1
-      FadeOutBGM                 +5      FullHeal               +1
-      ControlVars                +4      ChangeItems            +2
-      ConditionalBranch          +4      WeatherEffects         +0
-      PanScreen                  +2      CallEvent              +0
+      ConditionalBranch          +6      PanScreen              +2
+      FadeOutBGM                 +6      ChangeItems            +2
+      ControlVars                +4      FullHeal               +1
+      ChangeEventLocation        +2      WeatherEffects         +0
+                                         CallEvent              +0
 
   Y aparte, `MoveEvent` con las órdenes de ruta que todavía no sabemos caminar:
-  +43 de techo. Puestos todos juntos se llega a **154 de 489**, y lo que seguiría
+  +46 de techo. Puestos todos juntos se llega a **179 de 489**, y lo que seguiría
   cortando después es, de lejos, **`MoveEvent` en su forma general: 170
   páginas** —rutas con saltos, con cambio de gráfico, con diagonales, o
   apuntadas a un vehículo—. Después vienen `ShowChoice` con 9 y los 7 cuadros de

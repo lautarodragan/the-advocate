@@ -983,6 +983,54 @@ dieciocho minutos. El cronómetro más largo del juego son diez. Y los dígitos 
 llevan una de las ocho paletas de sprite, así que en una ROM con cronómetro un
 mapa puede usar siete personajes y no ocho; ninguno de los que entran hoy llega.
 
+**Hecho el 2026-09-04: la saturación del tinte, y el hard light que faltaba.**
+`TintScreen` tiene cuatro parámetros y la ROM hacía tres: la saturación sólo se
+aceptaba neutra. Con ella compilan **once páginas más** —nueve automáticas, de
+117 a 126, y dos de contacto—, que es lo que más rendía de lo que quedaba.
+
+Y en el camino apareció un error viejo. **El tinte de color de RM2k no es una
+multiplicación sino un hard light**: `2ab` para la mitad de abajo y el screen
+`1-2(1-a)(1-b)` para la de arriba. Para los valores que oscurecen las dos cosas
+coinciden —`2ab` con 100 neutro **es** `canal * valor / 100`— y por eso nunca se
+notó; para los que aclaran la ROM multiplicaba por dos y topaba en 31, y la
+diferencia con RM2k llegaba a **31 de 31** con el valor 200, o sea la pantalla
+entera. No lo cobró nadie porque ninguna página que compilara aclaraba la
+pantalla, y dos de las once que destraba la saturación sí, con `(0, 120, 120)`.
+Es exactamente la clase de error que este repo llama "el camino que ninguna
+prueba ejecuta": estaba escrito igual en la ROM y en la referencia.
+
+Las dos mitades del hard light son la misma cuenta espejada en los dos ejes, así
+que `tabla_canal` arma siempre la de abajo —la de siempre, o sea que los tintes
+que oscurecen dan exactamente lo mismo que antes— y espeja la tabla terminada si
+el valor aclara. La saturación, en cambio, no entra en ninguna tabla: necesita
+la luminancia del color entero, o sea los tres canales juntos, y hay que hacerla
+color por color. Se saltea entera cuando el valor es el neutro, que es lo que
+hace el `apply_sat` de easyrpg y lo que la deja gratis en el caso normal.
+
+Lo prueba `snes-saturar` con tres casos: `0 0 0 0` (el negro, que prueba que la
+luminancia no se cuela), `100 100 100 0` (el gris puro) y `0 120 120 200`, que
+es el de los mapas 229 y 230 y ejercita las dos mitades nuevas a la vez.
+Verificado rompiendo las dos: sin saturar, 55515 pixeles; con la mitad de arriba
+del hard light vuelta multiplicación, 57298.
+
+**Y una lección de presupuesto que costó dos regresiones.** La primera versión
+metía la cuenta del tinte en una subrutina llamada por entrada de tabla: 96
+`jsr` y `rts` de más por tinte y por destello. Alcanzó para que la ROM perdiera
+un cuadro entero en dos lugares distintos —el cuadro 2 de `snes-destello`
+saliendo igual al 1, y `snes-timer` perdiendo un tic del cronómetro—, porque
+`paleta_con_destello` corre en **todos** los cuadros mientras dura un destello y
+`aplicar_tinte` ya estaba al borde de un cuadro. Quedó al revés: el espejo va
+fuera del lazo, y el camino del destello ya no rehace la cuenta del tinte sino
+que la **busca** en una copia de las tablas (`puro`), lo que además le saca un
+producto y una división por entrada y deja de rearmar tres tablas por cuadro.
+Ahora el destello es más barato que antes de todo esto.
+
+Queda declarada una deuda nueva, del mismo tipo que la que ya había: con
+destello **y** saturación a la vez, la ROM hace `hardlight(destello(saturar(c)))`
+y la referencia `hardlight(saturar(destello(c)))`, porque la saturación no cabe
+en la tabla por canal donde vive la mezcla del destello. Medido: 49 pixeles de
+57344, todos de un valor de 31. Ninguna página del juego combina las dos hoy.
+
 **Después: la cinemática de apertura.**
 El mapa 4 ya prende el switch 20, que es la condición de la página que abre el
 mapa 1, así que el enganche funciona. De los cuatro comandos que le faltaban ya

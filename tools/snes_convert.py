@@ -1355,6 +1355,12 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "; igual para que una ruta forzada termine en el mismo cuadro.\n"
         "CUADROS_POR_CELDA = %d\n"
         "TINTE_NEUTRO = %d\n"
+        "; Los pesos de luminancia del Y'CbCr, que son con los que RM2k\n"
+        "; satura. Suman 65536 exactos, así que sobre canales de cinco bits\n"
+        "; dan una luminancia de cinco bits sin reescalar nada.\n"
+        "LUZ_R = %d\n"
+        "LUZ_G = %d\n"
+        "LUZ_B = %d\n"
         "; Un bit por switch. El más alto que el juego consulta es el 1003.\n"
         "SWITCH_BYTES = %d\n"
         "; El grupo con el que arranca la partida, y su tope. En RM2k el\n"
@@ -1410,7 +1416,8 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            eventos.TRIGGER_AUTOMATICO, eventos.TRIGGER_ACCION,
            eventos.TRIGGER_TOCA_HEROE,
            eventos.CUADROS_POR_CELDA,
-           eventos.TINTE_NEUTRO, SWITCH_BYTES,
+           eventos.TINTE_NEUTRO,
+           eventos.LUZ_R, eventos.LUZ_G, eventos.LUZ_B, SWITCH_BYTES,
            eventos.GRUPO_MAX, len(grupo_inicial), ACTOR_BYTES,
            rm2k.LAYER_SAME,
            OBJ_PRIORITY_ABOVE if heroe_encima else OBJ_PRIORITY,
@@ -1835,11 +1842,12 @@ def main():
                         help="agrega a la página de prueba una ruta forzada "
                              "sobre el héroe, con los códigos de "
                              "rpg::MoveCommand::Code: 0..3 mover, 12..15 girar")
-    parser.add_argument("--pagina-de-prueba", nargs=4, type=int, default=None,
-                        metavar=("ESPERA", "R", "G", "B"),
-                        help="agrega al mapa inicial una página automática "
-                             "inventada que espera N cuadros y después tiñe. "
-                             "El otro lado del mismo flag de snes_expect.py")
+    parser.add_argument("--pagina-de-prueba", nargs="+", type=int, default=None,
+                        metavar="N",
+                        help="ESPERA R G B [SAT]: agrega una página automática "
+                             "inventada, en el mapa inicial, que espera N cuadros y "
+                             "después tiñe. El otro lado del mismo flag de "
+                             "snes_expect.py")
     parser.add_argument("--heroe-encima", action="store_true",
                         help="el héroe en prioridad 2 de objeto, por "
                              "encima de la capa que debería taparlo. "

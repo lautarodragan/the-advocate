@@ -111,7 +111,6 @@ CANDIDATOS = [
     # caminar —saltar, cambiar el gráfico, las diagonales— y los blancos que no
     # existen.
     ("MoveEvent, las órdenes que faltan", {MOVE_EVENT, PROCEED}, mover_otro),
-    ("TintScreen con saturación", {11030}, None),
     ("ChangeEventLocation", {10860}, None),
     ("ConditionalBranch", {12010, 22010, 22011}, None),
     ("WeatherEffects", {11070}, None),

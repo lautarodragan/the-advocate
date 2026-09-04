@@ -605,6 +605,54 @@ snes-timer mapa="6" timer="600 1" celda="2 10" cuadros="2 31 61 90" tinte="12 0 
         --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
   done
 
+# La saturación del tinte de pantalla, y la mitad de arriba del hard light.
+#
+# `TintScreen` tiene cuatro parámetros y hasta ahora la ROM hacía tres: la
+# saturación sólo se aceptaba neutra. Con ella compilan once páginas más —nueve
+# automáticas y dos de contacto—, que es lo que más rinde de lo que quedaba.
+#
+# Dos cuentas nuevas, y las dos salen de leer easyrpg y no de mirar la pantalla:
+#
+# * **La saturación es una mezcla hacia el gris**, no un factor por canal:
+#   `saturation_tone` calcula la luminancia Y' del color y acerca o aleja los
+#   tres canales de ella. Por eso no entra en las tablas de 32 entradas que usa
+#   el tinte —necesita los tres canales a la vez— y se hace color por color.
+#   Con 0 todo queda gris, con 100 no pasa nada y con 200 la distancia al gris
+#   se triplica.
+# * **El tinte de color es un hard light**, no una multiplicación. Para los
+#   valores que oscurecen las dos cosas coinciden —`2ab` con 100 neutro **es**
+#   `canal * valor / 100`— y por eso nunca se notó, pero para los que aclaran
+#   RM2k hace un screen y la ROM multiplicaba por dos y topaba en 31. La
+#   diferencia llegaba a 31 de 31 con el valor 200, o sea la pantalla entera.
+#   Ninguna página que compilara aclaraba, así que no lo cobró nadie; dos de las
+#   once que destraba esto sí, con (0, 120, 120).
+#
+# Los tres casos que van en `snes-hitos` están elegidos por lo que miran:
+#
+#   0 0 0 0        el gris puro: sin color y sin saturación queda todo negro,
+#                  que es lo que prueba que la luminancia no se cuela
+#   100 100 100 0  gris de verdad: el color no se toca y la saturación se lleva
+#                  todo al gris. Es el (60,60,60,0) del juego sin el oscurecido
+#   0 120 120 200  el de los mapas 229 y 230: aclara **y** sobresatura, o sea
+#                  las dos mitades nuevas a la vez
+snes-saturar mapa="73" tinte="60 0 0 0 0" antes="30" despues="120" nombre="saturar":
+  #!/usr/bin/env bash
+  set -euo pipefail
+  mkdir -p {{snes_pngs}} {{snes_inc}}
+  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
+      --pagina-de-prueba {{tinte}} -o {{snes_inc}}/mapdata.inc
+  just snes-build
+  pre={{snes_pngs}}/{{nombre}}
+  for n in {{antes}} {{despues}}; do
+    python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
+        --pagina-de-prueba {{tinte}} --cuadros $n \
+        --saltar $pre-$n.saltar.txt -o $pre-$n.esperado.png
+    python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre-$n.png \
+        --walk none --cuadros $n --arranque 0
+    python3 tools/snes_compare.py $pre-$n.png $pre-$n.esperado.png \
+        --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
+  done
+
 snes-destello mapa="6" flash="1 31 0 0 31 24" celda="2 10" cuadros="2 12 15 23 25" tinte="12 0 0 50" arranque="10" nombre="destello":
   #!/usr/bin/env bash
   set -euo pipefail

@@ -30,9 +30,10 @@ def main():
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("sin", help="la captura sin teñir")
     parser.add_argument("con", help="la misma pantalla, teñida por la consola")
-    parser.add_argument("--tinte", nargs=3, type=int, default=[0, 0, 100],
-                        metavar=("R", "G", "B"),
-                        help="el tinte de RM2k, de 0 a 200 con 100 neutro")
+    parser.add_argument("--tinte", nargs="+", type=int, default=[0, 0, 100],
+                        metavar="N",
+                        help="R G B [SAT], el tinte de RM2k, de 0 a 200 con "
+                             "100 neutro. Sin la saturación se usa la neutra")
     args = parser.parse_args()
 
     sin = Image.open(args.sin).convert("RGB")

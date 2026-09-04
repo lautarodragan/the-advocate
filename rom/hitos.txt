@@ -41,6 +41,9 @@ snes-texto
 snes-ruta-evento
 snes-npc
 snes-destello
+snes-saturar
+snes-saturar 73 "60 100 100 100 0" 30 120 saturar-gris
+snes-saturar 73 "60 0 120 120 200" 30 120 saturar-brillo
 snes-hablar
 snes-cinematica
 snes-pisar

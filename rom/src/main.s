@@ -432,6 +432,7 @@ borrar_switches:
     sta tinte_r
     sta tinte_g
     sta tinte_b
+    sta tinte_s
     stz salto_hay
     ; El grupo va antes de cargar el primer mapa: `cargar_mapa` elige con
     ; qué se dibuja el héroe, y sin esto leería la basura con la que
@@ -1681,8 +1682,9 @@ op_tinte:
     lda [cod_ptr], y
     sta tinte_b
     iny
-    iny                         ; la saturación: el conversor sólo deja pasar
-                                ; la neutra, así que no hay nada que hacer
+    lda [cod_ptr], y
+    sta tinte_s
+    iny
     ; El tinte no se aplica acá: se pide, y lo hace `flush_video` en el vblank
     ; siguiente. `aplicar_tinte` sube tres paletas a CGRAM por DMA, y con el PPU
     ; dibujando esas escrituras se pierden. Mientras el intérprete corría adentro
@@ -1739,8 +1741,39 @@ op_teleport:
 .proc tabla_canal
 .a8
 .i16
+    ; El tinte de RM2k no escala el canal: lo compone con un *hard light*, que
+    ; es `2ab` para la mitad de abajo y el screen `1-2(1-a)(1-b)` para la de
+    ; arriba. En las unidades de RM2k, con 100 neutro, las dos mitades son la
+    ; misma cuenta espejada en los dos ejes:
+    ;
+    ;     valor <= 100:  canal * valor / 100
+    ;     valor  > 100:  31 - (200 - valor) * (31 - canal) / 100
+    ;
+    ; Así que se arma siempre la de abajo —que es lo que este archivo venía
+    ; haciendo, o sea que los tintes que oscurecen dan exactamente lo mismo que
+    ; antes— y si el valor aclara se espeja la tabla terminada:
+    ; `t'[j] = 31 - t[31 - j]`.
+    ;
+    ; La mitad de arriba estaba mal: multiplicaba por dos y topaba en 31, y la
+    ; diferencia con RM2k llegaba a 31 de 31 con el valor 200. No lo cobró nadie
+    ; porque ninguna página que compilara aclaraba la pantalla; dos de las once
+    ; que destraba la saturación sí, con (0, 120, 120).
+    ;
+    ; El espejo va afuera del lazo a propósito. Hacerlo por entrada —con la
+    ; cuenta metida en una subrutina— son noventa y seis `jsr` y `rts` de más
+    ; por tinte, y eso alcanzó para que `aplicar_tinte` pasara de un cuadro a
+    ; dos: se vio como `snes-timer` perdiendo un tic del cronómetro.
     sta temp                    ; el valor del canal
     stx temp + 2                ; dónde va la tabla
+    stz tinte_espejo
+    cmp #(TINTE_NEUTRO + 1)
+    bcc arrancar
+    lda #(2 * TINTE_NEUTRO)
+    sec
+    sbc temp
+    sta temp                    ; 200 - valor
+    inc tinte_espejo
+arrancar:
     ldy #$0000
 cada:
     tya
@@ -1757,7 +1790,7 @@ cada:
     sta WRDIVL                  ; el dividendo, en una sola escritura de 16
     sep #$20
 .a8
-    lda #100
+    lda #TINTE_NEUTRO
     sta WRDIVB                  ; arranca: el cociente tarda dieciséis ciclos
     nop
     nop
@@ -1776,6 +1809,37 @@ cabe:
     iny
     cpy #32
     bne cada
+
+    lda tinte_espejo
+    bne espejar
+    rts
+
+    ; El espejo va en dos pasadas, con una copia en el medio, porque `(dp), y`
+    ; direcciona con Y y acá hacen falta dos índices a la vez: `j` y `31 - j`.
+espejar:
+    ldy #$0000
+copiar:
+    lda (temp + 2), y
+    sta tinte_tmp, y
+    iny
+    cpy #32
+    bne copiar
+    ldy #$0000
+volver:
+    rep #$20
+.a16
+    tya
+    eor #$001F                  ; con cinco bits, el complemento es 31 - j
+    tax
+    sep #$20
+.a8
+    lda #31
+    sec
+    sbc tinte_tmp, x
+    sta (temp + 2), y
+    iny
+    cpy #32
+    bne volver
     rts
 .endproc
 
@@ -1815,44 +1879,51 @@ cada_color:
 .a16
     lda [tin_ptr], y
     sta temp                    ; el color original, de 15 bits
-
-    and #$001F                  ; rojo
-    tax
+    and #$001F
+    sta sat_r
+    lda temp
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    and #$001F
+    sta sat_g
+    lda temp
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    and #$001F
+    sta sat_b
     sep #$20
 .a8
+    ; La saturación va **antes** del color, que es el orden de `ToneBlit`: allá
+    ; `saturation_tone` corre antes que `color_tone`. Al revés el gris se
+    ; calcularía sobre el color ya teñido, y es de las que la comparación no
+    ; vería porque los dos lados harían lo mismo mal.
+    ;
+    ; Y sólo cuando hace falta, igual que el `apply_sat` de easyrpg: no se puede
+    ; hacer canal por canal —necesita el gris del color entero, o sea los tres a
+    ; la vez— así que no entra en las tablas y es lo caro de todo esto.
+    lda tinte_s
+    cmp #TINTE_NEUTRO
+    beq sin_saturar
+    jsr saturar_color
+sin_saturar:
+    ldx sat_r
     lda tabla_r, x
     sta temp + 2
-    rep #$20
-.a16
-    lda temp
-    lsr a
-    lsr a
-    lsr a
-    lsr a
-    lsr a
-    and #$001F                  ; verde
-    tax
-    sep #$20
-.a8
+    ldx sat_g
     lda tabla_g, x
     sta temp + 3
-    rep #$20
-.a16
-    lda temp
-    lsr a
-    lsr a
-    lsr a
-    lsr a
-    lsr a
-    lsr a
-    lsr a
-    lsr a
-    lsr a
-    lsr a
-    and #$001F                  ; azul
-    tax
-    sep #$20
-.a8
+    ldx sat_b
     lda tabla_b, x
     rep #$20
 .a16
@@ -1886,6 +1957,258 @@ subir:
     rts
 .endproc
 
+; --- la saturación del tinte -----------------------------------------------
+; Acerca o aleja del gris los tres canales que quedaron en `sat_r`, `sat_g` y
+; `sat_b`. Es `saturation_tone` de easyrpg puesto en cinco bits y en las
+; unidades de RM2k: allá el factor sale de `gray = s * 128 / 100` y vale
+; `gray * 8` o `1024 + (gray - 128) * 16` sobre 1024, que hecha la cuenta es
+; `s / 100` por debajo de 100 y `(2s - 100) / 100` por arriba. O sea que 0
+; lleva todo al gris, 100 no hace nada y 200 triplica la distancia.
+.proc saturar_color
+.a8
+.i16
+    ; Primero el gris. Los pesos son los de Y' del Y'CbCr y suman 65536
+    ; exactos, así que sobre canales de cinco bits dan una luminancia de cinco
+    ; bits: alcanza con quedarse con el byte de arriba de la suma de 24.
+    stz sat_acc + 0
+    stz sat_acc + 1
+    stz sat_acc + 2
+    lda sat_r
+    sta peso_ch
+    lda #<LUZ_R
+    sta peso_lo
+    lda #>LUZ_R
+    sta peso_hi
+    jsr sumar_peso
+    lda sat_g
+    sta peso_ch
+    lda #<LUZ_G
+    sta peso_lo
+    lda #>LUZ_G
+    sta peso_hi
+    jsr sumar_peso
+    lda sat_b
+    sta peso_ch
+    lda #<LUZ_B
+    sta peso_lo
+    lda #>LUZ_B
+    sta peso_hi
+    jsr sumar_peso
+    lda sat_acc + 2             ; la suma sobre 65536
+    sta sat_luz
+
+    lda sat_r
+    jsr saturar_canal
+    rep #$20
+.a16
+    and #$00FF
+    sta sat_r
+    sep #$20
+.a8
+    lda sat_g
+    jsr saturar_canal
+    rep #$20
+.a16
+    and #$00FF
+    sta sat_g
+    sep #$20
+.a8
+    lda sat_b
+    jsr saturar_canal
+    rep #$20
+.a16
+    and #$00FF
+    sta sat_b
+    sep #$20
+.a8
+    rts
+.endproc
+
+; `sat_acc += peso * peso_ch`, en 24 bits. El peso es de dieciséis y la unidad
+; de la consola multiplica de a ocho, así que va en dos productos: el bajo tal
+; cual y el alto corrido un byte.
+.proc sumar_peso
+.a8
+.i16
+    lda peso_lo
+    sta WRMPYA
+    lda peso_ch
+    sta WRMPYB                  ; arranca: el producto tarda ocho ciclos
+    nop
+    nop
+    nop
+    nop
+    rep #$20
+.a16
+    lda RDMPYL
+    clc
+    adc sat_acc
+    sta sat_acc
+    sep #$20
+.a8
+    lda sat_acc + 2
+    adc #0                      ; ni `sta` ni `sep` tocan el acarreo
+    sta sat_acc + 2
+
+    lda peso_hi
+    sta WRMPYA
+    lda peso_ch
+    sta WRMPYB
+    nop
+    nop
+    nop
+    nop
+    rep #$20
+.a16
+    lda RDMPYL
+    sta temp                    ; el producto alto, que va corrido ocho bits
+    and #$00FF
+    xba                         ; su byte bajo, ya en el lugar de arriba
+    clc
+    adc sat_acc
+    sta sat_acc
+    sep #$20
+.a8
+    lda temp + 1                ; y el byte alto del producto
+    adc sat_acc + 2
+    sta sat_acc + 2
+    rts
+.endproc
+
+; Un canal acercado o alejado de `sat_luz`. Entra y sale en A.
+.proc saturar_canal
+.a8
+.i16
+    sta sat_ch
+    lda tinte_s
+    cmp #(TINTE_NEUTRO + 1)
+    bcs sobre
+
+    ; Hasta 100 es una interpolación entre el gris y el color, con los dos
+    ; términos positivos: es la forma que el 65816 puede hacer sin signo.
+    ;
+    ;     (luz * (100 - s) + canal * s) / 100
+    lda #TINTE_NEUTRO
+    sec
+    sbc tinte_s
+    sta WRMPYA
+    lda sat_luz
+    sta WRMPYB
+    nop
+    nop
+    nop
+    nop
+    rep #$20
+.a16
+    lda RDMPYL
+    sta temp + 2
+    sep #$20
+.a8
+    lda tinte_s
+    sta WRMPYA
+    lda sat_ch
+    sta WRMPYB
+    nop
+    nop
+    nop
+    nop
+    rep #$20
+.a16
+    lda RDMPYL
+    clc
+    adc temp + 2
+    sta WRDIVL
+    sep #$20
+.a8
+    jmp dividir_y_topar
+
+    ; Por arriba de 100 el canal se aleja del gris: `canal +- |canal - luz| *
+    ; (s - 100) / 100`, con el signo aparte para no tener que restar con signo.
+    ; easyrpg lo hace con un desplazamiento aritmético, que redondea hacia abajo
+    ; también con negativos; acá se trunca. La diferencia es de un valor de 31 y
+    ; sólo cuando sobresatura.
+sobre:
+    lda tinte_s
+    sec
+    sbc #TINTE_NEUTRO
+    sta WRMPYA
+    lda sat_ch
+    cmp sat_luz
+    bcc baja
+    inc sat_sube_marca
+    sec
+    sbc sat_luz
+    bra multiplicar
+baja:
+    stz sat_sube_marca
+    lda sat_luz
+    sec
+    sbc sat_ch
+multiplicar:
+    sta WRMPYB
+    nop
+    nop
+    nop
+    nop
+    rep #$20
+.a16
+    lda RDMPYL
+    sta WRDIVL
+    sep #$20
+.a8
+    lda #TINTE_NEUTRO
+    sta WRDIVB
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    lda RDDIVL
+    sta temp + 2
+    lda sat_sube_marca
+    beq restar
+    lda sat_ch
+    clc
+    adc temp + 2
+    cmp #32
+    bcc listo_sobre
+    lda #31
+listo_sobre:
+    rts
+restar:
+    lda sat_ch
+    sec
+    sbc temp + 2
+    bcs listo_sobre
+    lda #0
+    rts
+.endproc
+
+; El divisor y la espera, que son los mismos en los dos caminos.
+.proc dividir_y_topar
+.a8
+.i16
+    lda #TINTE_NEUTRO
+    sta WRDIVB                  ; arranca: el cociente tarda dieciséis ciclos
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    lda RDDIVL
+    cmp #32
+    bcc cabe
+    lda #31
+cabe:
+    rts
+.endproc
+
 ; Y la sube desde `pal_buf` a la entrada `tin_cgadd` de CGRAM.
 .proc subir_paleta
 .a8
@@ -1915,15 +2238,7 @@ subir:
 .proc aplicar_tinte
 .a8
 .i16
-    lda tinte_r
-    ldx #.loword(tabla_r)
-    jsr tabla_canal
-    lda tinte_g
-    ldx #.loword(tabla_g)
-    jsr tabla_canal
-    lda tinte_b
-    ldx #.loword(tabla_b)
-    jsr tabla_canal
+    jsr tablas_de_tinte
 
     ; El fondo, desde la entrada 0.
     ldx #M_PTR_MAP_CGRAM
@@ -3458,18 +3773,21 @@ listo:
     sta flash_dest
     lda tinte_r
     ldx #.loword(tabla_r)
+    ldy #0                       ; el rojo de `puro`, o el verde, o el azul
     jsr tabla_canal_flash
     ldx flash_ranura
     lda flash_ev + 2, x
     sta flash_dest
     lda tinte_g
     ldx #.loword(tabla_g)
+    ldy #32                       ; el rojo de `puro`, o el verde, o el azul
     jsr tabla_canal_flash
     ldx flash_ranura
     lda flash_ev + 3, x
     sta flash_dest
     lda tinte_b
     ldx #.loword(tabla_b)
+    ldy #64                       ; el rojo de `puro`, o el verde, o el azul
     jsr tabla_canal_flash
 
     ; La paleta del personaje: dieciséis colores de dos bytes, y en CGRAM la
@@ -3526,23 +3844,47 @@ copiar:
     sta flash_pend
 
     ; Y las tablas vuelven a ser las del tinte solo, que es lo que espera todo
-    ; el resto.
-    jmp tablas_de_tinte
+    ; el resto. Copiando, no rehaciéndolas: ver `tablas_de_tinte`.
+    jmp restaurar_tablas
 .endproc
 
-; Las tres tablas de canal del tinte, sin destello.
+; Las tres tablas de canal del tinte, sin destello, y su copia en `puro`.
+;
+; La copia existe por el presupuesto de cuadro. `paleta_con_destello` corre en
+; todos los cuadros mientras dura un destello y antes terminaba rehaciendo estas
+; tres tablas —noventa y seis productos y noventa y seis divisiones—; ahora
+; `restaurar_tablas` copia noventa y seis bytes. Y de paso `tabla_canal_flash`
+; se ahorra la cuenta del tinte por entrada: la busca acá.
 .proc tablas_de_tinte
 .a8
 .i16
     lda tinte_r
-    ldx #.loword(tabla_r)
+    ldx #.loword(puro)
     jsr tabla_canal
     lda tinte_g
-    ldx #.loword(tabla_g)
+    ldx #.loword(puro) + 32
     jsr tabla_canal
     lda tinte_b
-    ldx #.loword(tabla_b)
+    ldx #.loword(puro) + 64
     jsr tabla_canal
+    ; fallthrough
+.endproc
+
+; Las tablas de trabajo, tal cual quedaron las del tinte solo.
+.proc restaurar_tablas
+.a8
+.i16
+    ldx #$0000
+copiar:
+    lda puro + 0, x
+    sta tabla_r, x
+    lda puro + 32, x
+    sta tabla_g, x
+    lda puro + 64, x
+    sta tabla_b, x
+    inx
+    cpx #32
+    bne copiar
     rts
 .endproc
 
@@ -3562,11 +3904,21 @@ copiar:
 ; da lo mismo; con tinte, los dos lados hacen `tinte(destello(c))` y RM2k
 ; `destello(tono(c))`. Es otra deuda declarada del mismo tipo que la de los
 ; cinco bits, y la única que se ve es en una página que tiña y destelle a la vez.
+;
+; **Con saturación se suma una segunda de la misma familia.** `armar_paleta`
+; satura el color crudo, antes de esta mezcla, porque la saturación necesita los
+; tres canales juntos y esta tabla es de a uno; la referencia satura al final,
+; sobre el pixel ya destellado. O sea `hardlight(destello(saturar(c)))` contra
+; `hardlight(saturar(destello(c)))`. Medido con `snes-destello` y el tinte
+; `12 0 0 50 0`: 49 pixeles de 57344 en el cuadro 25, todos de un valor de 31.
+; Sin destello o sin saturación no hay diferencia, y ninguna página del juego
+; combina las dos cosas hoy.
 .proc tabla_canal_flash
 .a8
 .i16
-    sta temp                    ; el valor del tinte
     stx temp + 2                ; dónde va la tabla
+    sty puro_ofs                ; y cuál de las tres de `puro` le toca: 0, 32
+                                ; o 64, que lo dice el llamador
     ldy #$0000
 cada:
     ; Primero la mezcla del destello, sobre el canal crudo.
@@ -3617,35 +3969,18 @@ cada:
     bcc mezclado
     lda #31
 mezclado:
-    ; Y ahora el tinte, igual que `tabla_canal`.
-    sta WRMPYA
-    lda temp
-    sta WRMPYB
-    nop
-    nop
-    nop
-    nop
+    ; Y ahora el tinte, que ya está resuelto: buscar el canal mezclado en la
+    ; tabla del tinte solo **es** el hard light, y saca del lazo un producto y
+    ; una división por entrada.
     rep #$20
 .a16
-    lda RDMPYL
-    sta WRDIVL
+    and #$00FF
+    clc
+    adc puro_ofs
+    tax
     sep #$20
 .a8
-    lda #100
-    sta WRDIVB
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    lda RDDIVL
-    cmp #32
-    bcc entra
-    lda #31
-entra:
+    lda puro, x
     sta (temp + 2), y
     iny
     cpy #32
@@ -7044,9 +7379,38 @@ switches: .res SWITCH_BYTES
 ; El tinte de pantalla escala cada canal por el mismo factor para todos los
 ; colores, así que en vez de hacer la cuenta 256 veces se hace 32: una tabla por
 ; canal, indexada por el valor de 5 bits que tenía.
+; La saturación del tinte, en las mismas unidades que los otros tres. Va en la
+; BSS y no en la página directa —donde están `tinte_r`, `tinte_g` y `tinte_b`—
+; porque ahí ya no entra: sólo tiene que estar lo que se use como puntero con
+; `[dp], y`, y quedaban doce bytes contados.
+tinte_s:  .res 1
+; Lo que la saturación necesita mientras corre. Los tres canales van en
+; palabras y no en bytes para poder hacer `ldx sat_r` derecho: los índices son
+; de dieciséis bits, así que un `ldx` sobre un byte se llevaría el de al lado.
+sat_r:    .res 2
+sat_g:    .res 2
+sat_b:    .res 2
+sat_luz:  .res 1     ; el gris del color, de cinco bits
+sat_ch:   .res 1     ; el canal que se está saturando
+sat_sube_marca: .res 1  ; si al sobresaturar el canal se aleja hacia arriba
+sat_acc:  .res 3     ; la suma de los tres pesos, de 24 bits
+peso_lo:  .res 1
+peso_hi:  .res 1
+peso_ch:  .res 1
+; Si la tabla que se está armando es la mitad de arriba del hard light, o sea
+; la que aclara. Ver `tabla_canal`.
+tinte_espejo: .res 1
+; Donde se copia una tabla mientras se la espeja. Ver `tabla_canal`.
+tinte_tmp: .res 32
+
 tabla_r:  .res 32
 tabla_g:  .res 32
 tabla_b:  .res 32
+; Y las tres del tinte solo, que es de donde salen las otras. Van en un solo
+; arreglo —el rojo en 0, el verde en 32 y el azul en 64— para poder indexarlas
+; con un desplazamiento; el llamador dice cuál.
+puro:     .res 96
+puro_ofs: .res 2
 
 ; Y la paleta teñida se arma acá antes de subirla. No se puede teñir en CGRAM
 ; leyéndola y volviéndola a escribir: un segundo tinte se compondría con el

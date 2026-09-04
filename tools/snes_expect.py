@@ -732,12 +732,13 @@ def main():
                         help="agrega a la página de prueba una ruta forzada "
                              "sobre el héroe, con los códigos de "
                              "rpg::MoveCommand::Code: 0..3 mover, 12..15 girar")
-    parser.add_argument("--pagina-de-prueba", nargs=4, type=int, default=None,
-                        metavar=("ESPERA", "R", "G", "B"),
-                        help="agrega una página automática inventada que espera "
-                             "N cuadros y después tiñe. Ningún dato del juego "
-                             "ejercita las esperas, y sin esto el intérprete "
-                             "cuadro a cuadro no lo prueba nada")
+    parser.add_argument("--pagina-de-prueba", nargs="+", type=int, default=None,
+                        metavar="N",
+                        help="ESPERA R G B [SAT]: agrega una página automática "
+                             "inventada que espera N cuadros y después tiñe. Ningún dato "
+                             "del juego ejercita las esperas, y sin esto el "
+                             "intérprete cuadro a cuadro no lo prueba nada. La "
+                             "saturación es opcional y por defecto es la neutra")
     parser.add_argument("--plan", help="archivo donde anotar, por dirección, "
                         "cuántas celdas camina el héroe y cuántos cuadros le "
                         "lleva. Es lo que le dice al emulador cuánto correr, "
@@ -1058,8 +1059,8 @@ def main():
               " (%d,%d)%s"
               % (destino, map_id, x, y, NOMBRE_DIR[direction],
                  cam_x, cam_y,
-                 ("" if estado.tinte == (eventos.TINTE_NEUTRO,) * 3
-                  else ", tinte %d/%d/%d" % estado.tinte)
+                 ("" if estado.tinte == (eventos.TINTE_NEUTRO,) * 4
+                  else ", tinte %d/%d/%d y saturación %d" % estado.tinte)
                  + (", con la ventana de mensaje abierta"
                     if estado.mensaje is not None else "")))
         if pasos:
