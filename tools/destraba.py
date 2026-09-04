@@ -88,7 +88,7 @@ def mover_otro(cmd, pagina):
     blanco = pagina.mio if q[0] == MOVE_ESTE else q[0]
     if blanco != MOVE_HEROE and blanco not in pagina.ids:
         return False
-    if q[1] != eventos.RUTA_FRECUENCIA:
+    if not eventos.RUTA_FRECUENCIA_MIN <= q[1] <= eventos.RUTA_FRECUENCIA:
         return False        # habría que modelar la espera entre órdenes
     # La ruta se decodifica de verdad y no se recorre plana: tres órdenes traen
     # operandos metidos en el mismo chorro de enteros, y dos de ellas un texto

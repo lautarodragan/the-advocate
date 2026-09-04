@@ -10,11 +10,38 @@ es la misma operación con pérdida que compactar, sólo que a un archivo.
 
 Última vez que se tocó: 2026-09-04.
 
-## Lo próximo, con el trabajo ya hecho: apagar el tinte de la apertura
+## Lo próximo: subir las poses de los sprites en caliente
 
-Esto es un traspaso, escrito el 2026-09-04 al final de una sesión larga. **No
-hay código a medias**: el árbol está limpio en `6e9e34b`. Lo que sigue es la
-investigación ya hecha, para no repetirla.
+Escrito el 2026-09-04, con los cinco puntos del traspaso de abajo hechos y
+verificados de a uno. **No hay código a medias**. Lo que apareció al terminar
+es el muro de verdad, y no estaba en el traspaso:
+
+**La página del evento 2 del mapa 1 —la escena de apertura— ya compila con
+ventana, y no entra en VRAM.** Hace caminar a Core, a Manta, al droide y a
+Kersh, y cada personaje que camina se lleva doce poses de 16 tiles: **768
+tiles de sprite contra los 512 que direcciona la PPU**. No es el reparto de
+VRAM, son los dos bancos de nombres de objetos; y no lo arregla apretar las
+poses a 12 tiles —576—. El conversor corta con razón, así que **el mapa 1 con
+ventana no se arma**, y `snes-ventana 1` salió de la tanda por eso; sin
+ventana se arma como siempre. Lo que lo arregla es tener en VRAM **una pose
+por personaje** y subir la nueva por DMA en el vblank cuando cambia, 512 B por
+cambio: es la misma feature que pide cambiar el gráfico desde una ruta, y es
+de las caras. Está descripta en "Lo que falta" del LEEME.
+
+De paso salió un error que no se veía: `eventos_movibles` compilaba siempre
+con un bloque de textos, así que una ROM **sin** ventana le daba las doce
+poses a los eventos que camina una página que en esa ROM no puede correr. No
+se notaba porque esa página tampoco compilaba por otras cosas; el día que
+compiló, doce casos sin ventana se quedaron sin VRAM. Ahora respeta
+`con_ventana`, como `lideres_posibles`.
+
+Las ROMs con nombre siguen armándose; `demo-musica` es la que hay que mirar y
+sigue quedándose azul, por lo de arriba.
+
+### El traspaso anterior, punto por punto
+
+Esto era un traspaso, escrito el 2026-09-04 al final de una sesión larga. Lo
+que sigue es la investigación ya hecha, con cada punto marcado.
 
 Lo pidió taro después de jugar `rom/build/demo-musica/demo-musica.sfc`: la
 pantalla se queda azul para siempre. El azul lo pone la página automática del
@@ -55,16 +82,20 @@ compila. Le faltan cinco cosas, en el orden en que conviene hacerlas:
    nuevos en `snes-lugar`, rotos a propósito los dos; la tanda queda en 56
    casos en verde y `snes-destraba` en 142 páginas, las +5 prometidas. Ver
    "Plantar un evento en una celda" en el LEEME.
-4. **`face_hero`** (orden de ruta 21), en dos de sus rutas. Es justo el giro que
-   quedó afuera en `a95ac7f`, y sigue bloqueado por lo mismo: el mirado inicial
-   de un evento tiene que salir de su página en los dos lados, en vez del
-   centinela `RUTA_EV_SIN_MIRAR` que hay hoy. Son +3 páginas.
-5. **Frecuencia de ruta distinta de 8.** Una de sus rutas usa la 4, que son
-   `1 << (9 - 4)` = 32 cuadros de espera entre orden y orden. Es lo que
-   `_compilar` rechaza a propósito desde `a95ac7f`, y modelarlo es lo que
-   destraba este caso.
+4. **Hecho el 2026-09-04: `face_hero`.** El centinela no era el problema del
+   giro sino de **pisar una ruta con otra**: la ROM reseteaba la ranura y el
+   evento volvía a mirar adonde decía su página. Ahora al reusar se conserva
+   lo que `ForceMoveRoute` conserva. Dos casos, `npc-encara` y
+   `npc-encara-lado`, rotos a propósito.
+5. **Hecho el 2026-09-04: la frecuencia de ruta.** El contador de parada de
+   RM2k, con las tablas emitidas por el conversor desde las funciones que usa
+   la referencia. `ruta-lenta` y `npc-lento`, rotos a propósito. Y el
+   recorrido del bytecode quedó en un solo lugar, `eventos.recorrer_codigo`:
+   había una copia vieja en `blancos_de_ruta` que se quedó sin `OP_LUGAR` y
+   con el `OP_RUTA` de antes, y doce casos en rojo la delataron.
 
-Hecha la cadena no se apaga sólo el tinte: se ve la escena de apertura entera.
+Hecha la cadena, la página compila. Lo que falta para verla es VRAM: ver
+arriba.
 
 ### Las ROMs con nombre que quedaron
 

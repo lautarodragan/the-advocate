@@ -1552,6 +1552,19 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         handle.write(bloque("fuente_color", bytes(ventana["color"])) + "\n")
         handle.write("grupo_inicial:\n    .byte %s\n\n"
                      % ",".join("%d" % a for a in grupo_inicial) or "0")
+        # Cuántos cuadros se queda quieto un personaje después de un paso y
+        # después de un giro, por frecuencia de ruta: el contador de parada de
+        # RM2k, en dos tablas de nueve para indexar con la frecuencia tal cual.
+        # Salen de las mismas funciones que usa la referencia. La 0 y la 1 no
+        # se compilan; llevan cero para que la tabla no tenga agujeros.
+        handle.write("ruta_tras_paso:\n    .byte %s\n" % ",".join(
+            "%d" % (eventos.espera_tras_paso(f)
+                    if f >= eventos.RUTA_FRECUENCIA_MIN else 0)
+            for f in range(eventos.RUTA_FRECUENCIA + 1)))
+        handle.write("ruta_tras_giro:\n    .byte %s\n\n" % ",".join(
+            "%d" % (eventos.espera_tras_giro(f)
+                    if f >= eventos.RUTA_FRECUENCIA_MIN else 0)
+            for f in range(eventos.RUTA_FRECUENCIA + 1)))
         handle.write(tabla_de_mapas(mapas))
         handle.write("\n")
 
@@ -1682,28 +1695,9 @@ def actor_bytes(actores):
 
 # Cuánto ocupa cada opcode, para recorrer el bytecode sin ejecutarlo. Los que
 # llevan largo variable van con None y se miden aparte.
-LARGO_DE_OPCODE = {
-    eventos.OP_FIN: 1, eventos.OP_SWITCH: 4, eventos.OP_TELEPORT: 6,
-    eventos.OP_ESPERAR: 3, eventos.OP_TINTE: 5, eventos.OP_GRUPO: 3,
-    eventos.OP_MENSAJE: 3, eventos.OP_RUTAS: 1, eventos.OP_FLASH: 7,
-    eventos.OP_TIMER: 5, eventos.OP_BGM: 2, eventos.OP_LUGAR: 6,
-    eventos.OP_RUTA: None,
-}
-
-
-def recorrer_codigo(codigo):
-    """(desplazamiento, código) de cada opcode de una página ya compilada."""
-    i = 0
-    while i < len(codigo):
-        yield i, codigo
-        op = codigo[i]
-        if op == eventos.OP_RUTA:
-            i += 3 + codigo[i + 2]
-        else:
-            largo = LARGO_DE_OPCODE.get(op)
-            if largo is None:
-                raise SystemExit("opcode %d que no sé medir" % op)
-            i += largo
+# El recorrido del bytecode vive en eventos.py, con la tabla de largos: acá
+# había una copia y la de allá se quedó vieja sin que nadie lo viera.
+recorrer_codigo = eventos.recorrer_codigo
 
 
 def orden_de_mapas(args):
@@ -1717,9 +1711,17 @@ def orden_de_mapas(args):
     return [args.map_id] + [m for m in (args.mapas or []) if m != args.map_id]
 
 
-def eventos_movibles(game_map, indice_de_mapa):
+def eventos_movibles(game_map, indice_de_mapa, con_ventana=False):
     """Los eventos con gráfico a los que alguna página compilable manda a
     caminar, por índice de la tabla de eventos.
+
+    `con_ventana` tiene que ser el de la ROM que se está armando, por lo mismo
+    que en `lideres_posibles`: decide **qué páginas compilan**. Acá se
+    compilaba siempre con un bloque de textos, así que una ROM sin ventana le
+    daba las doce poses a los eventos que camina una página que en esa ROM no
+    puede correr. No se veía porque esa página tampoco compilaba por otras
+    cosas; el día que compiló —la escena de apertura, que camina a cuatro—
+    doce casos sin ventana se quedaron sin lugar en VRAM.
 
     Hace falta antes de armar el banco de sprites: a los que se mueven hay que
     darles **las doce poses** del ciclo de caminata, y a los demás la única que
@@ -1731,8 +1733,9 @@ def eventos_movibles(game_map, indice_de_mapa):
     pero no es una **regla** repetida: la decisión de qué compila la toma la
     misma función las dos veces.
     """
-    paginas = eventos.paginas_del_mapa(game_map, indice_de_mapa,
-                                       eventos.Mensajes())
+    paginas = eventos.paginas_del_mapa(
+        game_map, indice_de_mapa,
+        eventos.Mensajes() if con_ventana else None)
     visibles = {npc["evento"] for npc in rm2k.collect_npcs(game_map)}
     return eventos.blancos_de_ruta(paginas) & visibles
 
@@ -1902,6 +1905,12 @@ def main():
                         help="agrega a la página de prueba una ruta forzada "
                              "sobre el héroe, con los códigos de "
                              "rpg::MoveCommand::Code: 0..3 mover, 12..15 girar")
+    parser.add_argument("--frecuencia", type=int, default=eventos.RUTA_FRECUENCIA,
+                        metavar="F",
+                        help="la frecuencia de las rutas de prueba, de 2 a 8: "
+                             "con la 8 las órdenes van seguidas, con las otras "
+                             "el personaje se para entre orden y orden como en "
+                             "RM2k")
     parser.add_argument("--lugar-de-prueba", nargs="+", type=int, default=None,
                         metavar="N",
                         help="BLANCO X Y [ESPERA]: planta al evento —el índice "
@@ -2054,7 +2063,8 @@ def main():
                     ruta_de_evento(args.ruta_de_evento),
                     args.flash_de_prueba or (), args.switch or (),
                     args.timer_de_prueba or (),
-                    lugar_de_prueba(args.lugar_de_prueba))}]
+                    lugar_de_prueba(args.lugar_de_prueba),
+                    frecuencia=args.frecuencia)}]
         codigo = bytearray()
         for pagina in paginas:
             pagina["offset"] = len(codigo)
@@ -2333,7 +2343,8 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
     # el resto se queda con la única que declara su página.
     orden = orden_de_mapas(args)
     movibles = eventos_movibles(game_map,
-                                {m: i for i, m in enumerate(orden)}.get)
+                                {m: i for i, m in enumerate(orden)}.get,
+                                con_ventana=args.con_ventana)
     # La ruta inventada de `--ruta-de-evento` también manda a caminar a alguien,
     # y su página no sale de `paginas_del_mapa`: hay que sumarla a mano o el NPC
     # caminaría con una sola pose. Va sólo en el mapa donde arranca la ROM, que

@@ -475,6 +475,8 @@ grupo_listo:
     stz ruta_n                  ; sin ruta forzada pendiente
     stz ruta_i
     stz ruta_espera
+    lda #8
+    sta ruta_frec               ; la de siempre, hasta que un OP_RUTA diga otra
     ; Y lo demás que una ruta deja prendido. La RAM arranca con basura —snes9x
     ; la llena de $55— así que sin esto el héroe arrancaría atravesando paredes
     ; y con la animación parada.
@@ -1540,6 +1542,9 @@ op_ruta:
     lda [cod_ptr], y            ; sobre quién
     sta ruta_blanco
     iny
+    lda [cod_ptr], y            ; con qué frecuencia
+    sta ruta_frec_op
+    iny
     lda [cod_ptr], y            ; cuántos comandos trae
     sta ruta_cuantas
     stz ruta_cuantas + 1
@@ -1549,11 +1554,15 @@ op_ruta:
 
     ; --- el héroe: la ruta se copia a RAM y la camina `move_hero`, no el
     ; intérprete: en RM2k `ForceMoveRoute` es asincrónico y la página sigue.
+    ; Lo que se corta es la espera —`SetStopCount(0xFFFF)`: la primera orden
+    ; corre ya— y nada más: el paso o el salto en curso se terminan, como
+    ; allá. Acá se cortaba también el salto, y la referencia no.
     lda ruta_cuantas
     sta temp
     stz ruta_i
     stz ruta_espera
-    stz ruta_salto
+    lda ruta_frec_op
+    sta ruta_frec
     ldx #$0000
 copiar_orden:
     lda temp
@@ -2658,9 +2667,12 @@ hay_orden:
     lda ruta, x
     inc ruta_i
 
-    cmp #23                     ; wait: éste y los RUTA_ESPERA - 1 que siguen
-    bne no_es_wait
-    lda #(RUTA_ESPERA - 1)
+    cmp #23                     ; wait: éste y los RUTA_ESPERA - 1 que siguen,
+    bne no_es_wait              ; más los del giro si la frecuencia es baja
+    lda ruta_frec
+    jsr tras_giro
+    clc
+    adc #(RUTA_ESPERA - 1)
     sta ruta_espera
     jmp listo
 no_es_wait:
@@ -2668,8 +2680,8 @@ no_es_wait:
     bcc mover                   ; 0..3 son los move_*
     cmp #16
     bcc face                    ; 12..15 son los face_*
-    ; Girar sin moverse y encarar al héroe no se compilan: ver `RUTA_ORDENES`
-    ; en eventos.py. Acá no llegan.
+    ; Girar sin moverse no se compila, y encarar al héroe no se compila
+    ; **sobre el héroe**: ver `RUTA_ORDENES` en eventos.py. Acá no llegan.
     cmp #24
     bne no_es_salto
     jsr armar_salto_heroe
@@ -2704,8 +2716,15 @@ atravesar:
 face:
     sec
     sbc #12
-    sta hero_dir                ; face_*: instantáneo, sigue el que viene
+    sta hero_dir                ; face_*: con la frecuencia 8 es instantáneo y
+    lda ruta_frec               ; sigue el que viene; con otra, se queda
+    jsr tras_giro               ; quieto los cuadros del giro
+    bne giro_espera
     jmp otra_orden
+giro_espera:
+    dec a
+    sta ruta_espera
+    jmp listo
 
 
 mover:
@@ -3238,6 +3257,13 @@ sin_flash:
 ; ruta forzada anterior, no la encadena— y si no hay ninguna libre la ruta se
 ; descarta, que es preferible a escribir al lado de la tabla.
 ;
+; Lo que se conserva al pisarla es lo que `ForceMoveRoute` conserva: el paso o
+; el salto en curso se terminan, hacia dónde mira queda, y atravesar paredes y
+; la animación parada siguen como estaban. Se cortan la espera —la primera
+; orden corre ya— y las órdenes. Antes se reseteaba la ranura entera, y el
+; evento volvía a mirar adonde decía su página hasta que la ruta nueva lo
+; girara: era el centinela que dejaba afuera a `face_hero`.
+;
 ; Entra con Y apuntando a la primera orden dentro del bytecode.
 .proc ruta_para_evento
 .a8
@@ -3251,7 +3277,7 @@ sin_flash:
 buscar:
     lda ruta_ev, x
     cmp temp
-    beq puesta
+    beq reusada
     rep #$20
 .a16
     txa
@@ -3282,8 +3308,21 @@ vacia:
     rts                         ; no hay lugar: la ruta se pierde
 
 puesta:
+    ; Una ranura nueva: sin paso, sin salto, mirando adonde diga su página y
+    ; con la animación en la pose del medio, como `animate_hero`.
     lda temp
     sta ruta_ev + 0, x
+    stz ruta_ev + 6, x
+    stz ruta_ev + 7, x          ; sin paso en curso
+    lda #RUTA_EV_SIN_MIRAR
+    sta ruta_ev + 8, x          ; mira adonde diga su página hasta que gire
+    stz ruta_ev + 12, x         ; sin banderas
+    stz ruta_ev + 13, x         ; ni salto
+    lda #1
+    sta ruta_ev + 10, x         ; el frame del medio, como `animate_hero`
+    lda #ANIM_FRAMES
+    sta ruta_ev + 11, x
+reusada:
     ; El puntero a la primera orden: el del código más lo que Y llevaba andado.
     ; La suma no se lleva nada al byte de banco porque el bloque de código del
     ; mapa entra entero en uno —lo garantiza el `.bloque` con que lo emite el
@@ -3301,17 +3340,95 @@ puesta:
     lda ruta_cuantas
     sta ruta_ev + 4, x
     stz ruta_ev + 5, x          ; recién empieza
-    stz ruta_ev + 6, x
-    stz ruta_ev + 7, x          ; y sin paso en curso
-    lda #RUTA_EV_SIN_MIRAR
-    sta ruta_ev + 8, x          ; mira adonde diga su página hasta que gire
-    stz ruta_ev + 9, x          ; y sin espera en curso
-    stz ruta_ev + 12, x         ; ni banderas
-    stz ruta_ev + 13, x         ; ni salto
-    lda #1
-    sta ruta_ev + 10, x         ; el frame del medio, como `animate_hero`
-    lda #ANIM_FRAMES
-    sta ruta_ev + 11, x
+    stz ruta_ev + 9, x          ; y sin espera en curso: la primera orden corre ya
+    lda ruta_frec_op
+    sta ruta_ev + 16, x
+    rts
+.endproc
+
+; Cuántos cuadros se queda quieto un personaje después de un paso y después de
+; un giro con la frecuencia que trae A. Es el contador de parada de RM2k
+; —`SetMaxStopCountForStep` y `ForTurn`— y con la 8 los dos dan cero, que es
+; por lo que "girar es gratis y los pasos van seguidos" era exacto sin saberlo.
+; Las tablas las emite el conversor con las mismas funciones que usa la
+; referencia. Usan Y y no X, porque X es la ranura de quien pregunta.
+.proc tras_paso
+.a8
+.i16
+    rep #$20
+.a16
+    and #$00FF
+    tay
+    sep #$20
+.a8
+    lda ruta_tras_paso, y
+    rts
+.endproc
+
+.proc tras_giro
+.a8
+.i16
+    rep #$20
+.a16
+    and #$00FF
+    tay
+    sep #$20
+.a8
+    lda ruta_tras_giro, y
+    rts
+.endproc
+
+; Hacia dónde mira quien está en (celda_x, celda_y) para encarar al héroe. Es
+; `GetDirectionToCharacter`: manda el eje con más distancia y en empate el
+; vertical; sobre la misma celda, o con el héroe más abajo, mira abajo.
+; Devuelve la dirección en A.
+.proc hacia_el_heroe
+.a8
+.i16
+    rep #$20
+.a16
+    lda celda_x
+    sec
+    sbc tile_x
+    sta temp                    ; sx, con signo: positivo es "el héroe está a la izquierda"
+    bpl :+
+    eor #$FFFF
+    inc a
+:   sta cmp_a                   ; |sx|
+    lda celda_y
+    sec
+    sbc tile_y
+    sta temp + 2                ; sy: positivo es "el héroe está más arriba"
+    bpl :+
+    eor #$FFFF
+    inc a
+:   sta cmp_b                   ; |sy|
+    lda cmp_a
+    cmp cmp_b
+    beq vertical
+    bcc vertical                ; |sx| <= |sy|: manda el eje vertical
+    sep #$20
+.a8
+    lda temp + 1                ; el signo de sx
+    bmi derecha
+    lda #DIR_LEFT
+    rts
+derecha:
+    lda #DIR_RIGHT
+    rts
+vertical:
+.a16
+    sep #$20
+.a8
+    lda temp + 3                ; el signo de sy
+    bmi abajo
+    lda temp + 2
+    ora temp + 3
+    beq abajo                   ; la misma celda: abajo
+    lda #DIR_UP
+    rts
+abajo:
+    lda #DIR_DOWN
     rts
 .endproc
 
@@ -3369,6 +3486,18 @@ siguiente:
     beq sin_paso
     dec a
     sta ruta_ev + 7, x
+    bne moviendo
+    ; El paso terminó en este cuadro. Con órdenes por delante, la frecuencia
+    ; dice cuántos cuadros quieto antes de leer la siguiente; sin órdenes no se
+    ; espera nada, porque la ruta se cancela en su último paso y
+    ; `ProceedWithMovement` no la tiene que esperar.
+    lda ruta_ev + 5, x
+    cmp ruta_ev + 4, x
+    bcs moviendo
+    lda ruta_ev + 16, x
+    jsr tras_paso
+    sta ruta_ev + 9, x
+moviendo:
     lda #1
     sta ruta_ev + 6, x
     rts
@@ -3418,9 +3547,12 @@ hay_orden:
     lda [ruta_ptr], y
     inc ruta_ev + 5, x
 
-    cmp #23                     ; wait: éste y los RUTA_ESPERA - 1 que siguen
-    bne no_es_wait
-    lda #(RUTA_ESPERA - 1)
+    cmp #23                     ; wait: éste y los RUTA_ESPERA - 1 que siguen,
+    bne no_es_wait              ; más los del giro si la frecuencia es baja
+    lda ruta_ev + 16, x
+    jsr tras_giro
+    clc
+    adc #(RUTA_ESPERA - 1)
     sta ruta_ev + 9, x
     jmp listo
 no_es_wait:
@@ -3430,7 +3562,15 @@ no_es_wait:
 no_mueve:
     cmp #16
     bcc face                    ; 12..15 son los face_*
-    ; Girar sin moverse y encarar al héroe no se compilan: acá no llegan.
+    cmp #21
+    bne no_encara
+    ; face_hero: la celda del evento contra la del héroe, y a `mirar` con la
+    ; dirección en A.
+    jsr celda_del_evento
+    jsr hacia_el_heroe
+    jmp mirar
+no_encara:
+    ; Girar sin moverse no se compila: acá no llega.
     cmp #24
     bne no_es_salto
     jsr armar_salto_ev
@@ -3476,8 +3616,16 @@ seguir:
 face:
     sec
     sbc #12
-    sta ruta_ev + 8, x          ; face_*: instantáneo, sigue el que viene
+mirar:
+    sta ruta_ev + 8, x          ; face_*: con la frecuencia 8 es instantáneo y
+    lda ruta_ev + 16, x         ; sigue el que viene; con otra, se queda
+    jsr tras_giro               ; quieto los cuadros del giro
+    bne giro_espera
     jmp otra_orden
+giro_espera:
+    dec a
+    sta ruta_ev + 9, x
+    jmp listo
 
 
 mover:
@@ -6760,7 +6908,16 @@ sin_filas:
     ; celdas para arriba y el evento está en la tercera.
     lda ruta_i
     cmp ruta_n
-    bcc sigue                   ; quedan órdenes: el paso es del medio
+    bcs sin_ruta                ; no quedan órdenes: puerta y contacto
+    ; Quedan: el paso es del medio, y la frecuencia dice cuántos cuadros
+    ; quieto antes de leer la siguiente. Vale aunque el paso lo haya arrancado
+    ; el pad: en RM2k `UpdateMovement` pone el contador en cero al terminar
+    ; cualquier paso, y `ForceMoveRoute` ya dejó el tope de la ruta.
+    lda ruta_frec
+    jsr tras_paso
+    sta ruta_espera
+    bra sigue
+sin_ruta:
     jsr cruzar_puerta           ; recién parado en la celda: ¿había puerta?
     bne sigue                   ; la hubo: el mapa ya cambió y la celda de
                                 ; llegada no se pisa, igual que en RM2k
@@ -8130,6 +8287,10 @@ port0: .res 1
 ; se mudó acá cuando el compositor de texto necesitó lugar: `paso_de_ruta` la
 ; lee una vez por cuadro, así que el ciclo de más por acceso no se nota.
 ruta:        .res 32
+; La frecuencia de la ruta puesta sobre el héroe, y la que trae el OP_RUTA que
+; se está leyendo. Es el contador de parada de RM2k: ver `ruta_tras_paso`.
+ruta_frec:    .res 1
+ruta_frec_op: .res 1
 
 ; La ventana de mensaje. `msg_abierto` es si hay una en pantalla, y los otros
 ; dos son pedidos que el lazo principal atiende al final del cuadro, con la
@@ -8233,7 +8394,12 @@ ev_pos_buf: .res EV_MAX * EV_STRIDE
 ;
 ; El paso es de 16 y no de 9 para que la ranura se indexe con cuatro
 ; corrimientos en vez de con una multiplicación.
-RUTA_EV_STRIDE = 16
+; Los campos de la ranura: +0 el evento, +1..+3 el puntero a las órdenes, +4
+; cuántas, +5 en cuál va, +6 si se movió en este cuadro, +7 lo que le falta al
+; paso, +8 hacia dónde mira, +9 la espera, +10 y +11 la animación, +12 las
+; banderas, +13 lo que le falta al salto y +14/+15 de dónde salió, +16 la
+; frecuencia. El paso es potencia de dos por costumbre; sobra lugar.
+RUTA_EV_STRIDE = 32
 RUTA_EV_LIBRE = $FF
 RUTA_EV_SIN_MIRAR = $FF     ; en +8: la ruta todavía no lo giró
 ruta_ev:  .res RUTA_EV_MAX * RUTA_EV_STRIDE

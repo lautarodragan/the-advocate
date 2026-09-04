@@ -323,32 +323,34 @@ snes-mednafen:
 # verificada contra una captura de EasyRPG por `snes-oraculo`, y esto verifica
 # la consola contra la referencia.
 #
-# Los cuatro mapas de la tanda no son cuatro veces lo mismo. La ventana se lleva
-# la paleta que queda justo debajo de la capa de encima, y quién la paga cambia
-# de mapa en mapa:
+# Los mapas de la tanda no son varias veces lo mismo. La ventana se lleva la
+# paleta que queda justo debajo de la capa de encima, y quién la paga cambia de
+# mapa en mapa:
 #
 #     7 y 6    al fondo le sobran paletas: no fusiona nada
-#     1        el que descubrió esto —el conversor cortaba— y fusiona 2
 #     348      fusiona 16, el máximo posible, y se ve
+#     269      el reparto para mapas con mucho fondo, y no entra en el tilemap
+#              de 64x32: estampa la ventana sobre un mapa que la ROM redibuja
 #
-# El 348 está por eso último: es el único donde la fusión llega a la pantalla.
-# Con la referencia armada sin reservar la paleta, difiere en 45 pixeles; en el
-# mapa 1 da 0, porque los 2 colores que fusiona no aparecen en el cuadro. O sea
-# que sin el 348 el reparto con ventana del lado de la referencia no lo
-# ejercitaría nada.
+# El 348 está por eso: es el único donde la fusión llega a la pantalla. Con la
+# referencia armada sin reservar la paleta, difiere en 45 pixeles. O sea que sin
+# el 348 el reparto con ventana del lado de la referencia no lo ejercitaría nada.
 #
-# Y el 1 no es redundante: es el único de los cuatro que no entra en el tilemap
-# de 64x32, así que es el único que estampa la ventana sobre un mapa que la ROM
-# va redibujando.
+# El mapa 1 estuvo acá —fue el que descubrió el reparto, porque el conversor
+# cortaba, y fusionaba 2— y no está más desde el 2026-09-04: con ventana ya
+# compila la escena de apertura, que hace caminar a cuatro personajes, y son
+# 768 tiles de sprite contra los 512 que direcciona la PPU. El conversor corta,
+# y con razón. Ver "Lo que falta" en rom/LEEME.md.
 #
-# El quinto caso es el 7 **con el 1 en la misma ROM**. La paleta de la ventana
-# es una para toda la ROM —las celdas se emiten una sola vez con la paleta
-# adentro— y cada mapa la pondría justo debajo de su capa de encima: el 7 en la
-# 6 y el 1 en la 3. Gana la más baja, y el 7, que solo no fusiona nada, acá
-# fusiona 13 colores para dejarle la 3. Se ve: entre el 7 solo y el 7 apretado
-# hay 72 pixeles, así que el cero mide que la ROM y la referencia apretaron
-# igual. Es el caso de la ROM del arranque —mapa 4 con los mapas 1 y 2—, pero
-# con un mapa que se puede mirar en vez de una habitación negra.
+# El último caso es el 7 **con el 269 en la misma ROM**. La paleta de la
+# ventana es una para toda la ROM —las celdas se emiten una sola vez con la
+# paleta adentro— y cada mapa la pondría justo debajo de su capa de encima: el
+# 7 en la 6 y el 269 en la 3. Gana la más baja, y el 7, que solo no fusiona
+# nada, acá fusiona 13 colores para dejarle la 3. Se ve: entre el 7 solo y el 7
+# apretado hay 72 pixeles, así que el cero mide que la ROM y la referencia
+# apretaron igual. Es el reparto de la ROM del arranque —mapa 4 con los mapas 1
+# y 2—, con un mapa que se puede mirar en vez de una habitación negra. Nació
+# con el 1 de compañero, hasta que el 1 dejó de entrar.
 snes-ventana mapa="7" nombre="ventana" mapas="":
   #!/usr/bin/env bash
   set -euo pipefail
@@ -512,16 +514,29 @@ snes-ruta-evento mapa="6" ruta="3 0 0 0 0 0 0 3 3 3 23 2 2 1 13" cuadros="89 91"
 # celda, en el 27 ya cambió de columna del ciclo, en el 40 va hacia la derecha
 # —otra dirección, otras poses— y en el 60 terminó y quedó parado mirando
 # arriba, que es donde lo dejó el último comando.
-snes-npc mapa="6" ruta="4 2 2 2 2 1 1 12" celda="22 12" cuadros="10 27 40 60" arranque="10" nombre="npc":
+#
+# Tres casos más, desde el 2026-09-04:
+#
+# * `npc-lento`, la frecuencia 4 sobre un evento: dos pasos, un giro y un paso,
+#   con el mismo ritmo que `ruta-lenta` en `snes-ruta`. Los cuadros 20 y 88 son
+#   quieto después de un paso y de un giro, el 44 y el 100 a mitad de paso.
+# * `npc-encara` y `npc-encara-lado`, `face_hero`: es
+#   `GetDirectionToCharacter`, manda el eje con más distancia y en empate el
+#   vertical. El evento 3 arranca en (22,9) mirando a la izquierda; con el
+#   héroe en (22,12) gira hacia abajo, y con el héroe en (25,10) —tres a la
+#   derecha y una abajo— gira a la derecha.
+snes-npc mapa="6" ruta="4 2 2 2 2 1 1 12" celda="22 12" cuadros="10 27 40 60" arranque="10" nombre="npc" frecuencia="8":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
-      --inicio {{celda}} --ruta-de-evento {{ruta}} -o {{snes_inc}}/mapdata.inc
+      --inicio {{celda}} --ruta-de-evento {{ruta}} --frecuencia {{frecuencia}} \
+      -o {{snes_inc}}/mapdata.inc
   just snes-build
   pre={{snes_pngs}}/{{nombre}}
   python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
-      --hero-tile {{celda}} --ruta-de-evento {{ruta}} --cuadros {{cuadros}} \
+      --hero-tile {{celda}} --ruta-de-evento {{ruta}} --frecuencia {{frecuencia}} \
+      --cuadros {{cuadros}} \
       --saltar $pre-{}.saltar.txt -o $pre-{}.esperado.png
   for n in {{cuadros}}; do
     python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre-$n.png \
@@ -1109,20 +1124,30 @@ snes-mensaje mapa="1" indice="0" escala="1":
 # parada, y 8 cuadros por celda por 12 celdas da 96, que cae justo en la parada.
 # Con cuatro celdas da 32, que cae en la columna 2. Elegido midiendo: los tres
 # errores se volvieron a meter de a uno y los tres dan rojo. Ver ESTADO.md.
-snes-ruta mapa="6" ruta="1 1 1 1 23 23 2 2 2 2 23 23 0 0 0 0" cuadros="18 60 120 400" arranque="10" nombre="ruta" inicio="":
+#
+# * **La frecuencia.** Con una que no sea la 8 el personaje se queda quieto
+#   entre orden y orden: es el contador de parada de RM2k, `1 << (9 - f)`
+#   cuadros después de un paso y `1 << (8 - f)` después de un giro, y el `wait`
+#   son 20 más eso. `ruta-lenta` es la 4 —la de la cinemática de apertura— con
+#   dos pasos, un giro, un paso, un `wait` y un paso: el paso va del 1 al 8 y
+#   el siguiente recién arranca en el 41, el giro cae en el 81 y suelta en el
+#   97, y el `wait` del 137 dura 36. Los cuadros 20 y 88 son quieto después de
+#   un paso y de un giro, el 44 y el 100 a mitad de paso, el 150 adentro del
+#   `wait`, y el 400 asentado.
+snes-ruta mapa="6" ruta="1 1 1 1 23 23 2 2 2 2 23 23 0 0 0 0" cuadros="18 60 120 400" arranque="10" nombre="ruta" inicio="" frecuencia="8":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
   desde=""; celda=""
   if [ -n "{{inicio}}" ]; then desde="--inicio {{inicio}}"; celda="--hero-tile {{inicio}}"; fi
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} $desde \
-      --ruta-de-prueba {{ruta}} -o {{snes_inc}}/mapdata.inc
+      --ruta-de-prueba {{ruta}} --frecuencia {{frecuencia}} -o {{snes_inc}}/mapdata.inc
   just snes-build
   pre={{snes_pngs}}/{{nombre}}
   # Las referencias de todos los cuadros salen de una sola conversión, por lo
   # mismo que las de los avances de snes-caminando.
   python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none $celda \
-      --ruta-de-prueba {{ruta}} --cuadros {{cuadros}} \
+      --ruta-de-prueba {{ruta}} --frecuencia {{frecuencia}} --cuadros {{cuadros}} \
       --saltar $pre-{}.saltar.txt -o $pre-{}.esperado.png
   for n in {{cuadros}}; do
     python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre-$n.png \

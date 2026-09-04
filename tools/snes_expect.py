@@ -143,7 +143,8 @@ class Mundo:
                                               self.prueba[4],
                                               self.prueba[5],
                                               self.prueba[6],
-                                              self.prueba[7]))]
+                                              self.prueba[7],
+                                              frecuencia=self.prueba[8]))]
             self.paginas_cache[map_id] = paginas
         return self.paginas_cache[map_id]
 
@@ -230,8 +231,11 @@ def paso_de_ruta(estado, passable, game_map, x, y):
     return x, y, llego
 
 
-def cuadro_de_eventos(estado, passable, game_map):
+def cuadro_de_eventos(estado, passable, game_map, heroe):
     """Un cuadro de lo que corre solo: las rutas de los eventos y los destellos.
+
+    `heroe` es la celda del héroe: `face_hero` la necesita, y en RM2k es la
+    de `GetX()`/`GetY()`, o sea la de destino si está a mitad de un paso.
 
     Va todo junto porque el orden importa y es uno solo: la ROM los avanza en
     el mismo lugar del lazo, después del intérprete y después del héroe.
@@ -249,7 +253,8 @@ def cuadro_de_eventos(estado, passable, game_map):
                                 x, y, dx, dy)
 
     estado.cuadro_de_rutas_ev(
-        puede, lambda cx, cy: puede_caer(passable, game_map, cx, cy))
+        puede, lambda cx, cy: puede_caer(passable, game_map, cx, cy),
+        heroe=heroe)
     estado.cuadro_de_flashes()
     estado.cuadro_de_timer()
 
@@ -305,7 +310,8 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
         if cuadros is None:
             salto = eventos.correr_automaticos(
                 mundo.paginas(map_id), estado,
-                avanzar=lambda: cuadro_de_eventos(estado, passable, game_map))
+                avanzar=lambda: cuadro_de_eventos(estado, passable, game_map,
+                                                  (x, y)))
             # Sin presupuesto de cuadros la ruta forzada igual tiene que
             # caminarse entera: lo que se compara es dónde queda todo. Antes el
             # giro lo aplicaba el intérprete y esto no hacía falta; ahora la
@@ -317,7 +323,7 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
                         and not estado.algo_corriendo():
                     break
                 x, y, llego = paso_de_ruta(estado, passable, game_map, x, y)
-                cuadro_de_eventos(estado, passable, game_map)
+                cuadro_de_eventos(estado, passable, game_map, (x, y))
                 if llego:
                     # El último paso de la ruta pisó la celda: si hay un
                     # evento de contacto, corre. Acá el tiempo ya está
@@ -381,7 +387,7 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
                     # termina sobre una, y ninguna prueba lo ejercita.
                     interprete.probar_celda(x, y, eventos.TRIGGER_TOCA_HEROE,
                                             estado)
-                cuadro_de_eventos(estado, passable, game_map)
+                cuadro_de_eventos(estado, passable, game_map, (x, y))
                 if interprete.terminado and not estado.ruta \
                         and not estado.paso_cuadros \
                         and not estado.cuadros_moviendose \
@@ -444,7 +450,7 @@ def contacto_al_pisar(mundo, estado, map_id, x, y, passable, game_map):
         x, y, llego = paso_de_ruta(estado, passable, game_map, x, y)
         if llego:
             interprete.probar_celda(x, y, eventos.TRIGGER_TOCA_HEROE, estado)
-        cuadro_de_eventos(estado, passable, game_map)
+        cuadro_de_eventos(estado, passable, game_map, (x, y))
         if estado.mensaje is not None:
             return map_id, x, y, True
         if interprete.terminado and not estado.algo_corriendo() \
@@ -790,6 +796,10 @@ def main():
                         metavar="N",
                         help="BLANCO X Y [ESPERA]: el otro lado del mismo flag "
                              "del conversor")
+    parser.add_argument("--frecuencia", type=int, default=eventos.RUTA_FRECUENCIA,
+                        metavar="F",
+                        help="la frecuencia de las rutas de prueba, como en el "
+                             "conversor")
     parser.add_argument("--ruta-de-prueba", nargs="+", type=int, default=None,
                         metavar="ORDEN",
                         help="agrega a la página de prueba una ruta forzada "
@@ -861,7 +871,8 @@ def main():
                    snes_convert.ruta_de_evento(args.ruta_de_evento),
                    args.flash_de_prueba or (), args.switch or (),
                    args.timer_de_prueba or (),
-                   snes_convert.lugar_de_prueba(args.lugar_de_prueba))
+                   snes_convert.lugar_de_prueba(args.lugar_de_prueba),
+                   args.frecuencia)
                   if hay_prueba else None, mensajes)
 
     # Los CharSets y los mapas ya convertidos se comparten entre las

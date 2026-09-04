@@ -86,18 +86,37 @@ CUADROS_DE_ESPERA_DE_RUTA = 20
 # se espera entre una orden y la siguiente —`1 << (9 - frecuencia)` cuadros, y
 # cero con 8— y cuánto dura un `wait`. Sólo se acepta la 8, que es la que usan
 # 3463 de las 3509 rutas del juego y **todas** las de las páginas que compilan;
-# con cualquier otra habría que modelar la espera entre órdenes, que hoy no
-# está. Rechazarla no cuesta ninguna página y saca del medio un error que la
-# comparación no vería.
+# con cualquier otra hay que modelar la espera entre órdenes, y desde el
+# 2026-09-04 está: es el contador de parada de RM2k. Después de cada orden el
+# personaje se queda quieto `max_stop_count` cuadros —`SetMaxStopCountForStep`
+# tras un paso, `ForTurn` tras un giro, `ForWait` en un `wait`— y con la 8 los
+# dos primeros dan cero, que es por lo que el modelo de "girar es gratis y los
+# pasos van seguidos" era exacto sin saberlo. El juego usa la 2, la 3, la 4, la
+# 7 y la 8; la 1 daría 256 cuadros tras cada paso, que no entran en el byte de
+# espera de la ROM, y no la usa nadie: se rechaza.
 RUTA_FRECUENCIA = 8
+RUTA_FRECUENCIA_MIN = 2
 
-# Girar sin moverse —`turn_90_degree_right` y sus hermanas— y encarar al héroe
-# **no están**, y no por costo: por dónde arranca el giro. RM2k gira sobre la
-# dirección que el personaje ya tenía, y para un evento eso es la que trae su
-# página; acá la ruta no la conoce hasta que la gira ella misma, así que el
-# primer giro de una ruta partiría de otro lado en la ROM y en la referencia.
-# Son tres páginas medidas, y entran cuando el mirado inicial de un evento salga
-# de su página en los dos lados en vez del centinela que hay hoy.
+
+def espera_tras_paso(frecuencia):
+    """`GetMaxStopCountForStep`: los cuadros quieto después de un paso."""
+    return 0 if frecuencia >= 8 else 1 << (9 - frecuencia)
+
+
+def espera_tras_giro(frecuencia):
+    """`GetMaxStopCountForTurn`: los cuadros quieto después de un giro. El
+    `wait` son `CUADROS_DE_ESPERA_DE_RUTA` más esto."""
+    return 0 if frecuencia >= 8 else 1 << (8 - frecuencia)
+
+
+# Encarar al héroe: `GetDirectionToCharacter`. Manda el eje con más distancia,
+# y en empate el vertical; sobre la misma celda mira abajo. Sólo sobre eventos:
+# el héroe encarándose a sí mismo no lo usa ninguna página.
+RUTA_ENCARAR_HEROE = 21
+
+# Girar sin moverse —`turn_90_degree_right` y sus hermanas— sigue afuera, y no
+# por costo: RM2k gira sobre la dirección que el personaje ya tenía, y para un
+# evento que todavía no giró ésa es la de su página, que la ruta no lee.
 
 # El salto: lo que hay entre las dos se suma como desplazamiento y el personaje
 # lo hace de un tirón, en arco.
@@ -129,7 +148,21 @@ RUTA_PASOS = {0: (0, -1), 1: (1, 0), 2: (0, 1), 3: (-1, 0)}
 RUTA_ORDENES = (set(RUTA_MIRAR) | set(RUTA_MOVER)
                 | {RUTA_ESPERAR, RUTA_SALTO_INICIO, RUTA_SALTO_FIN,
                    RUTA_ATRAVESAR_ON, RUTA_ATRAVESAR_OFF,
-                   RUTA_ANIM_PARAR, RUTA_ANIM_SEGUIR})
+                   RUTA_ANIM_PARAR, RUTA_ANIM_SEGUIR, RUTA_ENCARAR_HEROE})
+
+
+def direccion_hacia(desde, hasta):
+    """Hacia dónde mira quien está en `desde` para encarar a `hasta`, en celdas.
+
+    Es `Game_Character::GetDirectionToCharacter`, con sus dos vueltas: gana el
+    eje con **más** distancia y en empate el vertical, y sobre la misma celda
+    o con el otro más abajo se mira abajo.
+    """
+    sx = desde[0] - hasta[0]
+    sy = desde[1] - hasta[1]
+    if abs(sx) > abs(sy):
+        return 3 if sx > 0 else 1        # izquierda si el otro está a la izquierda
+    return 0 if sy > 0 else 2            # arriba si el otro está más arriba
 
 # Las órdenes que llevan algo detrás, y qué. Los números son los de
 # `rpg::MoveCommand::Code` en liblcf.
@@ -338,7 +371,7 @@ OP_ESPERAR  = 0x03      # cuadros (word): la cinemática espera seis
                         # segundos, o sea 360, y no entran en un byte
 OP_TINTE    = 0x04      # r, g, b, sat (byte cada uno)
 OP_GRUPO    = 0x05      # operación (byte), actor (byte)
-OP_RUTA     = 0x06      # blanco (byte), cuántos comandos (byte), y los
+OP_RUTA     = 0x06      # blanco (byte), frecuencia (byte), cuántos comandos (byte), y los
                         # comandos. El blanco es 0 para el héroe, y si no el
                         # índice del evento en la tabla del mapa más uno.
                         #
@@ -796,8 +829,8 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
             blanco = eventos_mapa.blanco(p[0])
             if blanco is None:
                 raise NoSePuede()   # un vehículo, o un evento que no existe
-        if p[1] != RUTA_FRECUENCIA:
-            raise NoSePuede()   # habría que modelar la espera entre órdenes
+        if not RUTA_FRECUENCIA_MIN <= p[1] <= RUTA_FRECUENCIA:
+            raise NoSePuede()   # la 1 no entra en el byte de espera de la ROM
         ordenes = decodificar_ruta(list(p[4:]))
         ruta = []
         for orden, _extras in ordenes:
@@ -815,10 +848,12 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
             # atravesar paredes, la velocidad, la frecuencia— sigue afuera.
             if orden not in RUTA_ORDENES:
                 raise NoSePuede()
+            if orden == RUTA_ENCARAR_HEROE and blanco == 0:
+                raise NoSePuede()   # el héroe encarándose a sí mismo
             ruta.append(orden)
         if not ruta or len(ruta) > 255:
             raise NoSePuede()
-        return bytes([OP_RUTA, blanco, len(ruta)]) + bytes(ruta)
+        return bytes([OP_RUTA, blanco, p[1], len(ruta)]) + bytes(ruta)
 
     if cmd.code == CHANGE_EVENT_LOCATION:
         if len(p) < 4 or p[1] != LUGAR_CONSTANTE:
@@ -912,6 +947,25 @@ class Ruta:
         # Hacia dónde mira si una ruta se lo dijo. None es "lo decide la
         # caminata", que es lo de siempre.
         self.mirando = None
+        # La frecuencia de la ruta puesta: cuánto se queda quieto entre orden y
+        # orden. Ver `espera_tras_paso`.
+        self.frecuencia = RUTA_FRECUENCIA
+
+    def reemplazar(self, ordenes, frecuencia):
+        """Una ruta forzada nueva sobre quien ya tenía una, o no.
+
+        Es `ForceMoveRoute`, y lo que importa es lo que **no** toca: el paso o
+        el salto en curso se terminan, hacia dónde mira queda, y atravesar
+        paredes y la animación parada siguen como estaban. Lo que sí: las
+        órdenes son las nuevas, la espera se corta —`SetStopCount(0xFFFF)`: la
+        primera orden corre ya— y la frecuencia es la de esta ruta. La ROM hace
+        lo mismo al reusar la ranura; antes reseteaba la ranura entera, y el
+        evento volvía a mirar adonde decía su página hasta que la ruta nueva
+        lo girara.
+        """
+        self.ordenes = list(ordenes)
+        self.espera = 0
+        self.frecuencia = frecuencia
 
     def cortar_paso(self):
         """Deja al personaje sobre su celda: sin paso ni salto en curso.
@@ -935,13 +989,15 @@ class Ruta:
         return (bool(self.ordenes) or self.paso_cuadros > 0
                 or self.espera > 0 or self.salto_resta > 0)
 
-    def cuadro(self, puede, saltar=None):
+    def cuadro(self, puede, saltar=None, hacia_heroe=None):
         """Un cuadro de la ruta.
 
         `puede(direccion)` dice si se puede dar el paso, `saltar(dx, dy)` si se
         puede caer en esa celda —es `MakeWay` con el personaje saltando, que
         saltea la cara que se deja y pide que la de destino sea pasable por los
-        cuatro lados—.
+        cuatro lados— y `hacia_heroe()` hacia dónde hay que mirar para encarar
+        al héroe; sin él, `face_hero` no hace nada, que es lo que hace la ROM
+        con una orden que no espera.
 
         Devuelve la dirección del paso que se está dando, o None. Un salto que
         arranca en este cuadro queda en `arranco_salto` para que quien lleve la
@@ -959,6 +1015,13 @@ class Ruta:
             direccion = self.paso_dir
             if not self.paso_cuadros:
                 self.paso_dir = None
+                # El paso terminó: con órdenes por delante, la frecuencia dice
+                # cuántos cuadros quieto antes de leer la siguiente. Sin
+                # órdenes no se espera nada: la ruta se cancela en el último
+                # paso —ver `paso_de_ruta` en snes_expect.py— y
+                # `ProceedWithMovement` no la tiene que esperar.
+                if self.ordenes:
+                    self.espera = espera_tras_paso(self.frecuencia)
             return direccion
         if self.salto_resta:
             # Un salto en curso. No hay pose de caminata: RM2k llama a
@@ -972,9 +1035,19 @@ class Ruta:
             return None
         while self.ordenes:
             orden = self.ordenes.pop(0)
-            if orden in RUTA_MIRAR:
-                self.mirando = RUTA_MIRAR[orden]
-                continue
+            if orden in RUTA_MIRAR or orden == RUTA_ENCARAR_HEROE:
+                if orden in RUTA_MIRAR:
+                    self.mirando = RUTA_MIRAR[orden]
+                elif hacia_heroe is not None:
+                    self.mirando = hacia_heroe()
+                # Girar es gratis con la frecuencia 8 y cuesta
+                # `espera_tras_giro` cuadros con las otras: éste y los que
+                # siguen, como el `wait`.
+                giro = espera_tras_giro(self.frecuencia)
+                if not giro:
+                    continue
+                self.espera = giro - 1
+                break
             if orden == RUTA_ATRAVESAR_ON:
                 self.atraviesa = True
                 continue
@@ -994,8 +1067,11 @@ class Ruta:
                     break           # el salto arrancó y se lleva el cuadro
                 continue            # no se pudo, o no había `end_jump`
             if orden == RUTA_ESPERAR:
-                # Veinte cuadros, no uno: éste y los diecinueve que siguen.
-                self.espera = CUADROS_DE_ESPERA_DE_RUTA - 1
+                # Veinte cuadros, no uno: éste y los diecinueve que siguen. Y
+                # con una frecuencia baja, los del giro encima:
+                # `GetMaxStopCountForWait` es 20 más `ForTurn`.
+                self.espera = (CUADROS_DE_ESPERA_DE_RUTA - 1
+                               + espera_tras_giro(self.frecuencia))
                 break
             direccion = RUTA_MOVER[orden]
             self.mirando = direccion
@@ -1187,10 +1263,11 @@ class Estado:
         return (self.ruta_heroe.pendiente
                 or any(r.pendiente for r in self.rutas_ev.values()))
 
-    def cuadro_de_rutas_ev(self, puede_pasar, puede_caer=None):
+    def cuadro_de_rutas_ev(self, puede_pasar, puede_caer=None, heroe=None):
         """Un cuadro de todas las rutas de eventos. `puede_pasar(indice, x, y,
-        direccion)` dice si ese evento puede dar ese paso y `puede_caer(x, y)`
-        si se puede aterrizar en esa celda.
+        direccion)` dice si ese evento puede dar ese paso, `puede_caer(x, y)`
+        si se puede aterrizar en esa celda, y `heroe` es la celda del héroe,
+        que es a quien encara `face_hero`.
 
         La celda se mueve al **empezar** el paso, igual que el héroe: es lo que
         hace `begin_step` en la ROM, y modelarlo distinto acá dejaría a los dos
@@ -1203,7 +1280,10 @@ class Estado:
             direccion = ruta.cuadro(
                 lambda d, i=indice, px=x, py=y: puede_pasar(i, px, py, d),
                 saltar=(lambda dx, dy, px=x, py=y:
-                        puede_caer is None or puede_caer(px + dx, py + dy)))
+                        puede_caer is None or puede_caer(px + dx, py + dy)),
+                hacia_heroe=(None if heroe is None else
+                             lambda px=x, py=y: direccion_hacia((px, py),
+                                                                heroe)))
             if ruta.arranco_salto is not None:
                 dx, dy = ruta.arranco_salto
                 self.pos_ev[indice] = (x + dx, y + dy)
@@ -1298,6 +1378,40 @@ class Estado:
         return self.grupo[0] if self.grupo else None
 
 
+# Cuánto ocupa cada opcode, para recorrer una página compilada sin ejecutarla.
+# Es **la** tabla: el conversor y `blancos_de_ruta` recorren con esto, y
+# `ejecutar` avanza con las mismas cuentas. Había dos copias —una acá y otra
+# en el conversor— y la de acá se quedó con el OP_RUTA viejo cuando el nuevo
+# sumó la frecuencia, y sin OP_LUGAR: doce casos de la tanda en rojo, y
+# hasta ahí un recorrido que podía dar mal **sin decirlo** a quién le tocan
+# las doce poses. OP_RUTA no está: lleva las órdenes detrás y lo mide
+# `largo_de_opcode`.
+LARGO_DE_OPCODE = {
+    OP_FIN: 1, OP_SWITCH: 4, OP_TELEPORT: 6, OP_ESPERAR: 3, OP_TINTE: 5,
+    OP_GRUPO: 3, OP_MENSAJE: 3, OP_RUTAS: 1, OP_FLASH: 7, OP_TIMER: 5,
+    OP_BGM: 2, OP_LUGAR: 6,
+}
+
+
+def largo_de_opcode(codigo, i):
+    """Cuántos bytes ocupa el opcode que empieza en `codigo[i]`."""
+    op = codigo[i]
+    if op == OP_RUTA:
+        return 4 + codigo[i + 3]
+    largo = LARGO_DE_OPCODE.get(op)
+    if largo is None:
+        raise ValueError("opcode %d que no sé medir" % op)
+    return largo
+
+
+def recorrer_codigo(codigo):
+    """(desplazamiento, código) de cada opcode de una página ya compilada."""
+    i = 0
+    while i < len(codigo):
+        yield i, codigo
+        i += largo_de_opcode(codigo, i)
+
+
 def blancos_de_ruta(paginas):
     """Los eventos a los que estas páginas ya compiladas les mandan una ruta.
 
@@ -1308,33 +1422,9 @@ def blancos_de_ruta(paginas):
     blancos = set()
     for pagina in paginas:
         codigo = pagina.get("codigo")
-        i = 0
-        while codigo and i < len(codigo):
-            op = codigo[i]
-            if op == OP_FIN:
-                break
-            if op == OP_RUTA:
-                if codigo[i + 1]:
-                    blancos.add(codigo[i + 1] - 1)
-                i += 3 + codigo[i + 2]
-            elif op == OP_RUTAS:
-                i += 1
-            elif op == OP_FLASH:
-                i += 7
-            elif op == OP_TIMER:
-                i += 5
-            elif op == OP_BGM:
-                i += 2
-            elif op == OP_SWITCH:
-                i += 4
-            elif op == OP_TELEPORT:
-                i += 6
-            elif op in (OP_ESPERAR, OP_MENSAJE, OP_GRUPO):
-                i += 3
-            elif op == OP_TINTE:
-                i += 5
-            else:
-                raise ValueError("opcode %d que no conozco" % op)
+        for i, c in recorrer_codigo(codigo or b""):
+            if c[i] == OP_RUTA and c[i + 1]:
+                blancos.add(c[i + 1] - 1)
     return blancos
 
 
@@ -1407,7 +1497,8 @@ def pagina_activa(paginas, evento, estado):
 
 
 def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
-                    flash=(), switches=(), timer=(), lugar=()):
+                    flash=(), switches=(), timer=(), lugar=(),
+                    frecuencia=RUTA_FRECUENCIA):
     """Una página automática inventada: una ruta forzada, una espera, un tinte.
 
     No sale de ningún dato del juego, y ésa es la idea. El intérprete corre
@@ -1427,6 +1518,9 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
 
     `mensaje` es el desplazamiento del cuadro de texto en el bloque de la ROM,
     o None si esta página no abre ninguno.
+
+    `frecuencia` es la de las dos rutas —la del héroe y la del evento—, que
+    con la 8 caminan seguidas y con otra se paran entre orden y orden.
 
     `lugar` es (blanco, x, y, espera) para plantar a un evento en una celda
     —OP_LUGAR— después de esperar esos cuadros. Va **entre** la ruta del
@@ -1458,7 +1552,7 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
         # prende la cinemática de apertura.
         codigo += bytes([OP_SWITCH, numero & 0xFF, numero >> 8, 1])
     if ruta:
-        codigo += bytes([OP_RUTA, 0, len(ruta)]) + bytes(ruta)
+        codigo += bytes([OP_RUTA, 0, frecuencia, len(ruta)]) + bytes(ruta)
     if flash:
         # (blanco, r, g, b, potencia, cuadros). Existe por lo mismo que todo lo
         # demás de esta página: ninguna del juego que compile destella sin
@@ -1466,7 +1560,8 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
         codigo += bytes([OP_FLASH]) + bytes(flash)
     if ruta_ev:
         blanco, ordenes = ruta_ev
-        codigo += bytes([OP_RUTA, blanco, len(ordenes)]) + bytes(ordenes)
+        codigo += (bytes([OP_RUTA, blanco, frecuencia, len(ordenes)])
+                   + bytes(ordenes))
     if lugar:
         blanco, x, y, cuadros = lugar
         if cuadros:
@@ -1701,13 +1796,13 @@ def ejecutar(codigo, estado, desde=0):
             # vez por cuadro. Y encolar pisa lo que hubiera: RM2k sobrescribe la
             # ruta forzada anterior, no la encadena.
             blanco = codigo[i + 1]
-            cuantos = codigo[i + 2]
-            ordenes = list(codigo[i + 3:i + 3 + cuantos])
-            if blanco == 0:
-                estado.ruta = ordenes
-            else:
-                estado.ruta_de_evento(blanco - 1).ordenes = ordenes
-            i += 3 + cuantos
+            frecuencia = codigo[i + 2]
+            cuantos = codigo[i + 3]
+            ordenes = list(codigo[i + 4:i + 4 + cuantos])
+            ruta = (estado.ruta_heroe if blanco == 0
+                    else estado.ruta_de_evento(blanco - 1))
+            ruta.reemplazar(ordenes, frecuencia)
+            i += 4 + cuantos
         elif op == OP_FLASH:
             # Empieza un destello. No corta el cuadro: si la página espera, el
             # conversor le pone un OP_ESPERAR detrás, que es lo que hace

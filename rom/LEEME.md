@@ -299,6 +299,49 @@ Y una trampa que costó una vuelta: la primera versión lo plantaba en una celda
 tapada por la capa de encima, y los dos lados lo dibujaban tapado. La prueba
 daba cero con el corte sacado, porque no veía al evento.
 
+### La frecuencia de la ruta, y encarar al héroe
+
+Hasta el 2026-09-04 una ruta con frecuencia distinta de 8 no compilaba, y el
+modelo era "girar es gratis, los pasos van seguidos y el `wait` son veinte
+cuadros". Era exacto sin saberlo: es el contador de parada de RM2k con la
+frecuencia 8. Después de cada orden el personaje se queda quieto
+`max_stop_count` cuadros —`SetMaxStopCountForStep` tras un paso,
+`ForTurn` tras un giro, `ForWait` en un `wait`— y valen `1 << (9 - f)`,
+`1 << (8 - f)` y `20 + (1 << (8 - f))`, con las dos primeras en cero para la
+8. El juego usa la 2, la 3, la 4, la 7 y la 8; la 1 daría 256 cuadros tras
+cada paso, no entra en el byte de espera y no la usa nadie: se rechaza.
+
+Las dos tablas las emite el conversor con las mismas funciones que usa la
+referencia, y la ROM las indexa con la frecuencia tal cual. Hay una vuelta que
+importa: **después del último paso no se espera nada**, porque la ruta se
+cancela ahí mismo —ver "Pisar un evento"— y `ProceedWithMovement` no la tiene
+que esperar. Un giro como última orden sí deja la ruta puesta los cuadros del
+giro, que es lo que hace RM2k dentro de un cuadro de diferencia.
+
+`face_hero` es `GetDirectionToCharacter`: manda el eje con más distancia, en
+empate el vertical, y sobre la misma celda se mira abajo. Sólo sobre eventos;
+el héroe encarándose a sí mismo no lo usa ninguna página y no compila. Lo que
+lo tenía afuera no era el giro sino lo que pasaba al **pisar una ruta con
+otra**: la ROM reseteaba la ranura entera, y el evento volvía a mirar adonde
+decía su página hasta que la ruta nueva lo girara. Ahora al reusar la ranura
+se conserva lo que `ForceMoveRoute` conserva —el paso o el salto en curso se
+terminan, hacia dónde mira queda, atravesar paredes y la animación parada
+siguen— y se cortan la espera y las órdenes. El héroe igual: acá se le cortaba
+el salto y la referencia no.
+
+Lo prueban cuatro casos de la tanda: `ruta-lenta` y `npc-lento`, la frecuencia
+4 sobre el héroe y sobre un evento —dos pasos, un giro y un paso; el paso va
+del cuadro 1 al 8 y el siguiente recién arranca en el 41, el giro suelta a los
+16—, y `npc-encara` y `npc-encara-lado`, con el héroe abajo y a la derecha del
+evento. Rotos a propósito: sin la espera tras el paso, `ruta-lenta` se va a
+281 pixeles en el cuadro 20 y a 12757 en el 44; sin `face_hero`, `npc-encara`
+a 274.
+
+Lo que no se modela, de ningún lado: un movimiento **bloqueado** con una
+frecuencia baja. RM2k le pone el tope del paso sin reiniciar el contador, así
+que espera lo que le falte de la orden anterior; acá se saltea y sigue, como
+con la 8. Ninguna ruta lenta del juego choca contra nada.
+
 ### El arranque de verdad
 
 El juego no empieza donde las pruebas lo ponían. Empieza en **Map0004, `Blank
@@ -467,10 +510,12 @@ coincide: en la ROM del arranque el mapa 4 la pondría en la 6 y los mapas 1 y
 conversor y en la referencia— y los mapas que la tenían más arriba se vuelven a
 convertir con el fondo apretado debajo de ella; la capa de encima no se mueve,
 porque dónde arranca ya se guarda mapa por mapa. Cuesta lo de siempre de la
-ventana, sólo que en mapas que solos no pagaban: el 7 con el 1 en la misma ROM
-fusiona 13 colores de 60, y se ve. Ése es el caso `snes-ventana 7 ventana-7-y-1
-1` de la tanda: el mismo reparto que la ROM del arranque, con un mapa que se
-puede mirar en vez de una habitación negra.
+ventana, sólo que en mapas que solos no pagaban: el 7 con el 269 en la misma
+ROM fusiona 13 colores de 60, y se ve. Ése es el caso `snes-ventana 7
+ventana-7-y-269 269` de la tanda: el mismo reparto que la ROM del arranque, con
+un mapa que se puede mirar en vez de una habitación negra. Nació con el 1 de
+compañero, hasta que el 1 con ventana dejó de entrar en VRAM: ver "Lo que
+falta".
 
 **El tilemap de BG2 se scrollea con la cámara, y la ventana no puede.** No es un
 caso raro: en `game_player.cpp` de easyrpg `UpdateMoveRoute` corre **antes** del
@@ -1393,13 +1438,29 @@ comparación.
   **velocidad** —que cambia cuántos cuadros dura un paso— y la
   **transparencia**. Sigue siendo lo que más corta: 129 páginas.
 
-  Y aparte, **girar sin moverse** (`turn_90_degree_right` y sus hermanas) y
-  **encarar al héroe**: son tres páginas y no están afuera por costo sino por
-  dónde arranca el giro. RM2k gira sobre la dirección que el personaje ya
-  tenía, y para un evento ésa es la que trae su página; hoy la ruta no la
-  conoce hasta que la gira ella misma —lleva un centinela— así que el primer
-  giro partiría de otro lado en la ROM y en la referencia. Entran cuando el
-  mirado inicial salga de la página en los dos lados.
+  Y aparte, **girar sin moverse** (`turn_90_degree_right` y sus hermanas): no
+  está afuera por costo sino por dónde arranca el giro. RM2k gira sobre la
+  dirección que el personaje ya tenía, y para un evento que todavía no giró
+  ésa es la que trae su página, que la ruta no lee. **Encarar al héroe** y la
+  **frecuencia** ya están, desde el 2026-09-04: ver "La frecuencia de la ruta,
+  y encarar al héroe".
+* **La escena de apertura no entra en VRAM.** Es el muro de verdad, y apareció
+  el 2026-09-04 cuando por fin compiló la página del evento 2 del mapa 1 —la
+  que apaga el tinte y arma la escena—: hace caminar a Core, a Manta, al droide
+  y a Kersh, y cada uno que camina se lleva sus doce poses de 16 tiles, o sea
+  **768 tiles de sprite contra los 512 que direcciona la PPU**. No es el
+  reparto: los dos bancos de nombres de objetos son 512 tiles, punto. Y no lo
+  arregla apretar las poses —24x32 son 12 tiles sin el relleno, 576 en total—
+  ni ninguna paleta.
+
+  Lo que sí lo arregla es **subir las poses en caliente**: tener en VRAM una
+  pose por personaje y cambiarla por DMA en el vblank cuando cambia, 512 B por
+  cambio. Es la misma feature que pide cambiar el gráfico desde una ruta, y es
+  de las caras: toca el banco de sprites, la tabla de NPCs, el lazo de rutas y
+  el vblank. Hasta que exista, **el mapa 1 con ventana no se arma** —el
+  conversor corta con razón— y por eso `snes-ventana 1` salió de la tanda.
+  Sin ventana sí se arma, como siempre: la página del evento 2 no compila sin
+  cuadros de texto y nadie le da poses a nadie.
 * **Que un NPC frene al héroe.** En RM2k los eventos de la capa del héroe
   bloquean el paso; la ROM todavía no lo mira. La tabla ya trae el dato.
 * **Los teletransportes que siguen sin resolverse.** Los que están adentro de
@@ -1429,15 +1490,12 @@ comparación.
   contra el MIDI **del mapa**, así que donde el tema lo pone un evento hay que
   nombrarlo: `just snes-check 1 45 escape_newyork`.
 
-* **La cinemática de apertura.** El mapa 4 prende el switch 20, que es la
-  condición de la página que abre el mapa 1: el enganche ya funciona, y si esa
-  página se pudiera correr, arrancaría sola. No se puede por la regla de todo o
-  nada: la condición pide `actor` —que el héroe 10 esté en el grupo, y todavía
-  no hay grupo— y le faltan comandos. De los cuatro que le faltaban, `PlayBGM`
-  ya se acepta y `MoveEvent` caminando también, desde el 2026-09-03; quedan
-  `WeatherEffects` y `ChangePartyMembers`.
-  Mientras tanto el héroe queda parado adentro del caño, que es donde RM2k
-  también lo deja: ahí no camina nadie, sigue el script.
+* **La cinemática de apertura.** La página del mapa 1 ya corre entera
+  —`rom/build/demo-musica/` la muestra, con `escape_newyork` sonando— y deja
+  al héroe parado sobre el evento 2, que es el que apaga el tinte y arma la
+  escena. Los cinco comandos que a esa página le faltaban están desde el
+  2026-09-04; lo que la deja afuera es lo de arriba: sus cuatro personajes
+  caminando no entran en VRAM.
 * **Lo que le falta al juego entero, medido.** De las 489 páginas automáticas
   con comandos, hoy compilan enteras **142**. Eran 16 antes de los cuadros de
   texto, 71 con ellos, 87 con las rutas forzadas sobre eventos, 110 con
