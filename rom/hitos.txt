@@ -44,6 +44,8 @@ snes-destello
 snes-hablar
 snes-cinematica
 snes-pisar
+snes-timer
+snes-timer 6 "1 1" "2 10" "2 40 59 61" "12 0 0 50" 10 timer-cero
 snes-hablar 7 "3 7" 25 25 "20 60" 30 hablar-sin-switch
 snes-cerrar
 snes-cerrar 7 200 cerrar-right right

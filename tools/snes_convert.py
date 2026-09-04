@@ -412,6 +412,62 @@ def build_characters(images, characters):
     return bytes(tiles), palettes, where
 
 
+# El cronómetro: once glifos de 8x16 en el System, a partir de (32, 32). Diez
+# dígitos y los dos puntos, que es todo lo que `Sprite_Timer::Draw` dibuja.
+TIMER_GLIFOS = 11
+TIMER_GLIFO_W, TIMER_GLIFO_H = 8, 16
+TIMER_ORIGEN = (32, 32)
+# Dónde se dibuja en pantalla. `Sprite_Timer` lo pone en
+# `menu_offset_x + 4` y `menu_offset_y + 4`, y con una pantalla más angosta que
+# el menú los dos desplazamientos dan cero.
+TIMER_X, TIMER_Y = 4, 4
+
+
+def digitos_del_timer(sys_img, tiles, palettes):
+    """Los once glifos del cronómetro, al final del banco de sprites.
+
+    Van como dos tiles de 8x8 apilados cada uno, y los once entran en una fila
+    de dieciséis: el glifo i ocupa el tile `base + i` y el `base + 16 + i`. La
+    base se redondea a una fila para que esa cuenta valga.
+
+    Devuelve (tiles, base, paleta). La paleta es propia y no la de un personaje:
+    los dígitos salen del System, que no comparte colores con ningún CharSet.
+    """
+    colores = collections.Counter()
+    for i in range(TIMER_GLIFOS):
+        for y in range(TIMER_GLIFO_H):
+            for x in range(TIMER_GLIFO_W):
+                r, g, b, a = sys_img.getpixel((TIMER_ORIGEN[0] + i * 8 + x,
+                                               TIMER_ORIGEN[1] + y))
+                if a:
+                    colores[(r >> 3, g >> 3, b >> 3)] += 1
+    if len(colores) > OBJ_COLORS:
+        raise SystemExit("los dígitos del cronómetro usan %d colores y entran %d"
+                         % (len(colores), OBJ_COLORS))
+    paleta = sorted(colores)
+    indice = {color: i + 1 for i, color in enumerate(paleta)}
+
+    tiles = bytearray(tiles)
+    base = -(-(len(tiles) // 32) // 16) * 16
+    if (base + 16 + TIMER_GLIFOS) * 32 > len(tiles):
+        tiles += bytes((base + 16 + TIMER_GLIFOS) * 32 - len(tiles))
+    for i in range(TIMER_GLIFOS):
+        for mitad in (0, 1):
+            celda = []
+            for y in range(CELL):
+                fila = []
+                for x in range(CELL):
+                    r, g, b, a = sys_img.getpixel(
+                        (TIMER_ORIGEN[0] + i * 8 + x,
+                         TIMER_ORIGEN[1] + mitad * CELL + y))
+                    fila.append(indice[(r >> 3, g >> 3, b >> 3)] if a else 0)
+                celda.append(tuple(fila))
+            numero = base + mitad * 16 + i
+            tiles[numero * 32:(numero + 1) * 32] = pack_tile(tuple(celda),
+                                                             planes=4)
+    return bytes(tiles), base, paleta
+
+
 def npc_table(npcs, where, movibles=()):
     """Los NPCs listos para la ROM, ya ordenados como los dibuja RM2k.
 
@@ -1015,6 +1071,7 @@ MAPA_ESCALARES = [
     ("SPRITE_CGRAM", ""),
     ("NPC_COUNT", "cuántos NPCs con CharSet"),
     ("EV_COUNT", "cuántos eventos tiene el mapa, con o sin gráfico"),
+    ("TIMER_BASE", "el primer tile de los dígitos del cronómetro, 0 si no hay"),
     ("ACTOR_COUNT", "cuántos candidatos a líder del grupo"),
     ("PUERTA_COUNT", "cuántas puertas salen de este mapa"),
     ("PAGINA_COUNT", "cuántas páginas de evento hay que resolver"),
@@ -1023,6 +1080,7 @@ MAPA_BYTES = [
     ("OBSEL_VALUE", "objetos de 8x8 y 32x32, y la página de sus tiles"),
     ("BG12NBA_VALUE", "las páginas de tiles de BG1 y BG2"),
     ("ABOVE_FIRST", "en qué entrada de CGRAM arranca la capa de encima"),
+    ("TIMER_PAL", "la paleta de sprite de los dígitos del cronómetro"),
 ]
 MAPA_PUNTEROS = ["map_tiles", "map_cgram", "above_tiles", "above_cgram",
                  "sprite_tiles", "sprite_cgram", "map_celdas", "map_bloques",
@@ -1087,6 +1145,7 @@ def campos_del_mapa(mapa):
         "SPRITE_CGRAM": COLORS_PER_PALETTE * len(sprite[1]) if sprite else 0,
         "NPC_COUNT": len(sprite[3]) if sprite else 0,
         "EV_COUNT": len(mapa["ev_pos"]) // EV_STRIDE,
+        "TIMER_BASE": sprite[5] if sprite else 0,
         "ACTOR_COUNT": len(sprite[4]) if sprite else 0,
         "PUERTA_COUNT": len(mapa["puertas"]) // PUERTA_BYTES,
         "PAGINA_COUNT": len(mapa["paginas"]),
@@ -1094,6 +1153,7 @@ def campos_del_mapa(mapa):
         "BG12NBA_VALUE": ((layout["encima"][0] // 0x1000) << 4)
                          | (layout["tiles"][0] // 0x1000),
         "ABOVE_FIRST": above[3] * COLORS_PER_PALETTE,
+        "TIMER_PAL": (sprite[6] if sprite and sprite[6] is not None else 0),
     }
 
 
@@ -1271,6 +1331,20 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "OP_MENSAJE  = $%02X\n"
         "OP_RUTAS    = $%02X\n"
         "OP_FLASH    = $%02X\n"
+        "OP_TIMER    = $%02X\n"
+        "; Las tres operaciones del cronómetro.\n"
+        "TIMER_PONER    = %d\n"
+        "TIMER_ARRANCAR = %d\n"
+        "; Y sus cinco glifos en pantalla: dónde va el primero y cuánto\n"
+        "; mide cada uno. El de los dos puntos es el número 10.\n"
+        "TIMER_X        = %d\n"
+        "TIMER_Y        = %d\n"
+        "TIMER_GLIFO_W  = %d\n"
+        "TIMER_DOS_PUNTOS = %d\n"
+        "; Cuántos cuadros entran en un segundo, y los que `SetTimer` le\n"
+        "; suma de más para que el primer segundo se vea entero.\n"
+        "TIMER_CUADROS  = %d\n"
+        "TIMER_DE_MAS   = %d\n"
         "; Cuántos destellos pueden estar corriendo a la vez.\n"
         "FLASH_MAX   = %d\n"
         "TRIGGER_AUTOMATICO = %d\n"
@@ -1328,7 +1402,11 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            eventos.OP_FIN, eventos.OP_SWITCH, eventos.OP_TELEPORT,
            eventos.OP_ESPERAR, eventos.OP_TINTE, eventos.OP_GRUPO,
            eventos.OP_RUTA, eventos.OP_MENSAJE, eventos.OP_RUTAS,
-           eventos.OP_FLASH, FLASH_MAX,
+           eventos.OP_FLASH, eventos.OP_TIMER,
+           eventos.TIMER_PONER, eventos.TIMER_ARRANCAR,
+           TIMER_X, TIMER_Y, TIMER_GLIFO_W, TIMER_GLIFOS - 1,
+           eventos.CUADROS_POR_SEGUNDO, eventos.TIMER_CUADROS_DE_MAS,
+           FLASH_MAX,
            eventos.TRIGGER_AUTOMATICO, eventos.TRIGGER_ACCION,
            eventos.TRIGGER_TOCA_HEROE,
            eventos.CUADROS_POR_CELDA,
@@ -1552,7 +1630,7 @@ LARGO_DE_OPCODE = {
     eventos.OP_FIN: 1, eventos.OP_SWITCH: 4, eventos.OP_TELEPORT: 6,
     eventos.OP_ESPERAR: 3, eventos.OP_TINTE: 5, eventos.OP_GRUPO: 3,
     eventos.OP_MENSAJE: 3, eventos.OP_RUTAS: 1, eventos.OP_FLASH: 7,
-    eventos.OP_RUTA: None,
+    eventos.OP_TIMER: 5, eventos.OP_RUTA: None,
 }
 
 
@@ -1722,6 +1800,17 @@ def main():
                              "que los ShowMessage del juego compilen, y lo "
                              "que se lo cobra a los tiles del mapa —tres "
                              "mapas del juego no pueden llevarla—")
+    parser.add_argument("--timer-de-prueba", nargs=2, type=int, default=None,
+                        metavar=("SEGUNDOS", "VISIBLE"),
+                        help="arranca el cronómetro desde la página de prueba. "
+                             "Existe por lo mismo que el resto de esa página: "
+                             "las seis del juego que lo prenden están cortadas "
+                             "por otra cosa, así que sin esto no habría con qué "
+                             "comparar. Implica --con-timer")
+    parser.add_argument("--con-timer", action="store_true",
+                        help="la ROM lleva los dígitos del cronómetro: once "
+                             "glifos de la imagen de System al final del banco "
+                             "de sprites, y una paleta")
     parser.add_argument("--switch", nargs="+", type=int, default=None,
                         metavar="N",
                         help="prende estos switches desde la página de prueba, "
@@ -1790,6 +1879,7 @@ def main():
     # cuatro lugares, y con eso el reparto de CGRAM y el de VRAM podían
     # contestar cosas distintas.
     args.con_ventana = args.con_ventana or args.mensaje_de_prueba is not None
+    args.con_timer = args.con_timer or args.timer_de_prueba is not None
 
     renderer = Renderer(args.game_dir)
 
@@ -1850,6 +1940,7 @@ def main():
                                            mensajes)
         if (args.pagina_de_prueba or args.ruta_de_prueba
                 or args.ruta_de_evento or args.flash_de_prueba or args.switch
+                or args.timer_de_prueba
                 or args.mensaje_de_prueba is not None) \
                 and mapa is mapas[args.inicial]:
             # La página inventada, sólo en el mapa donde arranca la ROM. No sale
@@ -1866,7 +1957,8 @@ def main():
                 "codigo": eventos.pagina_de_prueba(
                     espera, tinte, args.ruta_de_prueba or (), prueba,
                     ruta_de_evento(args.ruta_de_evento),
-                    args.flash_de_prueba or (), args.switch or ())}]
+                    args.flash_de_prueba or (), args.switch or (),
+                    args.timer_de_prueba or ())}]
         codigo = bytearray()
         for pagina in paginas:
             pagina["offset"] = len(codigo)
@@ -2144,11 +2236,25 @@ def convertir(renderer, map_id, args, inicio=None):
             images[charset] = load_image(path)
         characters.append((charset, index, sorted(poses[(charset, index)])))
 
-    if len(characters) > 8:
-        sys.exit("el mapa usa %d personajes y hay 8 paletas de sprite"
-                 % len(characters))
+    # Los dígitos del cronómetro se llevan una de las ocho paletas de sprite,
+    # así que el techo baja a siete. Se cuenta acá y no después de armarlas
+    # porque el mensaje tiene que nombrar al culpable, que es el mapa.
+    tope_de_personajes = 7 if args.con_timer else 8
+    if len(characters) > tope_de_personajes:
+        sys.exit("el mapa usa %d personajes y hay %d paletas de sprite%s"
+                 % (len(characters), tope_de_personajes,
+                    " con el cronómetro puesto" if args.con_timer else ""))
 
     tiles, palettes, where = build_characters(images, characters)
+    # El cronómetro, si esta ROM lo lleva: sus glifos van al final del banco y
+    # se llevan una paleta de sprite propia.
+    timer_base, timer_pal = 0, None
+    if args.con_timer:
+        import ventana as ventana_mod
+        sys_img = ventana_mod.skin(args.game_dir, renderer.database.system_name)
+        tiles, timer_base, colores = digitos_del_timer(sys_img, tiles, palettes)
+        timer_pal = len(palettes)
+        palettes.append(colores)
     table = npc_table(npcs, where, movibles)
     # Por cada candidato a líder, dónde caen sus doce poses y con qué paleta. La
     # ROM no calcula el tile a partir de la pose —eso valía cuando el héroe era
@@ -2167,7 +2273,7 @@ def convertir(renderer, map_id, args, inicio=None):
                    for pose in range(SPRITE_POSES)]
         actores.append((actor, bloques[0][1],
                         [block_tile(b) for b, _slot in bloques]))
-    sprite = (tiles, palettes, where, table, actores)
+    sprite = (tiles, palettes, where, table, actores, timer_base, timer_pal)
 
     # La colisión: un byte por celda de 16x16 con los cuatro bits de dirección
     # ya resueltos. Toda la lógica de RM2k —que la capa alta manda salvo que sea

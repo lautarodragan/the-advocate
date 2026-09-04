@@ -548,6 +548,63 @@ snes-npc mapa="6" ruta="4 2 2 2 2 1 1 12" celda="22 12" cuadros="10 27 40 60" ar
 # pantalla no salga con media paleta vieja. Los demás dan cero, incluido el 15
 # —o sea que el retraso dura un cuadro y no más— y el 25, que prueba que la
 # paleta volvió a la normal.
+# El cronómetro de RM2k: TimerOperation.
+#
+# Cinco glifos de la imagen de System —los diez dígitos y los dos puntos, en
+# 8x16 a partir de (32,32)— dibujados arriba a la izquierda como diez objetos de
+# 8x8, con la prioridad 3 que los pone adelante de las dos capas. La cuenta no
+# se guarda en cuadros sino partida en segundos y resto, que es lo que evita
+# dividir por 60 sesenta veces por segundo.
+#
+# **Este comando no destraba ninguna página**, y está medido: las seis del juego
+# que lo usan están todas cortadas por otra cosa. La del despertador del pad
+# —mapa 7, evento 4, la que prende el cronómetro de diez minutos— necesita
+# además TintScreen con saturación, ChangeGold y cinco órdenes de ruta que no
+# caminamos. Se hace igual porque es autocontenido y porque el cronómetro se ve
+# en pantalla desde el minuto diez del juego.
+#
+# Por eso la página es sintética, como la de `snes-destello`: sin ella no
+# habría con qué comparar.
+#
+# Dos cosas se prueban aparte y las dos son bordes:
+#
+# * **Los dos puntos parpadean.** `Sprite_Timer::Draw` los saltea cuando
+#   `cuadros % 60 < 30`, así que el 2 y el 61 los tienen y el 31 y el 90 no. El
+#   61 además cruza el segundo: 10:00 pasa a 09:59, que es lo que prueba que la
+#   división da los cuatro dígitos y no sólo los minutos.
+# * **El tinte no lo toca.** Llega en el cuadro 13, así que el 2 lo agarra sin
+#   teñir y los otros tres teñidos, y los dígitos tienen que verse igual en los
+#   cuatro. En RM2k es `Priority_Timer` = 140 contra el `Priority_Screen` = 90
+#   del tinte: la pantalla se oscurece y el cronómetro no. Acá el tinte es una
+#   transformación de CGRAM, que se lleva por delante todo lo que toca, así que
+#   `aplicar_tinte` vuelve a subir la paleta del cronómetro sin teñir. La
+#   ventana de mensaje no puede hacer lo mismo: su paleta está en la mitad del
+#   mapa, y por eso ésa sí se tiñe.
+# * **Al llegar a cero se apaga y se esconde.** `StopTimer` apaga las dos cosas,
+#   así que el último valor que se ve es 00:01 y después no queda nada
+#   dibujado. Con un segundo entero el corte cae en el cuadro 60, y el 61 lo
+#   agarra ya vacío. Un 00:00 congelado sería lo que sale de modelarlo como "se
+#   para", que es el error que este caso mira.
+snes-timer mapa="6" timer="600 1" celda="2 10" cuadros="2 31 61 90" tinte="12 0 0 50" arranque="10" nombre="timer":
+  #!/usr/bin/env bash
+  set -euo pipefail
+  mkdir -p {{snes_pngs}} {{snes_inc}}
+  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
+      --inicio {{celda}} --timer-de-prueba {{timer}} \
+      --pagina-de-prueba {{tinte}} -o {{snes_inc}}/mapdata.inc
+  just snes-build
+  pre={{snes_pngs}}/{{nombre}}
+  python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
+      --hero-tile {{celda}} --timer-de-prueba {{timer}} \
+      --pagina-de-prueba {{tinte}} --cuadros {{cuadros}} \
+      --saltar $pre-{}.saltar.txt -o $pre-{}.esperado.png
+  for n in {{cuadros}}; do
+    python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre-$n.png \
+        --walk none --cuadros $n --arranque {{arranque}}
+    python3 tools/snes_compare.py $pre-$n.png $pre-$n.esperado.png \
+        --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
+  done
+
 snes-destello mapa="6" flash="1 31 0 0 31 24" celda="2 10" cuadros="2 12 15 23 25" tinte="12 0 0 50" arranque="10" nombre="destello":
   #!/usr/bin/env bash
   set -euo pipefail

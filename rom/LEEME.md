@@ -248,10 +248,11 @@ comparación estaría midiendo dos cosas distintas.
 
 ### El intérprete de eventos
 
-RM2k tiene unos 130 comandos de evento. La ROM entiende siete —prender y apagar
+RM2k tiene unos 130 comandos de evento. La ROM entiende diez —prender y apagar
 switches, esperar, teñir la pantalla, teletransportar, cambiar el grupo, caminar
-una ruta forzada y mostrar un mensaje— y resuelve las páginas como RM2k: de cada
-evento gana **la de número más alto cuyas condiciones se cumplen todas**.
+una ruta forzada, esperar a que las rutas terminen, mostrar un mensaje,
+destellar a un personaje y el cronómetro— y resuelve las páginas como RM2k: de
+cada evento gana **la de número más alto cuyas condiciones se cumplen todas**.
 
 La regla que hace que eso sea seguro es una sola: **una página se emite sólo si
 todos sus comandos se pueden ejecutar**. Si aparece uno que no modelamos, la
@@ -575,6 +576,53 @@ abre en el mismo cuadro, que es la regla que los dos lados escriben por separado
 Los cuadros 60 y 400 dan 0 de 57344, y **entre ellos difieren en 2869 pixeles**,
 todos en las filas de la ventana: si el A no avanzara al segundo mensaje serían
 cero y la receta daría verde sin probar nada.
+
+### El cronómetro
+
+`TimerOperation`, con sus tres operaciones: poner, arrancar y parar. Se dibuja
+arriba a la izquierda con cinco glifos de la imagen de System —los diez dígitos
+y los dos puntos, de 8x16 a partir de (32,32)— como diez objetos de 8x8 con
+prioridad 3, que es la que los pone adelante de las dos capas. Los glifos van al
+final del banco de sprites, en una fila de dieciséis: el glifo `i` ocupa el tile
+`TIMER_BASE + i` y el `TIMER_BASE + 16 + i`, o sea su mitad de arriba y la de
+abajo. Se llevan una de las ocho paletas de sprite, así que en una ROM con
+cronómetro un mapa puede usar siete personajes y no ocho.
+
+Tres cosas salen de leer RM2k y no de mirar la pantalla:
+
+* **Al llegar a cero desaparece.** `Game_Party::UpdateTimers` llama a
+  `StopTimer` cuando los segundos dan cero, y `StopTimer` apaga la cuenta **y la
+  visibilidad**: el último valor que se ve es 00:01, no un 00:00 congelado.
+* **El tinte no lo toca.** `Priority_Timer` es 140 y `Priority_Screen` 90: en
+  RM2k la pantalla se oscurece y el cronómetro no. Acá el tinte es una
+  transformación de CGRAM, así que `aplicar_tinte` vuelve a subir la paleta del
+  cronómetro sin teñir. Puede hacerlo porque los dígitos tienen paleta propia;
+  la ventana de mensaje no puede, porque la suya está en la mitad del mapa, y
+  por eso ésa sí se tiñe.
+* **Los dos puntos parpadean** medio segundo sí y medio no, que es el
+  `frames % 60 < 30 -> continue` de `Sprite_Timer::Draw`.
+
+La cuenta no se guarda en cuadros sino partida en segundos y resto, y eso no es
+una optimización sino lo que evita dividir por 60 sesenta veces por segundo:
+bajar un cuadro es restarle uno al resto, y cuando da la vuelta baja un segundo.
+Los cuatro dígitos se recalculan ahí, una vez por segundo. El tope son 1092
+segundos —dieciocho minutos—, que es lo que entra en la cuenta de cuadros de
+dieciséis bits; el cronómetro más largo del juego son diez minutos.
+
+**No destraba ninguna página**, y está medido: las seis del juego que usan
+`TimerOperation` están todas cortadas por otra cosa. La que interesa es el
+despertador del pad de Talan —mapa 7, evento 4—, que necesita además
+`TintScreen` con saturación, `ChangeGold` y cinco órdenes de ruta que no
+caminamos.
+
+**Cómo se lo mira:**
+
+    just snes-timer                                  # diez minutos
+    just snes-timer 6 "1 1" "2 10" "2 40 59 61" "12 0 0 50" 10 timer-cero
+
+Los dos casos corren con la pantalla teñida desde el cuadro 13, que es lo que
+prueba que los dígitos no se tiñen. El primero mira el parpadeo y el cambio de
+segundo —el 61 lleva 10:00 a 09:59— y el segundo, la desaparición.
 
 ### Cómo se verifica
 
@@ -1253,21 +1301,21 @@ comparación.
   Mientras tanto el héroe queda parado adentro del caño, que es donde RM2k
   también lo deja: ahí no camina nadie, sigue el script.
 * **Lo que le falta al juego entero, medido.** De las 489 páginas automáticas
-  con comandos, hoy compilan enteras **110**. Eran 16 antes de los cuadros de
-  texto, 71 con ellos, 87 con las rutas forzadas sobre eventos y 110 con
-  FlashSprite. Y esto es cuántas pasarían a compilar con cada comando que falta
-  —`just snes-destraba`—:
+  con comandos, hoy compilan enteras **117**. Eran 16 antes de los cuadros de
+  texto, 71 con ellos, 87 con las rutas forzadas sobre eventos, 110 con
+  FlashSprite y 117 aceptando `PlaySound`. El cronómetro no cambió el número:
+  suma cero, y está medido. Y esto es cuántas pasarían a compilar con cada
+  comando que falta —`just snes-destraba`—:
 
-      TintScreen con saturación  +7      ChangeEventLocation    +1
-      PlaySound                  +6      WeatherEffects         +1
-      ControlVars                +4      FullHeal               +1
-      ConditionalBranch          +4      ChangeItems            +0
+      TintScreen con saturación  +9      ChangeEventLocation    +1
+      FadeOutBGM                 +5      FullHeal               +1
+      ControlVars                +4      ChangeItems            +2
+      ConditionalBranch          +4      WeatherEffects         +0
       PanScreen                  +2      CallEvent              +0
-      FadeOutBGM                 +2
 
   Y aparte, `MoveEvent` con las órdenes de ruta que todavía no sabemos caminar:
-  +24 de techo. Puestos todos juntos se llega a **179 de 489**, y lo que seguiría
-  cortando después es, de lejos, **`MoveEvent` en su forma general: 169
+  +43 de techo. Puestos todos juntos se llega a **154 de 489**, y lo que seguiría
+  cortando después es, de lejos, **`MoveEvent` en su forma general: 170
   páginas** —rutas con saltos, con cambio de gráfico, con diagonales, o
   apuntadas a un vehículo—. Después vienen `ShowChoice` con 9 y los 7 cuadros de
   texto con códigos de escape.

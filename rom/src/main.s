@@ -497,6 +497,20 @@ grupo_listo:
     lda #DIR_DOWN
     sta hero_dir
 
+    ; El cronómetro arranca apagado y en cero. Va acá y no en `cargar_mapa`
+    ; porque en RM2k vive en `Game_Party`: sobrevive a los mapas, que es
+    ; justamente para lo que el juego lo usa. La RAM arranca con basura —snes9x
+    ; la llena de $55— así que sin esto se vería corriendo solo.
+    stz timer_activo
+    stz timer_visible
+    stz timer_sub
+    rep #$20
+.a16
+    stz timer_seg
+    sep #$20
+.a8
+    jsr timer_digitos
+
     lda #MAPA_INICIAL
     jsr cargar_mapa
     jsr clear_oam
@@ -535,6 +549,7 @@ loop:
                                 ; del héroe y después del intérprete: el orden
                                 ; es el mismo que el de la referencia
     jsr flashes_tick            ; y los destellos, en el mismo lugar
+    jsr timer_tick              ; y un cuadro del cronómetro
     jsr animate_hero
     jsr follow_camera
     jsr stream_map              ; la columna o la fila que la cámara destapó
@@ -1431,6 +1446,9 @@ otro:
 :   cmp #OP_RUTAS
     bne :+
     jmp op_rutas
+:   cmp #OP_TIMER
+    bne :+
+    jmp op_timer
 :   cmp #OP_TELEPORT
     bne :+
     jmp op_teleport
@@ -1564,6 +1582,54 @@ op_flash:
     clc
     adc #6                      ; los seis operandos
     tay
+    sep #$20
+.a8
+    jmp otro
+
+; El cronómetro: poner, arrancar o parar. Los cinco bytes de operando son fijos
+; aunque cada operación use dos, así que el cursor avanza igual en las tres.
+op_timer:
+    lda [cod_ptr], y            ; la operación
+    sta temp
+    iny
+    cmp #TIMER_PONER
+    bne no_pone
+    rep #$20
+.a16
+    lda [cod_ptr], y            ; los segundos, de dieciséis bits
+    sta timer_seg
+    sep #$20
+.a8
+    ; `Game_Party::SetTimer` guarda `segundos * 60 + 59`: los 59 de más son lo
+    ; que hace que el valor pedido se vea un segundo entero y no un cuadro.
+    ; Acá los cuadros van partidos, así que son el resto y nada más.
+    lda #TIMER_DE_MAS
+    sta timer_sub
+    jsr timer_digitos
+    bra timer_fin
+no_pone:
+    cmp #TIMER_ARRANCAR
+    bne timer_para
+    lda #1
+    sta timer_activo
+    iny
+    iny
+    lda [cod_ptr], y            ; si se ve
+    sta timer_visible
+    dey
+    dey
+    bra timer_fin
+timer_para:
+    ; `StopTimer` apaga las dos cosas, no sólo la cuenta.
+    stz timer_activo
+    stz timer_visible
+timer_fin:
+    rep #$20
+.a16
+    tya
+    clc
+    adc #3                      ; los tres operandos que quedan: el primero ya
+    tay                         ; lo consumió el `iny` de la operación
     sep #$20
 .a8
     jmp otro
@@ -1881,6 +1947,64 @@ subir:
     ldy #M_SPRITE_CGRAM
     lda #128
     jsr una_paleta
+
+    ; El cronómetro va **sin teñir**, encima de lo que acaba de subir. En RM2k
+    ; el tinte es una propiedad de los dibujables del mapa —`Priority_Screen`
+    ; es 90 y `Priority_Timer` 140—, así que la pantalla se oscurece y los
+    ; dígitos no. Acá el tinte es una transformación de CGRAM y se lleva por
+    ; delante todo lo que toca, pero los dígitos tienen una paleta para ellos
+    ; solos, así que alcanza con volver a subir la de la ROM. La ventana de
+    ; mensaje no puede hacer esto: su paleta está en la mitad del mapa.
+    jmp subir_timer_pal
+.endproc
+
+; La paleta del cronómetro, tal cual está en la ROM. Es la última de las de
+; sprite, así que arranca en el color 128 + TIMER_PAL*16 y son 16 colores.
+.proc subir_timer_pal
+.a8
+.i16
+    ldx mapa_ofs
+    lda mapa_tabla + M_TIMER_BASE, x
+    ora mapa_tabla + M_TIMER_BASE + 1, x
+    bne hay                     ; TIMER_BASE = 0: esta ROM no lleva cronómetro
+    rts
+hay:
+    lda mapa_tabla + M_TIMER_PAL, x
+    asl a
+    asl a
+    asl a
+    asl a                       ; dieciséis colores por paleta
+    clc
+    adc #128
+    sta CGADD
+
+    ldy #M_PTR_SPRITE_CGRAM
+    jsr dma_origen
+    ; Y el desplazamiento de la paleta adentro del bloque: el doble, porque
+    ; cada color son dos bytes.
+    ldx mapa_ofs
+    lda mapa_tabla + M_TIMER_PAL, x
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a                       ; 32 bytes por paleta
+    clc
+    adc A1T0L
+    sta A1T0L
+    lda #32
+    sta DAS0L
+    sep #$20
+.a8
+    lda #$00
+    sta DMAP0                   ; un registro, de a bytes
+    lda #$22
+    sta BBAD0                   ; destino: CGDATA
+    lda #$01
+    sta MDMAEN
     rts
 .endproc
 
@@ -6019,6 +6143,228 @@ listo:
     rts
 .endproc
 
+; --- el cronómetro ---------------------------------------------------------
+; Un cuadro de la cuenta. Es `Game_Party::UpdateTimers`, y lo que importa es el
+; final: al llegar a cero segundos RM2k llama a `StopTimer`, que apaga la cuenta
+; **y la esconde**. O sea que el último valor que se ve es 00:01 y después no
+; queda nada dibujado, no un 00:00 congelado.
+.proc timer_tick
+.a8
+.i16
+    lda timer_activo
+    bne corre
+    rts
+corre:
+    lda timer_sub
+    beq otro_segundo
+    dec timer_sub
+    rts
+otro_segundo:
+    lda #(TIMER_CUADROS - 1)
+    sta timer_sub
+    rep #$20
+.a16
+    lda timer_seg
+    beq apagar_16               ; ya estaba en cero: no hay qué bajar
+    dec a
+    sta timer_seg
+    sep #$20
+.a8
+    jsr timer_digitos
+    lda timer_seg
+    ora timer_seg + 1
+    beq apagar
+    rts
+.a16
+apagar_16:
+    sep #$20
+.a8
+apagar:
+    stz timer_activo
+    stz timer_visible
+    rts
+.endproc
+
+; Los cuatro dígitos de `timer_seg`, de los minutos a los segundos. Se llama
+; cuando el segundo cambia y no en cada cuadro: son dos divisiones por restas
+; sucesivas, y a 60 hercios serían sesenta veces el mismo resultado.
+;
+; Los minutos entran en dos dígitos porque el conversor no deja pasar un
+; cronómetro de más de 1092 segundos: el tope se lo pone la cuenta de cuadros
+; en dieciséis bits, no la pantalla.
+.proc timer_digitos
+.a8
+.i16
+    rep #$20
+.a16
+    lda timer_seg
+    ldx #0
+menos_60:
+    cmp #60
+    bcc listo_60
+    sec
+    sbc #60
+    inx
+    bra menos_60
+listo_60:
+    sta temp                    ; los segundos sueltos
+    txa
+    sta temp + 2                ; y los minutos
+    sep #$20
+.a8
+
+    lda temp + 2                ; los minutos, en dos dígitos
+    ldx #0
+menos_10a:
+    cmp #10
+    bcc listo_10a
+    sec
+    sbc #10
+    inx
+    bra menos_10a
+listo_10a:
+    sta timer_dig + 1
+    txa                         ; con A de ocho bits es el byte bajo de X
+    sta timer_dig + 0
+
+    lda temp                    ; y los segundos
+    ldx #0
+menos_10b:
+    cmp #10
+    bcc listo_10b
+    sec
+    sbc #10
+    inx
+    bra menos_10b
+listo_10b:
+    sta timer_dig + 3
+    txa
+    sta timer_dig + 2
+    rts
+.endproc
+
+; Los cinco glifos del cronómetro en OAM, cada uno como dos objetos de 8x8
+; apilados. Van **primero**, o sea en los objetos de índice más bajo, que son
+; los que la consola pone adelante: en RM2k el cronómetro es `Priority_Timer`,
+; que está por encima de todo lo demás, ventana de mensaje incluida. Acá eso lo
+; da la prioridad 3 de objeto, que gana contra las dos capas.
+;
+; Los dos puntos parpadean: se dibujan sólo en la mitad de arriba del segundo,
+; que es el `frames % 60 < 30 -> continue` de `Sprite_Timer::Draw`.
+.proc timer_oam
+.a8
+.i16
+    lda timer_visible
+    bne hay
+    rts
+hay:
+    ldx mapa_ofs
+    lda mapa_tabla + M_TIMER_BASE, x
+    ora mapa_tabla + M_TIMER_BASE + 1, x
+    bne dibujar
+    rts                         ; esta ROM no lleva los glifos
+dibujar:
+    stz obj_grande              ; los dígitos son de 8x8
+    stz timer_i
+cada_glifo:
+    lda timer_i
+    cmp #5
+    bcc hay_glifo
+    jmp fin
+hay_glifo:
+    cmp #2
+    bne es_digito
+    ; Los dos puntos, y sólo si toca.
+    lda timer_sub
+    cmp #(TIMER_CUADROS / 2)
+    bcc siguiente
+    lda #TIMER_DOS_PUNTOS
+    bra con_glifo
+es_digito:
+    ; El índice en `timer_dig`: la posición, menos uno si va detrás de los dos
+    ; puntos, que no tienen dígito propio.
+    cmp #2
+    bcc sin_ajuste
+    dec a
+sin_ajuste:
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda timer_dig, x
+con_glifo:
+    sta timer_glifo
+    stz timer_mitad
+cada_mitad:
+    ; Dónde cae en pantalla. La X no lleva el corrimiento de los personajes:
+    ; los dígitos son de 8x8 y su esquina es su esquina.
+    rep #$20
+.a16
+    lda timer_i
+    and #$00FF
+    ; Ocho por glifo, que es un corrimiento y no una multiplicación.
+    asl a
+    asl a
+    asl a
+    clc
+    adc #TIMER_X
+    sta obj_x
+    lda timer_mitad
+    and #$00FF
+    asl a
+    asl a
+    asl a
+    clc
+    adc #TIMER_Y
+    sta obj_y
+
+    ; Y qué tile: los once glifos entran en una fila de dieciséis, así que la
+    ; mitad de abajo está justo dieciséis más adelante.
+    lda timer_mitad
+    and #$00FF
+    asl a
+    asl a
+    asl a
+    asl a
+    clc
+    adc timer_glifo             ; en dieciséis bits se lleva al byte de al
+    and #$00FF                  ; lado, y por eso el `and`
+    ldx mapa_ofs
+    clc
+    adc mapa_tabla + M_TIMER_BASE, x
+    sta temp
+    sep #$20
+.a8
+    lda temp
+    sta obj_tile
+    ; vhoopppN: prioridad 3 —adelante de las dos capas—, la paleta del
+    ; cronómetro, y el noveno bit del tile.
+    lda temp + 1
+    and #$01
+    sta temp + 2
+    lda mapa_tabla + M_TIMER_PAL, x
+    and #$07
+    asl a
+    ora #$30
+    ora temp + 2
+    sta obj_attr
+    jsr emit_object
+
+    inc timer_mitad
+    lda timer_mitad
+    cmp #2
+    bcc cada_mitad
+siguiente:
+    inc timer_i
+    jmp cada_glifo
+fin:
+    lda #$02                    ; y lo que siga vuelve a ser de 32x32
+    sta obj_grande
+    rts
+.endproc
+
 ; --- armado de OAM ---------------------------------------------------------
 ; Un objeto por NPC más uno para el héroe, en el orden en que RM2k los dibuja:
 ; primero por capa y recién después por Y. En la consola el objeto con índice
@@ -6050,6 +6396,11 @@ listo:
     sta hero_key
     sep #$20
 .a8
+    ; El cronómetro va antes que nadie: sus objetos son los de índice más bajo
+    ; y por eso los que se ven adelante. Deja `obj_grande` en 32x32.
+    lda #$02
+    sta obj_grande
+    jsr timer_oam
 
 recorrer:
     rep #$20
@@ -6259,7 +6610,7 @@ sin_dibujar:
     ; Sus dos bits en la tabla chica: el noveno de la X y el tamaño.
     lda obj_x + 1
     and #$01
-    ora #$02                    ; todos los objetos son de 32x32
+    ora obj_grande              ; 32x32 los personajes, 8x8 los dígitos
     jsr push_high
     rep #$20
 .a16
@@ -6659,6 +7010,31 @@ slot_paso:    .res 1
 ; tiene que sobrevivir a la llamada que usa `celda_dir`.
 ruta_dir:  .res 2
 celda_dir: .res 2
+
+; El cronómetro. Los cuadros no se guardan enteros sino partidos en segundos y
+; el resto adentro del segundo, y eso no es una optimización: es lo que evita
+; dividir por 60 en cada cuadro. Bajar uno es `sub - 1`, y cuando `sub` da la
+; vuelta baja un segundo; que el cronómetro esté en cero es `timer_seg = 0`,
+; que es lo mismo que `cuadros / 60 == 0` de `Game_Party::UpdateTimers`.
+;
+; Los dos puntos parpadean con `sub`, que es `cuadros % 60`.
+timer_seg:  .res 2
+timer_sub:  .res 1
+timer_activo:  .res 1
+timer_visible: .res 1
+; Los cuatro dígitos ya separados, de los minutos a los segundos. Se recalculan
+; cuando cambia el segundo y no en cada cuadro: dividir por 60 y por 10 sesenta
+; veces por segundo sería trabajo para nada.
+timer_dig:  .res 4
+; Y lo que `timer_oam` va llevando mientras dibuja: cuál de los cinco glifos
+; va, cuál de sus dos mitades, y qué glifo le tocó.
+timer_i:     .res 1
+timer_mitad: .res 1
+timer_glifo: .res 1
+; El tamaño con el que sale el próximo objeto, ya corrido a su lugar en la
+; tabla chica de OAM: $02 son los 32x32 de los personajes y $00 los 8x8 de los
+; dígitos. Es lo único que los dos tamaños de OBSEL necesitan distinguir.
+obj_grande:  .res 1
 
 ; Un bit por switch de RM2k. El juego consulta hasta el 1003 en las condiciones
 ; de página, así que con 1024 alcanza. Se limpian una sola vez al arrancar: en

@@ -933,6 +933,56 @@ return;` de `Game_Player::UpdateNextMovementAction`. Sin eso el héroe daba un
 paso de más, porque el mensaje tarda unos cuadros en componerse y `msg_abierto`
 recién se prende al final: la ROM lo dejaba caminar mientras tanto.
 
+**Hecho el 2026-09-04: el cronómetro.** `TimerOperation`, con sus tres
+operaciones —poner, arrancar y parar—. Se dibuja arriba a la izquierda con los
+cinco glifos de la imagen de System: los diez dígitos y los dos puntos, de 8x16
+a partir de (32,32), como diez objetos de 8x8 con prioridad 3, que es lo que los
+pone adelante de las dos capas.
+
+**No destraba ninguna página, y está medido**: las seis del juego que usan
+`TimerOperation` están todas cortadas por otra cosa, y el conteo por disparo da
+exactamente lo mismo con el comando y sin él. La que interesa —el despertador
+del pad de Talan, mapa 7 evento 4, la que prende el cronómetro de diez minutos—
+necesita además `TintScreen` con saturación, `ChangeGold` y cinco órdenes de
+ruta que no caminamos (`walk_everywhere_on/off`, `increase/decrease_movement_
+speed`, `begin_jump/end_jump`, `move_downright` y un `play_sound_effect` con el
+nombre del archivo metido entre las órdenes). Se hizo igual porque es
+autocontenido, porque se puede probar sintéticamente, y porque el cronómetro se
+ve en pantalla desde el minuto diez del juego.
+
+Tres decisiones que salen de leer RM2k y no de mirar la pantalla:
+
+* **Al llegar a cero no se queda en 00:00: desaparece.** `UpdateTimers` llama a
+  `StopTimer` cuando los segundos dan cero, y `StopTimer` apaga la cuenta **y la
+  visibilidad**. O sea que el último valor que se ve es 00:01. Modelarlo como
+  "se para" —que es lo que sale de leer el nombre— dejaría cinco glifos
+  dibujados que RM2k no dibuja.
+* **El tinte no lo toca.** `Priority_Timer` es 140 y `Priority_Screen` 90: la
+  pantalla se oscurece y el cronómetro no. Acá el tinte es una transformación de
+  CGRAM y se lleva por delante todo lo que toca, así que `aplicar_tinte` vuelve
+  a subir la paleta del cronómetro sin teñir. Puede hacerlo porque los dígitos
+  tienen una paleta de sprite para ellos solos; la ventana de mensaje no puede,
+  porque la suya está en la mitad del mapa, y por eso ésa sí se tiñe.
+* **Los cuadros no se guardan enteros.** Van partidos en segundos y resto, que
+  es lo que evita dividir por 60 sesenta veces por segundo. Que el cronómetro
+  esté en cero es `timer_seg = 0`, que es lo mismo que el `cuadros / 60 == 0` de
+  RM2k, y los dos puntos parpadean con el resto.
+
+Lo prueban dos casos de `snes-timer`, los dos en el mapa 6 y los dos con la
+pantalla teñida desde el cuadro 13. El de diez minutos mira el parpadeo —el 2 y
+el 61 con los dos puntos, el 31 y el 90 sin— y el cambio de segundo, que en el
+61 lleva 10:00 a 09:59. El de un segundo mira la desaparición: 00:01 hasta el
+59 y nada desde el 60. Verificado rompiendo las dos cosas: sin esconderlo al
+llegar a cero, 526 pixeles en el cuadro 61; con el parpadeo invertido, 94 en el
+2. Y la tira de glifos se miró contra el asset, no sólo contra el código de
+EasyRPG: `0123456789:` en rojo, 8x16 cada uno, con el fondo negro opaco que
+también sale dibujado.
+
+El tope de segundos lo pone la cuenta de cuadros en dieciséis bits: 1092, o sea
+dieciocho minutos. El cronómetro más largo del juego son diez. Y los dígitos se
+llevan una de las ocho paletas de sprite, así que en una ROM con cronómetro un
+mapa puede usar siete personajes y no ocho; ninguno de los que entran hoy llega.
+
 **Después: la cinemática de apertura.**
 El mapa 4 ya prende el switch 20, que es la condición de la página que abre el
 mapa 1, así que el enganche funciona. De los cuatro comandos que le faltaban ya

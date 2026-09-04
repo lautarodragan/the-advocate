@@ -212,6 +212,10 @@ OP_RUTAS    = 0x08      # sin operandos: la página no sigue hasta que no quede
                         # ninguna ruta forzada corriendo
 OP_FLASH    = 0x09      # blanco (byte), r, g, b, potencia (byte cada uno, de 0
                         # a 31) y cuántos cuadros dura (byte)
+OP_TIMER    = 0x0A      # operación (byte), segundos (word), visible (byte).
+                        # Los cinco bytes son fijos aunque cada operación use
+                        # dos: así el intérprete lo saltea sin mirar cuál es,
+                        # que es lo que hace `recorrer_codigo` del conversor.
 
 # El operando es un desplazamiento y no un texto, y eso es lo que hace que
 # entre. Una página de mensaje ya compuesta son ~240 tiles de 4bpp, o sea
@@ -227,6 +231,16 @@ OP_FLASH    = 0x09      # blanco (byte), r, g, b, potencia (byte cada uno, de 0
 # `.bloque`, que rellena para que no cruce. Si algún día no entra, lo que hay
 # que agrandar es el puntero, no el operando.
 
+# TimerOperation. Los parámetros son (operación, de dónde salen los segundos,
+# segundos, visible, en batalla): liblcf, TimerOperation::Operation.
+TIMER_OPERATION = 10230
+TIMER_PONER, TIMER_ARRANCAR, TIMER_PARAR = 0, 1, 2
+TIMER_SEGUNDOS_FIJOS = 0        # el otro valor los saca de una variable
+# `Game_Party::SetTimer` guarda `segundos * 60 + 59`, no `segundos * 60`. Los
+# 59 de más son lo que hace que el primer segundo se vea entero: sin ellos el
+# cronómetro mostraría el valor pedido durante un solo cuadro.
+TIMER_CUADROS_DE_MAS = 59
+
 # ControlSwitches: el primer parámetro dice de dónde salen los ids y el último
 # qué hacer con ellos (liblcf, ControlSwitches::Operation).
 SWITCH_UNICO, SWITCH_RANGO, SWITCH_INDIRECTO = 0, 1, 2
@@ -238,6 +252,7 @@ MAX_RANGO = 64
 
 # RM2k mide las esperas en décimas de segundo.
 CUADROS_POR_DECIMA = 6
+CUADROS_POR_SEGUNDO = 60        # DEFAULT_FPS: es con lo que cuenta el cronómetro
 
 # Un paso son dieciséis pixeles a WALK_SPEED = 2 por cuadro.
 CELDA_PX = 16
@@ -588,6 +603,29 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
             out += bytes([OP_ESPERAR, cuadros & 0xFF, cuadros >> 8])
         return out
 
+    if cmd.code == TIMER_OPERATION:
+        # El cronómetro. Se hace la operación entera —poner, arrancar y parar—
+        # menos los segundos que salen de una variable, que es lo mismo que
+        # pasa con los switches indirectos: no leemos variables.
+        if len(p) < 5:
+            raise NoSePuede()
+        if p[0] == TIMER_PONER:
+            if p[1] != TIMER_SEGUNDOS_FIJOS:
+                raise NoSePuede()
+            # La ROM cuenta los cuadros en dieciséis bits, así que el tope no
+            # es el del operando sino el de la cuenta. Son dieciocho minutos, y
+            # el cronómetro más largo del juego son diez.
+            if not 0 <= p[2] * CUADROS_POR_SEGUNDO + TIMER_CUADROS_DE_MAS \
+                    <= 0xFFFF:
+                raise NoSePuede()
+            return bytes([OP_TIMER, TIMER_PONER, p[2] & 0xFF, p[2] >> 8, 0])
+        if p[0] in (TIMER_ARRANCAR, TIMER_PARAR):
+            # El quinto parámetro es "también en batalla", y acá no hay
+            # batallas: se compila igual y se ignora, como el resto de lo que
+            # es de combate.
+            return bytes([OP_TIMER, p[0], 0, 0, 1 if p[3] else 0])
+        raise NoSePuede()
+
     if cmd.code == MOVE_EVENT:
         if len(p) < 4:
             raise NoSePuede()
@@ -761,6 +799,13 @@ class Estado:
         # mapas. Todo lo que pregunte por esto tiene que preguntar `is not
         # None`.
         self.mensaje = None
+        # El cronómetro: cuántos cuadros le quedan, si corre y si se dibuja.
+        # Son tres cosas y no una porque RM2k las separa: un cronómetro puede
+        # estar corriendo sin verse —`StartTimer(visible=false)`—, que es como
+        # el juego mide cuánto tardó el jugador sin decírselo.
+        self.timer_cuadros = 0
+        self.timer_activo = False
+        self.timer_visible = False
 
     def cuadro_de_ruta(self, puede):
         """Un cuadro de la ruta forzada. `puede(direccion)` dice si se puede dar
@@ -897,6 +942,36 @@ class Estado:
         """
         return bool(self.flashes) or self.rutas_pendientes()
 
+    def cuadro_de_timer(self):
+        """Un cuadro del cronómetro.
+
+        Es `Game_Party::UpdateTimers`, y lo que importa de él es el final: al
+        llegar a cero segundos el cronómetro no se queda mostrando `00:00`,
+        sino que `StopTimer` lo apaga **y lo esconde**. O sea que el último
+        cuadro en que se ve dice `00:01`, y el siguiente ya no hay nada
+        dibujado. Modelarlo como "se para" nada más dejaría a la referencia
+        dibujando cinco glifos que RM2k no dibuja.
+        """
+        if self.timer_activo and self.timer_cuadros > 0:
+            self.timer_cuadros -= 1
+            if self.timer_cuadros // CUADROS_POR_SEGUNDO == 0:
+                self.timer_activo = self.timer_visible = False
+
+    def timer_texto(self):
+        """Los cinco caracteres que se dibujan: MM:SS, con los dos puntos que
+        parpadean.
+
+        Es `Sprite_Timer::Draw`: los minutos y los segundos salen de
+        `cuadros / 60`, y los dos puntos se saltean cuando `cuadros % 60 < 30`.
+        El espacio en el medio es "no dibujar nada".
+        """
+        segundos = self.timer_cuadros // CUADROS_POR_SEGUNDO
+        return "%02d%s%02d" % (
+            segundos // 60,
+            ":" if (self.timer_cuadros % CUADROS_POR_SEGUNDO
+                    >= CUADROS_POR_SEGUNDO // 2) else " ",
+            segundos % 60)
+
     def cuadro_de_flashes(self):
         """Un cuadro de todos los destellos: los que se acabaron se apagan."""
         for blanco in list(self.flashes):
@@ -968,6 +1043,8 @@ def blancos_de_ruta(paginas):
                 i += 1
             elif op == OP_FLASH:
                 i += 7
+            elif op == OP_TIMER:
+                i += 5
             elif op == OP_SWITCH:
                 i += 4
             elif op == OP_TELEPORT:
@@ -1021,7 +1098,7 @@ def pagina_activa(paginas, evento, estado):
 
 
 def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
-                    flash=(), switches=()):
+                    flash=(), switches=(), timer=()):
     """Una página automática inventada: una ruta forzada, una espera, un tinte.
 
     No sale de ningún dato del juego, y ésa es la idea. El intérprete corre
@@ -1050,6 +1127,15 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
     que la pantalla cambia de color es el cuadro en que la ruta terminó.
     """
     codigo = b""
+    if timer:
+        # (segundos, visible). El cronómetro del juego lo prende una página que
+        # no compila —la del despertador del pad—, así que sin esto no habría
+        # con qué comparar: es el mismo motivo por el que existe el resto de
+        # esta página.
+        segundos, visible = timer
+        codigo += bytes([OP_TIMER, TIMER_PONER,
+                         segundos & 0xFF, segundos >> 8, 0])
+        codigo += bytes([OP_TIMER, TIMER_ARRANCAR, 0, 0, 1 if visible else 0])
     for numero in switches:
         # Prender switches a mano pone al mundo en un estado al que el juego
         # llega más tarde. Hace falta para probar lo que depende de ellos sin
@@ -1307,6 +1393,22 @@ def ejecutar(codigo, estado, desde=0):
                                              codigo[i + 4], codigo[i + 5],
                                              codigo[i + 6], 0)
             i += 7
+        elif op == OP_TIMER:
+            # `CommandTimerOperation`. No corta el cuadro: las tres operaciones
+            # son asignaciones, y quien hace correr el cronómetro es
+            # `cuadro_de_timer`, una vez por cuadro.
+            operacion = codigo[i + 1]
+            if operacion == TIMER_PONER:
+                estado.timer_cuadros = ((codigo[i + 2] | (codigo[i + 3] << 8))
+                                        * CUADROS_POR_SEGUNDO
+                                        + TIMER_CUADROS_DE_MAS)
+            elif operacion == TIMER_ARRANCAR:
+                estado.timer_activo = True
+                estado.timer_visible = bool(codigo[i + 4])
+            else:
+                # `StopTimer` apaga las dos cosas, no sólo la cuenta.
+                estado.timer_activo = estado.timer_visible = False
+            i += 5
         elif op == OP_RUTAS:
             # "Esperá a que terminen las rutas". Se devuelve el control con una
             # marca en vez de una cuenta de cuadros: no se sabe cuántos van a

@@ -135,7 +135,8 @@ class Mundo:
                                               self.prueba[2],
                                               self.prueba[3],
                                               self.prueba[4],
-                                              self.prueba[5]))]
+                                              self.prueba[5],
+                                              self.prueba[6]))]
             self.paginas_cache[map_id] = paginas
         return self.paginas_cache[map_id]
 
@@ -210,6 +211,7 @@ def cuadro_de_eventos(estado, passable, game_map):
 
     estado.cuadro_de_rutas_ev(puede)
     estado.cuadro_de_flashes()
+    estado.cuadro_de_timer()
 
 
 def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
@@ -327,11 +329,19 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
                         and not estado.paso_cuadros \
                         and not estado.cuadros_moviendose \
                         and not estado.algo_corriendo() \
+                        and not estado.timer_activo \
                         and (apretar_a is None or n >= apretar_a) \
                         and restantes is not None:
                     # Y no se corta antes de que el jugador apriete: si el mapa
                     # no tiene nada que correr, el lazo terminaba en el primer
                     # cuadro y la tecla no llegaba a existir.
+                    #
+                    # El cronómetro corriendo también lo sostiene, y no va en
+                    # `algo_corriendo` con las rutas y los destellos: eso lo
+                    # mira además el camino sin presupuesto, que corre hasta que
+                    # todo se aquiete, y un cronómetro no se aquieta nunca —se
+                    # comería las diez mil vueltas del tope—. Acá el presupuesto
+                    # es el que manda, así que basta con no cortar antes.
                     break
         if salto is None:
             return map_id, x, y
@@ -564,7 +574,31 @@ def destellar_imagen(imagen, color, nivel):
     return salida
 
 
-def draw_actors(view, sprites, encima=None):
+def glifos_del_timer(estado):
+    """Dónde va cada glifo del cronómetro, en objetos de 8x8.
+
+    Cinco glifos de 8x16, o sea diez objetos, y los dos puntos se saltean
+    cuando les toca parpadear. Se devuelven las esquinas porque hacen falta dos
+    veces: para contar el presupuesto de sprites de la línea —los dígitos lo
+    gastan como cualquier otro objeto— y para pegarlos al final.
+    """
+    if not estado.timer_visible:
+        return []
+    texto = estado.timer_texto()
+    fuera = []
+    for i, letra in enumerate(texto):
+        if letra == " ":
+            continue            # los dos puntos, apagados este cuadro
+        glifo = (snes_convert.TIMER_GLIFOS - 1 if letra == ":"
+                 else int(letra))
+        for mitad in (0, 1):
+            fuera.append((glifo, mitad,
+                          snes_convert.TIMER_X + i * snes_convert.TIMER_GLIFO_W,
+                          snes_convert.TIMER_Y + mitad * 8))
+    return fuera
+
+
+def draw_actors(view, sprites, encima=None, timer=()):
     """Pinta los sprites y avisa en qué líneas la consola no va a poder.
 
     No se intenta reproducir *cuáles* se pierden. La consola arma la lista de
@@ -580,8 +614,14 @@ def draw_actors(view, sprites, encima=None):
     for y in range(SCREEN_H):
         presentes = sum(1 for _img, _sx, sy, _a in sprites
                         if sy <= y < sy + snes_convert.OBJ_H)
-        if (presentes * OBJ_TILES > OBJ_TILES_PER_LINE
-                or presentes > OBJ_PER_LINE):
+        # Los glifos del cronómetro son objetos como cualquier otro y gastan el
+        # mismo presupuesto: uno de 8x8 es un objeto y un tile. Contarlos
+        # importa poco —son cinco por línea de las treinta y cuatro— pero no
+        # contarlos sería una diferencia que sólo aparecería con la pantalla
+        # llena, que es donde nadie mira.
+        chicos = sum(1 for _g, _m, _sx, sy in timer if sy <= y < sy + 8)
+        if (presentes * OBJ_TILES + chicos > OBJ_TILES_PER_LINE
+                or presentes + chicos > OBJ_PER_LINE):
             excedidas.append(y)
 
     # Se pintan de atrás hacia adelante, o sea al revés del orden de OAM.
@@ -657,6 +697,17 @@ def main():
                         help="en qué cuadro el jugador aprieta A, que es lo "
                              "que cierra un mensaje. El otro lado del mismo "
                              "flag de snes_correr.py")
+    parser.add_argument("--timer-de-prueba", nargs=2, type=int, default=None,
+                        metavar=("SEGUNDOS", "VISIBLE"),
+                        help="arranca el cronómetro desde la página de prueba. "
+                             "Existe por lo mismo que el resto de esa página: "
+                             "las seis del juego que lo prenden están cortadas "
+                             "por otra cosa, así que sin esto no habría con qué "
+                             "comparar. Implica --con-timer")
+    parser.add_argument("--con-timer", action="store_true",
+                        help="la ROM lleva los dígitos del cronómetro: once "
+                             "glifos de la imagen de System al final del banco "
+                             "de sprites, y una paleta")
     parser.add_argument("--switch", nargs="+", type=int, default=None,
                         metavar="N",
                         help="prende estos switches desde la página de prueba, "
@@ -710,6 +761,7 @@ def main():
     # reserva la paleta de la ventana y el otro no, el reparto de CGRAM difiere
     # y la comparación mide dos ROMs distintas.
     args.con_ventana = args.con_ventana or args.mensaje_de_prueba is not None
+    args.con_timer = args.con_timer or args.timer_de_prueba is not None
 
     renderer = Renderer(args.game_dir)
 
@@ -732,6 +784,7 @@ def main():
                  % (args.inicial, len(tabla)))
     hay_prueba = (args.pagina_de_prueba or args.ruta_de_prueba
                   or args.ruta_de_evento or args.flash_de_prueba or args.switch
+                  or args.timer_de_prueba
                   or args.mensaje_de_prueba is not None)
     # El bloque de textos, armado igual que en el conversor y en el mismo orden:
     # el mensaje de prueba primero —desplazamiento 0— y después los mapas de la
@@ -742,7 +795,8 @@ def main():
     mundo = Mundo(renderer, args.game_dir, tabla,
                   (args.pagina_de_prueba, args.ruta_de_prueba, prueba,
                    snes_convert.ruta_de_evento(args.ruta_de_evento),
-                   args.flash_de_prueba or (), args.switch or ())
+                   args.flash_de_prueba or (), args.switch or (),
+                   args.timer_de_prueba or ())
                   if hay_prueba else None, mensajes)
 
     # Los CharSets y los mapas ya convertidos se comparten entre las
@@ -942,7 +996,8 @@ def main():
         # que el hardware reproduce con las prioridades del modo 3.
         encima = encima_todo.crop((cam_x, cam_y,
                                    cam_x + SCREEN_W, cam_y + SCREEN_H))
-        excedidas = draw_actors(view, sprites, encima)
+        glifos = glifos_del_timer(estado)
+        excedidas = draw_actors(view, sprites, encima, glifos)
         if excedidas:
             print("  %d líneas pasan el límite de sprites de la consola: ahí se"
                   " pierden objetos y no se comparan" % len(excedidas))
@@ -973,6 +1028,23 @@ def main():
             view.paste(caja, (0, view.height - caja.height), caja)
 
         view = tenir_imagen(view, estado.tinte)
+
+        # El cronómetro va al final de todo, **incluido el tinte**. En RM2k es
+        # `Priority_Timer` = 140 contra el `Priority_Screen` = 90 del tinte y el
+        # `Priority_Window` = 130 de la ventana: la pantalla se oscurece y los
+        # dígitos no. En la consola eso sale de la prioridad 3 de objeto más una
+        # paleta propia que `aplicar_tinte` vuelve a subir sin teñir. La ventana
+        # no puede hacer lo mismo: su paleta está en la mitad del mapa.
+        if glifos:
+            import ventana as ventana_mod
+            sys_img = ventana_mod.skin(args.game_dir,
+                                       renderer.database.system_name)
+            view = view.convert("RGBA")
+            for glifo, mitad, sx, sy in glifos:
+                ox = snes_convert.TIMER_ORIGEN[0] + glifo * 8
+                oy = snes_convert.TIMER_ORIGEN[1] + mitad * 8
+                view.paste(sys_img.crop((ox, oy, ox + 8, oy + 8)), (sx, sy),
+                           sys_img.crop((ox, oy, ox + 8, oy + 8)))
 
         plan.append((walk, pasos, pasos * CUADROS_POR_CELDA))
         destino = salida(args.output, etiqueta)
