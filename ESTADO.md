@@ -311,14 +311,40 @@ Falta entonces: emitir los tiles de la ventana y de la fuente, elegirle una
 paleta de CGRAM, componer el texto en tiles desde el 65816, el opcode del
 intérprete y que la página espere a que el jugador apriete A.
 
-Dos cosas a tener presentes para eso, que ya se pensaron y conviene no
-rederivar. **El tilemap de BG2 es el de la capa de encima y se scrollea con la
-cámara**, así que la ventana no puede escribirse ahí y quedarse quieta... salvo
-que nada se mueva, y durante un mensaje de RM2k efectivamente nada se mueve: el
-jugador no camina. Así que alcanza con escribir las celdas al abrir el mensaje y
-restaurarlas al cerrarlo, sin HDMA. Y **restaurarlas es el trabajo que falta
-pensar**: hoy no hay una rutina que redibuje una franja del tilemap de encima
-sin recargar el mapa entero. Nada de eso está
+Y hay un problema abierto que hay que resolver **antes** de escribir el
+assembly, porque decide la forma de todo lo demás. **El tilemap de BG2 es el de
+la capa de encima y se scrollea con la cámara**, así que escribir la ventana ahí
+la hace moverse con el mapa.
+
+Yo había escrito acá que no importaba, porque durante un mensaje de RM2k no se
+mueve nada. **Es falso**, lo preguntó taro y al medirlo salió que ni siquiera es
+un caso raro:
+
+* En `game_player.cpp` de easyrpg, `UpdateMoveRoute` se llama **antes** del
+  guard de `IsMessageActive()`. O sea que **una ruta forzada del héroe sigue
+  caminando mientras hay un mensaje en pantalla**, y la cámara lo sigue. En este
+  juego hay **186 páginas** donde el héroe arranca una ruta que camina y a los
+  pocos comandos aparece un mensaje. La primera está en el mapa 1.
+* `Game_Map::Update` sigue corriendo durante un mensaje, así que los eventos de
+  **proceso paralelo** también. Hay **25 páginas paralelas con `PanScreen`**, de
+  72 que lo usan en total.
+
+Así que la ventana tiene que quedar clavada a la pantalla aunque BG2 se
+scrollee, y las salidas que se vieron son todas caras de distinta manera:
+
+* **HDMA sobre `BG2HOFS`/`BG2VOFS`** en las líneas de la ventana. Es la técnica
+  clásica de barra de estado, pero muestra una región *fija* del tilemap de
+  encima, y con un tilemap de 64x32 y una cámara que se mueve libre no hay
+  ninguna región que no se use.
+* **HDMA sobre `BG2SC`**, apuntando a un tilemap propio para esas líneas. Es lo
+  más limpio, y cuesta 2 KB de VRAM que hoy no están: los dos tilemaps ya se
+  comen los 8 KB de $7000 a $8000.
+* **Achicar el tilemap de encima a 32x32** para liberar esos 2 KB. Entra justo
+  —la pantalla son 32x28 celdas— pero deja sin margen al scroll.
+* **La ventana por OBJ**, que no se scrollea con el fondo. El marco entraría en
+  pocos objetos grandes; el texto no, por el límite de 32 objetos por línea.
+
+Ninguna está elegida. Es lo primero a decidir cuando se retome. Nada de eso está
 escrito todavía, y por lo tanto nada de esto lo corre ninguna prueba: `fuente.py`
 y `ventana.py` están verificados sólo a ojo, mirando el PNG que saca
 `just snes-mensaje`.

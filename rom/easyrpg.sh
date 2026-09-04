@@ -21,9 +21,13 @@
 # que la culpa es de la variable. Acá se corre sobre Xvfb, así que no aplica;
 # desde el host, `SDL_VIDEODRIVER=x11`.
 #
-# El `--fps-limit` no es cosmético: con `--no-vsync` y sin tope, un player que
-# sobreviva a su Xvfb corre el lazo libre y se come todos los cores. Ya pasó
-# con un proceso que quedó colgado de una prueba.
+# Corre sin tope de cuadros a propósito: cuanto más rápido emule, menos hay que
+# esperar para llegar al mensaje. Que se coma los cores mientras dura está bien;
+# taro prefiere eso a que las pruebas tarden, y si molesta lo acota por el
+# contenedor. Lo que sí importa es el orden de apagado de acá abajo —primero el
+# player, después el Xvfb—: al revés, el player sobrevive a su pantalla y se
+# queda en el lazo libre para siempre. Ya pasó con un proceso de una prueba.
+# Con FPS=60 se le pone tope.
 #
 # Las capturas no se piden con F7 sino con las automáticas de EasyRPG, cada un
 # segundo: inyectar la tecla depende de que la ventana ya exista y de que el
@@ -45,7 +49,8 @@ XVFB=$!
 sleep 2
 DISPLAY=:99 "$ERPG/easyrpg-player" --project-path "$JUEGO" \
     --rtp-path /extras/rtp --new-game --start-map-id "$MAPA" --window \
-    --no-vsync --fps-limit 60 --config-path "$CFG" --save-path "$SALIDA" \
+    --no-vsync ${FPS:+--fps-limit $FPS} --config-path "$CFG" \
+    --save-path "$SALIDA" \
     </dev/null >"$CFG/log" 2>&1 &
 PLAYER=$!
 sleep 12                        # que cargue la base y el mapa
