@@ -455,6 +455,9 @@ def main():
                              "emulador corrió N cuadros y esto tiene que haber "
                              "corrido los mismos. Sin esto, las páginas corren "
                              "hasta terminar")
+    parser.add_argument("--mensaje-de-prueba", nargs="*", metavar="LINEA",
+                        help="dibuja la ventana de mensaje con estas líneas. "
+                             "El otro lado del mismo flag de snes_convert.py")
     parser.add_argument("--ruta-de-prueba", nargs="+", type=int, default=None,
                         metavar="ORDEN",
                         help="agrega a la página de prueba una ruta forzada "
@@ -680,6 +683,18 @@ def main():
         # El tinte va al final, sobre todo lo que se dibujó: en la consola es
         # una transformación de CGRAM, y CGRAM la comparten el fondo, la capa de
         # encima y los sprites.
+        # La ventana de mensaje va antes del tinte, como en la consola: allá el
+        # tinte es una transformación de CGRAM y la paleta de la ventana está
+        # en la misma mitad que las del mapa.
+        if args.mensaje_de_prueba is not None:
+            import ventana as ventana_mod
+            skin = ventana_mod.skin(args.game_dir,
+                                    renderer.database.system_name)
+            caja = ventana_mod.pagina(skin, args.mensaje_de_prueba,
+                                      font_id=renderer.database.font_id)
+            view = view.convert("RGBA")
+            view.paste(caja, (0, view.height - caja.height), caja)
+
         view = tenir_imagen(view, estado.tinte)
 
         plan.append((walk, pasos, pasos * CUADROS_POR_CELDA))

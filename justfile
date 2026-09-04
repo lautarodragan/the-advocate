@@ -312,6 +312,37 @@ snes-mednafen:
       --saltar {{snes_pngs}}/saltar-med-walk.txt \
       -o {{snes_pngs}}/comparacion-med-walk.png
 
+# La ventana de mensaje dibujada por la consola, contra la referencia.
+#
+# La ventana se dibuja al cargar el mapa y se queda: todavía no hay opcode ni
+# espera de botón, así que el texto es sintético —como `--pagina-de-prueba`— y
+# lo que se compara es el dibujo. Que es lo que hay que verificar primero: la
+# fuente, el marco, la paleta y dónde caen las celdas en el tilemap.
+#
+# La cadena entera queda atada de punta a punta: la referencia en Python está
+# verificada contra una captura de EasyRPG por `snes-oraculo`, y esto verifica
+# la consola contra la referencia.
+snes-ventana mapa="7" nombre="ventana":
+  #!/usr/bin/env bash
+  set -euo pipefail
+  mkdir -p {{snes_pngs}} {{snes_inc}}
+  linea1="SEWELL"
+  linea2="There you are, Talan. Ready for"
+  linea3="the big night?"
+  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
+      --mensaje-de-prueba "$linea1" "$linea2" "$linea3" -o {{snes_inc}}/mapdata.inc
+  just snes-build
+  python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
+      --mensaje-de-prueba "$linea1" "$linea2" "$linea3" \
+      --saltar {{snes_pngs}}/saltar-{{nombre}}.txt \
+      -o {{snes_pngs}}/esperado-{{nombre}}.png
+  python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} \
+      -o {{snes_pngs}}/{{nombre}}.png --walk none --cuadros 200
+  python3 tools/snes_compare.py {{snes_pngs}}/{{nombre}}.png \
+      {{snes_pngs}}/esperado-{{nombre}}.png \
+      --saltar {{snes_pngs}}/saltar-{{nombre}}.txt \
+      -o {{snes_pngs}}/comparacion-{{nombre}}.png
+
 # El juego original corriendo en EasyRPG, capturado sin pantalla, y nuestra
 # ventana comparada contra eso.
 #

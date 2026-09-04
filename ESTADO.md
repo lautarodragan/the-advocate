@@ -376,8 +376,44 @@ después de `fill_window` —que acaba de escribir esas mismas celdas— y corri
 `snes-heroe 7` y `snes-heroe 6`, los diez en cero. Y la tanda entera sigue en 25
 casos verdes.
 
-Hoy no la llama nadie, porque la ventana todavía no existe. Es el único pedazo
-de código del repo que no ejercita ninguna prueba, y se sabe. Nada de eso está
+Hoy no la llama nadie, porque todavía no hay forma de **cerrar** un mensaje. Es
+el único pedazo de código del repo que no ejercita ninguna prueba, y se sabe.
+
+**Y la ventana ya se dibuja en la consola**, el 2026-09-04. `just snes-ventana`
+arma una ROM con un mensaje sintético y compara la pantalla entera contra la
+referencia: **0 pixeles de 57344**, en el mapa 7, el 6 y el 18. Con eso la cadena
+queda atada de punta a punta —la referencia contra una captura de EasyRPG por
+`snes-oraculo`, y la consola contra la referencia— y los dos casos están en
+`snes-hitos`, que quedó en 27 casos verdes.
+
+Lo que entró para eso: `convert_ventana()` en el conversor, que corta la ventana
+en celdas de 8x8 y la deduplica; el bloque global en el `.inc` —la ventana es
+una sola para toda la ROM, así que no va en la tabla de mapas—; y del lado de la
+ROM `load_ventana`, que sube tiles y paleta con la pantalla apagada, y
+`estampar_ventana`, que escribe las celdas en el tilemap de encima siguiendo a
+la cámara.
+
+Dos cosas que costaron y conviene no volver a descubrir. **Las celdas de BG2 sí
+usan los tres bits de paleta**, a diferencia de las del fondo, que va en 8 bits
+y los ignora: `entry()` no los ponía y la ventana salía con la paleta 0. Y **un
+tramo del tilemap no puede cruzar la columna 32**: las dos pantallas del mapa de
+64x32 no son contiguas en la VRAM, la de la derecha vive 1024 palabras más
+adelante. Cortando sólo en 64 quedaban cuatro columnas sin escribir y el mapa
+asomaba por el borde derecho de la ventana.
+
+**Lo que falta ahora**, en orden:
+
+* **La paleta choca en algunos mapas.** La ventana se lleva la que queda justo
+  debajo de la capa de encima, y en el mapa 1 —el primero del juego— el fondo ya
+  usa esa. El conversor corta diciéndolo. La salida es bajarle una paleta al
+  fondo y dejar que fusione, que es maquinaria que ya existe.
+* **El opcode del intérprete** y que la página espere a que el jugador apriete
+  A. Recién ahí se puede cerrar un mensaje y `redibujar_franja` deja de ser
+  código muerto.
+* **Enganchar el estampado en `stream_map`**, para que la ventana siga quieta
+  mientras la cámara se mueve. Hoy se estampa una sola vez al cargar el mapa, y
+  con la cámara quieta eso alcanza; con una ruta forzada del héroe caminando,
+  no. Nada de eso está
 escrito todavía, y por lo tanto nada de esto lo corre ninguna prueba: `fuente.py`
 y `ventana.py` están verificados sólo a ojo, mirando el PNG que saca
 `just snes-mensaje`.

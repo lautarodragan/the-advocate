@@ -148,6 +148,9 @@ VIEW_ROWS = 29
 ; están en `tools/ventana.py`, que es de donde salen.
 VENTANA_FILA  = 18
 VENTANA_FILAS = 10
+; El tilemap de 64x32 son dos pantallas de 32 al lado de la otra, y la
+; segunda no vive 32 palabras más adelante sino 1024.
+VIEW_COLS_TILEMAP = 32
 
 ; La ventana de mensaje: 256x80 pegada abajo de una pantalla de 224 líneas, o
 ; sea las diez filas de celdas que van de la 18 a la 27. Los mismos números
@@ -155,6 +158,9 @@ VENTANA_FILAS = 10
 ; pie, como la pone RM2k.
 VENTANA_FILA  = 18
 VENTANA_FILAS = 10
+; El tilemap de 64x32 son dos pantallas de 32 al lado de la otra, y la
+; segunda no vive 32 palabras más adelante sino 1024.
+VIEW_COLS_TILEMAP = 32
 
 .include "musicdata.inc"
 .include "mapdata.inc"
@@ -183,7 +189,15 @@ tira_ofs:   .res 2      ; desplazamiento dentro del bloque, mientras se arma
 tira_paso_col: .res 2   ; lo que mide una fila de bloques, en bytes
 tira_resta: .res 2      ; cuántas celdas faltan por armar
 franja_fila: .res 2     ; qué fila de la franja de la ventana se está armando
+ventana_ofs: .res 2     ; en qué byte de `ventana_celdas` va el estampado
+ventana_src: .res 2     ; y dentro de la fila, mientras se parte en tramos
+ventana_resta: .res 2   ; cuántas celdas de la fila faltan
+ventana_tramo: .res 2   ; cuántas entran en este tramo
 franja_fila: .res 2     ; qué fila de la franja de la ventana se está armando
+ventana_ofs: .res 2     ; en qué byte de `ventana_celdas` va el estampado
+ventana_src: .res 2     ; y dentro de la fila, mientras se parte en tramos
+ventana_resta: .res 2   ; cuántas celdas de la fila faltan
+ventana_tramo: .res 2   ; cuántas entran en este tramo
 hero_ptr:   .res 3      ; y en qué celda de la grilla, como puntero: se mueve
                         ; con él en vez de recalcularse
 step_left:  .res 1      ; pixeles que faltan del paso en curso, 0 si no hay
@@ -733,6 +747,8 @@ puesto:
     ; líder cambia al cambiar de mapa aunque el grupo sea el mismo.
     jsr elegir_grafico_heroe
     jsr fill_window             ; deja listo tira_paso_col, que el otro usa
+    jsr load_ventana
+    jsr estampar_ventana
     jsr init_hero_ptr
 
     ; El tinte es estado del juego, no del mapa: sobrevive al teletransporte.
@@ -2602,6 +2618,224 @@ columna:
     ply
     dey
     bne columna
+    sep #$20
+.a8
+    rts
+.endproc
+
+; --- la ventana de mensaje -------------------------------------------------
+; Sus tiles y su paleta se suben una sola vez, con la pantalla apagada, igual
+; que los de la capa de encima. Viven en el banco que sigue al de encima, y BG2
+; los alcanza con la misma base: del índice 0 al 255 cae el de encima y del 256
+; al 511 la ventana. Por eso el conversor ya emitió las celdas con ese
+; corrimiento sumado.
+;
+; La paleta va en la que queda justo debajo de la de encima. Cuál es depende del
+; mapa, así que sale de `M_ABOVE_FIRST` menos dieciséis entradas; el conversor
+; ya comprobó que el fondo no la esté usando.
+.proc load_ventana
+.a8
+.i16
+    lda #VENTANA_TILES
+    beq listo                   ; esta ROM no lleva ventana
+    ldx mapa_ofs
+    lda #$80
+    sta VMAIN
+    rep #$20
+.a16
+    lda mapa_tabla + M_VRAM_VENTANA, x
+    sta VMADDL
+    lda #.loword(ventana_tiles)
+    sta A1T0L
+    lda #(VENTANA_TILES * 32)
+    sta DAS0L
+    sep #$20
+.a8
+    lda #^ventana_tiles
+    sta A1B0
+    lda #$01
+    sta DMAP0
+    lda #$18
+    sta BBAD0
+    lda #$01
+    sta MDMAEN
+
+    lda #VENTANA_CGADD          ; la paleta de abajo de la capa de encima
+    sta CGADD
+    rep #$20
+.a16
+    lda #.loword(ventana_cgram)
+    sta A1T0L
+    lda #32                     ; dieciséis entradas de dos bytes
+    sta DAS0L
+    sep #$20
+.a8
+    lda #^ventana_cgram
+    sta A1B0
+    lda #$00
+    sta DMAP0
+    lda #$22
+    sta BBAD0
+    lda #$01
+    sta MDMAEN
+listo:
+    rts
+.endproc
+
+; Escribe las celdas de la ventana en el tilemap de la capa de encima, en la
+; franja de abajo de la pantalla y en las posiciones que le tocan **con la
+; cámara de este cuadro**. Ésa es la decisión de fondo: en vez de pelear con que
+; BG2 se scrollee, se lo sigue. Si la cámara se movió, la ventana se estampa en
+; otro lado del tilemap y en pantalla se ve igual de quieta.
+;
+; Son 32 celdas por fila y diez filas, o sea 640 bytes. Lo caro sería redibujar
+; la franja entera —las dos capas y las dos pantallas del tilemap, 2560 bytes—,
+; que es lo que hace `redibujar_franja` y por eso ésa va con la pantalla
+; apagada. Ver su comentario.
+;
+; El tilemap es de 64x32 y las 32 columnas visibles arrancan en `win_col`, así
+; que una fila de la ventana puede partirse entre la pantalla izquierda del
+; tilemap y la derecha. Por eso se escribe en dos tramos y no en uno.
+.proc estampar_ventana
+.a8
+.i16
+    lda #VENTANA_TILES
+    bne hay
+    rts
+hay:
+    rep #$20
+.a16
+    lda win_row
+    clc
+    adc #VENTANA_FILA
+    sta franja_fila
+    stz ventana_ofs
+    sep #$20
+.a8
+    ldy #VENTANA_FILAS
+fila:
+    phy
+    rep #$20
+.a16
+    ; La fila del tilemap: se envuelve cada 32, como hace `build_row`.
+    lda franja_fila
+    and #(WINDOW_ROWS - 1)
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a
+    clc
+    adc #VRAM_ABOVE_MAP
+    sta temp                    ; el arranque de la fila, pantalla izquierda
+    lda win_col
+    and #(WINDOW_COLS - 1)
+    sta temp + 2                ; en qué columna del tilemap cae la de pantalla
+    sep #$20
+.a8
+    jsr estampar_fila
+    rep #$20
+.a16
+    inc franja_fila
+    lda ventana_ofs
+    clc
+    adc #(VENTANA_COLS * 2)
+    sta ventana_ofs
+    sep #$20
+.a8
+    ply
+    dey
+    bne fila
+    rts
+.endproc
+
+; Una fila de la ventana, partida en los tramos que hagan falta. `temp` tiene la
+; dirección de la fila en el tilemap, `temp + 2` la columna donde arranca la
+; pantalla y `ventana_ofs` el desplazamiento dentro de `ventana_celdas`.
+.proc estampar_fila
+.a8
+.i16
+    rep #$20
+.a16
+    lda #VENTANA_COLS
+    sta ventana_resta
+    lda ventana_ofs
+    sta ventana_src
+tramo:
+    ; Cuántas celdas entran antes del próximo corte. Los cortes son cada 32
+    ; columnas y no cada 64: las dos pantallas del tilemap no son contiguas en
+    ; la VRAM —la de la derecha vive 1024 palabras más adelante— así que un
+    ; tramo no puede cruzar de una a la otra. Cortando sólo en 64 quedaban las
+    ; últimas columnas sin escribir y se veía el mapa asomando por el borde
+    ; derecho de la ventana.
+    lda temp + 2
+    and #(VIEW_COLS_TILEMAP - 1)
+    sta ventana_tramo
+    lda #VIEW_COLS_TILEMAP
+    sec
+    sbc ventana_tramo
+    cmp ventana_resta
+    bcc parcial
+    lda ventana_resta
+parcial:
+    sta ventana_tramo
+
+    ; La dirección: la fila más la columna, y la pantalla derecha vive 1024
+    ; palabras más adelante, no 32.
+    lda temp + 2
+    cmp #VIEW_COLS_TILEMAP
+    bcc izquierda
+    sec
+    sbc #VIEW_COLS_TILEMAP
+    clc
+    adc #1024
+    bra con_columna
+izquierda:
+con_columna:
+    clc
+    adc temp
+    sta VMADDL
+
+    lda #.loword(ventana_celdas)
+    clc
+    adc ventana_src
+    sta A1T0L
+    lda ventana_tramo
+    asl a
+    sta DAS0L
+    sep #$20
+.a8
+    lda #^ventana_celdas
+    sta A1B0
+    lda #$80
+    sta VMAIN
+    lda #$01
+    sta DMAP0
+    lda #$18
+    sta BBAD0
+    lda #$01
+    sta MDMAEN
+
+    rep #$20
+.a16
+    lda ventana_resta
+    sec
+    sbc ventana_tramo
+    sta ventana_resta
+    beq fin
+    lda ventana_src
+    clc
+    adc ventana_tramo
+    adc ventana_tramo
+    sta ventana_src
+    ; La columna avanza lo que se escribió, y se envuelve a las 64.
+    lda temp + 2
+    clc
+    adc ventana_tramo
+    and #(WINDOW_COLS - 1)
+    sta temp + 2
+    bra tramo
+fin:
     sep #$20
 .a8
     rts

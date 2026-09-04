@@ -93,6 +93,15 @@ def bg_budget(first):
 # orden de RM2k sale del hardware sin trucos.
 PRIORITY_ABOVE = 1                       # para las celdas de BG2
 
+# Los tiles de la ventana viven en el banco que sigue al de la capa de encima,
+# y BG2 los alcanza con la misma base porque quedaron pegados: del índice 0 al
+# 255 cae el de encima y del 256 al 511 el de la ventana.
+VENTANA_TILE_BASE = 256
+
+# El tamaño de la ventana en celdas. Es fijo: 256x80 pegada al pie de la
+# pantalla, los mismos números que `tools/ventana.py`.
+VENTANA_COLS_INC, VENTANA_FILAS_INC = 32, 10
+
 # Y las de los objetos, ya corridas a su lugar en el byte vhoopppN: la
 # prioridad son los bits 5 y 4. Estos dos valores son los únicos del
 # programa: la ROM recibe el del héroe en HERO_PRIORITY y el de cada NPC
@@ -440,7 +449,7 @@ def build_palette(grid, bg_colors):
     return sorted({c for c in mapping.values()}), grid, merged
 
 
-def convert_layers(base, above_img):
+def convert_layers(base, above_img, con_ventana=False):
     """Las dos capas juntas, que es la única forma de repartir CGRAM bien.
 
     El corte entre el fondo y la capa de encima no lo puede decidir ninguna de
@@ -458,6 +467,12 @@ def convert_layers(base, above_img):
     encima se sirva primero le sacaría colores al fondo en todos para que unos
     pocos no fusionen.
 
+    Con `con_ventana` se reserva además la paleta que queda justo debajo de la
+    capa de encima, que es donde va la de la ventana de mensaje. No se le quita
+    al fondo: se comprueba que el fondo no la esté usando ya, y si la usa el
+    conversor corta. Con los datos del juego eso sólo puede pasar en un mapa que
+    gaste muchos colores de fondo y muchas paletas de encima a la vez.
+
     Devuelve (lo de convert(), lo de convert_above()).
     """
     base_grid = cut_tiles(quantize(base))
@@ -471,6 +486,11 @@ def convert_layers(base, above_img):
     libres = max(1, min(MAX_ABOVE_PALETTES, BG_PALETTES - pide))
 
     above = convert_above(above_img, palettes=libres, grid=above_grid)
+    if con_ventana and pide > above[3] - 1:
+        raise SystemExit(
+            "no hay paleta libre para la ventana de mensaje: el fondo necesita "
+            "%d paletas y la capa de encima arranca en la %d, así que la %d ya "
+            "está ocupada" % (pide, above[3], above[3] - 1))
     return convert(base, bg_budget(above[3]), grid=base_grid), above
 
 
@@ -624,6 +644,52 @@ def vram_layout(tiles, sprites=0, con_ventana=False):
         "este mapa no puede llevar ventana de mensaje: gasta %d tiles de fondo "
         "y %d de sprite, y no hay reparto que deje 8 KB libres para la ventana. "
         "Son 2 mapas en todo el juego" % (tiles, sprites))
+
+
+def convert_ventana(sys_img, lineas=(), font_id=None):
+    """La ventana de mensaje como tiles, tilemap y paleta.
+
+    La imagen la arma `ventana.py`, que sigue las reglas de easyrpg-player y
+    está verificada contra una captura del juego original: ver `snes-oraculo`.
+    Acá sólo se la corta en celdas de 8x8 y se la deduplica, que es lo que la
+    consola necesita.
+
+    Devuelve (tiles, palabras de CGRAM, celdas). El índice 0 de la paleta queda
+    libre a propósito aunque la ventana sea opaca: es el color transparente de
+    BG2 y ningún tile de la ventana lo usa.
+    """
+    from PIL import Image
+    import ventana as ventana_mod
+
+    vista = ventana_mod.pagina(sys_img, lineas, font_id=font_id) if lineas \
+        else ventana_mod.ventana(sys_img)
+    llana = Image.alpha_composite(
+        Image.new("RGBA", vista.size, (0, 0, 0, 255)), vista).convert("RGB")
+    pixeles_15 = [tuple(v >> 3 for v in p) for p in llana.get_flattened_data()]
+
+    colores = sorted(set(pixeles_15))
+    if len(colores) > COLORS_PER_PALETTE - 1:
+        raise SystemExit("la ventana usa %d colores y entran %d"
+                         % (len(colores), COLORS_PER_PALETTE - 1))
+    indice = {c: i + 1 for i, c in enumerate(colores)}
+
+    ancho, alto = vista.width, vista.height
+    tiles, celdas = {}, []
+    for ty in range(alto // 8):
+        fila = []
+        for tx in range(ancho // 8):
+            celda = tuple(tuple(indice[pixeles_15[(ty * 8 + y) * ancho + tx * 8 + x]]
+                                for x in range(8)) for y in range(8))
+            if celda not in tiles:
+                tiles[celda] = len(tiles)
+            fila.append(tiles[celda])
+        celdas.append(fila)
+
+    datos = b"".join(pack_tile(celda, planes=4)
+                     for celda, _ in sorted(tiles.items(), key=lambda kv: kv[1]))
+    cram = [0] + [cgram_word(c) for c in colores]
+    cram += [0] * (COLORS_PER_PALETTE - len(cram))
+    return datos, cram, celdas
 
 
 def build_blocks(tilemap, above_tilemap, passable, width, height):
@@ -972,7 +1038,8 @@ def datos_del_mapa(mapa, numero):
     return "\n".join(out)
 
 
-def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=()):
+def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
+         ventana=None):
     """El .inc que arma w65.py junto con main.s."""
     for numero, mapa in enumerate(mapas):
         layout = mapa["layout"]
@@ -1026,7 +1093,16 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=()):
         "; toda ROM que no sea la de `snes-encima`, que la sube a $20\n"
         "; para ejercitar la prioridad 2. Ningún evento del juego llega\n"
         "; a ejercitarla: ver 'Cómo se verifica' en rom/LEEME.md.\n"
-        "HERO_PRIORITY = $%02X\n\n"
+        "HERO_PRIORITY = $%02X\n"
+        "; La ventana de mensaje: sus tiles viven en la segunda mitad del\n"
+        "; banco de BG2, o sea a partir del índice 256, y sus celdas ya\n"
+        "; vienen armadas con ese corrimiento y con la prioridad de la capa\n"
+        "; de encima. VENTANA_TILES en 0 quiere decir que esta ROM no lleva\n"
+        "; ventana y que el banco no existe.\n"
+"VENTANA_CGADD  = %d\n"
+        "VENTANA_TILES  = %d\n"
+        "VENTANA_FILAS_ = %d\n"
+        "VENTANA_COLS   = %d\n\n"
         % (", ".join("%d %s" % (m["id"], m["nombre"]) for m in mapas),
            len(mapas), MAPA_STRIDE, inicial,
            VRAM_MAP, VRAM_ABOVE_MAP, MAP_LAYOUT, NPC_STRIDE, NPC_MAX,
@@ -1037,7 +1113,10 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=()):
            eventos.TRIGGER_AUTOMATICO, eventos.TINTE_NEUTRO, SWITCH_BYTES,
            eventos.GRUPO_MAX, len(grupo_inicial), ACTOR_BYTES,
            rm2k.LAYER_SAME,
-           OBJ_PRIORITY_ABOVE if heroe_encima else OBJ_PRIORITY))
+           OBJ_PRIORITY_ABOVE if heroe_encima else OBJ_PRIORITY,
+           (min(m["above"][3] for m in mapas) - 1) * COLORS_PER_PALETTE,
+           0 if ventana is None else len(ventana[0]) // 32,
+           VENTANA_FILAS_INC, VENTANA_COLS_INC))
 
     with open(path, "w") as handle:
         handle.write(cabecera)
@@ -1053,6 +1132,45 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=()):
                          % (numero, mapa["id"], mapa["nombre"]))
             handle.write(datos_del_mapa(mapa, numero))
             handle.write("\n")
+        # Las etiquetas se emiten siempre, aunque la ROM no lleve ventana: el
+        # ensamblador las necesita resueltas y `VENTANA_TILES = 0` es lo que
+        # apaga el código en tiempo de ejecución. Un byte de relleno alcanza.
+        con_ventana = ventana is not None
+        if ventana is None:
+            ventana = (b"\x00", [0] * COLORS_PER_PALETTE, [[0]])
+        if True:
+            # La ventana de mensaje es una sola para toda la ROM —el mismo
+            # skin, el mismo tamaño— así que va como bloque global y no en la
+            # tabla de mapas. Lo único que depende del mapa es en qué paleta
+            # entra, y eso se resuelve arriba, al elegir el reparto de CGRAM.
+            tiles, cram, celdas = ventana
+            # BG2 va en 4 bits, así que su celda **sí** usa los tres bits de
+            # paleta —a diferencia del fondo, que va en 8 y los ignora—. La
+            # ventana se lleva la que queda justo debajo de la capa de encima,
+            # y tiene que ser la misma para todos los mapas de la ROM: las
+            # celdas se emiten una sola vez.
+            primeras = {m["above"][3] for m in mapas}
+            if con_ventana and len(primeras) > 1:
+                raise SystemExit(
+                    "los mapas de esta ROM le dan a la capa de encima paletas "
+                    "distintas (%s) y la ventana necesita una sola"
+                    % sorted(primeras))
+            paleta = min(primeras) - 1
+            handle.write("\n; --- la ventana de mensaje ---\n")
+            handle.write(bloque("ventana_tiles", tiles) + "\n")
+            handle.write(bloque("ventana_cgram",
+                                b"".join(w.to_bytes(2, "little")
+                                         for w in cram)) + "\n")
+            plano = bytearray()
+            for fila in celdas:
+                for celda in fila:
+                    # El índice de tile va corrido a la segunda mitad del banco
+                    # de BG2, y con la prioridad de la capa de encima para que
+                    # tape al héroe y a los NPCs.
+                    plano += (entry(VENTANA_TILE_BASE + celda, False, False,
+                                    PRIORITY_ABOVE)
+                              | (paleta << 10)).to_bytes(2, "little")
+            handle.write(bloque("ventana_celdas", bytes(plano)) + "\n")
         handle.write('\n.segment "TABLAS"\n')
         handle.write("grupo_inicial:\n    .byte %s\n\n"
                      % ",".join("%d" % a for a in grupo_inicial) or "0")
@@ -1172,6 +1290,12 @@ def main():
     parser.add_argument("--game-dir", default=GAME_DIR)
     parser.add_argument("-o", "--output",
                         default=os.path.join(REPO, "rom/src/mapdata.inc"))
+    parser.add_argument("--mensaje-de-prueba", nargs="*", metavar="LINEA",
+                        help="dibuja una ventana de mensaje con estas líneas "
+                             "apenas se carga el mapa. Es lo sintético de "
+                             "siempre —como --pagina-de-prueba— y existe "
+                             "porque ninguna página del juego compila todavía "
+                             "con un ShowMessage adentro")
     parser.add_argument("--ruta-de-prueba", nargs="+", type=int, default=None,
                         metavar="ORDEN",
                         help="agrega a la página de prueba una ruta forzada "
@@ -1303,7 +1427,17 @@ def main():
 
     if not 0 <= args.inicial < len(mapas):
         sys.exit("--inicial %d pero hay %d mapas" % (args.inicial, len(mapas)))
-    emit(args.output, mapas, args.inicial, args.heroe_encima, grupo)
+    ventana_datos = None
+    if args.mensaje_de_prueba is not None:
+        import ventana as ventana_mod
+        skin = ventana_mod.skin(args.game_dir, renderer.database.system_name)
+        ventana_datos = convert_ventana(skin, args.mensaje_de_prueba,
+                                        renderer.database.font_id)
+        print('  ventana de mensaje: %d tiles, %d colores'
+              % (len(ventana_datos[0]) // 32,
+                 sum(1 for w in ventana_datos[1] if w)))
+    emit(args.output, mapas, args.inicial, args.heroe_encima, grupo,
+         ventana_datos)
     print("%d mapa(s) -> %s, arranca en el %d (mapa %d)"
           % (len(mapas), args.output, args.inicial, mapas[args.inicial]["id"]))
 
@@ -1410,7 +1544,8 @@ def convertir(renderer, map_id, args, inicio=None):
     if base is None:
         sys.exit("no encuentro el chipset del mapa %d" % map_id)
 
-    (tile_data, cram, tilemap, summary), above_data = convert_layers(base, _above)
+    (tile_data, cram, tilemap, summary), above_data = convert_layers(
+        base, _above, con_ventana=bool(getattr(args, 'mensaje_de_prueba', None)))
 
     # Los personajes: el héroe con sus 12 poses porque camina, y cada NPC con la
     # que declara su página. Si un NPC usa el mismo personaje que el héroe,
@@ -1534,7 +1669,10 @@ def convertir(renderer, map_id, args, inicio=None):
         "tilemap": tilemap, "above": above_data, "sprite": sprite,
         "collision": collision, "celdas": bytes(words),
         "bloques": bloques, "pass": block_pass,
-        "layout": vram_layout(len(tile_data) // BYTES_PER_TILE),
+        "layout": vram_layout(
+            len(tile_data) // BYTES_PER_TILE,
+            len(sprite[0]) // 32 if sprite else 0,
+            con_ventana=bool(getattr(args, "mensaje_de_prueba", None))),
         "resumen": summary, "base": base,
         "puertas_crudas": rm2k.collect_doors(game_map),
         # Se guarda el mapa entero porque las puertas y los eventos no se
