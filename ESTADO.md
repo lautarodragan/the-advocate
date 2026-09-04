@@ -717,6 +717,24 @@ cambian de lugar, y dos números estaban directamente mal:
 Puestas las catorce juntas se llega a 314 de 489. La tabla entera y la cola de
 lo que quedaría después están en "Lo que falta" de `rom/LEEME.md`.
 
+**Y el 2026-09-04, hechos los cuadros de texto, hubo que corregirla otra vez.**
+Los +55 de `ShowMessage` aguantaron —hechos dieron exactamente 55, de 16 a 71—
+pero el resto de la tabla seguía midiendo un **techo**: aceptar un código entero
+cuenta lo que se destrabaría si el comando estuviera hecho para todos los casos
+que el juego usa. `MoveEvent` sobre otro evento daba +40 contando rutas con
+saltos y con cambio de gráfico, y blancos que son vehículos o eventos que el
+mapa ya no tiene. Con las órdenes que la ROM ya camina son **+16**; con todas,
++31. Así que `destraba.py` ahora muestra las dos columnas, y el acumulado de las
+trece bajó de 305 a **179 de 489**, con `MoveEvent` en su forma general como el
+que más corta de lo que queda: 169 páginas él solo.
+
+De paso apareció un dato que hace falta para implementarlo y que se habría
+pagado caro: **el id de evento de RM2k no es el índice de la tabla de la ROM**.
+39 mapas de este juego tienen huecos en la numeración, así que una ruta apuntada
+al evento 8 movería al que esté octavo en la lista, que puede ser cualquier
+otro. Es la misma clase de error que los códigos de comando de las puertas
+puestos de memoria.
+
 Después del hito, el mismo día, se armó la documentación de proceso: este
 archivo y `AGENTS.md` en `92509fc`, y el contenedor y `snes-tinte` en `d7597cc`
 y `2cc8078`. Nada de eso toca la ROM.

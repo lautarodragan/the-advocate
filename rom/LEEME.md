@@ -1222,28 +1222,34 @@ comparación.
   texto compilaran—. Y esto es cuántas pasarían a compilar con cada comando
   hecho, contando una ROM que lleve la ventana —`just snes-destraba`—:
 
-      MoveEvent de otro evento  +40      WeatherEffects         +0
-      FlashSprite               +23      FullHeal               +0
-      PlaySound                  +6      ChangeItems            +0
-      ControlVars                +4      CallEvent              +0
-      TintScreen con saturación  +4
-      ConditionalBranch          +3
+      FlashSprite               +23      PanScreen              +1
+      MoveEvent de otro evento  +16      FadeOutBGM             +1
+      PlaySound                  +6      WeatherEffects         +0
+      ControlVars                +4      FullHeal               +0
+      TintScreen con saturación  +4      ChangeItems            +0
+      ConditionalBranch          +3      CallEvent              +0
       ChangeEventLocation        +1
-      PanScreen                  +1
-      FadeOutBGM                 +1
 
-  Puestos los trece juntos se llega a **305 de 489**. Y lo que seguiría cortando
-  después de todos ésos lo encabeza `ShowBattleAnimation` con 22, seguido de
-  `ShowChoice` con 12 y de los 11 cuadros de texto con códigos de escape.
+  Puestos los trece juntos se llega a **179 de 489**. Y lo que seguiría cortando
+  después de todos ésos es, de lejos, **`MoveEvent` en su forma general: 169
+  páginas** —rutas con saltos, con cambio de gráfico, con diagonales, o
+  apuntadas a un vehículo—. Después vienen `ShowChoice` con 9 y los 7 cuadros de
+  texto con códigos de escape.
 
-  **Este número no es el que estaba escrito acá antes, y la diferencia importa.**
-  Lo de antes contaba qué comando corta **primero** cada página —ShowMessage
-  144, CallEvent 98, MoveEvent 60— y eso no es lo que se destraba: una página
-  cortada por un cuadro de texto puede estar cortada además por otras cuatro
-  cosas. Con el número bueno, la conclusión sobre los cuadros de texto se
-  sostuvo —eran +55, y hechos dieron exactamente eso— pero las de abajo cambian
-  de lugar, y `MoveEvent` sobre otro evento pasó de +3 a +40 al hacerlos: eran
-  las mismas páginas, contadas detrás del corte que ya no está.
+  **Dos veces se corrigió este número, y las dos por lo mismo: medía un techo.**
+  La primera versión contaba qué comando corta **primero** cada página
+  —ShowMessage 144, CallEvent 98, MoveEvent 60—, y eso no es lo que se destraba:
+  una página cortada por un cuadro de texto puede estar cortada además por otras
+  cuatro cosas. Corregido eso, quedaba la otra mitad del problema: aceptar un
+  código entero cuenta lo que se destrabaría si el comando estuviera hecho **para
+  todos los casos que el juego usa**, y una implementación real cubre menos.
+  `MoveEvent` sobre otro evento daba +40 contando rutas que la ROM no va a saber
+  caminar y blancos que no existen; con las órdenes que ya hace son +16, y con
+  todas +31. Por eso `destraba.py` ahora muestra las dos columnas, y los
+  candidatos que todavía no tienen filtro hay que leerlos como el techo que son.
+
+  Los cuadros de texto, en cambio, aguantaron las dos correcciones: eran +55 y
+  hechos dieron exactamente 55.
 
   Dos trampas que costaron una medición mal hecha cada una, y que están
   anotadas en `tools/destraba.py` para no volver a pisarlas:

@@ -8,7 +8,15 @@ desbloquearía". Pero una página cortada por un cuadro de texto puede estar
 cortada además por otras cuatro cosas: hacer los cuadros de texto no la
 destraba. Lo que hay que contar es cuántas páginas pasan a compilar **enteras**.
 
-Dos trampas que costaron una medición mal hecha cada una:
+**Lo que este número es, y lo que no.** Aceptar un código de comando entero es
+un **techo**: cuenta lo que se destrabaría si el comando estuviera hecho para
+todos los casos que el juego usa, y una implementación real casi siempre cubre
+menos. Cuando la diferencia importa —o sea cuando el comando está por hacerse—
+el candidato lleva un filtro que dice cuáles de sus casos se van a poder, y la
+tabla muestra las dos columnas. Sin filtro, la columna realista queda vacía y el
+número hay que leerlo como lo que es.
+
+Tres trampas que costaron una medición mal hecha cada una:
 
 * **`ShowMessage_2`.** RM2k emite un `ShowMessage` y después un `ShowMessage_2`
   por cada línea de más del mismo cuadro. Contándolos aparte, los cuadros de
@@ -18,6 +26,10 @@ Dos trampas que costaron una medición mal hecha cada una:
 * **`CallEvent`.** Aceptarlo sin hacerlo daba +97, que es mentira: el evento
   común llamado tiene que compilar él también, y los de este juego se cortan
   casi todos en `FullHeal` y en `ControlVars`. Hecho de verdad destraba cero.
+* **`MoveEvent` sobre otro evento.** El techo daba +40 contando rutas que la ROM
+  no va a saber caminar —saltos, cambiar el gráfico, diagonales— y blancos que
+  no existen: vehículos, y eventos que el mapa no tiene. Con las órdenes que la
+  ROM ya hace son +16, y con todas +31. De ahí salió el filtro.
 
 Uso:
     python3 tools/destraba.py
@@ -44,22 +56,61 @@ MAX_ANIDADO = 4                  # por si dos eventos comunes se llaman entre s�
 
 # Los grupos. Un comando no se puede medir suelto cuando RM2k lo emite siempre
 # acompañado: los tres de acá abajo son un solo trabajo cada uno.
+MOVE_EVENT, PROCEED = 11330, 11340
+MOVE_HEROE, MOVE_ESTE = 10001, 10005
+
+# Las órdenes de ruta que la ROM ya sabe caminar. Salen de `eventos.py` y no de
+# una lista propia, así que el día que aprenda una más este número sube solo.
+ORDENES = (set(eventos.RUTA_MIRAR) | set(eventos.RUTA_MOVER)
+           | {eventos.RUTA_ESPERAR})
+
+
+def mover_otro(cmd, pagina):
+    """Si este `MoveEvent` es uno que la ROM va a poder hacer.
+
+    Tres cosas, y las tres se midieron porque las tres pasan en este juego:
+    el blanco tiene que ser el héroe o un evento **que el mapa tenga** —hay
+    rutas apuntadas a vehículos y a eventos que ya no existen—, y la ruta tiene
+    que estar hecha de órdenes que sabemos caminar.
+
+    `ProceedWithMovement` pasa siempre: es "esperá a que termine", y sin las
+    rutas no significa nada.
+    """
+    if cmd.code == PROCEED:
+        return True
+    q = list(cmd.parameters)
+    if len(q) < 4:
+        return False
+    blanco = pagina.mio if q[0] == MOVE_ESTE else q[0]
+    if blanco != MOVE_HEROE and blanco not in pagina.ids:
+        return False
+    ruta = q[4:]
+    # La ruta se recorre plana y se corta en la primera orden que no sabemos.
+    # Alcanza aunque `change_graphic` traiga el nombre del gráfico metido entre
+    # las órdenes: el código va antes que su texto, así que se corta ahí y las
+    # letras nunca se leen como órdenes.
+    return bool(ruta) and all(o in ORDENES for o in ruta)
+
+
+# Los grupos. Un comando no se puede medir suelto cuando RM2k lo emite siempre
+# acompañado: los tres de acá abajo son un solo trabajo cada uno. El tercer
+# campo, cuando está, es el filtro que separa el techo de lo que se va a poder.
 CANDIDATOS = [
-    ("FlashSprite", {11320}),
-    ("PlaySound", {11550}),
-    ("ControlVars", {10220}),
+    ("FlashSprite", {11320}, None),
+    ("PlaySound", {11550}, None),
+    ("ControlVars", {10220}, None),
     # ProceedWithMovement es "esperá a que termine de caminar": va con las
     # rutas forzadas y sin él no sirven de mucho.
-    ("MoveEvent de otro evento", {11330, 11340}),
-    ("TintScreen con saturación", {11030}),
-    ("ChangeEventLocation", {10860}),
-    ("ConditionalBranch", {12010, 22010, 22011}),
-    ("WeatherEffects", {11070}),
-    ("FullHeal", {10490}),
-    ("PanScreen", {11060}),
-    ("ChangeItems", {10320}),
-    ("FadeOutBGM", {11520}),
-    ("CallEvent", set()),        # el suyo no es un código: es entrar al evento
+    ("MoveEvent de otro evento", {MOVE_EVENT, PROCEED}, mover_otro),
+    ("TintScreen con saturación", {11030}, None),
+    ("ChangeEventLocation", {10860}, None),
+    ("ConditionalBranch", {12010, 22010, 22011}, None),
+    ("WeatherEffects", {11070}, None),
+    ("FullHeal", {10490}, None),
+    ("PanScreen", {11060}, None),
+    ("ChangeItems", {10320}, None),
+    ("FadeOutBGM", {11520}, None),
+    ("CallEvent", set(), None),  # el suyo no es un código: es entrar al evento
 ]
 
 
@@ -74,15 +125,21 @@ def cargar(game_dir):
         if not (nombre.startswith("Map") and nombre.endswith(".lmu")):
             continue
         game_map = lcf.Map(os.path.join(game_dir, nombre))
+        # Los ids de evento del mapa y el del dueño de la página. Hacen falta
+        # para saber si una ruta apunta a algo que existe, y **el id no es el
+        # índice**: 39 mapas de este juego tienen huecos en la numeración.
+        ids = {event.id for event in game_map.events}
         for event in game_map.events:
             for page in event.pages:
                 if (page.trigger == eventos.TRIGGER_AUTOMATICO
                         and page.commands):
+                    page.ids, page.mio = ids, event.id
                     paginas.append(page)
     return paginas, comunes
 
 
-def compila(comandos, extra, con_call, comunes, hondo=0):
+def compila(comandos, extra, con_call, comunes, filtros=(), pagina=None,
+            hondo=0):
     """Como el filtro de `eventos.py`, con `extra` aceptado además.
 
     `con_call` entra al evento común en vez de aceptarlo, que es la única forma
@@ -100,10 +157,16 @@ def compila(comandos, extra, con_call, comunes, hondo=0):
             p = list(cmd.parameters)
             if len(p) < 2 or p[0] != 0 or p[1] not in comunes:
                 return False        # el id sale de una variable, o no existe
-            if not compila(comunes[p[1]], extra, con_call, comunes, hondo + 1):
+            if not compila(comunes[p[1]], extra, con_call, comunes, filtros,
+                           pagina, hondo + 1):
                 return False
             continue
         if cmd.code in extra:
+            # Con filtro, sólo los casos que la ROM va a poder. Sin filtro, el
+            # comando entero, que es el techo.
+            filtro = filtros.get(cmd.code) if filtros else None
+            if filtro is not None and not filtro(cmd, pagina):
+                return False
             continue
         try:
             eventos._compilar(cmd, lambda m: 0, eventos.Mensajes(), lineas)
@@ -121,35 +184,49 @@ def main():
 
     paginas, comunes = cargar(args.game_dir)
 
-    def cuenta(extra, con_call=False):
+    def cuenta(extra, con_call=False, filtros=None):
         return sum(1 for p in paginas
-                   if compila(p.commands, extra, con_call, comunes))
+                   if compila(p.commands, extra, con_call, comunes,
+                              filtros or {}, p))
 
     base = cuenta(set())
     print("%d páginas automáticas con comandos, %d compilan enteras hoy\n"
           % (len(paginas), base))
 
-    filas = [(etiqueta, cuenta(codigos, not codigos), codigos)
-             for etiqueta, codigos in CANDIDATOS]
-    filas.sort(key=lambda f: -f[1])
+    filas = []
+    for etiqueta, codigos, filtro in CANDIDATOS:
+        techo = cuenta(codigos, not codigos)
+        real = (cuenta(codigos, not codigos, {c: filtro for c in codigos})
+                if filtro is not None else None)
+        filas.append((etiqueta, techo, real, codigos, filtro))
+    filas.sort(key=lambda f: -(f[2] if f[2] is not None else f[1]))
 
-    print("cada una sola:")
-    for etiqueta, n, _codigos in filas:
-        print("  %-30s %4d  (+%d)" % (etiqueta, n, n - base))
+    print("cada una sola, como techo y —si hay filtro— como se va a poder:")
+    for etiqueta, techo, real, _codigos, _filtro in filas:
+        print("  %-30s %4d  (+%-3d)%s"
+              % (etiqueta, techo, techo - base,
+                 "  realista %d (+%d)" % (real, real - base)
+                 if real is not None else ""))
 
-    print("\nacumuladas, en ese orden:")
-    juntas, call = set(), False
-    for etiqueta, _n, codigos in filas:
+    print("\nacumuladas, en ese orden y con los filtros puestos:")
+    juntas, call, filtros = set(), False, {}
+    for etiqueta, _techo, _real, codigos, filtro in filas:
         juntas |= codigos
         call = call or not codigos
-        print("  + %-28s %4d" % (etiqueta, cuenta(juntas, call)))
+        if filtro is not None:
+            filtros.update({c: filtro for c in codigos})
+        print("  + %-28s %4d" % (etiqueta, cuenta(juntas, call, filtros)))
 
     corta = collections.Counter()
+    juntas_filtro = filtros
     for p in paginas:
-        if compila(p.commands, juntas, call, comunes):
+        if compila(p.commands, juntas, call, comunes, filtros, p):
             continue
         for cmd, lineas in eventos.agrupar(p.commands):
-            if cmd.code in juntas or cmd.code == CALL_EVENT:
+            if cmd.code == CALL_EVENT:
+                continue
+            if cmd.code in juntas and (juntas_filtro.get(cmd.code) is None
+                                       or juntas_filtro[cmd.code](cmd, p)):
                 continue
             try:
                 eventos._compilar(cmd, lambda m: 0, eventos.Mensajes(), lineas)
