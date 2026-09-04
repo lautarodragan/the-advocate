@@ -568,6 +568,54 @@ snes-destello mapa="6" flash="1 31 0 0 31 24" celda="2 10" cuadros="2 12 15 23 2
         --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
   done
 
+# Hablarle a algo, que es lo que convierte esto en un juego.
+#
+# Hasta acá la ROM sólo corría páginas **automáticas**: 110 de las 489 del
+# juego. Las que se disparan con la tecla de acción son 1599, y 1006 ya
+# compilan. Es, de lejos, la mayor cantidad de contenido que le faltaba.
+#
+# La regla sale de `Game_Player::CheckActionEvent`: se mira la celda del héroe y
+# después la de adelante, y gana la página de número más alto que cumpla sus
+# condiciones. Lo que allá va antes —los eventos que se disparan al tocarlos— y
+# el lazo de hasta tres mostradores todavía no están.
+#
+# El pad de Talan, que es donde el jugador empieza a moverse. El héroe queda
+# parado justo encima del evento 7, que son los caños, y mirando hacia abajo,
+# que es como arranca.
+#
+# El `--switch 24` no es una licencia: **todas** las páginas del pad lo piden, y
+# lo prende la cinemática de apertura. Ponerlo a mano es dejar el mundo en el
+# estado al que el juego llega solo, igual que `--hero-tile` deja al héroe donde
+# llegaría caminando.
+#
+# Los dos cuadros abrazan el momento: en el 20 todavía no se apretó nada y en el
+# 60 el mensaje está abierto. La diferencia entre los dos son 19895 pixeles, así
+# que si la tecla no disparara nada se vería.
+#
+# Y el segundo caso de `snes-hitos` prende el switch **25** en vez del 24, o sea
+# que la página de los caños no queda activa y apretar A no tiene que hacer
+# nada. Es lo único que ejercita que se miren las condiciones: con el 24 puesto
+# se cumplen todas, así que una ROM que las ignorara daría lo mismo.
+snes-hablar mapa="7" celda="3 7" switch="24" apretar="25" cuadros="20 60" arranque="30" nombre="hablar":
+  #!/usr/bin/env bash
+  set -euo pipefail
+  mkdir -p {{snes_pngs}} {{snes_inc}}
+  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
+      --inicio {{celda}} --con-ventana --switch {{switch}} \
+      -o {{snes_inc}}/mapdata.inc
+  just snes-build
+  pre={{snes_pngs}}/{{nombre}}
+  python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
+      --hero-tile {{celda}} --dir down --con-ventana --switch {{switch}} \
+      --cuadros {{cuadros}} --apretar-a {{apretar}} \
+      --saltar $pre-{}.saltar.txt -o $pre-{}.esperado.png
+  for n in {{cuadros}}; do
+    python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre-$n.png \
+        --walk none --cuadros $n --arranque {{arranque}} --apretar-a {{apretar}}
+    python3 tools/snes_compare.py $pre-$n.png $pre-$n.esperado.png \
+        --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
+  done
+
 # El texto del juego, no el que le dictamos a la ROM.
 #
 # Todo lo que hay arriba —`snes-ventana`, `snes-cerrar`, `snes-anclada`— usa

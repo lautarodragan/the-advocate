@@ -1274,6 +1274,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "; Cuántos destellos pueden estar corriendo a la vez.\n"
         "FLASH_MAX   = %d\n"
         "TRIGGER_AUTOMATICO = %d\n"
+        "TRIGGER_ACCION     = %d\n"
         "; Cuántos cuadros dura un paso de una celda. Sale del modelo y no de\n"
         "; una cuenta en la ROM: es lo que los dos lados tienen que contar\n"
         "; igual para que una ruta forzada termine en el mismo cuadro.\n"
@@ -1327,7 +1328,8 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            eventos.OP_ESPERAR, eventos.OP_TINTE, eventos.OP_GRUPO,
            eventos.OP_RUTA, eventos.OP_MENSAJE, eventos.OP_RUTAS,
            eventos.OP_FLASH, FLASH_MAX,
-           eventos.TRIGGER_AUTOMATICO, eventos.CUADROS_POR_CELDA,
+           eventos.TRIGGER_AUTOMATICO, eventos.TRIGGER_ACCION,
+           eventos.CUADROS_POR_CELDA,
            eventos.TINTE_NEUTRO, SWITCH_BYTES,
            eventos.GRUPO_MAX, len(grupo_inicial), ACTOR_BYTES,
            rm2k.LAYER_SAME,
@@ -1718,6 +1720,11 @@ def main():
                              "que los ShowMessage del juego compilen, y lo "
                              "que se lo cobra a los tiles del mapa —tres "
                              "mapas del juego no pueden llevarla—")
+    parser.add_argument("--switch", nargs="+", type=int, default=None,
+                        metavar="N",
+                        help="prende estos switches desde la página de prueba, "
+                             "que es la forma de poner al mundo en un estado al "
+                             "que el juego llega más tarde")
     parser.add_argument("--flash-de-prueba", nargs=6, type=int, default=None,
                         metavar=("BLANCO", "R", "G", "B", "POTENCIA", "CUADROS"),
                         help="hace destellar a alguien desde la página de "
@@ -1840,7 +1847,7 @@ def main():
         paginas = eventos.paginas_del_mapa(mapa["game_map"], indices.get,
                                            mensajes)
         if (args.pagina_de_prueba or args.ruta_de_prueba
-                or args.ruta_de_evento or args.flash_de_prueba
+                or args.ruta_de_evento or args.flash_de_prueba or args.switch
                 or args.mensaje_de_prueba is not None) \
                 and mapa is mapas[args.inicial]:
             # La página inventada, sólo en el mapa donde arranca la ROM. No sale
@@ -1857,7 +1864,7 @@ def main():
                 "codigo": eventos.pagina_de_prueba(
                     espera, tinte, args.ruta_de_prueba or (), prueba,
                     ruta_de_evento(args.ruta_de_evento),
-                    args.flash_de_prueba or ())}]
+                    args.flash_de_prueba or (), args.switch or ())}]
         codigo = bytearray()
         for pagina in paginas:
             pagina["offset"] = len(codigo)

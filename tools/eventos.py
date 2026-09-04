@@ -196,7 +196,33 @@ CELDA_PX = 16
 WALK_SPEED = 2
 CUADROS_POR_CELDA = CELDA_PX // WALK_SPEED
 
+# Qué dispara una página. Los de `rpg::EventPage::Trigger` de liblcf.
+TRIGGER_ACCION = 0          # el jugador aprieta la tecla de acción enfrente
+TRIGGER_TOCA_HEROE = 1      # el héroe camina encima
+TRIGGER_TOCA_EVENTO = 2
 TRIGGER_AUTOMATICO = 3
+TRIGGER_PARALELO = 4
+
+# Los que la ROM sabe disparar. El resto de las páginas de un evento se emiten
+# igual —hacen falta para saber cuál está activa— pero sin código.
+TRIGGERS = (TRIGGER_ACCION, TRIGGER_AUTOMATICO)
+
+# Un evento con gráfico **gira hacia el héroe** cuando le hablás, salvo que
+# tenga la dirección fija: es el `SetFacing(GetDirectionToCharacter(GetPlayer()))`
+# de `Game_Event::ScheduleForegroundExecution`. Eso se ve, y pide sus cuatro
+# poses paradas en la VRAM, así que por ahora esas páginas no compilan.
+#
+# No es un recorte grande, y está medido: de las 1006 páginas de tecla de acción
+# que compilarían, 474 son sobre eventos sin gráfico y 394 más sobre eventos con
+# la dirección fija, que tampoco giran. Quedan 138 afuera.
+#
+# Los tipos de animación con la dirección fija son los `fixed_*` de
+# `rpg::EventPage::AnimType`, más `spin`, que gira solo y tampoco obedece.
+ANIM_FIJAS = (2, 3, 4, 5)
+
+# Sólo los eventos que están en la capa del héroe se disparan con la tecla de
+# acción: es el `GetLayer() == Layers_same` de `CheckEventTriggerThere`.
+LAYER_MISMA = 1
 
 # El tinte de RM2k va de 0 a 200 con 100 como neutro. En la ROM se guarda tal
 # cual y se aplica al subir la paleta.
@@ -381,6 +407,20 @@ def agrupar(comandos):
                 j += 1
         yield comandos[i], [c.string for c in comandos[i + 1:j]]
         i = j
+
+
+def puede_dispararse(page):
+    """Si la ROM sabe disparar esta página, aparte de si sus comandos compilan.
+
+    Una de tecla de acción tiene que estar en la capa del héroe —lo pide
+    `CheckEventTriggerThere`— y no puede tener que girar hacia él, que es lo que
+    todavía no se dibuja.
+    """
+    if page.trigger != TRIGGER_ACCION:
+        return True
+    if page.layer != LAYER_MISMA:
+        return False
+    return not page.character_name or page.animation_type in ANIM_FIJAS
 
 
 def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None):
@@ -744,6 +784,17 @@ class Estado:
         self.flashes = {}
         self.pos_ev = dict(posiciones)
 
+    def evento_en(self, celda):
+        """Qué evento está parado en esa celda, o None.
+
+        Los eventos que no se pueden disparar están en la tabla igual: lo que
+        decide es la página activa, y eso lo mira quien llama.
+        """
+        for indice, donde in self.pos_ev.items():
+            if donde == celda:
+                return indice
+        return None
+
     def ruta_de_evento(self, indice):
         if indice not in self.rutas_ev:
             self.rutas_ev[indice] = Ruta()
@@ -909,7 +960,7 @@ def pagina_activa(paginas, evento, estado):
 
 
 def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
-                    flash=()):
+                    flash=(), switches=()):
     """Una página automática inventada: una ruta forzada, una espera, un tinte.
 
     No sale de ningún dato del juego, y ésa es la idea. El intérprete corre
@@ -938,6 +989,12 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
     que la pantalla cambia de color es el cuadro en que la ruta terminó.
     """
     codigo = b""
+    for numero in switches:
+        # Prender switches a mano pone al mundo en un estado al que el juego
+        # llega más tarde. Hace falta para probar lo que depende de ellos sin
+        # jugar hasta ahí: todas las páginas del pad de Talan piden el 24, que
+        # prende la cinemática de apertura.
+        codigo += bytes([OP_SWITCH, numero & 0xFF, numero >> 8, 1])
     if ruta:
         codigo += bytes([OP_RUTA, 0, len(ruta)]) + bytes(ruta)
     if flash:
@@ -989,9 +1046,41 @@ class Interprete:
                     and pagina["trigger"] == TRIGGER_AUTOMATICO
                     and pagina["codigo"]):
                 self.cola.append(pagina["codigo"])
+        self.paginas = paginas
         self.codigo = None
         self.cursor = 0
         self.esperando = 0
+
+    def ocupado(self):
+        """Si hay una página corriendo o esperando su turno."""
+        return self.codigo is not None or bool(self.cola)
+
+    def probar_accion(self, x, y, mirando, estado):
+        """La tecla de acción: el evento de la celda propia y el de enfrente.
+
+        El orden sale de `Game_Player::CheckActionEvent`: primero la celda del
+        héroe —`CheckEventTriggerHere`— y después la de adelante. Los eventos
+        que se disparan al tocarlos van antes que los dos, pero eso todavía no
+        está, así que acá no aparece.
+
+        Lo de "hasta tres mostradores" tampoco: son las celdas de tipo counter,
+        que hacen que se pueda hablar del otro lado de un mostrador. Ver
+        `CheckActionEvent`.
+
+        Devuelve True si encontró algo que disparar.
+        """
+        dx, dy = RUTA_PASOS[mirando]
+        for celda in ((x, y), (x + dx, y + dy)):
+            indice = estado.evento_en(celda)
+            if indice is None:
+                continue
+            pagina = pagina_activa(self.paginas, indice, estado)
+            if (pagina is not None
+                    and pagina["trigger"] == TRIGGER_ACCION
+                    and pagina["codigo"]):
+                self.cola.append(pagina["codigo"])
+                return True
+        return False
 
     @property
     def terminado(self):
@@ -1213,17 +1302,17 @@ def deudas_de_la_pagina(page):
 
 
 def paginas_del_mapa(game_map, indice_de_mapa, mensajes=None):
-    """Las páginas que la ROM necesita para resolver los eventos automáticos.
+    """Las páginas que la ROM necesita para resolver los eventos del mapa.
 
-    Se emiten *todas* las páginas de un evento que tenga alguna automática, no
-    sólo las automáticas: cuál queda activa depende de las condiciones de todas
-    ellas, y una página posterior que no sea automática igual gana y le impide
-    correr a la de más abajo.
+    Se emiten *todas* las páginas de un evento que tenga alguna disparable, no
+    sólo ésas: cuál queda activa depende de las condiciones de todas ellas, y
+    una página posterior que no dispare nada igual gana y le impide correr a la
+    de más abajo.
     """
     salida = []
     del_mapa = Eventos(game_map)
     for numero_evento, event in enumerate(game_map.events):
-        if not any(page.trigger == TRIGGER_AUTOMATICO for page in event.pages):
+        if not any(page.trigger in TRIGGERS for page in event.pages):
             continue
 
         # Si alguna página del evento pide una condición que la ROM no sabe
@@ -1238,7 +1327,7 @@ def paginas_del_mapa(game_map, indice_de_mapa, mensajes=None):
         for numero_pagina, page in enumerate(event.pages):
             cond = page.condition
             codigo = None
-            if page.trigger == TRIGGER_AUTOMATICO:
+            if page.trigger in TRIGGERS and puede_dispararse(page):
                 codigo = compilar_pagina(page, indice_de_mapa, mensajes,
                                          del_mapa.para(event.id))
             grupo.append({
@@ -1251,7 +1340,7 @@ def paginas_del_mapa(game_map, indice_de_mapa, mensajes=None):
                 "codigo": codigo,
             })
 
-        # Un evento cuyas páginas automáticas no se pueden compilar no aporta
+        # Un evento cuyas páginas disparables no se pueden compilar no aporta
         # nada: sin código no hay nada que ejecutar y sólo ocuparía tabla.
         if any(p["codigo"] for p in grupo):
             salida += grupo

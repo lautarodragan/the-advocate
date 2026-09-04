@@ -765,6 +765,8 @@ cero:
     sta cam_max_x
     lda mapa_tabla + M_CAM_MAX_Y, x
     sta cam_max_y
+    lda mapa_tabla + M_EV_COUNT, x
+    sta ev_total
     lda mapa_tabla + M_NPC_COUNT, x
     asl a
     asl a                       ; por cuatro
@@ -971,6 +973,27 @@ sin_mensaje:
     lda ev_activo
     bne corriendo
     ; No hay página a medio correr: se toma la siguiente de la cola.
+    lda cola_i
+    cmp cola_n
+    bne hay_en_cola
+
+    ; La cola está vacía, así que el flanco de A es para hablar. En RM2k es el
+    ; mismo botón que cierra un mensaje y que confirma, y el orden importa: con
+    ; un mensaje abierto el jugador no se actualiza —arriba se sale por
+    ; `no_avanza`— así que no puede hablarle a nadie mientras lee.
+    ;
+    ; Y sólo con el héroe quieto: `CheckActionEvent` cuelga del `if
+    ; (IsStopping())` de `Game_Player::UpdateNextMovementAction`.
+    lda pad_a
+    beq nada
+    lda pad_a_ant
+    bne nada                    ; ya lo tenía apretado: no es un flanco
+    lda step_left
+    bne nada                    ; a mitad de un paso no se habla
+    jsr probar_accion
+    beq nada
+    ; Encoló algo: se toma en este mismo cuadro.
+hay_en_cola:
     lda cola_i
     cmp cola_n
     beq nada                    ; no queda ninguna
@@ -1244,6 +1267,15 @@ falla:
     lda elegida_trigger
     cmp #TRIGGER_AUTOMATICO
     bne no
+    jmp encolar_elegida
+no:
+    rts
+.endproc
+
+; La parte de encolar, que comparten los automáticos y la tecla de acción.
+.proc encolar_elegida
+.a8
+.i16
     lda elegida
     ora elegida + 1
     ora elegida + 2
@@ -2813,6 +2845,219 @@ fin:
     sep #$20
 .a8
     rts
+.endproc
+
+; --- la tecla de acción -----------------------------------------------------
+;
+; Hablarle a algo. Es lo que convierte a esto en un juego y no en una cinemática:
+; de las 1599 páginas de este juego que se disparan así, 1006 ya compilan, contra
+; 110 automáticas.
+;
+; La regla sale de `Game_Player::CheckActionEvent`: se mira la celda del héroe y
+; después la de adelante. Lo que allá va antes —los eventos que se disparan al
+; tocarlos— todavía no está, y el lazo de hasta tres mostradores tampoco.
+
+; ¿Hay un evento en (celda_x, celda_y)? Devuelve su índice en A, o $FF.
+.proc evento_en_celda
+.a8
+.i16
+    ldy #$0000
+    ldx #$0000
+buscar:
+    cpx ev_total
+    beq no_hay
+    rep #$20
+.a16
+    lda ev_pos_buf, y
+    cmp celda_x
+    bne siguiente
+    lda ev_pos_buf + 2, y
+    cmp celda_y
+    bne siguiente
+    sep #$20
+.a8
+    txa                         ; el índice cabe en un byte: EV_MAX es 128
+    rts
+siguiente:
+.a16                            ; se llega en dieciséis, del `bne` de arriba
+    tya
+    clc
+    adc #EV_STRIDE
+    tay
+    sep #$20
+.a8
+    inx
+    bra buscar
+no_hay:
+    lda #$FF
+    rts
+.endproc
+
+; Encola la página activa del evento `ev_buscado` si la dispara la tecla de
+; acción. Devuelve A distinto de cero si encoló algo.
+;
+; Es la misma regla de selección que `encolar_eventos` —gana la de número más
+; alto que cumpla sus condiciones— pero para un evento solo, y sin tocar el
+; cursor de la cola de los automáticos.
+.proc encolar_por_accion
+.a8
+.i16
+    ldx mapa_ofs
+    rep #$20
+.a16
+    lda mapa_tabla + M_PAGINA_COUNT, x
+    beq sin_paginas
+    sta pag_restan
+    lda mapa_tabla + M_PTR_PAGINAS, x
+    sta pag_ptr
+    stz pag_ofs
+    sep #$20
+.a8
+    lda mapa_tabla + M_PTR_PAGINAS + 2, x
+    sta pag_ptr + 2
+    stz elegida_hay
+
+recorrer:
+    jsr leer_pagina
+    rep #$20
+.a16
+    lda pg_evento
+    cmp ev_buscado
+    sep #$20
+.a8
+    bne siguiente               ; no es el evento que estamos mirando
+    jsr condiciones_ok
+    beq siguiente
+    lda pg_trigger
+    sta elegida_trigger
+    rep #$20
+.a16
+    lda pg_cod
+    sta elegida
+    sep #$20
+.a8
+    lda pg_cod + 2
+    sta elegida + 2
+    lda #1
+    sta elegida_hay
+
+siguiente:
+    rep #$20
+.a16
+    lda pag_ofs
+    clc
+    adc #PAGINA_BYTES
+    sta pag_ofs
+    dec pag_restan
+    sep #$20
+.a8
+    bne recorrer
+
+    lda elegida_hay
+    beq no
+    lda elegida_trigger
+    cmp #TRIGGER_ACCION
+    bne no
+    lda elegida
+    ora elegida + 1
+    ora elegida + 2
+    beq no                      ; la página activa no se pudo compilar
+    jsr encolar_elegida
+    lda #1
+    rts
+no:
+    lda #0
+    rts
+sin_paginas:
+.a16                            ; se llega en dieciséis; el `sep` lo achica
+    sep #$20
+.a8
+    lda #0
+    rts
+.endproc
+
+; La celda que trae (celda_x, celda_y): si hay un evento y su página activa la
+; dispara la tecla, se encola. Devuelve A distinto de cero si encoló.
+.proc accion_en_celda
+.a8
+.i16
+    jsr evento_en_celda
+    cmp #$FF
+    beq no
+    rep #$20
+.a16
+    and #$00FF
+    sta ev_buscado
+    sep #$20
+.a8
+    jmp encolar_por_accion
+no:
+    lda #0
+    rts
+.endproc
+
+; La tecla de acción, desde el lazo principal.
+.proc probar_accion
+.a8
+.i16
+    ; La celda del héroe primero, que es el orden de `CheckActionEvent`.
+    rep #$20
+.a16
+    lda tile_x
+    sta celda_x
+    lda tile_y
+    sta celda_y
+    sep #$20
+.a8
+    jsr accion_en_celda
+    beq de_adelante
+    rts
+
+de_adelante:
+    ; Y la de adelante, según hacia dónde mira.
+    rep #$20
+.a16
+    lda tile_x
+    sta celda_x
+    lda tile_y
+    sta celda_y
+    sep #$20
+.a8
+    lda hero_dir
+    cmp #DIR_UP
+    bne no_arriba
+    rep #$20
+.a16
+    dec celda_y
+    sep #$20
+.a8
+    bra mirar
+no_arriba:
+    cmp #DIR_DOWN
+    bne no_abajo
+    rep #$20
+.a16
+    inc celda_y
+    sep #$20
+.a8
+    bra mirar
+no_abajo:
+    cmp #DIR_LEFT
+    bne no_izquierda
+    rep #$20
+.a16
+    dec celda_x
+    sep #$20
+.a8
+    bra mirar
+no_izquierda:
+    rep #$20
+.a16
+    inc celda_x
+    sep #$20
+.a8
+mirar:
+    jmp accion_en_celda
 .endproc
 
 ; --- los destellos ----------------------------------------------------------
@@ -6286,6 +6531,11 @@ flash_buf: .res 32
 ; con `[dp], y`, y ahí quedan doce bytes contados.
 celda_x:  .res 2
 celda_y:  .res 2
+; Cuántos eventos tiene el mapa —para buscarlos por celda— y cuál se está
+; mirando. Van acá y no en la página directa porque se leen con
+; direccionamiento absoluto.
+ev_total:   .res 2
+ev_buscado: .res 2
 ; La fila del NPC que se está refrescando, y dónde queda en pixeles.
 npc_fila: .res 2
 npc_px:   .res 2

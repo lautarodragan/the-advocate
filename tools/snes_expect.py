@@ -134,7 +134,8 @@ class Mundo:
                                               self.prueba[1] or (),
                                               self.prueba[2],
                                               self.prueba[3],
-                                              self.prueba[4]))]
+                                              self.prueba[4],
+                                              self.prueba[5]))]
             self.paginas_cache[map_id] = paginas
         return self.paginas_cache[map_id]
 
@@ -212,7 +213,7 @@ def cuadro_de_eventos(estado, passable, game_map):
 
 
 def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
-                   apretar_a=None):
+                   apretar_a=None, mirando=None):
     """Entra a un mapa y le corre los eventos automáticos, como `cargar_mapa`.
 
     Primero se para al héroe —donde diga la puerta o el teletransporte que nos
@@ -275,7 +276,17 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
                 # botón sostenido. El emulador aprieta en el mismo número y lo
                 # deja apretado, que es lo mismo mientras nadie espere un
                 # segundo flanco.
-                if interprete.cuadro(apreto_a=(n == apretar_a)):
+                apreta = n == apretar_a
+                if apreta and estado.mensaje is None \
+                        and not interprete.ocupado() and mirando is not None:
+                    # La tecla de acción, que es la misma que cierra un
+                    # mensaje. Con un mensaje abierto lo cierra y nada más: en
+                    # RM2k el jugador no se actualiza mientras `Game_Message`
+                    # esté activo, así que no puede hablarle a nadie. Y el mismo
+                    # flanco no hace las dos cosas.
+                    if interprete.probar_accion(x, y, mirando, estado):
+                        apreta = False
+                if interprete.cuadro(apreto_a=apreta):
                     salto = estado.salto
                     break
                 x, y = paso_de_ruta(estado, passable, game_map, x, y)
@@ -283,7 +294,11 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
                 if interprete.terminado and not estado.ruta \
                         and not estado.paso_cuadros \
                         and not estado.cuadros_moviendose \
-                        and not estado.algo_corriendo():
+                        and not estado.algo_corriendo() \
+                        and (apretar_a is None or n >= apretar_a):
+                    # Y no se corta antes de que el jugador apriete: si el mapa
+                    # no tiene nada que correr, el lazo terminaba en el primer
+                    # cuadro y la tecla no llegaba a existir.
                     break
         if salto is None:
             return map_id, x, y
@@ -295,7 +310,7 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
 
 
 def hero_position(mundo, estado, map_id, direction_name, inicio=None,
-                  avance=None, cuadros=None, apretar_a=None):
+                  avance=None, cuadros=None, apretar_a=None, mirando=None):
     """En qué mapa y en qué celda termina el héroe, y hacia dónde mira.
 
     No se estima: se entra al mapa como entra la ROM —corriéndole los eventos—
@@ -307,7 +322,7 @@ def hero_position(mundo, estado, map_id, direction_name, inicio=None,
     Devuelve (mapa, x, y, dirección) con x e y en pixeles.
     """
     map_id, x, y = entrar_al_mapa(mundo, estado, map_id, inicio, cuadros,
-                                  apretar_a)
+                                  apretar_a, mirando)
     step = WALK[direction_name]
     direction = DIRECTIONS.get(direction_name, DIRECTIONS["down"])
     if estado.mensaje is not None:
@@ -560,6 +575,11 @@ def main():
                         help="en qué cuadro el jugador aprieta A, que es lo "
                              "que cierra un mensaje. El otro lado del mismo "
                              "flag de snes_correr.py")
+    parser.add_argument("--switch", nargs="+", type=int, default=None,
+                        metavar="N",
+                        help="prende estos switches desde la página de prueba, "
+                             "que es la forma de poner al mundo en un estado al "
+                             "que el juego llega más tarde")
     parser.add_argument("--flash-de-prueba", nargs=6, type=int, default=None,
                         metavar=("BLANCO", "R", "G", "B", "POTENCIA", "CUADROS"),
                         help="hace destellar a alguien desde la página de "
@@ -629,7 +649,7 @@ def main():
         sys.exit("--inicial %d pero la tabla tiene %d mapas"
                  % (args.inicial, len(tabla)))
     hay_prueba = (args.pagina_de_prueba or args.ruta_de_prueba
-                  or args.ruta_de_evento or args.flash_de_prueba
+                  or args.ruta_de_evento or args.flash_de_prueba or args.switch
                   or args.mensaje_de_prueba is not None)
     # El bloque de textos, armado igual que en el conversor y en el mismo orden:
     # el mensaje de prueba primero —desplazamiento 0— y después los mapas de la
@@ -640,7 +660,7 @@ def main():
     mundo = Mundo(renderer, args.game_dir, tabla,
                   (args.pagina_de_prueba, args.ruta_de_prueba, prueba,
                    snes_convert.ruta_de_evento(args.ruta_de_evento),
-                   args.flash_de_prueba or ())
+                   args.flash_de_prueba or (), args.switch or ())
                   if hay_prueba else None, mensajes)
 
     # Los CharSets y los mapas ya convertidos se comparten entre las
@@ -737,7 +757,9 @@ def main():
                                                        tabla[args.inicial],
                                                        walk, inicio,
                                                        avance, cuadros,
-                                                       args.apretar_a)
+                                                       args.apretar_a,
+                                                       DIRECTIONS[args.dir]
+                                                       if args.dir else None)
         if args.hero_tile and args.dir:
             direction = DIRECTIONS[args.dir]
 

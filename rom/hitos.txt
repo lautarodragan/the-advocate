@@ -41,6 +41,8 @@ snes-texto
 snes-ruta-evento
 snes-npc
 snes-destello
+snes-hablar
+snes-hablar 7 "3 7" 25 25 "20 60" 30 hablar-sin-switch
 snes-cerrar
 snes-cerrar 7 200 cerrar-right right
 snes-ventana 1 ventana-1

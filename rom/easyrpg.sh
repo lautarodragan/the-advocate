@@ -3,6 +3,17 @@
 #
 #   rom/easyrpg.sh MAPA SEGUNDOS SALIDA      (AVANZAR=1 para pasar de página)
 #
+# Y con variables de entorno, lo que el player acepta para depurar:
+#
+#   CELDA="70 97"   dónde arranca el héroe, con --start-position
+#   GRUPO="11"      con qué actores, con --start-party
+#   TECLAS="Down"   qué teclas mandarle, una por segundo, en vez de Enter
+#   EXTRA="..."     cualquier otro argumento suelto
+#
+# `--start-position` es lo que hace posible pedirle una escena concreta en vez
+# de esperar a que el juego llegue sola: sin eso, mirar dos NPCs que se tapan en
+# la fila 98 del mapa 1 pedía jugar hasta ahí.
+#
 # Es el único oráculo externo que tiene este repo. Todo lo demás se compara
 # contra nuestra propia referencia en Python, y ahí vale la trampa de siempre:
 # si los dos lados se equivocan igual, la comparación da cero. Una captura del
@@ -49,6 +60,8 @@ XVFB=$!
 sleep 2
 DISPLAY=:99 "$ERPG/easyrpg-player" --project-path "$JUEGO" \
     --rtp-path /extras/rtp --new-game --start-map-id "$MAPA" --window \
+    ${CELDA:+--start-position $CELDA} ${GRUPO:+--start-party $GRUPO} \
+    ${EXTRA:-} \
     --no-vsync ${FPS:+--fps-limit $FPS} --config-path "$CFG" \
     --save-path "$SALIDA" \
     </dev/null >"$CFG/log" 2>&1 &
@@ -62,7 +75,11 @@ sleep 12                        # que cargue la base y el mapa
 VENTANA=$(DISPLAY=:99 xdotool search --name "EasyRPG" | tail -1)
 for _ in $(seq 1 "$SEGUNDOS"); do
     sleep 1
-    if [ "${AVANZAR:-0}" = "1" ]; then
+    if [ -n "${TECLAS:-}" ]; then
+        for t in $TECLAS; do
+            DISPLAY=:99 xdotool key --window "$VENTANA" "$t" 2>/dev/null
+        done
+    elif [ "${AVANZAR:-0}" = "1" ]; then
         DISPLAY=:99 xdotool key --window "$VENTANA" Return 2>/dev/null
     fi
 done

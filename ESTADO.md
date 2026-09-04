@@ -813,6 +813,44 @@ volvió a la normal.
 Verificada rompiéndola: con la fuerza siempre plena da 110 pixeles, subiendo la
 paleta fuera del vblank 127, y sin teñir la paleta del destello 127.
 
+**Hecho el 2026-09-04: la tecla de acción.** Hablarle a algo. Es el cambio más
+grande del port hasta ahora, y no por lo que costó sino por lo que abre: la ROM
+corría **páginas automáticas**, que son 489 y de las que compilan 110. Las que
+se disparan con la tecla de acción son **1599, y 1006 ya compilan**. Sin esto
+la ROM era una cinemática; con esto es un juego.
+
+La regla sale de `Game_Player::CheckActionEvent`: se mira la celda del héroe y
+después la de adelante, y en cada una gana la página de número más alto que
+cumpla sus condiciones. Lo que allá va antes —los eventos que se disparan al
+tocarlos— y el lazo de hasta tres mostradores no están todavía.
+
+Dos cosas que se decidieron mirando la fuente:
+
+* **Un evento con gráfico gira hacia el héroe cuando le hablás**, salvo que
+  tenga la dirección fija: es el `SetFacing(GetDirectionToCharacter(GetPlayer()))`
+  de `Game_Event::ScheduleForegroundExecution`. Eso se ve, y pide sus poses
+  paradas en la VRAM, así que **esas páginas todavía no compilan**. Está medido
+  y el recorte es chico: de las 1006, 474 son sobre eventos sin gráfico y 394
+  más sobre eventos con la dirección fija. Quedan 138 afuera.
+* **Con un mensaje abierto no se puede hablar.** El mismo botón cierra el
+  mensaje, y en RM2k el jugador no se actualiza mientras `Game_Message` esté
+  activo. El mismo flanco no hace las dos cosas.
+
+Lo prueba `snes-hablar`, en el pad de Talan, que es donde el jugador empieza a
+moverse: el héroe queda parado encima de los caños y apretar A abre "TALAN /
+These pipes are ugly." Los dos cuadros abrazan el momento y difieren en 19895
+pixeles.
+
+Y un segundo caso con el switch **equivocado**, que es lo único que ejercita
+que se miren las condiciones: con el 24 puesto se cumplen todas, así que una ROM
+que las ignorara daría lo mismo. Verificado rompiéndolo: sin mirar la celda de
+adelante da 19895 pixeles, y sin mirar las condiciones el segundo caso también.
+
+De paso apareció `--switch`, que prende switches desde la página de prueba.
+**Todas** las páginas del pad piden el 24, que lo prende la cinemática: ponerlo
+a mano deja al mundo en el estado al que el juego llega solo, igual que
+`--hero-tile` deja al héroe donde llegaría caminando.
+
 **Después: la cinemática de apertura.**
 El mapa 4 ya prende el switch 20, que es la condición de la página que abre el
 mapa 1, así que el enganche funciona. De los cuatro comandos que le faltaban ya
