@@ -395,6 +395,7 @@ class Assembler:
         self.origen = "?"       # de qué línea salió lo último que se agregó
         self.symbols = {}
         self.pending = []       # (segmento, índice del item, nombre) de etiquetas
+        self.definidas = set()  # para que una repetida no pase en silencio
         self.zeropage = set()   # nombres que viven en la página directa
         self.scope = ""         # el .proc en curso, para las etiquetas locales
         self.anonymous = []     # (segmento, índice) de cada `:`
@@ -471,6 +472,16 @@ class Assembler:
 
     def label(self, name):
         full = self.scope + name if self.scope else name
+        # Una etiqueta repetida siempre es un error, y hasta acá pasaba en
+        # silencio: las dos quedaban en `pending` y ganaba la última. Así
+        # main.s llegó a declarar cinco variables de la ventana dos veces, con
+        # diez bytes de página cero muertos que nadie usaba y nada que lo
+        # dijera. El nombre lleva el `.proc` adelante, así que dos `loop:` en
+        # procedimientos distintos siguen siendo dos etiquetas distintas.
+        if full in self.definidas:
+            raise Error("la etiqueta %r está definida dos veces (%s)"
+                        % (full, self.origen))
+        self.definidas.add(full)
         self.pending.append((self.segment, len(self.items[self.segment]), full))
         if self.segment == ZP_SEGMENT:
             self.zeropage.add(full)

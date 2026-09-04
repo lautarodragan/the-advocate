@@ -193,11 +193,6 @@ ventana_ofs: .res 2     ; en qué byte de `ventana_celdas` va el estampado
 ventana_src: .res 2     ; y dentro de la fila, mientras se parte en tramos
 ventana_resta: .res 2   ; cuántas celdas de la fila faltan
 ventana_tramo: .res 2   ; cuántas entran en este tramo
-franja_fila: .res 2     ; qué fila de la franja de la ventana se está armando
-ventana_ofs: .res 2     ; en qué byte de `ventana_celdas` va el estampado
-ventana_src: .res 2     ; y dentro de la fila, mientras se parte en tramos
-ventana_resta: .res 2   ; cuántas celdas de la fila faltan
-ventana_tramo: .res 2   ; cuántas entran en este tramo
 hero_ptr:   .res 3      ; y en qué celda de la grilla, como puntero: se mueve
                         ; con él en vez de recalcularse
 step_left:  .res 1      ; pixeles que faltan del paso en curso, 0 si no hay
@@ -2836,49 +2831,6 @@ con_columna:
     sta temp + 2
     bra tramo
 fin:
-    sep #$20
-.a8
-    rts
-.endproc
-
-; Redibuja las diez filas de tilemap que tapa la ventana de mensaje, en las dos
-; capas, desde los datos del mapa. Es lo que hay que correr al cerrar un mensaje:
-; mientras estuvo abierto esas celdas llevaban la ventana y lo que había debajo
-; se perdió.
-;
-; No arma nada nuevo: usa `build_row` y `push_strips`, que son los mismos que
-; usa el scroll cuando entra una fila por el borde. La única diferencia es que
-; acá se piden diez filas de una y no la que acaba de entrar.
-;
-; Se apoya en que el ancla de bloques —`win_block` y `celdas`— ya esté puesta
-; para la cámara de este cuadro, que es lo que dejan `fill_window` y
-; `stream_map`. Las diez filas caen adentro de la ventana visible, así que
-; `build_row` las alcanza desde el ancla sin moverla.
-.proc redibujar_franja
-.a8
-.i16
-    rep #$20
-.a16
-    stz col_addr                ; `push_strips` mira las dos: si quedó una
-    stz row_addr                ; columna vieja acá, la subiría de nuevo
-    lda win_row
-    clc
-    adc #VENTANA_FILA
-    sta franja_fila
-    ldy #VENTANA_FILAS
-franja:
-    phy
-    ldx franja_fila
-    jsr build_row
-    sep #$20
-.a8
-    jsr push_strips
-    rep #$20
-.a16
-    inc franja_fila
-    ply
-    dey
-    bne franja
     sep #$20
 .a8
     rts
