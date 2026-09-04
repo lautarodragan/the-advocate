@@ -10,6 +10,79 @@ es la misma operación con pérdida que compactar, sólo que a un archivo.
 
 Última vez que se tocó: 2026-09-04.
 
+## Lo próximo, con el trabajo ya hecho: apagar el tinte de la apertura
+
+Esto es un traspaso, escrito el 2026-09-04 al final de una sesión larga. **No
+hay código a medias**: el árbol está limpio en `6e9e34b`. Lo que sigue es la
+investigación ya hecha, para no repetirla.
+
+Lo pidió taro después de jugar `rom/build/demo-musica/demo-musica.sfc`: la
+pantalla se queda azul para siempre. El azul lo pone la página automática del
+mapa 4 —`TintScreen (0, 0, 100)`— y **no lo apaga ningún `TintScreen` suelto**.
+Lo apaga el **evento 2 del mapa 1**, en la celda (59,46), que es justo donde la
+cinemática deja parado al jugador: su `TintScreen` neutro es el segundo de sus
+**89 comandos**, porque esa página es la escena de apertura entera —Core y Manta
+apareciendo, el droide de seguridad, Kersh explicando su alias—. Relevados los
+mapas 1 y 2 enteros, **es la única página que devuelve el tinte a neutro**. No
+hay atajo.
+
+El disparo por contacto sí anda: `just snes-pisar 1 "59 49" up 300 60` camina
+sobre el evento 6, que está en la celda de al lado y compila, y abre su mensaje
+con **0 pixeles** de diferencia. Lo que falla es que la página del evento 2 no
+compila. Le faltan cinco cosas, en el orden en que conviene hacerlas:
+
+1. **La ventana de mensaje en una ROM de varios mapas.** La página tiene 44
+   `ShowMessage`. Hoy el conversor la rechaza con *"los mapas de esta ROM le dan
+   a la capa de encima paletas distintas ([4, 7])"*: las celdas de la ventana se
+   emiten una sola vez con los bits de paleta adentro, así que todos los mapas
+   tienen que coincidir. El culpable es el **mapa 4**, que la arranca en la 7
+   mientras el 1 y el 2 la arrancan en la 4 — y el mapa 4 es una habitación
+   negra de **un solo color**, así que forzarlo a la 4 no le cuesta nada. La
+   idea es que `above[3]` sea el mínimo común de la ROM y no el que elige cada
+   mapa por su cuenta. El costo es el de siempre de la ventana, ya medido:
+   el mapa 1 fusiona **2 colores** de 49 y el mapa 2 fusiona **13** de 60.
+2. **El disparo por contacto al terminar una ruta forzada.** RM2k no mira los
+   contactos mientras corre una ruta —`!IsMoveRouteOverwritten()` en
+   `Game_Player::UpdateMovement`— pero **sí en el último paso**, porque cuando
+   la última orden es un movimiento RPG_RT cancela la ruta antes de chequear;
+   está comentado en `game_character.cpp`. Nuestra ROM no tiene ese guard:
+   `probar_contacto` corre al final de **todos** los pasos, así que dispararía
+   en los intermedios, y la referencia no dispara en ninguno —su
+   `contacto_al_pisar` sólo cuelga del camino de la caminata con el pad—. Hoy no
+   molesta porque sin ventana no hay página que disparar; salta en cuanto entre
+   el punto 1. Hay que hacerlo **de los dos lados**: en la ROM alcanza con
+   saltear si al héroe le queda ruta (`ruta_i < ruta_n`, `ruta_espera` o
+   `ruta_salto`), y en la referencia hay que **agregar** la llamada al terminar
+   el último paso de una ruta.
+3. **`ChangeEventLocation`**, que aparece 6 veces en esa página: es lo que
+   planta a Core y a Manta en escena. Destraba además +5 páginas automáticas en
+   el resto del juego, que es lo tercero que más rinde.
+4. **`face_hero`** (orden de ruta 21), en dos de sus rutas. Es justo el giro que
+   quedó afuera en `a95ac7f`, y sigue bloqueado por lo mismo: el mirado inicial
+   de un evento tiene que salir de su página en los dos lados, en vez del
+   centinela `RUTA_EV_SIN_MIRAR` que hay hoy. Son +3 páginas.
+5. **Frecuencia de ruta distinta de 8.** Una de sus rutas usa la 4, que son
+   `1 << (9 - 4)` = 32 cuadros de espera entre orden y orden. Es lo que
+   `_compilar` rechaza a propósito desde `a95ac7f`, y modelarlo es lo que
+   destraba este caso.
+
+Hecha la cadena no se apaga sólo el tinte: se ve la escena de apertura entera.
+
+### Las ROMs con nombre que quedaron
+
+Todas verificadas contra la referencia y todas armadas con recetas, no a mano:
+
+    rom/build/demo-timer/      el cronómetro sobre el mapa 6 teñido
+    rom/build/demo-saturar/    el tinte (0,120,120,200) del mapa 229
+    rom/build/demo-salto/      el héroe saltando dos celdas
+    rom/build/demo-arranque/   el arranque real, mapas 4 y 1
+    rom/build/demo-linkage/    lo mismo más el mapa 2, con el teletransporte
+    rom/build/demo-musica/     lo mismo con `escape_newyork` sonando
+
+La última es la que hay que mirar para lo de arriba. Su arranque son **70
+cuadros** y no 21: subir los 32 KB de muestras al SPC700 cuesta unos 49 antes de
+que empiece el lazo.
+
 ## En vuelo
 
 Se está tapando la lista de más abajo: supuestos escritos de los dos lados y

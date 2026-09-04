@@ -392,6 +392,15 @@ fondo: se lo aprieta en las que quedan y fusiona lo que no entre. Relevados los
 328 mapas, 290 no fusionan nada y los 38 que sí van de 1 a 16 colores, que es el
 techo —una paleta—.
 
+**Y en una ROM de varios mapas todos tienen que coincidir en cuál es esa
+paleta.** Las celdas de la ventana se emiten una sola vez, con los tres bits de
+paleta ya adentro, así que si dos mapas le dan a la capa de encima una primera
+paleta distinta el conversor corta con un error en vez de dibujar la ventana con
+los colores de otro. Pasa de verdad: en la ROM del arranque el mapa 4 la arranca
+en la 7 y los mapas 1 y 2 en la 4. Lo que falta para destrabarlo es elegir esa
+primera paleta **de la ROM y no de cada mapa** —el mínimo común—; ver el
+traspaso en `ESTADO.md`.
+
 **El tilemap de BG2 se scrollea con la cámara, y la ventana no puede.** No es un
 caso raro: en `game_player.cpp` de easyrpg `UpdateMoveRoute` corre **antes** del
 guard de `IsMessageActive`, o sea que una ruta forzada del héroe sigue caminando
