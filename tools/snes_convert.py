@@ -602,30 +602,56 @@ LAYOUT_FONDO = {"tiles": (0x0000, 640), "encima": (0x5000, 256),
                 "sprites": (0x6000, 256)}
 
 # Y los dos que hacen lugar para la ventana de mensaje. La ventana necesita 8 KB
-# propios —el texto son 240 tiles y no hay forma de bajarlo, porque un glifo de
-# 6 px no se alinea a celdas de 8 y hay que componerlo pixel por pixel— y los
-# 64 KB ya estaban repartidos al 100%.
+# de tiles propios —el texto son 240 tiles y no hay forma de bajarlo, porque un
+# glifo de 6 px no se alinea a celdas de 8 y hay que componerlo pixel por
+# pixel— más **2 KB de tilemap propio**, y los 64 KB ya estaban repartidos al
+# 100%.
 #
-# Lo que los hace posibles es que `encima` y `ventana` queden **pegados**: BG2
-# tiene una sola base y sus índices de tile son de 10 bits, así que del 0 al 255
-# caen en el primer banco de 8 KB y del 256 al 511 en el que sigue. Eso obliga a
-# poner los sprites primero, porque la base de OBJ va de a 16 KB y la de un
-# fondo de a 8.
+# Lo que hace posible lo de los tiles es que `encima` y `ventana` queden
+# **pegados**: BG2 tiene una sola base y sus índices de tile son de 10 bits, así
+# que del 0 al 255 caen en el primer banco de 8 KB y del 256 al 511 en el que
+# sigue. Eso obliga a poner los sprites primero, porque la base de OBJ va de a
+# 16 KB y la de un fondo de a 8.
 #
-#   sprites  $0000  16 KB  512 tiles de 4bpp   base de OBJ en 0
-#   tiles    $2000  24 KB  384 tiles de 8bpp
-#   encima   $5000   8 KB  256 tiles           <- la base de BG2
-#   ventana  $6000   8 KB  256 tiles           <- los índices 256..511
-#   tilemaps $7000   8 KB
+# Y el tilemap propio sale de recortarle tiles a los sprites, que es donde
+# sobran. Medido sobre los 318 mapas que convierten, el que más gasta usa **380
+# tiles de sprite**: 253 usan 192 o menos, 58 entre 193 y 256, y 7 entre 257 y
+# 380. Con 448 no se queda corto ninguno, y los 2 KB que se liberan caen en la
+# palabra $1C00, que es múltiplo de 1024 y por lo tanto una base válida de
+# tilemap.
 #
-# El segundo cambia 128 tiles de fondo por 256 de sprite, para los mapas que
-# gastan más fondo. Medido sobre los 299 mapas que se pudieron convertir: 290
-# entran en el primero, 7 en el segundo y **2 se quedan sin ventana** —el 8,
-# Lashe City, y el 250—, que piden a la vez más de 384 de fondo y más de 256 de
-# sprite. Esos dos no pueden mostrar un mensaje y el conversor lo dice.
-LAYOUT_VENTANA = {"sprites": (0x0000, 512), "tiles": (0x2000, 384),
+#   sprites   $0000  14 KB  448 tiles de 4bpp   base de OBJ en 0
+#   ventana_map $1C00 2 KB  el tilemap de 32x32 de la ventana
+#   tiles     $2000  24 KB  384 tiles de 8bpp
+#   encima    $5000   8 KB  256 tiles           <- la base de BG2
+#   ventana   $6000   8 KB  256 tiles           <- los índices 256..511
+#   tilemaps  $7000   8 KB
+#
+# El segundo cambia tiles de sprite por tiles de fondo, para los mapas que
+# gastan más fondo, y ahí los 2 KB no pueden salir de los sprites —esos mapas
+# usan hasta 320— sino del fondo: 480 tiles en vez de 512.
+#
+#   sprites     $0000   8 KB  256 tiles
+#   tiles       $1000  30 KB  480 tiles de 8bpp
+#   ventana_map $4C00   2 KB
+#   encima      $5000   8 KB
+#   ventana     $6000   8 KB
+#   tilemaps    $7000   8 KB
+#
+# Medido sobre los 318 mapas que convierten: 309 entran en el primero, 6 en el
+# segundo y **3 se quedan sin ventana** —el 8, el 66 y el 250—.
+#
+# El número viejo que estaba escrito acá era 2, y estaba mal por una razón que
+# vale la pena dejar dicha: `vram_layout` no comprobaba que los tiles de fondo
+# entraran en el banco del reparto elegido. `MAX_TILES` es 1024, que es el tope
+# del índice del tilemap y no el del banco, así que los mapas 66 y 250 —518 y
+# 620 tiles de fondo— se llevaban el reparto de 512 y se pasaban por arriba de
+# la capa de encima. Nunca se vio porque ninguna receta les pide una ventana.
+LAYOUT_VENTANA = {"sprites": (0x0000, 448), "ventana_map": (0x1C00, 1),
+                  "tiles": (0x2000, 384),
                   "encima": (0x5000, 256), "ventana": (0x6000, 256)}
-LAYOUT_VENTANA_FONDO = {"sprites": (0x0000, 256), "tiles": (0x1000, 512),
+LAYOUT_VENTANA_FONDO = {"sprites": (0x0000, 256), "tiles": (0x1000, 480),
+                        "ventana_map": (0x4C00, 1),
                         "encima": (0x5000, 256), "ventana": (0x6000, 256)}
 VRAM_MAP = 0x7000
 VRAM_ABOVE_MAP = 0x7800
@@ -645,14 +671,16 @@ def vram_layout(tiles, sprites=0, con_ventana=False):
     """
     if not con_ventana:
         return LAYOUT_FONDO if tiles > LAYOUT_ANCHO["tiles"][1] else LAYOUT_ANCHO
-    if tiles <= LAYOUT_VENTANA["tiles"][1]:
-        return LAYOUT_VENTANA
-    if sprites <= LAYOUT_VENTANA_FONDO["sprites"][1]:
-        return LAYOUT_VENTANA_FONDO
+    # Los dos números se miran en los dos repartos. Antes se miraba el fondo en
+    # uno y los sprites en el otro, y eso dejaba pasar un mapa de 620 tiles de
+    # fondo a un banco de 512: ver el comentario de LAYOUT_VENTANA_FONDO.
+    for layout in (LAYOUT_VENTANA, LAYOUT_VENTANA_FONDO):
+        if tiles <= layout["tiles"][1] and sprites <= layout["sprites"][1]:
+            return layout
     raise SystemExit(
         "este mapa no puede llevar ventana de mensaje: gasta %d tiles de fondo "
-        "y %d de sprite, y no hay reparto que deje 8 KB libres para la ventana. "
-        "Son 2 mapas en todo el juego" % (tiles, sprites))
+        "y %d de sprite, y no hay reparto que le deje 8 KB de tiles más 2 KB de "
+        "tilemap a la ventana" % (tiles, sprites))
 
 
 def convert_ventana(sys_img, lineas=(), font_id=None):
@@ -848,6 +876,7 @@ MAPA_ESCALARES = [
     ("VRAM_ABOVE", ""),
     ("VRAM_SPRITE", ""),
     ("VRAM_VENTANA", "0 si esta ROM no lleva ventana de mensaje"),
+    ("VRAM_VENTANA_MAP", "y su tilemap propio de 32x32"),
     ("MAP_TILES", "cuántos tiles de fondo, para el DMA"),
     ("MAP_CGRAM", "cuántas palabras de CGRAM"),
     ("ABOVE_TILES", ""),
@@ -868,8 +897,21 @@ MAPA_PUNTEROS = ["map_tiles", "map_cgram", "above_tiles", "above_cgram",
                  "sprite_tiles", "sprite_cgram", "map_celdas", "map_bloques",
                  "bloque_pass", "npc_table", "actor_table", "puertas",
                  "paginas"]
-MAPA_PTR_BASE = 48                       # dónde arrancan los punteros
 MAPA_PTR_PASO = 4
+# Dónde arrancan los punteros: justo después de los escalares y de los bytes,
+# redondeado al paso. **Se calcula y no se escribe a mano**, porque escrito a
+# mano ya falló: agregar un escalar más dejó `ABOVE_FIRST` y el primer puntero
+# en el mismo desplazamiento, la ROM leyó el byte de la paleta como puntero a
+# los tiles del mapa y la pantalla salió de un color plano.
+#
+# Es de las que no puede ver ninguna de las dos puntas: el ensamblador ve dos
+# nombres distintos con el mismo valor, que es legal, y la comparación pixel a
+# pixel dice "todo mal" sin decir dónde. La única defensa es que el número
+# salga de los datos.
+MAPA_PTR_BASE = (-(-(len(MAPA_ESCALARES) * 2 + len(MAPA_BYTES))
+                   // MAPA_PTR_PASO) * MAPA_PTR_PASO)
+assert MAPA_PTR_BASE + len(MAPA_PUNTEROS) * MAPA_PTR_PASO <= MAPA_STRIDE, \
+    "el registro de mapa no entra en %d bytes" % MAPA_STRIDE
 
 # Una puerta: dónde está, a qué mapa lleva y a qué celda. El paso es potencia de
 # dos para que buscarla sea un corrimiento, y sobra lugar para la dirección en
@@ -903,6 +945,7 @@ def campos_del_mapa(mapa):
         "VRAM_TILES": layout["tiles"][0], "VRAM_ABOVE": layout["encima"][0],
         "VRAM_SPRITE": layout["sprites"][0],
         "VRAM_VENTANA": layout.get("ventana", (0, 0))[0],
+        "VRAM_VENTANA_MAP": layout.get("ventana_map", (0, 0))[0],
         "MAP_TILES": len(mapa["tiles"]) // BYTES_PER_TILE,
         "MAP_CGRAM": len(mapa["cram"]) // 2,
         "ABOVE_TILES": len(above[0]) // 32,

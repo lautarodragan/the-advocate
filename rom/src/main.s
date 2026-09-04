@@ -83,6 +83,25 @@ A1B0     = $4304
 DAS0L    = $4305        ; cuántos bytes
 MDMAEN   = $420B        ; arrancar
 
+; --- HDMA, canales 1 y 2 ---------------------------------------------------
+; El DMA de siempre transfiere todo de una, con la pantalla apagada o en el
+; vblank. El HDMA es otra cosa: el mismo hardware, pero disparado **una vez por
+; scanline**, así que un registro del PPU puede valer una cosa arriba de la
+; pantalla y otra abajo. Es lo que usan los juegos para las barras de estado y
+; los degradés de cielo, y acá es lo que clava la ventana de mensaje.
+;
+; Cada canal lee una tabla de la RAM con entradas `[cuántas líneas][valor...]`
+; y termina con un cero. El contador es de 7 bits, o sea 127 líneas como mucho.
+DMAP1    = $4310
+BBAD1    = $4311
+A1T1L    = $4312
+A1B1     = $4314
+DMAP2    = $4320
+BBAD2    = $4321
+A1T2L    = $4322
+A1B2     = $4324
+HDMA_VENTANA = $06      ; los canales 1 y 2 prendidos a la vez
+
 ; La VRAM se direcciona por palabras y son 64 K en total. Cómo se reparte entre
 ; los tiles del fondo, los de la capa de encima, los de los sprites y los dos
 ; tilemaps no está acá: lo decide el conversor mapa por mapa y llega en
@@ -156,6 +175,15 @@ VIEW_ROWS = 29
 ; pie, como la pone RM2k.
 VENTANA_FILA  = 18
 VENTANA_FILAS = 10
+VENTANA_LINEA = VENTANA_FILA * 8        ; y en scanlines: la 144
+LINEAS = 224
+
+; El scroll vertical de BG2 mientras se dibuja la ventana. El PPU muestra en el
+; primer scanline la línea `vofs + 1`, así que para que en la línea 144 caiga la
+; fila 0 del tilemap propio hace falta `vofs + 1 + 144 = 0` módulo 256, que es
+; el alto de un tilemap de 32x32. De ahí el 111. El horizontal va en cero.
+VENTANA_VOFS = 111
+
 ; El tilemap de 64x32 son dos pantallas de 32 al lado de la otra, y la
 ; segunda no vive 32 palabras más adelante sino 1024.
 VIEW_COLS_TILEMAP = 32
@@ -188,11 +216,6 @@ row_addr:   .res 2      ; ídem la fila; $0000 en las dos si no hay nada
 tira_ofs:   .res 2      ; desplazamiento dentro del bloque, mientras se arma
 tira_paso_col: .res 2   ; lo que mide una fila de bloques, en bytes
 tira_resta: .res 2      ; cuántas celdas faltan por armar
-franja_fila: .res 2     ; qué fila de la franja de la ventana se está armando
-ventana_ofs: .res 2     ; en qué byte de `ventana_celdas` va el estampado
-ventana_src: .res 2     ; y dentro de la fila, mientras se parte en tramos
-ventana_resta: .res 2   ; cuántas celdas de la fila faltan
-ventana_tramo: .res 2   ; cuántas entran en este tramo
 hero_ptr:   .res 3      ; y en qué celda de la grilla, como puntero: se mueve
                         ; con él en vez de recalcularse
 step_left:  .res 1      ; pixeles que faltan del paso en curso, 0 si no hay
@@ -403,8 +426,6 @@ grupo_listo:
     ; una A que ya no cierra nada. Está medido —sin este `stz`, `snes-cerrar` se
     ; cae en las doce corridas, y en snes9x además de en bsnes—.
     stz msg_abierto
-    stz msg_cerrar
-    stz ventana_mover
     ; Los dos del pad son por las dudas y no por un error visto: `read_pad`
     ; los reescribe antes de que nadie los mire. Cuestan dos instrucciones.
     stz pad_a
@@ -459,7 +480,6 @@ loop:
     jsr animate_hero
     jsr follow_camera
     jsr stream_map              ; la columna o la fila que la cámara destapó
-    jsr mensaje_de_evento       ; abrir o cerrar la ventana, si se pidió
     jsr build_oam               ; y se arma el siguiente, ya fuera del vblank
     jsr music_tick
     bra loop
@@ -755,17 +775,7 @@ puesto:
     ; líder cambia al cambiar de mapa aunque el grupo sea el mismo.
     jsr elegir_grafico_heroe
     jsr fill_window             ; deja listo tira_paso_col, que el otro usa
-    jsr load_ventana
-    ; Los tiles y la paleta de la ventana suben siempre; las celdas, sólo si hay
-    ; un mensaje en pantalla. Antes se estampaban siempre y la ventana se veía
-    ; desde que cargaba el mapa, que era lo único que había hasta que existió el
-    ; opcode. Ahora la abre el intérprete, y esto está para el caso en que una
-    ; página teletransporte con el mensaje abierto: el mapa nuevo acaba de pisar
-    ; el tilemap entero.
-    lda msg_abierto
-    beq sin_ventana
-    jsr estampar_ventana
-sin_ventana:
+    jsr load_ventana            ; tiles, paleta, tilemap propio y tablas de HDMA
     jsr init_hero_ptr
 
     ; El tinte es estado del juego, no del mapa: sobrevive al teletransporte.
@@ -862,9 +872,8 @@ sin_espera:
     beq no_avanza               ; nadie apretó: el mensaje se queda
     lda pad_a_ant
     bne no_avanza               ; ya lo tenía apretado: no es un flanco
-    stz msg_abierto
-    lda #1
-    sta msg_cerrar              ; la franja se redibuja al final del cuadro
+    stz msg_abierto             ; y con eso `flush_video` apaga el HDMA: cerrar
+                                ; la ventana no escribe un solo byte de VRAM
     ; Y la página sigue **en este mismo cuadro**, cayendo en el `jsr
     ; correr_codigo` de siempre. Cerrar acá y retomar el cuadro siguiente
     ; sería un cuadro de diferencia contra la referencia.
@@ -1237,8 +1246,7 @@ otro:
 ; abrir, a bloquear y a cerrar, que es lo que le faltaba.
 op_mensaje:
     lda #1
-    sta msg_abierto
-    sta ventana_mover           ; y la estampa el vblank que viene
+    sta msg_abierto             ; y con eso `flush_video` prende el HDMA
     sty ev_cur
     rts
 
@@ -2615,23 +2623,6 @@ guarda_col:
 sin_columna:
     sep #$20
 .a8
-    ; Si entró una fila o una columna es porque la cámara cruzó un borde de
-    ; celda, y entonces la ventana de mensaje **quedó corrida**: es fija en la
-    ; pantalla, así que las celdas del tilemap que la dibujan pasaron a ser
-    ; otras. Se marca para volver a estamparla, y lo hace `flush_video` en el
-    ; vblank que viene, que es el mismo en que suben estas tiras.
-    ;
-    ; Se mira `col_addr`/`row_addr` y no si `win_col` cambió porque es el mismo
-    ; dato y ya está calculado: las dos valen cero cuando no entró nada, y una
-    ; dirección de tilemap nunca es cero. Cualquier valor distinto de cero
-    ; cuenta como pedido.
-    lda col_addr
-    ora col_addr + 1
-    ora row_addr
-    ora row_addr + 1
-    beq quieta
-    sta ventana_mover
-quieta:
     rts
 .endproc
 
@@ -2759,24 +2750,25 @@ columna:
     sta BBAD0
     lda #$01
     sta MDMAEN
+
+    ; El tilemap propio y las tablas del HDMA, que son de este mapa: la ventana
+    ; vive en un lugar de la VRAM que depende del reparto.
+    jsr estampar_ventana
+    jsr armar_hdma
 listo:
     rts
 .endproc
 
-; Escribe las celdas de la ventana en el tilemap de la capa de encima, en la
-; franja de abajo de la pantalla y en las posiciones que le tocan **con la
-; cámara de este cuadro**. Ésa es la decisión de fondo: en vez de pelear con que
-; BG2 se scrollee, se lo sigue. Si la cámara se movió, la ventana se estampa en
-; otro lado del tilemap y en pantalla se ve igual de quieta.
+; Escribe el tilemap propio de la ventana: 320 celdas seguidas, un solo DMA.
 ;
-; Son 32 celdas por fila y diez filas, o sea 640 bytes. Lo caro sería redibujar
-; la franja entera —las dos capas y las dos pantallas del tilemap, 2560 bytes—,
-; que es lo que hace `redibujar_franja` y por eso ésa va con la pantalla
-; apagada. Ver su comentario.
+; Acá está toda la diferencia con lo que había antes. La ventana ya no se
+; estampa en el tilemap del mapa —que se scrollea— sino en uno suyo, de 32x32,
+; que no comparte con nadie. Como es propio, sus diez filas de 32 celdas son
+; 320 palabras contiguas: no hay tramos, ni envoltura, ni columna 32 que
+; esquivar. Y como nadie más lo toca, esto corre **una sola vez por mapa**,
+; desde `load_ventana` y con la pantalla ya apagada.
 ;
-; El tilemap es de 64x32 y las 32 columnas visibles arrancan en `win_col`, así
-; que una fila de la ventana puede partirse entre la pantalla izquierda del
-; tilemap y la derecha. Por eso se escribe en dos tramos y no en uno.
+; Quién lo muestra y dónde lo decide el HDMA; ver `armar_hdma`.
 .proc estampar_ventana
 .a8
 .i16
@@ -2784,238 +2776,91 @@ listo:
     bne hay
     rts
 hay:
+    lda #$80
+    sta VMAIN
+    ldx mapa_ofs
     rep #$20
 .a16
-    lda win_row
-    clc
-    adc #VENTANA_FILA
-    sta franja_fila
-    stz ventana_ofs
-    sep #$20
-.a8
-    ldy #VENTANA_FILAS
-fila:
-    phy
-    rep #$20
-.a16
-    ; La fila del tilemap: se envuelve cada 32, como hace `build_row`.
-    lda franja_fila
-    and #(WINDOW_ROWS - 1)
-    asl a
-    asl a
-    asl a
-    asl a
-    asl a
-    clc
-    adc #VRAM_ABOVE_MAP
-    sta temp                    ; el arranque de la fila, pantalla izquierda
-    lda win_col
-    and #(WINDOW_COLS - 1)
-    sta temp + 2                ; en qué columna del tilemap cae la de pantalla
-    sep #$20
-.a8
-    jsr estampar_fila
-    rep #$20
-.a16
-    inc franja_fila
-    lda ventana_ofs
-    clc
-    adc #(VENTANA_COLS * 2)
-    sta ventana_ofs
-    sep #$20
-.a8
-    ply
-    dey
-    bne fila
-    rts
-.endproc
-
-; Una fila de la ventana, partida en los tramos que hagan falta. `temp` tiene la
-; dirección de la fila en el tilemap, `temp + 2` la columna donde arranca la
-; pantalla y `ventana_ofs` el desplazamiento dentro de `ventana_celdas`.
-.proc estampar_fila
-.a8
-.i16
-    rep #$20
-.a16
-    lda #VENTANA_COLS
-    sta ventana_resta
-    lda ventana_ofs
-    sta ventana_src
-tramo:
-    ; Cuántas celdas entran antes del próximo corte. Los cortes son cada 32
-    ; columnas y no cada 64: las dos pantallas del tilemap no son contiguas en
-    ; la VRAM —la de la derecha vive 1024 palabras más adelante— así que un
-    ; tramo no puede cruzar de una a la otra. Cortando sólo en 64 quedaban las
-    ; últimas columnas sin escribir y se veía el mapa asomando por el borde
-    ; derecho de la ventana.
-    lda temp + 2
-    and #(VIEW_COLS_TILEMAP - 1)
-    sta ventana_tramo
-    lda #VIEW_COLS_TILEMAP
-    sec
-    sbc ventana_tramo
-    cmp ventana_resta
-    bcc parcial
-    lda ventana_resta
-parcial:
-    sta ventana_tramo
-
-    ; La dirección: la fila más la columna, y la pantalla derecha vive 1024
-    ; palabras más adelante, no 32.
-    lda temp + 2
-    cmp #VIEW_COLS_TILEMAP
-    bcc izquierda
-    sec
-    sbc #VIEW_COLS_TILEMAP
-    clc
-    adc #1024
-    bra con_columna
-izquierda:
-con_columna:
-    clc
-    adc temp
+    lda mapa_tabla + M_VRAM_VENTANA_MAP, x
     sta VMADDL
-
     lda #.loword(ventana_celdas)
-    clc
-    adc ventana_src
     sta A1T0L
-    lda ventana_tramo
-    asl a
+    lda #(VENTANA_FILAS * VENTANA_COLS * 2)
     sta DAS0L
     sep #$20
 .a8
     lda #^ventana_celdas
     sta A1B0
-    lda #$80
-    sta VMAIN
     lda #$01
     sta DMAP0
     lda #$18
     sta BBAD0
     lda #$01
     sta MDMAEN
-
-    rep #$20
-.a16
-    lda ventana_resta
-    sec
-    sbc ventana_tramo
-    sta ventana_resta
-    beq fin
-    lda ventana_src
-    clc
-    adc ventana_tramo
-    adc ventana_tramo
-    sta ventana_src
-    ; La columna avanza lo que se escribió, y se envuelve a las 64.
-    lda temp + 2
-    clc
-    adc ventana_tramo
-    and #(WINDOW_COLS - 1)
-    sta temp + 2
-    bra tramo
-fin:
-    sep #$20
-.a8
     rts
 .endproc
 
-; Redibuja las diez filas de tilemap que tapa la ventana de mensaje, en las dos
-; capas, desde los datos del mapa. Es lo que hay que correr al cerrar un
-; mensaje: mientras estuvo abierto esas celdas llevaban la ventana.
+; Deja armadas las dos tablas del HDMA y programa sus canales. Corre una vez por
+; mapa, junto con el resto de la carga.
 ;
-; No arma nada nuevo: usa `build_row` y `push_strips`, los mismos que usa el
-; scroll cuando entra una fila por el borde. La diferencia es que acá se piden
-; diez filas de una y no la que acaba de entrar.
+; Lo que el HDMA consigue, y que ninguna cantidad de estampado conseguía: BG2
+; cambia de tilemap y de scroll **a mitad de cuadro**. De la línea 0 a la 143
+; sigue siendo la capa de encima del mapa, con la cámara; de la 144 a la 223 es
+; el tilemap propio de la ventana, con el scroll clavado. Por eso la ventana no
+; se mueve aunque la cámara sí, y por eso no hay una sola escritura de VRAM
+; mientras un mensaje está en pantalla.
 ;
-; **Es cara: 2560 bytes de DMA.** Diez filas por cuatro transferencias de 64
-; bytes —las dos capas, y cada una en las dos pantallas del tilemap de 64x32—.
-; Eso no entra en un vblank junto con OAM y el scroll, y está medido llamándola
-; de más a propósito, sobre `snes-heroe 7`:
-;
-;     cada cuadro        532 pixeles de basura
-;     cada 8 cuadros     262
-;     cada 64 cuadros      0
-;     una sola vez         0   (y también en el mapa 6, de 100x100)
-;
-; Que la basura escale con la frecuencia y no con el contenido es lo que dice
-; que el problema es el presupuesto del vblank y no las direcciones: llamándola
-; una vez escribe exactamente lo mismo que `fill_window` acababa de escribir.
-; Así que va con la pantalla apagada, como ya hacen `cruzar_puerta` y
-; `tinte_de_evento`, o repartida en varios cuadros.
-;
-; Se apoya en que el ancla de bloques —`win_block` y `celdas`— ya esté puesta
-; para la cámara de este cuadro, que es lo que dejan `fill_window` y
-; `stream_map`. Las diez filas caen adentro de la ventana visible, así que
-; `build_row` las alcanza desde el ancla sin moverla.
-.proc redibujar_franja
+; Las dos primeras entradas llevan justo lo que `flush_video` ya escribía en los
+; registros, así que arriba de la línea 144 no cambia nada. Van en dos tramos
+; porque el contador de líneas de una entrada es de 7 bits y 144 no entra.
+.proc armar_hdma
 .a8
 .i16
-    rep #$20
-.a16
-    stz col_addr                ; `push_strips` mira las dos: si quedara una
-    stz row_addr                ; columna a medio subir, la subiría de nuevo
-    lda win_row
-    clc
-    adc #VENTANA_FILA
-    sta franja_fila
-    ldy #VENTANA_FILAS
-franja:
-    phy
-    ldx franja_fila
-    jsr build_row
-    sep #$20
-.a8
-    jsr push_strips
-    rep #$20
-.a16
-    inc franja_fila
-    ply
-    dey
-    bne franja
-    sep #$20
-.a8
-    rts
-.endproc
+    lda #127
+    sta hdma_sc
+    sta hdma_ofs
+    lda #(VENTANA_LINEA - 127)
+    sta hdma_sc + 2
+    sta hdma_ofs + 5
+    lda #(LINEAS - VENTANA_LINEA)
+    sta hdma_sc + 4
+    sta hdma_ofs + 10
 
-; Cerrar la ventana de mensaje: devolverle a la franja de abajo lo que el mapa
-; tiene ahí. Es el otro extremo de `op_mensaje`, y sólo el cierre: **abrir es
-; barato y cerrar no**.
-;
-; Abrir son 640 bytes de tilemap por DMA y entra en un vblank, así que lo hace
-; `flush_video` como cualquier otro cuadro de la ventana. Cerrar son 2560 —diez
-; filas, las dos capas, y cada una en las dos pantallas del tilemap de 64x32— y
-; además hay que armar cada fila desde los datos del mapa. Eso no entra, así que
-; va con la pantalla apagada, igual que el tinte y que el cruce de puerta.
-; Cuesta un cuadro en negro, que en RM2k tampoco desentona.
-;
-; Lo primero es vaciar las tiras que dejó `stream_map` en este mismo cuadro.
-; `redibujar_franja` arranca poniendo `col_addr` y `row_addr` en cero, así que
-; sin esto la columna o la fila que la cámara acababa de destapar se perdería y
-; el borde de la pantalla quedaría con el mapa viejo. Subirlas acá es legal
-; porque la pantalla ya está apagada.
-.proc mensaje_de_evento
-.a8
-.i16
-    lda msg_cerrar
-    bne hay
-    rts
-hay:
-    lda #$80
-    sta INIDISP
-    jsr push_strips             ; lo que stream_map dejó pendiente
-    stz msg_cerrar
-    jsr redibujar_franja
-    lda #$0F
-    sta INIDISP
-    ; Y si la página cerró un mensaje y abrió otro en el mismo cuadro, la
-    ; ventana nueva hay que volver a estamparla: el redibujado acaba de tapar
-    ; la franja con el mapa. Sin mensaje abierto esto pone la marca en cero, que
-    ; es justo lo que hace falta para que `flush_video` no la vuelva a dibujar.
-    lda msg_abierto
-    sta ventana_mover
+    ; El tilemap del mapa arriba y el de la ventana abajo. BG2SC lleva la
+    ; dirección en el byte alto; el tamaño de la ventana es 0, que es 32x32.
+    lda #>VRAM_ABOVE_MAP | MAP_LAYOUT
+    sta hdma_sc + 1
+    sta hdma_sc + 3
+    ldx mapa_ofs
+    lda mapa_tabla + M_VRAM_VENTANA_MAP + 1, x
+    sta hdma_sc + 5
+    stz hdma_sc + 6             ; fin de tabla
+
+    ; Y el scroll clavado de las líneas de la ventana. Los dos tramos de arriba
+    ; los llena `flush_video` con la cámara de cada cuadro.
+    stz hdma_ofs + 11
+    stz hdma_ofs + 12
+    lda #<VENTANA_VOFS
+    sta hdma_ofs + 13
+    lda #>VENTANA_VOFS
+    sta hdma_ofs + 14
+    stz hdma_ofs + 15           ; fin de tabla
+
+    lda #$00                    ; un registro, una escritura por tramo
+    sta DMAP1
+    lda #<BG2SC
+    sta BBAD1
+    ldx #hdma_sc
+    stx A1T1L
+    stz A1B1                    ; las tablas viven en el banco 0
+
+    lda #$03                    ; dos registros, dos escrituras cada uno, que
+    sta DMAP2                   ; es lo que piden BG2HOFS y BG2VOFS
+    lda #<BG2HOFS
+    sta BBAD2
+    ldx #hdma_ofs
+    stx A1T2L
+    stz A1B2
     rts
 .endproc
 
@@ -3059,27 +2904,39 @@ hay:
 
     jsr push_strips
 
-    ; Y la ventana de mensaje encima de lo que acabe de subir el scroll. Va acá
-    ; por tres razones que conviene no volver a discutir:
+    ; Y el HDMA de la ventana de mensaje: prendido mientras haya una en
+    ; pantalla, apagado cuando no. Eso es **todo** lo que cuesta abrirla y
+    ; cerrarla; el tilemap propio ya está escrito desde que se cargó el mapa.
     ;
-    ; * **En el vblank**, porque escribe tilemap con la pantalla encendida. Son
-    ;   640 bytes por DMA —diez filas de 32 celdas, en uno o dos tramos cada
-    ;   una— y eso sí entra; lo que no entraba son los 2560 de
-    ;   `redibujar_franja`, que además arma cada fila desde los datos del mapa.
-    ; * **Después de `push_strips`**, porque la columna o la fila que acaba de
-    ;   entrar pisa la franja de abajo: la ventana tiene que quedar arriba.
-    ; * **Con el ancla del cuadro pasado**, que es la que hay acá: `win_col` y
-    ;   `win_row` los movió el `stream_map` de la vuelta anterior, la misma que
-    ;   armó estas tiras y dejó `camara_x` que se acaba de escribir en el PPU.
-    ;   Los tres datos son del mismo momento, que es lo que hace que la ventana
-    ;   caiga donde corresponde.
+    ; Los dos tramos de arriba de la tabla de scroll llevan la cámara de este
+    ; cuadro, la misma que se acaba de escribir en los registros: el HDMA los
+    ; vuelve a escribir en la línea 0 y no cambia nada. Lo que cambia es la
+    ; línea 144 para abajo.
     lda msg_abierto
     beq sin_ventana
-    lda ventana_mover
-    beq sin_ventana
-    stz ventana_mover
-    jsr estampar_ventana
+    lda camara_x
+    sta hdma_ofs + 1
+    sta hdma_ofs + 6
+    lda camara_x + 1
+    sta hdma_ofs + 2
+    sta hdma_ofs + 7
+    lda scroll_y
+    sta hdma_ofs + 3
+    sta hdma_ofs + 8
+    lda scroll_y + 1
+    sta hdma_ofs + 4
+    sta hdma_ofs + 9
+    lda #HDMA_VENTANA
+    sta HDMAEN
+    rts
 sin_ventana:
+    stz HDMAEN
+    ; BG2SC hay que devolverlo a mano: el HDMA lo dejó con el tilemap de la
+    ; ventana en la última línea que escribió, y sin HDMA nadie lo vuelve a
+    ; tocar. Cuesta dos instrucciones y evita tener que acordarse de esto al
+    ; cerrar un mensaje.
+    lda #>VRAM_ABOVE_MAP | MAP_LAYOUT
+    sta BG2SC
     rts
 .endproc
 
@@ -4160,11 +4017,18 @@ port0: .res 1
 ; Van acá y no en la página cero porque no se tocan en ningún lazo cerrado, y
 ; la página cero está a cuatro bytes de llenarse.
 msg_abierto: .res 1
-msg_cerrar:  .res 1
-; Que la ventana hay que volver a estamparla en el vblank que viene. La pone
-; `op_mensaje` al abrir y `stream_map` cada vez que la cámara cruza un borde de
-; celda; cualquier valor distinto de cero cuenta.
-ventana_mover: .res 1
+
+; Las dos tablas del HDMA de la ventana. Viven en RAM porque las dos primeras
+; entradas llevan la cámara de este cuadro; la última, que es la de la ventana,
+; no cambia nunca.
+;
+;   hdma_sc    [127][BG2SC mapa] [17][BG2SC mapa] [80][BG2SC ventana] [0]
+;   hdma_ofs   [127][hofs][vofs] [17][hofs][vofs] [80][0][VENTANA_VOFS] [0]
+;
+; Los 144 scanlines de arriba van en dos tramos porque el contador de líneas de
+; una entrada es de 7 bits y no llega a 144.
+hdma_sc:  .res 7
+hdma_ofs: .res 16
 
 ; OAM se arma en RAM y se manda entero por DMA cada cuadro. Es más simple que
 ; escribir entradas sueltas, y es lo que va a hacer falta cuando haya NPCs.

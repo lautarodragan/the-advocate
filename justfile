@@ -441,23 +441,22 @@ snes-cerrar mapa="7" apretar="200" nombre="cerrar" direccion="none" arranque="30
 # todos los cuadros que se comparan la tienen en pantalla, con el mapa
 # scrolleando por detrás.
 #
-# **HOY ESTA RECETA DA ROJO A PROPOSITO, y por eso no está en `snes-hitos`.**
-# Es la que demuestra que seguir el scroll no alcanza. Lo que mide, y está
-# contado en ESTADO.md:
+# Los cuadros están elegidos por el resto de la cámara contra 8, que es lo que
+# hundió al intento anterior: estampando la ventana en celdas del tilemap del
+# mapa, sólo puede caer bien cuando `camara_x` y `camara_y` son múltiplos de 8,
+# o sea un cuadro de cada cuatro por eje. Con el tilemap propio y el HDMA no
+# depende del scroll y los cuatro dan cero.
 #
-#   camara_x %% 8 == 0   la ventana cae bien salvo un resto de 238 pixeles
-#   camara_x %% 8 != 0   la ventana entera corrida, 2600 pixeles
-#
-# El tilemap se dibuja en celdas de 8 y el scroll es de a 2 pixeles, así que
-# tres de cada cuatro cuadros la ventana **no puede** caer donde va. Está
-# medido: corriendo la referencia esos mismos `camara_x %% 8` pixeles, la
-# diferencia baja a los mismos 238 de siempre.
+#   cuadro  21   camara_x 722, resto 2   (antes: 2627 pixeles)
+#   cuadro  23   camara_x 726, resto 6   (antes: 3198)
+#   cuadro  50   camara_y 700, resto 4   (antes: 5964)
+#   cuadro 130   la ruta ya bajó doce celdas   (antes: 11705)
 #
 # El mapa 6 por lo mismo que `snes-ruta`: es 100x100 y abierto, así que la ruta
 # camina sin chocar, y es **mudo**, que es lo que hace usable el desfasaje de
 # arranque —la ROM llega al primer cuadro del intérprete en 10, contra 44 en un
 # mapa con música, y la referencia no modela nada de eso—.
-snes-anclada mapa="6" ruta="1 1 1 1 1 1 2 2 2 2 2 2" cuadros="20 50 90 130" arranque="10" nombre="anclada":
+snes-anclada mapa="6" ruta="1 1 1 1 1 1 2 2 2 2 2 2" cuadros="21 23 50 130" arranque="10" nombre="anclada":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}

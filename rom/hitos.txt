@@ -36,10 +36,12 @@ snes-ruta
 snes-pagina 121 10 grupo-121
 snes-pagina 74 21 ruta-74
 snes-espera
+snes-anclada
 snes-cerrar
 snes-cerrar 7 200 cerrar-right right
 snes-ventana 1 ventana-1
 snes-ventana 348 ventana-348
+snes-ventana 269 ventana-269
 snes-ventana
 snes-ventana 6 ventana-6
 snes-mednafen

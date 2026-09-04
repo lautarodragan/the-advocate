@@ -366,11 +366,55 @@ con el mensaje en pantalla y la cámara lo sigue. En este juego hay 186 páginas
 donde eso pasa y la primera está en el mapa 1; y hay 25 páginas paralelas con
 `PanScreen`, que también corren.
 
-La salida no es HDMA ni un tilemap aparte: **se sigue el scroll**. Las celdas de
-la ventana se escriben en las posiciones que en *ese* cuadro corresponden a la
-franja de abajo, así que si la cámara se movió se estampan en otro lado y se ven
-igual de quietas. No cuesta un byte más de VRAM y son escrituras de tilemap, que
-es el camino que los tres cores emulan igual.
+Se probó primero **seguir el scroll** —escribir las celdas de la ventana en las
+posiciones que en *ese* cuadro corresponden a la franja de abajo— y **no
+funciona**, por una razón que no es de implementación: el tilemap se dibuja en
+celdas de 8 pixeles y la cámara se mueve de a 2, así que una ventana estampada
+en celdas cae a `camara_x mod 8` pixeles de donde va. Medido con la cámara
+moviéndose sólo en horizontal, y comprobado corriendo la referencia esos mismos
+pixeles:
+
+    camara_x 720, resto 0    238 pixeles de diferencia
+    camara_x 722, resto 2   2627
+    camara_x 724, resto 4   2717
+    camara_x 726, resto 6   3198
+
+O sea: **un cuadro de cada cuatro por eje**. Y aparecían dos problemas más —la
+franja hay que reestamparla entera en cada cruce, no la columna que entra, y la
+fila que sale de la franja no la redibujaba nadie—. El detalle está en
+ESTADO.md; el intento vivió tres commits.
+
+**Lo que sí funciona es HDMA**, que era la opción que se había descartado por
+2 KB de VRAM que no había. El DMA de siempre transfiere todo de una; el HDMA es
+el mismo hardware disparado **una vez por scanline**, así que un registro del
+PPU puede valer una cosa arriba de la pantalla y otra abajo. De la línea 0 a la
+143 BG2 es la capa de encima del mapa, con la cámara; de la 144 a la 223 es un
+tilemap propio de la ventana, de 32x32, con el scroll clavado:
+
+    canal 1   BG2SC          qué tilemap dibuja BG2
+    canal 2   BG2HOFS/VOFS   con qué scroll
+
+Cada canal lee una tabla de la RAM con entradas `[cuántas líneas][valor]`. Las
+144 líneas de arriba van en dos tramos porque el contador de una entrada es de
+7 bits y no llega a 144, y las dos llevan justo lo que `flush_video` ya escribía
+en los registros, así que arriba de la ventana no cambia nada.
+
+Lo que esto compra, además de que sea exacto: el tilemap de la ventana **no lo
+toca nadie más**, así que se escribe una sola vez al cargar el mapa —320 celdas
+seguidas, un solo DMA— y abrir un mensaje es prender el HDMA y cerrarlo es
+apagarlo. Ni una escritura de VRAM en el medio, ni un cuadro en negro, y
+`redibujar_franja` dejó de existir.
+
+El único cuidado: al apagar el HDMA hay que devolverle a `BG2SC` el tilemap del
+mapa, porque el HDMA lo dejó apuntando al de la ventana en la última línea que
+escribió.
+
+**Los 2 KB salen de los sprites.** Relevados los 318 mapas que convierten, el
+que más gasta usa 380 tiles de sprite de los 512 que el reparto le da, así que
+bajarlos a 448 no le saca nada a nadie y deja libre la palabra $1C00, que es
+múltiplo de 1024 y por lo tanto una base válida de tilemap. En el reparto para
+mapas con mucho fondo los 2 KB no pueden salir de ahí —esos mapas usan hasta
+320 tiles de sprite— y salen del fondo: 480 tiles en vez de 512.
 
 **El opcode no lleva operandos, y eso es lo que hay que entender antes de
 tocarlo.** Una página de mensaje compuesta son unos 240 tiles de 4bpp, o sea
@@ -409,8 +453,10 @@ no. Un paso ya empezado se termina igual, porque en RM2k no se frena a mitad de
 celda.
 
 **Cómo se verifica.** `just snes-ventana` compara el dibujo —marco, fondo,
-fuente, sombra y paleta— contra la referencia, en cuatro mapas elegidos por
-cómo les pega el reparto de paletas. `just snes-cerrar` compara todo lo demás,
+fuente, sombra y paleta— contra la referencia, en cinco mapas elegidos por
+cómo les pega el reparto de paletas y de VRAM; el 269 está porque es el único de
+la tanda que usa el reparto para mapas con mucho fondo, o sea el que pone el
+tilemap de la ventana en otro lado. `just snes-cerrar` compara todo lo demás,
 con la misma forma que `snes-espera`: dos cuadros con margen, uno antes y uno
 después de apretar A.
 
@@ -432,12 +478,16 @@ que la prueba mira lo que dice mirar:
 Es la única prueba que ejercita `redibujar_franja`, que hasta que existió el
 opcode era el único pedazo de código del repo que no corría nadie.
 
-Lo que **no** prueba, dicho con todas las letras: en ninguno de los dos casos se
-mueve la cámara —con el pad bloqueado, lo único que la movería durante un
-mensaje es una ruta forzada— así que **el estampado siguiendo al scroll no lo
-ejercita nada todavía**, y jugando se ve: el texto se va con el mapa. Hoy la
-ventana se estampa una sola vez al abrirla; falta engancharlo en `stream_map`,
-y la prueba que va a hacer falta es `snes-cerrar` con `--ruta-de-prueba`.
+Y que la ventana no se mueva con la cámara lo prueba `just snes-anclada`: una
+ruta forzada en el mapa 6 con el mensaje abierto, que es el único caso en que la
+cámara se mueve durante un mensaje —con el pad bloqueado, lo otro no existe—.
+Los cuatro cuadros están elegidos por el resto de la cámara contra 8, que es
+justo lo que hundía al intento anterior:
+
+    cuadro  21   camara_x 722, resto 2   antes 2627 pixeles, ahora 0
+    cuadro  23   camara_x 726, resto 6   antes 3198, ahora 0
+    cuadro  50   camara_y 700, resto 4   antes 5964, ahora 0
+    cuadro 130   la ruta ya bajó doce celdas   antes 11705, ahora 0
 
 ### Cómo se verifica
 
@@ -1102,10 +1152,6 @@ comparación.
   Hace falta la fuente en la ROM y armar los 240 tiles desde el 65816, como hace
   FF6 con su `InitDlgVWF` y su buffer de diálogo en la WRAM. Ver "La ventana de
   mensaje".
-* **Que la ventana siga quieta con la cámara moviéndose.** Se estampa una sola
-  vez al abrirla, y con la cámara quieta alcanza; con una ruta forzada del héroe
-  caminando, no. Falta engancharlo en `stream_map`, que ya sube las celdas que
-  el scroll destapa: son las mismas, y por eso sale gratis.
 * **El mapa entero en un cartucho.** Los 328 mapas suman 3,7 MB y LoROM llega a
   4, así que hoy entra un puñado por ROM y se elige al compilar. La salida
   probable es compartir los tiles entre los mapas que usan el mismo chipset:
