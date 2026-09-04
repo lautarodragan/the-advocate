@@ -1001,6 +1001,7 @@ MAPA_ESCALARES = [
     ("SPRITE_TILES", ""),
     ("SPRITE_CGRAM", ""),
     ("NPC_COUNT", "cuántos NPCs con CharSet"),
+    ("EV_COUNT", "cuántos eventos tiene el mapa, con o sin gráfico"),
     ("ACTOR_COUNT", "cuántos candidatos a líder del grupo"),
     ("PUERTA_COUNT", "cuántas puertas salen de este mapa"),
     ("PAGINA_COUNT", "cuántas páginas de evento hay que resolver"),
@@ -1013,7 +1014,7 @@ MAPA_BYTES = [
 MAPA_PUNTEROS = ["map_tiles", "map_cgram", "above_tiles", "above_cgram",
                  "sprite_tiles", "sprite_cgram", "map_celdas", "map_bloques",
                  "bloque_pass", "npc_table", "actor_table", "puertas",
-                 "paginas"]
+                 "paginas", "ev_pos"]
 MAPA_PTR_PASO = 4
 # Dónde arrancan los punteros: justo después de los escalares y de los bytes,
 # redondeado al paso. **Se calcula y no se escribe a mano**, porque escrito a
@@ -1072,6 +1073,7 @@ def campos_del_mapa(mapa):
         # también ocupa su lugar en CGRAM.
         "SPRITE_CGRAM": COLORS_PER_PALETTE * len(sprite[1]) if sprite else 0,
         "NPC_COUNT": len(sprite[3]) if sprite else 0,
+        "EV_COUNT": len(mapa["ev_pos"]) // EV_STRIDE,
         "ACTOR_COUNT": len(sprite[4]) if sprite else 0,
         "PUERTA_COUNT": len(mapa["puertas"]) // PUERTA_BYTES,
         "PAGINA_COUNT": len(mapa["paginas"]),
@@ -1196,6 +1198,7 @@ def datos_del_mapa(mapa, numero):
         ("map_bloques", mapa["bloques"]),
         ("bloque_pass", mapa["pass"]),
         ("npc_table", npc_bytes(sprite[3]) if sprite else b""),
+        ("ev_pos", mapa["ev_pos"]),
         ("actor_table", actor_bytes(sprite[4]) if sprite else b""),
         ("puertas", mapa["puertas"]),
         ("evcodigo", mapa["evcodigo"]),
@@ -1236,6 +1239,11 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "MAP_LAYOUT  = %d\n"
         "NPC_STRIDE  = %d\n"
         "NPC_MAX     = %d\n"
+        "; La tabla de posiciones de eventos, y cuántas rutas forzadas\n"
+        "; pueden estar corriendo a la vez sobre ellos.\n"
+        "EV_STRIDE   = %d\n"
+        "EV_MAX      = %d\n"
+        "RUTA_EV_MAX = %d\n"
         "PUERTA_BYTES = %d\n"
         "PAGINA_BYTES = %d\n"
         "; Los opcodes del intérprete de eventos.\n"
@@ -1247,7 +1255,12 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "OP_GRUPO    = $%02X\n"
         "OP_RUTA     = $%02X\n"
         "OP_MENSAJE  = $%02X\n"
+        "OP_RUTAS    = $%02X\n"
         "TRIGGER_AUTOMATICO = %d\n"
+        "; Cuántos cuadros dura un paso de una celda. Sale del modelo y no de\n"
+        "; una cuenta en la ROM: es lo que los dos lados tienen que contar\n"
+        "; igual para que una ruta forzada termine en el mismo cuadro.\n"
+        "CUADROS_POR_CELDA = %d\n"
         "TINTE_NEUTRO = %d\n"
         "; Un bit por switch. El más alto que el juego consulta es el 1003.\n"
         "SWITCH_BYTES = %d\n"
@@ -1291,11 +1304,13 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         % (", ".join("%d %s" % (m["id"], m["nombre"]) for m in mapas),
            len(mapas), MAPA_STRIDE, inicial,
            VRAM_MAP, VRAM_ABOVE_MAP, MAP_LAYOUT, NPC_STRIDE, NPC_MAX,
+           EV_STRIDE, EV_MAX, RUTA_EV_MAX,
            PUERTA_BYTES, PAGINA_BYTES,
            eventos.OP_FIN, eventos.OP_SWITCH, eventos.OP_TELEPORT,
            eventos.OP_ESPERAR, eventos.OP_TINTE, eventos.OP_GRUPO,
-           eventos.OP_RUTA, eventos.OP_MENSAJE,
-           eventos.TRIGGER_AUTOMATICO, eventos.TINTE_NEUTRO, SWITCH_BYTES,
+           eventos.OP_RUTA, eventos.OP_MENSAJE, eventos.OP_RUTAS,
+           eventos.TRIGGER_AUTOMATICO, eventos.CUADROS_POR_CELDA,
+           eventos.TINTE_NEUTRO, SWITCH_BYTES,
            eventos.GRUPO_MAX, len(grupo_inicial), ACTOR_BYTES,
            rm2k.LAYER_SAME,
            OBJ_PRIORITY_ABOVE if heroe_encima else OBJ_PRIORITY,
@@ -1427,6 +1442,18 @@ def puertas_bytes(puertas, indices):
     return bytes(out), afuera
 
 
+# Un evento en la tabla de posiciones: x e y en celdas, las dos de 16 bits
+# porque hay mapas de 500 celdas de ancho.
+EV_STRIDE = 4
+# Cuántos eventos guarda la RAM. El mapa más poblado de este juego tiene 114;
+# el conversor corta si alguno se pasa, así que el número no puede quedar corto
+# en silencio.
+EV_MAX = 128
+# Cuántas rutas forzadas pueden estar corriendo a la vez sobre eventos. La
+# página que más manda a caminar de este juego mueve cuatro eventos distintos, y
+# una ruta sobrevive al final de su página, así que puede haber otra corriendo
+# encima. Ocho da margen y cuesta 88 bytes de RAM.
+RUTA_EV_MAX = 8
 NPC_STRIDE = 8
 
 # La tabla de NPCs del mapa que está cargado se copia a RAM, porque build_oam la
@@ -1459,6 +1486,60 @@ def actor_bytes(actores):
         out.append(paleta & 0x07)
         for tile in tiles:
             out += (tile & 0xFFFF).to_bytes(2, "little")
+    return bytes(out)
+
+
+# Cuánto ocupa cada opcode, para recorrer el bytecode sin ejecutarlo. Los que
+# llevan largo variable van con None y se miden aparte.
+LARGO_DE_OPCODE = {
+    eventos.OP_FIN: 1, eventos.OP_SWITCH: 4, eventos.OP_TELEPORT: 6,
+    eventos.OP_ESPERAR: 3, eventos.OP_TINTE: 5, eventos.OP_GRUPO: 3,
+    eventos.OP_MENSAJE: 3, eventos.OP_RUTAS: 1, eventos.OP_RUTA: None,
+}
+
+
+def recorrer_codigo(codigo):
+    """(desplazamiento, código) de cada opcode de una página ya compilada."""
+    i = 0
+    while i < len(codigo):
+        yield i, codigo
+        op = codigo[i]
+        if op == eventos.OP_RUTA:
+            i += 3 + codigo[i + 2]
+        else:
+            largo = LARGO_DE_OPCODE.get(op)
+            if largo is None:
+                raise SystemExit("opcode %d que no sé medir" % op)
+            i += largo
+
+
+def ruta_de_evento(argumento):
+    """(blanco, órdenes) desde el flag, o () si no se pidió ninguna."""
+    if not argumento or len(argumento) < 2:
+        return ()
+    return argumento[0], list(argumento[1:])
+
+
+def ev_pos_bytes(game_map):
+    """Dónde arranca cada evento del mapa, en celdas y en orden de índice.
+
+    Va **todo** el mapa y no sólo los eventos con gráfico: una ruta forzada
+    puede caer sobre uno invisible, y de hecho la mitad de las de este juego lo
+    hacen. La ROM la copia a RAM al cargar el mapa porque una ruta la cambia, y
+    la siguiente ruta sobre el mismo evento arranca de donde quedó: hay una
+    página que manda a caminar nueve veces al mismo.
+
+    El orden es el índice de la tabla, que es lo que lleva el bytecode. **No es
+    el id de RM2k**: 39 mapas tienen huecos en la numeración, y traducir es
+    justamente lo que hace `eventos.Eventos`.
+    """
+    if len(game_map.events) > EV_MAX:
+        raise SystemExit("el mapa tiene %d eventos y la RAM de la ROM guarda %d"
+                         % (len(game_map.events), EV_MAX))
+    out = bytearray()
+    for event in game_map.events:
+        out += event.x.to_bytes(2, "little")
+        out += event.y.to_bytes(2, "little")
     return bytes(out)
 
 
@@ -1511,6 +1592,14 @@ def main():
                              "que los ShowMessage del juego compilen, y lo "
                              "que se lo cobra a los tiles del mapa —tres "
                              "mapas del juego no pueden llevarla—")
+    parser.add_argument("--ruta-de-evento", nargs="+", type=int, default=None,
+                        metavar="N",
+                        help="el primer número es sobre quién —el índice del "
+                             "evento en la tabla del mapa más uno— y los que "
+                             "siguen son las órdenes de la ruta. Detrás va un "
+                             "ProceedWithMovement, así que lo que venga "
+                             "después de la página no corre hasta que el "
+                             "evento termine de caminar")
     parser.add_argument("--ruta-de-prueba", nargs="+", type=int, default=None,
                         metavar="ORDEN",
                         help="agrega a la página de prueba una ruta forzada "
@@ -1620,6 +1709,7 @@ def main():
         paginas = eventos.paginas_del_mapa(mapa["game_map"], indices.get,
                                            mensajes)
         if (args.pagina_de_prueba or args.ruta_de_prueba
+                or args.ruta_de_evento
                 or args.mensaje_de_prueba is not None) \
                 and mapa is mapas[args.inicial]:
             # La página inventada, sólo en el mapa donde arranca la ROM. No sale
@@ -1634,7 +1724,8 @@ def main():
                 "trigger": eventos.TRIGGER_AUTOMATICO,
                 "switch_a": 0, "switch_b": 0, "actor": 0,
                 "codigo": eventos.pagina_de_prueba(
-                    espera, tinte, args.ruta_de_prueba or (), prueba)}]
+                    espera, tinte, args.ruta_de_prueba or (), prueba,
+                    ruta_de_evento(args.ruta_de_evento))}]
         codigo = bytearray()
         for pagina in paginas:
             pagina["offset"] = len(codigo)
@@ -1642,6 +1733,20 @@ def main():
                 codigo += pagina["codigo"]
         mapa["paginas"] = paginas
         mapa["evcodigo"] = bytes(codigo)
+        # Cuántos eventos distintos puede llegar a mandar a caminar este mapa.
+        # La ROM tiene RUTA_EV_MAX ranuras y una ruta que no encuentre lugar se
+        # descarta **sin decir nada**, que es la clase de diferencia que ninguna
+        # comparación vería: la referencia la caminaría y la consola no. Con los
+        # datos de este juego el peor mapa usa dos, así que el control no molesta
+        # a nadie; está para que un cambio futuro no las tire en silencio.
+        blancos = {c[i + 1] for p in paginas if p["codigo"]
+                   for i, c in recorrer_codigo(p["codigo"])
+                   if c[i] == eventos.OP_RUTA and c[i + 1]}
+        if len(blancos) > RUTA_EV_MAX:
+            raise SystemExit(
+                "mapa %d: sus páginas mandan a caminar %d eventos distintos y "
+                "la ROM tiene %d ranuras de ruta"
+                % (mapa["id"], len(blancos), RUTA_EV_MAX))
         corribles = sum(1 for p in paginas if p["codigo"])
         if paginas:
             print("  mapa %d: %d página(s) de evento automático, %d ejecutable(s)"
@@ -1927,6 +2032,7 @@ def convertir(renderer, map_id, args, inicio=None):
         "tiles": tile_data, "cram": bytes(colors), "cram_words": cram,
         "tilemap": tilemap, "above": above_data, "sprite": sprite,
         "collision": collision, "celdas": bytes(words),
+        "ev_pos": ev_pos_bytes(game_map),
         "bloques": bloques, "pass": block_pass,
         "layout": vram_layout(
             len(tile_data) // BYTES_PER_TILE,

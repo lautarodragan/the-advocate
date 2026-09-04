@@ -248,6 +248,15 @@ class Expression:
         if kind == "name":
             if text not in symbols:
                 raise Error("símbolo desconocido: %s" % text)
+            if symbols[text] is None:
+                # El nombre existe pero sin valor, que es como quedan las
+                # etiquetas de adentro de un `.proc` cuando se las mira desde
+                # afuera: no están en este alcance. Sin este control el valor
+                # None seguía viaje y reventaba con un TypeError sin línea ni
+                # nombre, que es de las peores maneras de enterarse.
+                raise Error("símbolo fuera de alcance: %s. Si es una etiqueta "
+                            "de otro .proc, no se puede saltar ahí desde acá"
+                            % text)
             return symbols[text], pos + 1
 
         if kind == "func":
@@ -423,11 +432,22 @@ class Assembler:
         self.anon_refs = []     # referencias `:+` / `:-` a resolver
         self.a16 = False        # ancho vigente del acumulador
         self.i16 = False        # ancho vigente de X e Y
+        # Con qué ancho declarado se definió cada etiqueta, y con cuál llega
+        # cada salto. Se comparan al final: ver `revisar_anchos`.
+        self.ancho_de_etiqueta = {}
+        self.saltos = []
+        # Las etiquetas definidas desde el último byte emitido. Un `.a8` que
+        # venga pegado detrás de una etiqueta habla de ella, no del código de
+        # más arriba: sin esto, `no_arriba:` seguido de `.a8` quedaba anotado
+        # con el ancho que había antes y el control se quejaba de lo que estaba
+        # bien.
+        self.etiquetas_frescas = []
 
     # --- pasada 1: leer el fuente y ubicar cada pieza ---
 
     def assemble(self, path):
         self.read(path)
+        self.revisar_anchos()
         self.place()
         return self.emit()
 
@@ -515,6 +535,8 @@ class Assembler:
             raise Error("la etiqueta %r está definida dos veces (%s)"
                         % (full, self.origen))
         self.definidas.add(full)
+        self.ancho_de_etiqueta[full] = (self.a16, self.i16, self.origen)
+        self.etiquetas_frescas.append(full)
         self.pending.append((self.segment, len(self.items[self.segment]), full))
         if self.segment == ZP_SEGMENT:
             self.zeropage.add(full)
@@ -528,17 +550,16 @@ class Assembler:
             if name == ".endproc":
                 self.scope = ""
             return
-        if name == ".a8":
-            self.a16 = False
-            return
-        if name == ".a16":
-            self.a16 = True
-            return
-        if name == ".i8":
-            self.i16 = False
-            return
-        if name == ".i16":
-            self.i16 = True
+        if name in (".a8", ".a16", ".i8", ".i16"):
+            if name == ".a8":
+                self.a16 = False
+            elif name == ".a16":
+                self.a16 = True
+            elif name == ".i8":
+                self.i16 = False
+            else:
+                self.i16 = True
+            self.reanotar_etiquetas()
             return
         if name == ".segment":
             segment = rest.strip('"')
@@ -592,7 +613,10 @@ class Assembler:
             return
 
         if mnemonic in BRANCHES:
-            self.add(Instruction(BRANCHES[mnemonic], self.target(operand), 1,
+            destino = self.target(operand)
+            self.saltos.append((mnemonic, operand.strip(), self.scope,
+                                self.a16, self.i16, self.origen))
+            self.add(Instruction(BRANCHES[mnemonic], destino, 1,
                                  relative=True))
             return
 
@@ -611,6 +635,44 @@ class Assembler:
         if width is None:
             raise Error("no sé cuánto ocupa el operando del modo %s" % mode)
         self.add(Instruction(modes[mode], expression, width))
+
+    def revisar_anchos(self):
+        """Que cada salto llegue a su etiqueta con el ancho que ésta declara.
+
+        Es el control de la trampa que más cara salió en este archivo, porque no
+        la ve nadie: el ancho de `sep`/`rep` lo lleva el ensamblador **en orden
+        de lectura**, así que una etiqueta a la que se llega por un `bra` que se
+        saltea el cambio de ancho queda declarada con el ancho del camino de
+        caída, no con el del salto. El `cmp #2` que sigue se emite entonces con
+        un inmediato de dos bytes, la CPU en ocho lee uno solo, y el segundo
+        —que suele ser el $00 del byte alto— se ejecuta como BRK.
+
+        No se ve en el diff, no se ve en la comparación pixel a pixel —la ROM se
+        va por la ventana y dibuja cualquier cosa— y sólo se encuentra
+        bisecando. Acá sale como un error con nombre y línea.
+
+        Sólo se miran los saltos relativos. Un `jsr` no cuenta: ahí el
+        procedimiento declara el ancho con el que quiere que lo llamen, que es
+        una convención y no un error.
+        """
+        for mnemonic, destino, scope, a16, i16, origen in self.saltos:
+            if not re.fullmatch(r"[A-Za-z_@][A-Za-z0-9_]*", destino):
+                continue            # `:+`, una expresión: no es una etiqueta
+            nombre = scope + destino if scope + destino in self.ancho_de_etiqueta \
+                else destino
+            declarado = self.ancho_de_etiqueta.get(nombre)
+            if declarado is None:
+                continue
+            if (a16, i16) != declarado[:2]:
+                raise Error(
+                    "%s %s salta con el acumulador en %d y los índices en %d, "
+                    "y la etiqueta está declarada con %d y %d (%s).\n"
+                    "  Si el salto se saltea un sep/rep, a la etiqueta le falta "
+                    "un .a8/.a16/.i8/.i16 que diga con qué ancho se llega.\n"
+                    "  en %s"
+                    % (mnemonic, destino, 16 if a16 else 8, 16 if i16 else 8,
+                       16 if declarado[0] else 8, 16 if declarado[1] else 8,
+                       declarado[2], origen))
 
     def decode(self, mnemonic, operand, modes):
         """Qué modo de direccionamiento pide este operando."""
@@ -674,9 +736,16 @@ class Assembler:
     def resolve(self, name):
         return name
 
+    def reanotar_etiquetas(self):
+        """El ancho de las etiquetas que todavía no emitieron nada."""
+        for nombre in self.etiquetas_frescas:
+            self.ancho_de_etiqueta[nombre] = (
+                self.a16, self.i16, self.ancho_de_etiqueta[nombre][2])
+
     def add(self, item):
         item.origen = self.origen
         self.items[self.segment].append(item)
+        self.etiquetas_frescas = []
 
     # --- pasada 2: ubicar y emitir ---
 

@@ -63,9 +63,25 @@ ESCAPE = "\\"
 # se saltea, que es la decisión de modelo que comparten los dos lados —RM2k
 # reintentaría para siempre y una prueba colgada no dice nada—.
 RUTA_HEROE = 10001
+RUTA_ESTE_EVENTO = 10005                    # "este evento", el dueño de la página
+RUTA_VEHICULOS = (10002, 10003, 10004)      # barco, nave, avión: no existen acá
 RUTA_MIRAR = {12: 0, 13: 1, 14: 2, 15: 3}   # face_up/right/down/left
 RUTA_MOVER = {0: 0, 1: 1, 2: 2, 3: 3}       # move_up/right/down/left
 RUTA_ESPERAR = 23
+
+# Qué celda es "la de al lado" en cada dirección. Vive acá y no en quien camina
+# porque ahora camina más de uno: el héroe y los eventos con ruta forzada.
+RUTA_PASOS = {0: (0, -1), 1: (1, 0), 2: (0, 1), 3: (-1, 0)}
+
+# Las órdenes de ruta que sabemos caminar, en un solo lugar. `destraba.py` mide
+# con esta misma lista, así que el día que aprenda una más el número sube solo.
+RUTA_ORDENES = set(RUTA_MIRAR) | set(RUTA_MOVER) | {RUTA_ESPERAR}
+
+# "Esperá a que terminen las rutas". En RM2k espera a que **ninguna** quede
+# pendiente, ni la del héroe ni la de ningún evento: es
+# `Game_Map::IsAnyMovePending` en `Game_Interpreter::Update`, y no una espera
+# por el evento que se acaba de mandar a caminar.
+PROCEED_WITH_MOVEMENT = 11340
 
 # Cómo consume el tiempo una ruta forzada, y es una decisión de modelo que los
 # dos lados tienen que compartir: girar es instantáneo —se pasa al comando
@@ -122,10 +138,20 @@ OP_ESPERAR  = 0x03      # cuadros (word): la cinemática espera seis
                         # segundos, o sea 360, y no entran en un byte
 OP_TINTE    = 0x04      # r, g, b, sat (byte cada uno)
 OP_GRUPO    = 0x05      # operación (byte), actor (byte)
-OP_RUTA     = 0x06      # cuántos comandos (byte), y los comandos
+OP_RUTA     = 0x06      # blanco (byte), cuántos comandos (byte), y los
+                        # comandos. El blanco es 0 para el héroe, y si no el
+                        # índice del evento en la tabla del mapa más uno.
+                        #
+                        # **El índice no es el id de RM2k.** 39 mapas de este
+                        # juego tienen huecos en la numeración de eventos, así
+                        # que una ruta apuntada al id 8 movería al que esté
+                        # octavo en la lista, que puede ser cualquier otro. Lo
+                        # traduce el conversor, que es el único que ve el mapa.
 OP_MENSAJE  = 0x07      # desplazamiento (word) dentro del bloque `mensajes`:
                         # abre esa ventana y bloquea la página hasta que el
                         # jugador apriete A
+OP_RUTAS    = 0x08      # sin operandos: la página no sigue hasta que no quede
+                        # ninguna ruta forzada corriendo
 
 # El operando es un desplazamiento y no un texto, y eso es lo que hace que
 # entre. Una página de mensaje ya compuesta son ~240 tiles de 4bpp, o sea
@@ -165,6 +191,51 @@ TINTE_NEUTRO = 100
 
 class NoSePuede(Exception):
     """Esta página tiene algo que la ROM todavía no sabe hacer."""
+
+
+class Eventos:
+    """Los eventos del mapa, como los ve el compilador de rutas forzadas.
+
+    Existe por una razón que se midió y que si no se paga cara: **el id de
+    evento de RM2k no es el índice de la tabla de la ROM**. 39 mapas de este
+    juego tienen huecos en la numeración —eventos borrados en el editor— así
+    que una ruta apuntada al id 8 movería al que esté octavo en la lista, que
+    puede ser cualquier otro. La traducción se hace acá, una sola vez, y el
+    bytecode no vuelve a ver un id de RM2k.
+
+    `mio` es el evento dueño de la página que se está compilando, que es a
+    quién apunta "este evento".
+    """
+
+    def __init__(self, game_map, mio=None):
+        self.indices = {ev.id: n for n, ev in enumerate(game_map.events)}
+        # Visible es tener gráfico en la página activa, que es la misma regla
+        # que usa `collect_npcs` para decidir qué entra en la tabla de la ROM.
+        self.visibles = {ev.id for ev in game_map.events
+                         if ev.active_page() is not None
+                         and ev.active_page().character_name}
+        self.mio = mio
+
+    def para(self, id_evento):
+        otro = Eventos.__new__(Eventos)
+        otro.indices, otro.visibles, otro.mio = (self.indices, self.visibles,
+                                                 id_evento)
+        return otro
+
+    def blanco(self, quien):
+        """El byte de blanco que va en OP_RUTA, o None si no se puede mover.
+
+        0 es el héroe; para un evento, su índice más uno. Los vehículos no
+        existen en esta ROM y un id que el mapa no tiene tampoco: los dos
+        devuelven None, que corta la página.
+        """
+        if quien == RUTA_HEROE:
+            return 0
+        if quien == RUTA_ESTE_EVENTO:
+            quien = self.mio
+        if quien in self.indices:
+            return self.indices[quien] + 1
+        return None
 
 
 class Mensajes:
@@ -282,7 +353,7 @@ def agrupar(comandos):
         i = j
 
 
-def compilar_pagina(page, indice_de_mapa, mensajes=None):
+def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None):
     """Los comandos de una página como bytes, o None si no se puede.
 
     `indice_de_mapa` traduce el id de mapa de RM2k al índice en la tabla de la
@@ -293,10 +364,15 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None):
     `mensajes` es el bloque de textos de la ROM. Sin él los cuadros de texto no
     compilan, y no es una opción de gusto: la ventana ocupa 8 KB de VRAM y una
     paleta, así que una ROM que no la lleve no tiene dónde dibujarlos.
+
+    `eventos_mapa` es el `Eventos` del mapa, ya apuntado al dueño de la página.
+    Sin él una ruta forzada sólo puede ser sobre el héroe: no hay con qué
+    traducir el id de RM2k al índice de la tabla.
     """
     marca = mensajes.marca() if mensajes is not None else None
     try:
-        return b"".join(_compilar(cmd, indice_de_mapa, mensajes, extra)
+        return b"".join(_compilar(cmd, indice_de_mapa, mensajes, extra,
+                                  eventos_mapa)
                         for cmd, extra in agrupar(page.commands)) \
             + bytes([OP_FIN])
     except NoSePuede:
@@ -305,7 +381,8 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None):
         return None
 
 
-def _compilar(cmd, indice_de_mapa, mensajes=None, extra=()):
+def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
+              eventos_mapa=None):
     p = cmd.parameters
 
     if cmd.code == END or cmd.code in IGNORABLES:
@@ -344,9 +421,29 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=()):
             raise NoSePuede()
         return bytes([OP_GRUPO, p[0], p[2]])
 
+    if cmd.code == PROCEED_WITH_MOVEMENT:
+        return bytes([OP_RUTAS])
+
     if cmd.code == MOVE_EVENT:
-        if len(p) < 4 or p[0] != RUTA_HEROE:
-            raise NoSePuede()   # mover otro evento pide que los NPCs se muevan
+        if len(p) < 4:
+            raise NoSePuede()
+        if p[0] == RUTA_HEROE:
+            blanco = 0
+        elif eventos_mapa is None:
+            raise NoSePuede()   # sin el mapa no hay cómo traducir el id
+        else:
+            blanco = eventos_mapa.blanco(p[0])
+            if blanco is None:
+                raise NoSePuede()   # un vehículo, o un evento que no existe
+            quien = (eventos_mapa.mio if p[0] == RUTA_ESTE_EVENTO else p[0])
+            if quien in eventos_mapa.visibles:
+                # Fase A: se mueven los eventos **sin gráfico**. Mover uno
+                # visible pide que camine en pantalla —la pose, el orden de
+                # dibujado contra el héroe, la colisión— y eso es otra cosa.
+                # La mitad de las rutas del juego son sobre invisibles, y ahí lo
+                # único que se ve es cuánto tarda: ver "Lo que falta" en
+                # rom/LEEME.md.
+                raise NoSePuede()
         ruta = list(p[4:])
         if not ruta or len(ruta) > 255:
             raise NoSePuede()
@@ -357,10 +454,9 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=()):
             # cuadros de una ruta de doce celdas con esperas en el medio. Todo
             # lo demás de `rpg::MoveCommand::Code` —saltar, cambiar el gráfico,
             # atravesar paredes, la velocidad, la frecuencia— sigue afuera.
-            if (orden not in RUTA_MIRAR and orden not in RUTA_MOVER
-                    and orden != RUTA_ESPERAR):
+            if orden not in RUTA_ORDENES:
                 raise NoSePuede()
-        return bytes([OP_RUTA, len(ruta)]) + bytes(ruta)
+        return bytes([OP_RUTA, blanco, len(ruta)]) + bytes(ruta)
 
     if cmd.code == WAIT:
         if len(p) < 1:
@@ -407,6 +503,74 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=()):
 # vez allá, no una vez por llamador.
 
 
+class Ruta:
+    """Una ruta forzada corriendo sobre alguien: el héroe o un evento.
+
+    La misma clase para los dos, y no por ahorrar líneas. Cómo una ruta consume
+    el tiempo —girar es gratis y se sigue en el mismo cuadro, esperar cuesta un
+    cuadro, moverse arranca un paso de una celda que dura CUADROS_POR_CELDA, y
+    un movimiento bloqueado se saltea— es una decisión de modelo que la ROM y la
+    referencia comparten. Escrita dos veces es como se separan.
+
+    La posición vive afuera, en quien la use: la del héroe está en pixeles y
+    manda la cámara, la de un evento está en celdas y la lleva `Estado`.
+    """
+
+    def __init__(self):
+        self.ordenes = []
+        self.paso_dir = None
+        self.paso_cuadros = 0
+        # Cuántos cuadros seguidos lleva moviéndose, para la pose de caminata.
+        # `animate_hero` lo reinicia en cuanto se queda quieto.
+        self.cuadros_moviendose = 0
+        # Hacia dónde mira si una ruta se lo dijo. None es "lo decide la
+        # caminata", que es lo de siempre.
+        self.mirando = None
+
+    @property
+    def pendiente(self):
+        """Si todavía le queda ruta por caminar.
+
+        Es el `IsMoveRouteOverwritten() && !IsMoveRouteFinished()` de
+        `Game_Map::IsAnyMovePending`, que es a lo que espera
+        `ProceedWithMovement`.
+        """
+        return bool(self.ordenes) or self.paso_cuadros > 0
+
+    def cuadro(self, puede):
+        """Un cuadro de la ruta. `puede(direccion)` dice si se puede dar el
+        paso; devuelve la dirección del paso que se está dando, o None."""
+        if self.paso_cuadros:
+            self.paso_cuadros -= 1
+            self.cuadros_moviendose += 1
+            direccion = self.paso_dir
+            if not self.paso_cuadros:
+                self.paso_dir = None
+            return direccion
+        while self.ordenes:
+            orden = self.ordenes.pop(0)
+            if orden in RUTA_MIRAR:
+                self.mirando = RUTA_MIRAR[orden]
+                continue
+            if orden == RUTA_ESPERAR:
+                break               # el cuadro se consume, pero quieto
+            direccion = RUTA_MOVER[orden]
+            self.mirando = direccion
+            if not puede(direccion):
+                continue            # bloqueado: se saltea
+            self.paso_dir = direccion
+            self.paso_cuadros = CUADROS_POR_CELDA - 1
+            self.cuadros_moviendose += 1
+            return direccion
+        # Ningún paso en este cuadro: el contador vuelve a cero, que es lo que
+        # hace `animate_hero` cuando `moving` está apagado —la pose parada, y el
+        # ciclo empezando de nuevo en el paso siguiente—. La espera cae acá por
+        # `break` y no por `return`: en la ROM una espera de ruta deja al héroe
+        # quieto, igual que el final de la ruta, y antes acá seguía contando.
+        self.cuadros_moviendose = 0
+        return None
+
+
 class Estado:
     """Lo que el intérprete recuerda entre páginas y entre mapas."""
 
@@ -417,16 +581,17 @@ class Estado:
         # El grupo, en orden. El gráfico del héroe es el del primero, así que
         # esto no es contabilidad: se ve en la pantalla que se compara.
         self.grupo = list(grupo)
-        # Hacia dónde mira el héroe si una ruta forzada se lo dijo. None es
-        # "lo decide la caminata", que es lo de siempre.
-        self.mirando = None
-        # La ruta forzada pendiente y el paso en curso, en cuadros.
-        self.ruta = []
-        self.paso_dir = None
-        self.paso_cuadros = 0
-        # Cuántos cuadros seguidos lleva moviéndose, para la pose de caminata.
-        # `animate_hero` lo reinicia en cuanto se queda quieto.
-        self.cuadros_moviendose = 0
+        # La ruta forzada del héroe. Las de los eventos van en `rutas_ev`,
+        # indexadas por el índice del evento en la tabla del mapa; los cinco
+        # atributos de siempre —`ruta`, `mirando`, `paso_dir`, `paso_cuadros`,
+        # `cuadros_moviendose`— siguen valiendo y son ésta.
+        self.ruta_heroe = Ruta()
+        self.rutas_ev = {}
+        # Dónde está cada evento del mapa, en celdas. La lleva el estado y no el
+        # mapa porque una ruta la cambia y la siguiente arranca de ahí: hay una
+        # página de este juego que manda a caminar nueve veces al mismo evento.
+        # Se rearma al entrar a cada mapa, igual que `load_npcs` en la ROM.
+        self.pos_ev = {}
         # El desplazamiento del cuadro de texto que está en pantalla, o None
         # si no hay ninguno. Mientras esté abierto la página no avanza —es lo
         # que hace `Game_Message`— pero todo lo demás sí: la ruta forzada del
@@ -476,6 +641,83 @@ class Estado:
         self.cuadros_moviendose = 0
         return None
 
+    # El héroe visto como estaba antes. Su ruta es una `Ruta` como la de
+    # cualquier evento, pero el resto del código la lee por estos nombres y no
+    # hay razón para hacerlo cambiar.
+    @property
+    def ruta(self):
+        return self.ruta_heroe.ordenes
+
+    @ruta.setter
+    def ruta(self, valor):
+        self.ruta_heroe.ordenes = list(valor)
+
+    @property
+    def mirando(self):
+        return self.ruta_heroe.mirando
+
+    @mirando.setter
+    def mirando(self, valor):
+        self.ruta_heroe.mirando = valor
+
+    @property
+    def paso_dir(self):
+        return self.ruta_heroe.paso_dir
+
+    @property
+    def paso_cuadros(self):
+        return self.ruta_heroe.paso_cuadros
+
+    @property
+    def cuadros_moviendose(self):
+        return self.ruta_heroe.cuadros_moviendose
+
+    def cuadro_de_ruta(self, puede):
+        """Un cuadro de la ruta forzada del héroe."""
+        return self.ruta_heroe.cuadro(puede)
+
+    def entrar_a_un_mapa(self, posiciones):
+        """Las posiciones de los eventos del mapa nuevo, en celdas.
+
+        Las rutas que estuvieran corriendo se tiran: en RM2k son de los eventos
+        del mapa que se deja, y allá no queda nadie caminando. Es el equivalente
+        de que `cargar_mapa` vuelva a copiar la tabla desde la ROM.
+        """
+        self.rutas_ev = {}
+        self.pos_ev = dict(posiciones)
+
+    def ruta_de_evento(self, indice):
+        if indice not in self.rutas_ev:
+            self.rutas_ev[indice] = Ruta()
+        return self.rutas_ev[indice]
+
+    def rutas_pendientes(self):
+        """Si queda alguna ruta forzada sin terminar, la del héroe incluida.
+
+        Es `Game_Map::IsAnyMovePending`, y es global a propósito:
+        `ProceedWithMovement` no espera al evento que se acaba de mandar a
+        caminar sino a que no quede ninguno.
+        """
+        return (self.ruta_heroe.pendiente
+                or any(r.pendiente for r in self.rutas_ev.values()))
+
+    def cuadro_de_rutas_ev(self, puede_pasar):
+        """Un cuadro de todas las rutas de eventos. `puede_pasar(indice, x, y,
+        direccion)` dice si ese evento puede dar ese paso.
+
+        La celda se mueve al **empezar** el paso, igual que el héroe: es lo que
+        hace `begin_step` en la ROM, y modelarlo distinto acá dejaría a los dos
+        lados contando los cuadros de otra manera.
+        """
+        for indice, ruta in self.rutas_ev.items():
+            x, y = self.pos_ev.get(indice, (0, 0))
+            empezaba = ruta.paso_cuadros == 0
+            direccion = ruta.cuadro(
+                lambda d, i=indice, px=x, py=y: puede_pasar(i, px, py, d))
+            if direccion is not None and empezaba:
+                dx, dy = RUTA_PASOS[direccion]
+                self.pos_ev[indice] = (x + dx, y + dy)
+
     def encendido(self, numero):
         return numero in self.switches
 
@@ -517,7 +759,7 @@ def pagina_activa(paginas, evento, estado):
     return elegida
 
 
-def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None):
+def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=()):
     """Una página automática inventada: una ruta forzada, una espera, un tinte.
 
     No sale de ningún dato del juego, y ésa es la idea. El intérprete corre
@@ -537,10 +779,21 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None):
 
     `mensaje` es el desplazamiento del cuadro de texto en el bloque de la ROM,
     o None si esta página no abre ninguno.
+
+    `ruta_ev` es (blanco, órdenes) para mandar a caminar a un evento, y detrás
+    va un OP_RUTAS. Existe por lo mismo que el resto: **ninguna página del juego
+    que compile manda a caminar a un evento sin depender de un switch**, así que
+    ese camino no lo ejercitaría nada. Y es filoso por construcción: hasta que
+    la ruta no termine, el tinte de más abajo no se aplica, así que el cuadro en
+    que la pantalla cambia de color es el cuadro en que la ruta terminó.
     """
     codigo = b""
     if ruta:
-        codigo += bytes([OP_RUTA, len(ruta)]) + bytes(ruta)
+        codigo += bytes([OP_RUTA, 0, len(ruta)]) + bytes(ruta)
+    if ruta_ev:
+        blanco, ordenes = ruta_ev
+        codigo += bytes([OP_RUTA, blanco, len(ordenes)]) + bytes(ordenes)
+        codigo += bytes([OP_RUTAS])
     if mensaje is not None:
         # El mensaje va antes de la espera y del tinte a propósito: bloquea, así
         # que lo que venga después es lo que prueba que la página **siguió**
@@ -604,7 +857,11 @@ class Interprete:
             # `jsr correr_codigo` de siempre. Cerrar acá y seguir el cuadro
             # siguiente sería un cuadro de diferencia entre los dos lados.
             self.estado.mensaje = None
-        if self.esperando:
+        if self.esperando == ESPERAR_RUTAS:
+            if self.estado.rutas_pendientes():
+                return False
+            self.esperando = 0
+        elif self.esperando:
             self.esperando -= 1
             return False
         while True:
@@ -620,7 +877,7 @@ class Interprete:
             return salto
 
 
-def correr_automaticos(paginas, estado, cuadros=100000):
+def correr_automaticos(paginas, estado, cuadros=100000, avanzar=None):
     """Corre las páginas automáticas del mapa hasta que pidan un salto.
 
     Atajo para quien no necesita mirar el tiempo: adelanta cuadros hasta que el
@@ -637,6 +894,11 @@ def correr_automaticos(paginas, estado, cuadros=100000):
     for _ in range(cuadros):
         if interprete.cuadro():
             return estado.salto
+        # Las rutas de los eventos avanzan acá porque este lazo es el dueño del
+        # tiempo. Sin esto, una página que espere a que terminen —OP_RUTAS— no
+        # terminaría nunca: nadie las estaría caminando.
+        if avanzar is not None:
+            avanzar()
         if interprete.terminado or estado.mensaje is not None:
             # Con un mensaje abierto no hay a quién esperar: acá no hay
             # jugador. Se corta con la ventana en pantalla, que es exactamente
@@ -644,6 +906,12 @@ def correr_automaticos(paginas, estado, cuadros=100000):
             # comparar el cierre pasa cuadros y dice en cuál se aprieta A.
             break
     return None
+
+
+# Lo que `ejecutar` devuelve como "cuántos cuadros esperar" cuando la espera no
+# es una cuenta sino una condición: que no quede ninguna ruta forzada corriendo.
+# Es un valor aparte y no un número grande para que nadie lo sume por error.
+ESPERAR_RUTAS = "rutas"
 
 
 def ejecutar(codigo, estado, desde=0):
@@ -690,12 +958,29 @@ def ejecutar(codigo, estado, desde=0):
             cuadros = codigo[i + 1] | (codigo[i + 2] << 8)
             return (i + 3, cuadros, False)
         elif op == OP_RUTA:
-            # La ruta se encola y la camina el héroe, no el intérprete: en RM2k
-            # `ForceMoveRoute` es asincrónico y la página sigue. Quien la hace
-            # avanzar es `Estado.cuadro_de_ruta`, una vez por cuadro.
-            cuantos = codigo[i + 1]
-            estado.ruta = list(codigo[i + 2:i + 2 + cuantos])
-            i += 2 + cuantos
+            # La ruta se encola y la camina quien la recibió, no el intérprete:
+            # en RM2k `ForceMoveRoute` es asincrónico y la página sigue. Quien
+            # la hace avanzar es `cuadro_de_ruta` / `cuadro_de_rutas_ev`, una
+            # vez por cuadro. Y encolar pisa lo que hubiera: RM2k sobrescribe la
+            # ruta forzada anterior, no la encadena.
+            blanco = codigo[i + 1]
+            cuantos = codigo[i + 2]
+            ordenes = list(codigo[i + 3:i + 3 + cuantos])
+            if blanco == 0:
+                estado.ruta = ordenes
+            else:
+                estado.ruta_de_evento(blanco - 1).ordenes = ordenes
+            i += 3 + cuantos
+        elif op == OP_RUTAS:
+            # "Esperá a que terminen las rutas". Se devuelve el control con una
+            # marca en vez de una cuenta de cuadros: no se sabe cuántos van a
+            # ser, y quien decide es `Interprete.cuadro` mirando si queda alguna
+            # pendiente. Si no queda ninguna no cuesta ni un cuadro, que es lo
+            # que hace el `while` de `Game_Interpreter::Update`.
+            if not estado.rutas_pendientes():
+                i += 1
+                continue
+            return (i + 1, ESPERAR_RUTAS, False)
         elif op == OP_MENSAJE:
             # Abre la ventana y corta el cuadro. El cursor queda en el comando
             # siguiente, pero `Interprete.cuadro` no vuelve a llegar acá hasta
@@ -747,6 +1032,7 @@ def paginas_del_mapa(game_map, indice_de_mapa, mensajes=None):
     correr a la de más abajo.
     """
     salida = []
+    del_mapa = Eventos(game_map)
     for numero_evento, event in enumerate(game_map.events):
         if not any(page.trigger == TRIGGER_AUTOMATICO for page in event.pages):
             continue
@@ -764,7 +1050,8 @@ def paginas_del_mapa(game_map, indice_de_mapa, mensajes=None):
             cond = page.condition
             codigo = None
             if page.trigger == TRIGGER_AUTOMATICO:
-                codigo = compilar_pagina(page, indice_de_mapa, mensajes)
+                codigo = compilar_pagina(page, indice_de_mapa, mensajes,
+                                         del_mapa.para(event.id))
             grupo.append({
                 "evento": numero_evento,
                 "pagina": numero_pagina,

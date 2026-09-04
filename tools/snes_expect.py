@@ -83,7 +83,7 @@ DIRECTIONS = {"up": 0, "right": 1, "down": 2, "left": 3}
 # ruta forzada hubiera girado al héroe—, y mandó a buscar un error que no era.
 NOMBRE_DIR = {0: "arriba", 1: "derecha", 2: "abajo", 3: "izquierda"}
 # Los mismos, como desplazamiento en celdas.
-PASOS = {0: (0, -1), 1: (1, 0), 2: (0, 1), 3: (-1, 0)}
+PASOS = eventos.RUTA_PASOS      # una sola definición: la del modelo
 WALK = {"none": None, "up": (0, -1), "down": (0, 1),
         "left": (-1, 0), "right": (1, 0)}
 
@@ -132,7 +132,8 @@ class Mundo:
                                           codigo=eventos.pagina_de_prueba(
                                               espera, tinte,
                                               self.prueba[1] or (),
-                                              self.prueba[2]))]
+                                              self.prueba[2],
+                                              self.prueba[3]))]
             self.paginas_cache[map_id] = paginas
         return self.paginas_cache[map_id]
 
@@ -187,6 +188,24 @@ def paso_de_ruta(estado, passable, game_map, x, y):
     return x, y
 
 
+def rutas_de_eventos(estado, passable, game_map):
+    """Un cuadro de las rutas forzadas de los eventos del mapa.
+
+    Se les aplica la misma regla de paso que al héroe —las dos caras, la que se
+    deja y la que se entra— y sin mirar quién está parado dónde, que es lo que
+    hace `paso_de_ruta`. Un movimiento bloqueado se saltea; en las 26 rutas de
+    este juego pasa una sola vez, en el mapa 117, y por esa sola vez hay que
+    modelarlo: si los dos lados lo ignoraran igual, esa ruta duraría ocho
+    cuadros de más de los dos lados y la comparación daría cero.
+    """
+    def puede(_indice, x, y, direccion):
+        dx, dy = PASOS[direccion]
+        return rm2k.puede_pasar(passable, game_map.width, game_map.height,
+                                x, y, dx, dy)
+
+    estado.cuadro_de_rutas_ev(puede)
+
+
 def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
                    apretar_a=None):
     """Entra a un mapa y le corre los eventos automáticos, como `cargar_mapa`.
@@ -206,6 +225,12 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
     saltos = SALTOS_MAX
     while True:
         game_map, passable, ocupadas, _puertas = mundo.mapa(map_id)
+        # Dónde arranca cada evento del mapa, en celdas y por índice de la tabla
+        # de la ROM. Se rearma al entrar, como `cargar_mapa` vuelve a copiar la
+        # tabla desde el cartucho, y con eso se tiran las rutas que estuvieran
+        # corriendo en el mapa que se deja.
+        estado.entrar_a_un_mapa({n: (ev.x, ev.y)
+                                 for n, ev in enumerate(game_map.events)})
         if entrada is None:
             x, y = snes_convert.inicio_del_mapa(mundo.renderer, map_id,
                                                 passable, game_map.width,
@@ -218,7 +243,9 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
         # *durante* una espera: el emulador corrió N cuadros y la referencia
         # tiene que haber corrido los mismos.
         if cuadros is None:
-            salto = eventos.correr_automaticos(mundo.paginas(map_id), estado)
+            salto = eventos.correr_automaticos(
+                mundo.paginas(map_id), estado,
+                avanzar=lambda: rutas_de_eventos(estado, passable, game_map))
             # Sin presupuesto de cuadros la ruta forzada igual tiene que
             # caminarse entera: lo que se compara es dónde queda todo. Antes el
             # giro lo aplicaba el intérprete y esto no hacía falta; ahora la
@@ -226,9 +253,11 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
             # cámara mientras la ROM lo mostraba mirando arriba.
             for _ in range(10000):
                 if not estado.ruta and not estado.paso_cuadros \
-                        and not estado.cuadros_moviendose:
+                        and not estado.cuadros_moviendose \
+                        and not estado.rutas_pendientes():
                     break
                 x, y = paso_de_ruta(estado, passable, game_map, x, y)
+                rutas_de_eventos(estado, passable, game_map)
         else:
             # Cuadro a cuadro, con el intérprete y la ruta forzada del héroe
             # avanzando juntos: en RM2k `ForceMoveRoute` es asincrónico, la
@@ -245,9 +274,11 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
                     salto = estado.salto
                     break
                 x, y = paso_de_ruta(estado, passable, game_map, x, y)
+                rutas_de_eventos(estado, passable, game_map)
                 if interprete.terminado and not estado.ruta \
                         and not estado.paso_cuadros \
-                        and not estado.cuadros_moviendose:
+                        and not estado.cuadros_moviendose \
+                        and not estado.rutas_pendientes():
                     break
         if salto is None:
             return map_id, x, y
@@ -496,6 +527,14 @@ def main():
                         help="en qué cuadro el jugador aprieta A, que es lo "
                              "que cierra un mensaje. El otro lado del mismo "
                              "flag de snes_correr.py")
+    parser.add_argument("--ruta-de-evento", nargs="+", type=int, default=None,
+                        metavar="N",
+                        help="el primer número es sobre quién —el índice del "
+                             "evento en la tabla del mapa más uno— y los que "
+                             "siguen son las órdenes de la ruta. Detrás va un "
+                             "ProceedWithMovement, así que lo que venga "
+                             "después de la página no corre hasta que el "
+                             "evento termine de caminar")
     parser.add_argument("--ruta-de-prueba", nargs="+", type=int, default=None,
                         metavar="ORDEN",
                         help="agrega a la página de prueba una ruta forzada "
@@ -551,6 +590,7 @@ def main():
         sys.exit("--inicial %d pero la tabla tiene %d mapas"
                  % (args.inicial, len(tabla)))
     hay_prueba = (args.pagina_de_prueba or args.ruta_de_prueba
+                  or args.ruta_de_evento
                   or args.mensaje_de_prueba is not None)
     # El bloque de textos, armado igual que en el conversor y en el mismo orden:
     # el mensaje de prueba primero —desplazamiento 0— y después los mapas de la
@@ -559,7 +599,8 @@ def main():
     prueba = (mensajes.agregar(args.mensaje_de_prueba)
               if args.mensaje_de_prueba is not None else None)
     mundo = Mundo(renderer, args.game_dir, tabla,
-                  (args.pagina_de_prueba, args.ruta_de_prueba, prueba)
+                  (args.pagina_de_prueba, args.ruta_de_prueba, prueba,
+                   snes_convert.ruta_de_evento(args.ruta_de_evento))
                   if hay_prueba else None, mensajes)
 
     # Los CharSets y los mapas ya convertidos se comparten entre las

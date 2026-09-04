@@ -671,6 +671,75 @@ Y falta el reacomodo del texto, que taro pidió dejar **para otro hito**: la fas
 1 trunca y queda medio ilegible a propósito. A 40 columnas eso es el 1,06% de
 los caracteres.
 
+**Hecho el 2026-09-04: las rutas forzadas sobre eventos, primera mitad.**
+`MoveEvent` ya no es sólo sobre el héroe: un evento puede recibir una ruta y
+caminarla, y `ProceedWithMovement` frena la página hasta que no quede ninguna
+corriendo. Las páginas que compilan enteras pasaron de **71 a 78**.
+
+Se mueven los eventos **sin gráfico**, que son la mitad de las rutas del juego
+—26 de 50—. No es un recorte por comodidad: de un evento invisible no se ve
+nada en pantalla, así que lo único comparable es cuánto tarda, y eso alcanza
+para tener el mecanismo entero —la tabla de rutas, el paso por celda, la
+pasabilidad, la espera— sin meterse todavía con que un NPC camine dibujado, que
+pide la pose, el orden de dibujado contra el héroe y la colisión. Esa mitad son
+otras +9, medidas.
+
+Lo que hubo que resolver, y ninguna de las tres cosas se deduce del código:
+
+* **El id de evento de RM2k no es el índice de la tabla de la ROM.** 39 mapas
+  tienen huecos en la numeración, así que una ruta apuntada al id 8 movería al
+  que esté octavo en la lista. Traduce el conversor, en `eventos.Eventos`, y el
+  bytecode no vuelve a ver un id de RM2k.
+* **La posición de los eventos vive en RAM, no en la ROM.** Una ruta la cambia y
+  la siguiente arranca de donde quedó: hay una página de este juego que manda a
+  caminar nueve veces al mismo evento. Se copia al cargar el mapa, igual que la
+  tabla de NPCs.
+* **La pasabilidad se modela.** De los 39 pasos que dan las rutas de este juego
+  **uno solo** está bloqueado, en el mapa 117. Por ese uno hay que hacerlo: si
+  los dos lados lo ignoraran igual, esa ruta duraría ocho cuadros de más de los
+  dos lados y la comparación daría cero.
+
+Y `ProceedWithMovement` espera a que **ninguna** ruta quede pendiente, ni la del
+héroe ni la de ningún evento. Sale de `Game_Map::IsAnyMovePending` en
+easyrpg-player, no de suponer: es global, no una espera por el evento que se
+acaba de mandar a caminar.
+
+**Lo prueba `snes-ruta-evento`**, con una página inventada por lo mismo de
+siempre —ninguna página del juego que compile manda a caminar a un evento sin
+depender de un switch—. El mapa 6 tiene un solo evento sin gráfico y una pared a
+pocas celdas, así que la ruta prueba las tres cosas: los pasos que entran, el
+que da contra la pared y se saltea sin gastar un cuadro, y la espera que sí lo
+gasta. El tinte va detrás del ProceedWithMovement, así que el cuadro en que la
+pantalla cambia de color es el cuadro en que la ruta terminó.
+
+Verificada rompiéndola, que es lo que dice si mide algo: un cuadro de más por
+paso da 13710 pixeles, ignorar la pasabilidad también, y un ProceedWithMovement
+que no espere se cae en el primer cuadro.
+
+Los cuadros son el 89 y el 91, y **el 90 se saltea a propósito**: la ROM sube
+CGRAM en el vblank siguiente, así que en el cuadro del borde la pantalla sale
+partida —mitad con la paleta vieja y mitad con la nueva— y la referencia no
+modela eso. No es margen: un cuadro de más o de menos corre el borde y el 89 o
+el 91 se caen.
+
+**Y de acá salió el control de anchos del ensamblador, que es lo más valioso del
+día.** El error que costó la depuración larga fue éste: una etiqueta a la que se
+llega por un `bra` que se saltea un `sep`/`rep`. El ensamblador lleva el ancho en
+orden de lectura, así que la etiqueta queda declarada con el ancho del camino de
+caída y no con el del salto; el `cmp #2` que sigue se emite con un inmediato de
+dos bytes, la CPU en ocho lee uno solo, y el segundo —el $00 del byte alto— se
+ejecuta como **BRK**. La ROM se va por la ventana y dibuja cualquier cosa.
+
+No lo ve el diff, no lo ve la comparación pixel a pixel, y sólo se encuentra
+bisecando —y bisecar con `rts` no sirve, porque desbalancea la pila y contamina
+la medición: dos de mis tres cortes midieron eso y no el error—. Ahora `w65.py`
+compara el ancho declarado en cada salto relativo con el de su etiqueta y falla
+con nombre y línea. Puesto a andar encontró **24 casos en main.s**, todos
+declaraciones que mentían: trece del código nuevo y once viejos, de etiquetas
+que arrancan con un `sep`. Los once no rompían nada —el `sep` llega antes que
+cualquier inmediato— pero la declaración era falsa igual, y ahora dice la
+verdad.
+
 **Después: la cinemática de apertura.**
 El mapa 4 ya prende el switch 20, que es la condición de la página que abre el
 mapa 1, así que el enganche funciona. De los cuatro comandos que le faltaban ya

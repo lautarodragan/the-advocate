@@ -427,6 +427,57 @@ snes-cerrar mapa="7" apretar="200" nombre="cerrar" direccion="none" arranque="30
         --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
   done
 
+# Un evento caminando su ruta forzada, y la página esperándolo.
+#
+# Es lo que agrega `MoveEvent` sobre otro evento: hasta acá la única ruta
+# forzada que la ROM sabía caminar era la del héroe. Se mueven los eventos **sin
+# gráfico**, que son la mitad de las rutas del juego; de ellos no se ve nada en
+# pantalla, así que lo único comparable es **cuánto tardan**, y eso es
+# exactamente lo que espera el `ProceedWithMovement` que va detrás.
+#
+# La página es inventada, por lo mismo que `snes-espera` y `snes-encima`:
+# ninguna página del juego que compile manda a caminar a un evento sin depender
+# de un switch, así que este camino no lo correría nada. Lo sintético es la
+# entrada, no la comparación.
+#
+# El mapa 6 tiene un solo evento sin gráfico —el índice 2, en (23,19)— y una
+# pared a pocas celdas, que es lo que permite que la ruta pruebe las tres cosas
+# que hay que probar:
+#
+#   0 x6      seis pasos hacia arriba, hasta (23,13)
+#   3 x3      tres a la izquierda: los dos primeros entran, **el tercero da
+#             contra la pared de (20,13) y se saltea sin gastar un cuadro**
+#   23        una espera, que sí gasta uno
+#   2 x2      dos hacia abajo
+#   1         uno a la derecha
+#   13        y girar, que es instantáneo y no gasta ninguno
+#
+# El tinte va detrás del ProceedWithMovement, así que el cuadro en que la
+# pantalla cambia de color **es** el cuadro en que la ruta terminó. Los dos
+# cuadros que se comparan lo abrazan: en el 89 todavía no tiñó y en el 91 ya
+# tiñó. El 90 se saltea a propósito y no por comodidad: la ROM sube CGRAM en el
+# vblank siguiente, así que ese cuadro sale partido —mitad con la paleta vieja y
+# mitad con la nueva— y la referencia no modela eso. Un cuadro de más o de menos
+# en la cuenta de la ruta corre el borde y el 89 o el 91 se caen.
+snes-ruta-evento mapa="6" ruta="3 0 0 0 0 0 0 3 3 3 23 2 2 1 13" cuadros="89 91" arranque="10" nombre="ruta-evento":
+  #!/usr/bin/env bash
+  set -euo pipefail
+  mkdir -p {{snes_pngs}} {{snes_inc}}
+  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
+      --ruta-de-evento {{ruta}} --pagina-de-prueba 0 0 0 50 \
+      -o {{snes_inc}}/mapdata.inc
+  just snes-build
+  pre={{snes_pngs}}/{{nombre}}
+  python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
+      --ruta-de-evento {{ruta}} --pagina-de-prueba 0 0 0 50 \
+      --cuadros {{cuadros}} --saltar $pre-{}.saltar.txt -o $pre-{}.esperado.png
+  for n in {{cuadros}}; do
+    python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre-$n.png \
+        --walk none --cuadros $n --arranque {{arranque}}
+    python3 tools/snes_compare.py $pre-$n.png $pre-$n.esperado.png \
+        --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
+  done
+
 # El texto del juego, no el que le dictamos a la ROM.
 #
 # Todo lo que hay arriba —`snes-ventana`, `snes-cerrar`, `snes-anclada`— usa

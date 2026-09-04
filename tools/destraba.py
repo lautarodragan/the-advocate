@@ -68,7 +68,12 @@ ORDENES = (set(eventos.RUTA_MIRAR) | set(eventos.RUTA_MOVER)
 def mover_otro(cmd, pagina):
     """Si este `MoveEvent` es uno que la ROM va a poder hacer.
 
-    Tres cosas, y las tres se midieron porque las tres pasan en este juego:
+    Lo que queda de este candidato son los eventos **con gráfico**: los
+    invisibles ya se mueven, y por eso entran en la base y no acá. Mover uno
+    visible pide que camine en pantalla —la pose, el orden de dibujado contra el
+    héroe, la colisión—, que es otro trabajo.
+
+    Tres cosas más, y las tres se midieron porque las tres pasan en este juego:
     el blanco tiene que ser el héroe o un evento **que el mapa tenga** —hay
     rutas apuntadas a vehículos y a eventos que ya no existen—, y la ruta tiene
     que estar hecha de órdenes que sabemos caminar.
@@ -129,11 +134,16 @@ def cargar(game_dir):
         # para saber si una ruta apunta a algo que existe, y **el id no es el
         # índice**: 39 mapas de este juego tienen huecos en la numeración.
         ids = {event.id for event in game_map.events}
+        del_mapa = eventos.Eventos(game_map)
         for event in game_map.events:
             for page in event.pages:
                 if (page.trigger == eventos.TRIGGER_AUTOMATICO
                         and page.commands):
                     page.ids, page.mio = ids, event.id
+                    # El mismo contexto que le pasa el conversor: sin él una
+                    # ruta sobre otro evento no compila ni aunque la ROM sepa
+                    # hacerla, porque no hay con qué traducir el id.
+                    page.ctx = del_mapa.para(event.id)
                     paginas.append(page)
     return paginas, comunes
 
@@ -169,7 +179,8 @@ def compila(comandos, extra, con_call, comunes, filtros=(), pagina=None,
                 return False
             continue
         try:
-            eventos._compilar(cmd, lambda m: 0, eventos.Mensajes(), lineas)
+            eventos._compilar(cmd, lambda m: 0, eventos.Mensajes(), lineas,
+                              pagina.ctx if pagina is not None else None)
         except eventos.NoSePuede:
             return False
     return True
@@ -229,7 +240,8 @@ def main():
                                        or juntas_filtro[cmd.code](cmd, p)):
                 continue
             try:
-                eventos._compilar(cmd, lambda m: 0, eventos.Mensajes(), lineas)
+                eventos._compilar(cmd, lambda m: 0, eventos.Mensajes(),
+                                  lineas, p.ctx)
             except eventos.NoSePuede:
                 corta[cmd.code] += 1
                 break

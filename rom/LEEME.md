@@ -960,6 +960,36 @@ instrucciones — y se compara eso también.
 Correrlo cada vez que se toquen las tablas. Mientras dé idéntico, `w65.py` es
 correcto para todo lo que el proyecto puede expresar.
 
+**Y además hace cuatro controles que ca65 no hace**, los cuatro agregados
+después de que el error correspondiente costara una tarde: etiqueta repetida,
+constante redefinida con otro valor, el área de RAM que no entra, y el operando
+que no entra en su ancho —que es cómo se descubrió que `lda [dp], y` con la
+variable fuera de la página directa emitía el byte bajo y leía de otro lado—.
+
+El quinto es el más difícil de encontrar a mano: **el ancho del acumulador en
+una etiqueta a la que se llega saltando**. El ensamblador lleva el ancho en
+orden de lectura, así que en
+
+    bne baja
+    rep #$20
+    .a16
+    lda tira_paso_col
+    bra entra
+    baja:            <- se llega acá en ocho bits
+    cmp #DIR_DOWN    <- pero el ensamblador cree que en dieciséis
+
+el `cmp` se emite con un inmediato de **dos** bytes, la CPU en ocho lee uno
+solo, y el segundo —el $00 del byte alto— se ejecuta como `BRK`: la ROM se va
+por la ventana y dibuja cualquier cosa. No lo ve el diff, no lo ve la
+comparación pixel a pixel, y bisecar con `rts` tampoco sirve, porque desbalancea
+la pila y uno termina midiendo eso. Ahora `w65.py` compara el ancho declarado en
+cada salto relativo con el de su etiqueta y falla con nombre y línea.
+
+Puesto a andar la primera vez encontró 24 casos en `main.s`, todos
+declaraciones que mentían. Once eran viejos y no rompían nada —etiquetas que
+arrancan con un `sep`, que llega antes que cualquier inmediato— pero la
+declaración era falsa igual; ahora dice la verdad.
+
 ## Cómo se verifica la ROM
 
 `mednafen -soundrecord` vuelca lo que sale del DSP a un WAV. Sobre eso hay dos
@@ -1185,6 +1215,12 @@ comparación.
 
 ## Lo que falta
 
+* **Que un evento con gráfico camine su ruta forzada.** La mitad de las rutas
+  del juego son sobre eventos **sin** gráfico y ésas ya andan: de ellos no se ve
+  nada, así que lo único comparable es cuánto tardan. Mover uno visible pide que
+  camine en pantalla —la pose de caminata, el orden de dibujado contra el héroe,
+  que la tabla de NPCs se reordene cuando cambia la Y— y son +9 páginas, medidas
+  con `just snes-destraba`.
 * **Que un NPC frene al héroe.** En RM2k los eventos de la capa del héroe
   bloquean el paso; la ROM todavía no lo mira. La tabla ya trae el dato.
 * **Los teletransportes que siguen sin resolverse.** Los que están adentro de

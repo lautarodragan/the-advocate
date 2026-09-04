@@ -224,6 +224,11 @@ tile_x:     .res 2      ; y en qué celda de 16x16 está. Dos bytes: hay mapas d
 tile_y:     .res 2      ; 500 celdas de ancho y en uno no entrarían
 celdas:     .res 3      ; puntero a la fila de bloques donde arranca la ventana
 celdas_ptr: .res 3      ; el mismo, mientras se recorre para armar una tira
+; La ruta forzada del evento que se está caminando, mientras dura la vuelta.
+; Vive en la página directa y no en la ranura porque `lda [ptr], y` **sólo**
+; direcciona la página directa: con el puntero en BSS el ensamblador emitiría el
+; byte bajo y la ROM leería de otro lado. Ya pasó una vez, con `msg_ptr`.
+ruta_ptr:   .res 3
 win_col:    .res 2      ; la celda de 8x8 que quedó en el borde de la ventana
 win_row:    .res 2      ; el cuadro pasado, para saber si la cámara la cruzó
 win_block:  .res 2      ; y la fila de bloques a la que apunta `celdas`
@@ -310,6 +315,16 @@ ev_esperando: .res 2    ; cuántos cuadros faltan de la espera en curso
 RUTA_MAX = 32
 ruta_n:      .res 1
 ruta_i:      .res 1
+; Si el paso que el héroe tiene en curso lo arrancó la ruta forzada y no el pad.
+; Hace falta para `hay_rutas`: el último paso de una ruta sigue contando como
+; ruta pendiente aunque ya no queden órdenes, y un paso del pad no cuenta nunca.
+; Sin esto, `ProceedWithMovement` dejaría de esperar ocho cuadros antes de
+; tiempo, o esperaría de más porque el jugador se puso a caminar.
+ruta_paso:   .res 1
+; El blanco y el largo de la ruta que se está leyendo del bytecode. El largo va
+; en dos bytes con el alto siempre en cero: se le suma a Y, que es de dieciséis.
+ruta_blanco: .res 1
+ruta_cuantas: .res 2
 ; Un tinte pedido por un evento, para aplicarlo en el vblank siguiente.
 tinte_pendiente: .res 1
 ; El grupo, en orden. El gráfico del héroe es el del primero —RM2k lo decide
@@ -513,6 +528,9 @@ loop:
     jsr eventos_tick
     jsr tinte_de_evento
     jsr move_hero
+    jsr mover_eventos           ; y las rutas forzadas de los eventos, después
+                                ; del héroe y después del intérprete: el orden
+                                ; es el mismo que el de la referencia
     jsr animate_hero
     jsr follow_camera
     jsr stream_map              ; la columna o la fila que la cámara destapó
@@ -628,6 +646,19 @@ scrolls:
 ; De $2101 a $210C: objetos, modo, mosaico y dónde vive cada capa. Todo en
 ; cero, que es "nada encendido".
 .segment "TABLAS"
+
+; Qué permiso hace falta para salir de una celda y para entrar en la de al lado,
+; por dirección —arriba, derecha, abajo, izquierda—. Van en el banco 0 porque se
+; leen con `lda tabla, x`, que direcciona el banco de datos.
+;
+; Los pares son cruzados a propósito: para ir hacia arriba hay que poder salir
+; por arriba de la celda de origen y poder entrar por abajo a la de destino. Es
+; la regla de RM2k, y la misma que `rm2k.puede_pasar` escribe del lado de
+; Python.
+pass_salir:
+    .byte PASS_UP, PASS_RIGHT, PASS_DOWN, PASS_LEFT
+pass_entrar:
+    .byte PASS_DOWN, PASS_LEFT, PASS_UP, PASS_RIGHT
 ; Un bit por posición, para el bitmap de switches. Sale más barata que ocho
 ; corrimientos y se lee con el índice que ya tenemos.
 mascara:
@@ -809,6 +840,7 @@ puesto:
     jsr load_above
     jsr load_sprite
     jsr load_npcs
+    jsr load_ev_pos             ; y dónde arranca cada evento, con o sin gráfico
     ; La tabla de actores es de este mapa, así que dónde caen las poses del
     ; líder cambia al cambiar de mapa aunque el grupo sea el mismo.
     jsr elegir_grafico_heroe
@@ -896,6 +928,8 @@ nada:
 .a8
     rts
 sin_espera:
+.a16
+    ; se llega en dieciséis; el `sep` de abajo lo achica
     sep #$20
 .a8
 
@@ -1007,6 +1041,8 @@ nada:
 .a8
     rts
 hay_paginas:
+.a16
+    ; se llega en dieciséis; el `sep` de abajo lo achica
     rep #$20
 .a16
     sta pag_restan
@@ -1159,6 +1195,8 @@ sin_usar:
     lda #1                      ; Z=0
     rts
 falla:
+.a16
+    ; se llega en dieciséis; el `sep` de abajo lo achica
     sep #$20
 .a8
     lda #0                      ; Z=1
@@ -1285,6 +1323,9 @@ otro:
 :   cmp #OP_TINTE
     bne :+
     jmp op_tinte
+:   cmp #OP_RUTAS
+    bne :+
+    jmp op_rutas
 :   cmp #OP_TELEPORT
     bne :+
     jmp op_teleport
@@ -1334,21 +1375,36 @@ op_switch:
     ply
     jmp otro                    ; `bra` no llega: el lazo quedó lejos
 
-; Una ruta forzada de MoveEvent, siempre sobre el héroe. De todos los comandos
-; de ruta de RM2k acá se aceptan sólo los cuatro de girar y la espera: el
-; conversor no emite ningún otro. Moverse por una ruta forzada no está, porque
-; ninguna página del juego que compile lo ejercita —y sin con qué compararlo, ya
-; se sabe cómo termina—.
+; Una ruta forzada de MoveEvent. El primer operando dice sobre quién: 0 es el
+; héroe, y cualquier otro número es el índice del evento en la tabla del mapa
+; más uno. **No es el id de RM2k**: 39 mapas de este juego tienen huecos en la
+; numeración de eventos, y traducir es cosa del conversor.
+;
+; De todos los comandos de ruta de RM2k acá se aceptan los cuatro de girar, los
+; cuatro de mover y la espera: el conversor no emite ningún otro.
 ;
 ; face_up/right/down/left son 12, 13, 14 y 15, y nuestras direcciones son
-; 0, 1, 2 y 3 en el mismo orden, así que restar doce alcanza. La espera, 23, no
-; hace nada: la página corre entera de una, igual que con OP_ESPERAR.
+; 0, 1, 2 y 3 en el mismo orden, así que restar doce alcanza.
+;
+; Los dos caminos se parecen pero no son el mismo, y la diferencia vale la pena:
+; la del héroe se **copia** a RAM, y la de un evento se guarda como puntero al
+; bytecode. Copiarla existe desde antes y tiene un tope, RUTA_MAX; el puntero no
+; lo tiene, porque el código del mapa vive en la ROM y no se va a ningún lado.
 op_ruta:
-    ; La ruta se copia a RAM y la camina `move_hero`, no el intérprete: en RM2k
-    ; `ForceMoveRoute` es asincrónico y la página sigue de largo.
-    lda [cod_ptr], y            ; cuántos comandos trae
-    sta temp
+    lda [cod_ptr], y            ; sobre quién
+    sta ruta_blanco
     iny
+    lda [cod_ptr], y            ; cuántos comandos trae
+    sta ruta_cuantas
+    stz ruta_cuantas + 1
+    iny
+    lda ruta_blanco
+    bne op_ruta_evento
+
+    ; --- el héroe: la ruta se copia a RAM y la camina `move_hero`, no el
+    ; intérprete: en RM2k `ForceMoveRoute` es asincrónico y la página sigue.
+    lda ruta_cuantas
+    sta temp
     stz ruta_i
     ldx #$0000
 copiar_orden:
@@ -1367,6 +1423,37 @@ fin_copia:
     txa                         ; X no pasa de RUTA_MAX, así que el byte alcanza
     sta ruta_n
     jmp otro                    ; `bra` no llega: el lazo quedó lejos
+
+    ; --- un evento: no se copia nada. Se anota dónde empieza la ruta dentro del
+    ; bytecode y en qué orden va, y el cursor de la página saltea las órdenes.
+op_ruta_evento:
+    phy
+    jsr ruta_para_evento
+    ply
+    rep #$20
+.a16
+    tya
+    clc
+    adc ruta_cuantas
+    tay
+    sep #$20
+.a8
+    jmp otro
+
+; "Esperá a que terminen las rutas". Si no queda ninguna corriendo no cuesta ni
+; un cuadro, que es lo que hace el `while` de `Game_Interpreter::Update`; y si
+; queda, el cursor se deja **en el opcode** y se corta el cuadro, así que el
+; siguiente vuelve a preguntar. Espera a que no quede **ninguna**, ni la del
+; héroe ni la de ningún evento: es `Game_Map::IsAnyMovePending`, y no una espera
+; por el evento que se acaba de mandar a caminar.
+op_rutas:
+    jsr hay_rutas
+    beq op_rutas_sigue
+    dey                         ; el cursor vuelve al opcode
+    sty ev_cur
+    rts
+op_rutas_sigue:
+    jmp otro
 
 op_grupo:
     lda [cod_ptr], y            ; 0 = agregar, 1 = sacar
@@ -1858,6 +1945,8 @@ lo_encontre:
     rts
 
 sin_lider16:
+.a16
+    ; se llega en dieciséis; el `sep` de abajo lo achica
     sep #$20
 .a8
 sin_lider:
@@ -1921,9 +2010,63 @@ no_es_abajo:
     jsr try_left
 ver_si_arranco:
     lda step_left
-    bne listo                   ; arrancó el paso
-    bra otra_orden              ; bloqueado: se saltea y se prueba el siguiente
+    beq otra_orden              ; bloqueado: se saltea y se prueba el siguiente
+    ; El paso arrancó, y queda anotado que lo arrancó la ruta: `hay_rutas` lo
+    ; necesita para saber que el último paso de una ruta todavía cuenta.
+    lda #1
+    sta ruta_paso
 listo:
+    rts
+.endproc
+
+; Si queda alguna ruta forzada sin terminar, la del héroe incluida. Devuelve A
+; distinto de cero si la hay. Es `Game_Map::IsAnyMovePending`, que es a lo que
+; espera `ProceedWithMovement`.
+;
+; Del héroe cuentan dos cosas, y la segunda no es obvia: que le queden órdenes,
+; y que tenga un paso en curso **que haya arrancado la ruta**. Lo segundo hace
+; falta porque el último paso de una ruta sigue siendo la ruta aunque ya no
+; queden órdenes —sin eso la página seguiría ocho cuadros antes de tiempo—, y
+; tiene que ser sólo el de la ruta porque, terminada ésta, el jugador puede
+; ponerse a caminar mientras otra ruta sigue corriendo, y un paso del pad no es
+; una ruta pendiente.
+.proc hay_rutas
+.a8
+.i16
+    lda ruta_i
+    cmp ruta_n
+    bcc si                      ; al héroe le quedan órdenes
+    lda ruta_paso
+    beq de_eventos
+    lda step_left
+    bne si                      ; y el paso que está dando es de la ruta
+
+de_eventos:
+    ldx #$0000
+otra:
+    lda ruta_ev, x
+    cmp #RUTA_EV_LIBRE
+    beq siguiente
+    lda ruta_ev + 7, x          ; un paso en curso
+    bne si
+    lda ruta_ev + 5, x
+    cmp ruta_ev + 4, x
+    bcc si                      ; le quedan órdenes
+siguiente:
+    rep #$20
+.a16
+    txa
+    clc
+    adc #RUTA_EV_STRIDE
+    tax
+    cmp #RUTA_EV_MAX * RUTA_EV_STRIDE
+    sep #$20
+.a8
+    bcc otra
+    lda #0
+    rts
+si:
+    lda #1
     rts
 .endproc
 
@@ -2257,6 +2400,466 @@ copiar:
     iny
     bra copiar
 listo:
+    rts
+.endproc
+
+; La tabla de posiciones de eventos a la RAM, y las rutas que hubiera corriendo
+; a la basura.
+;
+; Lo segundo es lo que hace RM2k al cambiar de mapa: las rutas forzadas son de
+; los eventos del mapa que se deja, y allá no queda nadie caminando.
+;
+; Reusa `npc_ptr`, que sólo vive mientras se copia una tabla y nunca las dos a
+; la vez.
+.proc load_ev_pos
+.a8
+.i16
+    rep #$20
+.a16
+    lda #M_PTR_EV_POS
+    clc
+    adc mapa_ofs
+    tax
+    lda mapa_tabla, x           ; los 16 bits bajos del puntero
+    sta npc_ptr
+    sep #$20
+.a8
+    lda mapa_tabla + 2, x       ; y su banco
+    sta npc_ptr + 2
+
+    ldx mapa_ofs
+    rep #$20
+.a16
+    lda mapa_tabla + M_EV_COUNT, x
+    asl a
+    asl a                       ; EV_STRIDE bytes por evento
+    sta temp
+    sep #$20
+.a8
+    ldy #$0000
+copiar:
+    cpy temp
+    beq tablas
+    lda [npc_ptr], y
+    sta ev_pos_buf, y
+    iny
+    bra copiar
+
+tablas:
+    ldx #$0000
+libre:
+    lda #RUTA_EV_LIBRE
+    sta ruta_ev, x
+    rep #$20
+.a16
+    txa
+    clc
+    adc #RUTA_EV_STRIDE
+    tax
+    cmp #RUTA_EV_MAX * RUTA_EV_STRIDE
+    sep #$20
+.a8
+    bcc libre
+    stz ruta_paso
+    rts
+.endproc
+
+; --- las rutas forzadas de los eventos --------------------------------------
+;
+; Un evento con ruta forzada camina como el héroe: girar no consume cuadro,
+; esperar sí, y moverse arranca un paso de una celda que dura CUADROS_POR_CELDA.
+; La diferencia con el héroe es que su posición vive en celdas y no en pixeles,
+; y que —por ahora— no se dibuja: las rutas que compilan son sobre eventos sin
+; gráfico. Lo único que se ve de ellas es cuánto tardan, que es lo que espera
+; `ProceedWithMovement`.
+
+; Le da una ruta al evento `ruta_blanco - 1`: busca su ranura, y si no la tiene
+; agarra una libre. Pisar la que ya tenía es lo correcto —RM2k sobrescribe la
+; ruta forzada anterior, no la encadena— y si no hay ninguna libre la ruta se
+; descarta, que es preferible a escribir al lado de la tabla.
+;
+; Entra con Y apuntando a la primera orden dentro del bytecode.
+.proc ruta_para_evento
+.a8
+.i16
+    lda ruta_blanco
+    dec a
+    sta temp                    ; el índice del evento
+
+    ; Primero la ranura que ya sea suya.
+    ldx #$0000
+buscar:
+    lda ruta_ev, x
+    cmp temp
+    beq puesta
+    rep #$20
+.a16
+    txa
+    clc
+    adc #RUTA_EV_STRIDE
+    tax
+    cmp #RUTA_EV_MAX * RUTA_EV_STRIDE
+    sep #$20
+.a8
+    bcc buscar
+
+    ; Y si no, una libre.
+    ldx #$0000
+vacia:
+    lda ruta_ev, x
+    cmp #RUTA_EV_LIBRE
+    beq puesta
+    rep #$20
+.a16
+    txa
+    clc
+    adc #RUTA_EV_STRIDE
+    tax
+    cmp #RUTA_EV_MAX * RUTA_EV_STRIDE
+    sep #$20
+.a8
+    bcc vacia
+    rts                         ; no hay lugar: la ruta se pierde
+
+puesta:
+    lda temp
+    sta ruta_ev + 0, x
+    ; El puntero a la primera orden: el del código más lo que Y llevaba andado.
+    ; La suma no se lleva nada al byte de banco porque el bloque de código del
+    ; mapa entra entero en uno —lo garantiza el `.bloque` con que lo emite el
+    ; conversor—, que es el mismo argumento que el del bloque de mensajes.
+    rep #$20
+.a16
+    tya
+    clc
+    adc cod_ptr
+    sta ruta_ev + 1, x
+    sep #$20
+.a8
+    lda cod_ptr + 2
+    sta ruta_ev + 3, x
+    lda ruta_cuantas
+    sta ruta_ev + 4, x
+    stz ruta_ev + 5, x          ; recién empieza
+    stz ruta_ev + 7, x          ; y sin paso en curso
+    rts
+.endproc
+
+; Un cuadro de todas las rutas de eventos que estén corriendo.
+.proc mover_eventos
+.a8
+.i16
+    ldx #$0000
+otra:
+    lda ruta_ev, x
+    cmp #RUTA_EV_LIBRE
+    beq siguiente
+    phx
+    jsr cuadro_de_ruta_ev
+    plx
+siguiente:
+    rep #$20
+.a16
+    txa
+    clc
+    adc #RUTA_EV_STRIDE
+    tax
+    cmp #RUTA_EV_MAX * RUTA_EV_STRIDE
+    sep #$20
+.a8
+    bcc otra
+    rts
+.endproc
+
+; Un cuadro de la ruta de la ranura que apunta X. Es el mismo programa que
+; `paso_de_ruta` para el héroe, y por eso las dos hacen lo mismo con las mismas
+; órdenes: si acá se contara distinto, una ruta terminaría en otro cuadro que en
+; la referencia y `ProceedWithMovement` soltaría la página cuando no toca.
+.proc cuadro_de_ruta_ev
+.a8
+.i16
+    ; ¿Hay un paso en curso? Entonces sólo se le descuenta un cuadro: la celda
+    ; ya se movió al **empezar** el paso, igual que `begin_step`.
+    lda ruta_ev + 7, x
+    beq sin_paso
+    dec a
+    sta ruta_ev + 7, x
+    rts
+
+sin_paso:
+    ; El puntero de la ruta a la página directa, que es de donde se puede leer
+    ; con `[ptr], y`.
+    rep #$20
+.a16
+    lda ruta_ev + 1, x
+    sta ruta_ptr
+    sep #$20
+.a8
+    lda ruta_ev + 3, x
+    sta ruta_ptr + 2
+
+otra_orden:
+    lda ruta_ev + 5, x          ; en cuál va
+    cmp ruta_ev + 4, x          ; cuántas trae
+    bcs listo                   ; la ruta terminó
+    rep #$20
+.a16
+    and #$00FF
+    tay
+    sep #$20
+.a8
+    lda [ruta_ptr], y
+    inc ruta_ev + 5, x
+
+    cmp #23                     ; wait: consume el cuadro y nada más
+    beq listo
+    cmp #12
+    bcc mover                   ; 0..3 son los move_*
+    sec
+    sbc #12
+    cmp #4
+    bcs otra_orden              ; ni girar ni mover: se ignora
+    sta ruta_ev + 8, x          ; face_*: instantáneo, sigue el que viene
+    bra otra_orden
+
+mover:
+    sta ruta_ev + 8, x          ; move_* mira hacia donde va
+    sta ruta_dir
+    stz ruta_dir + 1
+    phx
+    jsr celda_del_evento        ; deja su posición en celda_x/celda_y
+    lda ruta_dir
+    jsr puede_celda
+    plx
+    ; `plx` pone Z según lo que saca de la pila, así que la respuesta hay que
+    ; volver a mirarla: con el `beq` pegado al `plx`, la ranura 0 —que es X = 0—
+    ; daba "bloqueado" siempre y ninguna ruta se movía nunca.
+    cmp #0
+    beq otra_orden              ; bloqueado: se saltea, como el héroe
+    phx
+    lda ruta_dir
+    jsr mover_celda_del_evento
+    plx
+    lda #CUADROS_POR_CELDA - 1
+    sta ruta_ev + 7, x
+listo:
+    rts
+.endproc
+
+; La posición del evento de la ranura X, a celda_x/celda_y.
+.proc celda_del_evento
+.a8
+.i16
+    lda ruta_ev + 0, x
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    asl a                       ; EV_STRIDE bytes por evento
+    tay
+    lda ev_pos_buf, y
+    sta celda_x
+    lda ev_pos_buf + 2, y
+    sta celda_y
+    sep #$20
+.a8
+    rts
+.endproc
+
+; Y la mueve una celda en la dirección que trae A. Se hace al **empezar** el
+; paso, no al terminarlo: es lo que hace `begin_step` con el héroe, y contarlo
+; distinto dejaría a los dos lados con la celda cambiada en cuadros distintos.
+.proc mover_celda_del_evento
+.a8
+.i16
+    sta ruta_dir
+    lda ruta_ev + 0, x
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    asl a
+    tay
+    sep #$20
+.a8
+    lda ruta_dir
+    cmp #DIR_UP
+    bne no_arriba
+    rep #$20
+.a16
+    lda ev_pos_buf + 2, y
+    dec a
+    sta ev_pos_buf + 2, y
+    bra fin
+no_arriba:
+.a8
+    cmp #DIR_DOWN
+    bne no_abajo
+    rep #$20
+.a16
+    lda ev_pos_buf + 2, y
+    inc a
+    sta ev_pos_buf + 2, y
+    bra fin
+no_abajo:
+.a8
+    cmp #DIR_LEFT
+    bne no_izquierda
+    rep #$20
+.a16
+    lda ev_pos_buf, y
+    dec a
+    sta ev_pos_buf, y
+    bra fin
+no_izquierda:
+.a8
+    rep #$20
+.a16
+    lda ev_pos_buf, y
+    inc a
+    sta ev_pos_buf, y
+fin:
+    sep #$20
+.a8
+    rts
+.endproc
+
+; Si la celda de al lado en la dirección que trae A existe, o sea si no se cae
+; del mapa. Devuelve A distinto de cero si existe.
+;
+; Está separado de `puede_celda` por una razón de alcance y no de diseño: junto,
+; el `beq` del primer control quedaba a 130 bytes de la salida y el ensamblador
+; cortaba. `sep`/`rep` no tocan Z ni C, así que el resultado de la comparación
+; de dieciséis bits sobrevive al cambio de ancho.
+.proc celda_vecina_existe
+.a8
+.i16
+    cmp #DIR_UP
+    bne prueba_abajo
+    rep #$20
+.a16
+    lda celda_y
+    sep #$20
+.a8
+    beq no                      ; ya está en la fila de arriba
+    bra si
+prueba_abajo:
+    cmp #DIR_DOWN
+    bne prueba_izquierda
+    rep #$20
+.a16
+    lda celda_y
+    inc a
+    cmp mapa_alto
+    sep #$20
+.a8
+    bcs no
+    bra si
+prueba_izquierda:
+    cmp #DIR_LEFT
+    bne prueba_derecha
+    rep #$20
+.a16
+    lda celda_x
+    sep #$20
+.a8
+    beq no
+    bra si
+prueba_derecha:
+    rep #$20
+.a16
+    lda celda_x
+    inc a
+    cmp mapa_ancho
+    sep #$20
+.a8
+    bcs no
+si:
+    lda #1
+    rts
+no:
+    lda #0
+    rts
+.endproc
+
+; Si desde (celda_x, celda_y) se puede dar un paso en la dirección que trae A.
+; Devuelve A distinto de cero si se puede.
+;
+; Es la misma regla que la del héroe —se consultan las dos caras, la que se deja
+; y la que se entra— pero desde una celda cualquiera, y sin mirar quién está
+; parado dónde, que es lo que hace también la ruta forzada del héroe.
+;
+; Un movimiento bloqueado se saltea. En las 26 rutas de eventos que este juego
+; compila eso pasa **una sola vez**, en el mapa 117, y por esa sola vez hay que
+; modelarlo: si los dos lados lo ignoraran igual, esa ruta duraría ocho cuadros
+; de más de los dos lados y la comparación daría cero.
+.proc puede_celda
+.a8
+.i16
+    sta celda_dir
+    stz celda_dir + 1
+    jsr celda_vecina_existe
+    beq no
+
+    ; La cara que se deja.
+    jsr ptr_de_celda
+    rep #$20
+.a16
+    jsr pass_del_ptr
+    sep #$20
+.a8
+    ldx celda_dir
+    and pass_salir, x
+    beq no
+
+    ; Y la cara del destino, que es la celda de al lado.
+    lda celda_dir
+    cmp #DIR_UP
+    bne baja
+    rep #$20
+.a16
+    lda tira_paso_col
+    jsr ptr_menos
+    bra entra
+    ; Las tres etiquetas que siguen se alcanzan con el acumulador **en ocho
+    ; bits**, aunque lo último que el ensamblador leyó fue un `.a16`: el `bra`
+    ; de arriba se saltea el cambio de ancho. Sin este `.a8` el `cmp` se emite
+    ; con un inmediato de dos bytes, la CPU lee sólo uno, y el segundo —un
+    ; $00— se ejecuta como BRK.
+baja:
+.a8
+    cmp #DIR_DOWN
+    bne izquierda
+    rep #$20
+.a16
+    lda tira_paso_col
+    jsr ptr_mas
+    bra entra
+izquierda:
+.a8
+    cmp #DIR_LEFT
+    bne derecha
+    rep #$20
+.a16
+    lda #2
+    jsr ptr_menos
+    bra entra
+derecha:
+.a8
+    rep #$20
+.a16
+    lda #2
+    jsr ptr_mas
+entra:
+.a16
+    jsr pass_del_ptr
+    sep #$20
+.a8
+    ldx celda_dir
+    and pass_entrar, x
+    rts
+no:
+    lda #0
     rts
 .endproc
 
@@ -3663,6 +4266,9 @@ PASS_UP    = $08
 
 quieto:
     stz moving
+    ; Sin paso en curso no hay paso de ruta que anotar. Se limpia acá y no al
+    ; terminar la ruta porque lo que interesa es el paso, no la ruta.
+    stz ruta_paso
     ; Una ruta forzada manda sobre el pad: mientras quede, el jugador no mueve
     ; al héroe. Es lo que hace RM2k, y es lo que permite que una cinemática lo
     ; camine sola.
@@ -3745,6 +4351,8 @@ no_derecha:
     jsr begin_step
     rts
 no:
+.a16
+    ; se llega en dieciséis; el `sep` de abajo lo achica
     sep #$20
 .a8
     rts
@@ -3778,6 +4386,8 @@ no:
     jsr begin_step
     rts
 no:
+.a16
+    ; se llega en dieciséis; el `sep` de abajo lo achica
     sep #$20
 .a8
     rts
@@ -3809,6 +4419,8 @@ no:
     jsr begin_step
     rts
 no:
+.a16
+    ; se llega en dieciséis; el `sep` de abajo lo achica
     sep #$20
 .a8
     rts
@@ -3842,6 +4454,8 @@ no:
     jsr begin_step
     rts
 no:
+.a16
+    ; se llega en dieciséis; el `sep` de abajo lo achica
     sep #$20
 .a8
     rts
@@ -3924,9 +4538,14 @@ no:
     rts
 .endproc
 
-; Dónde arranca el héroe dentro de la grilla. Se camina hasta ahí sumando: una
-; fila de bloques por cada fila que baja y después las columnas de una vez.
-.proc init_hero_ptr
+; El puntero a la celda (celda_x, celda_y) de la grilla. Se camina hasta ahí
+; sumando: una fila de bloques por cada fila que baja y después las columnas de
+; una vez.
+;
+; Está separado de `init_hero_ptr` porque ahora hay más de uno que camina: las
+; rutas forzadas de los eventos consultan celdas que no son la del héroe, y
+; tener la cuenta escrita dos veces es cómo se separan.
+.proc ptr_de_celda
 .a8
 .i16
     rep #$20
@@ -3940,7 +4559,7 @@ no:
     sta celdas_ptr + 2
     rep #$20
 .a16
-    ldx tile_y
+    ldx celda_y
     beq sin_filas
 filas:
     lda tira_paso_col
@@ -3948,9 +4567,29 @@ filas:
     dex
     bne filas
 sin_filas:
-    lda tile_x
+    lda celda_x
     asl a                       ; cada celda ocupa dos bytes
     jsr ptr_mas
+    sep #$20
+.a8
+    rts
+.endproc
+
+; Dónde arranca el héroe dentro de la grilla.
+.proc init_hero_ptr
+.a8
+.i16
+    rep #$20
+.a16
+    lda tile_x
+    sta celda_x
+    lda tile_y
+    sta celda_y
+    sep #$20
+.a8
+    jsr ptr_de_celda
+    rep #$20
+.a16
     jsr ptr_a_hero
     sep #$20
 .a8
@@ -4669,6 +5308,49 @@ tira_row2:  .res WINDOW_COLS * 2
 ; más NPCs de todo el juego tiene 89, y acá entran 127, que es el tope que
 ; impone OAM.
 npc_buf:  .res NPC_MAX * NPC_STRIDE
+
+; Dónde está cada evento del mapa, en celdas, por índice de la tabla. Se copia
+; de la ROM al cargar el mapa, igual que la de NPCs, y por una razón que no es
+; comodidad: **una ruta forzada la cambia**, y la siguiente ruta sobre el mismo
+; evento arranca de donde quedó. Hay una página de este juego que manda a
+; caminar nueve veces al mismo evento.
+;
+; Va todo el mapa y no sólo los eventos con gráfico: la mitad de las rutas de
+; este juego caen sobre eventos invisibles, que no se dibujan pero sí tardan, y
+; lo que tardan es lo que espera `ProceedWithMovement`.
+ev_pos_buf: .res EV_MAX * EV_STRIDE
+
+; Las rutas forzadas que están corriendo sobre eventos. Una ranura por ruta y no
+; por evento: son pocas a la vez —la página que más manda a caminar mueve
+; cuatro— y así la tabla no depende de cuántos eventos tenga el mapa.
+;
+;   +0  evento     el índice del evento, o $FF si la ranura está libre
+;   +1  ptr        puntero de 24 bits a la primera orden, en el bytecode
+;   +4  n          cuántas órdenes trae
+;   +5  i          en cuál va
+;   +6  paso_dir   la dirección del paso en curso, $FF si no hay ninguno
+;   +7  cuadros    cuántos cuadros le faltan a ese paso
+;   +8  mirando    hacia dónde quedó mirando, que es lo que la fase B va a
+;                  dibujar; hoy se lleva y no se usa
+;
+; El paso es de 16 y no de 9 para que la ranura se indexe con cuatro
+; corrimientos en vez de con una multiplicación.
+RUTA_EV_STRIDE = 16
+RUTA_EV_LIBRE = $FF
+ruta_ev:  .res RUTA_EV_MAX * RUTA_EV_STRIDE
+
+; La celda que se está consultando, para `ptr_de_celda` y `puede_celda`. Va acá
+; y no en la página directa porque se lee con direccionamiento absoluto, que
+; alcanza: en la página directa sólo tiene que estar lo que se use como puntero
+; con `[dp], y`, y ahí quedan doce bytes contados.
+celda_x:  .res 2
+celda_y:  .res 2
+; Las dos direcciones en curso. Van en dos bytes con el alto en cero porque se
+; usan como índice, y X e Y son de dieciséis: `ldx dir` de un byte se llevaría
+; puesto el de al lado. `ruta_dir` es la de la orden que se está ejecutando y
+; tiene que sobrevivir a la llamada que usa `celda_dir`.
+ruta_dir:  .res 2
+celda_dir: .res 2
 
 ; Un bit por switch de RM2k. El juego consulta hasta el 1003 en las condiciones
 ; de página, así que con 1024 alcanza. Se limpian una sola vez al arrancar: en
