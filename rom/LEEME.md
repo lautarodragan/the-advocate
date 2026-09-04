@@ -232,6 +232,45 @@ Una puerta a un mapa que no entró en el cartucho se descarta en la conversión.
 En la consola sería un salto al vacío, y es mejor que no haga nada a que haga
 cualquier cosa; el conversor dice cuántas quedaron afuera.
 
+### Pisar un evento, y pisarlo al final de una ruta forzada
+
+El otro disparo por contacto es el general: al terminar un paso, si la celda
+tiene un evento cuya página activa se dispara con "toca el héroe", se encola.
+Es `CheckEventTriggerHere` desde `Game_Player::UpdateMovement`, y va **después**
+de mirar la tabla de puertas: si hubo puerta el mapa ya cambió y la celda de
+llegada no se pisa, igual que en RM2k.
+
+Con una ruta forzada la regla tiene una vuelta, y desde el 2026-09-04 está de
+los dos lados. RM2k no mira el contacto mientras `IsMoveRouteOverwritten()`,
+pero **el último paso sí cuenta**: un movimiento que es la última orden cancela
+la ruta entera antes del chequeo —`Game_Character::UpdateMovement`, comentado
+ahí mismo—. Con órdenes por leer, aunque sean giros o esperas, la ruta sigue
+puesta y no se mira nada. La ROM tenía la mitad —miraba en todos los pasos— y
+la referencia la otra —no miraba en ninguno—, y no se veía porque ninguna
+página de contacto compilaba sin ventana. Es lo que deja a la cinemática de
+apertura pisar el evento que apaga el tinte: tres celdas para arriba y el
+evento en la tercera.
+
+Y si al terminar la ruta hay una página corriendo, el contacto **no se
+pierde**: va a la cola detrás de ella, que es lo que hace RM2k con
+`ScheduleForegroundExecution`. La ROM lo descartaba con un guard escrito para
+el pad, que para el pad sobra porque `move_hero` no arranca un paso con una
+página en el frente.
+
+Lo prueba `just snes-ruta-pisa`, en el mapa 70 de `snes-pisar`: la ruta que
+termina sobre el evento abre su mensaje, la que pasa por encima y sigue no abre
+nada, y la que termina con la página todavía esperando lo abre después del
+tinte. Cada caso se rompió a propósito para saber que mira lo que dice: sin el
+guard de la ruta el segundo se va a 20470 pixeles, y con el guard viejo del pad
+el tercero a 20261.
+
+Lo que no se modela, de ningún lado y con todas las letras: una ruta que
+termine **saltando** sobre un evento de contacto —RM2k lo dispara, ni la ROM ni
+la referencia lo miran—, una puerta al final de una ruta —la ROM la cruza y la
+referencia no la mira—, y un evento disparado dos veces antes de correr, que
+entra dos veces en la cola y una sola en RM2k. Ninguna ruta del juego hace
+ninguna de las tres.
+
 ### El arranque de verdad
 
 El juego no empieza donde las pruebas lo ponían. Empieza en **Map0004, `Blank
@@ -572,6 +611,15 @@ después de apretar A.
 
     cuadro  60   la ventana en pantalla y la página frenada: sin teñir
     cuadro 400   la ventana borrada y el tinte puesto
+
+**La ventana no se tiñe.** Es lo que hace RM2k —en `Spriteset_Map::Update` el
+tono se le aplica al tilemap, a los personajes, al panorama y a las sombras, y
+la ventana no está entre ellos— y es lo que hace la ROM sin proponérselo:
+`aplicar_tinte` vuelve a subir las tres paletas del mapa desde el cartucho, y
+la de la ventana no es ninguna de ellas. La referencia decía lo contrario,
+"como en la consola", y ninguna prueba abría un mensaje sobre una pantalla ya
+teñida —`snes-cerrar` tiñe recién después de cerrarlo—. La primera que lo hizo,
+el tercer caso de `snes-ruta-pisa`, dio 4122 pixeles, todos en la ventana.
 
 Los dos cuadros difieren en 52637 pixeles de 57344, así que la prueba tiene de
 dónde agarrarse. Con una dirección —`snes-cerrar 7 200 cerrar-right right`—

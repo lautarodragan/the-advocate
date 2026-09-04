@@ -41,19 +41,15 @@ compila. Le faltan cinco cosas, en el orden en que conviene hacerlas:
    con la tanda entera: 51 casos en verde. La ROM del arranque con `--con-ventana`
    ya convierte, y compila 8 páginas del mapa 1 en vez de 6 y 32 del 2 en vez
    de 11; el evento 2 del mapa 1 todavía no, por los cuatro puntos que siguen.
-2. **El disparo por contacto al terminar una ruta forzada.** RM2k no mira los
-   contactos mientras corre una ruta —`!IsMoveRouteOverwritten()` en
-   `Game_Player::UpdateMovement`— pero **sí en el último paso**, porque cuando
-   la última orden es un movimiento RPG_RT cancela la ruta antes de chequear;
-   está comentado en `game_character.cpp`. Nuestra ROM no tiene ese guard:
-   `probar_contacto` corre al final de **todos** los pasos, así que dispararía
-   en los intermedios, y la referencia no dispara en ninguno —su
-   `contacto_al_pisar` sólo cuelga del camino de la caminata con el pad—. Hoy no
-   molesta porque sin ventana no hay página que disparar; salta en cuanto entre
-   el punto 1. Hay que hacerlo **de los dos lados**: en la ROM alcanza con
-   saltear si al héroe le queda ruta (`ruta_i < ruta_n`, `ruta_espera` o
-   `ruta_salto`), y en la referencia hay que **agregar** la llamada al terminar
-   el último paso de una ruta.
+2. **Hecho el 2026-09-04: el disparo por contacto al terminar una ruta
+   forzada.** De los dos lados, con la regla de `Game_Player::UpdateMovement`:
+   nada mientras queden órdenes, y el último paso sí. De paso salieron dos cosas
+   que no estaban en el traspaso: la ROM descartaba el contacto si había una
+   página corriendo y RM2k lo encola, y la referencia teñía la ventana de
+   mensaje y RM2k no —la ROM ya no la teñía—. Tres casos nuevos en
+   `snes-ruta-pisa`, los tres rotos a propósito para saber que miran; la tanda
+   queda en 54 casos en verde. Lo que quedó sin modelar está en el LEEME, en
+   "Pisar un evento".
 3. **`ChangeEventLocation`**, que aparece 6 veces en esa página: es lo que
    planta a Core y a Manta en escena. Destraba además +5 páginas automáticas en
    el resto del juego, que es lo tercero que más rinde.

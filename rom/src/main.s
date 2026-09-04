@@ -2303,8 +2303,12 @@ cabe:
     ; es 90 y `Priority_Timer` 140—, así que la pantalla se oscurece y los
     ; dígitos no. Acá el tinte es una transformación de CGRAM y se lleva por
     ; delante todo lo que toca, pero los dígitos tienen una paleta para ellos
-    ; solos, así que alcanza con volver a subir la de la ROM. La ventana de
-    ; mensaje no puede hacer esto: su paleta está en la mitad del mapa.
+    ; solos, así que alcanza con volver a subir la de la ROM.
+    ;
+    ; La ventana de mensaje tampoco se tiñe, y sin hacer nada: su paleta no es
+    ; ninguna de las tres que se acaban de subir, así que queda como la dejó
+    ; `load_ventana`. Es lo que hace RM2k —el tono se aplica al mapa, a los
+    ; personajes y al panorama, no a la ventana— y acá decía que no se podía.
     jmp subir_timer_pal
 .endproc
 
@@ -3728,16 +3732,21 @@ no:
 ; son un caso particular de esto —un teletransporte en una página de contacto— y
 ; se atienden antes, aparte: si hubo puerta, el mapa ya cambió y acá no queda
 ; nada que mirar.
+; Con una página corriendo **también** se mira, y la página que dispare va a
+; la cola detrás de la que está corriendo: en RM2k `UpdateMovement` no pregunta
+; por el intérprete, `ScheduleForegroundExecution` deja al evento esperando y
+; `Game_Map` lo arranca cuando el intérprete se desocupa. Acá había un guard
+; que descartaba el contacto en ese caso, escrito para el pad —y para el pad
+; sobra, porque `move_hero` no arranca un paso con una página en el frente—;
+; con una ruta forzada sí pasaba: una página que manda a caminar al héroe y
+; después espera terminaba con el contacto perdido. La cola es la misma que la
+; de los automáticos, de a uno detrás del otro, que es lo que hace RM2k.
+;
+; Lo que no se modela, de ningún lado: un evento que se dispare dos veces antes
+; de correr entra dos veces acá y una sola en RM2k, que lo marca con un bit.
 .proc probar_contacto
 .a8
 .i16
-    ; Con una página corriendo no se dispara nada: en RM2k el jugador ni se
-    ; mueve mientras el intérprete tiene algo en el frente.
-    lda ev_activo
-    bne no
-    lda cola_i
-    cmp cola_n
-    bne no
     rep #$20
 .a16
     lda tile_x
@@ -3751,9 +3760,6 @@ no:
     jsr accion_en_celda
     ldx #TRIGGER_ACCION
     stx trigger_buscado         ; queda como lo espera la tecla de acción
-    rts
-no:
-    lda #0
     rts
 .endproc
 
@@ -6630,7 +6636,22 @@ sin_filas:
     sbc #WALK_SPEED
     sta step_left
     bne sigue                   ; el paso todavía no terminó
+    ; Mientras al héroe le quede ruta forzada no se pisa nada: ni puerta ni
+    ; evento de contacto. Es el `!IsMoveRouteOverwritten()` de
+    ; `Game_Player::UpdateMovement`, y el último paso sí cuenta porque en
+    ; `Game_Character::UpdateMovement` un movimiento que es la última orden
+    ; cancela la ruta entera **antes** del chequeo —está comentado ahí: "If
+    ; the last command of a move route is a move or jump, RPG_RT cancels the
+    ; entire move route immediately"—. Con `ruta_i` ya pasado de la última
+    ; orden, la ruta está cancelada; con órdenes por leer, no. Es lo que deja
+    ; a la cinemática de apertura pisar el evento que apaga el tinte: son tres
+    ; celdas para arriba y el evento está en la tercera.
+    lda ruta_i
+    cmp ruta_n
+    bcc sigue                   ; quedan órdenes: el paso es del medio
     jsr cruzar_puerta           ; recién parado en la celda: ¿había puerta?
+    bne sigue                   ; la hubo: el mapa ya cambió y la celda de
+                                ; llegada no se pisa, igual que en RM2k
     jsr probar_contacto         ; y si no, ¿hay un evento de contacto?
 sigue:
     rts
@@ -6639,7 +6660,7 @@ sigue:
 ; Si la celda donde el héroe acaba de pararse tiene una puerta, cargar el mapa
 ; al que lleva. Se mira al terminar el paso y no al empezarlo, que es lo que
 ; hace RM2k: el evento se dispara cuando el héroe ocupa la celda, no cuando la
-; encara.
+; encara. Devuelve A distinto de cero si cruzó.
 ;
 ; La tabla se recorre entera comparando. Son pocas —el mapa con más puertas del
 ; juego tiene un puñado— y esto corre una vez cada dieciséis pixeles.
@@ -6685,6 +6706,7 @@ siguiente:
 no_hay:
     sep #$20
 .a8
+    lda #0
     rts
 
 cruzar:
@@ -6724,6 +6746,7 @@ cruzar:
     stz moving
     lda #$0F
     sta INIDISP
+    lda #1
     rts
 .endproc
 

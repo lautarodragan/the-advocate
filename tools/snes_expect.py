@@ -189,6 +189,16 @@ def puede_caer(passable, game_map, x, y):
 def paso_de_ruta(estado, passable, game_map, x, y):
     """Un cuadro de la ruta forzada del héroe, en celdas.
 
+    Devuelve (x, y, llegó), donde `llegó` es que en este cuadro terminó el
+    **último** paso de la ruta: es el único en que RM2k mira si el héroe pisó
+    un evento de contacto. `Game_Player::UpdateMovement` no lo mira mientras
+    `IsMoveRouteOverwritten()`, y un movimiento que es la última orden cancela
+    la ruta entera antes de ese chequeo —`Game_Character::UpdateMovement`,
+    comentado ahí mismo—; con órdenes por leer, aunque sean giros o esperas,
+    la ruta sigue puesta y no se mira. Un salto que termine la ruta también
+    cuenta en RM2k y acá no —ni en la ROM—: ninguna ruta del juego termina
+    saltando sobre un evento de contacto, y si alguna vez pasa, es acá.
+
     La celda se mueve al **empezar** el paso y los pixeles van detrás, que es lo
     que hace la ROM: `begin_step` deja el índice en la celda nueva con dieciséis
     pixeles por recorrer, y `advance_step` los va comiendo de a dos por cuadro.
@@ -209,11 +219,14 @@ def paso_de_ruta(estado, passable, game_map, x, y):
         saltar=lambda dx, dy: puede_caer(passable, game_map, x + dx, y + dy))
     salto = estado.ruta_heroe.arranco_salto
     if salto is not None:
-        return x + salto[0], y + salto[1]
+        return x + salto[0], y + salto[1], False
     if direccion is not None and antes == 0:
         dx, dy = PASOS[direccion]
-        return x + dx, y + dy       # el paso arranca: la celda ya es la nueva
-    return x, y
+        return x + dx, y + dy, False  # el paso arranca: la celda ya es la nueva
+    # El paso terminó en este cuadro —es el mismo cuadro en que `advance_step`
+    # deja `step_left` en cero— y no quedan órdenes: ver arriba.
+    llego = antes > 0 and estado.paso_cuadros == 0 and not estado.ruta
+    return x, y, llego
 
 
 def cuadro_de_eventos(estado, passable, game_map):
@@ -302,8 +315,17 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
                         and not estado.cuadros_moviendose \
                         and not estado.algo_corriendo():
                     break
-                x, y = paso_de_ruta(estado, passable, game_map, x, y)
+                x, y, llego = paso_de_ruta(estado, passable, game_map, x, y)
                 cuadro_de_eventos(estado, passable, game_map)
+                if llego:
+                    # El último paso de la ruta pisó la celda: si hay un
+                    # evento de contacto, corre. Acá el tiempo ya está
+                    # colapsado, así que corre colapsado también, como el de
+                    # la caminata con el pad.
+                    map_id, x, y, frena = contacto_al_pisar(
+                        mundo, estado, map_id, x, y, passable, game_map)
+                    if frena:
+                        break   # cambió de mapa o abrió un mensaje: se queda
         else:
             # Cuadro a cuadro, con el intérprete y la ruta forzada del héroe
             # avanzando juntos: en RM2k `ForceMoveRoute` es asincrónico, la
@@ -349,7 +371,15 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
                         restantes -= n  # los que quedan para el mapa nuevo
                         pendiente = interprete.pendiente()
                         break
-                x, y = paso_de_ruta(estado, passable, game_map, x, y)
+                x, y, llego = paso_de_ruta(estado, passable, game_map, x, y)
+                if llego:
+                    # Como `probar_contacto` en `advance_step`: la página va a
+                    # la cola y corre en el cuadro siguiente, detrás de la que
+                    # esté corriendo. Una puerta al final de una ruta la ROM
+                    # sí la cruza y acá no se mira: ninguna ruta del juego
+                    # termina sobre una, y ninguna prueba lo ejercita.
+                    interprete.probar_celda(x, y, eventos.TRIGGER_TOCA_HEROE,
+                                            estado)
                 cuadro_de_eventos(estado, passable, game_map)
                 if interprete.terminado and not estado.ruta \
                         and not estado.paso_cuadros \
@@ -410,7 +440,9 @@ def contacto_al_pisar(mundo, estado, map_id, x, y, passable, game_map):
                                               (salto[1], salto[2]))
                 return map_id, x, y, True
             continue
-        x, y = paso_de_ruta(estado, passable, game_map, x, y)
+        x, y, llego = paso_de_ruta(estado, passable, game_map, x, y)
+        if llego:
+            interprete.probar_celda(x, y, eventos.TRIGGER_TOCA_HEROE, estado)
         cuadro_de_eventos(estado, passable, game_map)
         if estado.mensaje is not None:
             return map_id, x, y, True
@@ -1068,12 +1100,22 @@ def main():
             with open(salida(args.saltar, etiqueta), "w") as handle:
                 handle.write("".join("%d\n" % y for y in excedidas))
 
-        # El tinte va al final, sobre todo lo que se dibujó: en la consola es
-        # una transformación de CGRAM, y CGRAM la comparten el fondo, la capa de
+        # El tinte va sobre el mapa entero: en la consola es una
+        # transformación de CGRAM, y CGRAM la comparten el fondo, la capa de
         # encima y los sprites.
-        # La ventana de mensaje va antes del tinte, como en la consola: allá el
-        # tinte es una transformación de CGRAM y la paleta de la ventana está
-        # en la misma mitad que las del mapa.
+        view = tenir_imagen(view, estado.tinte)
+
+        # La ventana de mensaje va **después** del tinte, sin teñir. Es lo que
+        # hace RM2k: en `Spriteset_Map::Update` el tono se le aplica al
+        # tilemap, a los personajes, al panorama y a las sombras, y la ventana
+        # no está entre ellos —`Priority_Window` es 130 contra el
+        # `Priority_Screen` de 90—. Y es lo que hace la ROM sin proponérselo:
+        # `aplicar_tinte` vuelve a subir las tres paletas del mapa desde el
+        # cartucho y la de la ventana no es ninguna de ellas, así que queda
+        # como la subió `load_ventana`. Acá decía lo contrario, "como en la
+        # consola", y ninguna prueba abría un mensaje sobre una pantalla
+        # teñida: `snes-cerrar` tiñe recién después de cerrarlo. La primera
+        # que lo hizo, `snes-ruta-pisa` con la cola, dio 4122 pixeles.
         if estado.mensaje is not None:
             import ventana as ventana_mod
             skin = ventana_mod.skin(args.game_dir,
@@ -1086,14 +1128,11 @@ def main():
             view = view.convert("RGBA")
             view.paste(caja, (0, view.height - caja.height), caja)
 
-        view = tenir_imagen(view, estado.tinte)
-
         # El cronómetro va al final de todo, **incluido el tinte**. En RM2k es
-        # `Priority_Timer` = 140 contra el `Priority_Screen` = 90 del tinte y el
-        # `Priority_Window` = 130 de la ventana: la pantalla se oscurece y los
-        # dígitos no. En la consola eso sale de la prioridad 3 de objeto más una
-        # paleta propia que `aplicar_tinte` vuelve a subir sin teñir. La ventana
-        # no puede hacer lo mismo: su paleta está en la mitad del mapa.
+        # `Priority_Timer` = 140 contra el `Priority_Screen` = 90 del tinte: la
+        # pantalla se oscurece y los dígitos no. En la consola eso sale de la
+        # prioridad 3 de objeto más una paleta propia que `aplicar_tinte`
+        # vuelve a subir sin teñir.
         if glifos:
             import ventana as ventana_mod
             sys_img = ventana_mod.skin(args.game_dir,

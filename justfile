@@ -1084,6 +1084,57 @@ snes-ruta mapa="6" ruta="1 1 1 1 23 23 2 2 2 2 23 23 0 0 0 0" cuadros="18 60 120
         --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
   done
 
+# Una ruta forzada que termina sobre un evento de contacto, y otra que pasa por
+# encima de uno.
+#
+# Es el disparo que le faltaba a la cinemática de apertura: la página del mapa 1
+# manda al héroe tres celdas para arriba y termina en el mismo cuadro, y el
+# evento que apaga el tinte está en la tercera celda, con disparo por contacto.
+# La regla es la de `Game_Player::UpdateMovement`: al terminar un paso se mira
+# la celda **salvo que el héroe tenga una ruta forzada puesta**, y un movimiento
+# que es la última orden de la ruta la cancela entera antes de ese chequeo. O
+# sea: los pasos del medio no pisan nada, el último sí. La ROM tenía la mitad
+# —miraba en todos— y la referencia la otra —no miraba en ninguno—.
+#
+# El mapa 70 es el de `snes-pisar`: la columna x = 12 es pasillo de (12,3) a
+# (12,8) y el evento de contacto está en (12,4), con un cuadro de texto. Tres
+# casos, todos con el héroe plantado en (12,8):
+#
+# * cuatro para arriba: termina sobre el evento y el mensaje se abre. Los
+#   cuadros 16 y 24 son el paso del medio —sin ventana— y el 200 la ventana
+#   abierta.
+# * cinco para arriba: **pasa** por el evento en el cuarto paso y termina en
+#   (12,3). No se abre nada; con la ROM vieja se abría en el cuarto paso.
+# * cuatro para arriba con la página **esperando 60 cuadros y tiñendo** detrás:
+#   la ruta termina en el 32 con la página todavía corriendo. RM2k no pierde el
+#   contacto: lo deja esperando y lo corre cuando la página termina, o sea
+#   después del tinte. La ROM lo descartaba; ahora lo encola.
+#
+# El desfasaje de arranque del mapa 70 es 43, medido barriendo contra la
+# referencia del cuadro 16: con 40 —el de `snes-pisar`, que nunca lo necesitó
+# exacto porque el pad sostenido llega igual— el héroe queda tres cuadros atrás
+# y la pose no coincide.
+snes-ruta-pisa mapa="70" celda="12 8" ruta="0 0 0 0" pagina="0" cuadros="16 24 200" arranque="43" nombre="ruta-pisa":
+  #!/usr/bin/env bash
+  set -euo pipefail
+  mkdir -p {{snes_pngs}} {{snes_inc}}
+  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
+      --inicio {{celda}} --con-ventana \
+      --ruta-de-prueba {{ruta}} --pagina-de-prueba {{pagina}} \
+      -o {{snes_inc}}/mapdata.inc
+  just snes-build
+  pre={{snes_pngs}}/{{nombre}}
+  python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
+      --hero-tile {{celda}} --con-ventana \
+      --ruta-de-prueba {{ruta}} --pagina-de-prueba {{pagina}} --cuadros {{cuadros}} \
+      --saltar $pre-{}.saltar.txt -o $pre-{}.esperado.png
+  for n in {{cuadros}}; do
+    python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre-$n.png \
+        --walk none --cuadros $n --arranque {{arranque}}
+    python3 tools/snes_compare.py $pre-$n.png $pre-$n.esperado.png \
+        --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
+  done
+
 # La otra segunda opinión, la que sí sale gratis: los mismos casos en bsnes.
 #
 # bsnes es el emulador preciso, y sobre todo es el que **llena la WRAM de basura
