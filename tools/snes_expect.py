@@ -166,6 +166,20 @@ EVENTO_DE_PRUEBA = {"evento": 9999, "pagina": 0,
                     "switch_a": 0, "switch_b": 0, "actor": 0, "codigo": b""}
 
 
+def puede_caer(passable, game_map, x, y):
+    """Si se puede aterrizar en esa celda, que no es lo mismo que pisarla.
+
+    Es `Game_Map::CheckOrMakeWayEx` con el personaje saltando: se saltea la cara
+    que se deja —de ahí que un salto pueda salir de un lugar del que no se
+    podría caminar— y la celda de destino tiene que ser pasable por **los cuatro
+    lados**, no sólo por la que se entra.
+    """
+    if not (0 <= x < game_map.width and 0 <= y < game_map.height):
+        return False
+    cuatro = (rm2k.PASS_UP | rm2k.PASS_DOWN | rm2k.PASS_LEFT | rm2k.PASS_RIGHT)
+    return passable[y * game_map.width + x] & cuatro == cuatro
+
+
 def paso_de_ruta(estado, passable, game_map, x, y):
     """Un cuadro de la ruta forzada del héroe, en celdas.
 
@@ -184,7 +198,12 @@ def paso_de_ruta(estado, passable, game_map, x, y):
                                 x, y, dx, dy)
 
     antes = estado.paso_cuadros
-    direccion = estado.cuadro_de_ruta(puede)
+    direccion = estado.cuadro_de_ruta(
+        puede,
+        saltar=lambda dx, dy: puede_caer(passable, game_map, x + dx, y + dy))
+    salto = estado.ruta_heroe.arranco_salto
+    if salto is not None:
+        return x + salto[0], y + salto[1]
     if direccion is not None and antes == 0:
         dx, dy = PASOS[direccion]
         return x + dx, y + dy       # el paso arranca: la celda ya es la nueva
@@ -209,7 +228,8 @@ def cuadro_de_eventos(estado, passable, game_map):
         return rm2k.puede_pasar(passable, game_map.width, game_map.height,
                                 x, y, dx, dy)
 
-    estado.cuadro_de_rutas_ev(puede)
+    estado.cuadro_de_rutas_ev(
+        puede, lambda cx, cy: puede_caer(passable, game_map, cx, cy))
     estado.cuadro_de_flashes()
     estado.cuadro_de_timer()
 
@@ -930,19 +950,25 @@ def main():
             # es lo que hace RM2k.
             blanco_flash = npc["evento"] + 1
             ruta = estado.rutas_ev.get(npc["evento"])
+            altura = 0
             if ruta is None:
                 px, py, pose = npc["x"] * TILE, npc["y"] * TILE, npc["pose"]
             else:
+                altura = eventos.altura_del_salto(ruta)
                 cx, cy = estado.pos_ev[npc["evento"]]
                 px, py = eventos.pixeles_del_paso(cx, cy, ruta)
                 mira = (ruta.mirando if ruta.mirando is not None
                         else npc["pose"] // 3)
                 pose = mira * 3 + (columna_de_caminata(ruta.cuadros_moviendose)
                                    if ruta.cuadros_moviendose else STAND)
+            # La clave lleva la Y **sin** el salto: `GetScreenZ` llama a
+            # `GetScreenY(false)`, así que quien salta no se adelanta en el
+            # orden de dibujo por estar en el aire.
             actors.append(((snes_convert.sort_key(npc["layer"], py), px,
                             npc["evento"]),
                            npc["charset"], npc["index"], pose, px, py,
-                           npc["layer"] == rm2k.LAYER_ABOVE, blanco_flash))
+                           npc["layer"] == rm2k.LAYER_ABOVE, blanco_flash,
+                           altura))
         # El último campo es si va por encima de la capa de encima. Para el
         # héroe es falso salvo en la ROM de `snes-encima`, donde su prioridad
         # de objeto sube a 2 —el mismo bit que llevan los eventos "above"— y
@@ -973,7 +999,8 @@ def main():
         # y la ROM adelante; se ve parado encima de uno en el mapa 73.
         actors.append(((snes_convert.sort_key(rm2k.LAYER_SAME, y), 0xFFFF, 0xFFFF),
                        charset, charset_index,
-                       direction * 3 + columna, x, y, args.heroe_encima, 0))
+                       direction * 3 + columna, x, y, args.heroe_encima, 0,
+                       eventos.altura_del_salto(estado.ruta_heroe)))
 
         # En OAM van del frente hacia el fondo, que es al revés del orden en que
         # se pintan. La consola recorre ese mismo orden para decidir qué entra
@@ -981,7 +1008,7 @@ def main():
         # pierde.
         order = sorted(actors, key=lambda a: a[0], reverse=True)
         sprites = []
-        for _key, name, index, pose, px, py, arriba, blanco in order:
+        for _key, name, index, pose, px, py, arriba, blanco, altura in order:
             imagen = pose_image(charset_image(name), index, pose)
             # El destello va sobre el personaje ya dibujado, que en la consola
             # es su paleta. El tinte de pantalla va antes —`Cache::SpriteEffect`
@@ -990,7 +1017,8 @@ def main():
             imagen = destellar_imagen(imagen, estado.color_de_flash(blanco),
                                       estado.nivel_de_flash(blanco)) \
                 if blanco in estado.flashes else imagen
-            sprites.append((imagen, px - 4 - cam_x, py - 16 - cam_y, arriba))
+            sprites.append((imagen, px - 4 - cam_x,
+                            py - 16 - cam_y - altura, arriba))
 
         # La capa que va por encima del héroe se compone entre los sprites
         # comunes y los eventos marcados "above", que es el orden de RM2k y el

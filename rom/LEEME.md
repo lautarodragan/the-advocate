@@ -1295,11 +1295,22 @@ comparación.
 
 ## Lo que falta
 
-* **Las órdenes de ruta que faltan.** Los eventos ya caminan, visibles e
-  invisibles, pero sólo con las nueve órdenes que la ROM entiende: mover en los
-  cuatro sentidos, girar en los cuatro y esperar. Faltan los saltos, cambiar el
-  gráfico en mitad de la ruta, las diagonales y moverse hacia el héroe. Es lo
-  que más corta de lo que queda: 170 páginas.
+* **Las órdenes de ruta que faltan.** Son quince las que la ROM entiende
+  —mover en los cuatro sentidos, girar en los cuatro, esperar, saltar,
+  atravesar paredes y parar o seguir la animación— y `play_sound_effect` se
+  acepta sin hacerlo, como PlaySound. Faltan **cambiar el gráfico** (+16 solo,
+  y más en combinación: pide meter los tiles del CharSet nuevo en el banco de
+  sprites del mapa), las **diagonales**, **moverse hacia el héroe**, la
+  **velocidad** —que cambia cuántos cuadros dura un paso— y la
+  **transparencia**. Sigue siendo lo que más corta: 129 páginas.
+
+  Y aparte, **girar sin moverse** (`turn_90_degree_right` y sus hermanas) y
+  **encarar al héroe**: son tres páginas y no están afuera por costo sino por
+  dónde arranca el giro. RM2k gira sobre la dirección que el personaje ya
+  tenía, y para un evento ésa es la que trae su página; hoy la ruta no la
+  conoce hasta que la gira ella misma —lleva un centinela— así que el primer
+  giro partiría de otro lado en la ROM y en la referencia. Entran cuando el
+  mirado inicial salga de la página en los dos lados.
 * **Que un NPC frene al héroe.** En RM2k los eventos de la capa del héroe
   bloquean el paso; la ROM todavía no lo mira. La tabla ya trae el dato.
 * **Los teletransportes que siguen sin resolverse.** Los que están adentro de
@@ -1333,21 +1344,22 @@ comparación.
   Mientras tanto el héroe queda parado adentro del caño, que es donde RM2k
   también lo deja: ahí no camina nadie, sigue el script.
 * **Lo que le falta al juego entero, medido.** De las 489 páginas automáticas
-  con comandos, hoy compilan enteras **126**. Eran 16 antes de los cuadros de
+  con comandos, hoy compilan enteras **137**. Eran 16 antes de los cuadros de
   texto, 71 con ellos, 87 con las rutas forzadas sobre eventos, 110 con
-  FlashSprite, 117 aceptando `PlaySound` y 126 con la saturación del tinte. El
-  cronómetro no cambió el número: suma cero, y está medido. Y esto es cuántas
-  pasarían a compilar con cada comando que falta —`just snes-destraba`—:
+  FlashSprite, 117 aceptando `PlaySound`, 126 con la saturación del tinte y 137
+  con los saltos y las demás órdenes de ruta. El cronómetro no cambió el
+  número: suma cero, y está medido. Y esto es cuántas pasarían a compilar con
+  cada comando que falta —`just snes-destraba`—:
 
-      ConditionalBranch          +6      PanScreen              +2
-      FadeOutBGM                 +6      ChangeItems            +2
-      ControlVars                +4      FullHeal               +1
-      ChangeEventLocation        +2      WeatherEffects         +0
-                                         CallEvent              +0
+      ConditionalBranch          +9      ChangeItems            +2
+      FadeOutBGM                 +9      FullHeal               +1
+      ChangeEventLocation        +5      WeatherEffects         +0
+      ControlVars                +4      CallEvent              +0
+      PanScreen                  +4
 
   Y aparte, `MoveEvent` con las órdenes de ruta que todavía no sabemos caminar:
-  +46 de techo. Puestos todos juntos se llega a **179 de 489**, y lo que seguiría
-  cortando después es, de lejos, **`MoveEvent` en su forma general: 170
+  +35 de techo. Puestos todos juntos se llega a **213 de 489**, y lo que seguiría
+  cortando después es, de lejos, **`MoveEvent` en su forma general: 129
   páginas** —rutas con saltos, con cambio de gráfico, con diagonales, o
   apuntadas a un vehículo—. Después vienen `ShowChoice` con 9 y los 7 cuadros de
   texto con códigos de escape.

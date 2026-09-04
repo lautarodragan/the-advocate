@@ -62,8 +62,7 @@ MOVE_HEROE, MOVE_ESTE = 10001, 10005
 
 # Las órdenes de ruta que la ROM ya sabe caminar. Salen de `eventos.py` y no de
 # una lista propia, así que el día que aprenda una más este número sube solo.
-ORDENES = (set(eventos.RUTA_MIRAR) | set(eventos.RUTA_MOVER)
-           | {eventos.RUTA_ESPERAR})
+ORDENES = set(eventos.RUTA_ORDENES) | {eventos.RUTA_SONIDO}
 
 
 def mover_otro(cmd, pagina):
@@ -89,12 +88,17 @@ def mover_otro(cmd, pagina):
     blanco = pagina.mio if q[0] == MOVE_ESTE else q[0]
     if blanco != MOVE_HEROE and blanco not in pagina.ids:
         return False
-    ruta = q[4:]
-    # La ruta se recorre plana y se corta en la primera orden que no sabemos.
-    # Alcanza aunque `change_graphic` traiga el nombre del gráfico metido entre
-    # las órdenes: el código va antes que su texto, así que se corta ahí y las
-    # letras nunca se leen como órdenes.
-    return bool(ruta) and all(o in ORDENES for o in ruta)
+    if q[1] != eventos.RUTA_FRECUENCIA:
+        return False        # habría que modelar la espera entre órdenes
+    # La ruta se decodifica de verdad y no se recorre plana: tres órdenes traen
+    # operandos metidos en el mismo chorro de enteros, y dos de ellas un texto
+    # con un entero por letra. Recorrerla plana alcanzaba mientras la primera
+    # orden desconocida cortara todo; con `play_sound_effect` aceptado ya no.
+    try:
+        ordenes = eventos.decodificar_ruta(q[4:])
+    except eventos.NoSePuede:
+        return False
+    return bool(ordenes) and all(o in ORDENES for o, _e in ordenes)
 
 
 # Los grupos. Un comando no se puede medir suelto cuando RM2k lo emite siempre

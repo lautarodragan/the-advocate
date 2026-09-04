@@ -986,6 +986,33 @@ snes-mensaje mapa="1" indice="0" escala="1":
   python3 tools/snes_mensaje.py --map-id {{mapa}} --indice {{indice}} \
       --escala {{escala}} -o {{snes_pngs}}/mensaje-{{mapa}}-{{indice}}.png
 
+# Una ruta forzada sobre el héroe, con las órdenes que la ROM sabe caminar.
+#
+# Son quince de las cuarenta y dos de `rpg::MoveCommand::Code`: moverse en los
+# cuatro sentidos, girar en los cuatro, esperar, saltar, atravesar paredes y
+# parar o seguir la animación. El resto —las diagonales, cambiar el gráfico,
+# la velocidad, girar sin moverse— sigue afuera.
+#
+# Cuatro casos, y cada uno mira una cosa que sale de leer easyrpg:
+#
+# * **El default**, con dos esperas en el medio. Un `wait` de ruta **no cuesta
+#   un cuadro sino veinte**: es `SetMaxStopCountForWait`, que da
+#   `20 + (1 << (8 - frecuencia))` y con la frecuencia 8 son veinte. Valía uno
+#   de los dos lados a la vez, así que la comparación daba cero. Los cuadros 60
+#   y 120 caen adentro de las esperas: con el valor viejo dan 12747 pixeles.
+# * **El salto.** `begin_jump` … `end_jump`: lo que hay en el medio no se
+#   camina, se suma, y el personaje aparece del otro lado en once cuadros, los
+#   mismos salte una celda o cinco. Sube en arco —`GetJumpHeight`, que no es
+#   lineal— y el arco mueve el **dibujo** y no el orden: `GetScreenZ` usa
+#   `GetScreenY(false)`, así que quien está en el aire no se adelanta.
+# * **Atravesar paredes.** La fila y = 4 del mapa 6 es pared salvo en x = 14, y
+#   el héroe arranca en (10, 8) y camina seis para arriba: sin `walk_everywhere`
+#   se frena contra ella. Es el `if (self.GetThrough()) return true;` de
+#   `CheckOrMakeWayEx`.
+# * **Parar la animación.** El ciclo de caminata se congela en la pose del
+#   medio, pero el personaje sigue caminando. Es `ResetAnimation`, que RM2k
+#   llama en cada cuadro mientras `IsAnimPaused()`.
+#
 # Una ruta forzada, comparada **mientras camina** y no sólo donde termina.
 #
 # Es el caso que faltaba para poder aceptar los `move_*` de MoveEvent. Lo que
@@ -1017,17 +1044,19 @@ snes-mensaje mapa="1" indice="0" escala="1":
 # parada, y 8 cuadros por celda por 12 celdas da 96, que cae justo en la parada.
 # Con cuatro celdas da 32, que cae en la columna 2. Elegido midiendo: los tres
 # errores se volvieron a meter de a uno y los tres dan rojo. Ver ESTADO.md.
-snes-ruta mapa="6" ruta="1 1 1 1 23 23 2 2 2 2 23 23 0 0 0 0" cuadros="18 34 86 400" arranque="10" nombre="ruta":
+snes-ruta mapa="6" ruta="1 1 1 1 23 23 2 2 2 2 23 23 0 0 0 0" cuadros="18 60 120 400" arranque="10" nombre="ruta" inicio="":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
-  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
+  desde=""; celda=""
+  if [ -n "{{inicio}}" ]; then desde="--inicio {{inicio}}"; celda="--hero-tile {{inicio}}"; fi
+  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} $desde \
       --ruta-de-prueba {{ruta}} -o {{snes_inc}}/mapdata.inc
   just snes-build
   pre={{snes_pngs}}/{{nombre}}
   # Las referencias de todos los cuadros salen de una sola conversión, por lo
   # mismo que las de los avances de snes-caminando.
-  python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
+  python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none $celda \
       --ruta-de-prueba {{ruta}} --cuadros {{cuadros}} \
       --saltar $pre-{}.saltar.txt -o $pre-{}.esperado.png
   for n in {{cuadros}}; do

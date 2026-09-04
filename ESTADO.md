@@ -904,7 +904,9 @@ margen: los cuadros de `snes-cinematica` están elegidos afuera de esas ventanas
 
 **Hecho el 2026-09-04: el disparo por contacto.** Pisar un evento lo dispara.
 Con esto la ROM sabe correr **1335 páginas** del juego: 692 de tecla de acción,
-526 de contacto y 117 automáticas. Hace un día eran 110.
+526 de contacto y 117 automáticas. Hace un día eran 110. (Ese conteo quedó
+viejo: con la saturación del tinte y las órdenes de ruta son 1709 —1039 de
+acción, 533 de contacto y 137 automáticas— medidas con el mismo filtro.)
 
 La regla es `CheckEventTriggerHere` desde `Game_Player::UpdateMovement`: al
 terminar el paso se mira si en esa celda hay un evento de contacto. Y **la capa
@@ -1030,6 +1032,61 @@ destello **y** saturación a la vez, la ROM hace `hardlight(destello(saturar(c))
 y la referencia `hardlight(saturar(destello(c)))`, porque la saturación no cabe
 en la tabla por canal donde vive la mezcla del destello. Medido: 49 pixeles de
 57344, todos de un valor de 31. Ninguna página del juego combina las dos hoy.
+
+**Hecho el 2026-09-04: los saltos y el resto de las órdenes de ruta.** La ROM
+entiende quince de las cuarenta y dos de `rpg::MoveCommand::Code`: a las nueve
+que ya caminaba —mover en los cuatro sentidos, girar en los cuatro y esperar—
+se suman **saltar**, **atravesar paredes** y **parar o seguir la animación**, y
+`play_sound_effect` se acepta sin hacerlo, como PlaySound. Son **35 páginas
+más**: de 1674 a 1709, con las automáticas pasando de 126 a 137.
+
+Antes de nada hubo que **decodificar la ruta de verdad**. Una ruta forzada no
+es una lista de códigos: tres órdenes traen operandos metidos en el mismo
+chorro de enteros, y dos de ellas un texto con un entero por letra. Recorrerla
+plana alcanzaba mientras la primera orden desconocida cortara todo; en cuanto
+`play_sound_effect` se acepta, las letras del nombre del archivo se leerían como
+órdenes.
+
+**Y ahí apareció un error viejo, del mismo tipo que el hard light del tinte: un
+`wait` de ruta no cuesta un cuadro sino veinte.** Es `SetMaxStopCountForWait`,
+que da `20 + (1 << (8 - frecuencia))`, y con la frecuencia 8 —la única que este
+repo acepta— son veinte. Valía uno en la ROM y uno en la referencia, así que
+`snes-ruta`, que tiene dos esperas en el medio, daba cero. Afectaba a 16 páginas
+que ya compilaban. Los cuadros de ese caso se movieron a 60 y 120, que caen
+adentro de las esperas: con el valor viejo dan 12747 pixeles.
+
+De paso se rechaza la frecuencia distinta de 8. No cuesta ninguna página —3463
+de las 3509 rutas del juego usan la 8, y **todas** las de las páginas que
+compilan— y saca del medio otra cosa que no estaba modelada: con frecuencia
+menor RM2k espera `1 << (9 - frecuencia)` cuadros entre orden y orden.
+
+El salto es lo más caro y lo que más rinde. Lo que hay entre `begin_jump` y
+`end_jump` **no se camina, se suma**, y el personaje aparece del otro lado en
+once cuadros —los mismos salte una celda o cinco, porque `remaining_step` baja
+de 256 a 0 a 24 por cuadro—. Sube en arco, y la curva no es lineal sino la tabla
+de `GetJumpHeight`. Dos cosas que se ven en el código y no en la pantalla: el
+arco mueve el **dibujo** y no el orden —`GetScreenZ` llama a
+`GetScreenY(false)`, así que quien está en el aire no se adelanta— y la celda de
+destino tiene que ser pasable por **los cuatro lados**, mientras que la de
+origen no se consulta: se puede saltar desde un lugar del que no se podría
+caminar.
+
+Lo prueban cuatro casos nuevos de `snes-ruta` y uno de `snes-npc`, y los cinco
+se verificaron rompiéndolos: sin el arco del salto de un NPC, 486 pixeles; sin
+la interpolación, 602; sin atravesar paredes, 231; con la espera vieja, 12747.
+La bandera de la animación salió invertida en el primer intento y el caso la
+agarró con 226 pixeles.
+
+**Girar sin moverse y encarar al héroe quedaron afuera a propósito**, y son tres
+páginas. No es por costo: RM2k gira sobre la dirección que el personaje ya
+tenía, y para un evento ésa es la que trae su página. Hoy la ruta no la conoce
+hasta que la gira ella misma —lleva un centinela— así que el primer giro
+partiría de DIR_DOWN en la ROM y de "no sé" en la referencia. Entran cuando el
+mirado inicial de un evento salga de su página en los dos lados.
+
+Y de paso se borró una copia muerta de `cuadro_de_ruta` en `Estado`: había dos
+definiciones con el mismo nombre y ganaba la segunda, así que la primera —35
+líneas— no la ejecutaba nadie desde el refactor de las rutas.
 
 **Después: la cinemática de apertura.**
 El mapa 4 ya prende el switch 20, que es la condición de la página que abre el

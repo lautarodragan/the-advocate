@@ -324,6 +324,7 @@ ruta_i:      .res 1
 ; Sin esto, `ProceedWithMovement` dejaría de esperar ocho cuadros antes de
 ; tiempo, o esperaría de más porque el jugador se puso a caminar.
 ruta_paso:   .res 1
+ruta_espera: .res 1     ; los cuadros que faltan de un `wait` de la ruta
 ; El blanco y el largo de la ruta que se está leyendo del bytecode. El largo va
 ; en dos bytes con el alto siempre en cero: se le suma a Y, que es de dieciséis.
 ruta_blanco: .res 1
@@ -473,6 +474,15 @@ grupo_listo:
     stz cola_i
     stz ruta_n                  ; sin ruta forzada pendiente
     stz ruta_i
+    stz ruta_espera
+    ; Y lo demás que una ruta deja prendido. La RAM arranca con basura —snes9x
+    ; la llena de $55— así que sin esto el héroe arrancaría atravesando paredes
+    ; y con la animación parada.
+    stz ruta_salto
+    stz ruta_atraviesa
+    stz ruta_anim_para
+    stz atravesando
+    stz atravesando + 1
     stz tinte_pendiente
     ; Y la ventana de mensaje. `msg_abierto` en basura deja la página bloqueada
     ; para siempre: `eventos_tick` cree que hay un mensaje en pantalla y espera
@@ -679,6 +689,12 @@ pass_salir:
     .byte PASS_UP, PASS_RIGHT, PASS_DOWN, PASS_LEFT
 pass_entrar:
     .byte PASS_DOWN, PASS_LEFT, PASS_UP, PASS_RIGHT
+; Y cuánto se corre cada dirección, en celdas: arriba, derecha, abajo,
+; izquierda. Con signo, que es como las suma `armar_salto`.
+paso_dx:
+    .byte 0, 1, 0, $FF
+paso_dy:
+    .byte $FF, 0, 1, 0
 ; Un bit por posición, para el bitmap de switches. Sale más barata que ocho
 ; corrimientos y se lee con el índice que ya tenemos.
 mascara:
@@ -1530,6 +1546,8 @@ op_ruta:
     lda ruta_cuantas
     sta temp
     stz ruta_i
+    stz ruta_espera
+    stz ruta_salto
     ldx #$0000
 copiar_orden:
     lda temp
@@ -2533,13 +2551,41 @@ sin_lider:
 ; siguiente; esperar sí; y moverse arranca un paso de una celda, que después
 ; camina `advance_step` como cualquier otro. Un movimiento bloqueado se saltea:
 ; RM2k reintentaría para siempre y una prueba colgada no dice nada.
+; Los saltos de acá adentro van con `jmp` y no con `bra`: el cuerpo pasó de
+; siete órdenes a quince y los 127 bytes de alcance de un `bra` se quedaron
+; cortos tres veces seguidas. Es la misma trampa que ya había cortado dos veces
+; en el despacho de opcodes de `correr_codigo`, y se saca igual.
 .proc paso_de_ruta
 .a8
 .i16
+    ; Un `wait` en curso se lleva el cuadro entero y no mira la ruta. Son
+    ; RUTA_ESPERA cuadros y no uno: es `SetMaxStopCountForWait` de RM2k, que con
+    ; la frecuencia 8 da veinte. Valía uno de los dos lados a la vez, así que la
+    ; comparación daba cero —el mismo error que el hard light del tinte—.
+    ; Un salto en curso se lleva el cuadro entero: la celda ya se movió al
+    ; empezar y lo único que pasa es que le queda menos arco.
+    lda ruta_salto
+    beq sin_salto
+    sec
+    sbc #SALTO_VELOCIDAD
+    bcs guardar_salto
+    lda #0
+guardar_salto:
+    sta ruta_salto
+    jsr salto_posicion_heroe
+    rts
+sin_salto:
+    lda ruta_espera
+    beq sin_espera
+    dec ruta_espera
+    rts
+sin_espera:
 otra_orden:
     lda ruta_i
     cmp ruta_n
-    bcs listo                   ; se terminó la ruta
+    bcc hay_orden
+    jmp listo                   ; se terminó la ruta; `bcs` ya no llega
+hay_orden:
     ; El índice a X pasando por A de dieciséis bits y limpiando el alto: `tax`
     ; transfiere los dos bytes del acumulador aunque A esté en ocho, y el alto
     ; trae lo que dejó la operación anterior. Es la trampa que ya está anotada
@@ -2555,38 +2601,92 @@ otra_orden:
     lda ruta, x
     inc ruta_i
 
-    cmp #23                     ; wait: consume el cuadro y nada más
-    beq listo
+    cmp #23                     ; wait: éste y los RUTA_ESPERA - 1 que siguen
+    bne no_es_wait
+    lda #(RUTA_ESPERA - 1)
+    sta ruta_espera
+    jmp listo
+no_es_wait:
     cmp #12
     bcc mover                   ; 0..3 son los move_*
+    cmp #16
+    bcc face                    ; 12..15 son los face_*
+    ; Girar sin moverse y encarar al héroe no se compilan: ver `RUTA_ORDENES`
+    ; en eventos.py. Acá no llegan.
+    cmp #24
+    bne no_es_salto
+    jsr armar_salto_heroe
+    lda ruta_salto
+    bne salto_arranco
+    jmp otra_orden              ; no se pudo caer ahí: se saltea
+salto_arranco:
+    jmp listo
+no_es_salto:
+    cmp #25
+    bne no_es_fin
+    jmp otra_orden              ; el par ya lo consumió el `begin_jump`
+no_es_fin:
+    cmp #36
+    bcc otra_orden              ; los demás: acá no llegan
+    cmp #38
+    bcc atravesar               ; 36 y 37
+    cmp #40
+    bcs otra_orden
+    ; 38 para la animación y 39 la sigue, así que la resta va al revés.
+    sec
+    sbc #38
+    eor #$01
+    sta ruta_anim_para
+    jmp otra_orden
+atravesar:
+    ; 36 prende y 37 apaga, así que el bit de abajo invertido es el valor.
+    and #$01
+    eor #$01
+    sta ruta_atraviesa
+    jmp otra_orden
+face:
     sec
     sbc #12
-    cmp #4
-    bcs otra_orden              ; ni girar ni mover: se ignora
     sta hero_dir                ; face_*: instantáneo, sigue el que viene
-    bra otra_orden
+    jmp otra_orden
+
 
 mover:
     sta hero_dir                ; move_* mira hacia donde va
+    ; Atravesando paredes las dos caras dan que sí. Es el
+    ; `if (self.GetThrough()) return true;` de `Game_Map::CheckOrMakeWayEx`, y
+    ; se prende sólo alrededor de este paso: `can_leave` y `can_enter` los usa
+    ; también la caminata con el pad, que no lo mira.
+    lda ruta_atraviesa
+    beq sin_atravesar
+    lda #1
+sin_atravesar:
+    sta atravesando
+    stz atravesando + 1
+    lda hero_dir
     cmp #DIR_UP
     bne no_es_arriba
     jsr try_up
-    bra ver_si_arranco
+    jmp ver_si_arranco
 no_es_arriba:
     cmp #DIR_RIGHT
     bne no_es_derecha
     jsr try_right
-    bra ver_si_arranco
+    jmp ver_si_arranco
 no_es_derecha:
     cmp #DIR_DOWN
     bne no_es_abajo
     jsr try_down
-    bra ver_si_arranco
+    jmp ver_si_arranco
 no_es_abajo:
     jsr try_left
 ver_si_arranco:
+    stz atravesando
+    stz atravesando + 1
     lda step_left
-    beq otra_orden              ; bloqueado: se saltea y se prueba el siguiente
+    bne arranco                 ; bloqueado: se saltea y se prueba el siguiente
+    jmp otra_orden
+arranco:
     ; El paso arrancó, y queda anotado que lo arrancó la ruta: `hay_rutas` lo
     ; necesita para saber que el último paso de una ruta todavía cuenta.
     lda #1
@@ -2609,6 +2709,8 @@ listo:
 .proc hay_rutas
 .a8
 .i16
+    lda ruta_espera
+    bne si                      ; el héroe está en medio de un `wait`
     lda ruta_i
     cmp ruta_n
     bcc si                      ; al héroe le quedan órdenes
@@ -2624,6 +2726,10 @@ otra:
     cmp #RUTA_EV_LIBRE
     beq siguiente
     lda ruta_ev + 7, x          ; un paso en curso
+    bne si
+    lda ruta_ev + 9, x          ; o una espera
+    bne si
+    lda ruta_ev + 13, x         ; o un salto
     bne si
     lda ruta_ev + 5, x
     cmp ruta_ev + 4, x
@@ -3142,6 +3248,9 @@ puesta:
     stz ruta_ev + 7, x          ; y sin paso en curso
     lda #RUTA_EV_SIN_MIRAR
     sta ruta_ev + 8, x          ; mira adonde diga su página hasta que gire
+    stz ruta_ev + 9, x          ; y sin espera en curso
+    stz ruta_ev + 12, x         ; ni banderas
+    stz ruta_ev + 13, x         ; ni salto
     lda #1
     sta ruta_ev + 10, x         ; el frame del medio, como `animate_hero`
     lda #ANIM_FRAMES
@@ -3188,6 +3297,8 @@ siguiente:
 ; `paso_de_ruta` para el héroe, y por eso las dos hacen lo mismo con las mismas
 ; órdenes: si acá se contara distinto, una ruta terminaría en otro cuadro que en
 ; la referencia y `ProceedWithMovement` soltaría la página cuando no toca.
+; Los saltos de acá adentro van con `jmp` y no con `bra`, por lo mismo que en
+; `paso_de_ruta`: el cuerpo creció y los 127 bytes de alcance se quedaron cortos.
 .proc cuadro_de_ruta_ev
 .a8
 .i16
@@ -3206,6 +3317,24 @@ siguiente:
     rts
 
 sin_paso:
+    ; Un salto en curso también, y la celda ya se movió al empezar.
+    lda ruta_ev + 13, x
+    beq sin_salto
+    sec
+    sbc #SALTO_VELOCIDAD
+    bcs guardar_salto
+    lda #0
+guardar_salto:
+    sta ruta_ev + 13, x
+    rts
+sin_salto:
+    ; Y un `wait` en curso se lleva el cuadro entero, igual que el del héroe.
+    lda ruta_ev + 9, x
+    beq sin_espera
+    dec a
+    sta ruta_ev + 9, x
+    rts
+sin_espera:
     ; El puntero de la ruta a la página directa, que es de donde se puede leer
     ; con `[ptr], y`.
     rep #$20
@@ -3220,7 +3349,9 @@ sin_paso:
 otra_orden:
     lda ruta_ev + 5, x          ; en cuál va
     cmp ruta_ev + 4, x          ; cuántas trae
-    bcs listo                   ; la ruta terminó
+    bcc hay_orden
+    jmp listo                   ; la ruta terminó; `bcs` ya no llega
+hay_orden:
     rep #$20
 .a16
     and #$00FF
@@ -3230,16 +3361,67 @@ otra_orden:
     lda [ruta_ptr], y
     inc ruta_ev + 5, x
 
-    cmp #23                     ; wait: consume el cuadro y nada más
-    beq listo
+    cmp #23                     ; wait: éste y los RUTA_ESPERA - 1 que siguen
+    bne no_es_wait
+    lda #(RUTA_ESPERA - 1)
+    sta ruta_ev + 9, x
+    jmp listo
+no_es_wait:
     cmp #12
-    bcc mover                   ; 0..3 son los move_*
+    bcs no_mueve
+    jmp mover                   ; 0..3 son los move_*
+no_mueve:
+    cmp #16
+    bcc face                    ; 12..15 son los face_*
+    ; Girar sin moverse y encarar al héroe no se compilan: acá no llegan.
+    cmp #24
+    bne no_es_salto
+    jsr armar_salto_ev
+    lda ruta_ev + 13, x
+    bne salto_arranco
+    jmp otra_orden              ; no se pudo caer ahí: se saltea
+salto_arranco:
+    jmp listo
+no_es_salto:
+    cmp #25
+    beq seguir
+    cmp #36
+    bcc seguir                  ; los demás no hacen nada
+    cmp #38
+    bcs anim
+    ; 36 prende atravesar y 37 lo apaga.
+    and #$01
+    eor #$01
+    beq apagar_atraviesa
+    lda ruta_ev + 12, x
+    ora #$01
+    bra guardar_banderas
+apagar_atraviesa:
+    lda ruta_ev + 12, x
+    and #$FE
+    bra guardar_banderas
+anim:
+    cmp #40
+    bcs seguir
+    ; 38 para la animación y 39 la sigue.
+    cmp #38
+    bne seguir_anim
+    lda ruta_ev + 12, x
+    ora #$02
+    bra guardar_banderas
+seguir_anim:
+    lda ruta_ev + 12, x
+    and #$FD
+guardar_banderas:
+    sta ruta_ev + 12, x
+seguir:
+    jmp otra_orden
+face:
     sec
     sbc #12
-    cmp #4
-    bcs otra_orden              ; ni girar ni mover: se ignora
     sta ruta_ev + 8, x          ; face_*: instantáneo, sigue el que viene
-    bra otra_orden
+    jmp otra_orden
+
 
 mover:
     sta ruta_ev + 8, x          ; move_* mira hacia donde va
@@ -3247,14 +3429,22 @@ mover:
     stz ruta_dir + 1
     phx
     jsr celda_del_evento        ; deja su posición en celda_x/celda_y
+    lda ruta_ev + 12, x
+    and #$01
+    sta atravesando             ; walk_everywhere: `puede_celda` lo mira
+    stz atravesando + 1
     lda ruta_dir
     jsr puede_celda
     plx
+    stz atravesando
+    stz atravesando + 1
     ; `plx` pone Z según lo que saca de la pila, así que la respuesta hay que
     ; volver a mirarla: con el `beq` pegado al `plx`, la ranura 0 —que es X = 0—
     ; daba "bloqueado" siempre y ninguna ruta se movía nunca.
     cmp #0
-    beq otra_orden              ; bloqueado: se saltea, como el héroe
+    bne no_bloqueado            ; bloqueado: se saltea, como el héroe
+    jmp otra_orden
+no_bloqueado:
     phx
     lda ruta_dir
     jsr mover_celda_del_evento
@@ -3290,6 +3480,27 @@ listo:
 ; Y la mueve una celda en la dirección que trae A. Se hace al **empezar** el
 ; paso, no al terminarlo: es lo que hace `begin_step` con el héroe, y contarlo
 ; distinto dejaría a los dos lados con la celda cambiada en cuadros distintos.
+; Pone la celda del evento de la ranura X en `celda_x`, `celda_y`. Lo usa el
+; salto, que la mueve de una en vez de de a un paso.
+.proc mover_celda_a_evento
+.a8
+.i16
+    lda ruta_ev + 0, x
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    asl a
+    tay
+    lda celda_x
+    sta ev_pos_buf + 0, y
+    lda celda_y
+    sta ev_pos_buf + 2, y
+    sep #$20
+.a8
+    rts
+.endproc
+
 .proc mover_celda_del_evento
 .a8
 .i16
@@ -4003,6 +4214,18 @@ fin:
 .proc animar_ruta_ev
 .a8
 .i16
+    ; Con la animación parada la pose se queda en la del medio, camine o no: es
+    ; el `ResetAnimation` que RM2k llama en cada cuadro mientras
+    ; `IsAnimPaused()`.
+    lda ruta_ev + 12, x
+    and #$02
+    beq anima
+    lda #1
+    sta ruta_ev + 10, x
+    lda #ANIM_FRAMES
+    sta ruta_ev + 11, x
+    rts
+anima:
     lda ruta_ev + 6, x
     bne caminando
     lda #1                      ; quieto: el frame del medio
@@ -4061,6 +4284,8 @@ listo:
 .proc refrescar_npc
 .a8
 .i16
+    stz salto_alto
+    stz salto_alto + 1
     jsr celda_del_evento        ; deja su celda en celda_x/celda_y, y usa X
     lda ruta_ev + 7, x
     sta slot_cuadros
@@ -4099,7 +4324,25 @@ hay_fila:
     sep #$20
 .a8
     lda slot_cuadros
-    beq puesto                  ; sin paso en curso, ya está en su celda
+    beq sin_paso_npc            ; sin paso en curso, ya está en su celda
+    bra con_paso_npc
+sin_paso_npc:
+    ; ¿Está saltando? Entonces la celda es la de destino y el dibujo va detrás,
+    ; con el arco encima. La clave de orden sale de la posición **sin** el arco:
+    ; es `GetScreenY(false)`, así que quien está en el aire no se adelanta.
+    lda ruta_ev + 13, x
+    beq puesto
+    sta salto_resta
+    lda ruta_ev + 14, x
+    sta salto_dx
+    lda ruta_ev + 15, x
+    sta salto_dy
+    phx
+    jsr salto_posicion_npc
+    jsr alto_del_salto
+    plx
+    bra puesto
+con_paso_npc:
 
     ; La dirección del paso es hacia donde mira: mientras el paso dura no se
     ; consume ninguna orden más, así que no puede haber girado en el medio.
@@ -4130,6 +4373,12 @@ puesto:
     sta npc_buf + 0, y
     lda npc_py
     sta npc_buf + 2, y
+    sep #$20
+.a8
+    lda salto_alto
+    sta npc_buf + 11, y         ; cuánto levantar el dibujo, sin tocar la clave
+    rep #$20
+.a16
     lda npc_buf + 4, y
     and #$F000                  ; la capa se queda; la Y se reemplaza
     sta temp
@@ -4482,6 +4731,14 @@ no:
     stz celda_dir + 1
     jsr celda_vecina_existe
     beq no
+    ; Atravesando paredes las dos caras dan que sí, pero la celda tiene que
+    ; existir: es el `if (self.GetThrough()) return true;` de
+    ; `Game_Map::CheckOrMakeWayEx`, que va después del `IsValid`.
+    lda atravesando
+    beq con_colision
+    lda #1
+    rts
+con_colision:
 
     ; La cara que se deja.
     jsr ptr_de_celda
@@ -6199,6 +6456,7 @@ no:
     jsr ptr_desde_hero
     jsr pass_del_ptr
     and temp
+    ora atravesando             ; con walk_everywhere la respuesta es que sí
     rts
 .endproc
 
@@ -6211,6 +6469,7 @@ no:
     sta temp
     jsr pass_del_ptr
     and temp
+    ora atravesando
     rts
 .endproc
 
@@ -6457,8 +6716,14 @@ cruzar:
 .proc animate_hero
 .a8
 .i16
+    ; Con la animación parada por una ruta la pose se queda en la del medio,
+    ; camine o no: RM2k llama a `ResetAnimation` en cada cuadro mientras
+    ; `IsAnimPaused()`, que deja el frame del medio y el contador en cero.
+    lda ruta_anim_para
+    bne quieto
     lda moving
     bne caminando
+quieto:
     lda #1                      ; quieto: el frame del medio
     sta anim_step
     lda #ANIM_FRAMES
@@ -6782,6 +7047,510 @@ cerrar:
     rts
 .endproc
 
+; El salto del héroe: consume las órdenes hasta `end_jump`, suma lo que aportan
+; y lo pone del otro lado de una. Los once cuadros que dura no dependen de la
+; distancia: `remaining_step` baja de 256 a 0 a SALTO_VELOCIDAD por cuadro,
+; salte una celda o cinco.
+.proc armar_salto_heroe
+.a8
+.i16
+    stz salto_dx
+    stz salto_dy
+buscar:
+    lda ruta_i
+    cmp ruta_n
+    bcs sin_fin
+    rep #$20
+.a16
+    lda ruta_i
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda ruta, x
+    inc ruta_i
+    cmp #25
+    beq con_fin
+    jsr acumular_salto
+    bra buscar
+sin_fin:
+    ; Sin `end_jump` el salto se saltea y lo que quedaba de ruta se pierde, que
+    ; es lo que hace RM2k al llegar al final.
+    stz ruta_salto
+    rts
+
+con_fin:
+    jsr salto_a_celdas          ; el desplazamiento, con signo y en dieciséis
+    rep #$20
+.a16
+    lda tile_x
+    clc
+    adc salto_dx16
+    sta celda_x
+    lda tile_y
+    clc
+    adc salto_dy16
+    sta celda_y
+    sep #$20
+.a8
+    jsr puede_caer
+    bne se_puede
+    stz ruta_salto              ; no se puede caer ahí: el salto se saltea
+    rts
+se_puede:
+    rep #$20
+.a16
+    lda celda_x
+    sta tile_x
+    lda celda_y
+    sta tile_y
+    sep #$20
+.a8
+    jsr init_hero_ptr
+    ; Hacia dónde queda mirando. En el lugar no cambia nada: RM2k sólo fija el
+    ; mirado cuando el salto se mueve.
+    lda salto_dx
+    ora salto_dy
+    beq sin_girar
+    jsr direccion_del_salto
+    sta hero_dir
+sin_girar:
+    lda #(SALTO_PASO - SALTO_VELOCIDAD)
+    sta ruta_salto
+    ; La celda ya es la de destino y los pixeles van detrás, igual que en un
+    ; paso: así la cámara acompaña el arco en vez de saltar de una.
+    jsr salto_posicion_heroe
+    rts
+.endproc
+
+; `hero_x` y `hero_y` desde la celda de destino y lo que le queda al salto. Es
+; `GetSpriteX` de RM2k: `x * 256 - dx * restante` y **después** la división por
+; dieciséis, que es lo que evita el pixel de más o de menos cada vez que el
+; descuento no es múltiplo de dieciséis.
+.proc salto_posicion_heroe
+.a8
+.i16
+    jsr salto_a_celdas
+    lda ruta_salto
+    sta salto_resta
+    rep #$20
+.a16
+    lda salto_dx16
+    sta salto_val
+    sep #$20
+.a8
+    jsr producto_salto
+    rep #$20
+.a16
+    lda tile_x
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a                       ; la celda en las unidades de RM2k: por 256
+    sec
+    sbc salto_prod
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    sta hero_x
+    lda salto_dy16
+    sta salto_val
+    sep #$20
+.a8
+    jsr producto_salto
+    rep #$20
+.a16
+    lda tile_y
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a
+    sec
+    sbc salto_prod
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    sta hero_y
+    sep #$20
+.a8
+    rts
+.endproc
+
+; `salto_dx` y `salto_dy` con el signo extendido a dieciséis bits.
+.proc salto_a_celdas
+.a8
+.i16
+    rep #$20
+.a16
+    lda salto_dx
+    and #$00FF
+    cmp #$0080
+    bcc dx_positivo
+    ora #$FF00
+dx_positivo:
+    sta salto_dx16
+    lda salto_dy
+    and #$00FF
+    cmp #$0080
+    bcc dy_positivo
+    ora #$FF00
+dy_positivo:
+    sta salto_dy16
+    sep #$20
+.a8
+    rts
+.endproc
+
+; Hacia dónde queda mirando quien salta: gana el eje de mayor recorrido y con
+; empate el vertical. Es el `if (abs(dy) >= abs(dx))` de `Game_Character::Jump`.
+.proc direccion_del_salto
+.a8
+.i16
+    rep #$20
+.a16
+    lda salto_dx16
+    bpl dx_pos
+    eor #$FFFF
+    inc a
+dx_pos:
+    sta mirar_abs
+    lda salto_dy16
+    bpl dy_pos
+    eor #$FFFF
+    inc a
+dy_pos:
+    cmp mirar_abs
+    bcc horizontal
+    lda salto_dy16
+    sep #$20
+.a8
+    bmi arriba
+    lda #DIR_DOWN
+    rts
+arriba:
+    lda #DIR_UP
+    rts
+.a16
+horizontal:
+    lda salto_dx16
+    sep #$20
+.a8
+    bmi izquierda
+    lda #DIR_RIGHT
+    rts
+izquierda:
+    lda #DIR_LEFT
+    rts
+.endproc
+
+; Corre `salto_px`/`salto_py` hacia atrás por lo que le falta al salto y deja en
+; `salto_alto` cuánto hay que levantar el dibujo.
+;
+; La altura es `GetJumpHeight`: sube y baja con lo que queda, y la curva no es
+; lineal sino la tabla de RM2k. Sólo mueve el **dibujo**: el orden contra los
+; demás sale de `GetScreenY(false)`, o sea sin el salto, así que quien está en
+; el aire no se adelanta.
+.proc alto_del_salto
+.a8
+.i16
+    stz salto_alto
+    stz salto_alto + 1
+    lda salto_resta
+    bne hay
+    rts
+hay:
+    ; Lo que queda o lo que se recorrió, el menor de los dos, sobre ocho; y
+    ; después la tabla de RM2k, que no es lineal. Es `GetJumpHeight`, y sólo
+    ; mueve el **dibujo**: el orden contra los demás sale de `GetScreenY(false)`,
+    ; o sea sin el salto, así que quien está en el aire no se adelanta.
+    cmp #(SALTO_PASO / 2)
+    bcc de_bajada
+    eor #$FF                    ; 256 - resta, con resta de un byte
+    inc a
+de_bajada:
+    lsr a
+    lsr a
+    lsr a
+    cmp #5
+    bcs mediana
+    asl a                       ; menos de cinco: el doble
+    bra guardar
+mediana:
+    cmp #13
+    bcs tope
+    clc
+    adc #4                      ; de cinco a doce: más cuatro
+    bra guardar
+tope:
+    lda #16
+guardar:
+    sta salto_alto
+    rts
+.endproc
+
+; `salto_val` por `salto_resta`, con signo, en `salto_prod`. La unidad de la
+; consola multiplica sin signo y de a ocho bits, así que se hace sobre el valor
+; absoluto y se le devuelve el signo al final.
+.proc producto_salto
+.a8
+.i16
+    rep #$20
+.a16
+    lda salto_val
+    sta salto_signo
+    bpl positivo
+    eor #$FFFF
+    inc a
+    sta salto_val
+positivo:
+    sep #$20
+.a8
+    lda salto_val
+    sta WRMPYA
+    lda salto_resta
+    sta WRMPYB                  ; arranca: el producto tarda ocho ciclos
+    nop
+    nop
+    nop
+    nop
+    rep #$20
+.a16
+    lda RDMPYL
+    sta salto_prod
+    lda salto_signo
+    bpl listo
+    lda #0
+    sec
+    sbc salto_prod
+    sta salto_prod
+listo:
+    sep #$20
+.a8
+    rts
+.endproc
+
+; El salto de un evento. Igual que el del héroe, pero leyendo la ruta del
+; cartucho y guardando el estado en la ranura. X es la ranura y hay que
+; devolverla intacta.
+.proc armar_salto_ev
+.a8
+.i16
+    stz salto_dx
+    stz salto_dy
+buscar:
+    lda ruta_ev + 5, x
+    cmp ruta_ev + 4, x
+    bcs sin_fin
+    rep #$20
+.a16
+    and #$00FF
+    tay
+    sep #$20
+.a8
+    lda [ruta_ptr], y
+    inc ruta_ev + 5, x
+    cmp #25
+    beq con_fin
+    phx
+    jsr acumular_salto
+    plx
+    bra buscar
+sin_fin:
+    ; Sin `end_jump` el salto se saltea y lo que quedaba de ruta se pierde.
+    stz ruta_ev + 13, x
+    rts
+
+con_fin:
+    phx
+    jsr celda_del_evento        ; su celda, que `puede_caer` necesita
+    jsr salto_a_celdas
+    rep #$20
+.a16
+    lda celda_x
+    clc
+    adc salto_dx16
+    sta celda_x
+    lda celda_y
+    clc
+    adc salto_dy16
+    sta celda_y
+    sep #$20
+.a8
+    jsr puede_caer
+    plx
+    cmp #0                      ; `plx` pone Z según lo que saca de la pila
+    bne se_puede
+    stz ruta_ev + 13, x
+    rts
+se_puede:
+    ; La celda de destino, que `celda_del_evento` dejó en celda_x/celda_y.
+    phx
+    jsr mover_celda_a_evento
+    plx
+    lda salto_dx
+    sta ruta_ev + 14, x
+    lda salto_dy
+    sta ruta_ev + 15, x
+    ; Hacia dónde queda mirando. En el lugar no cambia nada.
+    lda salto_dx
+    ora salto_dy
+    beq sin_girar
+    phx
+    jsr direccion_del_salto
+    plx
+    sta ruta_ev + 8, x
+sin_girar:
+    lda #(SALTO_PASO - SALTO_VELOCIDAD)
+    sta ruta_ev + 13, x
+    rts
+.endproc
+
+; `npc_px` y `npc_py` desde la celda de destino y lo que le queda al salto. Es
+; la misma cuenta que `salto_posicion_heroe`, con la división al final.
+.proc salto_posicion_npc
+.a8
+.i16
+    jsr salto_a_celdas
+    rep #$20
+.a16
+    lda salto_dx16
+    sta salto_val
+    sep #$20
+.a8
+    jsr producto_salto
+    rep #$20
+.a16
+    lda celda_x
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a                       ; la celda en las unidades de RM2k: por 256
+    sec
+    sbc salto_prod
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    sta npc_px
+    lda salto_dy16
+    sta salto_val
+    sep #$20
+.a8
+    jsr producto_salto
+    rep #$20
+.a16
+    lda celda_y
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a
+    sec
+    sbc salto_prod
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    sta npc_py
+    sep #$20
+.a8
+    rts
+.endproc
+
+; --- el salto de una ruta --------------------------------------------------
+; Suma al salto lo que aporta una orden. Es el lazo de `BeginMoveRouteJump`: lo
+; que hay entre `begin_jump` y `end_jump` **no se camina**, se suma, y sólo
+; cuentan los `move_*` y los que giran. Todo lo demás —una espera, parar la
+; animación, cambiar la velocidad— RM2k lo consume ahí adentro sin hacer nada,
+; y el juego mete de las tres cosas.
+;
+; Entra en A el código de la orden; deja `salto_dx` y `salto_dy`.
+.proc acumular_salto
+.a8
+.i16
+    cmp #4
+    bcs no_mueve
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda salto_dx
+    clc
+    adc paso_dx, x
+    sta salto_dx
+    lda salto_dy
+    clc
+    adc paso_dy, x
+    sta salto_dy
+    rts
+no_mueve:
+    ; Los `face_*` no aportan desplazamiento, y girar sin moverse no se
+    ; compila, así que adentro de un salto no queda nada más que hacer: RM2k
+    ; consume el resto sin tocar nada, ni siquiera un `wait`.
+    rts
+.endproc
+
+; ¿Se puede caer en la celda `celda_x`, `celda_y`? Vuelve con Z=0 si sí.
+;
+; No es lo mismo que poder pisarla caminando: es `CheckOrMakeWayEx` con el
+; personaje saltando, que **saltea la cara que se deja** —de ahí que se pueda
+; saltar desde un lugar del que no se podría caminar— y pide que la de destino
+; sea pasable por los cuatro lados, no sólo por la que se entra.
+.proc puede_caer
+.a8
+.i16
+    rep #$20
+.a16
+    lda celda_x
+    bmi no_16
+    cmp mapa_ancho
+    bcs no_16
+    lda celda_y
+    bmi no_16
+    cmp mapa_alto
+    bcs no_16
+    sep #$20
+.a8
+    jsr ptr_de_celda
+    rep #$20
+.a16
+    jsr pass_del_ptr
+    sep #$20
+.a8
+    and #(PASS_UP | PASS_DOWN | PASS_LEFT | PASS_RIGHT)
+    cmp #(PASS_UP | PASS_DOWN | PASS_LEFT | PASS_RIGHT)
+    bne no
+    lda #1
+    rts
+.a16
+no_16:
+    sep #$20
+.a8
+no:
+    lda #0
+    rts
+.endproc
+
+
 ; --- un NPC ----------------------------------------------------------------
 .proc place_npc
 .a8
@@ -6800,6 +7569,20 @@ cerrar:
     sbc camara_y
     sec
     sbc #SPRITE_OFF_Y
+    sta obj_y
+    ; Y el arco del salto, si está saltando. Va aparte y en ocho bits porque el
+    ; byte 11 de la fila es el último de la ranura: leerlo de a dos se llevaría
+    ; el primero de la siguiente.
+    sep #$20
+.a8
+    stz temp + 1
+    lda npc_buf + 11, x
+    sta temp
+    rep #$20
+.a16
+    lda obj_y
+    sec
+    sbc temp
     sta obj_y
     sep #$20
 .a8
@@ -6864,6 +7647,13 @@ sin_ajuste:
     ora temp + 1                ; el bit 8 del tile, que va en el bit 0
     sta obj_attr
 
+    ; Un salto en curso corre el dibujo hacia atrás y lo levanta. La posición
+    ; es la de RM2k, con la división **al final**: `x * 256 - dx * restante`
+    ; sobre 16. Dividir el descuento por separado da un pixel de más o de menos
+    ; cada vez que no es múltiplo de 16, o sea la mitad de los cuadros.
+    lda ruta_salto
+    sta salto_resta
+    jsr alto_del_salto
     rep #$20
 .a16
     lda hero_x
@@ -6877,6 +7667,8 @@ sin_ajuste:
     sbc camara_y
     sec
     sbc #SPRITE_OFF_Y
+    sec
+    sbc salto_alto              ; el arco levanta el dibujo, no el orden
     sta obj_y
     sep #$20
 .a8
@@ -7279,6 +8071,11 @@ ev_pos_buf: .res EV_MAX * EV_STRIDE
 ;   +7  cuadros    cuántos cuadros le faltan al paso en curso
 ;   +8  mirando    hacia dónde mira, o $FF si la ruta todavía no lo giró: ahí
 ;                  vale la dirección que trae su página
+;   +9  espera     los cuadros que faltan de un `wait`
+;   +12 banderas   bit 0 atraviesa paredes, bit 1 animación parada
+;   +13 salto      lo que le queda al salto en curso, 0 si no hay
+;   +14 salto_dx   y de dónde salió, en celdas y con signo
+;   +15 salto_dy
 ;   +10 paso       en qué punto del ciclo de caminata va
 ;   +11 timer      cuántos cuadros faltan para el frame siguiente
 ;
@@ -7383,6 +8180,38 @@ switches: .res SWITCH_BYTES
 ; BSS y no en la página directa —donde están `tinte_r`, `tinte_g` y `tinte_b`—
 ; porque ahí ya no entra: sólo tiene que estar lo que se use como puntero con
 ; `[dp], y`, y quedaban doce bytes contados.
+; Lo que la ruta forzada del héroe lleva además del cursor. Va en la BSS y no
+; en la página directa —donde están `ruta_i` y `ruta_n`— porque ahí ya no entra:
+; sólo tiene que estar lo que se use como puntero con `[dp], y`.
+ruta_atraviesa: .res 1  ; walk_everywhere: la ruta ignora la colisión
+ruta_anim_para: .res 1  ; stop_animation: la pose se queda en la del medio
+ruta_salto:  .res 1     ; lo que le queda al salto en curso, 0 si no hay
+ruta_salto_dx: .res 1   ; y de dónde salió, en celdas y con signo
+ruta_salto_dy: .res 1
+; Prendida mientras se prueba un paso de una ruta que atraviesa paredes. La
+; miran `can_leave` y `can_enter`, que también usa la caminata con el pad: por
+; eso vive acá y no adentro de la ruta.
+atravesando: .res 2
+; Lo que `armar_salto` va juntando mientras recorre las órdenes de un salto:
+; cuánto se desplaza en celdas —con signo— y hacia dónde queda apuntando.
+salto_dx:  .res 1
+salto_dy:  .res 1
+; Y el valor absoluto con el que `direccion_del_salto` compara los dos ejes.
+mirar_abs: .res 2
+; El desplazamiento del salto con el signo ya extendido a dieciséis bits, que
+; es como se suma a la celda.
+salto_dx16: .res 2
+salto_dy16: .res 2
+; Y lo que `dibujo_del_salto` recibe y devuelve: la posición en pixeles de quien
+; salta, cuánto le queda al salto, y cuánto hay que levantar el dibujo.
+salto_px:  .res 2
+salto_py:  .res 2
+salto_resta: .res 1
+salto_alto: .res 2
+salto_val:  .res 2
+salto_prod: .res 2
+salto_signo: .res 2
+
 tinte_s:  .res 1
 ; Lo que la saturación necesita mientras corre. Los tres canales van en
 ; palabras y no en bytes para poder hacer `ldx sat_r` derecho: los índices son

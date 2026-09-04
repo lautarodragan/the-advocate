@@ -1354,6 +1354,16 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "; una cuenta en la ROM: es lo que los dos lados tienen que contar\n"
         "; igual para que una ruta forzada termine en el mismo cuadro.\n"
         "CUADROS_POR_CELDA = %d\n"
+        "; Y cuánto cuesta un `wait` adentro de una ruta forzada. **No es un\n"
+        "; cuadro**: en RM2k es `SetMaxStopCountForWait`, o sea\n"
+        "; `20 + (1 << (8 - frecuencia))`, y con la frecuencia 8 —la única\n"
+        "; que el conversor deja pasar— son veinte.\n"
+        "RUTA_ESPERA = %d\n"
+        "; Y el salto: cuánto le queda al arrancar y cuánto baja por cuadro.\n"
+        "; No depende de la distancia —saltar cinco celdas cuesta lo mismo\n"
+        "; que saltar en el lugar—, y son once cuadros.\n"
+        "SALTO_PASO = %d\n"
+        "SALTO_VELOCIDAD = %d\n"
         "TINTE_NEUTRO = %d\n"
         "; Los pesos de luminancia del Y'CbCr, que son con los que RM2k\n"
         "; satura. Suman 65536 exactos, así que sobre canales de cinco bits\n"
@@ -1415,7 +1425,8 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            FLASH_MAX,
            eventos.TRIGGER_AUTOMATICO, eventos.TRIGGER_ACCION,
            eventos.TRIGGER_TOCA_HEROE,
-           eventos.CUADROS_POR_CELDA,
+           eventos.CUADROS_POR_CELDA, eventos.CUADROS_DE_ESPERA_DE_RUTA,
+           eventos.SALTO_PASO, eventos.SALTO_VELOCIDAD,
            eventos.TINTE_NEUTRO,
            eventos.LUZ_R, eventos.LUZ_G, eventos.LUZ_B, SWITCH_BYTES,
            eventos.GRUPO_MAX, len(grupo_inicial), ACTOR_BYTES,
