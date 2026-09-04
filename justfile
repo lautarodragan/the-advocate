@@ -427,6 +427,59 @@ snes-cerrar mapa="7" apretar="200" nombre="cerrar" direccion="none" arranque="30
         --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
   done
 
+# La ventana quieta mientras la cámara se mueve.
+#
+# Es lo único que ni `snes-ventana` ni `snes-cerrar` pueden mirar: en los dos la
+# cámara está parada. Y con el pad bloqueado durante un mensaje, lo único que la
+# mueve es **una ruta forzada**, que es exactamente el caso de RM2k que obligó a
+# esta arquitectura: `UpdateMoveRoute` corre antes del guard de
+# `IsMessageActive`, y en este juego hay 186 páginas donde el héroe arranca a
+# caminar y a los pocos comandos aparece un cuadro de texto.
+#
+# La página inventada es `ruta, mensaje`: el héroe se pone a caminar y enseguida
+# se abre la ventana. La ventana se queda abierta —nadie aprieta A— así que
+# todos los cuadros que se comparan la tienen en pantalla, con el mapa
+# scrolleando por detrás.
+#
+# **HOY ESTA RECETA DA ROJO A PROPOSITO, y por eso no está en `snes-hitos`.**
+# Es la que demuestra que seguir el scroll no alcanza. Lo que mide, y está
+# contado en ESTADO.md:
+#
+#   camara_x %% 8 == 0   la ventana cae bien salvo un resto de 238 pixeles
+#   camara_x %% 8 != 0   la ventana entera corrida, 2600 pixeles
+#
+# El tilemap se dibuja en celdas de 8 y el scroll es de a 2 pixeles, así que
+# tres de cada cuatro cuadros la ventana **no puede** caer donde va. Está
+# medido: corriendo la referencia esos mismos `camara_x %% 8` pixeles, la
+# diferencia baja a los mismos 238 de siempre.
+#
+# El mapa 6 por lo mismo que `snes-ruta`: es 100x100 y abierto, así que la ruta
+# camina sin chocar, y es **mudo**, que es lo que hace usable el desfasaje de
+# arranque —la ROM llega al primer cuadro del intérprete en 10, contra 44 en un
+# mapa con música, y la referencia no modela nada de eso—.
+snes-anclada mapa="6" ruta="1 1 1 1 1 1 2 2 2 2 2 2" cuadros="20 50 90 130" arranque="10" nombre="anclada":
+  #!/usr/bin/env bash
+  set -euo pipefail
+  mkdir -p {{snes_pngs}} {{snes_inc}}
+  linea1="SEWELL"
+  linea2="There you are, Talan. Ready for"
+  linea3="the big night?"
+  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
+      --mensaje-de-prueba "$linea1" "$linea2" "$linea3" \
+      --ruta-de-prueba {{ruta}} -o {{snes_inc}}/mapdata.inc
+  just snes-build
+  pre={{snes_pngs}}/{{nombre}}
+  python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
+      --mensaje-de-prueba "$linea1" "$linea2" "$linea3" \
+      --ruta-de-prueba {{ruta}} --cuadros {{cuadros}} \
+      --saltar $pre-{}.saltar.txt -o $pre-{}.esperado.png
+  for n in {{cuadros}}; do
+    python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre-$n.png \
+        --walk none --cuadros $n --arranque {{arranque}}
+    python3 tools/snes_compare.py $pre-$n.png $pre-$n.esperado.png \
+        --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
+  done
+
 # El juego original corriendo en EasyRPG, capturado sin pantalla, y nuestra
 # ventana comparada contra eso.
 #

@@ -464,8 +464,20 @@ class Assembler:
 
         match = re.match(r"^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.+)$", line)
         if match:
-            self.symbols[match.group(1)] = Expression(match.group(2)).value(
+            nombre, valor = match.group(1), Expression(match.group(2)).value(
                 self.symbols)
+            # Una constante repetida es un error igual que una etiqueta
+            # repetida, y por el mismo motivo: ganaba la última en silencio.
+            # `main.s` tenía `VENTANA_FILA`, `VENTANA_FILAS` y
+            # `VIEW_COLS_TILEMAP` declaradas dos veces, del mismo copiado que
+            # había dejado cinco variables duplicadas. Redefinirla con el mismo
+            # valor se deja pasar: los `.inc` generados definen constantes que
+            # el fuente también puede tener, y ahí no hay ambigüedad.
+            if nombre in self.symbols and self.symbols[nombre] != valor:
+                raise Error("la constante %r ya valía %s y acá vale %s (%s)"
+                            % (nombre, self.symbols[nombre], valor,
+                               self.origen))
+            self.symbols[nombre] = valor
             return
 
         self.instruction(line)

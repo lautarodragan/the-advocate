@@ -152,15 +152,6 @@ VIEW_ROWS = 29
 
 ; La ventana de mensaje: 256x80 pegada abajo de una pantalla de 224 líneas, o
 ; sea las diez filas de celdas que van de la 18 a la 27. Los mismos números
-; están en `tools/ventana.py`, que es de donde salen.
-VENTANA_FILA  = 18
-VENTANA_FILAS = 10
-; El tilemap de 64x32 son dos pantallas de 32 al lado de la otra, y la
-; segunda no vive 32 palabras más adelante sino 1024.
-VIEW_COLS_TILEMAP = 32
-
-; La ventana de mensaje: 256x80 pegada abajo de una pantalla de 224 líneas, o
-; sea las diez filas de celdas que van de la 18 a la 27. Los mismos números
 ; están en `tools/ventana.py`, que es de donde salen: 80 de alto y pegada al
 ; pie, como la pone RM2k.
 VENTANA_FILA  = 18
@@ -412,8 +403,8 @@ grupo_listo:
     ; una A que ya no cierra nada. Está medido —sin este `stz`, `snes-cerrar` se
     ; cae en las doce corridas, y en snes9x además de en bsnes—.
     stz msg_abierto
-    stz msg_abrir
     stz msg_cerrar
+    stz ventana_mover
     ; Los dos del pad son por las dudas y no por un error visto: `read_pad`
     ; los reescribe antes de que nadie los mire. Cuestan dos instrucciones.
     stz pad_a
@@ -1247,8 +1238,8 @@ otro:
 op_mensaje:
     lda #1
     sta msg_abierto
-    sta msg_abrir               ; el estampado lo hace el lazo, con la pantalla
-    sty ev_cur                  ; apagada
+    sta ventana_mover           ; y la estampa el vblank que viene
+    sty ev_cur
     rts
 
 op_switch:
@@ -2624,6 +2615,23 @@ guarda_col:
 sin_columna:
     sep #$20
 .a8
+    ; Si entró una fila o una columna es porque la cámara cruzó un borde de
+    ; celda, y entonces la ventana de mensaje **quedó corrida**: es fija en la
+    ; pantalla, así que las celdas del tilemap que la dibujan pasaron a ser
+    ; otras. Se marca para volver a estamparla, y lo hace `flush_video` en el
+    ; vblank que viene, que es el mismo en que suben estas tiras.
+    ;
+    ; Se mira `col_addr`/`row_addr` y no si `win_col` cambió porque es el mismo
+    ; dato y ya está calculado: las dos valen cero cuando no entró nada, y una
+    ; dirección de tilemap nunca es cero. Cualquier valor distinto de cero
+    ; cuenta como pedido.
+    lda col_addr
+    ora col_addr + 1
+    ora row_addr
+    ora row_addr + 1
+    beq quieta
+    sta ventana_mover
+quieta:
     rts
 .endproc
 
@@ -2972,48 +2980,42 @@ franja:
     rts
 .endproc
 
-; Abrir y cerrar la ventana de mensaje. Es el otro extremo de `op_mensaje`: el
-; intérprete deja el pedido y esto lo atiende, al final del cuadro.
+; Cerrar la ventana de mensaje: devolverle a la franja de abajo lo que el mapa
+; tiene ahí. Es el otro extremo de `op_mensaje`, y sólo el cierre: **abrir es
+; barato y cerrar no**.
 ;
-; Va acá y no adentro del intérprete por lo mismo que el tinte y que el cruce de
-; puerta: **las dos cosas escriben el tilemap** —640 bytes al estampar la
-; ventana, 2560 al redibujar la franja— y eso no entra en un vblank. Así que se
-; apaga el PPU, se escribe y se vuelve a encender. Cuesta un cuadro en negro,
-; que en RM2k tampoco desentona: el motor original funde a negro entre
-; pantallas.
+; Abrir son 640 bytes de tilemap por DMA y entra en un vblank, así que lo hace
+; `flush_video` como cualquier otro cuadro de la ventana. Cerrar son 2560 —diez
+; filas, las dos capas, y cada una en las dos pantallas del tilemap de 64x32— y
+; además hay que armar cada fila desde los datos del mapa. Eso no entra, así que
+; va con la pantalla apagada, igual que el tinte y que el cruce de puerta.
+; Cuesta un cuadro en negro, que en RM2k tampoco desentona.
 ;
 ; Lo primero es vaciar las tiras que dejó `stream_map` en este mismo cuadro.
 ; `redibujar_franja` arranca poniendo `col_addr` y `row_addr` en cero, así que
 ; sin esto la columna o la fila que la cámara acababa de destapar se perdería y
 ; el borde de la pantalla quedaría con el mapa viejo. Subirlas acá es legal
 ; porque la pantalla ya está apagada.
-;
-; Y el orden es cerrar antes de abrir: una página que cierre un mensaje y abra
-; otro en el mismo cuadro tiene que quedar con la ventana nueva. Al revés, el
-; redibujado le borraría lo que acaba de estampar.
 .proc mensaje_de_evento
 .a8
 .i16
     lda msg_cerrar
-    ora msg_abrir
     bne hay
     rts
 hay:
     lda #$80
     sta INIDISP
     jsr push_strips             ; lo que stream_map dejó pendiente
-    lda msg_cerrar
-    beq sin_cerrar
     stz msg_cerrar
     jsr redibujar_franja
-sin_cerrar:
-    lda msg_abrir
-    beq sin_abrir
-    stz msg_abrir
-    jsr estampar_ventana
-sin_abrir:
     lda #$0F
     sta INIDISP
+    ; Y si la página cerró un mensaje y abrió otro en el mismo cuadro, la
+    ; ventana nueva hay que volver a estamparla: el redibujado acaba de tapar
+    ; la franja con el mapa. Sin mensaje abierto esto pone la marca en cero, que
+    ; es justo lo que hace falta para que `flush_video` no la vuelva a dibujar.
+    lda msg_abierto
+    sta ventana_mover
     rts
 .endproc
 
@@ -3056,6 +3058,28 @@ sin_abrir:
     sta BG2VOFS
 
     jsr push_strips
+
+    ; Y la ventana de mensaje encima de lo que acabe de subir el scroll. Va acá
+    ; por tres razones que conviene no volver a discutir:
+    ;
+    ; * **En el vblank**, porque escribe tilemap con la pantalla encendida. Son
+    ;   640 bytes por DMA —diez filas de 32 celdas, en uno o dos tramos cada
+    ;   una— y eso sí entra; lo que no entraba son los 2560 de
+    ;   `redibujar_franja`, que además arma cada fila desde los datos del mapa.
+    ; * **Después de `push_strips`**, porque la columna o la fila que acaba de
+    ;   entrar pisa la franja de abajo: la ventana tiene que quedar arriba.
+    ; * **Con el ancla del cuadro pasado**, que es la que hay acá: `win_col` y
+    ;   `win_row` los movió el `stream_map` de la vuelta anterior, la misma que
+    ;   armó estas tiras y dejó `camara_x` que se acaba de escribir en el PPU.
+    ;   Los tres datos son del mismo momento, que es lo que hace que la ventana
+    ;   caiga donde corresponde.
+    lda msg_abierto
+    beq sin_ventana
+    lda ventana_mover
+    beq sin_ventana
+    stz ventana_mover
+    jsr estampar_ventana
+sin_ventana:
     rts
 .endproc
 
@@ -4136,8 +4160,11 @@ port0: .res 1
 ; Van acá y no en la página cero porque no se tocan en ningún lazo cerrado, y
 ; la página cero está a cuatro bytes de llenarse.
 msg_abierto: .res 1
-msg_abrir:   .res 1
 msg_cerrar:  .res 1
+; Que la ventana hay que volver a estamparla en el vblank que viene. La pone
+; `op_mensaje` al abrir y `stream_map` cada vez que la cámara cruza un borde de
+; celda; cualquier valor distinto de cero cuenta.
+ventana_mover: .res 1
 
 ; OAM se arma en RAM y se manda entero por DMA cada cuadro. Es más simple que
 ; escribir entradas sueltas, y es lo que va a hacer falta cuando haya NPCs.
