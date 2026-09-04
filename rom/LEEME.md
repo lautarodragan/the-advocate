@@ -1253,20 +1253,21 @@ comparación.
   Mientras tanto el héroe queda parado adentro del caño, que es donde RM2k
   también lo deja: ahí no camina nadie, sigue el script.
 * **Lo que le falta al juego entero, medido.** De las 489 páginas automáticas
-  con comandos, hoy compilan enteras **71** —eran 16 antes de que los cuadros de
-  texto compilaran—. Y esto es cuántas pasarían a compilar con cada comando
-  hecho, contando una ROM que lleve la ventana —`just snes-destraba`—:
+  con comandos, hoy compilan enteras **110**. Eran 16 antes de los cuadros de
+  texto, 71 con ellos, 87 con las rutas forzadas sobre eventos y 110 con
+  FlashSprite. Y esto es cuántas pasarían a compilar con cada comando que falta
+  —`just snes-destraba`—:
 
-      FlashSprite               +23      PanScreen              +1
-      MoveEvent de otro evento  +16      FadeOutBGM             +1
-      PlaySound                  +6      WeatherEffects         +0
-      ControlVars                +4      FullHeal               +0
-      TintScreen con saturación  +4      ChangeItems            +0
-      ConditionalBranch          +3      CallEvent              +0
-      ChangeEventLocation        +1
+      TintScreen con saturación  +7      ChangeEventLocation    +1
+      PlaySound                  +6      WeatherEffects         +1
+      ControlVars                +4      FullHeal               +1
+      ConditionalBranch          +4      ChangeItems            +0
+      PanScreen                  +2      CallEvent              +0
+      FadeOutBGM                 +2
 
-  Puestos los trece juntos se llega a **179 de 489**. Y lo que seguiría cortando
-  después de todos ésos es, de lejos, **`MoveEvent` en su forma general: 169
+  Y aparte, `MoveEvent` con las órdenes de ruta que todavía no sabemos caminar:
+  +24 de techo. Puestos todos juntos se llega a **179 de 489**, y lo que seguiría
+  cortando después es, de lejos, **`MoveEvent` en su forma general: 169
   páginas** —rutas con saltos, con cambio de gráfico, con diagonales, o
   apuntadas a un vehículo—. Después vienen `ShowChoice` con 9 y los 7 cuadros de
   texto con códigos de escape.
