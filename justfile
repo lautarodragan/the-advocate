@@ -518,6 +518,56 @@ snes-npc mapa="6" ruta="4 2 2 2 2 1 1 12" celda="22 12" cuadros="10 27 40 60" ar
         --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
   done
 
+# Un destello sobre un personaje: FlashSprite.
+#
+# RM2k lo hace mezclando el dibujo del personaje hacia un color durante unos
+# cuadros. Acá el dibujo es una paleta de CGRAM, así que destellar es subir esa
+# paleta mezclada, y apagarlo es volver a subirla como estaba.
+#
+# Se compara cuadro por cuadro porque la fuerza baja en cada uno: del 31 al 0 en
+# los 24 que dura. El 2 y el 12 la agarran alta y a la mitad, el 23 es el último
+# con algo de destello y el 24 el primero que ya no tiene, o sea el que prueba
+# que la paleta volvió.
+#
+# El evento 0 del mapa 6 y no el héroe, y no es un detalle: el héroe se dibuja
+# con Future1[5] y el evento 3 del mismo mapa también, así que **comparten
+# paleta** y destellarían los dos. El conversor lo corta con un error antes de
+# armar la ROM, y `eventos.py` no compila una página que destelle a un evento
+# que comparta gráfico con otro. Es la clase de cosa que la comparación no
+# vería: los dos lados harían lo mismo mal.
+#
+# El tinte llega en el cuadro 13, con el destello a mitad de camino, y **tiene
+# que estar**: las 23 páginas que este comando destraba tiñen todas, así que sin
+# él la receta no cubriría ninguna de verdad.
+#
+# Tres cuadros quedan afuera y están medidos. El 13 es el del tinte, que la ROM
+# aplica con la pantalla apagada y sale partido —55926 pixeles—: es el mismo
+# borde que `snes-espera` mira con margen. El 14 es el que le sigue, con 71, y el
+# 24 es el último del destello, con 55: los dos son el retraso de un cuadro que
+# tiene subir la paleta en el vblank, que es lo que hay que hacer para que la
+# pantalla no salga con media paleta vieja. Los demás dan cero, incluido el 15
+# —o sea que el retraso dura un cuadro y no más— y el 25, que prueba que la
+# paleta volvió a la normal.
+snes-destello mapa="6" flash="1 31 0 0 31 24" celda="2 10" cuadros="2 12 15 23 25" tinte="12 0 0 50" arranque="10" nombre="destello":
+  #!/usr/bin/env bash
+  set -euo pipefail
+  mkdir -p {{snes_pngs}} {{snes_inc}}
+  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
+      --inicio {{celda}} --flash-de-prueba {{flash}} \
+      --pagina-de-prueba {{tinte}} -o {{snes_inc}}/mapdata.inc
+  just snes-build
+  pre={{snes_pngs}}/{{nombre}}
+  python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
+      --hero-tile {{celda}} --flash-de-prueba {{flash}} \
+      --pagina-de-prueba {{tinte}} --cuadros {{cuadros}} \
+      --saltar $pre-{}.saltar.txt -o $pre-{}.esperado.png
+  for n in {{cuadros}}; do
+    python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre-$n.png \
+        --walk none --cuadros $n --arranque {{arranque}}
+    python3 tools/snes_compare.py $pre-$n.png $pre-$n.esperado.png \
+        --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
+  done
+
 # El texto del juego, no el que le dictamos a la ROM.
 #
 # Todo lo que hay arriba —`snes-ventana`, `snes-cerrar`, `snes-anclada`— usa

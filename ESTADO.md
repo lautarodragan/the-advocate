@@ -771,6 +771,48 @@ que arrancan con un `sep`. Los once no rompían nada —el `sep` llega antes que
 cualquier inmediato— pero la declaración era falsa igual, y ahora dice la
 verdad.
 
+**Hecho el 2026-09-04: FlashSprite.** Un personaje destella hacia un color
+durante unos cuadros. Las páginas que compilan enteras pasaron de **87 a 110**.
+
+En la consola el dibujo de un personaje es una paleta de CGRAM, así que
+destellar es subir esa paleta mezclada y apagarlo es volver a subirla. La mezcla
+se hace con las mismas tablas de canal que el tinte de pantalla: se arman con
+las dos cosas, se sube la paleta del personaje, y se vuelven a armar como
+estaban. El camino de la paleta queda siendo uno solo.
+
+Lo que hubo que decidir, y las tres cosas están medidas:
+
+* **La mezcla no es la de RM2k, y no puede serlo.** Allá el destello es un color
+  con alfa compuesto sobre el sprite en ocho bits; acá los colores tienen cinco,
+  que es lo que entra en CGRAM. La cuenta es la misma —`destino * a + origen *
+  (255 - a)` sobre 255— pero el espacio no, así que el resultado difiere en el
+  bit bajo. Está declarado en `eventos.destellar`, y es la misma clase de deuda
+  que el tinte de pantalla: los dos lados hacen lo mismo, así que la comparación
+  da cero y quien quiera medirlo necesita una captura de EasyRPG tomada durante
+  un destello.
+* **Dos personajes con el mismo gráfico comparten paleta**, así que destellarían
+  juntos. Una página que destelle a un evento en esa situación **no compila**, y
+  el conversor corta con un error si la ROM llega a tener un destello sobre el
+  héroe cuando el líder comparte gráfico con un NPC. No cuesta ninguna página:
+  son tres destellos y sus páginas se cortan igual por otra cosa.
+* **La paleta se sube en el vblank.** Escribirla en mitad del cuadro deja la
+  mitad de arriba de la pantalla con la paleta vieja y la de abajo con la nueva:
+  el sprite sale con un nivel y el resto con otro. Es la misma razón por la que
+  el tinte apaga la pantalla para aplicarse.
+
+Lo prueba `snes-destello`, y con un tinte en el medio a propósito: **las 23
+páginas que este comando destraba tiñen todas**, así que sin el tinte la receta
+no cubriría ninguna de verdad. Tres cuadros quedan afuera y están medidos: el 13
+es el del tinte, que la ROM aplica con la pantalla apagada y sale partido
+—55926 pixeles, el mismo borde que `snes-espera` mira con margen—; el 14 es el
+que le sigue, con 71; y el 24 es el último del destello, con 55. Los dos últimos
+son el retraso de un cuadro que tiene subir la paleta en el vblank. El 15 da
+cero, o sea que el retraso dura un cuadro y no más, y el 25 prueba que la paleta
+volvió a la normal.
+
+Verificada rompiéndola: con la fuerza siempre plena da 110 pixeles, subiendo la
+paleta fuera del vblank 127, y sin teñir la paleta del destello 127.
+
 **Después: la cinemática de apertura.**
 El mapa 4 ya prende el switch 20, que es la condición de la página que abre el
 mapa 1, así que el enganche funciona. De los cuatro comandos que le faltaban ya

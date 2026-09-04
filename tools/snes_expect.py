@@ -133,7 +133,8 @@ class Mundo:
                                               espera, tinte,
                                               self.prueba[1] or (),
                                               self.prueba[2],
-                                              self.prueba[3]))]
+                                              self.prueba[3],
+                                              self.prueba[4]))]
             self.paginas_cache[map_id] = paginas
         return self.paginas_cache[map_id]
 
@@ -188,8 +189,11 @@ def paso_de_ruta(estado, passable, game_map, x, y):
     return x, y
 
 
-def rutas_de_eventos(estado, passable, game_map):
-    """Un cuadro de las rutas forzadas de los eventos del mapa.
+def cuadro_de_eventos(estado, passable, game_map):
+    """Un cuadro de lo que corre solo: las rutas de los eventos y los destellos.
+
+    Va todo junto porque el orden importa y es uno solo: la ROM los avanza en
+    el mismo lugar del lazo, después del intérprete y después del héroe.
 
     Se les aplica la misma regla de paso que al héroe —las dos caras, la que se
     deja y la que se entra— y sin mirar quién está parado dónde, que es lo que
@@ -204,6 +208,7 @@ def rutas_de_eventos(estado, passable, game_map):
                                 x, y, dx, dy)
 
     estado.cuadro_de_rutas_ev(puede)
+    estado.cuadro_de_flashes()
 
 
 def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
@@ -245,7 +250,7 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
         if cuadros is None:
             salto = eventos.correr_automaticos(
                 mundo.paginas(map_id), estado,
-                avanzar=lambda: rutas_de_eventos(estado, passable, game_map))
+                avanzar=lambda: cuadro_de_eventos(estado, passable, game_map))
             # Sin presupuesto de cuadros la ruta forzada igual tiene que
             # caminarse entera: lo que se compara es dónde queda todo. Antes el
             # giro lo aplicaba el intérprete y esto no hacía falta; ahora la
@@ -254,10 +259,10 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
             for _ in range(10000):
                 if not estado.ruta and not estado.paso_cuadros \
                         and not estado.cuadros_moviendose \
-                        and not estado.rutas_pendientes():
+                        and not estado.algo_corriendo():
                     break
                 x, y = paso_de_ruta(estado, passable, game_map, x, y)
-                rutas_de_eventos(estado, passable, game_map)
+                cuadro_de_eventos(estado, passable, game_map)
         else:
             # Cuadro a cuadro, con el intérprete y la ruta forzada del héroe
             # avanzando juntos: en RM2k `ForceMoveRoute` es asincrónico, la
@@ -274,11 +279,11 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
                     salto = estado.salto
                     break
                 x, y = paso_de_ruta(estado, passable, game_map, x, y)
-                rutas_de_eventos(estado, passable, game_map)
+                cuadro_de_eventos(estado, passable, game_map)
                 if interprete.terminado and not estado.ruta \
                         and not estado.paso_cuadros \
                         and not estado.cuadros_moviendose \
-                        and not estado.rutas_pendientes():
+                        and not estado.algo_corriendo():
                     break
         if salto is None:
             return map_id, x, y
@@ -430,6 +435,38 @@ def pose_image(charset, index, pose):
     return out
 
 
+def destellar_imagen(imagen, color, nivel):
+    """La pose con el destello aplicado, **en el espacio de cinco bits**.
+
+    Los pixeles vienen del PNG en ocho bits, así que se bajan a cinco, se
+    mezclan y se vuelven a subir: es lo que hace la consola, que sólo tiene esos
+    cinco. Mezclar en ocho y recortar después da otro número, y la comparación
+    —que mira quince bits— lo vería.
+
+    Se resuelve por color y no por pixel: una pose tiene quince colores como
+    mucho.
+    """
+    if nivel <= 0:
+        return imagen
+    salida = imagen.copy()
+    pixels = salida.load()
+    mapa = {}
+    for y in range(salida.height):
+        for x in range(salida.width):
+            r, g, b, a = pixels[x, y]
+            if not a:
+                continue
+            clave = (r, g, b)
+            if clave not in mapa:
+                palabra = (r >> 3) | ((g >> 3) << 5) | ((b >> 3) << 10)
+                nueva = eventos.destellar(palabra, color, nivel)
+                mapa[clave] = ((nueva & 0x1F) << 3,
+                               ((nueva >> 5) & 0x1F) << 3,
+                               ((nueva >> 10) & 0x1F) << 3)
+            pixels[x, y] = mapa[clave] + (a,)
+    return salida
+
+
 def draw_actors(view, sprites, encima=None):
     """Pinta los sprites y avisa en qué líneas la consola no va a poder.
 
@@ -523,6 +560,12 @@ def main():
                         help="en qué cuadro el jugador aprieta A, que es lo "
                              "que cierra un mensaje. El otro lado del mismo "
                              "flag de snes_correr.py")
+    parser.add_argument("--flash-de-prueba", nargs=6, type=int, default=None,
+                        metavar=("BLANCO", "R", "G", "B", "POTENCIA", "CUADROS"),
+                        help="hace destellar a alguien desde la página de "
+                             "prueba: el blanco es 0 para el héroe o el índice "
+                             "del evento más uno, el color va de 0 a 31 y los "
+                             "cuadros son cuántos dura")
     parser.add_argument("--ruta-de-evento", nargs="+", type=int, default=None,
                         metavar="N",
                         help="el primer número es sobre quién —el índice del "
@@ -586,7 +629,7 @@ def main():
         sys.exit("--inicial %d pero la tabla tiene %d mapas"
                  % (args.inicial, len(tabla)))
     hay_prueba = (args.pagina_de_prueba or args.ruta_de_prueba
-                  or args.ruta_de_evento
+                  or args.ruta_de_evento or args.flash_de_prueba
                   or args.mensaje_de_prueba is not None)
     # El bloque de textos, armado igual que en el conversor y en el mismo orden:
     # el mensaje de prueba primero —desplazamiento 0— y después los mapas de la
@@ -596,7 +639,8 @@ def main():
               if args.mensaje_de_prueba is not None else None)
     mundo = Mundo(renderer, args.game_dir, tabla,
                   (args.pagina_de_prueba, args.ruta_de_prueba, prueba,
-                   snes_convert.ruta_de_evento(args.ruta_de_evento))
+                   snes_convert.ruta_de_evento(args.ruta_de_evento),
+                   args.flash_de_prueba or ())
                   if hay_prueba else None, mensajes)
 
     # Los CharSets y los mapas ya convertidos se comparten entre las
@@ -725,6 +769,7 @@ def main():
             # como los dejó su página. La ruta sobrevive a su propio final, así
             # que después de caminar el evento queda mirando adonde caminó, que
             # es lo que hace RM2k.
+            blanco_flash = npc["evento"] + 1
             ruta = estado.rutas_ev.get(npc["evento"])
             if ruta is None:
                 px, py, pose = npc["x"] * TILE, npc["y"] * TILE, npc["pose"]
@@ -738,7 +783,7 @@ def main():
             actors.append(((snes_convert.sort_key(npc["layer"], py), px,
                             npc["evento"]),
                            npc["charset"], npc["index"], pose, px, py,
-                           npc["layer"] == rm2k.LAYER_ABOVE))
+                           npc["layer"] == rm2k.LAYER_ABOVE, blanco_flash))
         # El último campo es si va por encima de la capa de encima. Para el
         # héroe es falso salvo en la ROM de `snes-encima`, donde su prioridad
         # de objeto sube a 2 —el mismo bit que llevan los eventos "above"— y
@@ -769,7 +814,7 @@ def main():
         # y la ROM adelante; se ve parado encima de uno en el mapa 73.
         actors.append(((snes_convert.sort_key(rm2k.LAYER_SAME, y), 0xFFFF, 0xFFFF),
                        charset, charset_index,
-                       direction * 3 + columna, x, y, args.heroe_encima))
+                       direction * 3 + columna, x, y, args.heroe_encima, 0))
 
         # En OAM van del frente hacia el fondo, que es al revés del orden en que
         # se pintan. La consola recorre ese mismo orden para decidir qué entra
@@ -777,9 +822,16 @@ def main():
         # pierde.
         order = sorted(actors, key=lambda a: a[0], reverse=True)
         sprites = []
-        for _key, name, index, pose, px, py, arriba in order:
-            sprites.append((pose_image(charset_image(name), index, pose),
-                            px - 4 - cam_x, py - 16 - cam_y, arriba))
+        for _key, name, index, pose, px, py, arriba, blanco in order:
+            imagen = pose_image(charset_image(name), index, pose)
+            # El destello va sobre el personaje ya dibujado, que en la consola
+            # es su paleta. El tinte de pantalla va antes —`Cache::SpriteEffect`
+            # aplica el tono y después la mezcla— y acá lo aplica `tenir_imagen`
+            # sobre todo al final, que es el mismo orden.
+            imagen = destellar_imagen(imagen, estado.color_de_flash(blanco),
+                                      estado.nivel_de_flash(blanco)) \
+                if blanco in estado.flashes else imagen
+            sprites.append((imagen, px - 4 - cam_x, py - 16 - cam_y, arriba))
 
         # La capa que va por encima del héroe se compone entre los sprites
         # comunes y los eventos marcados "above", que es el orden de RM2k y el

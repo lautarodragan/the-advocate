@@ -83,6 +83,16 @@ RUTA_ORDENES = set(RUTA_MIRAR) | set(RUTA_MOVER) | {RUTA_ESPERAR}
 # por el evento que se acaba de mandar a caminar.
 PROCEED_WITH_MOVEMENT = 11340
 
+# Un destello sobre un personaje: `Game_Character::Flash`. Los parámetros son a
+# quién, r, g y b de 0 a 31, la potencia, cuántas **décimas de segundo** dura, y
+# si la página espera a que termine.
+#
+# Lo de las décimas no es un detalle: `CommandFlashSprite` hace
+# `event->Flash(r, g, b, p, tenths * DEFAULT_FPS / 10)` y, si espera,
+# `SetupWait(tenths)`, que es la misma espera del comando Wait. O sea que el
+# tiempo sale gratis: es un OP_ESPERAR detrás.
+FLASH_SPRITE = 11320
+
 # Cómo consume el tiempo una ruta forzada, y es una decisión de modelo que los
 # dos lados tienen que compartir: girar es instantáneo —se pasa al comando
 # siguiente en el mismo cuadro—, esperar consume un cuadro, y moverse arranca un
@@ -152,6 +162,8 @@ OP_MENSAJE  = 0x07      # desplazamiento (word) dentro del bloque `mensajes`:
                         # jugador apriete A
 OP_RUTAS    = 0x08      # sin operandos: la página no sigue hasta que no quede
                         # ninguna ruta forzada corriendo
+OP_FLASH    = 0x09      # blanco (byte), r, g, b, potencia (byte cada uno, de 0
+                        # a 31) y cuántos cuadros dura (byte)
 
 # El operando es un desplazamiento y no un texto, y eso es lo que hace que
 # entre. Una página de mensaje ya compuesta son ~240 tiles de 4bpp, o sea
@@ -196,7 +208,7 @@ class NoSePuede(Exception):
 
 
 class Eventos:
-    """Los eventos del mapa, como los ve el compilador de rutas forzadas.
+    """Los eventos del mapa, como los ve el compilador.
 
     Existe por una razón que se midió y que si no se paga cara: **el id de
     evento de RM2k no es el índice de la tabla de la ROM**. 39 mapas de este
@@ -216,12 +228,28 @@ class Eventos:
         self.visibles = {ev.id for ev in game_map.events
                          if ev.active_page() is not None
                          and ev.active_page().character_name}
+        # Con qué personaje se dibuja cada uno, para saber cuáles comparten
+        # paleta. En la consola el destello se hace sobre la paleta del
+        # personaje, así que dos eventos con el mismo gráfico destellarían
+        # juntos: ver `_compilar`.
+        self.grafico = {}
+        for ev in game_map.events:
+            page = ev.active_page()
+            if page is not None and page.character_name:
+                self.grafico[ev.id] = (page.character_name,
+                                       page.character_index)
         self.mio = mio
+
+    def comparte_grafico(self, quien):
+        """Si este evento dibuja con el mismo personaje que otro del mapa."""
+        cual = self.grafico.get(quien)
+        return cual is not None and sum(1 for g in self.grafico.values()
+                                        if g == cual) > 1
 
     def para(self, id_evento):
         otro = Eventos.__new__(Eventos)
-        otro.indices, otro.visibles, otro.mio = (self.indices, self.visibles,
-                                                 id_evento)
+        otro.indices, otro.visibles = self.indices, self.visibles
+        otro.grafico, otro.mio = self.grafico, id_evento
         return otro
 
     def blanco(self, quien):
@@ -373,10 +401,11 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None):
     """
     marca = mensajes.marca() if mensajes is not None else None
     try:
-        return b"".join(_compilar(cmd, indice_de_mapa, mensajes, extra,
-                                  eventos_mapa)
-                        for cmd, extra in agrupar(page.commands)) \
+        codigo = b"".join(_compilar(cmd, indice_de_mapa, mensajes, extra,
+                                    eventos_mapa)
+                          for cmd, extra in agrupar(page.commands)) \
             + bytes([OP_FIN])
+        return codigo
     except NoSePuede:
         if mensajes is not None:
             mensajes.volver(marca)
@@ -425,6 +454,38 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
 
     if cmd.code == PROCEED_WITH_MOVEMENT:
         return bytes([OP_RUTAS])
+
+    if cmd.code == FLASH_SPRITE:
+        if len(p) < 7:
+            raise NoSePuede()
+        if p[0] == RUTA_HEROE:
+            blanco = 0
+        elif eventos_mapa is None:
+            raise NoSePuede()
+        else:
+            blanco = eventos_mapa.blanco(p[0])
+            if blanco is None:
+                raise NoSePuede()   # un vehículo, o un evento que no existe
+            quien = (eventos_mapa.mio if p[0] == RUTA_ESTE_EVENTO else p[0])
+            if eventos_mapa.comparte_grafico(quien):
+                # En la consola el destello se hace sobre la paleta del
+                # personaje, y dos eventos con el mismo gráfico comparten una
+                # sola: destellarían juntos. Antes que emitir eso y que la
+                # referencia lo copie —que es cómo un error se vuelve
+                # invisible—, la página no compila. Hoy no cuesta ninguna: son
+                # tres destellos y sus páginas se cortan igual por otra cosa.
+                raise NoSePuede()
+        if any(not 0 <= v <= 31 for v in p[1:5]):
+            raise NoSePuede()
+        cuadros = p[5] * CUADROS_POR_DECIMA
+        if not 0 < cuadros <= 255:
+            raise NoSePuede()
+        out = bytes([OP_FLASH, blanco, p[1], p[2], p[3], p[4], cuadros])
+        if p[6]:
+            # Esperar es exactamente el comando Wait: `SetupWait(tenths)`, o sea
+            # las mismas décimas por CUADROS_POR_DECIMA.
+            out += bytes([OP_ESPERAR, cuadros & 0xFF, cuadros >> 8])
+        return out
 
     if cmd.code == MOVE_EVENT:
         if len(p) < 4:
@@ -580,6 +641,9 @@ class Estado:
         # `cuadros_moviendose`— siguen valiendo y son ésta.
         self.ruta_heroe = Ruta()
         self.rutas_ev = {}
+        # Los destellos corriendo, por blanco: (r, g, b, potencia, cuadros, k).
+        # `k` es cuántos cuadros pasaron desde que empezó.
+        self.flashes = {}
         # Dónde está cada evento del mapa, en celdas. La lleva el estado y no el
         # mapa porque una ruta la cambia y la siguiente arranca de ahí: hay una
         # página de este juego que manda a caminar nueve veces al mismo evento.
@@ -677,6 +741,7 @@ class Estado:
         de que `cargar_mapa` vuelva a copiar la tabla desde la ROM.
         """
         self.rutas_ev = {}
+        self.flashes = {}
         self.pos_ev = dict(posiciones)
 
     def ruta_de_evento(self, indice):
@@ -710,6 +775,41 @@ class Estado:
             if direccion is not None and empezaba:
                 dx, dy = RUTA_PASOS[direccion]
                 self.pos_ev[indice] = (x + dx, y + dy)
+
+    def algo_corriendo(self):
+        """Si queda algo andando solo: una ruta forzada o un destello.
+
+        Lo mira quien decide cuándo dejar de contar cuadros. Sin los destellos
+        acá, una página que sólo destella termina en el primer cuadro y el
+        destello no avanza nunca: se queda encendido para siempre.
+        """
+        return bool(self.flashes) or self.rutas_pendientes()
+
+    def cuadro_de_flashes(self):
+        """Un cuadro de todos los destellos: los que se acabaron se apagan."""
+        for blanco in list(self.flashes):
+            r, g, b, potencia, cuadros, k = self.flashes[blanco]
+            if k >= cuadros:
+                del self.flashes[blanco]
+            else:
+                self.flashes[blanco] = (r, g, b, potencia, cuadros, k + 1)
+
+    def nivel_de_flash(self, blanco):
+        """Con cuánta fuerza destella este blanco ahora mismo, de 0 a 31.
+
+        La curva es la forma cerrada de la que easyrpg calcula a mano:
+        `level -= level / time_left` cuadro a cuadro da exactamente
+        `potencia * (cuadros - k) / cuadros`. Acá va con enteros porque los dos
+        lados tienen que dar el mismo número, y allá va con `double`.
+        """
+        if blanco not in self.flashes:
+            return 0
+        _r, _g, _b, potencia, cuadros, k = self.flashes[blanco]
+        return potencia * (cuadros - k) // cuadros
+
+    def color_de_flash(self, blanco):
+        """(r, g, b) del destello de este blanco, en cinco bits."""
+        return self.flashes[blanco][:3]
 
     def encendido(self, numero):
         return numero in self.switches
@@ -754,6 +854,8 @@ def blancos_de_ruta(paginas):
                 i += 3 + codigo[i + 2]
             elif op == OP_RUTAS:
                 i += 1
+            elif op == OP_FLASH:
+                i += 7
             elif op == OP_SWITCH:
                 i += 4
             elif op == OP_TELEPORT:
@@ -806,7 +908,8 @@ def pagina_activa(paginas, evento, estado):
     return elegida
 
 
-def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=()):
+def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
+                    flash=()):
     """Una página automática inventada: una ruta forzada, una espera, un tinte.
 
     No sale de ningún dato del juego, y ésa es la idea. El intérprete corre
@@ -837,6 +940,11 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=()):
     codigo = b""
     if ruta:
         codigo += bytes([OP_RUTA, 0, len(ruta)]) + bytes(ruta)
+    if flash:
+        # (blanco, r, g, b, potencia, cuadros). Existe por lo mismo que todo lo
+        # demás de esta página: ninguna del juego que compile destella sin
+        # depender de un switch.
+        codigo += bytes([OP_FLASH]) + bytes(flash)
     if ruta_ev:
         blanco, ordenes = ruta_ev
         codigo += bytes([OP_RUTA, blanco, len(ordenes)]) + bytes(ordenes)
@@ -1018,6 +1126,14 @@ def ejecutar(codigo, estado, desde=0):
             else:
                 estado.ruta_de_evento(blanco - 1).ordenes = ordenes
             i += 3 + cuantos
+        elif op == OP_FLASH:
+            # Empieza un destello. No corta el cuadro: si la página espera, el
+            # conversor le pone un OP_ESPERAR detrás, que es lo que hace
+            # `CommandFlashSprite` con `SetupWait(tenths)`.
+            estado.flashes[codigo[i + 1]] = (codigo[i + 2], codigo[i + 3],
+                                             codigo[i + 4], codigo[i + 5],
+                                             codigo[i + 6], 0)
+            i += 7
         elif op == OP_RUTAS:
             # "Esperá a que terminen las rutas". Se devuelve el control con una
             # marca en vez de una cuenta de cuadros: no se sabe cuántos van a
@@ -1058,6 +1174,32 @@ def tenir(palabra, tinte):
     salida = 0
     for numero, (canal, valor) in enumerate(zip(canales, tinte)):
         salida |= min(31, canal * valor // 100) << (numero * 5)
+    return salida
+
+
+def destellar(palabra, color, nivel):
+    """Un color de 15 bits mezclado hacia el del destello.
+
+    Es la cuenta de easyrpg puesta en cinco bits: allá el destello es un color
+    con alfa `nivel * 8` compuesto sobre el sprite —`Flash::MakeColor` y el
+    `PIXMAN_OP_OVER` de `BlendBlit`— o sea `destino * a + origen * (255 - a)`
+    sobre 255. La diferencia es el espacio: RM2k mezcla los ocho bits del PNG y
+    nosotros los cinco que entran en CGRAM, así que **el resultado no es el de
+    RM2k**, es el que da la misma cuenta con menos bits.
+
+    Está declarado porque es la clase de cosa que la comparación no ve: los dos
+    lados hacen lo mismo y dan cero. Lo mismo pasa con el tinte de pantalla, y
+    por la misma razón. Quien quiera medirlo necesita una captura de EasyRPG
+    tomada durante un destello.
+    """
+    if nivel <= 0:
+        return palabra
+    alfa = nivel * 8
+    salida = 0
+    for numero in range(3):
+        canal = (palabra >> (numero * 5)) & 0x1F
+        mezcla = (color[numero] * alfa + canal * (255 - alfa)) // 255
+        salida |= min(31, mezcla) << (numero * 5)
     return salida
 
 

@@ -533,6 +533,7 @@ loop:
     jsr mover_eventos           ; y las rutas forzadas de los eventos, después
                                 ; del héroe y después del intérprete: el orden
                                 ; es el mismo que el de la referencia
+    jsr flashes_tick            ; y los destellos, en el mismo lugar
     jsr animate_hero
     jsr follow_camera
     jsr stream_map              ; la columna o la fila que la cámara destapó
@@ -1333,6 +1334,9 @@ otro:
 :   cmp #OP_TINTE
     bne :+
     jmp op_tinte
+:   cmp #OP_FLASH
+    bne :+
+    jmp op_flash
 :   cmp #OP_RUTAS
     bne :+
     jmp op_rutas
@@ -1456,6 +1460,23 @@ op_ruta_evento:
 ; siguiente vuelve a preguntar. Espera a que no quede **ninguna**, ni la del
 ; héroe ni la de ningún evento: es `Game_Map::IsAnyMovePending`, y no una espera
 ; por el evento que se acaba de mandar a caminar.
+; Arranca un destello sobre un personaje. No corta el cuadro: si la página
+; espera, el conversor le pone un OP_ESPERAR detrás, que es exactamente lo que
+; hace `CommandFlashSprite` con `SetupWait(tenths)`.
+op_flash:
+    phy
+    jsr flash_empezar
+    ply
+    rep #$20
+.a16
+    tya
+    clc
+    adc #6                      ; los seis operandos
+    tay
+    sep #$20
+.a8
+    jmp otro
+
 op_rutas:
     jsr hay_rutas
     beq op_rutas_sigue
@@ -1605,6 +1626,14 @@ cabe:
 .proc tenir_paleta
 .a8
 .i16
+    jsr armar_paleta
+    jmp subir_paleta
+.endproc
+
+; Arma la paleta teñida en `pal_buf`, sin subirla.
+.proc armar_paleta
+.a8
+.i16
     ; La cuenta va en Y y no en X: adentro del lazo X es el índice de las tres
     ; tablas de canal, así que al llegar acá vale el azul del color anterior y
     ; no cuántos colores van. Y sí sobrevive: es el cursor de la paleta.
@@ -1697,6 +1726,13 @@ cada_color:
     bra cada_color
 
 subir:
+    rts
+.endproc
+
+; Y la sube desde `pal_buf` a la entrada `tin_cgadd` de CGRAM.
+.proc subir_paleta
+.a8
+.i16
     lda tin_cgadd
     sta CGADD
     rep #$20
@@ -2474,6 +2510,23 @@ libre:
     sep #$20
 .a8
     bcc libre
+
+    ; Y los destellos, que también son de los eventos del mapa que se deja.
+    ldx #$0000
+sin_flash:
+    lda #FLASH_LIBRE
+    sta flash_ev, x
+    rep #$20
+.a16
+    txa
+    clc
+    adc #FLASH_STRIDE
+    tax
+    cmp #FLASH_MAX * FLASH_STRIDE
+    sep #$20
+.a8
+    bcc sin_flash
+    stz flash_pend              ; la RAM arranca con basura y esto se lee
     stz ruta_paso
     rts
 .endproc
@@ -2759,6 +2812,392 @@ no_izquierda:
 fin:
     sep #$20
 .a8
+    rts
+.endproc
+
+; --- los destellos ----------------------------------------------------------
+;
+; RM2k destella un personaje mezclando su dibujo hacia un color durante unos
+; cuadros. Acá el dibujo es una paleta de CGRAM, así que destellar es subir esa
+; paleta mezclada, y apagarlo es volver a subirla como estaba.
+;
+; La mezcla se hace **antes** de que el color llegue a CGRAM, con las mismas
+; tablas de canal que el tinte de pantalla: se arman con el tinte y el destello
+; juntos, se sube la paleta del personaje, y se vuelven a armar como estaban. Así
+; el camino de la paleta es uno solo y no hay dos lugares que puedan diferir.
+
+; Guarda el destello que traen los seis operandos que siguen a Y.
+.proc flash_empezar
+.a8
+.i16
+    ldx #$0000
+buscar:
+    lda flash_ev, x
+    cmp #FLASH_LIBRE
+    beq puesta
+    rep #$20
+.a16
+    txa
+    clc
+    adc #FLASH_STRIDE
+    tax
+    cmp #FLASH_MAX * FLASH_STRIDE
+    sep #$20
+.a8
+    bcc buscar
+    rts                         ; no hay ranura: este destello se pierde
+
+puesta:
+    lda [cod_ptr], y            ; el blanco
+    sta flash_ev + 0, x
+    iny
+    lda [cod_ptr], y
+    sta flash_ev + 1, x         ; r
+    iny
+    lda [cod_ptr], y
+    sta flash_ev + 2, x         ; g
+    iny
+    lda [cod_ptr], y
+    sta flash_ev + 3, x         ; b
+    iny
+    lda [cod_ptr], y
+    sta flash_ev + 4, x         ; potencia
+    iny
+    lda [cod_ptr], y
+    sta flash_ev + 5, x         ; cuántos cuadros
+    stz flash_ev + 6, x         ; recién empieza
+    rts
+.endproc
+
+; En qué paleta de sprite se dibuja el blanco que trae A, o $FF si no se
+; dibuja. El héroe la lleva en `hero_pal`, ya corrida; un evento, en el byte de
+; atributos de su fila.
+.proc paleta_del_blanco
+.a8
+.i16
+    cmp #$00
+    bne de_evento
+    lda hero_pal
+    lsr a                       ; hero_pal viene corrido un lugar
+    and #$07
+    rts
+de_evento:
+    dec a
+    jsr npc_de_evento
+    cpy #$FFFF
+    bne hay
+    lda #$FF
+    rts
+hay:
+    lda npc_buf + 7, y
+    lsr a
+    and #$07
+    rts
+.endproc
+
+; Un cuadro de todos los destellos.
+.proc flashes_tick
+.a8
+.i16
+    ldx #$0000
+otra:
+    lda flash_ev, x
+    cmp #FLASH_LIBRE
+    beq siguiente
+    phx
+    jsr un_flash
+    plx
+siguiente:
+    rep #$20
+.a16
+    txa
+    clc
+    adc #FLASH_STRIDE
+    tax
+    cmp #FLASH_MAX * FLASH_STRIDE
+    sep #$20
+.a8
+    bcc otra
+    rts
+.endproc
+
+; Un cuadro del destello de la ranura X: avanza, calcula con cuánta fuerza toca
+; y sube la paleta. Cuando se pasa de los cuadros que dura, la ranura se libera:
+; el cuadro anterior ya la subió con fuerza cero, o sea como estaba.
+.proc un_flash
+.a8
+.i16
+    lda flash_ev + 6, x
+    inc a
+    sta flash_ev + 6, x
+    cmp flash_ev + 5, x
+    bcc todavia
+    beq todavia                 ; el último cuadro va con fuerza cero
+    lda #FLASH_LIBRE
+    sta flash_ev + 0, x
+    rts
+
+todavia:
+    ; La fuerza: potencia * (cuadros - k) / cuadros, que es la forma cerrada de
+    ; la cuenta que easyrpg hace cuadro a cuadro.
+    lda flash_ev + 5, x
+    sec
+    sbc flash_ev + 6, x
+    sta WRMPYA
+    lda flash_ev + 4, x
+    sta WRMPYB                  ; el producto tarda ocho ciclos
+    nop
+    nop
+    nop
+    nop
+    rep #$20
+.a16
+    lda RDMPYL
+    sta WRDIVL
+    sep #$20
+.a8
+    lda flash_ev + 5, x
+    sta WRDIVB                  ; el cociente tarda dieciséis
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    lda RDDIVL
+    asl a
+    asl a
+    asl a                       ; el alfa de easyrpg es la fuerza por ocho
+    sta flash_alfa
+    jmp pintar_flash
+.endproc
+
+; Sube la paleta del blanco de la ranura X con la fuerza que ya está en
+; `flash_alfa`.
+.proc pintar_flash
+.a8
+.i16
+    lda flash_ev + 0, x
+    jsr paleta_del_blanco
+    cmp #$FF
+    beq listo                   ; no se dibuja: no hay paleta que tocar
+    rep #$20
+.a16
+    and #$00FF
+    sta flash_slot
+    sep #$20
+.a8
+    jsr paleta_con_destello
+listo:
+    rts
+.endproc
+
+; Sube la paleta del personaje `flash_slot` con el tinte y el destello puestos.
+; Los colores del destello salen de la ranura X.
+.proc paleta_con_destello
+.a8
+.i16
+    stx flash_ranura            ; `tabla_canal_flash` usa X para la tabla
+    lda flash_ev + 1, x
+    sta flash_dest
+    lda tinte_r
+    ldx #.loword(tabla_r)
+    jsr tabla_canal_flash
+    ldx flash_ranura
+    lda flash_ev + 2, x
+    sta flash_dest
+    lda tinte_g
+    ldx #.loword(tabla_g)
+    jsr tabla_canal_flash
+    ldx flash_ranura
+    lda flash_ev + 3, x
+    sta flash_dest
+    lda tinte_b
+    ldx #.loword(tabla_b)
+    jsr tabla_canal_flash
+
+    ; La paleta del personaje: dieciséis colores de dos bytes, y en CGRAM la
+    ; mitad de arriba arranca en el color 128.
+    rep #$20
+.a16
+    lda flash_slot
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a                       ; treinta y dos bytes por paleta
+    sta temp
+    ldx mapa_ofs
+    lda mapa_tabla + M_PTR_SPRITE_CGRAM, x
+    clc
+    adc temp
+    sta tin_ptr
+    sep #$20
+.a8
+    lda mapa_tabla + M_PTR_SPRITE_CGRAM + 2, x
+    sta tin_ptr + 2
+    rep #$20
+.a16
+    lda #16
+    sta tin_count
+    lda flash_slot
+    asl a
+    asl a
+    asl a
+    asl a                       ; dieciséis colores por paleta
+    clc
+    adc #128
+    sep #$20
+.a8
+    sta tin_cgadd
+    jsr armar_paleta
+
+    ; La paleta armada se guarda aparte y se sube en el vblank que viene, no
+    ; acá. Escribir CGRAM en mitad del cuadro deja la mitad de arriba de la
+    ; pantalla con la paleta vieja y la de abajo con la nueva: el sprite sale
+    ; con un nivel y el resto con otro, y la referencia no modela eso. Es la
+    ; misma razón por la que el tinte apaga la pantalla para aplicarse.
+    ldy #$0000
+copiar:
+    lda pal_buf, y
+    sta flash_buf, y
+    iny
+    cpy #32
+    bne copiar
+    lda tin_cgadd
+    sta flash_pend_cgadd
+    lda #1
+    sta flash_pend
+
+    ; Y las tablas vuelven a ser las del tinte solo, que es lo que espera todo
+    ; el resto.
+    jmp tablas_de_tinte
+.endproc
+
+; Las tres tablas de canal del tinte, sin destello.
+.proc tablas_de_tinte
+.a8
+.i16
+    lda tinte_r
+    ldx #.loword(tabla_r)
+    jsr tabla_canal
+    lda tinte_g
+    ldx #.loword(tabla_g)
+    jsr tabla_canal
+    lda tinte_b
+    ldx #.loword(tabla_b)
+    jsr tabla_canal
+    rts
+.endproc
+
+; Como `tabla_canal`, pero mezclando antes hacia el color del destello. A trae
+; el valor del tinte, X dónde va la tabla, `flash_dest` el canal del destello y
+; `flash_alfa` con cuánta fuerza.
+;
+; La mezcla es la de easyrpg puesta en cinco bits: `destino * a + canal *
+; (255 - a)` sobre 255, con `a` el nivel por ocho —`Flash::MakeColor` y el
+; `PIXMAN_OP_OVER` de `BlendBlit`—. Que el espacio sea de cinco y no de ocho es
+; lo que hace que el resultado no sea el de RM2k; está declarado en
+; `eventos.destellar`.
+;
+; **Y va antes del tinte, no después.** easyrpg hace al revés —`ToneBlit` y
+; después `BlendBlit`— pero allá el tono es del sprite y acá el tinte se aplica
+; a la pantalla entera al final, del lado de la referencia. Con el tinte neutro
+; da lo mismo; con tinte, los dos lados hacen `tinte(destello(c))` y RM2k
+; `destello(tono(c))`. Es otra deuda declarada del mismo tipo que la de los
+; cinco bits, y la única que se ve es en una página que tiña y destelle a la vez.
+.proc tabla_canal_flash
+.a8
+.i16
+    sta temp                    ; el valor del tinte
+    stx temp + 2                ; dónde va la tabla
+    ldy #$0000
+cada:
+    ; Primero la mezcla del destello, sobre el canal crudo.
+    lda #255
+    sec
+    sbc flash_alfa
+    sta WRMPYA
+    tya
+    sta WRMPYB
+    nop
+    nop
+    nop
+    nop
+    rep #$20
+.a16
+    lda RDMPYL
+    sta flash_parcial
+    sep #$20
+.a8
+    lda flash_dest
+    sta WRMPYA
+    lda flash_alfa
+    sta WRMPYB
+    nop
+    nop
+    nop
+    nop
+    rep #$20
+.a16
+    lda RDMPYL
+    clc
+    adc flash_parcial
+    sta WRDIVL
+    sep #$20
+.a8
+    lda #255
+    sta WRDIVB
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    lda RDDIVL
+    cmp #32
+    bcc mezclado
+    lda #31
+mezclado:
+    ; Y ahora el tinte, igual que `tabla_canal`.
+    sta WRMPYA
+    lda temp
+    sta WRMPYB
+    nop
+    nop
+    nop
+    nop
+    rep #$20
+.a16
+    lda RDMPYL
+    sta WRDIVL
+    sep #$20
+.a8
+    lda #100
+    sta WRDIVB
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    lda RDDIVL
+    cmp #32
+    bcc entra
+    lda #31
+entra:
+    sta (temp + 2), y
+    iny
+    cpy #32
+    beq fin
+    jmp cada                    ; `bne` no llega: el lazo es largo
+fin:
     rts
 .endproc
 
@@ -4508,6 +4947,29 @@ sin_segunda:
 .i16
     jsr push_oam
 
+    ; La paleta de un destello, si quedó una pendiente del cuadro anterior.
+    lda flash_pend
+    beq sin_flash
+    stz flash_pend
+    lda flash_pend_cgadd
+    sta CGADD
+    rep #$20
+.a16
+    lda #.loword(flash_buf)
+    sta A1T0L
+    lda #32
+    sta DAS0L
+    sep #$20
+.a8
+    stz A1B0
+    lda #$00
+    sta DMAP0
+    lda #$22
+    sta BBAD0
+    lda #$01
+    sta MDMAEN
+sin_flash:
+
     ; Los dos registros de scroll son de escritura doble: primero el byte bajo
     ; y después el alto.
     ; Cada registro se completa antes de pasar al siguiente. Los de scroll
@@ -5796,6 +6258,27 @@ RUTA_EV_STRIDE = 16
 RUTA_EV_LIBRE = $FF
 RUTA_EV_SIN_MIRAR = $FF     ; en +8: la ruta todavía no lo giró
 ruta_ev:  .res RUTA_EV_MAX * RUTA_EV_STRIDE
+
+; Los destellos corriendo. Una ranura por destello:
+;
+;   +0 blanco   0 el héroe, o el índice del evento más uno; $FF libre
+;   +1 r, +2 g, +3 b   el color, de 0 a 31
+;   +4 potencia, +5 cuadros, +6 k
+;
+; El paso es ocho para que la ranura se indexe con tres corrimientos.
+FLASH_STRIDE = 8
+FLASH_LIBRE = $FF
+flash_ev:  .res FLASH_MAX * FLASH_STRIDE
+; Lo que `paleta_con_destello` necesita mientras arma las tablas.
+flash_dest: .res 1
+flash_alfa: .res 1
+flash_slot: .res 2
+flash_ranura: .res 2
+flash_parcial: .res 2
+; La paleta de un destello, esperando el vblank para subirse.
+flash_pend: .res 1
+flash_pend_cgadd: .res 1
+flash_buf: .res 32
 
 ; La celda que se está consultando, para `ptr_de_celda` y `puede_celda`. Va acá
 ; y no en la página directa porque se lee con direccionamiento absoluto, que

@@ -1270,6 +1270,9 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "OP_RUTA     = $%02X\n"
         "OP_MENSAJE  = $%02X\n"
         "OP_RUTAS    = $%02X\n"
+        "OP_FLASH    = $%02X\n"
+        "; Cuántos destellos pueden estar corriendo a la vez.\n"
+        "FLASH_MAX   = %d\n"
         "TRIGGER_AUTOMATICO = %d\n"
         "; Cuántos cuadros dura un paso de una celda. Sale del modelo y no de\n"
         "; una cuenta en la ROM: es lo que los dos lados tienen que contar\n"
@@ -1323,6 +1326,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            eventos.OP_FIN, eventos.OP_SWITCH, eventos.OP_TELEPORT,
            eventos.OP_ESPERAR, eventos.OP_TINTE, eventos.OP_GRUPO,
            eventos.OP_RUTA, eventos.OP_MENSAJE, eventos.OP_RUTAS,
+           eventos.OP_FLASH, FLASH_MAX,
            eventos.TRIGGER_AUTOMATICO, eventos.CUADROS_POR_CELDA,
            eventos.TINTE_NEUTRO, SWITCH_BYTES,
            eventos.GRUPO_MAX, len(grupo_inicial), ACTOR_BYTES,
@@ -1468,6 +1472,11 @@ EV_MAX = 128
 # una ruta sobrevive al final de su página, así que puede haber otra corriendo
 # encima. Ocho da margen y cuesta 88 bytes de RAM.
 RUTA_EV_MAX = 8
+# Cuántos destellos pueden estar corriendo a la vez. Las páginas de este juego
+# los encadenan de a uno —casi todos esperan a que termine— así que cuatro sobra;
+# el conversor no lo puede comprobar porque depende de qué corra cuándo, y una
+# ranura que falte hace que el destello no se vea.
+FLASH_MAX = 4
 # Un NPC en la RAM de la ROM. Eran ocho bytes; los cuatro de más son para los
 # que caminan: a cuál evento corresponden y dónde está su tabla de poses.
 #
@@ -1538,7 +1547,8 @@ def actor_bytes(actores):
 LARGO_DE_OPCODE = {
     eventos.OP_FIN: 1, eventos.OP_SWITCH: 4, eventos.OP_TELEPORT: 6,
     eventos.OP_ESPERAR: 3, eventos.OP_TINTE: 5, eventos.OP_GRUPO: 3,
-    eventos.OP_MENSAJE: 3, eventos.OP_RUTAS: 1, eventos.OP_RUTA: None,
+    eventos.OP_MENSAJE: 3, eventos.OP_RUTAS: 1, eventos.OP_FLASH: 7,
+    eventos.OP_RUTA: None,
 }
 
 
@@ -1708,6 +1718,12 @@ def main():
                              "que los ShowMessage del juego compilen, y lo "
                              "que se lo cobra a los tiles del mapa —tres "
                              "mapas del juego no pueden llevarla—")
+    parser.add_argument("--flash-de-prueba", nargs=6, type=int, default=None,
+                        metavar=("BLANCO", "R", "G", "B", "POTENCIA", "CUADROS"),
+                        help="hace destellar a alguien desde la página de "
+                             "prueba: el blanco es 0 para el héroe o el índice "
+                             "del evento más uno, el color va de 0 a 31 y los "
+                             "cuadros son cuántos dura")
     parser.add_argument("--ruta-de-evento", nargs="+", type=int, default=None,
                         metavar="N",
                         help="el primer número es sobre quién —el índice del "
@@ -1824,7 +1840,7 @@ def main():
         paginas = eventos.paginas_del_mapa(mapa["game_map"], indices.get,
                                            mensajes)
         if (args.pagina_de_prueba or args.ruta_de_prueba
-                or args.ruta_de_evento
+                or args.ruta_de_evento or args.flash_de_prueba
                 or args.mensaje_de_prueba is not None) \
                 and mapa is mapas[args.inicial]:
             # La página inventada, sólo en el mapa donde arranca la ROM. No sale
@@ -1840,7 +1856,8 @@ def main():
                 "switch_a": 0, "switch_b": 0, "actor": 0,
                 "codigo": eventos.pagina_de_prueba(
                     espera, tinte, args.ruta_de_prueba or (), prueba,
-                    ruta_de_evento(args.ruta_de_evento))}]
+                    ruta_de_evento(args.ruta_de_evento),
+                    args.flash_de_prueba or ())}]
         codigo = bytearray()
         for pagina in paginas:
             pagina["offset"] = len(codigo)
@@ -1857,6 +1874,32 @@ def main():
         blancos = {c[i + 1] for p in paginas if p["codigo"]
                    for i, c in recorrer_codigo(p["codigo"])
                    if c[i] == eventos.OP_RUTA and c[i + 1]}
+        # Y que nadie destelle a alguien que comparte gráfico con otro. En la
+        # consola el destello se hace sobre la paleta del personaje, así que dos
+        # que compartan gráfico destellarían juntos. `eventos.py` ya rechaza el
+        # caso de dos eventos; acá se cubre el que allá no se puede ver, que es
+        # el del héroe: qué gráfico tiene depende del grupo, y eso lo sabe el
+        # conversor y no el compilador.
+        graficos = collections.Counter(
+            (npc["charset"], npc["index"])
+            for npc in rm2k.collect_npcs(mapa["game_map"]))
+        for actor in args.lideres:
+            a = renderer.database.actors[actor]
+            graficos[(a.charset, a.charset_index)] += 1
+        for pagina in paginas:
+            for i, c in recorrer_codigo(pagina["codigo"] or b""):
+                if c[i] != eventos.OP_FLASH or c[i + 1] != 0:
+                    continue
+                for actor in args.lideres:
+                    a = renderer.database.actors[actor]
+                    if graficos[(a.charset, a.charset_index)] > 1:
+                        raise SystemExit(
+                            "mapa %d: una página hace destellar al héroe, y el "
+                            "actor %d se dibuja con %s[%d], que también usa un "
+                            "NPC del mapa. En la consola comparten paleta y "
+                            "destellarían los dos"
+                            % (mapa["id"], actor, a.charset, a.charset_index))
+
         if len(blancos) > RUTA_EV_MAX:
             raise SystemExit(
                 "mapa %d: sus páginas mandan a caminar %d eventos distintos y "

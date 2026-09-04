@@ -57,6 +57,7 @@ MAX_ANIDADO = 4                  # por si dos eventos comunes se llaman entre s�
 # Los grupos. Un comando no se puede medir suelto cuando RM2k lo emite siempre
 # acompañado: los tres de acá abajo son un solo trabajo cada uno.
 MOVE_EVENT, PROCEED = 11330, 11340
+TINT_SCREEN, FLASH_SPRITE = 11030, 11320
 MOVE_HEROE, MOVE_ESTE = 10001, 10005
 
 # Las órdenes de ruta que la ROM ya sabe caminar. Salen de `eventos.py` y no de
