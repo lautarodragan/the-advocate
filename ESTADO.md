@@ -344,7 +344,40 @@ scrollee, y las salidas que se vieron son todas caras de distinta manera:
 * **La ventana por OBJ**, que no se scrollea con el fondo. El marco entraría en
   pocos objetos grandes; el texto no, por el límite de 32 objetos por línea.
 
-Ninguna está elegida. Es lo primero a decidir cuando se retome. Nada de eso está
+**Elegida el 2026-09-04: ninguna de las cuatro, sino seguir el scroll.** En vez
+de pelear con que BG2 se mueva, se escriben las celdas de la ventana en las
+posiciones que en *ese* cuadro corresponden a la franja de abajo. Si la cámara se
+movió, se estampan en otro lado y se ven igual de quietas. No usa HDMA ni un byte
+más de VRAM, son escrituras de VRAM y nada más —el camino que los tres cores
+emulan igual— y no inventa un mecanismo: el scroll ya escribe celdas del tilemap
+cuando la cámara se mueve.
+
+Y hay una corrección importante al plan, que salió de medir y no de pensar. Yo
+había dicho "320 celdas por cuadro, 640 bytes, un 10% del vblank". **Está mal por
+un factor de cuatro**: el tilemap es de 64x32, o sea dos pantallas, y hay dos
+capas, así que una franja de diez filas son **2560 bytes**. Y eso no entra:
+llamando a `redibujar_franja` de más a propósito sobre `snes-heroe 7`, cada
+cuadro da 532 pixeles de basura, cada 8 cuadros 262, cada 64 cuadros 0 y una sola
+vez 0. Que la basura escale con la frecuencia y no con el contenido es lo que
+dice que el problema es el vblank y no las direcciones.
+
+Así que la ventana **no se estampa entera cada cuadro**. Se estampa una vez al
+abrir el mensaje, y después alcanza con **enganchar el estampado en
+`stream_map`**: la cámara se mueve dos pixeles por cuadro y cruza un borde de
+celda cada cuatro, así que cuando entra una fila o una columna que pisa la
+franja, se le sobreescriben esas celdas con las de la ventana antes de subirla.
+Es el mismo puñado de celdas que el scroll ya sube, o sea gratis.
+
+**Hecho, y es lo primero del assembly: `redibujar_franja`.** Redibuja las diez
+filas que tapa la ventana, en las dos capas, desde los datos del mapa; es lo que
+hay que correr al cerrar un mensaje. No arma nada nuevo: usa `build_row` y
+`push_strips`, los mismos del scroll. Verificada llamándola una vez justo
+después de `fill_window` —que acaba de escribir esas mismas celdas— y corriendo
+`snes-heroe 7` y `snes-heroe 6`, los diez en cero. Y la tanda entera sigue en 25
+casos verdes.
+
+Hoy no la llama nadie, porque la ventana todavía no existe. Es el único pedazo
+de código del repo que no ejercita ninguna prueba, y se sabe. Nada de eso está
 escrito todavía, y por lo tanto nada de esto lo corre ninguna prueba: `fuente.py`
 y `ventana.py` están verificados sólo a ojo, mirando el PNG que saca
 `just snes-mensaje`.

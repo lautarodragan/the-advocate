@@ -143,6 +143,19 @@ WINDOW_ROWS = 32
 VIEW_COLS = 33
 VIEW_ROWS = 29
 
+; La ventana de mensaje: 256x80 pegada abajo de una pantalla de 224 líneas, o
+; sea las diez filas de celdas que van de la 18 a la 27. Los mismos números
+; están en `tools/ventana.py`, que es de donde salen.
+VENTANA_FILA  = 18
+VENTANA_FILAS = 10
+
+; La ventana de mensaje: 256x80 pegada abajo de una pantalla de 224 líneas, o
+; sea las diez filas de celdas que van de la 18 a la 27. Los mismos números
+; están en `tools/ventana.py`, que es de donde salen: 80 de alto y pegada al
+; pie, como la pone RM2k.
+VENTANA_FILA  = 18
+VENTANA_FILAS = 10
+
 .include "musicdata.inc"
 .include "mapdata.inc"
 
@@ -169,6 +182,8 @@ row_addr:   .res 2      ; ídem la fila; $0000 en las dos si no hay nada
 tira_ofs:   .res 2      ; desplazamiento dentro del bloque, mientras se arma
 tira_paso_col: .res 2   ; lo que mide una fila de bloques, en bytes
 tira_resta: .res 2      ; cuántas celdas faltan por armar
+franja_fila: .res 2     ; qué fila de la franja de la ventana se está armando
+franja_fila: .res 2     ; qué fila de la franja de la ventana se está armando
 hero_ptr:   .res 3      ; y en qué celda de la grilla, como puntero: se mueve
                         ; con él en vez de recalcularse
 step_left:  .res 1      ; pixeles que faltan del paso en curso, 0 si no hay
@@ -2587,6 +2602,107 @@ columna:
     ply
     dey
     bne columna
+    sep #$20
+.a8
+    rts
+.endproc
+
+; Redibuja las diez filas de tilemap que tapa la ventana de mensaje, en las dos
+; capas, desde los datos del mapa. Es lo que hay que correr al cerrar un mensaje:
+; mientras estuvo abierto esas celdas llevaban la ventana y lo que había debajo
+; se perdió.
+;
+; No arma nada nuevo: usa `build_row` y `push_strips`, que son los mismos que
+; usa el scroll cuando entra una fila por el borde. La única diferencia es que
+; acá se piden diez filas de una y no la que acaba de entrar.
+;
+; Se apoya en que el ancla de bloques —`win_block` y `celdas`— ya esté puesta
+; para la cámara de este cuadro, que es lo que dejan `fill_window` y
+; `stream_map`. Las diez filas caen adentro de la ventana visible, así que
+; `build_row` las alcanza desde el ancla sin moverla.
+.proc redibujar_franja
+.a8
+.i16
+    rep #$20
+.a16
+    stz col_addr                ; `push_strips` mira las dos: si quedó una
+    stz row_addr                ; columna vieja acá, la subiría de nuevo
+    lda win_row
+    clc
+    adc #VENTANA_FILA
+    sta franja_fila
+    ldy #VENTANA_FILAS
+franja:
+    phy
+    ldx franja_fila
+    jsr build_row
+    sep #$20
+.a8
+    jsr push_strips
+    rep #$20
+.a16
+    inc franja_fila
+    ply
+    dey
+    bne franja
+    sep #$20
+.a8
+    rts
+.endproc
+
+; Redibuja las diez filas de tilemap que tapa la ventana de mensaje, en las dos
+; capas, desde los datos del mapa. Es lo que hay que correr al cerrar un
+; mensaje: mientras estuvo abierto esas celdas llevaban la ventana.
+;
+; No arma nada nuevo: usa `build_row` y `push_strips`, los mismos que usa el
+; scroll cuando entra una fila por el borde. La diferencia es que acá se piden
+; diez filas de una y no la que acaba de entrar.
+;
+; **Es cara: 2560 bytes de DMA.** Diez filas por cuatro transferencias de 64
+; bytes —las dos capas, y cada una en las dos pantallas del tilemap de 64x32—.
+; Eso no entra en un vblank junto con OAM y el scroll, y está medido llamándola
+; de más a propósito, sobre `snes-heroe 7`:
+;
+;     cada cuadro        532 pixeles de basura
+;     cada 8 cuadros     262
+;     cada 64 cuadros      0
+;     una sola vez         0   (y también en el mapa 6, de 100x100)
+;
+; Que la basura escale con la frecuencia y no con el contenido es lo que dice
+; que el problema es el presupuesto del vblank y no las direcciones: llamándola
+; una vez escribe exactamente lo mismo que `fill_window` acababa de escribir.
+; Así que va con la pantalla apagada, como ya hacen `cruzar_puerta` y
+; `tinte_de_evento`, o repartida en varios cuadros.
+;
+; Se apoya en que el ancla de bloques —`win_block` y `celdas`— ya esté puesta
+; para la cámara de este cuadro, que es lo que dejan `fill_window` y
+; `stream_map`. Las diez filas caen adentro de la ventana visible, así que
+; `build_row` las alcanza desde el ancla sin moverla.
+.proc redibujar_franja
+.a8
+.i16
+    rep #$20
+.a16
+    stz col_addr                ; `push_strips` mira las dos: si quedara una
+    stz row_addr                ; columna a medio subir, la subiría de nuevo
+    lda win_row
+    clc
+    adc #VENTANA_FILA
+    sta franja_fila
+    ldy #VENTANA_FILAS
+franja:
+    phy
+    ldx franja_fila
+    jsr build_row
+    sep #$20
+.a8
+    jsr push_strips
+    rep #$20
+.a16
+    inc franja_fila
+    ply
+    dey
+    bne franja
     sep #$20
 .a8
     rts
