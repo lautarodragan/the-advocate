@@ -543,7 +543,7 @@ grupo_listo:
     ; siete décimas de segundo, y así el mapa aparece de entrada en vez de
     ; hacerte mirar una pantalla negra hasta que termine.
     jsr spc_upload
-    jsr music_start
+    jsr music_boot
 
 loop:
     jsr wait_vblank
@@ -1463,6 +1463,9 @@ otro:
 :   cmp #OP_RUTAS
     bne :+
     jmp op_rutas
+:   cmp #OP_BGM
+    bne :+
+    jmp op_bgm
 :   cmp #OP_TIMER
     bne :+
     jmp op_timer
@@ -1651,6 +1654,20 @@ timer_fin:
     tay                         ; lo consumió el `iny` de la operación
     sep #$20
 .a8
+    jmp otro
+
+; `PlayBGM`. El operando es el índice del tema en `Temas`, y el cartucho lleva
+; uno solo: si coincide con `TEMA_INDICE` suena, y si no no pasa nada, que es lo
+; que pasaba antes con todos. Ver `tema_de_la_rom` en el conversor.
+op_bgm:
+    lda [cod_ptr], y
+    iny
+    cmp #TEMA_INDICE
+    bne otro_tema
+    phy
+    jsr music_start
+    ply
+otro_tema:
     jmp otro
 
 op_rutas:
@@ -8198,6 +8215,10 @@ salto_dx:  .res 1
 salto_dy:  .res 1
 ; Y el valor absoluto con el que `direccion_del_salto` compara los dos ejes.
 mirar_abs: .res 2
+
+; 1 mientras no haya ningún tema sonando. Va en la BSS y no en la página directa
+; —donde vive el resto del estado de la música— porque ahí ya no entra.
+music_apagada: .res 1
 ; El desplazamiento del salto con el signo ya extendido a dieciséis bits, que
 ; es como se suma a la celda.
 salto_dx16: .res 2
@@ -8259,6 +8280,10 @@ OP_END  = $FF
 .proc music_tick
 .a8
 .i16
+    lda music_apagada
+    beq suena
+    rts
+suena:
     jsr music_frame
     lda es_pal
     beq listo
@@ -8272,6 +8297,9 @@ listo:
     rts
 .endproc
 
+; Arranca el tema desde el principio. El comienzo del stream trae la puesta a
+; punto del DSP —los volúmenes, el directorio de muestras— así que volver a
+; llamar acá es exactamente lo que hace un `PlayBGM`: empezar de cero.
 .proc music_start
 .a8
 .i16
@@ -8280,7 +8308,24 @@ listo:
     lda #^tema_stream
     sta music + 2
     stz wait_frames
+    stz music_apagada
     rts
+.endproc
+
+; La música al arrancar la ROM. Si el tema que se llevó el cartucho es el del
+; mapa, suena solo; si es el que pide un `PlayBGM`, no suena hasta que el evento
+; lo prenda, que es lo que hace RM2k. Callado quiere decir que al DSP no se le
+; escribe nada, así que no hay nada que silenciar.
+.proc music_boot
+.a8
+.i16
+    lda #TEMA_AL_ARRANCAR
+    bne suena
+    lda #1
+    sta music_apagada
+    rts
+suena:
+    jmp music_start
 .endproc
 
 ; Un cuadro de música. El stream se recorre hasta toparse con una espera, y al

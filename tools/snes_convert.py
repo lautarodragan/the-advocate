@@ -1332,6 +1332,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "OP_RUTAS    = $%02X\n"
         "OP_FLASH    = $%02X\n"
         "OP_TIMER    = $%02X\n"
+        "OP_BGM      = $%02X\n"
         "; Las tres operaciones del cronómetro.\n"
         "TIMER_PONER    = %d\n"
         "TIMER_ARRANCAR = %d\n"
@@ -1418,7 +1419,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            eventos.OP_FIN, eventos.OP_SWITCH, eventos.OP_TELEPORT,
            eventos.OP_ESPERAR, eventos.OP_TINTE, eventos.OP_GRUPO,
            eventos.OP_RUTA, eventos.OP_MENSAJE, eventos.OP_RUTAS,
-           eventos.OP_FLASH, eventos.OP_TIMER,
+           eventos.OP_FLASH, eventos.OP_TIMER, eventos.OP_BGM,
            eventos.TIMER_PONER, eventos.TIMER_ARRANCAR,
            TIMER_X, TIMER_Y, TIMER_GLIFO_W, TIMER_GLIFOS - 1,
            eventos.CUADROS_POR_SEGUNDO, eventos.TIMER_CUADROS_DE_MAS,
@@ -1648,7 +1649,7 @@ LARGO_DE_OPCODE = {
     eventos.OP_FIN: 1, eventos.OP_SWITCH: 4, eventos.OP_TELEPORT: 6,
     eventos.OP_ESPERAR: 3, eventos.OP_TINTE: 5, eventos.OP_GRUPO: 3,
     eventos.OP_MENSAJE: 3, eventos.OP_RUTAS: 1, eventos.OP_FLASH: 7,
-    eventos.OP_TIMER: 5, eventos.OP_RUTA: None,
+    eventos.OP_TIMER: 5, eventos.OP_BGM: 2, eventos.OP_RUTA: None,
 }
 
 
@@ -1941,6 +1942,10 @@ def main():
     # texto que no sale del juego, y el único cuyo desplazamiento alguien podría
     # querer saber de memoria.
     mensajes = eventos.Mensajes() if args.con_ventana else None
+    # Los temas que los PlayBGM de las páginas piden, numerados en el orden en
+    # que aparecen. La ROM lleva uno solo —ver `Temas`— y lo elige más abajo,
+    # cuando ya están todos compilados y se sabe cuáles se piden.
+    temas = eventos.Temas()
     prueba = (mensajes.agregar(args.mensaje_de_prueba)
               if args.mensaje_de_prueba is not None else None)
 
@@ -1956,7 +1961,7 @@ def main():
         # Los eventos automáticos: sus páginas con las condiciones, y el código
         # de las que se pueden ejecutar, todo seguido en un solo bloque.
         paginas = eventos.paginas_del_mapa(mapa["game_map"], indices.get,
-                                           mensajes)
+                                           mensajes, temas)
         if (args.pagina_de_prueba or args.ruta_de_prueba
                 or args.ruta_de_evento or args.flash_de_prueba or args.switch
                 or args.timer_de_prueba
@@ -2086,14 +2091,49 @@ def main():
     # cartucho, y no está: ver 'Lo que falta' en rom/LEEME.md.
     musica = os.path.join(os.path.dirname(os.path.abspath(args.output)),
                           "musicdata.inc")
-    nombre, driver, muestras, stream, _segundos, _resumen = snes_music.build(
-        mapas[args.inicial]["id"], args.game_dir)
-    snes_music.emit(musica, nombre, driver, muestras, stream)
+    elegido, indice, al_arrancar = tema_de_la_rom(
+        mapas[args.inicial]["id"], temas, args.game_dir)
+    nombre, driver, muestras, stream, segundos, _resumen = \
+        snes_music.build_nombre(elegido, args.game_dir)
+    snes_music.emit(musica, nombre, driver, muestras, stream,
+                    indice if nombre else 0xFF, al_arrancar)
     print("música -> %s: %s" % (musica, nombre or "ninguna, sale muda"))
+    if nombre:
+        print("  %.0f s, %d B de muestras y %d B de stream, %s"
+              % (segundos, len(muestras), len(stream),
+                 "suena desde el arranque" if al_arrancar
+                 else "lo prende un PlayBGM (índice %d)" % indice))
+    if len(temas.nombres) > 1:
+        print("  los otros %d que piden los PlayBGM quedan mudos: %s"
+              % (len(temas.nombres) - 1,
+                 ", ".join(n for n in temas.nombres if n != elegido)))
 
     if args.reference:
         mapas[args.inicial]["base"].save(args.reference)
         print("referencia -> %s" % args.reference)
+
+
+def tema_de_la_rom(map_id, temas, game_dir):
+    """Cuál de los temas se lleva el cartucho, con qué índice, y si suena desde
+    el arranque.
+
+    Entra uno solo, y no por espacio de cartucho sino de ARAM: el banco de
+    muestras vive en los 64 KB del SPC700 y se sube una sola vez, con el
+    protocolo del IPL, que después de saltar al driver ya no está. Llevar dos
+    pide o que entren los dos bancos juntos —el de `escape_newyork` son 32 KB—
+    o un driver que sepa recibir datos, y ninguna de las dos cosas está.
+
+    Gana el tema del mapa donde la ROM arranca, porque es el que suena sin que
+    pase nada. Si ese mapa no tiene, gana el primero que pida un `PlayBGM` de
+    los que se compilaron, y entonces no suena hasta que el evento lo prenda.
+    """
+    propio = snes_music.tema_del_mapa(map_id, game_dir)
+    if propio:
+        return propio, (temas.indice(propio) if propio in temas.nombres
+                        else 0xFF), True
+    if temas.nombres:
+        return temas.nombres[0], 0, False
+    return "", 0xFF, True
 
 
 def inicio_del_mapa(renderer, map_id, passable, width, height, ocupadas=()):

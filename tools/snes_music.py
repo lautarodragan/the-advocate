@@ -327,7 +327,24 @@ def build(map_id, game_dir=GAME_DIR):
     """
     tree = lcf.TreeMap(os.path.join(game_dir, "RPG_RT.lmt"))
     music = tree.map_music(map_id)
-    name = music["name"] if music else ""
+    return build_nombre(music["name"] if music else "", game_dir)
+
+
+def tema_del_mapa(map_id, game_dir=GAME_DIR):
+    """El nombre del tema que le toca a un mapa por el árbol, o "" si no tiene."""
+    tree = lcf.TreeMap(os.path.join(game_dir, "RPG_RT.lmt"))
+    music = tree.map_music(map_id)
+    return music["name"] if music else ""
+
+
+def build_nombre(name, game_dir=GAME_DIR):
+    """Lo mismo, pero pidiendo el tema por nombre.
+
+    Existe porque la música ya no sale sólo del mapa: un `PlayBGM` la pide por
+    nombre, y el conversor tiene que poder armar ése. Un nombre que no esté, o
+    que no sea un MIDI, devuelve el tema vacío y la ROM sale muda, igual que un
+    mapa sin música.
+    """
     path = (find_resource([game_dir], "Music", name, (".mid", ".wav"))
             if name else None)
 
@@ -360,7 +377,7 @@ def build(map_id, game_dir=GAME_DIR):
     return name, driver, build_samples(bank), stream, length / TICKS_PER_SECOND, summary
 
 
-def emit(path, name, driver, samples, stream):
+def emit(path, name, driver, samples, stream, indice=0xFF, al_arrancar=1):
     """El .inc que arma el ensamblador junto con main.s."""
     def block(label, data):
         out = [".bloque %d" % len(data), "%s:" % label]
@@ -372,12 +389,19 @@ def emit(path, name, driver, samples, stream):
         handle.write(
             "; Generado por tools/snes_music.py. No editar.\n"
             "; Tema: %s\n\n"
+            "; Cuál de los temas de `Temas` es éste, y si suena desde el\n"
+            "; arranque. $FF es 'la ROM no lleva ninguno'; y no suena desde el\n"
+            "; arranque cuando el tema no es el del mapa sino el que pide un\n"
+            "; PlayBGM, porque ahí lo prende el evento.\n"
+            "TEMA_INDICE      = $%02X\n"
+            "TEMA_AL_ARRANCAR = %d\n"
             "SPC_DRIVER_ADDR  = $%04X\n"
             "SPC_DRIVER_SIZE  = %d\n"
             "SPC_SAMPLES_ADDR = $%04X\n"
             "SPC_SAMPLES_SIZE = %d\n\n"
             '.segment "RODATA"\n%s\n%s\n%s\n'
-            % (name or "sin música", DRIVER_ADDR, len(driver),
+            % (name or "sin música", indice, 1 if al_arrancar else 0,
+               DRIVER_ADDR, len(driver),
                SAMPLES_ADDR, len(samples),
                block("spc_driver", driver),
                block("spc_samples", samples),

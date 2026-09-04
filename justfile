@@ -721,6 +721,12 @@ snes-hablar mapa="7" celda="3 7" switch="24" apretar="25" cuadros="20 60" arranq
         --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
   done
 
+# El arranque son 70 cuadros y no 21 desde que la ROM lleva música: el mapa 4
+# no tiene tema propio, así que el cartucho se lleva el que pide el `PlayBGM` de
+# la cinemática —`escape_newyork`, 32 KB de muestras— y subirlas al SPC700 por
+# el protocolo del IPL, byte por byte y con acuse, cuesta unos 49 cuadros antes
+# de que el lazo principal empiece. Es tiempo que RM2k no gasta.
+#
 # La cinemática de apertura, entera.
 #
 # Es la puerta a los primeros diez minutos del juego: el mapa 4 prende dos
@@ -750,7 +756,7 @@ snes-hablar mapa="7" celda="3 7" switch="24" apretar="25" cuadros="20 60" arranq
 #
 # Afuera de esas ventanas dan cero, incluido el cuadro 900, que es la cinemática
 # terminada: el héroe arriba de todo, mirando arriba, con la pantalla teñida.
-snes-cinematica origen="4" destino="1" cuadros="100 400 600 900" arranque="21" nombre="cinematica":
+snes-cinematica origen="4" destino="1" cuadros="100 400 600 900" arranque="70" nombre="cinematica":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
@@ -1410,10 +1416,14 @@ snes-music mapa="67":
 # Corre la ROM sin pantalla, graba el audio y compara lo que suena contra el
 # MIDI. Sirve para verificar sin escuchar: para cada nota que debería estar
 # sonando se mide su energía y la de un señuelo un cuarto de tono más arriba.
-snes-check mapa="67" segundos="60":
+snes-check mapa="67" segundos="60" tema="":
+  #!/usr/bin/env bash
+  set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
+  cual=""
+  if [ -n "{{tema}}" ]; then cual="--tema {{tema}}"; fi
   rom/record.sh {{snes_rom}} {{snes_pngs}}/tema.wav {{segundos}}
-  python3 tools/snes_check.py {{snes_pngs}}/tema.wav --map-id {{mapa}}
+  python3 tools/snes_check.py {{snes_pngs}}/tema.wav --map-id {{mapa}} $cual
 
 # El mismo MIDI tocado por FluidSynth en la PC, con el mismo SoundFont del que
 # salen nuestras muestras, y medido con la misma vara. Es el techo: dice cuánto

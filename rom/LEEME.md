@@ -1317,22 +1317,28 @@ comparación.
   cinemáticas con variables y condiciones que todavía no modelamos. El del mapa
   donde el juego arranca ya no: es automático, entra con los cinco comandos que
   la ROM entiende, y `Blank (Leave START here)` ahora se sale solo.
-* **Cambiar la música desde un evento (`PlayBGM`).** Decidido dejarlo afuera el
-  2026-09-03, y aceptado igual: una página que lo use compila, y la ROM sigue
-  con el tema que venía sonando. No es una equivalencia sino una deuda, y está
-  en `ACEPTADOS_SIN_HACER` de `tools/eventos.py` con ese nombre a propósito.
+* **`PlayBGM` con más de un tema.** Desde el 2026-09-04 el comando **se hace**,
+  pero el cartucho lleva **un solo tema**. El límite no es de cartucho sino de
+  ARAM: el banco de muestras vive en los 64 KB del SPC700 y se sube una sola vez
+  con el protocolo del IPL, que después de saltar al driver ya no está. Llevar
+  dos pide o que entren los dos bancos juntos —el de `escape_newyork` son
+  32 KB— o un driver que sepa recibir datos, y ninguna de las dos cosas está.
 
-  Cuesta caro porque la ROM sube **un solo banco de muestras** al SPC700 al
-  arrancar: cambiar de tema en caliente pide varios bancos en el cartucho y
-  volver a subir en mitad del juego, con la pantalla andando. Es una feature de
-  audio, no un comando más.
+  Cuál se lleva lo decide `tema_de_la_rom` en el conversor: gana el del mapa
+  donde la ROM arranca, y si ese mapa no tiene, el primero que pida un `PlayBGM`
+  de los que se compilaron. El bytecode numera **todos** los temas que se piden,
+  no sólo el que entró, así que el día que entren dos no hay que compilar nada
+  distinto: la ROM mira `TEMA_INDICE` y con cualquier otro índice no hace nada,
+  que es exactamente lo que hacía antes con todos.
 
-  Lo que se pierde no se ve en la pantalla que se compara, que es el criterio
-  por el que se acepta. Pero sí se oye, y hay un segundo efecto que conviene
-  tener presente: `snes-check` compara el audio contra el MIDI **del mapa**, así
-  que en un mapa donde una página cambia el tema esa prueba estaría midiendo
-  contra el tema equivocado. Hoy no pasa —ninguna página que compile usa
-  `PlayBGM`— y el conversor avisa por pantalla en cuanto pase.
+  Hay un costo medido y visible: subir 32 KB de muestras byte por byte cuesta
+  **unos 49 cuadros** antes de que el lazo principal empiece, o sea 0,8 s de
+  pantalla negra que RM2k no gasta. Por eso `snes-cinematica` arranca en 70 y no
+  en 21.
+
+  Y un segundo efecto que conviene tener presente: `snes-check` compara el audio
+  contra el MIDI **del mapa**, así que donde el tema lo pone un evento hay que
+  nombrarlo: `just snes-check 1 45 escape_newyork`.
 
 * **La cinemática de apertura.** El mapa 4 prende el switch 20, que es la
   condición de la página que abre el mapa 1: el enganche ya funciona, y si esa

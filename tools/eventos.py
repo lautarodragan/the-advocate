@@ -293,10 +293,34 @@ WEATHER_EFFECTS = 11070
 PLAY_SOUND = 11550
 
 ACEPTADOS_SIN_HACER = {
-    PLAY_BGM,
     WEATHER_EFFECTS,
     PLAY_SOUND,
 }
+
+
+class Temas:
+    """Los temas que los `PlayBGM` del juego piden, numerados en el orden en
+    que aparecen.
+
+    Es el hermano de `Mensajes`: el bytecode lleva un índice y no un nombre, y
+    quien resuelve el índice es el conversor. La ROM **no lleva todos**: el
+    banco de muestras vive en los 64 KB de ARAM y se sube una sola vez al
+    arrancar, así que hoy entra uno. El que entró es `TEMA_INDICE`; los demás
+    índices existen igual en el bytecode y la ROM los ignora, que es lo mismo
+    que hacía antes con todos.
+
+    Numerarlos a todos y no sólo al que entra no es un detalle: así el bytecode
+    no depende de cuál se eligió, y el día que entren dos no hay que recompilar
+    nada distinto.
+    """
+
+    def __init__(self):
+        self.nombres = []
+
+    def indice(self, nombre):
+        if nombre not in self.nombres:
+            self.nombres.append(nombre)
+        return self.nombres.index(nombre)
 
 # --- los opcodes que emitimos -----------------------------------------------
 # Uno por comando, con los operandos ya resueltos: la ROM no vuelve a mirar el
@@ -324,6 +348,10 @@ OP_RUTAS    = 0x08      # sin operandos: la página no sigue hasta que no quede
                         # ninguna ruta forzada corriendo
 OP_FLASH    = 0x09      # blanco (byte), r, g, b, potencia (byte cada uno, de 0
                         # a 31) y cuántos cuadros dura (byte)
+OP_BGM      = 0x0B      # el índice del tema en `Temas` (byte). La ROM toca el
+                        # que le tocó llevar —`TEMA_INDICE`— y con cualquier
+                        # otro no hace nada, que es lo que hacía antes con
+                        # todos. Ver `Temas`.
 OP_TIMER    = 0x0A      # operación (byte), segundos (word), visible (byte).
                         # Los cinco bytes son fijos aunque cada operación use
                         # dos: así el intérprete lo saltea sin mirar cuál es,
@@ -611,7 +639,8 @@ def puede_dispararse(page):
     return True
 
 
-def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None):
+def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
+                    temas=None):
     """Los comandos de una página como bytes, o None si no se puede.
 
     `indice_de_mapa` traduce el id de mapa de RM2k al índice en la tabla de la
@@ -630,7 +659,7 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None):
     marca = mensajes.marca() if mensajes is not None else None
     try:
         codigo = b"".join(_compilar(cmd, indice_de_mapa, mensajes, extra,
-                                    eventos_mapa)
+                                    eventos_mapa, temas)
                           for cmd, extra in agrupar(page.commands)) \
             + bytes([OP_FIN])
         return codigo
@@ -641,11 +670,19 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None):
 
 
 def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
-              eventos_mapa=None):
+              eventos_mapa=None, temas=None):
     p = cmd.parameters
 
     if cmd.code == END or cmd.code in IGNORABLES:
         return b""
+
+    if cmd.code == PLAY_BGM:
+        # Sin registro de temas se acepta y no se hace, que es lo que este repo
+        # hizo con PlayBGM desde el principio. Con registro se emite el índice y
+        # la ROM toca el tema si le tocó llevarlo.
+        if temas is None or not cmd.string:
+            return b""
+        return bytes([OP_BGM, temas.indice(cmd.string) & 0xFF])
 
     if cmd.code in ACEPTADOS_SIN_HACER:
         return b""     # se acepta con la deuda declarada arriba
@@ -1235,6 +1272,8 @@ def blancos_de_ruta(paginas):
                 i += 7
             elif op == OP_TIMER:
                 i += 5
+            elif op == OP_BGM:
+                i += 2
             elif op == OP_SWITCH:
                 i += 4
             elif op == OP_TELEPORT:
@@ -1614,6 +1653,11 @@ def ejecutar(codigo, estado, desde=0):
                                              codigo[i + 4], codigo[i + 5],
                                              codigo[i + 6], 0)
             i += 7
+        elif op == OP_BGM:
+            # La referencia no modela el audio: la comparación es de pixeles. El
+            # opcode existe igual porque **ocupa dos bytes** en el bytecode, y
+            # los dos lados tienen que recorrer el mismo stream.
+            i += 2
         elif op == OP_TIMER:
             # `CommandTimerOperation`. No corta el cuadro: las tres operaciones
             # son asignaciones, y quien hace correr el cronómetro es
@@ -1784,7 +1828,7 @@ def deudas_de_la_pagina(page):
                    if cmd.code in ACEPTADOS_SIN_HACER})
 
 
-def paginas_del_mapa(game_map, indice_de_mapa, mensajes=None):
+def paginas_del_mapa(game_map, indice_de_mapa, mensajes=None, temas=None):
     """Las páginas que la ROM necesita para resolver los eventos del mapa.
 
     Se emiten *todas* las páginas de un evento que tenga alguna disparable, no
@@ -1812,7 +1856,7 @@ def paginas_del_mapa(game_map, indice_de_mapa, mensajes=None):
             codigo = None
             if page.trigger in TRIGGERS and puede_dispararse(page):
                 codigo = compilar_pagina(page, indice_de_mapa, mensajes,
-                                         del_mapa.para(event.id))
+                                         del_mapa.para(event.id), temas)
             grupo.append({
                 "evento": numero_evento,
                 "pagina": numero_pagina,

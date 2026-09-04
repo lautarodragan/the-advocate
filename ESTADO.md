@@ -1088,6 +1088,36 @@ Y de paso se borró una copia muerta de `cuadro_de_ruta` en `Estado`: había dos
 definiciones con el mismo nombre y ganaba la segunda, así que la primera —35
 líneas— no la ejecutaba nadie desde el refactor de las rutas.
 
+**Hecho el 2026-09-04: `PlayBGM`.** El comando ya no se acepta sin hacerlo: la
+ROM toca el tema. Lo pidió taro después de probar el arranque, y resultó mucho
+más barato de lo que decía la deuda vieja, porque el driver del SPC700 de este
+port es un esclavo de escrituras al DSP: **el stream vive en el cartucho y lo
+recorre el 65816**, no el SPC. O sea que cambiar de tema no pide volver a subir
+nada; lo único que vive en ARAM es el banco de muestras.
+
+Así que el límite real es otro y es de ARAM: el banco se sube una sola vez con
+el protocolo del IPL, que después de saltar al driver ya no está, y por eso el
+cartucho lleva **un tema**. Cuál, lo decide `tema_de_la_rom`: gana el del mapa
+donde la ROM arranca, y si ese mapa no tiene —el 4 no tiene—, el primero que
+pida un `PlayBGM` de los que se compilaron. El bytecode numera todos los que se
+piden y no sólo el que entró, así que el día que entren dos no hay que compilar
+nada distinto.
+
+Y cuando el tema no es el del mapa sino el que prende un evento, **no suena
+hasta que el evento lo prenda**, que es lo que hace RM2k. Antes la ROM arrancaba
+siempre tocando el tema del mapa inicial.
+
+Verificado sin escuchar, con `snes_check.py`, que compara la energía de cada
+nota esperada contra un señuelo un cuarto de tono más arriba: **53 de 56
+ventanas** a favor de la nota, o sea que la ROM está tocando `escape_newyork` de
+verdad. `snes-check` ahora acepta el tema por nombre, que hacía falta porque el
+mapa 1 no tiene tema propio.
+
+El costo está medido y se ve: subir 32 KB de muestras byte por byte cuesta
+**unos 49 cuadros** antes de que arranque el lazo, o sea 0,8 s de pantalla negra
+de más. Por eso `snes-cinematica` pasó de arrancar en el cuadro 21 al 70; con
+ese número los nueve cuadros comparados vuelven a dar cero.
+
 **Después: la cinemática de apertura.**
 El mapa 4 ya prende el switch 20, que es la condición de la página que abre el
 mapa 1, así que el enganche funciona. De los cuatro comandos que le faltaban ya

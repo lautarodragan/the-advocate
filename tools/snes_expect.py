@@ -106,6 +106,11 @@ class Mundo:
         self.cache = {}
         self.paginas_cache = {}
         self.mensajes = mensajes
+        # Los temas se numeran igual que en el conversor, en el orden en que los
+        # PlayBGM los piden. Acá no suena nada —la comparación es de pixeles—
+        # pero el opcode **ocupa dos bytes** en el bytecode, así que si un lado
+        # lo emitiera y el otro no, los dos recorrerían streams distintos.
+        self.temas = eventos.Temas()
         if mensajes is not None:
             # Con ventana los mapas se compilan **todos y en el orden de la
             # tabla**, acá y no cuando el héroe pise cada uno. El bloque de
@@ -121,7 +126,8 @@ class Mundo:
         """Las páginas de evento del mapa, compiladas como las compiló la ROM."""
         if map_id not in self.paginas_cache:
             paginas = eventos.paginas_del_mapa(self.mapa(map_id)[0],
-                                               self.indices.get, self.mensajes)
+                                               self.indices.get, self.mensajes,
+                                               self.temas)
             if self.prueba is not None and map_id == self.ids[0]:
                 # La página inventada va sólo en el mapa donde arranca la ROM,
                 # que es el mismo que el conversor le agrega la suya.

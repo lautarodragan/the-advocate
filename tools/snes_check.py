@@ -62,16 +62,21 @@ def read_wav(path):
     return rate, list(values[::channels])
 
 
-def expected_notes(map_id, game_dir):
+def expected_notes(map_id, game_dir, tema=None):
     """Qué notas suenan en cada cuadro, ya pasadas por el reparto de voces.
 
     Se le pregunta al mismo código que generó la ROM, no al MIDI crudo: las
     notas que se cayeron por falta de voces no tienen por qué estar en el audio,
     y buscarlas sería reprobar a la ROM por algo que decidimos nosotros.
+
+    `tema` nombra el tema directamente, para cuando no es el del mapa sino el
+    que prende un `PlayBGM`.
     """
-    tree = lcf.TreeMap(os.path.join(game_dir, "RPG_RT.lmt"))
-    music = tree.map_music(map_id)
-    path = find_resource([game_dir], "Music", music["name"], (".mid", ".wav"))
+    if not tema:
+        tree = lcf.TreeMap(os.path.join(game_dir, "RPG_RT.lmt"))
+        music = tree.map_music(map_id)
+        tema = music["name"] if music else ""
+    path = find_resource([game_dir], "Music", tema, (".mid", ".wav"))
 
     notes, tempos, division, programs = midi.read(path)
     length = musica.timeline(notes, tempos, division)
@@ -129,6 +134,9 @@ def main():
     parser.add_argument("--map-id", type=int, default=67)
     parser.add_argument("--game-dir", default=GAME_DIR)
     parser.add_argument("--windows", type=int, default=60)
+    parser.add_argument("--tema", default=None,
+                        help="el tema por nombre, para cuando no es el del "
+                             "mapa sino el que prende un PlayBGM")
     args = parser.parse_args()
 
     rate, samples = read_wav(args.wav)
@@ -141,7 +149,7 @@ def main():
     if peak >= 32700:
         print("SATURA: la suma de las voces se pasa de escala.")
 
-    sounding, length = expected_notes(args.map_id, args.game_dir)
+    sounding, length = expected_notes(args.map_id, args.game_dir, args.tema)
 
     # La ROM tarda en arrancar, y bastante: sube el driver y todas las muestras
     # al SPC700 por el protocolo de la ROM interna, que va byte por byte con
