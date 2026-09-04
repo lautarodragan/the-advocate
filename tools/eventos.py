@@ -159,9 +159,31 @@ IGNORABLES = {
 # historia; con esto arranca, sin lluvia.
 WEATHER_EFFECTS = 11070
 
+# PlaySound toca un efecto: una puerta, un golpe, el Insta-Shave de Talan. Se
+# acepta sin tocarlo, y es la deuda más barata de todas las que hay acá: **no se
+# ve**. La pantalla que se compara es exactamente la misma con y sin sonido, y
+# el audio que sí se compara —`snes-check`, contra el MIDI del mapa— tampoco
+# cambia, porque el tema de fondo sigue sonando igual.
+#
+# Lo que costaría hacerlo: la ROM sube **un solo banco de muestras** al SPC700 al
+# arrancar, y son las del tema del mapa. Un efecto pide muestras más en el
+# cartucho y subirlas en caliente, que es la misma feature de audio que bloquea
+# a PlayBGM. Este juego usa 116 efectos distintos.
+#
+# Cuánto destraba, medido y no supuesto: **+10 páginas de tecla de acción y +6
+# automáticas**. Es mucho menos de lo que parece: `PlaySound` es el comando que
+# corta *primero* en 349 páginas, pero casi todas están cortadas además por otra
+# cosa. Es exactamente la trampa que la tabla de orden de `rom/LEEME.md` ya tiene
+# anotada, y vale la pena que quede escrita también acá.
+#
+# Lo que sí destraba es concreto: el Insta-Shave del pad de Talan toca cuatro
+# efectos antes de su mensaje, así que sin esto esa rama no corre.
+PLAY_SOUND = 11550
+
 ACEPTADOS_SIN_HACER = {
     PLAY_BGM,
     WEATHER_EFFECTS,
+    PLAY_SOUND,
 }
 
 # --- los opcodes que emitimos -----------------------------------------------
