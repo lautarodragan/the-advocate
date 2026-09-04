@@ -102,6 +102,10 @@ VENTANA_TILE_BASE = 256
 # pantalla, los mismos números que `tools/ventana.py`.
 VENTANA_COLS_INC, VENTANA_FILAS_INC = 32, 10
 
+# El glifo, que es lo que la ROM compone. Los mismos números que
+# `tools/fuente.py`, que se genera desde easyrpg-player.
+FUENTE_ANCHO, FUENTE_ALTO = 6, 12
+
 # Y las de los objetos, ya corridas a su lugar en el byte vhoopppN: la
 # prioridad son los bits 5 y 4. Estos dos valores son los únicos del
 # programa: la ROM recibe el del héroe en HERO_PRIORITY y el de cada NPC
@@ -683,50 +687,183 @@ def vram_layout(tiles, sprites=0, con_ventana=False):
         "tilemap a la ventana" % (tiles, sprites))
 
 
-def convert_ventana(sys_img, lineas=(), font_id=None):
-    """La ventana de mensaje como tiles, tilemap y paleta.
+# La ventana de mensaje, partida en dos: lo que la ROM lleva hecho y lo que
+# compone en caliente.
+#
+# **Por qué se compone en caliente.** Una página de mensaje ya compuesta son
+# unos 240 tiles de 4bpp, o sea 7,5 KB. El juego tiene 18.808 líneas de texto:
+# emitir una ventana por mensaje no entra ni cerca en un cartucho de 256 KB. La
+# salida es la de FF6 —la fuente en la ROM y el texto armado desde el 65816— y
+# es lo que hace `componer_mensaje` en main.s.
+#
+# El reparto del banco de 256 tiles que tiene la ventana:
+#
+#   0 .. 14       la ventana vacía, deduplicada: marco y fondo estirado
+#   15 .. 254     el área de texto, 30 columnas por 8 filas de celda
+#
+# Las 240 del área de texto **no se deduplican**: cada celda tiene su tile fijo,
+# porque la ROM las va a reescribir y no puede andar buscando repetidos. De ahí
+# sale el tope de 39 caracteres por línea: con 40 la sombra del último se pasa a
+# la columna 31 y harían falta 8 tiles más de los que hay. Truncar a 39 pierde
+# el 1,58% de los caracteres del juego contra el 1,09% de truncar a 40.
+VENTANA_TEXTO_FILA = 1           # la primera fila de celdas que lleva texto
+VENTANA_TEXTO_FILAS = 8
+VENTANA_TEXTO_COL = 1
+VENTANA_TEXTO_COLS = 30
+
+
+
+def _columnas():
+    """Cuántos caracteres entran en una línea. Vive en `ventana.py` con el
+    resto de la geometría, y el porqué del número está ahí."""
+    import ventana as ventana_mod
+    return ventana_mod.COLUMNAS
+
+
+def _quince(imagen):
+    """Los pixeles de una imagen RGBA como colores de 15 bits, sobre negro."""
+    from PIL import Image
+    llana = Image.alpha_composite(
+        Image.new("RGBA", imagen.size, (0, 0, 0, 255)), imagen).convert("RGB")
+    return [tuple(v >> 3 for v in p) for p in llana.get_flattened_data()]
+
+
+def convert_ventana(sys_img, font_id=None):
+    """La ventana de mensaje: tiles, paleta, celdas y lo que la fuente necesita.
 
     La imagen la arma `ventana.py`, que sigue las reglas de easyrpg-player y
     está verificada contra una captura del juego original: ver `snes-oraculo`.
-    Acá sólo se la corta en celdas de 8x8 y se la deduplica, que es lo que la
-    consola necesita.
+    Acá se la corta en celdas de 8x8 y se separa lo fijo de lo que la ROM
+    compone.
 
-    Devuelve (tiles, palabras de CGRAM, celdas). El índice 0 de la paleta queda
-    libre a propósito aunque la ventana sea opaca: es el color transparente de
+    La paleta lleva los colores de la ventana vacía **más** los del texto y la
+    sombra, aunque la ventana vacía no los use: son los que la ROM va a
+    escribir. El índice 0 queda libre a propósito, que es el transparente de
     BG2 y ningún tile de la ventana lo usa.
+
+    Devuelve un dict con:
+        tiles     los de la ventana vacía, deduplicados
+        cram      las 16 palabras de la paleta
+        celdas    el tilemap de 32x10, con los tiles de texto ya numerados
+        fondo     los 240 tiles del área de texto, sin texto, en orden
+        color     el índice de paleta de cada una de las 12 filas del glifo
+        sombra    el índice de la sombra
     """
-    from PIL import Image
+    import fuente as fuente_mod
     import ventana as ventana_mod
 
-    vista = ventana_mod.pagina(sys_img, lineas, font_id=font_id) if lineas \
-        else ventana_mod.ventana(sys_img)
-    llana = Image.alpha_composite(
-        Image.new("RGBA", vista.size, (0, 0, 0, 255)), vista).convert("RGB")
-    pixeles_15 = [tuple(v >> 3 for v in p) for p in llana.get_flattened_data()]
+    if font_id is None:
+        font_id = fuente_mod.MINCHO
+    vacia = ventana_mod.ventana(sys_img)
+    pixeles = _quince(vacia)
+    ancho, alto = vacia.width, vacia.height
 
-    colores = sorted(set(pixeles_15))
+    # Los colores del texto salen del bloque de 16x16 del System, y son los que
+    # `Font::Render` usa como máscara. Cada fila del glifo toma uno solo —está
+    # medido: el degradé es horizontal-uniforme— así que son doce colores, no
+    # un bloque, y la sombra es uno solo.
+    bloque = ventana_mod.color_de_texto(sys_img, 0)
+    sombra_img = ventana_mod.color_de_sombra(sys_img)
+    ox, oy = ventana_mod.TEXTO_OFS
+    color_fila = []
+    for py in range(fuente_mod.ALTO):
+        fila = {tuple(v >> 3 for v in bloque.getpixel((ox + px, oy + py))[:3])
+                for px in range(fuente_mod.ANCHO)}
+        if len(fila) != 1:
+            raise SystemExit(
+                "la fila %d del color de texto tiene %d colores distintos; la "
+                "ROM la compone con uno solo" % (py, len(fila)))
+        color_fila.append(fila.pop())
+    sombra = tuple(v >> 3 for v in sombra_img.getpixel((0, 0))[:3])
+
+    colores = sorted(set(pixeles) | set(color_fila) | {sombra})
     if len(colores) > COLORS_PER_PALETTE - 1:
         raise SystemExit("la ventana usa %d colores y entran %d"
                          % (len(colores), COLORS_PER_PALETTE - 1))
     indice = {c: i + 1 for i, c in enumerate(colores)}
 
-    ancho, alto = vista.width, vista.height
+    def celda_de(tx, ty):
+        return tuple(tuple(indice[pixeles[(ty * 8 + y) * ancho + tx * 8 + x]]
+                           for x in range(8)) for y in range(8))
+
+    # Las celdas que no llevan texto se deduplican como siempre; las del área de
+    # texto se numeran de corrido a partir de ahí.
     tiles, celdas = {}, []
     for ty in range(alto // 8):
         fila = []
         for tx in range(ancho // 8):
-            celda = tuple(tuple(indice[pixeles_15[(ty * 8 + y) * ancho + tx * 8 + x]]
-                                for x in range(8)) for y in range(8))
+            if (VENTANA_TEXTO_FILA <= ty < VENTANA_TEXTO_FILA + VENTANA_TEXTO_FILAS
+                    and VENTANA_TEXTO_COL <= tx < VENTANA_TEXTO_COL + VENTANA_TEXTO_COLS):
+                fila.append(None)       # se numera abajo, cuando se sepa cuántos
+                continue
+            celda = celda_de(tx, ty)
             if celda not in tiles:
                 tiles[celda] = len(tiles)
             fila.append(tiles[celda])
         celdas.append(fila)
 
+    base = len(tiles)
+    fondo = []
+    for n, ty in enumerate(range(VENTANA_TEXTO_FILA,
+                                VENTANA_TEXTO_FILA + VENTANA_TEXTO_FILAS)):
+        for m, tx in enumerate(range(VENTANA_TEXTO_COL,
+                                     VENTANA_TEXTO_COL + VENTANA_TEXTO_COLS)):
+            celdas[ty][tx] = base + n * VENTANA_TEXTO_COLS + m
+            fondo.append(celda_de(tx, ty))
+    if base + len(fondo) > 256:
+        raise SystemExit("la ventana necesita %d tiles y el banco tiene 256"
+                         % (base + len(fondo)))
+
     datos = b"".join(pack_tile(celda, planes=4)
                      for celda, _ in sorted(tiles.items(), key=lambda kv: kv[1]))
     cram = [0] + [cgram_word(c) for c in colores]
     cram += [0] * (COLORS_PER_PALETTE - len(cram))
-    return datos, cram, celdas
+    return {"tiles": datos, "cram": cram, "celdas": celdas,
+            "base": base,
+            "fondo": b"".join(pack_tile(c, planes=4) for c in fondo),
+            "color": [indice[c] for c in color_fila],
+            "sombra": indice[sombra]}
+
+
+def fuente_bytes(font_id):
+    """Los 95 glifos ASCII, doce filas de seis bits cada uno.
+
+    Es la misma tabla que `tools/fuente.py`, que se genera desde
+    easyrpg-player, pero **con los bits dados vuelta**: allá el bit 0 es el
+    pixel de la izquierda y en el formato de tiles de la consola el de la
+    izquierda es el bit 7. Darlos vuelta acá y no en la ROM sale gratis: es una
+    tabla de 1140 bytes que se genera una vez.
+    """
+    import fuente as fuente_mod
+    out = bytearray()
+    for code in range(32, 127):
+        for fila in fuente_mod.filas(chr(code), font_id):
+            invertida = 0
+            for px in range(FUENTE_ANCHO):
+                if fila >> px & 1:
+                    invertida |= 1 << (7 - px)
+            out.append(invertida)
+    return bytes(out)
+
+
+def mensaje_bytes(lineas):
+    """Un mensaje como lo lee la ROM: cuántas líneas, y cada una con su largo.
+
+    Los caracteres van como índice en la tabla de la fuente, o sea el ASCII
+    menos 32. Lo que no entra en MENSAJE_COLS se trunca acá, que es la decisión
+    de la fase 1 y el mismo tope que aplica la referencia.
+    """
+    import ventana as ventana_mod
+    out = bytearray([min(len(lineas), ventana_mod.LINEAS)])
+    for texto in list(lineas)[:ventana_mod.LINEAS]:
+        texto = texto[:ventana_mod.COLUMNAS]
+        out.append(len(texto))
+        for ch in texto:
+            if not 32 <= ord(ch) < 127:
+                raise SystemExit("el mensaje tiene un caracter que no está en "
+                                 "la fuente: %r" % ch)
+            out.append(ord(ch) - 32)
+    return bytes(out)
 
 
 def build_blocks(tilemap, above_tilemap, passable, width, height):
@@ -1155,7 +1292,22 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
 "VENTANA_CGADD  = %d\n"
         "VENTANA_TILES  = %d\n"
         "VENTANA_FILAS_ = %d\n"
-        "VENTANA_COLS   = %d\n\n"
+        "VENTANA_COLS   = %d\n"
+        "; El área de texto: dónde arranca en el banco de tiles de la\n"
+        "; ventana y qué celdas ocupa. Sus tiles no están deduplicados —la\n"
+        "; ROM los reescribe— y de ahí sale el tope de caracteres por línea.\n"
+        "VENTANA_TEXTO_BASE = %d\n"
+        "VENTANA_TEXTO_FILA = %d\n"
+        "VENTANA_TEXTO_FILAS = %d\n"
+        "VENTANA_TEXTO_COL  = %d\n"
+        "VENTANA_TEXTO_COLS = %d\n"
+        "MENSAJE_COLS   = %d\n"
+        "; La fuente: 95 glifos ASCII de seis bits por doce filas, y el\n"
+        "; índice de paleta de la sombra. El de cada fila del glifo está en\n"
+        "; fuente_color.\n"
+        "FUENTE_ALTO    = %d\n"
+        "FUENTE_ANCHO   = %d\n"
+        "FUENTE_SOMBRA  = %d\n\n"
         % (", ".join("%d %s" % (m["id"], m["nombre"]) for m in mapas),
            len(mapas), MAPA_STRIDE, inicial,
            VRAM_MAP, VRAM_ABOVE_MAP, MAP_LAYOUT, NPC_STRIDE, NPC_MAX,
@@ -1168,8 +1320,13 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            rm2k.LAYER_SAME,
            OBJ_PRIORITY_ABOVE if heroe_encima else OBJ_PRIORITY,
            (min(m["above"][3] for m in mapas) - 1) * COLORS_PER_PALETTE,
-           0 if ventana is None else len(ventana[0]) // 32,
-           VENTANA_FILAS_INC, VENTANA_COLS_INC))
+           0 if ventana is None else len(ventana["tiles"]) // 32,
+           VENTANA_FILAS_INC, VENTANA_COLS_INC,
+           0 if ventana is None else ventana["base"],
+           VENTANA_TEXTO_FILA, VENTANA_TEXTO_FILAS,
+           VENTANA_TEXTO_COL, VENTANA_TEXTO_COLS, _columnas(),
+           FUENTE_ALTO, FUENTE_ANCHO,
+           0 if ventana is None else ventana["sombra"]))
 
     with open(path, "w") as handle:
         handle.write(cabecera)
@@ -1190,13 +1347,16 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # apaga el código en tiempo de ejecución. Un byte de relleno alcanza.
         con_ventana = ventana is not None
         if ventana is None:
-            ventana = (b"\x00", [0] * COLORS_PER_PALETTE, [[0]])
+            ventana = {"tiles": b"\x00", "cram": [0] * COLORS_PER_PALETTE,
+                       "celdas": [[0]], "base": 0, "fondo": b"\x00",
+                       "color": [0] * FUENTE_ALTO, "sombra": 0,
+                       "fuente": b"\x00", "mensajes": b"\x00"}
         if True:
             # La ventana de mensaje es una sola para toda la ROM —el mismo
             # skin, el mismo tamaño— así que va como bloque global y no en la
             # tabla de mapas. Lo único que depende del mapa es en qué paleta
             # entra, y eso se resuelve arriba, al elegir el reparto de CGRAM.
-            tiles, cram, celdas = ventana
+            #
             # BG2 va en 4 bits, así que su celda **sí** usa los tres bits de
             # paleta —a diferencia del fondo, que va en 8 y los ignora—. La
             # ventana se lleva la que queda justo debajo de la capa de encima,
@@ -1210,12 +1370,12 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                     % sorted(primeras))
             paleta = min(primeras) - 1
             handle.write("\n; --- la ventana de mensaje ---\n")
-            handle.write(bloque("ventana_tiles", tiles) + "\n")
+            handle.write(bloque("ventana_tiles", ventana["tiles"]) + "\n")
             handle.write(bloque("ventana_cgram",
                                 b"".join(w.to_bytes(2, "little")
-                                         for w in cram)) + "\n")
+                                         for w in ventana["cram"])) + "\n")
             plano = bytearray()
-            for fila in celdas:
+            for fila in ventana["celdas"]:
                 for celda in fila:
                     # El índice de tile va corrido a la segunda mitad del banco
                     # de BG2, y con la prioridad de la capa de encima para que
@@ -1224,7 +1384,21 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                                     PRIORITY_ABOVE)
                               | (paleta << 10)).to_bytes(2, "little")
             handle.write(bloque("ventana_celdas", bytes(plano)) + "\n")
+            # El área de texto sin texto: los 240 tiles que la ROM copia al
+            # buffer antes de dibujar encima. Van en el orden en que la ROM los
+            # necesita, o sea el de las celdas.
+            handle.write(bloque("ventana_fondo", ventana["fondo"]) + "\n")
+            # La fuente y los colores. `fuente_color` es el índice de paleta de
+            # cada una de las doce filas del glifo: el degradé de RM2k sale de
+            # una máscara de 16x16, pero cada fila es de un solo color, así que
+            # doce bytes alcanzan y la ROM no tiene que muestrear nada.
+            handle.write(bloque("fuente_tabla", ventana["fuente"]) + "\n")
+            handle.write(bloque("mensajes", ventana["mensajes"]) + "\n")
         handle.write('\n.segment "TABLAS"\n')
+        # `fuente_color` va en el banco 0 y no con el resto de la ventana: la
+        # ROM la lee con `lda fuente_color, y`, y ese modo direcciona el banco
+        # de datos. Con ella en RODATA leía basura, y el texto salía en negro.
+        handle.write(bloque("fuente_color", bytes(ventana["color"])) + "\n")
         handle.write("grupo_inicial:\n    .byte %s\n\n"
                      % ",".join("%d" % a for a in grupo_inicial) or "0")
         handle.write(tabla_de_mapas(mapas))
@@ -1488,11 +1662,16 @@ def main():
     if args.mensaje_de_prueba is not None:
         import ventana as ventana_mod
         skin = ventana_mod.skin(args.game_dir, renderer.database.system_name)
-        ventana_datos = convert_ventana(skin, args.mensaje_de_prueba,
-                                        renderer.database.font_id)
-        print('  ventana de mensaje: %d tiles, %d colores'
-              % (len(ventana_datos[0]) // 32,
-                 sum(1 for w in ventana_datos[1] if w)))
+        font_id = renderer.database.font_id
+        ventana_datos = convert_ventana(skin, font_id)
+        ventana_datos["fuente"] = fuente_bytes(font_id)
+        ventana_datos["mensajes"] = mensaje_bytes(args.mensaje_de_prueba)
+        print("  ventana de mensaje: %d tiles fijos + %d de texto, %d colores; "
+              "fuente %d B, mensaje %d B"
+              % (len(ventana_datos["tiles"]) // 32,
+                 len(ventana_datos["fondo"]) // 32,
+                 sum(1 for w in ventana_datos["cram"] if w),
+                 len(ventana_datos["fuente"]), len(ventana_datos["mensajes"])))
     emit(args.output, mapas, args.inicial, args.heroe_encima, grupo,
          ventana_datos)
     print("%d mapa(s) -> %s, arranca en el %d (mapa %d)"

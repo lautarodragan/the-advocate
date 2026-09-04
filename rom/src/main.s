@@ -102,6 +102,16 @@ A1T2L    = $4322
 A1B2     = $4324
 HDMA_VENTANA = $06      ; los canales 1 y 2 prendidos a la vez
 
+; El puerto de la WRAM. Sirve para lo que el DMA normal no puede hacer solo:
+; copiar de la ROM a la RAM. El DMA va siempre del bus A al bus B, y la WRAM
+; tiene su ventana en el bus B, así que apuntando WMADD a dónde se quiere
+; escribir y mandando a $2180 se copia ROM -> RAM a la misma velocidad que
+; cualquier otro DMA.
+WMDATA   = $2180
+WMADDL   = $2181
+WMADDM   = $2182
+WMADDH   = $2183
+
 ; La VRAM se direcciona por palabras y son 64 K en total. Cómo se reparte entre
 ; los tiles del fondo, los de la capa de encima, los de los sprites y los dos
 ; tilemaps no está acá: lo decide el conversor mapa por mapa y llega en
@@ -190,6 +200,12 @@ VIEW_COLS_TILEMAP = 32
 
 .include "musicdata.inc"
 .include "mapdata.inc"
+
+; El área de texto son ocho filas de celda, o sea cuatro renglones de a dos, y
+; el buffer del compositor mide un renglón. Van acá abajo y no arriba porque
+; `VENTANA_TEXTO_COLS` lo emite el conversor.
+VENTANA_LINEAS_TEXTO = VENTANA_TEXTO_FILAS / 2
+TEXTO_BUF_BYTES = VENTANA_TEXTO_COLS * 2 * 32
 
 .segment "ZEROPAGE"
 source:     .res 3      ; puntero al bloque que estamos subiendo
@@ -292,7 +308,6 @@ ev_esperando: .res 2    ; cuántos cuadros faltan de la espera en curso
 ; sigue corriendo y quien camina es el personaje, así que esto no vive en el
 ; intérprete sino acá, y lo come `move_hero` en vez del pad.
 RUTA_MAX = 32
-ruta:        .res 32
 ruta_n:      .res 1
 ruta_i:      .res 1
 ; Un tinte pedido por un evento, para aplicarlo en el vblank siguiente.
@@ -325,6 +340,25 @@ tin_ptr:     .res 3     ; la paleta que se está tiñendo, en la ROM
 tin_count:   .res 2     ; cuántos colores tiene
 tin_cgadd:   .res 1     ; y en qué entrada de CGRAM va
 tin_fin:     .res 2     ; cuántos bytes mide, que es el tope del lazo
+
+; --- el compositor de texto ------------------------------------------------
+; Todo esto se toca en el lazo más interno del repo —doce filas por caracter,
+; cuatro escrituras de dieciséis bits por fila— así que va en la página cero.
+msg_ptr:     .res 3     ; puntero al caracter que sigue, dentro de `mensajes`. Va
+                        ; acá y no con el resto del estado porque `[dp],y` sólo
+                        ; direcciona la página directa.
+comp_glifo:  .res 3     ; puntero a las doce filas del caracter, en la ROM
+comp_char:   .res 2     ; qué caracter, ya como índice en la fuente
+comp_col:    .res 2     ; en qué columna del renglón va
+comp_fase:   .res 2     ; y en qué pixel de la celda cae, o sea x mod 8
+comp_base:   .res 2     ; el byte del buffer donde arranca su columna de celda
+comp_mask:   .res 2     ; la fila del glifo ya corrida a su fase
+comp_color:  .res 1     ; con qué índice de paleta se pinta
+comp_fila:   .res 1     ; en qué fila del buffer, de 0 a 15
+comp_dup:    .res 4     ; la máscara duplicada a los dos planos de cada par
+comp_and:    .res 4     ; y las tres combinaciones que salen de ella
+comp_or01:   .res 4
+comp_or23:   .res 4
 
 .segment "CODE"
 
@@ -426,6 +460,8 @@ grupo_listo:
     ; una A que ya no cierra nada. Está medido —sin este `stz`, `snes-cerrar` se
     ; cae en las doce corridas, y en snes9x además de en bsnes—.
     stz msg_abierto
+    stz msg_estado
+    stz msg_subir
     ; Los dos del pad son por las dudas y no por un error visto: `read_pad`
     ; los reescribe antes de que nadie los mire. Cuestan dos instrucciones.
     stz pad_a
@@ -480,6 +516,8 @@ loop:
     jsr animate_hero
     jsr follow_camera
     jsr stream_map              ; la columna o la fila que la cámara destapó
+    jsr mensaje_tick            ; y unos caracteres del mensaje que se esté
+                                ; componiendo, si hay alguno
     jsr build_oam               ; y se arma el siguiente, ya fuera del vblank
     jsr music_tick
     bra loop
@@ -867,7 +905,10 @@ sin_espera:
     ; corre **antes** del guard de `IsMessageActive`. En este juego hay 186
     ; páginas donde eso pasa, y la primera está en el mapa 1.
     lda msg_abierto
+    ora msg_estado              ; también mientras se está componiendo
     beq sin_mensaje
+    lda msg_abierto
+    beq no_avanza               ; todavía no terminó de componerse
     lda pad_a
     beq no_avanza               ; nadie apretó: el mensaje se queda
     lda pad_a_ant
@@ -1245,8 +1286,13 @@ otro:
 ; `ShowMessage` de RM2k sigue sin compilar: esto es el intérprete aprendiendo a
 ; abrir, a bloquear y a cerrar, que es lo que le faltaba.
 op_mensaje:
-    lda #1
-    sta msg_abierto             ; y con eso `flush_video` prende el HDMA
+    ; El mensaje no aparece en este cuadro: hay que componerle el texto, y eso
+    ; lleva unos cuantos. La ventana se prende sola cuando el compositor
+    ; termina; mientras tanto la página ya está bloqueada.
+    stz msg_abierto
+    phy
+    jsr msg_empezar
+    ply
     sty ev_cur
     rts
 
@@ -2695,6 +2741,25 @@ columna:
     rts
 .endproc
 
+; Las dos tablas que el compositor consulta en su lazo interno. Van en el banco
+; 0 como el resto de las tablas: `lda tabla, x` direcciona el banco de datos.
+.segment "TABLAS"
+
+; De qué byte del buffer arranca cada una de sus dieciséis filas. El buffer son
+; dos filas de celda, así que la fila Y cae en el tile (Y/8) por 30 columnas de
+; 32 bytes, más (Y mod 8) por 2 dentro del tile.
+tabla_fila_buf:
+    .word 0, 2, 4, 6, 8, 10, 12, 14
+    .word 960, 962, 964, 966, 968, 970, 972, 974
+
+; Qué planos prende un color, para el par 0-1 y para el par 2-3. El índice son
+; los dos bits que le tocan al par, y el valor es la máscara duplicada que hay
+; que dejar pasar: ninguno, sólo el plano bajo, sólo el alto, o los dos.
+tabla_planos:
+    .word $0000, $00FF, $FF00, $FFFF
+
+.segment "CODE"
+
 ; --- la ventana de mensaje -------------------------------------------------
 ; Sus tiles y su paleta se suben una sola vez, con la pantalla apagada, igual
 ; que los de la capa de encima. Viven en el banco que sigue al de encima, y BG2
@@ -2864,6 +2929,487 @@ hay:
     rts
 .endproc
 
+; --- el compositor de texto ------------------------------------------------
+;
+; Lo que hace que esto entre en un 65816. RM2k dibuja cada glifo usando sus
+; pixeles como **máscara** sobre un bloque de 16x16 del System, y leído así
+; pide muestrear el bloque pixel por pixel. Medido, no hace falta: cada fila
+; del glifo toma un solo color —el degradé es vertical— y la sombra es un color
+; plano. O sea que todo el color se reduce a doce bytes, `fuente_color`, más
+; `FUENTE_SOMBRA`. Es la medición que volvió barato esto.
+;
+; El área de texto son 30 celdas de ancho por 8 de alto y sus 240 tiles **no
+; están deduplicados**: cada celda tiene el suyo, fijo, así que componer es
+; escribir un buffer y subirlo. Se hace de a un renglón —dos filas de celda, 60
+; tiles, 1920 bytes— y se sube en el vblank siguiente.
+;
+; Un renglón se ceba con el fondo de la ventana antes de escribirle el texto,
+; porque los glifos no se dibujan sobre negro sino sobre el degradé del skin.
+; Eso es un DMA de la ROM a la RAM, que el DMA normal no sabe hacer: va por la
+; ventana que la WRAM tiene en el bus B, o sea WMADD más $2180.
+
+; Cuántos caracteres por vuelta del lazo. El número está **medido**, no
+; elegido: componiendo el mensaje de `snes-anclada` sobre el mapa 6, con 5 no se
+; pierde un cuadro, con 6 tampoco y con 8 se pierde uno. Va en 5 y no en 7 por
+; margen, porque la vuelta cuesta distinto en cada mapa —el streaming del fondo,
+; los NPCs, la música— y perder cuadros no se ve mirando: lo que pasa es que el
+; héroe camina más lento que en la referencia.
+;
+; Lo que cuesta: el mensaje de tres renglones y 51 caracteres de `snes-ventana`
+; tarda unos 15 cuadros en aparecer, y uno de cuatro renglones llenos tardaría
+; unos 36. Es un cuarto de segundo, que en RM2k tampoco desentona: allá la
+; ventana se abre con una animación.
+MSG_CHARS = 5
+
+; Dónde empieza el texto adentro de la ventana, en pixeles. Es el `border_x` de
+; `Window`, el mismo que usa `tools/ventana.py`.
+VENTANA_BORDE = 8
+
+; La fila del glifo cae dos pixeles abajo del borde de la celda, y eso no
+; depende del renglón: los cuatro empiezan en 10, 26, 42 y 58, que módulo 8 dan
+; todos 2. Por eso un glifo de doce filas entra siempre en las mismas dos filas
+; de celda y el buffer puede ser de dos.
+TEXTO_OFS_Y = 2
+
+; Arranca un mensaje: deja el puntero en su primer renglón y el compositor en
+; marcha. La ventana no aparece hasta que termine.
+.proc msg_empezar
+.a8
+.i16
+    lda #VENTANA_TILES
+    bne hay
+    rts                         ; esta ROM no lleva ventana
+hay:
+    rep #$20
+.a16
+    lda #.loword(mensajes)
+    sta msg_ptr
+    sep #$20
+.a8
+    lda #^mensajes
+    sta msg_ptr + 2
+    ldy #0
+    lda [msg_ptr], y            ; cuántos renglones trae
+    sta msg_lineas
+    rep #$20
+.a16
+    inc msg_ptr
+    sep #$20
+.a8
+    stz msg_linea
+    stz msg_cebada
+    stz msg_subir
+    lda #1
+    sta msg_estado
+    rts
+.endproc
+
+; Un cuadro del compositor, desde el lazo principal.
+.proc mensaje_tick
+.a8
+.i16
+    lda msg_estado
+    cmp #1
+    beq trabajando
+    rts
+trabajando:
+    lda msg_subir
+    beq sin_subir
+    rts                         ; el renglón anterior todavía no subió
+sin_subir:
+    lda msg_cebada
+    bne componiendo
+
+    ; Renglón nuevo: se le copia el fondo y se lee su largo. Los renglones que
+    ; el mensaje no trae igual se ceban y se suben: en la VRAM está el texto del
+    ; mensaje anterior y hay que taparlo.
+    jsr cebar_linea
+    stz msg_largo
+    lda msg_linea
+    cmp msg_lineas
+    bcs vacio
+    ldy #0
+    lda [msg_ptr], y
+    sta msg_largo
+    rep #$20
+.a16
+    inc msg_ptr
+    sep #$20
+.a8
+vacio:
+    stz msg_col
+    lda #1
+    sta msg_cebada
+
+componiendo:
+    ldx #MSG_CHARS
+otro:
+    lda msg_col
+    cmp msg_largo
+    bcs fin_linea
+    ldy #0
+    lda [msg_ptr], y
+    rep #$20
+.a16
+    and #$00FF
+    sta comp_char
+    lda msg_col
+    and #$00FF
+    sta comp_col
+    inc msg_ptr
+    sep #$20
+.a8
+    inc msg_col
+    phx
+    jsr componer_char
+    plx
+    dex
+    bne otro
+    rts
+
+fin_linea:
+    ; El renglón está listo: se sube en el vblank que viene y se pasa al que
+    ; sigue. El fondo del próximo no se ceba en este mismo cuadro a propósito:
+    ; el buffer todavía tiene lo que hay que subir.
+    lda #1
+    sta msg_subir
+    stz msg_cebada
+    inc msg_linea
+    lda msg_linea
+    cmp #VENTANA_LINEAS_TEXTO
+    bcc mas
+    lda #2
+    sta msg_estado              ; ya está: `flush_video` prende el HDMA
+mas:
+    rts
+.endproc
+
+; Copia al buffer el fondo de las dos filas de celda del renglón en curso. Es
+; la única forma de que los glifos queden sobre el degradé del skin y no sobre
+; negro, y va por DMA de la ROM a la RAM.
+.proc cebar_linea
+.a8
+.i16
+    rep #$20
+.a16
+    ; El destino: siempre el principio del buffer.
+    lda #.loword(texto_buf)
+    sta WMADDL
+    sep #$20
+.a8
+    stz WMADDH                  ; el buffer vive en el banco 0 de la WRAM
+
+    rep #$20
+.a16
+    ; El origen: dos filas de celda por renglón, 60 tiles de 32 bytes.
+    lda msg_linea
+    and #$00FF
+    sta temp
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a                       ; renglón * 64
+    sec
+    sbc temp
+    sbc temp
+    sbc temp
+    sbc temp                    ; renglón * 60, o sea los tiles que ya pasaron
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a                       ; por 32 bytes cada uno
+    clc
+    adc #.loword(ventana_fondo)
+    sta A1T0L
+    lda #TEXTO_BUF_BYTES
+    sta DAS0L
+    sep #$20
+.a8
+    lda #^ventana_fondo
+    sta A1B0
+    lda #$00                    ; un registro, de a un byte
+    sta DMAP0
+    lda #<WMDATA
+    sta BBAD0
+    lda #$01
+    sta MDMAEN
+    rts
+.endproc
+
+; Sube el renglón compuesto al banco de tiles de la ventana. Va en el vblank,
+; desde `flush_video`, y son 1920 bytes de un solo DMA.
+.proc subir_linea
+.a8
+.i16
+    stz msg_subir
+    lda #$80
+    sta VMAIN
+    ldx mapa_ofs
+    rep #$20
+.a16
+    ; El tile donde arranca este renglón, en palabras de VRAM. El renglón que
+    ; hay que subir es el anterior: `mensaje_tick` ya pasó al siguiente.
+    lda msg_linea
+    and #$00FF
+    dec a
+    sta temp
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a
+    sec
+    sbc temp
+    sbc temp
+    sbc temp
+    sbc temp                    ; renglón * 60 tiles
+    clc
+    adc #VENTANA_TEXTO_BASE
+    asl a
+    asl a
+    asl a
+    asl a                       ; por 16 palabras cada tile
+    clc
+    adc mapa_tabla + M_VRAM_VENTANA, x
+    sta VMADDL
+    lda #.loword(texto_buf)
+    sta A1T0L
+    lda #TEXTO_BUF_BYTES
+    sta DAS0L
+    sep #$20
+.a8
+    stz A1B0                    ; el buffer vive en el banco 0
+    lda #$01
+    sta DMAP0
+    lda #$18
+    sta BBAD0
+    lda #$01
+    sta MDMAEN
+    rts
+.endproc
+
+; Un caracter: sus doce filas, cada una con su sombra debajo y corrida uno.
+;
+; El orden importa y es el de `Font::Render`: para cada fila se pinta primero la
+; sombra —una fila más abajo y un pixel a la derecha— y después el glifo. Así la
+; fila que sigue le pisa la sombra a la anterior donde se superponen, que es lo
+; que se ve en las diagonales.
+.proc componer_char
+.a8
+.i16
+    rep #$20
+.a16
+    ; El puntero al glifo: la fuente son doce filas por caracter.
+    lda comp_char
+    sta temp
+    asl a
+    asl a
+    clc
+    adc temp
+    adc temp                    ; por 6
+    asl a                       ; por 12
+    clc
+    adc #.loword(fuente_tabla)
+    sta comp_glifo
+    sep #$20
+.a8
+    lda #^fuente_tabla
+    sta comp_glifo + 2
+
+    ; Dónde cae: x = borde + 6 por columna, y de ahí la celda y la fase.
+    rep #$20
+.a16
+    lda comp_col
+    sta temp
+    asl a
+    clc
+    adc temp
+    asl a                       ; por 6
+    clc
+    adc #VENTANA_BORDE
+    sta temp                    ; x adentro de la ventana
+    and #$0007
+    sta comp_fase
+    lda temp
+    lsr a
+    lsr a
+    lsr a
+    sec
+    sbc #VENTANA_TEXTO_COL      ; la columna de celda, contada desde el texto
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a                       ; por 32 bytes de tile
+    sta comp_base
+    sep #$20
+.a8
+
+    ldy #0
+fila:
+    lda [comp_glifo], y
+    beq siguiente               ; fila vacía: ni glifo ni sombra
+    rep #$20
+.a16
+    ; La fila viene con el pixel de la izquierda en el bit 7, que es el orden
+    ; del formato de tiles. Subida al byte alto y corrida a la derecha por la
+    ; fase, queda una palabra donde el byte alto es la celda en la que cae el
+    ; caracter y el bajo la de al lado.
+    and #$00FF
+    xba
+    ldx comp_fase
+    beq sin_correr
+correr:
+    lsr a
+    dex
+    bne correr
+sin_correr:
+    sta comp_mask
+    sep #$20
+.a8
+
+    ; La sombra: una fila más abajo y un pixel a la derecha.
+    phy
+    rep #$20
+.a16
+    lsr comp_mask
+    sep #$20
+.a8
+    tya
+    clc
+    adc #(TEXTO_OFS_Y + 1)
+    sta comp_fila
+    lda #FUENTE_SOMBRA
+    sta comp_color
+    jsr pintar
+
+    ; Y el glifo encima, en su fila.
+    ply
+    phy
+    rep #$20
+.a16
+    asl comp_mask
+    sep #$20
+.a8
+    tya
+    clc
+    adc #TEXTO_OFS_Y
+    sta comp_fila
+    lda fuente_color, y
+    sta comp_color
+    jsr pintar
+    ply
+
+siguiente:
+    iny
+    cpy #FUENTE_ALTO
+    bcc fila
+    rts
+.endproc
+
+; Escribe `comp_mask` con el color `comp_color` en la fila `comp_fila` del
+; buffer, desde la columna de celda que dejó `comp_base`.
+;
+; La cuenta por plano es `byte = (byte & ~m) | (m si el bit del color está)`. Lo
+; que la hace barata es que los planos 0 y 1 de una fila son **bytes vecinos**
+; en el formato de la consola, y los 2 y 3 también dieciséis bytes más adelante:
+; duplicando la máscara a los dos bytes de la palabra, cada par de planos sale
+; de una sola escritura de dieciséis bits. Son cuatro por fila y no dieciséis.
+.proc pintar
+.a8
+.i16
+    rep #$20
+.a16
+    lda comp_fila
+    and #$00FF
+    asl a
+    tax
+    lda tabla_fila_buf, x
+    clc
+    adc comp_base
+    tax                         ; X = el byte del buffer donde arranca la fila
+
+    ; La máscara duplicada a los dos planos, para cada una de las dos columnas
+    ; de celda que puede tocar. El byte **alto** es la primera columna: la
+    ; palabra se lee de izquierda a derecha como los pixeles.
+    lda comp_mask
+    xba
+    and #$00FF
+    sta temp
+    xba
+    ora temp
+    sta comp_dup
+    lda comp_mask
+    and #$00FF
+    sta temp
+    xba
+    ora temp
+    sta comp_dup + 2
+
+    ; Y de ahí las tres combinaciones: lo que hay que borrar y lo que hay que
+    ; prender en cada par de planos. Los `tabla_planos` son 0, $00FF, $FF00 y
+    ; $FFFF según qué bits del color estén.
+    lda comp_color
+    and #$0003
+    asl a
+    tay
+    lda comp_dup
+    and tabla_planos, y
+    sta comp_or01
+    lda comp_dup + 2
+    and tabla_planos, y
+    sta comp_or01 + 2
+    lda comp_color
+    and #$000C
+    lsr a
+    tay
+    lda comp_dup
+    and tabla_planos, y
+    sta comp_or23
+    lda comp_dup + 2
+    and tabla_planos, y
+    sta comp_or23 + 2
+
+    ; Una celda que la máscara no toca se saltea entera. No es una micro
+    ; optimización: un glifo de seis pixeles cae entero adentro de una celda en
+    ; la mitad de las fases —las columnas van de a seis y las celdas de a
+    ; ocho— así que esto se ahorra la mitad de las escrituras y es lo que
+    ; permite componer más caracteres por cuadro sin perder ninguno.
+    lda comp_dup
+    beq sin_primera
+    eor #$FFFF
+    sta comp_and
+    lda texto_buf, x            ; planos 0 y 1 de la primera celda
+    and comp_and
+    ora comp_or01
+    sta texto_buf, x
+    lda texto_buf + 16, x       ; planos 2 y 3
+    and comp_and
+    ora comp_or23
+    sta texto_buf + 16, x
+sin_primera:
+    lda comp_dup + 2
+    beq sin_segunda
+    eor #$FFFF
+    sta comp_and + 2
+    lda texto_buf + 32, x       ; la celda de al lado, un tile más adelante
+    and comp_and + 2
+    ora comp_or01 + 2
+    sta texto_buf + 32, x
+    lda texto_buf + 48, x
+    and comp_and + 2
+    ora comp_or23 + 2
+    sta texto_buf + 48, x
+sin_segunda:
+    sep #$20
+.a8
+    rts
+.endproc
+
 ; --- lo que va sí o sí dentro del vblank -----------------------------------
 ; OAM sólo se puede escribir mientras el PPU no la está leyendo, o sea en el
 ; vblank. Armarla lleva su tiempo —con treinta y pico de personajes, más de un
@@ -2912,6 +3458,20 @@ hay:
     ; cuadro, la misma que se acaba de escribir en los registros: el HDMA los
     ; vuelve a escribir en la línea 0 y no cambia nada. Lo que cambia es la
     ; línea 144 para abajo.
+    ; Primero el compositor: el renglón que dejó listo, y la ventana entera
+    ; cuando ya no queda ninguno.
+    lda msg_subir
+    beq sin_subir
+    jsr subir_linea
+sin_subir:
+    lda msg_estado
+    cmp #2
+    bne no_termino
+    stz msg_estado
+    lda #1
+    sta msg_abierto
+no_termino:
+
     lda msg_abierto
     beq sin_ventana
     lda camara_x
@@ -4010,13 +4570,39 @@ done:
 .segment "BSS"
 port0: .res 1
 
+; La ruta forzada del héroe, hasta RUTA_MAX órdenes. Vivía en la página cero y
+; se mudó acá cuando el compositor de texto necesitó lugar: `paso_de_ruta` la
+; lee una vez por cuadro, así que el ciclo de más por acceso no se nota.
+ruta:        .res 32
+
 ; La ventana de mensaje. `msg_abierto` es si hay una en pantalla, y los otros
 ; dos son pedidos que el lazo principal atiende al final del cuadro, con la
 ; pantalla apagada: no se puede escribir el tilemap con el PPU dibujando.
 ;
 ; Van acá y no en la página cero porque no se tocan en ningún lazo cerrado, y
-; la página cero está a cuatro bytes de llenarse.
+; la página cero la necesita el compositor de texto.
 msg_abierto: .res 1
+
+; El estado del compositor. Un mensaje no aparece en el cuadro en que se lo
+; pide: se compone de a MSG_CHARS caracteres por vuelta del lazo, renglón por
+; renglón, y recién cuando está entero se prende el HDMA.
+;
+; El presupuesto por vuelta no es una optimización sino lo que mantiene honesta
+; la comparación: si una vuelta se pasara del cuadro, `wait_vblank` agarraría el
+; siguiente y el héroe caminaría la mitad de rápido que en la referencia.
+msg_estado:  .res 1     ; 0 quieto, 1 componiendo, 2 listo
+msg_linea:   .res 1     ; qué renglón se está armando
+msg_lineas:  .res 1     ; cuántos trae el mensaje
+msg_col:     .res 1     ; por qué caracter va
+msg_largo:   .res 1     ; cuántos tiene el renglón
+msg_cebada:  .res 1     ; si el buffer ya tiene el fondo del renglón
+msg_subir:   .res 1     ; si hay un renglón listo para subir a la VRAM
+
+; El renglón que se está componiendo: dos filas de celda por 30 columnas, en el
+; formato de tiles de la consola. Los 48 bytes de más son para que la máscara
+; del último caracter pueda escribir su segunda columna sin salirse: ahí siempre
+; escribe cero, pero leer y escribir fuera del buffer sería pisarle a otro.
+texto_buf:   .res (VENTANA_TEXTO_COLS * 2 * 32 + 48)
 
 ; Las dos tablas del HDMA de la ventana. Viven en RAM porque las dos primeras
 ; entradas llevan la cámara de este cuadro; la última, que es la de la ventana,

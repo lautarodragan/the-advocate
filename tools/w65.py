@@ -320,14 +320,35 @@ class Instruction:
     def emit(self, symbols, address):
         if self.width == 0:
             return bytes([self.opcode])
+        return self.bytes_con(self.expression.value(symbols), address)
 
-        value = self.expression.value(symbols)
+    def bytes_con(self, value, address):
+        """Los bytes de la instrucción con el operando ya resuelto.
+
+        Está separado porque el ensamblador resuelve las expresiones él —tiene
+        que respetar el alcance de los `.proc`— y antes se armaba los bytes por
+        su cuenta. Eran dos copias de la misma cuenta, y se notó de la peor
+        manera: un control agregado acá no corría nunca.
+        """
         if self.relative:
             # El salto se cuenta desde el byte siguiente a la instrucción.
             value -= address + self.size
             if not -128 <= value <= 127:
                 raise Error("salto demasiado lejos: %d bytes" % value)
             value &= 0xFF
+
+        # Un operando que no entra en su modo es un error, no un truncado. El
+        # caso que lo motivó: `lda [msg_ptr], y` con `msg_ptr` en BSS y no en la
+        # página cero. El modo indirecto largo direcciona sólo la página
+        # directa, así que el ensamblador emitía el byte bajo de $0129 y la ROM
+        # leía el puntero de $0029, que es otra variable. Todo compilaba y la
+        # pantalla decía "algo está mal" sin decir dónde.
+        # Los negativos entran: `lda #-WALK_SPEED` es complemento a dos y es
+        # una forma normal de escribirlo.
+        elif not -(1 << (8 * self.width - 1)) <= value < (1 << 8 * self.width):
+            raise Error("el operando no entra en %d byte(s): %d. Si es un modo"
+                        " de página directa, la variable tiene que vivir en el"
+                        " segmento ZEROPAGE" % (self.width, value))
 
         return bytes([self.opcode]) + (value & ((1 << 8 * self.width) - 1)
                                        ).to_bytes(self.width, "little")
@@ -756,13 +777,7 @@ class Assembler:
 
     def emit_item(self, item, address):
         if isinstance(item, Instruction) and item.expression is not None:
-            value = self.lookup(item.expression)
-            if item.relative:
-                value -= address + item.size
-                if not -128 <= value <= 127:
-                    raise Error("salto demasiado lejos: %d bytes" % value)
-            return bytes([item.opcode]) + (
-                value & ((1 << 8 * item.width) - 1)).to_bytes(item.width, "little")
+            return item.bytes_con(self.lookup(item.expression), address)
 
         if isinstance(item, Data):
             out = bytearray()

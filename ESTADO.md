@@ -550,12 +550,51 @@ Y los tres cores dibujan el mismo cuadro con HDMA adentro, medido sobre el 23.
 `snes-hitos` quedó en **33 casos**, todos en verde, 72 segundos repartida en
 seis.
 
-**Lo que falta de la ventana**, y es una sola cosa grande: **componer el texto
-en caliente**. Es lo que separa al opcode de que compilen las 144 páginas de
-`ShowMessage`. Hoy la ROM lleva una sola ventana ya compuesta por el conversor,
-porque una por mensaje son 7,5 KB y no entran en 256 KB; hace falta la fuente en
-la ROM y armar los 240 tiles desde el 65816, como hace FF6 con su `InitDlgVWF` y
-su buffer de diálogo en la WRAM.
+**Hecho el 2026-09-04: la ROM compone el texto.** La fuente está en el
+cartucho y los 240 tiles del área de texto los arma el 65816, renglón por
+renglón, de a 5 caracteres por vuelta del lazo. `snes-ventana` da 0 pixeles de
+57344 contra la referencia, y `snes-oraculo` sigue dando 0 de 25600 contra la
+captura de EasyRPG: la cadena queda atada de punta a punta con el texto armado
+en la consola.
+
+Lo que lo volvió barato es una medición: RM2k usa el glifo como máscara sobre un
+bloque de 16x16 del System, y eso pide muestrear pixel por pixel. Pero **cada
+fila del glifo toma un solo color** y la sombra es plana, así que todo el color
+son doce bytes más uno. El detalle está en "El texto se compone en caliente" del
+`LEEME.md`, junto con lo de los planos vecinos, que baja de dieciséis
+escrituras por fila de glifo a cuatro.
+
+Dos números que quedan fijados: **39 caracteres por línea** —lo impone el banco
+de 256 tiles, y truncar ahí pierde el 1,58% de los caracteres del juego contra
+el 1,09% de truncar a 40— y **5 caracteres por cuadro**, medido: con 5 y con 6
+`snes-anclada` no pierde un cuadro y con 8 pierde uno. Perder cuadros no se ve
+mirando; lo que pasa es que el héroe camina más lento que en la referencia.
+
+**Y salieron tres errores del ensamblador, los tres en silencio**, que es lo que
+hizo largo esto:
+
+* **`.res` en el segmento equivocado.** Las variables del compositor se
+  declararon donde estaba el comentario que buscaba, que era código y no
+  `ZEROPAGE`: quedaron en la ROM, en $8B40, y el compositor escribía en el
+  cartucho. Nada lo dijo.
+* **`[dp],y` con una variable que no está en la página directa.** `msg_ptr` vivía
+  en BSS, el modo indirecto largo direcciona sólo la página directa, y el
+  ensamblador emitía el byte bajo de $0129: la ROM leía el puntero de $0029.
+  **Ahora es un error**: un operando que no entra en su modo se rechaza.
+* **`emit_item` duplicaba `Instruction.emit`.** Eran dos copias de la misma
+  cuenta, y se notó de la peor manera posible: el control del punto anterior,
+  agregado en una, no corría nunca. Quedó en un solo lugar.
+
+De paso quedó confirmado con qué llena snes9x la WRAM: **$55**. Se vio leyéndola
+en el primer cuadro, `msg_estado = 85`. Es lo que explica que `ruta_n` y
+`ruta_i` sin inicializar quedaran iguales y el error desapareciera.
+
+**Lo que falta de la ventana**, y ahora es chico: **el operando de
+`OP_MENSAJE`**. Hoy no lleva ninguno, así que la ROM muestra el único mensaje
+que el conversor emitió con `--mensaje-de-prueba`. Falta que lleve el
+desplazamiento dentro del bloque de mensajes y que el conversor compile los
+`ShowMessage` del juego, que es lo que destraba las 144 páginas —de 16 a 71,
+medido con `just snes-destraba`—.
 
 Y falta el reacomodo del texto, que taro pidió dejar **para otro hito**: la fase
 1 trunca y queda medio ilegible a propósito. A 40 columnas eso es el 1,06% de

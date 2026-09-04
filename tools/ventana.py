@@ -37,6 +37,17 @@ ALTO_LINEA = 16                 # `contents_y += 16` de Window_Message
 TEXTO_Y = 2                     # el `contents_y = 2` de la primera línea
 LINEAS = 4
 
+# Cuántos caracteres entran en una línea, y de dónde sale el número. No es el
+# ancho de la ventana: es el banco de tiles. El área de texto de la ventana son
+# 30 celdas de 8x8 de ancho, y sus tiles no se deduplican porque la ROM los
+# reescribe, así que son 30x8 = 240 tiles fijos que con los 12 de la ventana
+# vacía llegan a 252 de los 256 que hay. Con 40 caracteres la sombra del último
+# se pasa a la celda 31 y harían falta ocho tiles más.
+#
+# Medido sobre las 18.808 líneas de mensaje del juego: truncar a 39 pierde el
+# 1,58% de los caracteres, contra el 1,09% de truncar a 40.
+COLUMNAS = 39
+
 
 def skin(game_dir, nombre):
     """El System del juego, en RGBA y con el color key ya resuelto.
@@ -149,7 +160,9 @@ def pagina(sys_img, lineas, ancho=ANCHO, alto=ALTO, font_id=None):
     """La ventana con hasta cuatro líneas de texto adentro."""
     vista = ventana(sys_img, ancho, alto)
     for n, texto in enumerate(lineas[:LINEAS]):
+        # El truncado va acá y no en el llamador para que los dos lados usen el
+        # mismo número: la ROM lo aplica al emitir el mensaje.
         dibujar_linea(vista, sys_img, BORDE,
-                      BORDE + TEXTO_Y + n * ALTO_LINEA, texto,
+                      BORDE + TEXTO_Y + n * ALTO_LINEA, texto[:COLUMNAS],
                       font_id=font_id)
     return vista

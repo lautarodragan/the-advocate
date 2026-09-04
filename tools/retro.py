@@ -256,6 +256,26 @@ class Consola:
         for _ in range(cuadros):
             self.lib.retro_run()
 
+    # La WRAM del emulador, que es la única forma de mirar adentro sin un
+    # depurador. libretro la expone con `retro_get_memory_data(2)`, que es
+    # RETRO_MEMORY_SYSTEM_RAM; los tres cores la implementan.
+    #
+    # No es parte de ninguna prueba: sirve para depurar, y apareció haciendo el
+    # compositor de texto, cuando la pantalla decía "algo está mal" y no dónde.
+    MEMORIA_SISTEMA = 2
+
+    def ram(self, direccion=0, largo=None):
+        """Bytes de la WRAM desde `direccion`, que es la del banco $7E."""
+        self.lib.retro_get_memory_data.restype = ctypes.c_void_p
+        self.lib.retro_get_memory_size.restype = ctypes.c_size_t
+        base = self.lib.retro_get_memory_data(self.MEMORIA_SISTEMA)
+        total = self.lib.retro_get_memory_size(self.MEMORIA_SISTEMA)
+        if not base or not total:
+            raise RuntimeError("este core no expone la WRAM")
+        if largo is None:
+            largo = total - direccion
+        return ctypes.string_at(base + direccion, largo)
+
     def imagen(self):
         """El último cuadro como PIL, a 8 bits por canal y recortado a ALTO."""
         datos, w, h, pitch = self.cuadro

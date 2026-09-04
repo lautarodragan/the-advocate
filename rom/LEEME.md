@@ -416,14 +416,56 @@ múltiplo de 1024 y por lo tanto una base válida de tilemap. En el reparto para
 mapas con mucho fondo los 2 KB no pueden salir de ahí —esos mapas usan hasta
 320 tiles de sprite— y salen del fondo: 480 tiles en vez de 512.
 
-**El opcode no lleva operandos, y eso es lo que hay que entender antes de
-tocarlo.** Una página de mensaje compuesta son unos 240 tiles de 4bpp, o sea
-7,5 KB: emitir una por cada mensaje del juego no entra ni cerca en 256 KB. La
-salida es la de FF6 —componer el texto en tiles desde el 65816, con la fuente en
-la ROM— y hasta que eso exista la ROM lleva **una sola** ventana ya compuesta,
-la que arma `--mensaje-de-prueba`. O sea que el `ShowMessage` de RM2k **sigue
-sin compilar**: lo que ya existe es el intérprete sabiendo abrir, bloquear y
-cerrar.
+### El texto se compone en caliente
+
+Una página de mensaje ya compuesta son unos 240 tiles de 4bpp, o sea 7,5 KB, y
+el juego tiene 18.808 líneas de texto: emitir una ventana por mensaje no entra
+ni cerca en 256 KB. Así que la ROM lleva la fuente y arma los tiles ella, que es
+lo que hace FF6 con su `InitDlgVWF` y su buffer de diálogo en la WRAM.
+
+**La medición que lo volvió barato.** RM2k dibuja cada glifo usando sus pixeles
+como máscara sobre un bloque de 16x16 del System —de ahí el degradé de las
+letras— y leído así pide muestrear el bloque pixel por pixel. Medido, no: **cada
+fila del glifo toma un solo color**, y la sombra es un color plano. O sea que
+todo el color se reduce a doce bytes, uno por fila, más uno para la sombra.
+
+El banco de tiles de la ventana se reparte así:
+
+    0 .. 11     la ventana vacía, deduplicada: marco y fondo estirado
+    12 .. 251   el área de texto, 30 celdas de ancho por 8 de alto
+
+Las 240 del área de texto **no se deduplican**: cada celda tiene su tile fijo,
+porque la ROM las reescribe y no puede andar buscando repetidos. De ahí sale el
+tope de **39 caracteres por línea**: con 40 la sombra del último se pasa a la
+celda 31 y harían falta ocho tiles más de los que hay. Truncar a 39 pierde el
+1,58% de los caracteres del juego, contra el 1,09% de truncar a 40.
+
+Componer un renglón es cebar el buffer con el fondo de la ventana —un DMA de la
+ROM a la RAM, que va por la ventana que la WRAM tiene en el bus B— y escribirle
+los glifos encima. Lo que hace rápida la escritura es que los planos 0 y 1 de
+una fila son **bytes vecinos** en el formato de la consola, y los 2 y 3 también:
+duplicando la máscara a los dos bytes de la palabra, cada par de planos sale de
+una sola escritura de dieciséis bits, y son cuatro por fila de glifo en vez de
+dieciséis. Y la celda que la máscara no toca se saltea entera, que en la mitad
+de las fases es la mitad del trabajo.
+
+**El presupuesto por cuadro está medido y no elegido.** Se componen 5
+caracteres por vuelta del lazo. No es una optimización: si una vuelta se pasara
+del cuadro, `wait_vblank` agarraría el siguiente y el héroe caminaría más lento
+que en la referencia, que es una diferencia que ninguna captura muestra. Medido
+sobre `snes-anclada`, que es el único caso donde el héroe camina con un mensaje
+abierto: con 5 y con 6 no se pierde ningún cuadro, con 8 se pierde uno. Va en 5
+por margen, porque la vuelta cuesta distinto en cada mapa.
+
+Lo que cuesta: un mensaje de 51 caracteres tarda unos 15 cuadros en aparecer y
+uno de cuatro renglones llenos tardaría unos 36. En RM2k tampoco desentona: allá
+la ventana se abre con una animación.
+
+**Lo que todavía no está: el operando del opcode.** `OP_MENSAJE` no lleva
+ninguno, así que la ROM muestra el único mensaje que el conversor emitió con
+`--mensaje-de-prueba`. Falta que lleve el desplazamiento dentro del bloque de
+mensajes y que el conversor compile los `ShowMessage` del juego, que es lo que
+destraba las 144 páginas.
 
 El ciclo son tres piezas y ninguna corre donde uno esperaría:
 
