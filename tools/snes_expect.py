@@ -120,7 +120,8 @@ class Mundo:
                 paginas = paginas + [dict(EVENTO_DE_PRUEBA,
                                           codigo=eventos.pagina_de_prueba(
                                               espera, tinte,
-                                              self.prueba[1] or ()))]
+                                              self.prueba[1] or (),
+                                              self.prueba[2]))]
             self.paginas_cache[map_id] = paginas
         return self.paginas_cache[map_id]
 
@@ -175,7 +176,8 @@ def paso_de_ruta(estado, passable, game_map, x, y):
     return x, y
 
 
-def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None):
+def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
+                   apretar_a=None):
     """Entra a un mapa y le corre los eventos automáticos, como `cargar_mapa`.
 
     Primero se para al héroe —donde diga la puerta o el teletransporte que nos
@@ -222,8 +224,13 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None):
             # página sigue y quien camina es el personaje.
             salto = None
             interprete = eventos.Interprete(mundo.paginas(map_id), estado)
-            for _ in range(cuadros):
-                if interprete.cuadro():
+            for n in range(1, cuadros + 1):
+                # `apretar_a` es el cuadro en que el jugador aprieta A, y sólo
+                # cuenta ese: RM2k cierra el mensaje con el flanco, no con el
+                # botón sostenido. El emulador aprieta en el mismo número y lo
+                # deja apretado, que es lo mismo mientras nadie espere un
+                # segundo flanco.
+                if interprete.cuadro(apreto_a=(n == apretar_a)):
                     salto = estado.salto
                     break
                 x, y = paso_de_ruta(estado, passable, game_map, x, y)
@@ -241,7 +248,7 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None):
 
 
 def hero_position(mundo, estado, map_id, direction_name, inicio=None,
-                  avance=None, cuadros=None):
+                  avance=None, cuadros=None, apretar_a=None):
     """En qué mapa y en qué celda termina el héroe, y hacia dónde mira.
 
     No se estima: se entra al mapa como entra la ROM —corriéndole los eventos—
@@ -252,7 +259,8 @@ def hero_position(mundo, estado, map_id, direction_name, inicio=None,
 
     Devuelve (mapa, x, y, dirección) con x e y en pixeles.
     """
-    map_id, x, y = entrar_al_mapa(mundo, estado, map_id, inicio, cuadros)
+    map_id, x, y = entrar_al_mapa(mundo, estado, map_id, inicio, cuadros,
+                                  apretar_a)
     step = WALK[direction_name]
     direction = DIRECTIONS.get(direction_name, DIRECTIONS["down"])
     if step is None:
@@ -456,8 +464,13 @@ def main():
                              "corrido los mismos. Sin esto, las páginas corren "
                              "hasta terminar")
     parser.add_argument("--mensaje-de-prueba", nargs="*", metavar="LINEA",
-                        help="dibuja la ventana de mensaje con estas líneas. "
-                             "El otro lado del mismo flag de snes_convert.py")
+                        help="agrega la página automática que abre una ventana "
+                             "de mensaje con estas líneas. El otro lado del "
+                             "mismo flag de snes_convert.py")
+    parser.add_argument("--apretar-a", type=int, default=None, metavar="N",
+                        help="en qué cuadro el jugador aprieta A, que es lo "
+                             "que cierra un mensaje. El otro lado del mismo "
+                             "flag de snes_correr.py")
     parser.add_argument("--ruta-de-prueba", nargs="+", type=int, default=None,
                         metavar="ORDEN",
                         help="agrega a la página de prueba una ruta forzada "
@@ -508,10 +521,11 @@ def main():
     if not 0 <= args.inicial < len(tabla):
         sys.exit("--inicial %d pero la tabla tiene %d mapas"
                  % (args.inicial, len(tabla)))
+    hay_prueba = (args.pagina_de_prueba or args.ruta_de_prueba
+                  or args.mensaje_de_prueba is not None)
     mundo = Mundo(renderer, args.game_dir, tabla,
-                  (args.pagina_de_prueba, args.ruta_de_prueba)
-                  if (args.pagina_de_prueba or args.ruta_de_prueba)
-                  else None)
+                  (args.pagina_de_prueba, args.ruta_de_prueba,
+                   args.mensaje_de_prueba is not None) if hay_prueba else None)
 
     # Los CharSets y los mapas ya convertidos se comparten entre las
     # direcciones. Convertir un mapa es lo más caro de todo esto —el 52 son
@@ -606,7 +620,8 @@ def main():
         map_id, x, y, direction, pasos = hero_position(mundo, estado,
                                                        tabla[args.inicial],
                                                        walk, inicio,
-                                                       avance, cuadros)
+                                                       avance, cuadros,
+                                                       args.apretar_a)
         if args.hero_tile and args.dir:
             direction = DIRECTIONS[args.dir]
 
@@ -693,7 +708,7 @@ def main():
         # La ventana de mensaje va antes del tinte, como en la consola: allá el
         # tinte es una transformación de CGRAM y la paleta de la ventana está
         # en la misma mitad que las del mapa.
-        if args.mensaje_de_prueba is not None:
+        if estado.mensaje:
             import ventana as ventana_mod
             skin = ventana_mod.skin(args.game_dir,
                                     renderer.database.system_name)
@@ -712,8 +727,10 @@ def main():
               % (destino, map_id, x, y,
                  walk if walk != "none" else NOMBRE_DIR[direction],
                  cam_x, cam_y,
-                 "" if estado.tinte == (eventos.TINTE_NEUTRO,) * 3
-                 else ", tinte %d/%d/%d" % estado.tinte))
+                 ("" if estado.tinte == (eventos.TINTE_NEUTRO,) * 3
+                  else ", tinte %d/%d/%d" % estado.tinte)
+                 + (", con la ventana de mensaje abierta"
+                    if estado.mensaje else "")))
         if pasos:
             print("  camina %d celdas = %d cuadros a %d por celda"
                   % (pasos, pasos * CUADROS_POR_CELDA, CUADROS_POR_CELDA))

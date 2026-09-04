@@ -248,10 +248,10 @@ comparación estaría midiendo dos cosas distintas.
 
 ### El intérprete de eventos
 
-RM2k tiene unos 130 comandos de evento. La ROM entiende cinco —prender y apagar
-switches, esperar, teñir la pantalla y teletransportar— y resuelve las páginas
-como RM2k: de cada evento gana **la de número más alto cuyas condiciones se
-cumplen todas**.
+RM2k tiene unos 130 comandos de evento. La ROM entiende siete —prender y apagar
+switches, esperar, teñir la pantalla, teletransportar, cambiar el grupo, caminar
+una ruta forzada y mostrar un mensaje— y resuelve las páginas como RM2k: de cada
+evento gana **la de número más alto cuyas condiciones se cumplen todas**.
 
 La regla que hace que eso sea seguro es una sola: **una página se emite sólo si
 todos sus comandos se pueden ejecutar**. Si aparece uno que no modelamos, la
@@ -349,6 +349,80 @@ Los cuatro se ven apenas se corre la página, y no se ven de ninguna otra forma.
 La lección es la de siempre en este repo, pero al revés: acá el problema no fue
 que la referencia y la ROM se equivocaran igual, sino que **no había ninguna
 referencia que ejecutar**.
+
+### La ventana de mensaje
+
+La ventana vive en BG2, en la mitad de arriba del banco de tiles que comparte
+con la capa de encima: del índice 0 al 255 cae el de encima y del 256 al 511 la
+ventana. Su paleta es la que queda justo debajo de la de encima, y se la paga el
+fondo: se lo aprieta en las que quedan y fusiona lo que no entre. Relevados los
+328 mapas, 290 no fusionan nada y los 38 que sí van de 1 a 16 colores, que es el
+techo —una paleta—.
+
+**El tilemap de BG2 se scrollea con la cámara, y la ventana no puede.** No es un
+caso raro: en `game_player.cpp` de easyrpg `UpdateMoveRoute` corre **antes** del
+guard de `IsMessageActive`, o sea que una ruta forzada del héroe sigue caminando
+con el mensaje en pantalla y la cámara lo sigue. En este juego hay 186 páginas
+donde eso pasa y la primera está en el mapa 1; y hay 25 páginas paralelas con
+`PanScreen`, que también corren.
+
+La salida no es HDMA ni un tilemap aparte: **se sigue el scroll**. Las celdas de
+la ventana se escriben en las posiciones que en *ese* cuadro corresponden a la
+franja de abajo, así que si la cámara se movió se estampan en otro lado y se ven
+igual de quietas. No cuesta un byte más de VRAM y son escrituras de tilemap, que
+es el camino que los tres cores emulan igual.
+
+**El opcode no lleva operandos, y eso es lo que hay que entender antes de
+tocarlo.** Una página de mensaje compuesta son unos 240 tiles de 4bpp, o sea
+7,5 KB: emitir una por cada mensaje del juego no entra ni cerca en 256 KB. La
+salida es la de FF6 —componer el texto en tiles desde el 65816, con la fuente en
+la ROM— y hasta que eso exista la ROM lleva **una sola** ventana ya compuesta,
+la que arma `--mensaje-de-prueba`. O sea que el `ShowMessage` de RM2k **sigue
+sin compilar**: lo que ya existe es el intérprete sabiendo abrir, bloquear y
+cerrar.
+
+El ciclo son tres piezas y ninguna corre donde uno esperaría:
+
+* `op_mensaje` deja el pedido y **corta el cuadro**. La página queda bloqueada:
+  `eventos_tick` ve `msg_abierto` y vuelve sin ejecutar nada.
+* El flanco de A la desbloquea —`pad_a` contra `pad_a_ant`, que es el
+  `Input::IsTriggered` de RM2k: sostener el botón no dispara de nuevo— y la
+  página sigue **en ese mismo cuadro**.
+* `mensaje_de_evento` atiende el pedido al final del cuadro, con la pantalla
+  apagada. Tiene que ser así: estampar la ventana son 640 bytes de tilemap y
+  redibujar la franja al cerrar son 2560, y eso no entra en un vblank. Está
+  medido, llamando a `redibujar_franja` de más a propósito sobre `snes-heroe 7`:
+  cada cuadro deja 532 pixeles de basura, cada 8 cuadros 262, cada 64 cuadros 0
+  y una sola vez 0. Que la basura escale con la frecuencia y no con el contenido
+  es lo que dice que el problema es el presupuesto del vblank.
+
+Y hay un detalle que cuesta descubrir: `mensaje_de_evento` empieza vaciando las
+tiras que dejó `stream_map` en ese mismo cuadro. `redibujar_franja` arranca
+poniendo `col_addr` y `row_addr` en cero, así que sin eso la columna o la fila
+que la cámara acababa de destapar se perdería.
+
+**Cómo se verifica.** `just snes-ventana` compara el dibujo —marco, fondo,
+fuente, sombra y paleta— contra la referencia, en cuatro mapas elegidos por
+cómo les pega el reparto de paletas. `just snes-cerrar` compara las otras dos
+mitades, con la misma forma que `snes-espera`: dos cuadros con margen, uno antes
+y uno después de apretar A.
+
+    cuadro  60   la ventana en pantalla y la página frenada: sin teñir
+    cuadro 400   la ventana borrada y el tinte puesto
+
+Los dos cuadros difieren en 52637 pixeles de 57344, así que la prueba tiene de
+dónde agarrarse, y cada mitad se verificó rompiéndola a propósito:
+
+    sin `redibujar_franja` al cerrar   el cuadro 400 se va a 15789 pixeles
+    sin bloquear la página             el cuadro 60 se va a 36848
+
+Es la única prueba que ejercita `redibujar_franja`, que hasta que existió el
+opcode era el único pedazo de código del repo que no corría nadie.
+
+Lo que **no** prueba, dicho con todas las letras: la cámara no se mueve en ese
+caso, así que el estampado siguiendo al scroll no lo ejercita nada todavía. Hoy
+la ventana se estampa una sola vez al abrirla; falta engancharlo en
+`stream_map` para que siga quieta mientras la cámara se mueve.
 
 ### Cómo se verifica
 
@@ -804,13 +878,32 @@ resto no, según qué escritura pescara el vblank.
 Lo segundo no lo vio la tanda: snes9x acepta esas escrituras y mednafen no. Lo
 encontró taro jugando, dos veces seguidas.
 
-**La RAM arranca con basura, y el emulador rápido la arranca en cero.** Ésta es
-la trampa que hace invisibles a las otras. snes9x —el core de la tanda— llena la
-WRAM de ceros al encender; la consola no, y mednafen y bsnes tampoco. Una
-variable que nadie inicializa da verde en las 56 comparaciones y falla en
-hardware real: pasó con `ruta_n`/`ruta_i`, que sin poner en cero hacían creer a
-`move_hero` que había una ruta forzada pendiente, y el héroe no leía el pad
-nunca. La tanda entera estaba verde.
+**La RAM arranca con basura, y el emulador rápido la arranca de otra manera.**
+Ésta es la trampa que hace invisibles a las otras: una variable que nadie
+inicializa puede dar verde en las 60 comparaciones y fallar en hardware real.
+Pasó con `ruta_n`/`ruta_i`, que sin poner en cero hacían creer a `move_hero`
+que había una ruta forzada pendiente, y el héroe no leía el pad nunca. La tanda
+entera estaba verde.
+
+Acá decía "snes9x llena la WRAM de ceros al encender", y **no es cierto**. Se
+midió el 2026-09-04 con `msg_abierto`: sin su `stz`, `snes-cerrar` se cae en las
+doce corridas de snes9x, y da igual dónde caiga la variable —se probó pegada a
+`port0` y al final de BSS—. O sea que snes9x tampoco deja esos bytes en cero.
+
+Lo que sí se sostiene es más fino, y conviene tenerlo escrito porque cambia
+cuándo hay que desconfiar: lo que snes9x deja es **siempre lo mismo**, así que
+esconde los errores que un patrón fijo esconde y no los otros. Medido el mismo
+día, con el error de `ruta_n`/`ruta_i` puesto de vuelta a mano y diez corridas
+por core:
+
+    snes9x   0 de 10 en rojo
+    bsnes    2 de 10
+
+O sea que sea cual sea el valor que snes9x deja ahí, hace que `ruta_i < ruta_n`
+dé falso las diez veces, y el error desaparece. `msg_abierto` no tiene con quién
+empatar: alcanza con que no sea cero y se ve siempre. La regla práctica no
+cambia —toda variable se inicializa— pero la razón sí: no es que snes9x sea
+benévolo, es que es previsible.
 
 Contra eso está `snes-bsnes`, que corre dos casos con `bsnes_entropy=High`:
 bsnes llena la WRAM de basura, como la consola. Comentando esas dos líneas de
@@ -988,6 +1081,16 @@ comparación.
   Sirve para elegir por dónde seguir: los cuadros de texto son de lejos lo que
   más desbloquearía. De las 60 de `MoveEvent`, 46 mueven **otro evento** y no al
   héroe, o sea que piden que los NPCs caminen, que es una feature aparte.
+* **Componer el texto del mensaje en caliente.** Es lo que separa al opcode que
+  ya existe de que esas 144 páginas compilen: hoy la ROM lleva una sola ventana
+  ya compuesta por el conversor, porque una por mensaje son 7,5 KB y no entran.
+  Hace falta la fuente en la ROM y armar los 240 tiles desde el 65816, como hace
+  FF6 con su `InitDlgVWF` y su buffer de diálogo en la WRAM. Ver "La ventana de
+  mensaje".
+* **Que la ventana siga quieta con la cámara moviéndose.** Se estampa una sola
+  vez al abrirla, y con la cámara quieta alcanza; con una ruta forzada del héroe
+  caminando, no. Falta engancharlo en `stream_map`, que ya sube las celdas que
+  el scroll destapa: son las mismas, y por eso sale gratis.
 * **El mapa entero en un cartucho.** Los 328 mapas suman 3,7 MB y LoROM llega a
   4, así que hoy entra un puñado por ROM y se elige al compilar. La salida
   probable es compartir los tiles entre los mapas que usan el mismo chipset:

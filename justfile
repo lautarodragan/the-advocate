@@ -271,9 +271,9 @@ snes-pagina mapa="121" arranca="10" nombre=("pagina-" + mapa):
 # La tanda corre en snes9x por libretro, y snes9x es permisivo en cosas donde la
 # consola real no lo es. En un mismo día se colaron dos errores que sólo mednafen
 # ve, los dos con la tanda en verde: `ruta_n`/`ruta_i` sin inicializar —snes9x
-# arranca la RAM en cero y por eso no se notaba, y el héroe no respondía al
-# control— y el tinte escribiendo CGRAM fuera del vblank, que snes9x acepta y
-# mednafen no.
+# deja siempre la misma basura y las dos quedaban iguales, así que no se notaba,
+# y el héroe no respondía al control— y el tinte escribiendo CGRAM fuera del
+# vblank, que snes9x acepta y mednafen no.
 #
 # Dos casos alcanzan porque cubren las dos clases: uno que tiñe desde un evento
 # —CGRAM y el intérprete— y uno que camina —la RAM del control—. Cuesta como un
@@ -360,6 +360,50 @@ snes-ventana mapa="7" nombre="ventana":
       {{snes_pngs}}/esperado-{{nombre}}.png \
       --saltar {{snes_pngs}}/saltar-{{nombre}}.txt \
       -o {{snes_pngs}}/comparacion-{{nombre}}.png
+
+# Un mensaje de verdad: se abre desde el intérprete, bloquea la página, y se
+# cierra cuando el jugador aprieta A.
+#
+# El nombre es por lo último, que es lo que no existía: `snes-ventana` ya
+# dibujaba la ventana, pero no había forma de **cerrar** un mensaje.
+#
+# Es lo que `snes-ventana` no prueba. Allá la ventana se abre y se queda, así que
+# lo único que se compara es el dibujo; acá se comparan las dos mitades que
+# faltaban:
+#
+#   antes    la ventana en pantalla y **la página frenada**: el tinte que viene
+#            después del mensaje todavía no se aplicó
+#   después  la ventana borrada y el tinte puesto, o sea que apretar A la cerró
+#            y la página siguió
+#
+# Ese segundo cuadro es el único que ejercita `redibujar_franja`, que hasta hoy
+# no la llamaba nadie: si no corriera, la ventana seguiría ahí.
+#
+# Los cuadros se miran con margen y no en el borde, por lo mismo que
+# `snes-espera`: el arranque de la ROM no lo modela la referencia. A los 60
+# cuadros los dos lados tienen el mensaje abierto hace rato, y a los 400 hace
+# rato que se cerró. A se aprieta en el 200 y se deja apretado: la ROM cierra
+# con el flanco —`pad_a` contra `pad_a_ant`, que es el `IsTriggered` de RM2k—
+# así que sostenerlo no dispara nada más, y la referencia modela ese mismo
+# único flanco.
+#
+# El `--pagina-de-prueba 0 0 0 50` es el tinte de atrás del mensaje, con espera
+# en cero: es lo que hace visible que la página siguió.
+snes-cerrar mapa="7" apretar="200" nombre="cerrar":
+  #!/usr/bin/env bash
+  set -euo pipefail
+  mkdir -p {{snes_pngs}} {{snes_inc}}
+  linea1="SEWELL"
+  linea2="There you are, Talan. Ready for"
+  linea3="the big night?"
+  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}}       --mensaje-de-prueba "$linea1" "$linea2" "$linea3"       --pagina-de-prueba 0 0 0 50 -o {{snes_inc}}/mapdata.inc
+  just snes-build
+  pre={{snes_pngs}}/{{nombre}}
+  python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none       --mensaje-de-prueba "$linea1" "$linea2" "$linea3"       --pagina-de-prueba 0 0 0 50 --cuadros 60 400 --apretar-a {{apretar}}       --saltar $pre-{}.saltar.txt -o $pre-{}.esperado.png
+  for n in 60 400; do
+    python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre-$n.png         --walk none --cuadros $n --arranque 0 --apretar-a {{apretar}}
+    python3 tools/snes_compare.py $pre-$n.png $pre-$n.esperado.png         --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
+  done
 
 # El juego original corriendo en EasyRPG, capturado sin pantalla, y nuestra
 # ventana comparada contra eso.
@@ -482,9 +526,10 @@ snes-ruta mapa="6" ruta="1 1 1 1 23 23 2 2 2 2 23 23 0 0 0 0" cuadros="18 34 86 
 #
 # bsnes es el emulador preciso, y sobre todo es el que **llena la WRAM de basura
 # al encender** —`bsnes_entropy`, que acá va en "High"—, que es lo que hace la
-# consola de verdad y lo que snes9x no hace: snes9x arranca la RAM en cero, y
-# por eso la tanda entera daba verde con `ruta_n`/`ruta_i` sin inicializar. Con
-# esto la tanda ve esa clase de error sola, sin que nadie tenga que jugar.
+# consola de verdad y lo que snes9x no hace: lo que snes9x deja es siempre lo
+# mismo, y por eso la tanda entera daba verde con `ruta_n`/`ruta_i` sin
+# inicializar, que sin inicializar quedan iguales entre sí. Con esto la tanda ve
+# esa clase de error sola, sin que nadie tenga que jugar.
 #
 # Cuánto ve, medido y no supuesto: comentando esas dos líneas de `main.s`, sobre
 # 20 corridas del mapa 7, con "None" difieren 0 cuadros, con "Low" 3 y con
@@ -497,12 +542,17 @@ snes-ruta mapa="6" ruta="1 1 1 1 23 23 2 2 2 2 23 23 0 0 0 0" cuadros="18 34 86 
 # No la reemplaza: mednafen no es un core de libretro, así que también prueba
 # que `tools/retro.py` no se esté equivocando parejo con los tres cores.
 #
-# El tercer caso es la ventana, y no está de adorno: es el código más nuevo y el
+# El tercer caso es el mensaje, y no está de adorno. Es el código más nuevo y el
 # que más CGRAM y VRAM toca con la pantalla apagada —`load_ventana` sube tiles y
-# una paleta entera—, que es justo la clase de escritura que snes9x perdona.
-# Ahí ya nos mordió dos veces: el tinte que se aplicaba con el PPU dibujando, y
-# `ruta_n`/`ruta_i` sin inicializar. Sale casi gratis: son 200 cuadros, y la
-# receta entera pasó de 16 a 18 segundos.
+# una paleta entera, `mensaje_de_evento` escribe el tilemap—, que es justo la
+# clase de escritura que snes9x perdona; ahí ya nos mordió dos veces, con el
+# tinte aplicado mientras el PPU dibujaba.
+#
+# Va `snes-cerrar` y no `snes-ventana` porque cubre lo mismo y algo más: su
+# primer cuadro es la ventana dibujada, igual que allá, y el segundo es el
+# cierre. De paso trae `msg_abierto`, que es una variable de RAM que si nadie
+# pone en cero deja la página bloqueada para siempre —medido: sin su `stz`, el
+# cuadro 400 se cae en las doce corridas—.
 #
 # Va por CORE y no por `just --set` porque las recetas se llaman entre ellas: la
 # variable de entorno cruza a los `just` de adentro y el `--set` no.
@@ -511,7 +561,7 @@ snes-bsnes:
   set -euo pipefail
   CORE=bsnes just snes-evento 4 1 bsnes-evento
   CORE=bsnes just snes-caminando 73 right 60 bsnes-73-right
-  CORE=bsnes just snes-ventana 7 bsnes-ventana
+  CORE=bsnes just snes-cerrar 7 200 bsnes-cerrar
 
 # Que una espera espere de verdad, con una página inventada.
 #

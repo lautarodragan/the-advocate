@@ -103,6 +103,20 @@ OP_ESPERAR  = 0x03      # cuadros (word): la cinemática espera seis
 OP_TINTE    = 0x04      # r, g, b, sat (byte cada uno)
 OP_GRUPO    = 0x05      # operación (byte), actor (byte)
 OP_RUTA     = 0x06      # cuántos comandos (byte), y los comandos
+OP_MENSAJE  = 0x07      # sin operandos: abre la ventana de mensaje de esta ROM
+                        # y bloquea la página hasta que el jugador apriete A
+
+# Por qué no lleva operandos, que es la parte que hay que entender antes de
+# tocar esto. Una página de mensaje compuesta son ~240 tiles de 4bpp, o sea
+# 7,5 KB: emitir una por cada mensaje del juego no entra ni cerca en un
+# cartucho de 256 KB. La salida es la de FF6 —componer el texto en tiles desde
+# el 65816, con la fuente en la ROM— y hasta que eso exista la ROM lleva **una
+# sola** ventana ya compuesta, la que arma `--mensaje-de-prueba`.
+#
+# O sea que el `ShowMessage` de RM2k **sigue sin compilar**: este opcode existe
+# para que el intérprete sepa abrir, bloquear y cerrar, que es lo que le faltaba
+# y lo que deja de ser código muerto a `redibujar_franja`. Cuando el texto se
+# componga en caliente, el opcode gana un operando y nada más de esto cambia.
 
 # ControlSwitches: el primer parámetro dice de dónde salen los ids y el último
 # qué hacer con ellos (liblcf, ControlSwitches::Operation).
@@ -258,6 +272,10 @@ class Estado:
         # Cuántos cuadros seguidos lleva moviéndose, para la pose de caminata.
         # `animate_hero` lo reinicia en cuanto se queda quieto.
         self.cuadros_moviendose = 0
+        # Si hay una ventana de mensaje en pantalla. Mientras esté abierta la
+        # página no avanza —es lo que hace `Game_Message`— pero todo lo demás
+        # sí: la ruta forzada del héroe sigue caminando y la cámara lo sigue.
+        self.mensaje = False
 
     def cuadro_de_ruta(self, puede):
         """Un cuadro de la ruta forzada. `puede(direccion)` dice si se puede dar
@@ -337,7 +355,7 @@ def pagina_activa(paginas, evento, estado):
     return elegida
 
 
-def pagina_de_prueba(espera=0, tinte=(), ruta=()):
+def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=False):
     """Una página automática inventada: una ruta forzada, una espera, un tinte.
 
     No sale de ningún dato del juego, y ésa es la idea. El intérprete corre
@@ -358,6 +376,12 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=()):
     codigo = b""
     if ruta:
         codigo += bytes([OP_RUTA, len(ruta)]) + bytes(ruta)
+    if mensaje:
+        # El mensaje va antes de la espera y del tinte a propósito: bloquea, así
+        # que lo que venga después es lo que prueba que la página **siguió**
+        # cuando se apretó A. Con el tinte detrás, antes de apretar la pantalla
+        # está sin teñir y después está teñida, igual que en `snes-espera`.
+        codigo += bytes([OP_MENSAJE])
     if espera:
         codigo += bytes([OP_ESPERAR, espera & 0xFF, espera >> 8])
     if tinte:
@@ -400,8 +424,21 @@ class Interprete:
     def terminado(self):
         return self.codigo is None and not self.cola
 
-    def cuadro(self):
-        """Avanza un cuadro. Devuelve True si en éste se pidió un salto."""
+    def cuadro(self, apreto_a=False):
+        """Avanza un cuadro. Devuelve True si en éste se pidió un salto.
+
+        `apreto_a` es que el jugador **acaba de** apretar A en este cuadro, no
+        que lo tenga apretado: RM2k cierra el mensaje con `IsTriggered`, o sea
+        con el flanco. En la ROM eso es `pad_a` contra `pad_a_ant`.
+        """
+        if self.estado.mensaje:
+            if not apreto_a:
+                return False
+            # Se cierra y la página sigue **en el mismo cuadro**, que es lo que
+            # hace la ROM: `eventos_tick` limpia `msg_abierto` y cae en el
+            # `jsr correr_codigo` de siempre. Cerrar acá y seguir el cuadro
+            # siguiente sería un cuadro de diferencia entre los dos lados.
+            self.estado.mensaje = False
         if self.esperando:
             self.esperando -= 1
             return False
@@ -435,7 +472,11 @@ def correr_automaticos(paginas, estado, cuadros=100000):
     for _ in range(cuadros):
         if interprete.cuadro():
             return estado.salto
-        if interprete.terminado:
+        if interprete.terminado or estado.mensaje:
+            # Con un mensaje abierto no hay a quién esperar: acá no hay
+            # jugador. Se corta con la ventana en pantalla, que es exactamente
+            # lo que hace la consola si nadie aprieta nada. Quien quiera
+            # comparar el cierre pasa cuadros y dice en cuál se aprieta A.
             break
     return None
 
@@ -490,6 +531,13 @@ def ejecutar(codigo, estado, desde=0):
             cuantos = codigo[i + 1]
             estado.ruta = list(codigo[i + 2:i + 2 + cuantos])
             i += 2 + cuantos
+        elif op == OP_MENSAJE:
+            # Abre la ventana y corta el cuadro. El cursor queda en el comando
+            # siguiente, pero `Interprete.cuadro` no vuelve a llegar acá hasta
+            # que alguien apriete A: la página queda bloqueada, que es lo que
+            # hace `Game_Message` en RM2k.
+            estado.mensaje = True
+            return (i + 1, 0, False)
         elif op == OP_GRUPO:
             estado.cambiar_grupo(codigo[i + 1], codigo[i + 2])
             i += 3

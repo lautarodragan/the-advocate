@@ -87,6 +87,12 @@ def main():
     parser.add_argument("--quieto", type=int, default=QUIETO,
                         help="cuántos cuadros idénticos seguidos cuentan como "
                              "pantalla quieta")
+    parser.add_argument("--apretar-a", type=int, default=None, metavar="N",
+                        help="apretar A en este cuadro y dejarlo apretado, "
+                             "que es lo que cierra una ventana de mensaje. El "
+                             "número se cuenta desde que termina el arranque, "
+                             "igual que el de la referencia, y es el mismo que "
+                             "se le pasa a snes_expect.py con --apretar-a")
     parser.add_argument("--core", default=CORE,
                         help="el .so del core de libretro. Andan los tres "
                              "que hay instalados y dibujan lo mismo a 15 bits; "
@@ -105,6 +111,25 @@ def main():
               % (args.output, " ".join(args.teclas) or "sin apretar nada",
                  args.arranque + args.cuadros, args.arranque))
         return
+
+    def correr_con_a(consola, cuadros, apretados):
+        """Corre `cuadros` cuadros apretando A en el que diga --apretar-a.
+
+        Se aprieta y se deja apretado. La ROM cierra el mensaje con el flanco
+        —`pad_a` contra `pad_a_ant`, que es el `IsTriggered` de RM2k— así que
+        sostenerlo no dispara nada más, y la referencia modela ese mismo único
+        flanco. Devuelve desde qué cuadro la pantalla dejó de cambiar.
+        """
+        quieto_desde, anterior = None, None
+        for n in range(1, cuadros + 1):
+            if n == args.apretar_a:
+                consola.apretar(*(apretados + ("a",)))
+            consola.correr(1)
+            actual = consola.cuadro[0]
+            if actual != anterior:
+                quieto_desde = n
+            anterior = actual
+        return quieto_desde
 
     # El plan dice, por dirección, cuántos cuadros dura la caminata. Sale de la
     # misma referencia contra la que se compara, así que la prueba pasa de
@@ -149,14 +174,8 @@ def main():
         # camino; ese mapa es de 1000x80 y no entra en la ventana del PPU, así
         # que va redibujando mientras se scrollea. Quedarse con el primer tramo
         # informaba "quieta en el 97" cuando la caminata dura 160.
-        quieto_desde = None
-        anterior = None
-        for n in range(1, cuadros + 1):
-            consola.correr(1)
-            actual = consola.cuadro[0]
-            if actual != anterior:
-                quieto_desde = n
-            anterior = actual
+        quieto_desde = correr_con_a(consola, cuadros,
+                                    () if walk == "none" else (walk,))
 
         consola.imagen().save(destino)
         aviso = ""

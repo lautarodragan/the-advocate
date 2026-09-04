@@ -61,12 +61,19 @@ OBSEL    = $2101        ; tamaño de los sprites y dónde viven sus tiles
 OAMADDL  = $2102        ; índice dentro de OAM, en palabras
 OBJSEL_TM = $212C
 JOY1H    = $4219        ; control 1: arriba, abajo, izquierda, derecha y más
+JOY1L    = $4218        ; y el otro byte, donde viven A, X, L y R
 
 ; Los bits del control que nos interesan, tal como aparecen en JOY1H.
 PAD_RIGHT = $01
 PAD_LEFT  = $02
 PAD_DOWN  = $04
 PAD_UP    = $08
+
+; A vive en el otro byte. Los dieciséis bits del control son, de arriba hacia
+; abajo, B Y select start arriba abajo izquierda derecha A X L R y cuatro de
+; relleno; JOY1H trae los ocho de más peso y JOY1L los ocho de menos, así que
+; A es el bit 7 de JOY1L.
+PAD_A     = $80
 
 ; --- DMA, canal 0 ----------------------------------------------------------
 DMAP0    = $4300        ; modo de transferencia
@@ -172,6 +179,8 @@ camara_x:   .res 2      ; dónde está mirando la cámara, en pixeles
 camara_y:   .res 2
 scroll_y:   .res 2      ; lo mismo menos uno, que es lo que el PPU quiere
 pad:        .res 1      ; lo que el control tenía apretado este cuadro
+pad_a:      .res 1      ; y A, que vive en el otro byte del control
+pad_a_ant:  .res 1      ; cómo estaba el cuadro pasado, para ver el flanco
 temp:       .res 4      ; cuentas intermedias
 hero_x:     .res 2      ; dónde está el héroe en el mapa, en pixeles
 hero_y:     .res 2
@@ -386,17 +395,29 @@ grupo_listo:
     ; pendiente y no lee el pad nunca —el héroe no se mueve—.
     ;
     ; Lo de la ruta lo encontró taro jugando en mednafen, no la tanda, y ésa es
-    ; la parte que importa: **snes9x arranca la RAM en cero y mednafen no**. La
-    ; tanda entera daba verde con este error adentro. Es la trampa que el LEEME
-    ; ya tenía anotada —"la consola arranca con lo que dejó el programa
-    ; anterior, el emulador arranca en cero"— y acá se cobró en serio: en
-    ; hardware real habría fallado igual que en mednafen.
+    ; la parte que importa: **lo que snes9x deja en la RAM es siempre lo mismo**,
+    ; así que esconde justo los errores que un patrón fijo esconde. Con estas dos
+    ; sin inicializar, `ruta_i < ruta_n` da falso las diez corridas de snes9x y
+    ; el error desaparece; en bsnes con entropía alta se ve. La tanda entera
+    ; daba verde con esto adentro, y en hardware real habría fallado igual que
+    ; en mednafen. Está medido en "Trampas del hardware" del LEEME.
     stz ev_activo
     stz cola_n
     stz cola_i
     stz ruta_n                  ; sin ruta forzada pendiente
     stz ruta_i
     stz tinte_pendiente
+    ; Y la ventana de mensaje. `msg_abierto` en basura deja la página bloqueada
+    ; para siempre: `eventos_tick` cree que hay un mensaje en pantalla y espera
+    ; una A que ya no cierra nada. Está medido —sin este `stz`, `snes-cerrar` se
+    ; cae en las doce corridas, y en snes9x además de en bsnes—.
+    stz msg_abierto
+    stz msg_abrir
+    stz msg_cerrar
+    ; Los dos del pad son por las dudas y no por un error visto: `read_pad`
+    ; los reescribe antes de que nadie los mire. Cuestan dos instrucciones.
+    stz pad_a
+    stz pad_a_ant
     rep #$20
 .a16
     stz ev_esperando
@@ -447,6 +468,7 @@ loop:
     jsr animate_hero
     jsr follow_camera
     jsr stream_map              ; la columna o la fila que la cámara destapó
+    jsr mensaje_de_evento       ; abrir o cerrar la ventana, si se pidió
     jsr build_oam               ; y se arma el siguiente, ya fuera del vblank
     jsr music_tick
     bra loop
@@ -743,7 +765,16 @@ puesto:
     jsr elegir_grafico_heroe
     jsr fill_window             ; deja listo tira_paso_col, que el otro usa
     jsr load_ventana
+    ; Los tiles y la paleta de la ventana suben siempre; las celdas, sólo si hay
+    ; un mensaje en pantalla. Antes se estampaban siempre y la ventana se veía
+    ; desde que cargaba el mapa, que era lo único que había hasta que existió el
+    ; opcode. Ahora la abre el intérprete, y esto está para el caso en que una
+    ; página teletransporte con el mensaje abierto: el mapa nuevo acaba de pisar
+    ; el tilemap entero.
+    lda msg_abierto
+    beq sin_ventana
     jsr estampar_ventana
+sin_ventana:
     jsr init_hero_ptr
 
     ; El tinte es estado del juego, no del mapa: sobrevive al teletransporte.
@@ -828,6 +859,28 @@ nada:
 sin_espera:
     sep #$20
 .a8
+
+    ; Con un mensaje en pantalla la página queda bloqueada, que es lo que hace
+    ; `Game_Message`. Todo lo demás sigue: la ruta forzada del héroe camina y la
+    ; cámara lo sigue, porque en `game_player.cpp` de easyrpg `UpdateMoveRoute`
+    ; corre **antes** del guard de `IsMessageActive`. En este juego hay 186
+    ; páginas donde eso pasa, y la primera está en el mapa 1.
+    lda msg_abierto
+    beq sin_mensaje
+    lda pad_a
+    beq no_avanza               ; nadie apretó: el mensaje se queda
+    lda pad_a_ant
+    bne no_avanza               ; ya lo tenía apretado: no es un flanco
+    stz msg_abierto
+    lda #1
+    sta msg_cerrar              ; la franja se redibuja al final del cuadro
+    ; Y la página sigue **en este mismo cuadro**, cayendo en el `jsr
+    ; correr_codigo` de siempre. Cerrar acá y retomar el cuadro siguiente
+    ; sería un cuadro de diferencia contra la referencia.
+    bra sin_mensaje
+no_avanza:
+    rts
+sin_mensaje:
 
     lda ev_activo
     bne corriendo
@@ -1158,19 +1211,44 @@ no:
 otro:
     lda [cod_ptr], y
     iny
+    ; Las comparaciones van en el mismo orden que los cuerpos, del más cercano
+    ; al más lejano, y eso no es cosmético: son `beq` y no llegan más allá de
+    ; 127 bytes. Con OP_TELEPORT probado segundo —como estaba— su cuerpo, que
+    ; es el último, quedaba a 124: agregar un opcode más lo mandaba a 140 y el
+    ; ensamblador cortaba. Ordenado así hay lugar para varios más.
+    cmp #OP_MENSAJE
+    beq op_mensaje
     cmp #OP_SWITCH
     beq op_switch
-    cmp #OP_TELEPORT
-    beq op_teleport
+    cmp #OP_RUTA
+    beq op_ruta
+    cmp #OP_GRUPO
+    beq op_grupo
     cmp #OP_ESPERAR
     beq op_esperar
     cmp #OP_TINTE
     beq op_tinte
-    cmp #OP_GRUPO
-    beq op_grupo
-    cmp #OP_RUTA
-    beq op_ruta
+    cmp #OP_TELEPORT
+    beq op_teleport
     stz ev_activo               ; OP_FIN, o algo que no conocemos: se corta
+    rts
+
+; Abre la ventana de mensaje y corta el cuadro. El cursor ya quedó en el
+; comando siguiente —el `iny` del lazo— pero `eventos_tick` no vuelve a llamar
+; acá hasta que el jugador apriete A.
+;
+; No lleva operandos, y no es una simplificación de paso: una página de mensaje
+; compuesta son unos 240 tiles de 4bpp, o sea 7,5 KB, y emitir una por cada
+; mensaje del juego no entra ni cerca en 256 KB. La salida es la de FF6
+; —componer el texto en tiles desde el 65816, con la fuente en la ROM— y hasta
+; que eso exista la ROM lleva **una sola** ventana ya compuesta. O sea que el
+; `ShowMessage` de RM2k sigue sin compilar: esto es el intérprete aprendiendo a
+; abrir, a bloquear y a cerrar, que es lo que le faltaba.
+op_mensaje:
+    lda #1
+    sta msg_abierto
+    sta msg_abrir               ; el estampado lo hace el lazo, con la pantalla
+    sty ev_cur                  ; apagada
     rts
 
 op_switch:
@@ -2894,6 +2972,51 @@ franja:
     rts
 .endproc
 
+; Abrir y cerrar la ventana de mensaje. Es el otro extremo de `op_mensaje`: el
+; intérprete deja el pedido y esto lo atiende, al final del cuadro.
+;
+; Va acá y no adentro del intérprete por lo mismo que el tinte y que el cruce de
+; puerta: **las dos cosas escriben el tilemap** —640 bytes al estampar la
+; ventana, 2560 al redibujar la franja— y eso no entra en un vblank. Así que se
+; apaga el PPU, se escribe y se vuelve a encender. Cuesta un cuadro en negro,
+; que en RM2k tampoco desentona: el motor original funde a negro entre
+; pantallas.
+;
+; Lo primero es vaciar las tiras que dejó `stream_map` en este mismo cuadro.
+; `redibujar_franja` arranca poniendo `col_addr` y `row_addr` en cero, así que
+; sin esto la columna o la fila que la cámara acababa de destapar se perdería y
+; el borde de la pantalla quedaría con el mapa viejo. Subirlas acá es legal
+; porque la pantalla ya está apagada.
+;
+; Y el orden es cerrar antes de abrir: una página que cierre un mensaje y abra
+; otro en el mismo cuadro tiene que quedar con la ventana nueva. Al revés, el
+; redibujado le borraría lo que acaba de estampar.
+.proc mensaje_de_evento
+.a8
+.i16
+    lda msg_cerrar
+    ora msg_abrir
+    bne hay
+    rts
+hay:
+    lda #$80
+    sta INIDISP
+    jsr push_strips             ; lo que stream_map dejó pendiente
+    lda msg_cerrar
+    beq sin_cerrar
+    stz msg_cerrar
+    jsr redibujar_franja
+sin_cerrar:
+    lda msg_abrir
+    beq sin_abrir
+    stz msg_abrir
+    jsr estampar_ventana
+sin_abrir:
+    lda #$0F
+    sta INIDISP
+    rts
+.endproc
+
 ; --- lo que va sí o sí dentro del vblank -----------------------------------
 ; OAM sólo se puede escribir mientras el PPU no la está leyendo, o sea en el
 ; vblank. Armarla lleva su tiempo —con treinta y pico de personajes, más de un
@@ -3864,6 +3987,15 @@ termina:
     bne termina                 ; sigue leyendo
     lda JOY1H
     sta pad
+    ; De A no interesa el estado sino el flanco: RM2k cierra el mensaje con
+    ; `Input::IsTriggered`, o sea con la transición de suelto a apretado.
+    ; Sostenerlo no vuelve a disparar nada, y por eso la prueba puede apretarlo
+    ; y dejarlo apretado hasta el final.
+    lda pad_a
+    sta pad_a_ant
+    lda JOY1L
+    and #PAD_A
+    sta pad_a
     rts
 .endproc
 
@@ -3988,6 +4120,16 @@ done:
 
 .segment "BSS"
 port0: .res 1
+
+; La ventana de mensaje. `msg_abierto` es si hay una en pantalla, y los otros
+; dos son pedidos que el lazo principal atiende al final del cuadro, con la
+; pantalla apagada: no se puede escribir el tilemap con el PPU dibujando.
+;
+; Van acá y no en la página cero porque no se tocan en ningún lazo cerrado, y
+; la página cero está a cuatro bytes de llenarse.
+msg_abierto: .res 1
+msg_abrir:   .res 1
+msg_cerrar:  .res 1
 
 ; OAM se arma en RAM y se manda entero por DMA cada cuadro. Es más simple que
 ; escribir entradas sueltas, y es lo que va a hacer falta cuando haya NPCs.

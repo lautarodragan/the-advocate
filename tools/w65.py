@@ -673,13 +673,21 @@ class Assembler:
                 raise Error("el área no entra: %d bytes en %d"
                             % (offset - start, size))
 
-        for _, start, _, names in RAM_AREAS:
+        # La RAM se reparte igual que la ROM, y con el mismo control de que
+        # entre. No lo tenía, y no era teórico: ZEROPAGE llegó a 260 bytes
+        # —diez de ellos por unas variables declaradas dos veces— o sea que las
+        # últimas caían en $0100, encima de la pila y del principio de BSS.
+        # Nada lo dijo y la tanda siguió en verde.
+        for nombre, start, size, names in RAM_AREAS:
             address = start
             for segment in names:
                 for index, item in enumerate(self.items[segment]):
                     self.addresses[(segment, index)] = address
                     address += item.size
                 self.addresses[(segment, len(self.items[segment]))] = address
+            if address > start + size:
+                raise Error("%s no entra: %d bytes en %d"
+                            % (nombre, address - start, size))
 
         for segment, index, name in self.pending:
             self.symbols[name] = self.addresses[(segment, index)]

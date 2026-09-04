@@ -1086,6 +1086,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "OP_TINTE    = $%02X\n"
         "OP_GRUPO    = $%02X\n"
         "OP_RUTA     = $%02X\n"
+        "OP_MENSAJE  = $%02X\n"
         "TRIGGER_AUTOMATICO = %d\n"
         "TINTE_NEUTRO = %d\n"
         "; Un bit por switch. El más alto que el juego consulta es el 1003.\n"
@@ -1118,7 +1119,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            PUERTA_BYTES, PAGINA_BYTES,
            eventos.OP_FIN, eventos.OP_SWITCH, eventos.OP_TELEPORT,
            eventos.OP_ESPERAR, eventos.OP_TINTE, eventos.OP_GRUPO,
-           eventos.OP_RUTA,
+           eventos.OP_RUTA, eventos.OP_MENSAJE,
            eventos.TRIGGER_AUTOMATICO, eventos.TINTE_NEUTRO, SWITCH_BYTES,
            eventos.GRUPO_MAX, len(grupo_inicial), ACTOR_BYTES,
            rm2k.LAYER_SAME,
@@ -1300,11 +1301,13 @@ def main():
     parser.add_argument("-o", "--output",
                         default=os.path.join(REPO, "rom/src/mapdata.inc"))
     parser.add_argument("--mensaje-de-prueba", nargs="*", metavar="LINEA",
-                        help="dibuja una ventana de mensaje con estas líneas "
-                             "apenas se carga el mapa. Es lo sintético de "
-                             "siempre —como --pagina-de-prueba— y existe "
-                             "porque ninguna página del juego compila todavía "
-                             "con un ShowMessage adentro")
+                        help="mete en el mapa inicial una página automática "
+                             "que abre una ventana de mensaje con estas "
+                             "líneas y espera a que el jugador apriete A. Es "
+                             "lo sintético de siempre —como "
+                             "--pagina-de-prueba— y existe porque el "
+                             "ShowMessage del juego todavía no compila: la "
+                             "ROM lleva una sola ventana ya compuesta")
     parser.add_argument("--ruta-de-prueba", nargs="+", type=int, default=None,
                         metavar="ORDEN",
                         help="agrega a la página de prueba una ruta forzada "
@@ -1391,7 +1394,8 @@ def main():
         # Los eventos automáticos: sus páginas con las condiciones, y el código
         # de las que se pueden ejecutar, todo seguido en un solo bloque.
         paginas = eventos.paginas_del_mapa(mapa["game_map"], indices.get)
-        if (args.pagina_de_prueba or args.ruta_de_prueba) \
+        if (args.pagina_de_prueba or args.ruta_de_prueba
+                or args.mensaje_de_prueba is not None) \
                 and mapa is mapas[args.inicial]:
             # La página inventada, sólo en el mapa donde arranca la ROM. No sale
             # de ningún dato del juego: existe porque ninguna página que compile
@@ -1405,7 +1409,8 @@ def main():
                 "trigger": eventos.TRIGGER_AUTOMATICO,
                 "switch_a": 0, "switch_b": 0, "actor": 0,
                 "codigo": eventos.pagina_de_prueba(
-                    espera, tinte, args.ruta_de_prueba or ())}]
+                    espera, tinte, args.ruta_de_prueba or (),
+                    args.mensaje_de_prueba is not None)}]
         codigo = bytearray()
         for pagina in paginas:
             pagina["offset"] = len(codigo)

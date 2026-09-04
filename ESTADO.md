@@ -436,18 +436,51 @@ seis. Los dos casos nuevos de ventana son el mapa 1 —el que descubrió esto, y
 estampa la ventana sobre un mapa que la ROM va redibujando— y el 348, que es
 donde la fusión se ve.
 
+**Hecho el 2026-09-04: el opcode, el bloqueo y la espera de A.** `OP_MENSAJE`
+abre la ventana y corta el cuadro; la página queda frenada hasta el **flanco** de
+A —`pad_a` contra `pad_a_ant`, que es el `IsTriggered` de RM2k— y sigue en ese
+mismo cuadro. El estampado y el redibujado los hace `mensaje_de_evento` al final
+del cuadro, con la pantalla apagada, por lo mismo que el tinte: son 640 y 2560
+bytes de tilemap y no entran en un vblank.
+
+Lo prueba `snes-cerrar`, con la misma forma que `snes-espera`: dos cuadros con
+margen, a los 60 la ventana abierta y la página frenada —el tinte que viene
+detrás todavía no se aplicó— y a los 400 la ventana borrada y el tinte puesto.
+Los dos cuadros difieren en 52637 pixeles de 57344. Cada mitad se verificó
+rompiéndola: sin `redibujar_franja` el cuadro 400 da 15789, y sin bloquear el
+cuadro 60 da 36848. Es la primera prueba que ejercita `redibujar_franja`, que
+hasta hoy no la llamaba nadie.
+
+**El `ShowMessage` de RM2k sigue sin compilar, y el opcode no lleva operandos a
+propósito.** Una página de mensaje compuesta son ~240 tiles de 4bpp, o sea
+7,5 KB: emitir una por mensaje no entra ni cerca en 256 KB. La ROM lleva una
+sola ventana ya compuesta hasta que el texto se arme en caliente desde el 65816,
+como FF6. O sea que esto no desbloquea ninguna de las 144 páginas: lo que
+desbloquea es el intérprete, que ya sabe abrir, bloquear y cerrar.
+
+`snes-cerrar` entró además en `snes-bsnes`, en el lugar de `snes-ventana`:
+cubre lo mismo —su primer cuadro es la ventana dibujada— y algo más.
+
+Y de paso salió una **corrección a algo que este repo daba por sabido**. Decía,
+en el LEEME y en tres comentarios, que "snes9x arranca la RAM en cero". Es
+falso: `msg_abierto` sin inicializar rompe el cuadro 400 en las doce corridas de
+snes9x, y da igual en qué dirección de BSS caiga —se probó pegada a `port0` y al
+final del segmento—. Lo que sí se sostiene, y es más útil, es que lo que snes9x
+deja es siempre lo mismo, así que esconde los errores que un patrón fijo
+esconde: con el error de `ruta_n`/`ruta_i` puesto de vuelta a mano, snes9x da 0
+de 10 en rojo y bsnes 2 de 10. Sea cual sea el valor que deja, hace que
+`ruta_i < ruta_n` dé falso las diez veces. `msg_abierto` no tiene con quién
+empatar y se ve siempre.
+
 **Lo que falta ahora**, en orden:
 
-* **El opcode del intérprete** y que la página espere a que el jugador apriete
-  A. Recién ahí se puede cerrar un mensaje y `redibujar_franja` deja de ser
-  código muerto.
 * **Enganchar el estampado en `stream_map`**, para que la ventana siga quieta
-  mientras la cámara se mueve. Hoy se estampa una sola vez al cargar el mapa, y
-  con la cámara quieta eso alcanza; con una ruta forzada del héroe caminando,
-  no. Nada de eso está
-escrito todavía, y por lo tanto nada de esto lo corre ninguna prueba: `fuente.py`
-y `ventana.py` están verificados sólo a ojo, mirando el PNG que saca
-`just snes-mensaje`.
+  mientras la cámara se mueve. Hoy se estampa una sola vez al abrirla, y con la
+  cámara quieta eso alcanza; con una ruta forzada del héroe caminando, no. Es
+  también lo que `snes-cerrar` no prueba: ahí la cámara no se mueve.
+* **Componer el texto en caliente**, que es lo que separa al opcode de que
+  compilen las 144 páginas de `ShowMessage`. Pide la fuente en la ROM y armar
+  los 240 tiles desde el 65816.
 
 Y falta el reacomodo del texto, que taro pidió dejar **para otro hito**: la fase
 1 trunca y queda medio ilegible a propósito. A 40 columnas eso es el 1,06% de
@@ -519,8 +552,9 @@ commit narra lo hecho; los supuestos no tienen dónde vivir. Acá.
   cinemática los dos van al mismo mapa; si aparece una que salte entre mapas
   distintos, hay que volver acá.
 * **La tanda no puede ver la RAM sin inicializar.** Descubierto el 2026-09-03,
-  jugando. `snes9x` —el core con el que corre toda la tanda— **arranca la RAM en
-  cero**, y mednafen no. Una variable nueva que nadie inicializa da verde en las
+  jugando. `snes9x` —el core con el que corre toda la tanda— **deja siempre la
+  misma basura**, y mednafen no. (Acá decía "arranca la RAM en cero", y el
+  2026-09-04 se midió que no: ver arriba.) Una variable nueva que nadie inicializa da verde en las
   60 comparaciones y falla en mednafen y en hardware real. Ya pasó: `ruta_n` y
   `ruta_i` sin inicializar hacían que `move_hero` creyera que había una ruta
   forzada pendiente y no leyera el pad nunca; el héroe no se movía y la tanda no
