@@ -435,15 +435,6 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
             blanco = eventos_mapa.blanco(p[0])
             if blanco is None:
                 raise NoSePuede()   # un vehículo, o un evento que no existe
-            quien = (eventos_mapa.mio if p[0] == RUTA_ESTE_EVENTO else p[0])
-            if quien in eventos_mapa.visibles:
-                # Fase A: se mueven los eventos **sin gráfico**. Mover uno
-                # visible pide que camine en pantalla —la pose, el orden de
-                # dibujado contra el héroe, la colisión— y eso es otra cosa.
-                # La mitad de las rutas del juego son sobre invisibles, y ahí lo
-                # único que se ve es cuánto tarda: ver "Lo que falta" en
-                # rom/LEEME.md.
-                raise NoSePuede()
         ruta = list(p[4:])
         if not ruta or len(ruta) > 255:
             raise NoSePuede()
@@ -738,6 +729,40 @@ class Estado:
 
     def lider(self):
         return self.grupo[0] if self.grupo else None
+
+
+def blancos_de_ruta(paginas):
+    """Los eventos a los que estas páginas ya compiladas les mandan una ruta.
+
+    Recorre el bytecode y no los comandos de RM2k, que es lo que hace que sea la
+    verdad y no una conjetura: lo que cuenta es lo que quedó emitido, después de
+    que el filtro decidiera qué páginas entran.
+    """
+    blancos = set()
+    for pagina in paginas:
+        codigo = pagina.get("codigo")
+        i = 0
+        while codigo and i < len(codigo):
+            op = codigo[i]
+            if op == OP_FIN:
+                break
+            if op == OP_RUTA:
+                if codigo[i + 1]:
+                    blancos.add(codigo[i + 1] - 1)
+                i += 3 + codigo[i + 2]
+            elif op == OP_RUTAS:
+                i += 1
+            elif op == OP_SWITCH:
+                i += 4
+            elif op == OP_TELEPORT:
+                i += 6
+            elif op in (OP_ESPERAR, OP_MENSAJE, OP_GRUPO):
+                i += 3
+            elif op == OP_TINTE:
+                i += 5
+            else:
+                raise ValueError("opcode %d que no conozco" % op)
+    return blancos
 
 
 def pagina_activa(paginas, evento, estado):

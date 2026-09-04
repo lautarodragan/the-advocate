@@ -719,7 +719,11 @@ def main():
         # Todo lo que se dibuja encima del mapa, con la clave con la que RM2k lo
         # ordena: primero por capa y recién después por Y. Se pinta de atrás
         # hacia adelante, que es al revés del orden en que van a OAM.
-        actors = [(snes_convert.sort_key(npc["layer"], npc["y"] * TILE),
+        # La clave lleva los tres desempates de RM2k: capa y Y en la palabra
+        # que la consola compara, y después X e id, que allá los resuelve el
+        # orden de la tabla. Ver `orden_de_dibujo` en snes_convert.py.
+        actors = [((snes_convert.sort_key(npc["layer"], npc["y"] * TILE),
+                    npc["x"] * TILE, npc["evento"]),
                    npc["charset"], npc["index"], npc["pose"],
                    npc["x"] * TILE, npc["y"] * TILE,
                    npc["layer"] == rm2k.LAYER_ABOVE)
@@ -747,7 +751,12 @@ def main():
             columna = columna_de_caminata(estado.cuadros_moviendose)
         else:
             columna = STAND
-        actors.append((snes_convert.sort_key(rm2k.LAYER_SAME, y),
+        # El héroe finge la X más alta posible, que es lo que hace
+        # `Game_Player::GetScreenZ`: "when the Player is on the same
+        # Y-coordinate as an event the Player is always rendered first". Sin
+        # eso la referencia lo dibujaba **detrás** del NPC con el que empataba,
+        # y la ROM adelante; se ve parado encima de uno en el mapa 73.
+        actors.append(((snes_convert.sort_key(rm2k.LAYER_SAME, y), 0xFFFF, 0xFFFF),
                        charset, charset_index,
                        direction * 3 + columna, x, y, args.heroe_encima))
 

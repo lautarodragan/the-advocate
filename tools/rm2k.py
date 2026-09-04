@@ -155,7 +155,7 @@ LAYER_ABOVE = 2
 def collect_npcs(game_map):
     """Los eventos visibles, con su pose y si bloquean el paso."""
     npcs = []
-    for event in game_map.events:
+    for numero, event in enumerate(game_map.events):
         page = event.active_page()
         if page is None or not page.character_name:
             continue
@@ -163,6 +163,10 @@ def collect_npcs(game_map):
         # veces, así que la cuarta dibuja la misma que la segunda.
         column = 1 if page.character_pattern == 3 else page.character_pattern
         npcs.append({
+            # El índice en la tabla de eventos del mapa, que es lo que lleva el
+            # bytecode de una ruta forzada. **No es el id de RM2k**: hay mapas
+            # con huecos en la numeración.
+            "evento": numero,
             "x": event.x, "y": event.y,
             "charset": page.character_name,
             "index": page.character_index,

@@ -412,21 +412,34 @@ def build_characters(images, characters):
     return bytes(tiles), palettes, where
 
 
-def npc_table(npcs, where):
+def npc_table(npcs, where, movibles=()):
     """Los NPCs listos para la ROM, ya ordenados como los dibuja RM2k.
 
     El orden de dibujado es primero por capa y recién después por Y: uno "below"
     queda debajo del héroe aunque esté más adelante en pantalla. En la consola,
     el objeto con índice más bajo de OAM es el que se ve encima, así que la
     tabla va del frente hacia el fondo.
+
+    **Este orden inicial es parte del contrato con la referencia.** Los que
+    caminan cambian de Y y la ROM los reacomoda de a uno, con una inserción que
+    respeta el orden de los empatados; la referencia ordena de nuevo con un
+    `sorted` estable sobre esta misma lista. Las dos cosas dan lo mismo sólo si
+    las dos arrancan de acá.
+
+    Los de `movibles` llevan además sus doce poses, para que la ROM pueda
+    cambiarles el tile mientras caminan.
     """
     rows = []
-    for npc in sorted(npcs, key=lambda n: (n["layer"], n["y"]), reverse=True):
+    for npc in sorted(npcs, key=orden_de_dibujo, reverse=True):
         block, slot = where[(npc["charset"], npc["index"], npc["pose"])]
         rows.append({
             "x": npc["x"] * 16, "y": npc["y"] * 16,
             "tile": block_tile(block), "palette": slot,
             "layer": npc["layer"], "blocks": npc["blocks"],
+            "evento": npc["evento"],
+            "poses": [block_tile(where[(npc["charset"], npc["index"], pose)][0])
+                      for pose in range(SPRITE_POSES)]
+            if npc["evento"] in movibles else None,
         })
     return rows
 
@@ -1463,6 +1476,25 @@ NPC_STRIDE = 8
 NPC_MAX = 127
 
 
+def orden_de_dibujo(npc):
+    """Con qué se ordena un evento para dibujarlo, de adelante hacia atrás.
+
+    RM2k ordena por **mayor Y, después mayor X, y después mayor id**. Sale de
+    `Game_Character::GetScreenZ` en easyrpg-player, que arma un Z de 64 bits con
+    la capa arriba, la Y, la X y el id abajo, con el comentario puesto:
+
+        The rendering order of characters is: Highest Y, Highest X, Highest ID
+
+    Los dos desempates faltaban de los dos lados. Con NPCs quietos casi no se
+    nota —hay que tener dos en la misma fila y que alguno tape al otro— pero en
+    cuanto uno camina cambia de fila todo el tiempo y empata con cualquiera.
+
+    El índice de la tabla vale por el id: los eventos vienen ordenados por id,
+    así que el orden es el mismo.
+    """
+    return (npc["layer"], npc["y"], npc["x"], npc["evento"])
+
+
 def sort_key(layer, y):
     """Cómo ordena RM2k: primero la capa y recién después la Y.
 
@@ -1513,6 +1545,37 @@ def recorrer_codigo(codigo):
             i += largo
 
 
+def orden_de_mapas(args):
+    """Los mapas de la ROM, en el orden de la tabla y sin repetidos.
+
+    Está en una función y no escrito tres veces porque **el orden es el
+    contrato**: un teletransporte compilado guarda el índice en esta tabla, no
+    el id de RM2k. Dos listas que se armen distinto llevarían el mismo bytecode
+    a mapas distintos.
+    """
+    return [args.map_id] + [m for m in (args.mapas or []) if m != args.map_id]
+
+
+def eventos_movibles(game_map, indice_de_mapa):
+    """Los eventos con gráfico a los que alguna página compilable manda a
+    caminar, por índice de la tabla de eventos.
+
+    Hace falta antes de armar el banco de sprites: a los que se mueven hay que
+    darles **las doce poses** del ciclo de caminata, y a los demás la única que
+    declaran. Dárselas a cualquiera que aparezca en un MoveEvent sería más
+    simple y no entra: hay mapas con siete, y son 1232 tiles de sprite.
+
+    Se compilan las páginas para saberlo y se tira lo compilado. Es trabajo
+    repetido —main() las vuelve a compilar con el bloque de textos de verdad—
+    pero no es una **regla** repetida: la decisión de qué compila la toma la
+    misma función las dos veces.
+    """
+    paginas = eventos.paginas_del_mapa(game_map, indice_de_mapa,
+                                       eventos.Mensajes())
+    visibles = {npc["evento"] for npc in rm2k.collect_npcs(game_map)}
+    return eventos.blancos_de_ruta(paginas) & visibles
+
+
 def ruta_de_evento(argumento):
     """(blanco, órdenes) desde el flag, o () si no se pidió ninguna."""
     if not argumento or len(argumento) < 2:
@@ -1557,7 +1620,15 @@ def npc_bytes(table):
         # La clave va con la Y en pixeles, que es como la calcula la ROM a
         # partir de la posición del héroe. Con la Y en celdas, la del héroe
         # sería siempre mayor y quedaría siempre adelante de todos.
-        out += sort_key(npc["layer"], npc["y"] * 16).to_bytes(2, "little")
+        #
+        # Y `npc["y"]` **ya está en pixeles**: lo pasa a pixeles `npc_table`.
+        # Multiplicarlo otra vez por 16 —que es lo que hacía acá— daba una clave
+        # dieciséis veces más grande que la del héroe, y como `sort_key` recorta
+        # a doce bits, encima daba la vuelta. La comparación no lo veía porque
+        # el orden **entre** NPCs lo fija el `sorted` del conversor y esta clave
+        # sólo decide dónde entra el héroe: hacía falta que el héroe pisara a un
+        # NPC para que se notara, y ninguna prueba lo hacía.
+        out += sort_key(npc["layer"], npc["y"]).to_bytes(2, "little")
         out.append(npc["tile"] & 0xFF)
         # vhoopppN: la prioridad son los bits 5 y 4, así que el valor va corrido
         # cuatro lugares. Los eventos marcados "above" van en prioridad 2, que
@@ -1670,13 +1741,12 @@ def main():
     # porque el grupo es estado global: una página del mapa A puede meter a
     # alguien que después camina por el mapa B.
     args_game_dir[0] = args.game_dir
-    todos = [args.map_id] + [m for m in (args.mapas or []) if m != args.map_id]
+    todos = orden_de_mapas(args)
     args.lideres = lideres_posibles(renderer, todos, grupo, args.con_ventana)
 
     mapas = [convertir(renderer, map_id, args,
                        inicio=args.inicio if map_id == args.map_id else None)
-             for map_id in ([args.map_id] + [m for m in (args.mapas or [])
-                                             if m != args.map_id])]
+             for map_id in todos]
     # Las puertas se resuelven cuando están todos los mapas: una puede llevar a
     # cualquier otro, así que el índice de destino no se sabe hasta el final.
     indices = {mapa["id"]: numero for numero, mapa in enumerate(mapas)}
@@ -1915,6 +1985,11 @@ def convertir(renderer, map_id, args, inicio=None):
     # que declara su página. Si un NPC usa el mismo personaje que el héroe,
     # comparten paleta y tiles sin que haya que hacer nada.
     npcs = collect_npcs(game_map)
+    # Quiénes van a caminar. A ésos les hacen falta las doce poses del ciclo, y
+    # el resto se queda con la única que declara su página.
+    movibles = eventos_movibles(game_map,
+                                {m: i for i, m in
+                                 enumerate(orden_de_mapas(args))}.get)
     poses = collections.defaultdict(set)
     # Cada candidato a líder con sus doce poses, porque cualquiera puede
     # terminar caminando. El primero de la lista va primero en el banco, que es
@@ -1926,7 +2001,10 @@ def convertir(renderer, map_id, args, inicio=None):
             continue            # no tiene un solo pixel opaco: no se dibuja
         poses[(a.charset, a.charset_index)] |= set(range(SPRITE_POSES))
     for npc in npcs:
-        poses[(npc["charset"], npc["index"])].add(npc["pose"])
+        if npc["evento"] in movibles:
+            poses[(npc["charset"], npc["index"])] |= set(range(SPRITE_POSES))
+        else:
+            poses[(npc["charset"], npc["index"])].add(npc["pose"])
 
     images, characters = {}, []
     primero = renderer.database.lider(args.lideres)
@@ -1944,7 +2022,7 @@ def convertir(renderer, map_id, args, inicio=None):
                  % len(characters))
 
     tiles, palettes, where = build_characters(images, characters)
-    table = npc_table(npcs, where)
+    table = npc_table(npcs, where, movibles)
     # Por cada candidato a líder, dónde caen sus doce poses y con qué paleta. La
     # ROM no calcula el tile a partir de la pose —eso valía cuando el héroe era
     # siempre el personaje 0 del banco—: lo busca acá.
