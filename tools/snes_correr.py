@@ -87,12 +87,14 @@ def main():
     parser.add_argument("--quieto", type=int, default=QUIETO,
                         help="cuántos cuadros idénticos seguidos cuentan como "
                              "pantalla quieta")
-    parser.add_argument("--apretar-a", type=int, default=None, metavar="N",
-                        help="apretar A en este cuadro y dejarlo apretado, "
-                             "que es lo que cierra una ventana de mensaje. El "
-                             "número se cuenta desde que termina el arranque, "
-                             "igual que el de la referencia, y es el mismo que "
-                             "se le pasa a snes_expect.py con --apretar-a")
+    parser.add_argument("--apretar-a", type=int, nargs="+", default=None,
+                        metavar="N",
+                        help="apretar A en estos cuadros, un cuadro cada vez, "
+                             "que es lo que cierra una ventana de mensaje. Los "
+                             "números se cuentan desde que termina el "
+                             "arranque, igual que los de la referencia, y son "
+                             "los mismos que se le pasan a snes_expect.py con "
+                             "--apretar-a")
     parser.add_argument("--core", default=CORE,
                         help="el .so del core de libretro. Andan los tres "
                              "que hay instalados y dibujan lo mismo a 15 bits; "
@@ -112,18 +114,31 @@ def main():
                  args.arranque + args.cuadros, args.arranque))
         return
 
-    def correr_con_a(consola, cuadros, apretados):
-        """Corre `cuadros` cuadros apretando A en el que diga --apretar-a.
+    # El número N es el cuadro en que la referencia cierra el mensaje **y lo
+    # dibuja cerrado**. La ROM dibuja lo que armó la vuelta anterior —es
+    # RETRASO_DE_PANTALLA, el mismo +1 de la caminata— así que para que su
+    # cuadro N salga cerrado el flanco tiene que caer en la vuelta N-1: el pad
+    # se aprieta un cuadro antes. Con los cuadros quietos que miraba
+    # `snes-cerrar` esto no se veía; se vio en la apertura, con el droide
+    # caminando después del cuarto mensaje un cuadro atrás de la referencia.
+    presiones = {n - RETRASO_DE_PANTALLA for n in args.apretar_a or ()}
 
-        Se aprieta y se deja apretado. La ROM cierra el mensaje con el flanco
-        —`pad_a` contra `pad_a_ant`, que es el `IsTriggered` de RM2k— así que
-        sostenerlo no dispara nada más, y la referencia modela ese mismo único
-        flanco. Devuelve desde qué cuadro la pantalla dejó de cambiar.
+    def correr_con_a(consola, cuadros, apretados):
+        """Corre `cuadros` cuadros apretando A en los que diga --apretar-a.
+
+        Cada uno es un toque: se aprieta en ese cuadro y se suelta en el
+        siguiente. La ROM cierra el mensaje con el flanco —`pad_a` contra
+        `pad_a_ant`, que es el `IsTriggered` de RM2k— así que sostenerlo no
+        dispararía nada más, pero tampoco dejaría que el toque siguiente fuera
+        un flanco; la referencia modela esos mismos flancos, uno por número.
+        Devuelve desde qué cuadro la pantalla dejó de cambiar.
         """
         quieto_desde, anterior = None, None
         for n in range(1, cuadros + 1):
-            if n == args.apretar_a:
+            if n in presiones:
                 consola.apretar(*(apretados + ("a",)))
+            elif n - 1 in presiones:
+                consola.apretar(*apretados)
             consola.correr(1)
             actual = consola.cuadro[0]
             if actual != anterior:

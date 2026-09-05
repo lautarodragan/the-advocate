@@ -685,6 +685,19 @@ después de apretar A.
     cuadro  60   la ventana en pantalla y la página frenada: sin teñir
     cuadro 400   la ventana borrada y el tinte puesto
 
+**El toque de A cae un cuadro antes del número.** `--apretar-a N` es el cuadro
+en que la referencia cierra el mensaje y lo dibuja cerrado. La ROM dibuja lo
+que armó la vuelta anterior —el mismo `RETRASO_DE_PANTALLA` de la caminata—,
+así que `snes_correr.py` aprieta en el N-1 para que su cuadro N salga cerrado
+también. Con los dos cuadros quietos de `snes-cerrar` esto no se veía: lo
+delató la apertura, con el droide caminando después del cuarto mensaje un
+cuadro atrás de la referencia, y la traza de los dos intérpretes cuadro a
+cuadro —ranura de ruta contra `Ruta`, cursor contra `ev_cur`— diciendo que el
+estado era el mismo y sólo el dibujo iba atrás. Y son **varios** toques, no
+uno: cada número es un flanco, la ROM lo suelta al cuadro siguiente para que
+el próximo también lo sea, y la referencia cuenta los cuadros a través de los
+teletransportes, que es como los cuenta el emulador.
+
 **La ventana no se tiñe.** Es lo que hace RM2k —en `Spriteset_Map::Update` el
 tono se le aplica al tilemap, a los personajes, al panorama y a las sombras, y
 la ventana no está entre ellos— y es lo que hace la ROM sin proponérselo:
@@ -1552,14 +1565,16 @@ comparación.
   contra el MIDI **del mapa**, así que donde el tema lo pone un evento hay que
   nombrarlo: `just snes-check 1 45 escape_newyork`.
 
-* **La cinemática de apertura, hasta el primer mensaje.** Corre entera con
-  ventana desde el 2026-09-05 —`rom/build/demo-apertura/`, con los mapas 4, 1
-  y 2 y `escape_newyork` sonando—: el tinte se apaga, Core y Manta aparecen y
-  Core habla. Lo que falta para verla entera es **apretar A varias veces**: la
-  escena tiene 44 cuadros de texto y las recetas modelan un solo `--apretar-a`,
-  así que la comparación llega hasta el primer mensaje. Después del último, la
-  página termina con dos `ChangeEventLocation` y un switch, y de ahí el juego
-  sigue.
+* **La cinemática de apertura, entera.** Corre con ventana desde el
+  2026-09-05 —`rom/build/demo-apertura/`, con los mapas 4, 1 y 2 y
+  `escape_newyork` sonando—, y el caso `apertura` de la tanda la compara hasta
+  el final con los quince toques de A que la cierran: el tinte se apaga, Core y
+  Manta aparecen, el droide camina, Kersh explica su alias, y la página termina
+  en el cuadro 2624 con dos `ChangeEventLocation` y un switch. De ahí el juego
+  sigue con el jugador al mando, y eso ya no lo mira ninguna receta. Lo que
+  la comparación **no** cubre es nada en movimiento entre el teletransporte y
+  el primer toque: ahí la ROM va unos cinco cuadros atrás por el costo del
+  tilemap, y recién el toque resincroniza los dos lados.
 * **Lo que le falta al juego entero, medido.** De las 489 páginas automáticas
   con comandos, hoy compilan enteras **142**. Eran 16 antes de los cuadros de
   texto, 71 con ellos, 87 con las rutas forzadas sobre eventos, 110 con

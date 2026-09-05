@@ -835,24 +835,42 @@ snes-hablar mapa="7" celda="3 7" switch="24" apretar="25" cuadros="20 60" arranq
 # termina ahí: el último paso pisa el evento 2, que es la escena de apertura
 # entera. El cuadro 480 es la cinemática a mitad de camino, teñida; en el 540
 # el tinte ya se apagó y Core y Manta están plantados al lado del héroe; en el
-# 620 está abierto el primer mensaje de Core, y en el 900 sigue abierto, que es
-# donde queda hasta que alguien apriete A. Son cuatro personajes caminando en
-# el mismo mapa, o sea las poses en caliente en su caso real.
-snes-cinematica origen="4" destino="1" cuadros="100 400 600 900" arranque="70" nombre="cinematica" ventana="":
+# 620 está abierto el primer mensaje de Core. Son cuatro personajes caminando
+# en el mismo mapa, o sea las poses en caliente en su caso real.
+#
+# Y desde ahí la escena se lee **entera**, con los quince toques de A que la
+# cierran: `apretar` lista los cuadros, uno por mensaje, sesenta después de que
+# cada uno abre en la referencia —la ROM tarda unos cuadros en componerlo y la
+# referencia no modela eso, así que el toque no puede caer antes—. Los cuadros
+# salieron de correr la referencia sola y anotar dónde abre cada mensaje; hay
+# que rehacerlos si cambia lo que la página tarda. El 1000 es el droide a mitad
+# de un paso, después del cuarto mensaje; es el único tramo entre mensajes en
+# que alguien camina —los demás son esperas— y fue el que delató que la ROM
+# cerraba el mensaje un cuadro tarde: ver RETRASO_DE_PANTALLA en snes_correr.py.
+# El 1770 es el noveno mensaje abierto, y el 2700 es la escena terminada.
+#
+# Lo que **no** se compara: nada en movimiento antes del primer toque. Entre
+# el teletransporte y ese toque la ROM va unos cinco cuadros atrás —el costo
+# del tilemap que la referencia no modela— y el toque los resincroniza, porque
+# de ahí en adelante los dos lados cuentan desde el mismo cuadro.
+snes-cinematica origen="4" destino="1" cuadros="100 400 600 900" arranque="70" nombre="cinematica" ventana="" apretar="":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
   ventana="{{ventana}}"
+  apretar="{{apretar}}"
   python3 tools/snes_convert.py --grupo 10 --map-id {{origen}} \
       --mapas {{destino}} ${ventana:+--con-ventana} -o {{snes_inc}}/mapdata.inc
   just snes-build
   pre={{snes_pngs}}/{{nombre}}
   python3 tools/snes_expect.py --grupo 10 --map-id {{origen}} \
       --mapas {{destino}} ${ventana:+--con-ventana} --walk none --cuadros {{cuadros}} \
+      ${apretar:+--apretar-a $apretar} \
       --saltar $pre-{}.saltar.txt -o $pre-{}.esperado.png
   for n in {{cuadros}}; do
     python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre-$n.png \
-        --walk none --cuadros $n --arranque {{arranque}}
+        --walk none --cuadros $n --arranque {{arranque}} \
+        ${apretar:+--apretar-a $apretar}
     python3 tools/snes_compare.py $pre-$n.png $pre-$n.esperado.png \
         --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
   done

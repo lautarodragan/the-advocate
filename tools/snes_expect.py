@@ -288,6 +288,15 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
     # cinemática de apertura dando vueltas para siempre: espera, teletransporta
     # al mismo mapa, y vuelve a empezar.
     pendiente = None
+    # Los cuadros se cuentan desde el arranque y a través de los mapas: el
+    # `n` de cada vuelta arranca de uno en el mapa nuevo, pero el cuadro en que
+    # el jugador aprieta A lo dice el emulador, que tiene un solo contador.
+    # Comparar `n` a secas corría cada presión los cuadros que se hubieran
+    # gastado en el mapa anterior, y la apertura gasta unos cuantos en el 4
+    # antes de saltar al 1.
+    base = 0
+    apretar_a = set(apretar_a) if apretar_a else set()
+    ultimo_a = max(apretar_a) if apretar_a else None
     while True:
         game_map, passable, ocupadas, _puertas = mundo.mapa(map_id)
         # Dónde arranca cada evento del mapa, en celdas y por índice de la tabla
@@ -343,12 +352,12 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
                 interprete.retomar(pendiente)
                 pendiente = None
             for n in range(1, restantes + 1):
-                # `apretar_a` es el cuadro en que el jugador aprieta A, y sólo
-                # cuenta ese: RM2k cierra el mensaje con el flanco, no con el
-                # botón sostenido. El emulador aprieta en el mismo número y lo
-                # deja apretado, que es lo mismo mientras nadie espere un
-                # segundo flanco.
-                apreta = n == apretar_a
+                # `apretar_a` son los cuadros en que el jugador aprieta A, y
+                # sólo cuentan esos: RM2k cierra el mensaje con el flanco, no
+                # con el botón sostenido. El emulador aprieta en los mismos
+                # números y suelta al cuadro siguiente, para que cada uno sea
+                # un flanco nuevo.
+                apreta = base + n in apretar_a
                 if apreta and estado.mensaje is None \
                         and not interprete.ocupado() and mirando is not None:
                     # La tecla de acción, que es la misma que cierra un
@@ -376,6 +385,7 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
                         # acá le regalaba un cuadro a cada teletransporte.
                     else:
                         restantes -= n  # los que quedan para el mapa nuevo
+                        base += n
                         pendiente = interprete.pendiente()
                         break
                 x, y, llego = paso_de_ruta(estado, passable, game_map, x, y)
@@ -393,11 +403,12 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
                         and not estado.cuadros_moviendose \
                         and not estado.algo_corriendo() \
                         and not estado.timer_activo \
-                        and (apretar_a is None or n >= apretar_a) \
+                        and (ultimo_a is None or base + n >= ultimo_a) \
                         and restantes is not None:
-                    # Y no se corta antes de que el jugador apriete: si el mapa
-                    # no tiene nada que correr, el lazo terminaba en el primer
-                    # cuadro y la tecla no llegaba a existir.
+                    # Y no se corta antes de la última vez que el jugador
+                    # aprieta: si el mapa no tiene nada que correr, el lazo
+                    # terminaba en el primer cuadro y la tecla no llegaba a
+                    # existir.
                     #
                     # El cronómetro corriendo también lo sostiene, y no va en
                     # `algo_corriendo` con las rutas y los destellos: eso lo
@@ -758,10 +769,12 @@ def main():
                              "los ShowMessage del juego compilan y el reparto "
                              "de CGRAM le reserva una paleta. El otro lado del "
                              "mismo flag de snes_convert.py")
-    parser.add_argument("--apretar-a", type=int, default=None, metavar="N",
-                        help="en qué cuadro el jugador aprieta A, que es lo "
-                             "que cierra un mensaje. El otro lado del mismo "
-                             "flag de snes_correr.py")
+    parser.add_argument("--apretar-a", type=int, nargs="+", default=None,
+                        metavar="N",
+                        help="en qué cuadros el jugador aprieta A, que es lo "
+                             "que cierra un mensaje. Se cuentan desde el "
+                             "arranque y a través de los teletransportes. El "
+                             "otro lado del mismo flag de snes_correr.py")
     parser.add_argument("--timer-de-prueba", nargs=2, type=int, default=None,
                         metavar=("SEGUNDOS", "VISIBLE"),
                         help="arranca el cronómetro desde la página de prueba. "

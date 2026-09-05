@@ -10,15 +10,49 @@ es la misma operación con pérdida que compactar, sólo que a un archivo.
 
 Última vez que se tocó: 2026-09-05.
 
-## Lo próximo: apretar A más de una vez, y ver la apertura entera
+## Lo próximo: jugar después de la apertura
 
-La apertura corre hasta el primer mensaje de Core, en `rom/build/demo-apertura/`
-y en el caso `apertura` de la tanda: el tinte se apaga, Core y Manta se plantan
-al lado del héroe y hablan. Para compararla entera hace falta que
-`snes_correr.py` y `snes_expect.py` acepten **varios cuadros de A** —hoy es un
-`--apretar-a` solo— y elegir cuadros entre mensaje y mensaje. Son 44 cuadros de
-texto y unas quince rutas; el presupuesto del vblank con los cuatro caminando
-a la vez se va a ver ahí.
+La escena de apertura ya se compara entera (abajo). Lo que sigue no tiene
+receta: cuando la página termina —cuadro 2624, dos `ChangeEventLocation` y un
+switch— el jugador queda al mando en el mapa 1, y de ahí en adelante nadie
+miró qué pasa. Lo primero es que taro juegue `rom/build/demo-apertura/` hasta
+pasar la escena y diga qué se rompe; lo segundo, `just snes-destraba` para ver
+qué comando abre más páginas de las que siguen.
+
+## Hecho el 2026-09-05: la apertura entera, con quince toques de A
+
+`--apretar-a` acepta varios cuadros en los dos lados, y el caso `apertura` de
+la tanda cierra los quince mensajes de la escena y compara hasta el cuadro
+2700, con la página terminada. Son quince mensajes y no 44: la página tiene
+15 `ShowMessage` y 27 `ShowMessage_2`, que son renglones de continuación, y
+el traspaso los contó juntos.
+
+Lo que apareció, y está en el LEEME bajo "La ventana de mensaje":
+
+* **La ROM cerraba el mensaje un cuadro tarde**, o mejor dicho lo dibujaba
+  un cuadro tarde: cierra en la vuelta en que ve el flanco y dibuja esa vuelta
+  al cuadro siguiente, que es `RETRASO_DE_PANTALLA`. Con los cuadros quietos
+  de `snes-cerrar` no se veía. Lo delató el droide, que camina después del
+  cuarto mensaje: 314 pixeles en el cuadro 1000, y una matriz de cuadros
+  cruzados diciendo que la ROM en el N era la referencia en el N-1. La traza
+  de los dos intérpretes cuadro a cuadro —la ranura de ruta contra `Ruta`, el
+  cursor contra `ev_cur`— dio el mismo estado de los dos lados, así que era
+  el dibujo y no la lógica. `snes_correr.py` aprieta en el N-1.
+* **La referencia contaba los cuadros de A desde el mapa nuevo**: el `n` del
+  lazo arranca de uno en cada teletransporte y `--apretar-a` se comparaba
+  contra ése. Ahora cuenta desde el arranque, como el emulador. Ningún caso
+  viejo lo pisaba porque ninguno apretaba A después de un salto.
+* **Antes del primer toque la ROM va cinco cuadros atrás** de la referencia
+  en el mapa 1 —el costo del tilemap del teletransporte, que la referencia no
+  modela— y el toque resincroniza: de ahí en adelante los dos cuentan desde
+  el mismo cuadro. Por eso los cuadros 480 y 540 del caso son quietos y se
+  quedan quietos; un cuadro en movimiento antes del toque no daría cero.
+
+Los cuadros de los toques salieron de correr la referencia sola y anotar
+dónde abre cada mensaje, sesenta cuadros después de cada apertura porque la
+ROM tarda unos cuadros en componer el texto y la referencia no modela eso. Si
+cambia lo que la página tarda, hay que rehacerlos igual: fue un script
+descartable.
 
 ## Hecho el 2026-09-05: las poses de los sprites se suben en caliente
 
