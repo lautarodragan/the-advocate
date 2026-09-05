@@ -199,7 +199,11 @@ class Renderer:
         """El mapa, con el nombre de su chipset puesto: `collect_npcs` lo
         necesita para los eventos que se dibujan con un tile."""
         game_map = lcf.Map(path)
-        game_map.chipset_nombre = self.database.chipsets[game_map.chipset_id].filename
+        chipset = self.database.chipsets[game_map.chipset_id]
+        game_map.chipset_nombre = chipset.filename
+        # Y la pasabilidad de sus tiles, para los eventos que se dibujan con
+        # uno en la capa de abajo: ver `rm2k.pasabilidad_del_tile`.
+        game_map.pasabilidad_tiles = build_passability(chipset)
         return game_map
 
     def render_layers(self, game_map):

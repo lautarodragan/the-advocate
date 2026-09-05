@@ -1433,6 +1433,18 @@ nada:
     iny
     lda [pag_ptr], y            ; +19 cuántas
     sta pg_ruta_n
+    iny
+    lda [pag_ptr], y            ; +20 lo que dibuja la página, para los eventos
+    sta pg_tile                 ;     que cambian de gráfico: el tile,
+    iny
+    lda [pag_ptr], y            ; +21 los atributos con paleta y prioridad,
+    sta pg_attr
+    iny
+    lda [pag_ptr], y            ; +22 la pose, con el bit 7 si hay gráfico,
+    sta pg_pose
+    iny
+    lda [pag_ptr], y            ; +23 y los bits de paso de su tile, o $FF
+    sta pg_pasa
     rts
 .endproc
 
@@ -1488,8 +1500,8 @@ recorrer:
     sep #$20
 .a8
     lda [pag_ptr], y
-    and #$40
-    beq siguiente
+    and #$60                    ; con ruta propia, o con gráfico que sigue a
+    beq siguiente               ; la página
     jsr leer_pagina
     jsr condiciones_ok
     beq no_cumple
@@ -1514,8 +1526,24 @@ no_cumple:
     lda eleg_por_ev, x
     cmp #$FFFF
     bne ya_tiene
+    ; Sin página que cumpla, por ahora: $FFFE, o $FFFD si el gráfico sigue a
+    ; la página, que es el que hay que esconder.
     lda #$FFFE
     sta eleg_por_ev, x
+    sep #$20
+.a8
+    lda pg_flags
+    and #$20
+    beq ya_tiene8
+    rep #$20
+.a16
+    lda #$FFFD
+    sta eleg_por_ev, x
+    sep #$20
+.a8
+ya_tiene8:
+    rep #$20
+.a16
 ya_tiene:
     sep #$20
 .a8
@@ -1552,10 +1580,15 @@ cada_evento:
     bne :+
     jmp sin_activa16            ; con rutas, y ninguna página que cumpla
 :
+    cmp #$FFFD
+    bne :+
+    jmp esconder16              ; con gráfico de página, y ninguna: se esconde
+:
     sta pag_ofs
     sep #$20
 .a8
     jsr leer_pagina
+    jsr grafico_de_pagina       ; lo que la página dibuja, a la fila del NPC
     lda rp_ev
     jsr ranura_del_evento       ; X = su ranura, o $FFFF
     lda pg_flags
@@ -1603,6 +1636,13 @@ sin_ruta:
     jsr quitar_pagina_de_ranura
     jmp proximo
 .a16
+esconder16:
+    sep #$20
+.a8
+    lda rp_ev
+    jsr esconder_npc
+    jmp proximo
+.a16
 sin_activa16:
     sep #$20
 .a8
@@ -1629,6 +1669,90 @@ sin_paginas:
 .endproc
 
 ; La ranura de ruta del evento cuyo índice trae A: X, o $FFFF si no tiene.
+; Lo que la página activa de un evento que cambia de gráfico dibuja, copiado a
+; su fila de NPC: el tile, los atributos —paleta y prioridad de su capa—, la
+; pose y hacia dónde mira, si se ve, y los bits de paso de su tile. Y la clave
+; de dibujado con la capa de la página, que puede cambiar —el ascensor del
+; mapa 2 pasa de la capa del héroe a la de abajo al abrirse—, así que la fila
+; se reacomoda como la de un evento que camina. Es `SetupFromPage` para el
+; gráfico, y es lo que abre las puertas de este juego: la página con el tile
+; de los escombros aparece donde antes no había nada. Entra con `pg_*` de la
+; página activa y el evento en `rp_ev`.
+.proc grafico_de_pagina
+.a8
+.i16
+    lda pg_flags
+    and #$20
+    beq listo                   ; su gráfico no sigue a la página
+    lda rp_ev
+    jsr npc_de_evento
+    cpy #$FFFF
+    beq listo                   ; sin fila: nada que dibujar
+    sty npc_fila
+    lda pg_pose
+    bmi con_grafico
+    lda #0                      ; la página no dibuja nada: escondido
+    sta npc_buf + 14, y
+    lda #$FF
+    sta npc_buf + 15, y
+    rts
+con_grafico:
+    and #$0F
+    sta npc_buf + 12, y         ; la pose que hay en VRAM es ésta
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda dir_de_pose, x
+    sta npc_buf + 10, y
+    lda pg_tile
+    sta npc_buf + 6, y
+    lda pg_attr
+    sta npc_buf + 7, y
+    lda #1
+    sta npc_buf + 14, y
+    lda pg_pasa
+    sta npc_buf + 15, y
+    ; La clave: la capa de la página, con la Y de la fila.
+    rep #$20
+.a16
+    lda npc_buf + 4, y
+    and #$0FFF
+    sta temp
+    lda pg_capa
+    and #$00FF
+    xba
+    asl a
+    asl a
+    asl a
+    asl a
+    ora temp
+    sta npc_buf + 4, y
+    sep #$20
+.a8
+    jmp acomodar_npc
+listo:
+    rts
+.endproc
+
+; Esconde la fila del evento en A, si tiene una: no se dibuja y su tile no le
+; impone nada a la celda.
+.proc esconder_npc
+.a8
+.i16
+    jsr npc_de_evento
+    cpy #$FFFF
+    beq listo
+    lda #0
+    sta npc_buf + 14, y
+    lda #$FF
+    sta npc_buf + 15, y
+listo:
+    rts
+.endproc
+
 .proc ranura_del_evento
 .a8
 .i16
@@ -6371,7 +6495,9 @@ no:
     sta celda_dir
     stz celda_dir + 1
     jsr celda_vecina_existe
-    beq no
+    bne :+
+    jmp no                      ; queda lejos para un salto corto
+:
     ; Atravesando paredes las dos caras dan que sí, pero la celda tiene que
     ; existir: es el `if (self.GetThrough()) return true;` de
     ; `Game_Map::CheckOrMakeWayEx`, que va después del `IsValid`.
@@ -6385,12 +6511,19 @@ con_colision:
     jsr ptr_de_celda
     rep #$20
 .a16
+    lda celda_x                 ; la celda que se deja, para lo que un evento
+    sta pasa_x                  ; de tile le imponga
+    lda celda_y
+    sta pasa_y
     jsr pass_del_ptr
+    jsr pasa_con_evento
     sep #$20
 .a8
     ldx celda_dir
     and pass_salir, x
-    beq no
+    bne :+
+    jmp no                      ; queda lejos para un salto corto
+:
 
     ; Y la cara del destino, que es la celda de al lado.
     lda celda_dir
@@ -6432,12 +6565,28 @@ derecha:
     jsr ptr_mas
 entra:
 .a16
+    lda celda_x                 ; y la celda a la que se entra
+    sta pasa_x
+    lda celda_y
+    sta pasa_y
+    sep #$20
+.a8
+    ldx celda_dir
+    lda paso_dx, x
+    jsr sumar_a_pasa_x
+    lda paso_dy, x
+    jsr sumar_a_pasa_y
+    rep #$20
+.a16
     jsr pass_del_ptr
+    jsr pasa_con_evento
     sep #$20
 .a8
     ldx celda_dir
     and pass_entrar, x
-    beq no
+    bne :+
+    jmp no
+:
     ; Y que no haya nadie parado en la celda de al lado. Con `atravesando`
     ; no se llega acá: es el `GetThrough()` de arriba.
     rep #$20
@@ -7516,6 +7665,10 @@ hdma_mascara:
     .byte (VENTANA_LINEA - 127), $00
     .byte (LINEAS - VENTANA_LINEA), $02
     .byte 0
+
+; Hacia dónde mira cada pose, de 0 a 11: la dirección es la pose entre tres.
+dir_de_pose:
+    .byte 0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3
 
 ; De qué byte del buffer arranca cada una de sus dieciséis filas. El buffer son
 ; dos filas de celda, así que la fila Y cae en el tile (Y/8) por 30 columnas de
@@ -8745,8 +8898,13 @@ no8:
 .a16
 .i16
     sta temp
+    lda tile_x                  ; la celda que se deja, para lo que un evento
+    sta pasa_x                  ; de tile le imponga
+    lda tile_y
+    sta pasa_y
     jsr ptr_desde_hero
     jsr pass_del_ptr
+    jsr pasa_con_evento
     and temp
     ora atravesando             ; con walk_everywhere la respuesta es que sí
     rts
@@ -8759,9 +8917,133 @@ no8:
 .a16
 .i16
     sta temp
+    ; La celda de destino: la del héroe más el paso en `hero_dir`, que es
+    ; siempre la dirección del paso, también en una ruta forzada.
+    lda tile_x
+    sta pasa_x
+    lda tile_y
+    sta pasa_y
+    sep #$20
+.a8
+    lda hero_dir
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda paso_dx, x
+    jsr sumar_a_pasa_x
+    lda paso_dy, x
+    jsr sumar_a_pasa_y
+    rep #$20
+.a16
     jsr pass_del_ptr
+    jsr pasa_con_evento
     and temp
     ora atravesando
+    rts
+.endproc
+
+; Los bits de paso de la celda `pasa_x`/`pasa_y`: los que trae A —los del
+; terreno, de `pass_del_ptr`— salvo que un evento de tile en la capa de abajo
+; le imponga los suyos. Es `Game_Map::IsPassableTile`: de los eventos parados
+; ahí con página activa y gráfico de tile en esa capa gana el de id más alto,
+; y si su tile no es de los que van por encima, manda. Los bits los dejó el
+; refresco en la fila del NPC, +15, o $FF si no impone nada; así esto es un
+; recorrido de la tabla de NPCs por paso y no una pasada por las páginas. Lo
+; que no se modela: el "conflicto consigo mismo" de un evento de tile que
+; camina, porque ninguno camina. Entra y sale en dieciséis bits.
+.proc pasa_con_evento
+.a16
+.i16
+    sta temp + 2
+    sep #$20
+.a8
+    lda #$FF
+    sta pasa_hallada
+    ldy #$0000
+otra:
+    cpy npc_total
+    beq listo
+    lda npc_buf + 14, y
+    beq siguiente               ; escondido: no está
+    lda npc_buf + 15, y
+    cmp #$FF
+    beq siguiente               ; no impone nada
+    lda npc_buf + 8, y          ; su evento, y con él su celda
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    asl a                       ; por EV_STRIDE
+.controlar EV_STRIDE = 4, "la cuenta de arriba multiplica por cuatro a mano"
+    tax
+    lda ev_pos_buf, x
+    cmp pasa_x
+    bne siguiente16
+    lda ev_pos_buf + 2, x
+    cmp pasa_y
+    bne siguiente16
+    sep #$20
+.a8
+    lda npc_buf + 15, y
+    sta pasa_hallada            ; gana el último: el de id más alto
+siguiente:
+    rep #$20
+.a16
+siguiente16:
+    tya
+    clc
+    adc #NPC_STRIDE
+    tay
+    sep #$20
+.a8
+    bra otra
+listo:
+    lda pasa_hallada
+    cmp #$FF
+    beq del_terreno
+    sta temp + 2                ; el byte alto quedó en cero de `pass_del_ptr`
+del_terreno:
+    rep #$20
+.a16
+    lda temp + 2
+    rts
+.endproc
+
+.proc sumar_a_pasa_x
+.a8
+.i16
+    rep #$20
+.a16
+    and #$00FF
+    cmp #$0080
+    bcc positivo
+    ora #$FF00
+positivo:
+    clc
+    adc pasa_x
+    sta pasa_x
+    sep #$20
+.a8
+    rts
+.endproc
+.proc sumar_a_pasa_y
+.a8
+.i16
+    rep #$20
+.a16
+    and #$00FF
+    cmp #$0080
+    bcc positivo
+    ora #$FF00
+positivo:
+    clc
+    adc pasa_y
+    sta pasa_y
+    sep #$20
+.a8
     rts
 .endproc
 
@@ -9345,7 +9627,11 @@ recorrer:
     bra recorrer
 
 toca_npc:
+    ldx npc_ofs
+    lda npc_buf + 14, x
+    beq escondido               ; su página activa no dibuja nada
     jsr place_npc
+escondido:
     rep #$20
 .a16
     lda npc_ofs
@@ -10602,6 +10888,14 @@ pg_capa:     .res 1
 ; La velocidad va en todas las páginas, con ruta o sin ella: es la que usa una
 ; ruta forzada sobre el evento, como en RM2k.
 pg_flags:    .res 1
+pg_tile:     .res 1     ; +20..+23: lo que dibuja la página, ver leer_pagina
+pg_attr:     .res 1
+pg_pose:     .res 1
+pg_pasa:     .res 1
+; La celda que `pasa_con_evento` mira, y lo que encontró.
+pasa_x:      .res 2
+pasa_y:      .res 2
+pasa_hallada: .res 1
 pg_frec:     .res 1
 pg_vel:      .res 1
 pg_ruta:     .res 3

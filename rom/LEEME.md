@@ -383,6 +383,75 @@ Dos cosas salieron de dibujarlos, y las dos las cobró la tanda:
 * **La tabla de páginas cruzaba de banco.** Ver "Las tablas van en el banco
   0".
 
+### El gráfico sigue a la página, y el tile manda sobre el terreno
+
+Las puertas de este juego no se abren: **cambian de página**. La de seguridad
+del mapa 2 es el evento 23 en (83,71), una celda que el chipset dice pared;
+su página 1 no dibuja nada y la 2, con el switch 10 que pone el puñetazo de
+Core, dibuja el tile 111 —escombros— en la capa de abajo. Y RM2k tiene una
+regla para eso, en `Game_Map::IsPassableTile`: **un evento de la capa de
+abajo con gráfico de tile reemplaza la pasabilidad del terreno por la de su
+tile**, salvo que el tile sea de los que van por encima; de los que haya en
+la celda gana el de id más alto, y uno que atraviesa paredes no cuenta. Los
+escombros se pisan, así que la pared se pisa. taro lo vio como "la cinemática
+va perfecto pero el mapa no cambia": ni el gráfico ni la regla existían de
+ningún lado. El ascensor es lo mismo por seis: el evento 30 cambia del tile
+25 al 28 y baja de capa con el switch 11, y los 31 a 35 aparecen alrededor.
+
+Desde el 2026-09-05 los dos lados hacen las dos cosas, y con los mismos
+datos:
+
+* **`collect_npcs` da una fila por evento con gráfico en alguna página**,
+  no sólo en la activa al cargar: la fila existe escondida —`visible`— y
+  `cambia` dice si el gráfico sigue a la página activa, que vale sólo para
+  eventos cuyas condiciones la ROM entiende, porque sin sus páginas en la
+  tabla no hay cómo saber cuál gana. El mapa 2 tiene nueve así, todos tiles
+  quietos. **Un evento que camina y cambia de gráfico no se puede**: son dos
+  mecanismos sobre la misma fila —las doce poses del cartucho y el gráfico de
+  la página— y el conversor corta con el nombre del evento el día que uno lo
+  pida.
+* **La tabla de páginas lleva lo que dibuja cada página**, +20 a +23: el
+  tile, los atributos con la paleta y la prioridad de su capa, la pose con el
+  bit 7 si hay gráfico, y los bits de paso de su tile o $FF. Cada
+  (CharSet, índice, pose) de esas páginas tiene su ranura en la VRAM desde la
+  carga, así que cambiar es copiar. La fila lleva además +14 si se ve y +15
+  los bits de paso del tile que muestra ahora.
+* **El refresco los copia.** `rutas_de_pagina` ya volvía a mirar la página
+  activa de los eventos con rutas propias al cargar y al cambiar un switch;
+  ahora mira también los del bit 5 —`grafico_de_pagina`— y copia a la fila
+  el gráfico de la página que ganó, o la esconde si ninguna gana o la que
+  gana no dibuja. La clave de dibujado toma la capa de la página, y la fila
+  se reacomoda con `acomodar_npc` como la de uno que camina: el ascensor
+  abierto está en la capa de abajo y el héroe lo pisa. `build_oam` saltea
+  las filas escondidas. La referencia dibuja cada fila con el gráfico de su
+  página activa, `pagina_activa`, que es la misma pasada.
+* **Las paletas se reparten una sola vez.** Con las páginas contando, el
+  mapa 8 tiene dos eventos de CharSet que cambian de pose con la página, y
+  ésos se llevan paletas antes que los tiles: los eventos 6, 7 y 12 —dos
+  puertas y unos escombros— quedan sin dibujar, donde antes era sólo el 12.
+  Y `build_characters` ya no reparte por su cuenta: usa el reparto que hizo
+  `npcs_dibujables`, porque el mismo primer-lugar-que-entre en otro orden dio
+  otra cuenta —ocho paletas acá, nueve allá— y la ROM del mapa 8 no se armaba.
+* **Las tres comprobaciones de terreno** —`can_leave` y `can_enter` del
+  héroe, `puede_celda` de las rutas— pasan lo que dice el chipset por
+  `pasa_con_evento`, que recorre la tabla de NPCs buscando una fila visible
+  con +15 puesto parada en esa celda; el último que encuentra gana, que es el
+  de id más alto. Es un recorrido por paso y no una pasada por las páginas,
+  porque los bits ya los dejó el refresco. La referencia hace lo mismo en
+  `pasabilidad_de_evento`, que `puede_pasar` recibe como `pasa_evento`.
+  Lo que no se modela: el "conflicto consigo mismo" de un evento de tile que
+  camina, que ninguno hace.
+
+**Cómo se verifica.** `escombros`: el héroe en (85,71) camina tres a la
+izquierda con el switch 10 y llega a (82,71) pasando por la pared, cuatro
+cuadros en cero; `escombros-cerrados`, lo mismo sin el switch, y se queda en
+(84,71); `ascensor`, el héroe quieto delante del ascensor con el switch 11,
+que lo dibuja abierto; y `core-puerta` desde el cuadro 470 muestra los
+escombros apareciendo en la escena de verdad. Y una trampa de la primera
+versión, que la tanda cobró: el lazo de dibujo de la referencia pisó la
+variable `charset` que el héroe usa después, y el héroe salía dibujado con el
+tile de la última puerta.
+
 ### Las rutas propias de las páginas
 
 Desde el 2026-09-05 un evento cuya página activa tiene `move_type` 6 —una ruta
@@ -2041,6 +2110,9 @@ comparación.
   eventos dibujados con un tile del chipset se empaquetan desde el 2026-09-05
   y los que no entran se dejan de dibujar en vez de cortar el mapa: ver "Los
   eventos dibujados con un tile del chipset".
+* **Un evento que camina y cambia de gráfico con la página.** Ver "El
+  gráfico sigue a la página": el conversor corta. Y con eso, `change_graphic`
+  en una ruta sigue afuera.
 * **El panorama.** El mapa 2 tiene uno —`screen`, puntitos sobre azul que
   desplaza en diagonal solo— y es lo que taro vio faltar cuando la pantalla
   grande se enciende. El modo 3 tiene dos capas de fondo y las dos están

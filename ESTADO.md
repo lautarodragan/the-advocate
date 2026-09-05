@@ -12,13 +12,14 @@ es la misma operación con pérdida que compactar, sólo que a un archivo.
 
 ## Lo próximo: que taro vuelva a jugar `demo-apertura`, y el ascensor
 
-Los siete puntos de abajo están hechos y `demo-apertura` rearmada con todo.
+Los ocho puntos de abajo están hechos y `demo-apertura` rearmada con todo.
 Lo que sigue: que taro la juegue de nuevo —en el emulador y en la SNES— y
-llegue al ascensor, que es el evento 30 del mapa 2 con el switch 11, cuya
-página ya compila desde `ShakeScreen` pero no tiene caso en la tanda ni nadie
-lo vio correr. La segunda vuelta de taro (2026-09-05, más tarde) dejó tres
-cosas y dos menores, todas más abajo como 5, 6 y 7; de las menores, el
-panorama queda afuera a propósito.
+entre al ascensor, que es el evento 30 del mapa 2 con el switch 11: ahora se
+abre y se ve, y su página de contacto compila desde `ShakeScreen`, pero lo
+que pasa adentro —un `Teleport` al (77,31) del mismo mapa, la escena con
+Core y Manta y el salto al mapa 3— no tiene caso en la tanda ni nadie lo vio
+correr. Cada vuelta de taro dejó algo: la segunda, los puntos 5, 6 y 7; la
+tercera, el 8. De lo menor, el panorama queda afuera a propósito.
 
 **Tres números para tener a mano.** El banco 0 de RAM está en **7905 bytes de
 7936**, con la pila arriba de todo: lo que sigue que pida RAM tiene que
@@ -121,7 +122,16 @@ se rearmaron y son de antes de todo esto.
 7. **Hecho el 2026-09-05: el droide tapado contra la pared retoma.** El
    salto bloqueado de una ruta no salteable se reintenta cada cuadro, como el
    paso; antes se salteaba y taro lo vio como que dejaba de animar. Es el
-   caso `droide-tapado`. La tanda queda en **73 casos**.
+   caso `droide-tapado`.
+8. **Hecho el 2026-09-05: la puerta de seguridad se abre de verdad.** taro:
+   "la cinemática va perfecto, pero el mapa no cambia". La puerta es el
+   evento 23 en (83,71): pared en el chipset, y con el switch 10 una página
+   que dibuja el tile de los escombros en la capa de abajo, que en RM2k
+   **reemplaza la pasabilidad del terreno**. Faltaban las dos cosas: que el
+   gráfico siga a la página activa y esa regla. Ver "El gráfico sigue a la
+   página, y el tile manda sobre el terreno" en el LEEME. De paso se abre el
+   ascensor, que es lo mismo por seis eventos. Tres casos nuevos —`escombros`,
+   `escombros-cerrados`, `ascensor`—; la tanda queda en **76 casos**.
 
 Y el detector de cuadros perdidos que pedía el traspaso anterior está: ver
 "Los cuadros perdidos se cuentan" en el LEEME. Es un dato en la salida de

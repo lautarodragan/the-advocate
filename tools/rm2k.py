@@ -83,13 +83,18 @@ def hero_start(passable, width, height, blocked=()):
     return best[1], best[2]
 
 
-def puede_pasar(passable, width, height, x, y, dx, dy, blocked=()):
+def puede_pasar(passable, width, height, x, y, dx, dy, blocked=(),
+                pasa_evento=None):
     """Si desde (x,y) se puede dar un paso en (dx,dy).
 
     Las dos caras se consultan, la que se deja y la que se entra, que es la
     regla de RM2k. Está separada de `walk` porque hay quien necesita caminar de
     a un paso —para mirar entre paso y paso si la celda tiene una puerta— y las
     reglas tienen que ser las mismas, no una copia parecida.
+
+    `pasa_evento(x, y)` es lo que un evento dibujado con un tile en la capa de
+    abajo le impone a la celda, o None: ver `eventos.pasabilidad_de_evento`.
+    Cuando hay uno, sus bits reemplazan a los del terreno en esa cara.
     """
     leaving = {(1, 0): PASS_RIGHT, (-1, 0): PASS_LEFT,
                (0, 1): PASS_DOWN, (0, -1): PASS_UP}[(dx, dy)]
@@ -98,9 +103,12 @@ def puede_pasar(passable, width, height, x, y, dx, dy, blocked=()):
     nx, ny = x + dx, y + dy
     if not (0 <= nx < width and 0 <= ny < height):
         return False
-    if not passable[y * width + x] & leaving:
+    def bits(cx, cy):
+        de_evento = pasa_evento(cx, cy) if pasa_evento is not None else None
+        return passable[cy * width + cx] if de_evento is None else de_evento
+    if not bits(x, y) & leaving:
         return False
-    if not passable[ny * width + nx] & entering:
+    if not bits(nx, ny) & entering:
         return False
     if (nx, ny) in blocked:
         return False                # hay un NPC parado ahí
@@ -163,41 +171,106 @@ def nombre_de_tile(chipset, indice):
     return "%s%s:%d" % (TILE_PREFIX, chipset, indice)
 
 
-def collect_npcs(game_map):
-    """Los eventos visibles, con su pose y si bloquean el paso.
+# Las condiciones de página que la ROM sabe mirar. Un evento con una página
+# que pida otra cosa queda afuera entero: sin sus páginas en la tabla, la ROM
+# no puede saber cuál está activa, así que no cambia de gráfico ni frena.
+CONDICIONES_SOPORTADAS = ("switch_a", "switch_b", "actor")
 
-    Los que se dibujan con un tile del chipset entran también, con un CharSet
-    inventado —ver `nombre_de_tile`—, siempre que quien cargó el mapa le haya
-    puesto `chipset_nombre`; el tile 0 es "sin gráfico".
+
+def condiciones_soportadas(event):
+    return not any(c not in CONDICIONES_SOPORTADAS
+                   for page in event.pages for c in page.condition.active)
+
+
+def grafico_de_pagina(page, chipset):
+    """(CharSet, índice, pose) de lo que dibuja la página, o None si nada.
+
+    Los que se dibujan con un tile del chipset van con un CharSet inventado
+    —ver `nombre_de_tile`—, siempre que quien cargó el mapa le haya puesto
+    `chipset_nombre`; el tile 0 es "sin gráfico".
+    """
+    if not page.character_name and (page.character_index == 0
+                                    or chipset is None):
+        return None
+    # La caminata son cuatro fases sobre tres columnas: la del medio va dos
+    # veces, así que la cuarta dibuja la misma que la segunda.
+    column = 1 if page.character_pattern == 3 else page.character_pattern
+    return (page.character_name or nombre_de_tile(chipset, page.character_index),
+            page.character_index if page.character_name else 0,
+            page.character_direction * 3 + column)
+
+
+def pasabilidad_del_tile(game_map, charset, layer):
+    """Los cuatro bits de paso que un evento dibujado con `charset` en la capa
+    `layer` le impone a su celda, o None si no impone nada.
+
+    Es la regla de `Game_Map::IsPassableTile`: un evento de la capa de abajo
+    con gráfico de tile reemplaza la pasabilidad del terreno por la de su
+    tile, salvo que el tile sea de los que van por encima. Así "se abre" una
+    puerta en este juego: la celda es pared, y con el switch puesto la página
+    muestra el tile de los escombros, que se pisa. Los bits salen de la misma
+    tabla que la capa alta del mapa, que quien cargó el mapa deja en
+    `pasabilidad_tiles`.
+    """
+    flags = getattr(game_map, "pasabilidad_tiles", None)
+    if flags is None or layer != LAYER_BELOW \
+            or not charset.startswith(TILE_PREFIX):
+        return None
+    valor = flags[UPPER_BASE + int(charset.rsplit(":", 1)[1])]
+    if valor & PASS_ABOVE:
+        return None
+    return valor & PASS_ALL
+
+
+UPPER_BASE = 10000      # el primer tile de la capa alta, en el mapa y en la tabla
+
+
+def collect_npcs(game_map):
+    """Los eventos que se dibujan, con su pose y si bloquean el paso.
+
+    Entra todo evento con gráfico en **alguna** página, aunque la activa al
+    cargar no tenga: las puertas de este juego son eso, una página sin gráfico
+    y otra con el tile de los escombros. `visible` dice si se ve al cargar, y
+    `cambia` si el gráfico sigue a la página activa: es lo que la ROM refresca
+    con los switches, y vale sólo para eventos cuyas condiciones entiende.
+    `graficos` lleva el de cada página, o None, y `capas` la capa de cada una.
     """
     npcs = []
     chipset = getattr(game_map, "chipset_nombre", None)
     for numero, event in enumerate(game_map.events):
+        graficos = [grafico_de_pagina(p, chipset) for p in event.pages]
+        if not any(graficos):
+            continue
+        cambia = len(set(graficos)) > 1 and condiciones_soportadas(event)
         page = event.active_page()
-        if page is None:
-            continue
-        if not page.character_name and (page.character_index == 0
-                                        or chipset is None):
-            continue
-        # La caminata son cuatro fases sobre tres columnas: la del medio va dos
-        # veces, así que la cuarta dibuja la misma que la segunda.
-        column = 1 if page.character_pattern == 3 else page.character_pattern
+        visible = page is not None and grafico_de_pagina(page, chipset) is not None
+        if not visible and not cambia:
+            continue                # sin gráfico al cargar y sin cambio: no está
+        if not visible:
+            # La fila existe escondida: sus campos salen de la primera página
+            # con gráfico, que es de donde va a salir cuando aparezca.
+            page = next(p for p in event.pages
+                        if grafico_de_pagina(p, chipset) is not None)
+        charset, index, pose = grafico_de_pagina(page, chipset)
         npcs.append({
             # El índice en la tabla de eventos del mapa, que es lo que lleva el
             # bytecode de una ruta forzada. **No es el id de RM2k**: hay mapas
             # con huecos en la numeración.
             "evento": numero,
             "x": event.x, "y": event.y,
-            "charset": (page.character_name or
-                        nombre_de_tile(chipset, page.character_index)),
-            "index": page.character_index if page.character_name else 0,
-            "pose": page.character_direction * 3 + column,
+            "charset": charset, "index": index, "pose": pose,
             "layer": page.layer,
             "blocks": page.layer == LAYER_SAME,
             # La velocidad de su página, que es la que lleva una ruta forzada
             # sobre él: RM2k la pone en `SetupFromPage` y `ForceMoveRoute` no
             # la toca. Por defecto es 3, dieciséis cuadros por celda.
             "velocidad": page.move_speed,
+            "visible": visible,
+            "cambia": cambia,
+            "graficos": graficos,
+            "capas": [p.layer for p in event.pages],
+            "tile_pasa": pasabilidad_del_tile(game_map, charset, page.layer)
+                         if visible else None,
         })
     return npcs
 

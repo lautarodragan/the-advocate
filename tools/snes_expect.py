@@ -246,10 +246,14 @@ def paso_de_ruta(estado, passable, game_map, x, y, paginas=()):
         return estado.ruta_heroe.atraviesa or not eventos.bloqueada(
             paginas, estado, (cx, cy), eventos.LAYER_MISMA)
 
+    def pasa(cx, cy):
+        return eventos.pasabilidad_de_evento(paginas, estado, (cx, cy))
+
     def puede(direccion):
         dx, dy = PASOS[direccion]
         return rm2k.puede_pasar(passable, game_map.width, game_map.height,
-                                x, y, dx, dy) and libre(x + dx, y + dy)
+                                x, y, dx, dy, pasa_evento=pasa) \
+            and libre(x + dx, y + dy)
 
     antes = estado.paso_cuadros
     direccion = estado.cuadro_de_ruta(
@@ -295,10 +299,14 @@ def cuadro_de_eventos(estado, passable, game_map, heroe, paginas=(),
         return capa is None or not eventos.bloqueada(
             paginas, estado, (cx, cy), capa, ignorar=indice, heroe=heroe)
 
+    def pasa(cx, cy):
+        return eventos.pasabilidad_de_evento(paginas, estado, (cx, cy))
+
     def puede(indice, x, y, direccion):
         dx, dy = PASOS[direccion]
         return rm2k.puede_pasar(passable, game_map.width, game_map.height,
-                                x, y, dx, dy) and libre(indice, x + dx, y + dy)
+                                x, y, dx, dy, pasa_evento=pasa) \
+            and libre(indice, x + dx, y + dy)
 
     estado.cuadro_de_rutas_ev(
         puede,
@@ -588,7 +596,10 @@ def hero_position(mundo, estado, map_id, direction_name, inicio=None,
         # todavía no lo mira, y modelar acá algo que la consola no hace es
         # inventar una diferencia.
         if not puede_pasar(passable, game_map.width, game_map.height,
-                           x, y, step[0], step[1]):
+                           x, y, step[0], step[1],
+                           pasa_evento=lambda cx, cy:
+                           eventos.pasabilidad_de_evento(
+                               mundo.paginas(map_id), estado, (cx, cy))):
             break
         # Y un evento de su capa parado en la celda de destino lo frena igual
         # que una pared: `WouldCollide`, con el héroe en la capa del medio. Es
@@ -1148,34 +1159,39 @@ def main():
         # que la consola compara, y después X e id, que allá los resuelve el
         # orden de la tabla. Ver `orden_de_dibujo` en snes_convert.py.
         actors = []
+        paginas_del_mapa = mundo.paginas(map_id)
         for npc in mundo.npcs(map_id):
-            # Un evento que recibió una ruta forzada se dibuja donde está
-            # **ahora** y con la pose del ciclo de caminata; el resto, donde y
-            # como los dejó su página. La ruta sobrevive a su propio final, así
-            # que después de caminar el evento queda mirando adonde caminó, que
-            # es lo que hace RM2k.
             blanco_flash = npc["evento"] + 1
             ruta = estado.rutas_ev.get(npc["evento"])
             altura = 0
-            # Donde está **ahora**, que es la celda de su página salvo que un
-            # ChangeEventLocation lo haya plantado en otra: ahí no hay ruta y
-            # la pose sigue siendo la de la página.
             cx, cy = estado.pos_ev.get(npc["evento"], (npc["x"], npc["y"]))
+            # Lo que dibuja: lo de su fila, salvo que el gráfico siga a la
+            # página activa —una puerta que se abre—, y ahí es el de ésta,
+            # con su capa, o nada. Es lo que la ROM copia en el refresco.
+            charset_npc, index_npc, pose_pagina, capa = (
+                npc["charset"], npc["index"], npc["pose"], npc["layer"])
+            if npc["cambia"]:
+                pagina = eventos.pagina_activa(paginas_del_mapa, npc["evento"],
+                                               estado)
+                grafico = pagina["grafico"] if pagina is not None else None
+                if grafico is None or grafico[:2] in npc["afuera"]:
+                    continue
+                charset_npc, index_npc, pose_pagina = grafico
+                capa = pagina["capa"]
+            elif not npc["visible"]:
+                continue
             if ruta is None:
-                px, py, pose = cx * TILE, cy * TILE, npc["pose"]
+                px, py, pose = cx * TILE, cy * TILE, pose_pagina
             else:
                 altura = eventos.altura_del_salto(ruta)
                 px, py = eventos.pixeles_del_paso(cx, cy, ruta)
                 mira = (ruta.mirando if ruta.mirando is not None
-                        else npc["pose"] // 3)
+                        else pose_pagina // 3)
                 pose = mira * 3 + ruta.columna()
-            # La clave lleva la Y **sin** el salto: `GetScreenZ` llama a
-            # `GetScreenY(false)`, así que quien salta no se adelanta en el
-            # orden de dibujo por estar en el aire.
-            actors.append(((snes_convert.sort_key(npc["layer"], py), px,
+            actors.append(((snes_convert.sort_key(capa, py), px,
                             npc["evento"]),
-                           npc["charset"], npc["index"], pose, px, py,
-                           npc["layer"] == rm2k.LAYER_ABOVE, blanco_flash,
+                           charset_npc, index_npc, pose, px, py,
+                           capa == rm2k.LAYER_ABOVE, blanco_flash,
                            altura))
         # El último campo es si va por encima de la capa de encima. Para el
         # héroe es falso salvo en la ROM de `snes-encima`, donde su prioridad

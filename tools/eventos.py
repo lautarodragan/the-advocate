@@ -20,6 +20,8 @@ import math
 import os
 import sys
 
+import rm2k
+
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # --- los comandos de RM2k que sabemos ejecutar ------------------------------
@@ -2502,6 +2504,7 @@ def paginas_del_mapa(game_map, indice_de_mapa, mensajes=None, temas=None):
     """
     salida = []
     del_mapa = Eventos(game_map)
+    chipset = getattr(game_map, "chipset_nombre", None)
     for numero_evento, event in enumerate(game_map.events):
         # Van **todos** los eventos, tengan o no una página que dispare algo:
         # desde el 2026-09-05 la tabla dice además en qué capa está la página
@@ -2516,14 +2519,14 @@ def paginas_del_mapa(game_map, indice_de_mapa, mensajes=None, temas=None):
         # sabe cuál página está activa, y correr la equivocada es peor que no
         # correr ninguna. El evento entero queda afuera, y tampoco frena: su
         # capa es tan desconocida como su código.
-        if any(c not in ("switch_a", "switch_b", "actor")
-               for page in event.pages for c in page.condition.active):
+        if not rm2k.condiciones_soportadas(event):
             continue
 
         grupo = []
         for numero_pagina, page in enumerate(event.pages):
             cond = page.condition
             codigo = None
+            grafico = rm2k.grafico_de_pagina(page, chipset)
             if page.trigger in TRIGGERS and puede_dispararse(page):
                 codigo = compilar_pagina(page, indice_de_mapa, mensajes,
                                          del_mapa.para(event.id), temas)
@@ -2539,6 +2542,12 @@ def paginas_del_mapa(game_map, indice_de_mapa, mensajes=None, temas=None):
                 "velocidad": page.move_speed,
                 "codigo": codigo,
                 "ruta_propia": ruta_propia(page),
+                # Lo que dibuja la página y lo que su tile le impone a la
+                # celda: ver `rm2k.collect_npcs` y `pasabilidad_de_evento`.
+                "grafico": grafico,
+                "tile_pasa": (rm2k.pasabilidad_del_tile(game_map, grafico[0],
+                                                        page.layer)
+                              if grafico is not None else None),
             })
         salida += grupo
     return salida
@@ -2619,6 +2628,29 @@ def bloqueada(paginas, estado, celda, capa, ignorar=None, heroe=None):
             and not estado.ruta_heroe.atraviesa:
         return True
     return False
+
+
+def pasabilidad_de_evento(paginas, estado, celda):
+    """Los bits de paso que un evento le impone a la celda, o None.
+
+    Es la parte de `Game_Map::IsPassableTile` que mira los eventos: de los
+    que están parados en la celda, con página activa, sin atravesar y con
+    gráfico de tile en la capa de abajo, gana el de id más alto —el último
+    de la tabla—, y si su tile no es de los que van por encima, sus bits
+    reemplazan a los del terreno. Lo que no se modela es el "conflicto
+    consigo mismo" de un evento de tile que camina: ninguno camina.
+    """
+    valor = None
+    for indice, donde in estado.pos_ev.items():
+        if donde != celda:
+            continue
+        ruta = estado.rutas_ev.get(indice)
+        if ruta is not None and ruta.atraviesa:
+            continue
+        pagina = pagina_activa(paginas, indice, estado)
+        if pagina is not None and pagina.get("tile_pasa") is not None:
+            valor = pagina["tile_pasa"]
+    return valor
 
 
 def capa_activa(paginas, estado, indice):

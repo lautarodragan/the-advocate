@@ -430,17 +430,20 @@ def npcs_dibujables(renderer, game_map, lideres, tope):
     paso y dispara igual.
     """
     paletas = []
+    paleta_de = {}
 
     def cabe(charset, index, forzar):
         palette, _, _ = paleta_del_personaje(renderer.charsets.get(charset),
                                              index)
         for numero, existente in enumerate(paletas):
-            union = existente | set(palette)
+            union = existente + [c for c in palette if c not in existente]
             if len(union) <= OBJ_COLORS:
                 paletas[numero] = union
+                paleta_de[(charset, index)] = numero
                 return True
         if forzar or len(paletas) < tope:
-            paletas.append(set(palette))
+            paleta_de[(charset, index)] = len(paletas)
+            paletas.append(list(palette))
             return True
         return False
 
@@ -453,29 +456,54 @@ def npcs_dibujables(renderer, game_map, lideres, tope):
             vistos.add(clave)
             cabe(a.charset, a.charset_index, True)
     npcs = collect_npcs(game_map)
+
+    def claves(npc):
+        """Las (CharSet, índice) que el NPC puede llegar a dibujar: la de su
+        fila y, si el gráfico sigue a la página, las de todas sus páginas."""
+        salida = [(npc["charset"], npc["index"])]
+        if npc["cambia"]:
+            salida += [g[:2] for g in npc["graficos"] if g is not None]
+        return salida
+
     for npc in npcs:
-        clave = (npc["charset"], npc["index"])
-        if clave not in vistos and not npc["charset"].startswith(rm2k.TILE_PREFIX):
-            vistos.add(clave)
-            cabe(npc["charset"], npc["index"], True)
-    entran, afuera, salida = set(), set(), []
+        for clave in claves(npc):
+            if clave not in vistos and not clave[0].startswith(rm2k.TILE_PREFIX):
+                vistos.add(clave)
+                cabe(clave[0], clave[1], True)
+    entran, afuera, salida, descartados = set(), set(), [], []
     for npc in npcs:
-        clave = (npc["charset"], npc["index"])
-        if clave in vistos or clave in entran:
-            salida.append(npc)
-        elif clave in afuera:
-            pass
-        elif cabe(npc["charset"], npc["index"], False):
-            entran.add(clave)
-            salida.append(npc)
-        else:
-            afuera.add(clave)
-    descartados = [(npc["evento"], npc["charset"]) for npc in npcs
-                   if (npc["charset"], npc["index"]) in afuera]
-    return salida, descartados
+        for clave in claves(npc):
+            if clave in vistos or clave in entran or clave in afuera:
+                continue
+            if cabe(clave[0], clave[1], False):
+                entran.add(clave)
+            else:
+                afuera.add(clave)
+        # Las que quedaron afuera no se dibujan, de ningún lado: la fila se
+        # esconde si es la suya, y la página que la pida sale sin gráfico.
+        npc["afuera"] = {c for c in claves(npc) if c in afuera}
+        descartados += [(npc["evento"], c[0]) for c in sorted(npc["afuera"])]
+        if (npc["charset"], npc["index"]) in afuera:
+            npc["visible"] = False
+            npc["tile_pasa"] = None
+            if not npc["cambia"]:
+                continue
+            # La fila queda por las otras páginas, escondida, y sus campos
+            # pasan a la primera de ellas que entre: es la ranura con la que
+            # nace. Si ninguna entra, el evento no se dibuja nunca.
+            otra = next((g for g in npc["graficos"]
+                         if g is not None and g[:2] not in afuera), None)
+            if otra is None:
+                continue
+            npc["charset"], npc["index"], npc["pose"] = otra
+        salida.append(npc)
+    # El reparto se devuelve para que `build_characters` lo use tal cual: un
+    # segundo primer-lugar-que-entre en otro orden puede dar otra cuenta, y
+    # dio: el mapa 8 entraba acá en ocho paletas y allá pedía nueve.
+    return salida, descartados, (paletas, paleta_de)
 
 
-def build_characters(images, personajes, ranuras):
+def build_characters(images, personajes, ranuras, reparto=None):
     """El banco de sprites que va a VRAM: una pose por ranura.
 
     `personajes` es la lista de (charset, índice) que necesitan paleta, en el
@@ -494,10 +522,27 @@ def build_characters(images, personajes, ranuras):
     palettes = []
     paleta_de = {}
     colores = {}
+    if reparto is not None:
+        # El reparto que ya hizo `npcs_dibujables`, con los mismos personajes:
+        # las paletas y a cuál va cada uno. Acá sólo se arma el índice de cada
+        # color adentro de la suya.
+        palettes = [list(p) for p in reparto[0]]
+        paleta_de = dict(reparto[1])
     for charset, index in personajes:
-        if (charset, index) in paleta_de:
+        if (charset, index) in colores:
             continue
         palette, lookup, mapping = paleta_del_personaje(images[charset], index)
+        if reparto is not None:
+            if (charset, index) not in paleta_de:
+                sys.exit("%s:%d no está en el reparto de paletas" % (charset, index))
+            union = palettes[paleta_de[(charset, index)]]
+            faltan = [c for c in palette if c not in union]
+            if faltan:
+                sys.exit("%s:%d tiene colores que no están en su paleta del "
+                         "reparto" % (charset, index))
+            lookup = {color: union.index(color) + 1 for color in palette}
+            colores[(charset, index)] = (lookup, mapping)
+            continue
         # Si sus colores caben en una paleta ya armada, va ahí: se le suman
         # los que falten y se le da el índice de cada uno. Ningún color se
         # fusiona por esto, así que la referencia no se entera. Existe por
@@ -657,6 +702,8 @@ def npc_table(npcs, where, movibles=(), indice_animado=None):
             "poses": (indice_animado[(npc["charset"], npc["index"])]
                       if camina else None),
             "velocidad": npc.get("velocidad", 3),
+            "visible": npc.get("visible", True),
+            "tile_pasa": npc.get("tile_pasa"),
         })
     return rows
 
@@ -1450,6 +1497,9 @@ def tabla_de_paginas(mapa, numero):
     # Qué eventos tienen alguna página con ruta propia: el refresco de la ROM
     # sólo mira las páginas de ésos, y con los demás no gasta ni una lectura.
     con_ruta = {p["evento"] for p in mapa["paginas"] if p.get("ruta_propia")}
+    # Y cuáles cambian de gráfico con la página: el refresco también mira las
+    # de ésos, bit 5, y les copia a la fila lo que la página activa dibuja.
+    cambian = mapa.get("cambian", set())
     for pagina in mapa["paginas"]:
         if pagina["codigo"]:
             destino = "evcodigo_%d + %d" % (numero, pagina["offset"])
@@ -1476,7 +1526,8 @@ def tabla_de_paginas(mapa, numero):
             banderas = (1 | (2 if propia["repite"] else 0)
                         | (4 if propia["saltable"] else 0)
                         | (8 if propia["dir_fija"] else 0)
-                        | (16 if propia["anim_continua"] else 0) | 64)
+                        | (16 if propia["anim_continua"] else 0) | 64
+                        | (32 if pagina["evento"] in cambian else 0))
             destino = "evcodigo_%d + %d" % (numero, pagina["ruta_offset"])
             out.append("    .byte %-4d ; +13 las banderas de su ruta propia"
                        % banderas)
@@ -1487,13 +1538,25 @@ def tabla_de_paginas(mapa, numero):
             out.append("    .byte %-4d ; +19 cuántas" % len(propia["ordenes"]))
         else:
             out.append("    .byte %-4d ; +13 sin ruta propia; el bit 6 dice si "
-                       "otra página del evento la tiene"
-                       % (64 if pagina["evento"] in con_ruta else 0))
+                       "otra página del evento la tiene, el 5 si el gráfico "
+                       "sigue a la página"
+                       % ((64 if pagina["evento"] in con_ruta else 0)
+                          | (32 if pagina["evento"] in cambian else 0)))
             out.append("    .byte %-4d ; +14 su frecuencia" % pagina["frecuencia"])
             out.append("    .byte %-4d ; +15 y su velocidad, la de una ruta "
                        "forzada sobre el evento" % pagina["velocidad"])
             out.append("    .byte 0,0,0,0")
-        out.append("    .byte " + ",".join(["$00"] * (PAGINA_BYTES - 20)))
+        # +20..+23: lo que dibuja la página, para los eventos que cambian de
+        # gráfico: el tile, los atributos con la paleta y la prioridad de su
+        # capa, la pose con el bit 7 puesto si hay gráfico, y los bits de
+        # paso de su tile o $FF. Es lo que el refresco copia a la fila.
+        oam = pagina.get("oam")
+        if oam is None:
+            out.append("    .byte $00, $00, $00, $FF ; +20 sin gráfico")
+        else:
+            out.append("    .byte $%02X, $%02X, $%02X, $%02X ; +20 su gráfico: "
+                       "tile, atributos, pose, paso" % oam)
+        assert PAGINA_BYTES == 24
     if not mapa["paginas"]:
         out.append("    .byte $00")     # una etiqueta no puede quedar vacía
     return "\n".join(out)
@@ -2085,7 +2148,12 @@ def npc_bytes(table):
         out.append(npc["pose"])
         # +13: la velocidad de su página, para una ruta forzada sobre él.
         out.append(npc["velocidad"])
-        out += bytes(2)             # relleno hasta NPC_STRIDE
+        # +14: si se dibuja. Un evento cuya página activa no tiene gráfico
+        # está en la tabla escondido, para aparecer cuando otra página gane.
+        out.append(1 if npc["visible"] else 0)
+        # +15: los bits de paso que su tile le impone a la celda, o $FF: ver
+        # `rm2k.pasabilidad_del_tile`. Los dos los rehace el refresco.
+        out.append(0xFF if npc["tile_pasa"] is None else npc["tile_pasa"])
     assert len(out) == NPC_STRIDE * len(table)
     return bytes(out)
 
@@ -2374,6 +2442,26 @@ def main():
                 pagina["ruta_offset"] = len(codigo)
                 codigo += bytes(propia["ordenes"])
         mapa["paginas"] = paginas
+        # Lo que dibuja cada página de los eventos que cambian de gráfico, ya
+        # como lo quiere OAM: es lo que la ROM copia a la fila del NPC cuando
+        # la página activa cambia. Ver `tabla_de_paginas`, +20.
+        for pagina in paginas:
+            if pagina["evento"] not in mapa["cambian"]:
+                continue
+            grafico = pagina.get("grafico")
+            if grafico is None \
+                    or grafico[:2] in mapa["afuera"].get(pagina["evento"], ()):
+                continue
+            block, slot = mapa["where"][grafico]
+            tile = block_tile(block)
+            prioridad = (OBJ_PRIORITY_ABOVE
+                         if pagina["capa"] == rm2k.LAYER_ABOVE
+                         else OBJ_PRIORITY)
+            pagina["oam"] = (tile & 0xFF,
+                             prioridad | ((slot & 0x07) << 1) | ((tile >> 8) & 1),
+                             grafico[2] | 0x80,
+                             0xFF if pagina.get("tile_pasa") is None
+                             else pagina["tile_pasa"])
         mapa["evcodigo"] = bytes(codigo)
         # Cuántos eventos distintos puede llegar a mandar a caminar este mapa.
         # La ROM tiene RUTA_EV_MAX ranuras y una ruta que no encuentre lugar se
@@ -2647,8 +2735,8 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
     # chipset entran mientras quepan en ese techo; la referencia dibuja
     # exactamente los mismos, con la misma función.
     tope_de_paletas = 7 if args.con_timer else 8
-    npcs, descartados = npcs_dibujables(renderer, game_map, args.lideres,
-                                        tope_de_paletas)
+    npcs, descartados, reparto = npcs_dibujables(renderer, game_map,
+                                                 args.lideres, tope_de_paletas)
     for evento, tile in descartados:
         print("  mapa %d: el evento %d, dibujado con el tile %s, no entra en "
               "las %d paletas de sprite y no se dibuja"
@@ -2700,13 +2788,27 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
         ranuras.append(("heroe", charset, index, POSE_INICIAL))
     for npc in npcs:
         if npc["evento"] in movibles:
+            if npc["cambia"]:
+                # Dos mecanismos sobre la misma fila: las doce poses del
+                # cartucho y el gráfico de la página. Ningún evento de los
+                # mapas que se miran lo pide; el día que uno lo pida, esto
+                # dice cuál.
+                sys.exit("el evento %d del mapa %d camina y cambia de "
+                         "gráfico con la página, y la ROM no sabe las dos "
+                         "cosas a la vez" % (npc["evento"] + 1, map_id))
             ranuras.append((("ev", npc["evento"]), npc["charset"],
                             npc["index"], npc["pose"]))
         else:
-            clave = (npc["charset"], npc["index"], npc["pose"])
-            if clave not in {r[0] for r in ranuras}:
-                ranuras.append((clave, npc["charset"], npc["index"],
-                                npc["pose"]))
+            # La pose de su fila y, si el gráfico sigue a la página, la de
+            # cada página: el refresco de la ROM elige entre ranuras que ya
+            # están en la VRAM.
+            poses = [(npc["charset"], npc["index"], npc["pose"])]
+            if npc["cambia"]:
+                poses += [g for g in npc["graficos"]
+                          if g is not None and g[:2] not in npc["afuera"]]
+            for clave in poses:
+                if clave not in {r[0] for r in ranuras}:
+                    ranuras.append((clave,) + clave)
     personajes = list(animados)
     for _clave, charset, index, _pose in ranuras:
         if (charset, index) not in personajes:
@@ -2722,7 +2824,7 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
                 sys.exit("no encuentro el CharSet %r" % charset)
 
     tiles, palettes, where, paleta_de, colores = build_characters(
-        images, personajes, ranuras)
+        images, personajes, ranuras, reparto)
     # Se cuenta acá y no adentro porque el mensaje tiene que nombrar al
     # culpable, que es el mapa. Con `npcs_dibujables` arriba esto ya no
     # tendría que fallar por un tile; si falla es por los CharSets.
@@ -2769,7 +2871,9 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
     # Las celdas con un NPC quedan afuera: si el héroe arrancara sobre uno, los
     # dos tendrían la misma clave de orden y cuál queda encima dependería de un
     # desempate que no tiene por qué coincidir entre la consola y el render.
-    ocupadas = {(n["x"], n["y"]) for n in npcs}
+    # Con **todos** los que se dibujan en alguna página, que es lo que mira
+    # la referencia: un tile que quedó afuera de las paletas igual ocupa.
+    ocupadas = {(n["x"], n["y"]) for n in collect_npcs(game_map)}
     start_x, start_y = inicio or inicio_del_mapa(
         renderer, map_id, passable, game_map.width, game_map.height, ocupadas)
     collision = (passable, start_x, start_y, game_map.width, game_map.height)
@@ -2841,6 +2945,12 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
         # pueden resolver hasta que estén todos: los dos traducen ids de mapa a
         # índices de la tabla.
         "game_map": game_map,
+        # Para la tabla de páginas: dónde quedó cada (CharSet, índice, pose)
+        # en el banco de sprites, qué eventos cambian de gráfico con la
+        # página y qué gráficos suyos quedaron afuera de las paletas.
+        "where": where,
+        "cambian": {npc["evento"] for npc in npcs if npc["cambia"]},
+        "afuera": {npc["evento"]: npc["afuera"] for npc in npcs},
     }
 
 
