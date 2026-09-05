@@ -232,6 +232,56 @@ Una puerta a un mapa que no entró en el cartucho se descarta en la conversión.
 En la consola sería un salto al vacío, y es mejor que no haga nada a que haga
 cualquier cosa; el conversor dice cuántas quedaron afuera.
 
+Lo mismo vale para las **páginas** que teletransportan, sólo que ahí no se
+descarta el salto sino la página entera: `compilar_pagina` corta con
+`NoSePuede`, la página se queda sin código y el evento no hace nada —ni el
+salto, ni lo que venía antes—. Desde el 2026-09-05 el conversor también lo
+dice, con los mapas que faltan nombrados, porque el conteo de "N ejecutables"
+no distinguía esta razón de las otras veinte y ésta es la única que se arregla
+desde afuera, sumando el mapa. Ver "El ascensor no llevaba a ningún lado".
+
+### La pantalla se prende en el vblank, no donde se carga el mapa
+
+Cargar un mapa apaga la pantalla: `cargar_mapa` escribe VRAM y CGRAM por DMA y
+con el PPU dibujando esas escrituras se pierden. Prenderla de vuelta, en
+cambio, **no** se hace ahí. Se prende una bandera, `prender_pantalla`, y quien
+escribe `INIDISP` es `flush_video` al final del vblank siguiente.
+
+El motivo son dos defectos que se veían en todos los teletransportes, y que
+taro reportó por separado sin saber que eran el mismo:
+
+* medio cuadro dibujado desde el borde de abajo, "como si el mapa estuviera
+  cargando", y en un lugar distinto cada vez;
+* un cuadro entero de basura —él lo describió como un flash del cuarto
+  anterior— antes de que apareciera el mapa nuevo.
+
+Los dos salen de dónde caía el `INIDISP = $0F`. La carga tarda seis o siete
+cuadros de CPU, así que terminaba **a mitad de un cuadro**: lo que el haz
+todavía no había pintado se pintaba, y eso es la franja de abajo. Y lo que
+pintaba estaba mal, porque el scroll y OAM los escribe `flush_video` y sólo en
+el vblank: al volver de `cargar_mapa` los registros del PPU siguen apuntando a
+donde miraba la cámara antes del salto y OAM sigue siendo la del mapa anterior.
+El tilemap nuevo leído con el scroll viejo no es el cuarto viejo ni el nuevo:
+es la ventana de 64x32 leída con el corrimiento equivocado.
+
+Prendiéndola en `flush_video` el primer cuadro que se ve ya tiene el scroll,
+OAM y las paletas del mapa nuevo, y empieza donde empieza el cuadro. Cuesta un
+cuadro más de negro.
+
+**Cómo se verifica.** No lo cubre `snes-hitos`: la tanda no compara adentro de
+la ventana de un teletransporte, justamente porque la referencia no modela lo
+que tarda una carga. Se midió a mano sobre `snes-puerta 30 28 down`, capturando
+los cuadros de a uno alrededor del cruce y contando pixeles negros. Antes:
+siete cuadros negros, uno con las 22 primeras filas en negro y el resto
+dibujado —y ese resto a 47.277 pixeles de 51.712 del cuadro que sigue, o sea
+distinto de todo—, y recién después el mapa nuevo. Después: ocho cuadros
+negros y el mapa nuevo, con el primer cuadro visible idéntico bit a bit al que
+daba antes. Los 76 casos de la tanda siguen en verde.
+
+Lo que sigue faltando es el **fundido**: RM2k y EasyRPG hacen fade-out y
+fade-in en cada teletransporte, y acá la pantalla se apaga y se prende de
+golpe. Está en "Lo que falta".
+
 ### Pisar un evento, y pisarlo al final de una ruta forzada
 
 El otro disparo por contacto es el general: al terminar un paso, si la celda
@@ -451,6 +501,46 @@ escombros apareciendo en la escena de verdad. Y una trampa de la primera
 versión, que la tanda cobró: el lazo de dibujo de la referencia pisó la
 variable `charset` que el héroe usa después, y el héroe salía dibujado con el
 tile de la última puerta.
+
+### El ascensor no llevaba a ningún lado
+
+El ascensor del mapa 2 se abría, se dejaba pisar, y pisarlo no hacía nada.
+taro lo reportó así: "puedo interactuar con la puerta del ascensor, y se abre,
+pero entrar al tile del portal no triggerea ningún teleport".
+
+No faltaba nada de la ROM. La página del switch 11 del evento 30 es de
+contacto, arranca con un `Teleport` al (77,31) del mismo mapa —el interior de
+la cabina— y **termina con otro al mapa 3**, que es a donde lleva el ascensor.
+`demo-apertura` tenía los mapas 4, 1 y 2, así que ese último salto no se podía
+compilar, y una página que no compila se emite sin código: el evento existe, se
+dibuja, se pisa, y no hace nada. Los dos lados coincidían —la referencia compila
+con la misma función— así que la tanda daba cero y el caso `ascensor`, que mira
+la puerta abierta con el héroe quieto delante, seguía en verde.
+
+El arreglo es de afuera: `demo-apertura` se arma con **`--mapas 1 2 3`**. El
+mapa 2 pasa de 40 páginas ejecutables a 41 y el cartucho sigue entrando en los
+512 KB. Y para que no se vuelva a callar, el conversor ahora nombra los mapas
+que le faltan a las páginas que se caen por eso: ver "Las puertas".
+
+**Cómo se verifica.** No lo cubre `snes-hitos`, y no por falta de ganas: la
+escena empieza con un teletransporte y sigue con un `ShakeScreen` de mil
+cuadros, así que la ROM queda de siete a doce cuadros atrás de la referencia
+—los que le cuesta la carga, que la referencia no modela— y la pantalla no se
+queda quieta en ningún momento para volver a alinearse. Lo que sí se midió, con
+una ROM descartable de los mapas 2 y 3 y el héroe en (71,70) con el switch 11 y
+un paso hacia arriba:
+
+* la ROM teletransporta al héroe a (77,31) en el cuadro 9, y la referencia en
+  el 9 también;
+* corriendo la escena entera —diez mensajes— la ROM termina en el **mapa 3**,
+  celda (67,69), y la referencia termina en el mapa 3, celda (67,69);
+* dos cuadros de la escena comparan **0 pixeles de 57.344** contra la
+  referencia, con el desfase que explica su propio contador de cuadros
+  perdidos: los cuadros 67 a 72 de la ROM contra el 60 de la referencia, y el
+  95 a 97 contra el 90.
+
+Alinear la ROM con la referencia a través de una carga es lo que le falta a la
+tanda para poder mirar esto sola; está en "Lo que falta".
 
 ### Las rutas propias de las páginas
 
@@ -2001,6 +2091,27 @@ comparación.
   que es lo que hace `UpdateMoveRoute` con `skippable` apagado. Lo último es
   lo que más cerca está de verse: en la apertura la colisión no frena ningún
   paso, medido, pero el droide del mapa 2 vive de eso.
+* **El fundido de los teletransportes.** RM2k y EasyRPG hacen fade-out y
+  fade-in en cada cambio de mapa; acá la pantalla se apaga y se prende de
+  golpe, y taro lo pidió mirando la ROM en Mesen. El brillo de `INIDISP` tiene
+  dieciséis pasos y escribirlo es una instrucción por cuadro, así que el efecto
+  es barato; lo que no es barato es lo que arrastra. Un fundido son cuadros que
+  el teletransporte hoy no gasta, y la referencia tendría que gastarlos
+  igual: si no, todos los cuadros comparados después de un salto se corren, y
+  ésos son la cinemática de apertura entera. O sea que esto no se hace sin
+  modelarlo en `snes_expect.py`, y por eso no entró con el arreglo del cuadro
+  de basura —ver "La pantalla se prende en el vblank"—, que no mueve ningún
+  cuadro de lugar.
+* **Alinear los dos lados a través de una carga.** La ROM se toma seis o siete
+  cuadros en cada teletransporte rellenando el tilemap de 64x32 y la referencia
+  no modela ese costo, así que después de un salto la ROM va atrás y ninguna
+  receta puede comparar hasta que la pantalla se quede quieta y los dos se
+  vuelvan a encontrar. Mientras algo se mueva sin parar —un `ShakeScreen`
+  largo, por ejemplo— no se encuentran nunca, y eso es lo que deja a la escena
+  del ascensor sin caso en la tanda. La salida no es un desfase a mano en las
+  recetas —eso es un número que se ajusta hasta que dé verde— sino que la
+  referencia cobre lo que la carga cuesta, o que la ROM lo diga y la receta lo
+  lea de `cuadros_perdidos`, que ya viaja en la salida de cada captura.
 * **Los teletransportes que siguen sin resolverse.** Los que están adentro de
   cinemáticas con variables y condiciones que todavía no modelamos. El del mapa
   donde el juego arranca ya no: es automático, entra con los cinco comandos que
@@ -2030,8 +2141,9 @@ comparación.
   nombrarlo: `just snes-check 1 45 escape_newyork`.
 
 * **La cinemática de apertura, entera.** Corre con ventana desde el
-  2026-09-05 —`rom/build/demo-apertura/`, con los mapas 4, 1 y 2 y
-  `escape_newyork` sonando—, y el caso `apertura` de la tanda la compara hasta
+  2026-09-05 —`rom/build/demo-apertura/`, con los mapas 4, 1, 2 y 3 y
+  `escape_newyork` sonando; el 3 entró para que el ascensor lleve a algún
+  lado, ver "El ascensor no llevaba a ningún lado"—, y el caso `apertura` de la tanda la compara hasta
   el final con los quince toques de A que la cierran: el tinte se apaga, Core y
   Manta aparecen, el droide camina, Kersh explica su alias, y la página termina
   en el cuadro 2624 con dos `ChangeEventLocation` y un switch. De ahí el juego

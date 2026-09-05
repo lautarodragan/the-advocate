@@ -10,16 +10,35 @@ es la misma operación con pérdida que compactar, sólo que a un archivo.
 
 Última vez que se tocó: 2026-09-05.
 
-## Lo próximo: que taro vuelva a jugar `demo-apertura`, y el ascensor
+## Lo próximo: que taro vuelva a jugar `demo-apertura`, con el ascensor andando
 
-Los ocho puntos de abajo están hechos y `demo-apertura` rearmada con todo.
-Lo que sigue: que taro la juegue de nuevo —en el emulador y en la SNES— y
-entre al ascensor, que es el evento 30 del mapa 2 con el switch 11: ahora se
-abre y se ve, y su página de contacto compila desde `ShakeScreen`, pero lo
-que pasa adentro —un `Teleport` al (77,31) del mismo mapa, la escena con
-Core y Manta y el salto al mapa 3— no tiene caso en la tanda ni nadie lo vio
-correr. Cada vuelta de taro dejó algo: la segunda, los puntos 5, 6 y 7; la
-tercera, el 8. De lo menor, el panorama queda afuera a propósito.
+La cuarta vuelta de taro (`prueba-manual.md`, 2026-09-05) dejó dos cosas, y
+las dos están arregladas. Lo que sigue: que juegue de nuevo —en el emulador y
+en la SNES— **entrando al ascensor**, que ahora lleva al mapa 3, y que diga si
+el teletransporte se ve limpio.
+
+1. **El ascensor no llevaba a ningún lado.** Se abría, se dejaba pisar, y
+   pisarlo no hacía nada. No faltaba nada de la ROM: la página del switch 11
+   del evento 30 **termina saltando al mapa 3**, que no estaba en
+   `demo-apertura`, y una página con un `Teleport` a un mapa que no entró no
+   compila —se emite sin código y el evento no hace nada—. Los dos lados
+   coincidían, así que la tanda daba cero. `demo-apertura` se arma ahora con
+   **`--mapas 1 2 3`**. Ver "El ascensor no llevaba a ningún lado" en el
+   LEEME, y abajo qué se corrió.
+2. **El cuadro de basura de cada teletransporte.** Los dos defectos que taro
+   describió por separado —medio mapa dibujado desde el borde de abajo durante
+   el negro, y un cuadro de flash antes del mapa nuevo— son el mismo: el
+   `INIDISP = $0F` caía a mitad de cuadro y con el scroll y la OAM del mapa
+   viejo. Ahora la pantalla la prende `flush_video` en el vblank siguiente.
+   Ver "La pantalla se prende en el vblank" en el LEEME.
+
+El **fundido** que taro pide —RM2k y EasyRPG funden a negro en cada
+teletransporte— queda como lo que es, un feature que falta: es barato de
+hacer y caro de verificar, porque son cuadros que la referencia tendría que
+gastar igual y hoy no gasta. Está en "Lo que falta" del LEEME.
+
+Los ocho puntos de abajo son de las vueltas anteriores y están hechos. De lo
+menor, el panorama queda afuera a propósito.
 
 **Tres números para tener a mano.** El banco 0 de RAM está en **7905 bytes de
 7936**, con la pila arriba de todo: lo que sigue que pida RAM tiene que
@@ -81,10 +100,11 @@ mano que se corría con cada cambio.
 
 **`demo-apertura` está rearmada** el 2026-09-05 con todo esto adentro —
 colisión, trueque, transparencia, sacudida, tinte en el vblank, arranque
-fijo, los droides, los eventos de tile, el destello y el salto que se
-reintenta—, así:
+fijo, los droides, los eventos de tile, el destello, el salto que se
+reintenta y **el mapa 3**, sin el cual el ascensor no lleva a ningún lado—,
+así:
 
-    python3 tools/snes_convert.py --grupo 10 --map-id 4 --mapas 1 2 --con-ventana \
+    python3 tools/snes_convert.py --grupo 10 --map-id 4 --mapas 1 2 3 --con-ventana \
         -o rom/build/demo-apertura/mapdata.inc
     python3 tools/w65.py rom/src/main.s -I rom/build/demo-apertura \
         -o rom/build/demo-apertura/demo-apertura.sfc
@@ -148,7 +168,68 @@ Queda para después:
   una forzada retome la de la página por donde iba.
 * **El cuadro que se pierde al abrir un mensaje**, cada tanto, y los de los
   teletransportes: se ven ahora, no cambian ningún pixel comparado, y no se
-  tocaron.
+  tocaron. Los del teletransporte son además lo que deja a la escena del
+  ascensor sin caso en la tanda: ver "Alinear los dos lados a través de una
+  carga" en "Lo que falta" del LEEME.
+
+## Hecho el 2026-09-05: el ascensor lleva al mapa 3
+
+Qué se corrió, con todas las letras: **esto no lo cubre `snes-hitos`**. El
+caso `ascensor` que ya estaba mira la puerta abierta con el héroe quieto
+delante y sigue sin entrar. La escena no se puede comparar cuadro contra
+cuadro por lo de siempre —la ROM se toma seis o siete cuadros en el
+teletransporte y la referencia no los modela— agravado por un `ShakeScreen`
+de mil cuadros que no la deja quedarse quieta para reencontrarse. Lo que se
+midió, con una ROM descartable de los mapas 2 y 3, el héroe en (71,70), el
+switch 11 puesto y un paso hacia arriba:
+
+* el conversor pasa el mapa 2 de 40 páginas ejecutables a **41**;
+* la ROM teletransporta al héroe a (77,31) en el cuadro 9, y la referencia
+  también en el 9;
+* corriendo la escena entera —diez mensajes— la ROM termina en el **mapa 3,
+  celda (67,69)**, y la referencia termina exactamente ahí;
+* dos cuadros de la escena dan **0 pixeles de 57.344** contra la referencia,
+  con el desfase que explica el propio `cuadros_perdidos` de la ROM: sus
+  cuadros 67 a 72 contra el 60 de la referencia, y el 95 a 97 contra el 90.
+
+La ROM descartable, para rehacerlo —no la produce ninguna receta, así que
+queda escrita acá y no en `rom/build/`—:
+
+    python3 tools/snes_convert.py --grupo 11 --map-id 2 --mapas 3 --inicio 71 70 \
+        --con-ventana --ruta-de-prueba 0 --switch 11 -o rom/build/asc/mapdata.inc
+    python3 tools/w65.py rom/src/main.s -I rom/build/asc -o rom/build/asc/asc.sfc \
+        --simbolos rom/build/asc/asc.sfc.sym
+    python3 tools/snes_expect.py --grupo 11 --map-id 2 --mapas 3 --walk none \
+        --hero-tile 71 70 --dir up --con-ventana --ruta-de-prueba 0 --switch 11 \
+        --cuadros 60 90 --saltar /tmp/asc-{}.saltar.txt -o /tmp/asc-{}.esperado.png
+
+Y para que la próxima no se calle sola: el conversor ahora **nombra los mapas
+que faltan** cuando una página se cae por un `Teleport` a un mapa que no
+entró. Antes eso se perdía adentro del conteo de "N ejecutables", que no
+distingue esta razón —la única que se arregla desde afuera, sumando el mapa—
+de las otras veinte. Lo dice así:
+
+    mapa 2: 1 de ésas no compila por un teletransporte a un mapa que no entró en la ROM: 3
+
+## Hecho el 2026-09-05: la pantalla se prende en el vblank
+
+Los dos defectos que taro reportó como bugs distintos —"partes del mapa
+cargando durante la pantalla negra" y "un flash del cuarto actual por un
+cuadro"— eran uno solo: dónde caía el `INIDISP = $0F` después de cargar un
+mapa. La carga tarda seis o siete cuadros, así que terminaba a mitad de un
+cuadro (de ahí la franja de abajo) y con el scroll y la OAM del mapa viejo (de
+ahí la basura). Ahora se prende una bandera y la pantalla la enciende
+`flush_video` en el vblank siguiente, con todo ya escrito. Ver "La pantalla se
+prende en el vblank" en el LEEME.
+
+Qué se corrió: los **76 casos de la tanda en verde**, y la medición a mano
+sobre `snes-puerta 30 28 down` capturando cuadro por cuadro alrededor del
+cruce. Antes: siete cuadros negros, uno con 22 filas en negro y el resto
+dibujado —a 47.277 pixeles de 51.712 del cuadro siguiente—, después el mapa
+nuevo. Ahora: ocho cuadros negros y el mapa nuevo, con el primer cuadro
+visible **idéntico bit a bit** al que daba antes. La tanda no puede ver esto
+—no compara adentro de la ventana de un salto— así que el verde no es la
+prueba; la prueba es la captura de a un cuadro.
 
 ## Hecho el 2026-09-05: la apertura entera, con quince toques de A
 

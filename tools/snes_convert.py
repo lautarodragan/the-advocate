@@ -2507,6 +2507,36 @@ def main():
         if paginas:
             print("  mapa %d: %d página(s) de evento automático, %d ejecutable(s)"
                   % (mapa["id"], len(paginas), corribles))
+        # Y a qué mapas de afuera de la ROM apuntan las que no compilan.
+        #
+        # Un `Teleport` a un mapa que no entró corta la página entera, y una
+        # página que no compila no hace **nada**: ni el teletransporte ni lo que
+        # venía antes. `snes-evento` lo dice en su comentario desde siempre,
+        # pero el conteo de arriba no distingue esta razón de las otras por las
+        # que una página se cae, y es la única que se arregla desde afuera
+        # —sumando el mapa— y no tocando el compilador. Así se pasó por alto la
+        # página del ascensor del mapa 2, que se veía abrirse y no llevaba a
+        # ningún lado porque termina saltando al mapa 3. La lista de puertas ya
+        # avisa lo mismo; esto es su equivalente para las páginas.
+        afuera_de, cuantas = set(), 0
+        for pagina in paginas:
+            if pagina["codigo"] or pagina["trigger"] not in eventos.TRIGGERS \
+                    or pagina["evento"] >= len(mapa["game_map"].events):
+                continue        # la página de prueba no sale del juego
+            evento = mapa["game_map"].events[pagina["evento"]]
+            faltan = {cmd.parameters[0]
+                      for cmd in evento.pages[pagina["pagina"]].commands
+                      if cmd.code == eventos.TELEPORT and cmd.parameters
+                      and indices.get(cmd.parameters[0]) is None}
+            if faltan:
+                afuera_de |= faltan
+                cuantas += 1
+        if afuera_de:
+            print("  mapa %d: %d de ésas no %s por un teletransporte a un mapa "
+                  "que no entró en la ROM: %s"
+                  % (mapa["id"], cuantas,
+                     "compila" if cuantas == 1 else "compilan",
+                     ", ".join(str(m) for m in sorted(afuera_de))))
         # Las deudas se avisan. Una página que se acepta sin hacer todo lo que
         # pide es una diferencia con el juego original, y callarla es cómo se
         # vuelve invisible: acá se nombra el comando y qué se pierde.

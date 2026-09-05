@@ -567,6 +567,11 @@ grupo_listo:
 .a8
     jsr timer_digitos
 
+    ; La RAM arranca con basura —snes9x la llena de $55— y `flush_video` la
+    ; mira: sin esto el primer vblank podría prender la pantalla antes de que el
+    ; arranque tenga nada que mostrar.
+    stz prender_pantalla
+
     lda #MAPA_INICIAL
     jsr cargar_mapa
     jsr clear_oam
@@ -1206,8 +1211,8 @@ corriendo:
     lda #$80
     sta INIDISP                 ; `fill_window` escribe VRAM
     jsr mover_heroe_a
-    lda #$0F
-    sta INIDISP
+    lda #1
+    sta prender_pantalla        ; la prende `flush_video`, no acá
     bra nada
 otro_mapa:
     ; La pantalla se apaga para cargar, igual que al cruzar una puerta.
@@ -1226,8 +1231,8 @@ otro_mapa:
     ; eventos del mapa de destino no corrían jamás. Nada lo veía porque la única
     ; prueba que teletransportaba miraba el tinte, que lo pone el mapa de origen.
     jsr encolar_eventos
-    lda #$0F
-    sta INIDISP
+    lda #1
+    sta prender_pantalla        ; la prende `flush_video`, no acá
     ; La página que pidió el salto sigue corriendo del otro lado: su código está
     ; en la ROM y el cursor quedó guardado. Las páginas del mapa nuevo se
     ; encolan recién cuando ésta termine.
@@ -8474,7 +8479,7 @@ no_termino:
     sta hdma_ofs + 9
     lda #HDMA_VENTANA
     sta HDMAEN
-    rts
+    bra prender
 sin_ventana:
     stz HDMAEN
     ; Sin HDMA la máscara de objetos queda como la dejó la última línea, que
@@ -8486,6 +8491,31 @@ sin_ventana:
     ; cerrar un mensaje.
     lda #>VRAM_ABOVE_MAP | MAP_LAYOUT
     sta BG2SC
+
+    ; Y último de todo, la pantalla que dejó apagada un cambio de mapa.
+    ;
+    ; Va acá y no donde se carga el mapa, que es lo que hacía antes, porque allá
+    ; la pantalla se prendía **a mitad de un cuadro y con los registros del mapa
+    ; viejo**. El scroll y OAM los escribe esta rutina y sólo en el vblank: al
+    ; volver de `cargar_mapa` los registros del PPU todavía apuntan a donde
+    ; miraba la cámara antes del salto y OAM sigue siendo la del mapa anterior,
+    ; y el tilemap nuevo leído con ese scroll es cualquier cosa. Eso son los dos
+    ; defectos que se veían en cada teletransporte: medio cuadro dibujado desde
+    ; el borde de abajo —donde estuviera el haz cuando se prendía— y un cuadro
+    ; entero de basura antes del mapa nuevo. Prendiéndola acá, el primer cuadro
+    ; que se ve ya tiene el scroll, OAM y las paletas del mapa nuevo, y empieza
+    ; donde empieza el cuadro.
+    ;
+    ; Cuesta un cuadro más de negro y no cambia un solo pixel de los que la
+    ; tanda compara: la referencia no modela lo que tarda una carga, y por eso
+    ; ningún caso mira adentro de esa ventana.
+prender:
+    lda prender_pantalla
+    beq listo
+    stz prender_pantalla
+    lda #$0F
+    sta INIDISP
+listo:
     rts
 .endproc
 
@@ -9304,10 +9334,9 @@ cruzar:
     jsr cargar_mapa
     stz step_left               ; el paso que se estaba dando quedó allá
     stz moving
-    lda #$0F
-    sta INIDISP
     lda #1
-    rts
+    sta prender_pantalla        ; la prende `flush_video`, no acá
+    rts                         ; A queda en 1: cruzó
 .endproc
 
 ; --- animación de caminata -------------------------------------------------
@@ -10622,6 +10651,13 @@ done:
 
 .segment "BSS"
 port0: .res 1
+
+; Un mapa que se acaba de cargar deja la pantalla apagada y prende esta bandera:
+; quien la prende **no** vuelve a encender la pantalla. Lo hace `flush_video` en
+; el vblank siguiente, y el porqué está ahí, en `prender`. Va en la BSS y no en
+; la página directa porque se toca dos veces por cambio de mapa y una vez por
+; cuadro, en ningún lazo cerrado —y la página cero está llena—.
+prender_pantalla: .res 1
 
 ; La ruta forzada del héroe, hasta RUTA_MAX órdenes. Vivía en la página cero y
 ; se mudó acá cuando el compositor de texto necesitó lugar: `paso_de_ruta` la
