@@ -747,6 +747,19 @@ paso_dx:
     .byte 0, 1, 0, $FF
 paso_dy:
     .byte $FF, 0, 1, 0
+; Cuánto avanza un paso por cuadro según la velocidad, 1 a 6, de 256 por
+; celda, y cuánto el salto: PASO_POR_VELOCIDAD y SALTO_VELOCIDADES de
+; eventos.py. La 4 es la del héroe: 32 por cuadro, dos pixeles.
+paso_por_vel:
+    .word 4, 8, 16, 32, 64, 128
+salto_por_vel:
+    .byte 8, 12, 16, 24, 32, 64
+; Cada cuántos cuadros cambia el frame de la caminata, por velocidad: caminando
+; y quieto con la animación continua. ANIM_PARADO y ANIM_CONTINUA de eventos.py.
+anim_parado:
+    .byte 12, 10, 8, 6, 5, 4
+anim_continua:
+    .byte 16, 12, 10, 8, 7, 6
 ; Un bit por posición, para el bitmap de switches. Sale más barata que ocho
 ; corrimientos y se lee con el índice que ya tenemos.
 mascara:
@@ -938,6 +951,8 @@ puesto:
     jsr load_sprite
     jsr load_npcs
     jsr load_ev_pos             ; y dónde arranca cada evento, con o sin gráfico
+    stz refresco
+    jsr rutas_de_pagina         ; y las rutas propias de las páginas activas
     ; La tabla de actores es de este mapa, así que dónde caen las poses del
     ; líder cambia al cambiar de mapa aunque el grupo sea el mismo.
     jsr elegir_grafico_heroe
@@ -1012,6 +1027,13 @@ nada:
 .proc eventos_tick
 .a8
 .i16
+    ; El refresco pendiente, antes del intérprete: es cuando `Game_Map::Update`
+    ; mira `GetNeedRefresh`.
+    lda refresco
+    beq sin_refresco
+    stz refresco
+    jsr rutas_de_pagina
+sin_refresco:
     rep #$20
 .a16
     lda ev_esperando
@@ -1335,6 +1357,370 @@ nada:
     iny
     lda [pag_ptr], y            ; +12 su capa
     sta pg_capa
+    iny
+    lda [pag_ptr], y            ; +13 las banderas de la ruta propia
+    sta pg_flags
+    iny
+    lda [pag_ptr], y            ; +14 su frecuencia
+    sta pg_frec
+    iny
+    lda [pag_ptr], y            ; +15 la velocidad de la página
+    sta pg_vel
+    iny
+    lda [pag_ptr], y            ; +16 las órdenes de la ruta propia
+    sta pg_ruta
+    iny
+    lda [pag_ptr], y
+    sta pg_ruta + 1
+    iny
+    lda [pag_ptr], y
+    sta pg_ruta + 2
+    iny
+    lda [pag_ptr], y            ; +19 cuántas
+    sta pg_ruta_n
+    rts
+.endproc
+
+; La página activa de cada evento y, con ella, la ruta propia que le toca. Es
+; `Game_Map::Refresh` con `Game_Event::SetupFromPage`: al cargar el mapa y cada
+; vez que un switch o el grupo cambian. Un evento cuya página activa es la
+; misma de antes no se toca, y su ruta sigue por donde iba; uno cuya página
+; cambió carga la ruta de la nueva desde el principio, con la espera del giro
+; antes de la primera orden; y uno cuya página nueva no tiene ruta se queda sin
+; órdenes. La velocidad de la página queda en `vel_por_ev` para las rutas
+; forzadas.
+;
+; Son dos pasadas y no un lazo adentro del otro: la tabla de páginas se recorre
+; una sola vez anotando la ganadora de cada evento, y después se mira evento
+; por evento. Con eventos por páginas costaba más de un cuadro, y un cuadro
+; perdido en un switch es un cuadro corrido contra la referencia.
+.proc rutas_de_pagina
+.a8
+.i16
+    rep #$20
+.a16
+    ldx #$0000
+vaciar:
+    lda #$FFFF
+    sta eleg_por_ev, x
+    inx
+    inx
+    cpx #EV_MAX * 2
+    bne vaciar
+    ldx mapa_ofs
+    lda mapa_tabla + M_PAGINA_COUNT, x
+    bne hay_paginas
+    jmp sin_paginas             ; queda lejos para un salto corto
+hay_paginas:
+    sta pag_restan
+    lda mapa_tabla + M_PTR_PAGINAS, x
+    sta pag_ptr
+    stz pag_ofs
+    sep #$20
+.a8
+    lda mapa_tabla + M_PTR_PAGINAS + 2, x
+    sta pag_ptr + 2
+recorrer:
+    ; Sólo las páginas de los eventos que tienen alguna con ruta propia: el
+    ; bit 6 de +13 lo dice, y se lee ese byte solo. Con todas las páginas
+    ; enteras esto costaba más de un cuadro, y el cuadro se perdía.
+    rep #$20
+.a16
+    lda pag_ofs
+    clc
+    adc #13
+    tay
+    sep #$20
+.a8
+    lda [pag_ptr], y
+    and #$40
+    beq siguiente
+    jsr leer_pagina
+    jsr condiciones_ok
+    beq no_cumple
+    rep #$20
+.a16
+    lda pg_evento
+    asl a
+    tax
+    lda pag_ofs
+    sta eleg_por_ev, x          ; gana la última que cumple
+    sep #$20
+.a8
+    bra siguiente
+no_cumple:
+    ; Un evento con rutas y sin página que cumpla todavía: $FFFE, para que la
+    ; segunda pasada lo distinga de los que no tienen rutas.
+    rep #$20
+.a16
+    lda pg_evento
+    asl a
+    tax
+    lda eleg_por_ev, x
+    cmp #$FFFF
+    bne ya_tiene
+    lda #$FFFE
+    sta eleg_por_ev, x
+ya_tiene:
+    sep #$20
+.a8
+siguiente:
+    rep #$20
+.a16
+    lda pag_ofs
+    clc
+    adc #PAGINA_BYTES
+    sta pag_ofs
+    dec pag_restan
+    sep #$20
+.a8
+    bne recorrer
+    ; Segunda pasada: cada evento con su página ganadora.
+    stz rp_ev
+    stz rp_ev + 1
+cada_evento:
+    rep #$20
+.a16
+    lda rp_ev
+    cmp ev_total
+    bcc :+
+    jmp fin16                   ; lejos para un salto corto
+:
+    asl a
+    tax
+    lda eleg_por_ev, x
+    cmp #$FFFF
+    bne :+
+    jmp proximo                 ; sin rutas propias: nada que mirar
+:
+    cmp #$FFFE
+    bne :+
+    jmp sin_activa16            ; con rutas, y ninguna página que cumpla
+:
+    sta pag_ofs
+    sep #$20
+.a8
+    jsr leer_pagina
+    lda rp_ev
+    jsr ranura_del_evento       ; X = su ranura, o $FFFF
+    lda pg_flags
+    and #$01
+    beq sin_ruta
+    cpx #$FFFF
+    beq nueva
+    rep #$20
+.a16
+    lda ruta_ev + 20, x
+    cmp pag_ofs
+    sep #$20
+.a8
+    bne :+
+    jmp proximo                 ; la misma página de antes: sigue por donde iba
+:
+    bra cargar
+nueva:
+    jsr ranura_libre
+    cpx #$FFFF
+    bne :+
+    jmp proximo                 ; no hay lugar: se queda quieto
+:
+    lda rp_ev
+    sta ruta_ev + 0, x
+    stz ruta_ev + 6, x
+    stz ruta_ev + 7, x
+    lda #RUTA_EV_SIN_MIRAR
+    sta ruta_ev + 8, x
+    stz ruta_ev + 12, x
+    stz ruta_ev + 13, x
+    lda #1
+    sta ruta_ev + 10, x
+    stz ruta_ev + 11, x
+    stz ruta_ev + 22, x
+    stz ruta_ev + 23, x
+cargar:
+    jsr cargar_pagina_en_ranura
+    jmp proximo
+sin_ruta:
+    cpx #$FFFF
+    bne :+
+    jmp proximo
+:
+    jsr quitar_pagina_de_ranura
+    jmp proximo
+.a16
+sin_activa16:
+    sep #$20
+.a8
+    lda rp_ev
+    jsr ranura_del_evento
+    cpx #$FFFF
+    bne :+
+    jmp proximo
+:
+    jsr quitar_pagina_de_ranura
+proximo:
+    rep #$20
+.a16
+    inc rp_ev
+    sep #$20
+.a8
+    jmp cada_evento
+.a16
+fin16:
+sin_paginas:
+    sep #$20
+.a8
+    rts
+.endproc
+
+; La ranura de ruta del evento cuyo índice trae A: X, o $FFFF si no tiene.
+.proc ranura_del_evento
+.a8
+.i16
+    sta otro_ev
+    ldx #$0000
+buscar:
+    lda ruta_ev, x
+    cmp otro_ev
+    beq listo
+    rep #$20
+.a16
+    txa
+    clc
+    adc #RUTA_EV_STRIDE
+    tax
+    cmp #RUTA_EV_MAX * RUTA_EV_STRIDE
+    sep #$20
+.a8
+    bcc buscar
+    ldx #$FFFF
+listo:
+    rts
+.endproc
+
+; Una ranura de ruta libre: X, o $FFFF si no queda ninguna.
+.proc ranura_libre
+.a8
+.i16
+    ldx #$0000
+buscar:
+    lda ruta_ev, x
+    cmp #RUTA_EV_LIBRE
+    beq listo
+    rep #$20
+.a16
+    txa
+    clc
+    adc #RUTA_EV_STRIDE
+    tax
+    cmp #RUTA_EV_MAX * RUTA_EV_STRIDE
+    sep #$20
+.a8
+    bcc buscar
+    ldx #$FFFF
+listo:
+    rts
+.endproc
+
+; La ruta propia de la página recién leída, a la ranura X, desde el principio.
+; Queda guardada también aparte —+24 a +29— para volver a ella cuando una
+; ruta forzada sobre el mismo evento termine.
+.proc cargar_pagina_en_ranura
+.a8
+.i16
+    lda pg_ruta
+    sta ruta_ev + 1, x
+    sta ruta_ev + 24, x
+    lda pg_ruta + 1
+    sta ruta_ev + 2, x
+    sta ruta_ev + 25, x
+    lda pg_ruta + 2
+    sta ruta_ev + 3, x
+    sta ruta_ev + 26, x
+    lda pg_ruta_n
+    sta ruta_ev + 4, x
+    sta ruta_ev + 27, x
+    stz ruta_ev + 5, x
+    lda pg_frec
+    sta ruta_ev + 16, x
+    sta ruta_ev + 28, x
+    lda pg_vel
+    sta ruta_ev + 17, x
+    sta ruta_ev + 29, x
+    lda pg_flags
+    and #$1E
+    ora #$01                    ; de página
+    sta ruta_ev + 18, x
+    lda pg_capa
+    sta ruta_ev + 31, x         ; su capa, para chocar con los demás
+    rep #$20
+.a16
+    lda pag_ofs
+    sta ruta_ev + 20, x
+    sep #$20
+.a8
+    lda pg_frec
+    jsr tras_giro               ; `SetMaxStopCountForTurn` antes de la primera
+    sta ruta_ev + 9, x
+    rts
+.endproc
+
+; La página nueva del evento de la ranura X no tiene ruta: se queda sin
+; órdenes y sin página a la que volver.
+.proc quitar_pagina_de_ranura
+.a8
+.i16
+    lda ruta_ev + 18, x
+    and #$01
+    beq listo                   ; corría una forzada: no se toca
+    stz ruta_ev + 4, x
+    stz ruta_ev + 5, x
+    stz ruta_ev + 9, x
+    lda ruta_ev + 18, x
+    and #$FE
+    sta ruta_ev + 18, x
+listo:
+    stz ruta_ev + 27, x
+    rep #$20
+.a16
+    lda #$FFFF
+    sta ruta_ev + 20, x
+    sep #$20
+.a8
+    rts
+.endproc
+
+; Cuánto avanza el paso de la ranura X por cuadro, a `temp`, de dieciséis bits.
+.proc paso_de_ranura
+.a8
+.i16
+    lda ruta_ev + 17, x
+    dec a
+    asl a
+    rep #$20
+.a16
+    and #$00FF
+    tay
+    lda paso_por_vel, y
+    sta temp
+    sep #$20
+.a8
+    rts
+.endproc
+
+; Cuánto avanza el salto de la ranura X por cuadro, en A.
+.proc salto_de_ranura
+.a8
+.i16
+    lda ruta_ev + 17, x
+    dec a
+    rep #$20
+.a16
+    and #$00FF
+    tay
+    sep #$20
+.a8
+    lda salto_por_vel, y
     rts
 .endproc
 
@@ -1370,14 +1756,18 @@ nada:
     lda mapa_tabla + M_PTR_PAGINAS + 2, x
     sta pag_ptr + 2
 recorrer:
-    jsr leer_pagina
+    ; Sólo el evento que se busca: de las demás páginas se lee el evento y
+    ; nada más. Leerlas enteras costaba, con un droide empujando contra el
+    ; héroe cuadro por cuadro, más de un cuadro cada tanto.
     rep #$20
 .a16
-    lda pg_evento
+    ldy pag_ofs
+    lda [pag_ptr], y            ; +0 a qué evento pertenece
     cmp capa_ev
     sep #$20
 .a8
     bne siguiente
+    jsr leer_pagina
     jsr condiciones_ok
     beq siguiente
     lda pg_capa
@@ -1560,7 +1950,7 @@ libre:
 .i16
     lda ruta_ev + 0, x
     sta movil
-    jsr capa_activa
+    lda ruta_ev + 31, x         ; la capa que la ranura trae desde que se cargó
     sta movil_capa
     rts
 .endproc
@@ -2959,6 +3349,8 @@ era_sacar:
 
 listo:
     jsr elegir_grafico_heroe
+    lda #1
+    sta refresco                ; las páginas que piden un actor pueden cambiar
     rts
 .endproc
 
@@ -3233,6 +3625,9 @@ otra:
     lda ruta_ev, x
     cmp #RUTA_EV_LIBRE
     beq siguiente
+    lda ruta_ev + 18, x
+    and #$01
+    bne siguiente               ; la ruta propia de la página no se espera
     lda ruta_ev + 7, x          ; un paso en curso
     bne si
     lda ruta_ev + 9, x          ; o una espera
@@ -3282,12 +3677,16 @@ si:
     lda switches, y
     ora mascara, x
     sta switches, y
+    lda #1
+    sta refresco                ; las páginas que lo piden pueden cambiar
     rts
 apagar:
     lda mascara, x
     eor #$FF
     and switches, y
     sta switches, y
+    lda #1
+    sta refresco
     rts
 .endproc
 
@@ -3890,21 +4289,50 @@ vacia:
     rts                         ; no hay lugar: la ruta se pierde
 
 puesta:
-    ; Una ranura nueva: sin paso, sin salto, mirando adonde diga su página y
-    ; con la animación en la pose del medio, como `animate_hero`.
     lda temp
     sta ruta_ev + 0, x
     stz ruta_ev + 6, x
     stz ruta_ev + 7, x          ; sin paso en curso
+    stz ruta_ev + 22, x
+    stz ruta_ev + 23, x
     lda #RUTA_EV_SIN_MIRAR
     sta ruta_ev + 8, x          ; mira adonde diga su página hasta que gire
     stz ruta_ev + 12, x         ; sin banderas
     stz ruta_ev + 13, x         ; ni salto
     lda #1
     sta ruta_ev + 10, x         ; el frame del medio, como `animate_hero`
-    lda #ANIM_FRAMES
-    sta ruta_ev + 11, x
+    stz ruta_ev + 11, x
+    stz ruta_ev + 18, x
+    stz ruta_ev + 27, x         ; sin página a la que volver
+    rep #$20
+.a16
+    lda #$FFFF
+    sta ruta_ev + 20, x
+    sep #$20
+.a8
+    ; A la velocidad de la página con que se dibuja, que la fila del NPC trae
+    ; en +13: es la que RM2k le deja a una ruta forzada. Un evento sin fila
+    ; —sin gráfico— va a la 3, la de una página por defecto.
+    phy                         ; Y es el cursor del bytecode, y se necesita
+    lda temp                    ; después: `npc_de_evento` lo pisa
+    jsr npc_de_evento           ; Y = su fila, o $FFFF; A se pierde
+    cpy #$FFFF
+    beq sin_fila
+    lda npc_buf + 13, y
+    bra con_velocidad
+sin_fila:
+    lda #3
+con_velocidad:
+    ply
+    sta ruta_ev + 17, x
+    lda temp
+    jsr capa_activa             ; su capa, una vez y no en cada paso
+    sta ruta_ev + 31, x
 reusada:
+    lda ruta_ev + 18, x
+    and #$FE                    ; la forzada pisa a la de página, si había
+    ora #$04                    ; y lo bloqueado se saltea
+    sta ruta_ev + 18, x
     ; El puntero a la primera orden: el del código más lo que Y llevaba andado.
     ; La suma no se lleva nada al byte de banco porque el bloque de código del
     ; mapa entra entero en uno —lo garantiza el `.bloque` con que lo emite el
@@ -4063,24 +4491,36 @@ siguiente:
 .proc cuadro_de_ruta_ev
 .a8
 .i16
-    ; Si este cuadro es parte de un paso se anota, porque es lo que hace avanzar
-    ; el ciclo de caminata. Vale también el cuadro en que el paso **termina**:
-    ; allá `Ruta.cuadro` devuelve la dirección y suma uno a `cuadros_moviendose`.
     stz ruta_ev + 6, x
-    ; ¿Hay un paso en curso? Entonces sólo se le descuenta un cuadro: la celda
-    ; ya se movió al **empezar** el paso, igual que `begin_step`.
+    lda ruta_ev + 18, x
+    and #$DF                    ; la recarga de `repeat`, una por cuadro
+    sta ruta_ev + 18, x
     lda ruta_ev + 7, x
     beq sin_paso
-    dec a
-    sta ruta_ev + 7, x
+    ; El paso avanza lo que dice la velocidad, de 256 por celda; +7 sólo dice
+    ; que hay uno en curso.
+    jsr paso_de_ranura
+    rep #$20
+.a16
+    lda ruta_ev + 22, x
+    sec
+    sbc temp
+    bcs no_negativo
+    lda #0
+no_negativo:
+    sta ruta_ev + 22, x
+    sep #$20
+.a8
     bne moviendo
-    ; El paso terminó en este cuadro. Con órdenes por delante, la frecuencia
-    ; dice cuántos cuadros quieto antes de leer la siguiente; sin órdenes no se
-    ; espera nada, porque la ruta se cancela en su último paso y
-    ; `ProceedWithMovement` no la tiene que esperar.
+    stz ruta_ev + 7, x          ; el paso terminó en este cuadro
     lda ruta_ev + 5, x
     cmp ruta_ev + 4, x
-    bcs moviendo
+    bcc con_ordenes
+    lda ruta_ev + 18, x         ; sin órdenes: sólo la de página que se repite
+    and #$03                    ; sigue esperando
+    cmp #$03
+    bne moviendo
+con_ordenes:
     lda ruta_ev + 16, x
     jsr tras_paso
     sta ruta_ev + 9, x
@@ -4088,13 +4528,14 @@ moviendo:
     lda #1
     sta ruta_ev + 6, x
     rts
-
 sin_paso:
-    ; Un salto en curso también, y la celda ya se movió al empezar.
     lda ruta_ev + 13, x
     beq sin_salto
+    jsr salto_de_ranura
+    sta temp
+    lda ruta_ev + 13, x
     sec
-    sbc #SALTO_VELOCIDAD
+    sbc temp
     bcs guardar_salto
     lda #0
 guardar_salto:
@@ -4108,6 +4549,19 @@ sin_salto:
     sta ruta_ev + 9, x
     rts
 sin_espera:
+    ; La ruta propia de la página no lee órdenes nuevas mientras el intérprete
+    ; tiene una página corriendo: es el `IsRunning()` de
+    ; `UpdateNextMovementAction`. El paso en curso ya se terminó arriba y las
+    ; esperas siguen contando.
+    lda ruta_ev + 18, x
+    and #$01
+    beq no_congelada
+    lda ev_activo
+    bne congelada
+    lda cola_i
+    cmp cola_n
+    bne congelada
+no_congelada:
     ; El puntero de la ruta a la página directa, que es de donde se puede leer
     ; con `[ptr], y`.
     rep #$20
@@ -4123,7 +4577,28 @@ otra_orden:
     lda ruta_ev + 5, x          ; en cuál va
     cmp ruta_ev + 4, x          ; cuántas trae
     bcc hay_orden
-    jmp listo                   ; la ruta terminó; `bcs` ya no llega
+    ; Se acabaron las órdenes. La de página que se repite vuelve al principio
+    ; en el mismo cuadro, y una sola vez por cuadro —el `current_index ==
+    ; start_index` de `UpdateMoveRoute`—; y una forzada que termina sobre un
+    ; evento con ruta propia le devuelve la suya, desde el principio.
+    lda ruta_ev + 18, x
+    and #$23
+    cmp #$03
+    bne no_repite
+    stz ruta_ev + 5, x
+    lda ruta_ev + 18, x
+    ora #$20
+    sta ruta_ev + 18, x
+    jmp otra_orden
+no_repite:
+    lda ruta_ev + 18, x
+    and #$01
+    bne congelada               ; la de página, terminada: listo
+    lda ruta_ev + 27, x
+    beq congelada               ; sin página a la que volver
+    jsr retomar_pagina
+congelada:
+    jmp listo
 hay_orden:
     rep #$20
 .a16
@@ -4148,7 +4623,9 @@ no_es_wait:
     jmp mover                   ; 0..3 son los move_*
 no_mueve:
     cmp #16
-    bcc face                    ; 12..15 son los face_*
+    bcs :+
+    jmp face                    ; 12..15 son los face_*; queda lejos
+:
     cmp #21
     bne no_encara
     ; face_hero: la celda del evento contra la del héroe, y a `mirar` con la
@@ -4170,8 +4647,12 @@ salto_arranco:
 no_es_salto:
     cmp #25
     beq seguir
-    cmp #36
+    cmp #26
     bcc seguir                  ; los demás no hacen nada
+    cmp #30
+    bcc fijar_o_velocidad       ; 26 y 27 fijan la mirada, 28 y 29 la velocidad
+    cmp #36
+    bcc seguir
     cmp #38
     bcs anim
     ; 36 prende atravesar y 37 lo apaga.
@@ -4201,6 +4682,37 @@ guardar_banderas:
     sta ruta_ev + 12, x
 seguir:
     jmp otra_orden
+fijar_o_velocidad:
+    cmp #28
+    bcs velocidad
+    ; 26 fija hacia dónde mira, 27 lo suelta: `lock_facing`.
+    and #$01
+    beq fijar
+    lda ruta_ev + 18, x
+    and #$F7
+    bra guardar_18
+fijar:
+    lda ruta_ev + 18, x
+    ora #$08
+    bra guardar_18
+velocidad:
+    ; 28 sube la velocidad y 29 la baja, entre 1 y 6.
+    and #$01
+    bne mas_lenta
+    lda ruta_ev + 17, x
+    cmp #6
+    bcs seguir
+    inc ruta_ev + 17, x
+    bra seguir
+mas_lenta:
+    lda ruta_ev + 17, x
+    cmp #2
+    bcc seguir
+    dec ruta_ev + 17, x
+    bra seguir
+guardar_18:
+    sta ruta_ev + 18, x
+    bra seguir
 face:
     sec
     sbc #12
@@ -4217,9 +4729,17 @@ giro_espera:
 
 
 mover:
-    sta ruta_ev + 8, x          ; move_* mira hacia donde va
     sta ruta_dir
     stz ruta_dir + 1
+    pha
+    lda ruta_ev + 18, x
+    and #$08
+    bne sin_girar               ; mira siempre igual: `lock_facing` o el tipo
+    pla                         ; de animación de la página
+    sta ruta_ev + 8, x          ; move_* mira hacia donde va
+    pha
+sin_girar:
+    pla
     phx
     jsr celda_del_evento        ; deja su posición en celda_x/celda_y
     jsr preparar_movil          ; y quién es, para chocar con los demás
@@ -4236,18 +4756,66 @@ mover:
     ; volver a mirarla: con el `beq` pegado al `plx`, la ranura 0 —que es X = 0—
     ; daba "bloqueado" siempre y ninguna ruta se movía nunca.
     cmp #0
-    bne no_bloqueado            ; bloqueado: se saltea, como el héroe
+    bne no_bloqueado
+    ; Bloqueado. Con `skippable` —las forzadas, y las de página que lo pidan—
+    ; se saltea y se prueba la siguiente; sin él, la orden se reintenta el
+    ; cuadro que viene, y así hasta que el paso salga.
+    lda ruta_ev + 18, x
+    and #$04
+    beq reintenta
     jmp otra_orden
+reintenta:
+    dec ruta_ev + 5, x
+    jmp listo
 no_bloqueado:
     phx
     lda ruta_dir
     jsr mover_celda_del_evento
     plx
-    lda #CUADROS_POR_CELDA - 1
-    sta ruta_ev + 7, x
+    lda ruta_dir
+    sta ruta_ev + 30, x         ; hacia dónde va el paso, que con la mirada
+    lda #1                      ; fija no es hacia donde mira
+    sta ruta_ev + 7, x          ; hay un paso en curso
+    jsr paso_de_ranura
+    rep #$20
+.a16
+    lda #SALTO_PASO
+    sec
+    sbc temp
+    sta ruta_ev + 22, x         ; y ya avanzó lo de este cuadro
+    sep #$20
+.a8
     lda #1
     sta ruta_ev + 6, x
 listo:
+    rts
+.endproc
+
+; La ruta forzada terminó sobre un evento que tiene ruta propia: vuelve la de
+; la página, guardada en +24 a +29, desde el principio y con la espera del
+; giro. RM2k la retoma por donde iba; acá arranca de nuevo.
+.proc retomar_pagina
+.a8
+.i16
+    lda ruta_ev + 24, x
+    sta ruta_ev + 1, x
+    lda ruta_ev + 25, x
+    sta ruta_ev + 2, x
+    lda ruta_ev + 26, x
+    sta ruta_ev + 3, x
+    lda ruta_ev + 27, x
+    sta ruta_ev + 4, x
+    stz ruta_ev + 5, x
+    lda ruta_ev + 28, x
+    sta ruta_ev + 16, x
+    lda ruta_ev + 29, x
+    sta ruta_ev + 17, x
+    lda ruta_ev + 18, x
+    ora #$01
+    sta ruta_ev + 18, x
+    lda ruta_ev + 28, x
+    jsr tras_giro
+    sta ruta_ev + 9, x
     rts
 .endproc
 
@@ -5010,35 +5578,65 @@ fin:
 .proc animar_ruta_ev
 .a8
 .i16
-    ; Con la animación parada la pose se queda en la del medio, camine o no: es
-    ; el `ResetAnimation` que RM2k llama en cada cuadro mientras
-    ; `IsAnimPaused()`.
+    ; `Game_Character::UpdateAnimation`, sin el giro en el lugar. +10 es el
+    ; frame del ciclo, 0 a 3 —el 3 dibuja la columna 1—, y +11 cuántos cuadros
+    ; lleva en él. Con la animación parada o saltando, el frame del medio.
     lda ruta_ev + 12, x
     and #$02
-    beq anima
-    lda #1
-    sta ruta_ev + 10, x
-    lda #ANIM_FRAMES
-    sta ruta_ev + 11, x
-    rts
-anima:
+    bne quieta
+    lda ruta_ev + 13, x
+    bne quieta
+    ; Los límites, por velocidad.
+    lda ruta_ev + 17, x
+    dec a
+    rep #$20
+.a16
+    and #$00FF
+    tay
+    sep #$20
+.a8
+    lda anim_parado, y
+    sta temp
+    lda anim_continua, y
+    sta temp + 1
+    ; La cuenta sube caminando, siempre con la animación continua, y quieto
+    ; sólo hasta llegar al frame del medio.
+    lda ruta_ev + 18, x
+    and #$10
+    bne suma
     lda ruta_ev + 6, x
-    bne caminando
-    lda #1                      ; quieto: el frame del medio
-    sta ruta_ev + 10, x
-    lda #ANIM_FRAMES
-    sta ruta_ev + 11, x
-    rts
-caminando:
-    dec ruta_ev + 11, x
-    bne listo
-    lda #ANIM_FRAMES
-    sta ruta_ev + 11, x
+    bne suma
+    lda ruta_ev + 10, x
+    and #$01
+    beq suma                    ; en el frame 0 o 2 sigue hasta el del medio
+    lda ruta_ev + 11, x
+    inc a
+    cmp temp
+    bcc suma                    ; cuenta < parado - 1
+    bra ver_cambio
+suma:
+    inc ruta_ev + 11, x
+ver_cambio:
+    lda ruta_ev + 11, x
+    cmp temp + 1
+    bcs cambia                  ; llegó a la de continua
+    lda ruta_ev + 6, x
+    beq listo
+    lda ruta_ev + 11, x
+    cmp temp
+    bcc listo                   ; caminando, a la de parado
+cambia:
     lda ruta_ev + 10, x
     inc a
     and #$03                    ; el ciclo son cuatro pasos
     sta ruta_ev + 10, x
+    stz ruta_ev + 11, x
 listo:
+    rts
+quieta:
+    lda #1
+    sta ruta_ev + 10, x
+    stz ruta_ev + 11, x
     rts
 .endproc
 
@@ -5142,6 +5740,8 @@ buscar:
 con_ranura:
     lda #0
     sta ruta_ev + 7, x          ; sin paso en curso
+    sta ruta_ev + 22, x
+    sta ruta_ev + 23, x
     sta ruta_ev + 13, x         ; ni salto
 listo:
     rts
@@ -5160,9 +5760,21 @@ listo:
     stz salto_alto + 1
     jsr celda_del_evento        ; deja su celda en celda_x/celda_y, y usa X
     lda ruta_ev + 7, x
-    sta slot_cuadros
+    sta slot_cuadros            ; si hay un paso en curso
+    rep #$20
+.a16
+    lda ruta_ev + 22, x         ; y cuánto le falta, de 256 por celda: a
+    lsr a                       ; pixeles, tirando los dieciseisavos
+    lsr a
+    lsr a
+    lsr a
+    sta slot_px
+    sep #$20
+.a8
     lda ruta_ev + 8, x
     sta slot_mira
+    lda ruta_ev + 30, x
+    sta slot_dir                ; la dirección del paso en curso
     lda ruta_ev + 10, x
     sta slot_paso
     lda ruta_ev + 0, x
@@ -5189,9 +5801,7 @@ hay_fila:
     asl a
     asl a
     sta npc_py
-    lda slot_cuadros
-    and #$00FF
-    asl a                       ; los pixeles que faltan, a WALK_SPEED
+    lda slot_px                 ; los pixeles que faltan del paso
     sta temp
     sep #$20
 .a8
@@ -5216,9 +5826,9 @@ sin_paso_npc:
     bra puesto
 con_paso_npc:
 
-    ; La dirección del paso es hacia donde mira: mientras el paso dura no se
-    ; consume ninguna orden más, así que no puede haber girado en el medio.
-    lda slot_mira
+    ; La dirección del paso, que va aparte de hacia dónde mira: con la mirada
+    ; fija —los droides del mapa 2— sube mirando abajo.
+    lda slot_dir
     cmp #DIR_UP
     bne no_arriba
     jsr sumar_a_py              ; venía de abajo: todavía le falta subir
@@ -8654,7 +9264,11 @@ se_puede:
     plx
     sta ruta_ev + 8, x
 sin_girar:
-    lda #(SALTO_PASO - SALTO_VELOCIDAD)
+    jsr salto_de_ranura
+    sta temp
+    lda #0                      ; 256 menos lo de este cuadro, en ocho bits
+    sec
+    sbc temp
     sta ruta_ev + 13, x
     rts
 .endproc
@@ -9516,6 +10130,26 @@ movil_capa:  .res 1
 ; los otros `pg_*` porque la página directa está llena —257 bytes en 256 con
 ; éste adentro— y se lee con direccionamiento absoluto, que alcanza.
 pg_capa:     .res 1
+; Y su ruta propia, la que camina sola: las banderas —bit 0 la tiene, 1 se
+; repite, 2 se saltea lo bloqueado, 3 mira siempre igual, 4 la animación sigue
+; quieto—, la frecuencia y la velocidad, y dónde están sus órdenes y cuántas.
+; La velocidad va en todas las páginas, con ruta o sin ella: es la que usa una
+; ruta forzada sobre el evento, como en RM2k.
+pg_flags:    .res 1
+pg_frec:     .res 1
+pg_vel:      .res 1
+pg_ruta:     .res 3
+pg_ruta_n:   .res 1
+; Que un switch o el grupo cambió y hay que volver a mirar qué página está
+; activa en cada evento: `rutas_de_pagina`, al empezar el cuadro siguiente.
+refresco:    .res 1
+; Lo que `rutas_de_pagina` va juntando: la página activa de cada evento con
+; rutas propias, por su desplazamiento en la tabla; $FFFF si el evento no tiene
+; rutas y $FFFE si las tiene y ninguna página cumple.
+eleg_por_ev: .res EV_MAX * 2
+rp_ev:       .res 2
+slot_px:     .res 2
+slot_dir:    .res 1
 MOVIL_HEROE = $FF
 CAPA_HEROE  = 1
 ; La celda a la que se quiere entrar, y lo que `celda_bloqueada` va mirando.

@@ -865,18 +865,21 @@ snes-hablar mapa="7" celda="3 7" switch="24" apretar="25" cuadros="20 60" arranq
 # es sólo hacia dónde mira el héroe **al arrancar**: si la página lo gira con
 # un `face_*`, gana la página, como en la ROM. Antes `--dir` pisaba el giro al
 # dibujar y el cuadro 230 de `puerta-izq` daba 117 pixeles, todos en el héroe.
-snes-escena mapa="2" celda="4 54" ruta="12" dir="up" cuadros="60" arranque="67" nombre="escena" apretar="":
+snes-escena mapa="2" celda="4 54" ruta="12" dir="up" cuadros="60" arranque="67" nombre="escena" apretar="" switch="":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
   apretar="{{apretar}}"
+  switch="{{switch}}"
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
       --inicio {{celda}} --con-ventana --ruta-de-prueba {{ruta}} \
+      ${switch:+--switch $switch} \
       -o {{snes_inc}}/mapdata.inc
   just snes-build
   pre={{snes_pngs}}/{{nombre}}
   python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
       --hero-tile {{celda}} --dir {{dir}} --con-ventana --ruta-de-prueba {{ruta}} \
+      ${switch:+--switch $switch} \
       --cuadros {{cuadros}} ${apretar:+--apretar-a $apretar} \
       --saltar $pre-{}.saltar.txt -o $pre-{}.esperado.png
   for n in {{cuadros}}; do
@@ -923,14 +926,21 @@ snes-escena mapa="2" celda="4 54" ruta="12" dir="up" cuadros="60" arranque="67" 
 #
 # Afuera de esas ventanas dan cero, incluido el cuadro 900, que es la cinemática
 # terminada: el héroe arriba de todo, mirando arriba, con la pantalla teñida.
-# Los cuadros 480 y 540 reemplazan al 400 y al 600 desde que el arranque es
+# Los cuadros 300 y 540 reemplazan al 400 y al 600 desde que el arranque es
 # fijo: con la ROM y la referencia alineadas exacto, el 400 caía con el héroe
-# caminando dentro de una de esas ventanas, y daba 591 pixeles.
+# caminando dentro de una de esas ventanas, y daba 591 pixeles. El 300 fue 480
+# hasta que los eventos caminan a la velocidad de su página, 3 y no 4: la
+# referencia salta en el 363 y en el 485 y sus rutas corren del 364 al 475 y
+# del 486 al 509, y con el atraso de la ROM después de cada salto no queda un
+# solo cuadro quieto entre el 475 y el 540; el 300 es antes del primer salto.
 #
 # **Con ventana** —el caso `apertura`, desde el 2026-09-05— la cinemática no
 # termina ahí: el último paso pisa el evento 2, que es la escena de apertura
-# entera. El cuadro 480 es la cinemática a mitad de camino, teñida; en el 540
-# el tinte ya se apagó y Core y Manta están plantados al lado del héroe; en el
+# entera. El cuadro 300 es la cinemática a mitad de camino, teñida; en el 560
+# el tinte ya se apagó y Core y Manta están plantados al lado del héroe —fue
+# 540 hasta que caminan a la velocidad de su página: la referencia los deja
+# quietos en el 525 y la ROM, que viene quince cuadros atrás desde los saltos,
+# recién en el 540—; en el
 # 620 está abierto el primer mensaje de Core. Son cuatro personajes caminando
 # en el mismo mapa, o sea las poses en caliente en su caso real.
 #
@@ -949,7 +959,7 @@ snes-escena mapa="2" celda="4 54" ruta="12" dir="up" cuadros="60" arranque="67" 
 # el teletransporte y ese toque la ROM va unos cinco cuadros atrás —el costo
 # del tilemap que la referencia no modela— y el toque los resincroniza, porque
 # de ahí en adelante los dos lados cuentan desde el mismo cuadro.
-snes-cinematica origen="4" destino="1" cuadros="100 480 540 900" arranque="67" nombre="cinematica" ventana="" apretar="":
+snes-cinematica origen="4" destino="1" cuadros="100 300 540 900" arranque="67" nombre="cinematica" ventana="" apretar="":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
@@ -993,10 +1003,12 @@ snes-cinematica origen="4" destino="1" cuadros="100 480 540 900" arranque="67" n
 # `if (Game_Map::IsAnyEventStarting()) return;` de RM2k. Sin eso el héroe daba un
 # paso de más mientras el mensaje se componía.
 #
-# Y el caso `bloqueo` —`snes-pisar 2 "7 76" up 60 30 bloqueo`, desde el
-# 2026-09-05— usa la misma receta para lo contrario: que un evento de la capa
-# del héroe **no** se pueda pisar. El droide del mapa 2 está en (7,72), y el
-# héroe sube desde (7,76) y se frena en (7,73), a una celda. Es `WouldCollide`:
+# El caso `bloqueo` —desde el 2026-09-05— es lo contrario: que un evento de la
+# capa del héroe **no** se pueda pisar. Nació acá, con `snes-pisar 2 "7 76" up`
+# y el droide del mapa 2 quieto en (7,72); desde que el droide camina solo vive
+# en `snes-escena`, con una ruta forzada de cuatro pasos hacia arriba que se
+# frena contra él, porque la caminata colapsada de esta receta no puede
+# describir un mapa donde alguien se mueve mientras tanto. Es `WouldCollide`:
 # ver `bloqueada` en eventos.py y `celda_bloqueada` en main.s. Antes lo
 # atravesaba y seguía hasta la pared, y taro lo vio jugando.
 snes-pisar mapa="70" celda="12 8" direccion="up" cuadros="200" arranque="67" nombre="pisar":

@@ -571,6 +571,7 @@ def npc_table(npcs, where, movibles=(), indice_animado=None):
             "pose": npc["pose"],
             "poses": (indice_animado[(npc["charset"], npc["index"])]
                       if camina else None),
+            "velocidad": npc.get("velocidad", 3),
         })
     return rows
 
@@ -1228,7 +1229,7 @@ PUERTA_BYTES = 16
 # código. Las páginas de un mismo evento van seguidas y en orden, que es lo que
 # le permite a la ROM elegir la última que cumple sus condiciones en una sola
 # pasada, sin llevar una tabla por evento.
-PAGINA_BYTES = 16
+PAGINA_BYTES = 24
 ACTOR_BYTES = 2 + 3 * 12   # id, paleta y doce punteros de 24 bits a sus poses
 
 # Un bit por switch. El juego consulta hasta el 1003 en las condiciones de
@@ -1353,6 +1354,9 @@ def tabla_de_paginas(mapa, numero):
     del bloque de código, que el enlazador ubica.
     """
     out = ["paginas_%d:" % numero]
+    # Qué eventos tienen alguna página con ruta propia: el refresco de la ROM
+    # sólo mira las páginas de ésos, y con los demás no gasta ni una lectura.
+    con_ruta = {p["evento"] for p in mapa["paginas"] if p.get("ruta_propia")}
     for pagina in mapa["paginas"]:
         if pagina["codigo"]:
             destino = "evcodigo_%d + %d" % (numero, pagina["offset"])
@@ -1370,7 +1374,33 @@ def tabla_de_paginas(mapa, numero):
                    % pagina["actor"])
         out.append("    .byte %-4d ; +12 su capa: 1 es la del héroe, la que "
                    "le cierra el paso" % pagina["capa"])
-        out.append("    .byte " + ",".join(["$00"] * (PAGINA_BYTES - 13)))
+        propia = pagina.get("ruta_propia")
+        if propia:
+            # La ruta propia de la página, la que camina sola: ver
+            # `eventos.ruta_propia`. Las banderas: bit 0 la tiene, 1 se
+            # repite, 2 se saltea lo bloqueado, 3 mira siempre igual, 4 la
+            # animación sigue quieto.
+            banderas = (1 | (2 if propia["repite"] else 0)
+                        | (4 if propia["saltable"] else 0)
+                        | (8 if propia["dir_fija"] else 0)
+                        | (16 if propia["anim_continua"] else 0) | 64)
+            destino = "evcodigo_%d + %d" % (numero, pagina["ruta_offset"])
+            out.append("    .byte %-4d ; +13 las banderas de su ruta propia"
+                       % banderas)
+            out.append("    .byte %-4d ; +14 su frecuencia" % propia["frecuencia"])
+            out.append("    .byte %-4d ; +15 y su velocidad" % propia["velocidad"])
+            out.append("    .byte <(%s), >(%s), ^(%s) ; +16 sus órdenes"
+                       % (destino, destino, destino))
+            out.append("    .byte %-4d ; +19 cuántas" % len(propia["ordenes"]))
+        else:
+            out.append("    .byte %-4d ; +13 sin ruta propia; el bit 6 dice si "
+                       "otra página del evento la tiene"
+                       % (64 if pagina["evento"] in con_ruta else 0))
+            out.append("    .byte %-4d ; +14 su frecuencia" % pagina["frecuencia"])
+            out.append("    .byte %-4d ; +15 y su velocidad, la de una ruta "
+                       "forzada sobre el evento" % pagina["velocidad"])
+            out.append("    .byte 0,0,0,0")
+        out.append("    .byte " + ",".join(["$00"] * (PAGINA_BYTES - 20)))
     if not mapa["paginas"]:
         out.append("    .byte $00")     # una etiqueta no puede quedar vacía
     return "\n".join(out)
@@ -1739,7 +1769,7 @@ EV_MAX = 128
 # página que más manda a caminar de este juego mueve cuatro eventos distintos, y
 # una ruta sobrevive al final de su página, así que puede haber otra corriendo
 # encima. Ocho da margen y cuesta 88 bytes de RAM.
-RUTA_EV_MAX = 8
+RUTA_EV_MAX = 12
 # Cuántos destellos pueden estar corriendo a la vez. Las páginas de este juego
 # los encadenan de a uno —casi todos esperan a que termine— así que cuatro sobra;
 # el conversor no lo puede comprobar porque depende de qué corra cuándo, y una
@@ -1838,7 +1868,10 @@ def eventos_movibles(game_map, indice_de_mapa, con_ventana=False):
         game_map, indice_de_mapa,
         eventos.Mensajes() if con_ventana else None)
     visibles = {npc["evento"] for npc in rm2k.collect_npcs(game_map)}
-    return eventos.blancos_de_ruta(paginas) & visibles
+    # Y los que caminan solos con la ruta propia de alguna página, que
+    # necesitan las doce poses igual que los que manda a caminar un MoveEvent.
+    propios = {p["evento"] for p in paginas if p.get("ruta_propia")}
+    return (eventos.blancos_de_ruta(paginas) | propios) & visibles
 
 
 def ruta_de_evento(argumento):
@@ -1955,7 +1988,9 @@ def npc_bytes(table):
         # +12: la pose que hay en VRAM, que al cargar es la de su página. La
         # ROM la compara con la que quiere dibujar y sube la nueva si difiere.
         out.append(npc["pose"])
-        out += bytes(3)             # relleno hasta NPC_STRIDE
+        # +13: la velocidad de su página, para una ruta forzada sobre él.
+        out.append(npc["velocidad"])
+        out += bytes(2)             # relleno hasta NPC_STRIDE
     assert len(out) == NPC_STRIDE * len(table)
     return bytes(out)
 
@@ -2224,6 +2259,7 @@ def main():
                 "evento": 9999, "pagina": 0,
                 "trigger": eventos.TRIGGER_AUTOMATICO,
                 "switch_a": 0, "switch_b": 0, "actor": 0, "capa": 0,
+                "frecuencia": eventos.RUTA_FRECUENCIA, "velocidad": 4,
                 "codigo": eventos.pagina_de_prueba(
                     espera, tinte, args.ruta_de_prueba or (), prueba,
                     ruta_de_evento(args.ruta_de_evento),
@@ -2237,6 +2273,11 @@ def main():
             pagina["offset"] = len(codigo)
             if pagina["codigo"]:
                 codigo += pagina["codigo"]
+            # Y las órdenes de la ruta propia, detrás, un byte por orden.
+            propia = pagina.get("ruta_propia")
+            if propia:
+                pagina["ruta_offset"] = len(codigo)
+                codigo += bytes(propia["ordenes"])
         mapa["paginas"] = paginas
         mapa["evcodigo"] = bytes(codigo)
         # Cuántos eventos distintos puede llegar a mandar a caminar este mapa.

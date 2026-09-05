@@ -173,6 +173,7 @@ SALTOS_MAX = 8
 EVENTO_DE_PRUEBA = {"evento": 9999, "pagina": 0,
                     "trigger": eventos.TRIGGER_AUTOMATICO,
                     "switch_a": 0, "switch_b": 0, "actor": 0, "capa": 0,
+                    "frecuencia": eventos.RUTA_FRECUENCIA, "velocidad": 4,
                     "codigo": b""}
 
 
@@ -241,7 +242,8 @@ def paso_de_ruta(estado, passable, game_map, x, y, paginas=()):
     return x, y, llego
 
 
-def cuadro_de_eventos(estado, passable, game_map, heroe, paginas=()):
+def cuadro_de_eventos(estado, passable, game_map, heroe, paginas=(),
+                      congelada=False):
     """Un cuadro de lo que corre solo: las rutas de los eventos y los destellos.
 
     `heroe` es la celda del héroe: `face_hero` la necesita, y en RM2k es la
@@ -276,7 +278,7 @@ def cuadro_de_eventos(estado, passable, game_map, heroe, paginas=()):
         puede,
         lambda cx, cy, indice: (puede_caer(passable, game_map, cx, cy)
                                 and libre(indice, cx, cy)),
-        heroe=heroe)
+        heroe=heroe, congelada=congelada)
     estado.cuadro_de_flashes()
     estado.cuadro_de_timer()
     estado.cuadro_de_sacudida()
@@ -327,7 +329,10 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
         # tabla desde el cartucho, y con eso se tiran las rutas que estuvieran
         # corriendo en el mapa que se deja.
         estado.entrar_a_un_mapa({n: (ev.x, ev.y)
-                                 for n, ev in enumerate(game_map.events)})
+                                 for n, ev in enumerate(game_map.events)},
+                                mundo.paginas(map_id),
+                                {npc["evento"]: npc["velocidad"]
+                                 for npc in collect_npcs(game_map)})
         if entrada is None:
             x, y = snes_convert.inicio_del_mapa(mundo.renderer, map_id,
                                                 passable, game_map.width,
@@ -343,7 +348,8 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
             salto = eventos.correr_automaticos(
                 mundo.paginas(map_id), estado,
                 avanzar=lambda: cuadro_de_eventos(estado, passable, game_map,
-                                                  (x, y), mundo.paginas(map_id)))
+                                                  (x, y), mundo.paginas(map_id),
+                                                  congelada=True))
             # Sin presupuesto de cuadros la ruta forzada igual tiene que
             # caminarse entera: lo que se compara es dónde queda todo. Antes el
             # giro lo aplicaba el intérprete y esto no hacía falta; ahora la
@@ -354,6 +360,7 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
                         and not estado.cuadros_moviendose \
                         and not estado.algo_corriendo():
                     break
+                estado.refrescar()
                 x, y, llego = paso_de_ruta(estado, passable, game_map, x, y,
                                            mundo.paginas(map_id))
                 cuadro_de_eventos(estado, passable, game_map, (x, y),
@@ -377,6 +384,7 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
                 interprete.retomar(pendiente)
                 pendiente = None
             for n in range(1, restantes + 1):
+                estado.refrescar()
                 # `apretar_a` son los cuadros en que el jugador aprieta A, y
                 # sólo cuentan esos: RM2k cierra el mensaje con el flanco, no
                 # con el botón sostenido. El emulador aprieta en los mismos
@@ -424,11 +432,13 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
                     interprete.probar_celda(x, y, eventos.TRIGGER_TOCA_HEROE,
                                             estado)
                 cuadro_de_eventos(estado, passable, game_map, (x, y),
-                                  interprete.paginas)
+                                  interprete.paginas,
+                                  congelada=interprete.ocupado())
                 if interprete.terminado and not estado.ruta \
                         and not estado.paso_cuadros \
                         and not estado.cuadros_moviendose \
                         and not estado.algo_corriendo() \
+                        and not estado.paginas_caminando() \
                         and not estado.timer_activo \
                         and (ultimo_a is None or base + n >= ultimo_a) \
                         and restantes is not None:
@@ -485,12 +495,13 @@ def contacto_al_pisar(mundo, estado, map_id, x, y, passable, game_map):
                                               (salto[1], salto[2]))
                 return map_id, x, y, True
             continue
+        estado.refrescar()
         x, y, llego = paso_de_ruta(estado, passable, game_map, x, y,
                                    interprete.paginas)
         if llego:
             interprete.probar_celda(x, y, eventos.TRIGGER_TOCA_HEROE, estado)
         cuadro_de_eventos(estado, passable, game_map, (x, y),
-                          interprete.paginas)
+                          interprete.paginas, congelada=interprete.ocupado())
         if estado.mensaje is not None:
             return map_id, x, y, True
         if interprete.terminado and not estado.algo_corriendo() \
@@ -1106,8 +1117,7 @@ def main():
                 px, py = eventos.pixeles_del_paso(cx, cy, ruta)
                 mira = (ruta.mirando if ruta.mirando is not None
                         else npc["pose"] // 3)
-                pose = mira * 3 + (columna_de_caminata(ruta.cuadros_moviendose)
-                                   if ruta.cuadros_moviendose else STAND)
+                pose = mira * 3 + ruta.columna()
             # La clave lleva la Y **sin** el salto: `GetScreenZ` llama a
             # `GetScreenY(false)`, así que quien salta no se adelanta en el
             # orden de dibujo por estar en el aire.

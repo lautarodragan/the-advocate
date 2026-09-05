@@ -10,7 +10,15 @@ es la misma operación con pérdida que compactar, sólo que a un archivo.
 
 Última vez que se tocó: 2026-09-05.
 
-## Lo próximo: el edificio del mapa 2, según lo que taro jugó
+## Lo próximo: que taro vuelva a jugar `demo-apertura`, y el ascensor
+
+Los cuatro puntos de abajo están hechos y `demo-apertura` rearmada con todo.
+Lo que sigue: que taro la juegue de nuevo —en el emulador y en la SNES— y
+diga qué se rompe; y el ascensor, que es el evento 30 del mapa 2 con el
+switch 11, cuya página ya compila desde `ShakeScreen` pero no tiene caso en
+la tanda ni nadie lo vio correr.
+
+### Lo que taro jugó el 2026-09-05, y por qué faltaba cada cosa
 
 taro jugó `rom/build/demo-apertura/` en el emulador el 2026-09-05, y está por
 probarlo en la SNES. Lo que anda: la apertura entera, Kersh al mando, el
@@ -55,27 +63,38 @@ tienen caso en la tanda todavía.
 siempre lo mismo" en el LEEME. Antes cada receta llevaba un número medido a
 mano que se corría con cada cambio.
 
-**Las ROMs con nombre están viejas**: `demo-apertura` se armó antes de la
-colisión, el trueque, la transparencia, la sacudida, el tinte en el vblank y
-el arranque fijo. Hay que rearmarla antes de volver a probarla en la SNES.
+**`demo-apertura` está rearmada** el 2026-09-05 con todo esto adentro —
+colisión, trueque, transparencia, sacudida, tinte en el vblank y arranque
+fijo y los droides—, así:
 
-Y lo que taro pidió además, el 2026-09-05, sobre los dos droides del mapa 2,
-que es lo caro de esta lista y va después de los tres puntos de arriba:
+    python3 tools/snes_convert.py --grupo 10 --map-id 4 --mapas 1 2 --con-ventana \
+        -o rom/build/demo-apertura/mapdata.inc
+    python3 tools/w65.py rom/src/main.s -I rom/build/demo-apertura \
+        -o rom/build/demo-apertura/demo-apertura.sfc
 
-4. **El movimiento propio de la página** (`move_type` 6, ruta propia con
-   `repeat` y sin `skippable`; `lcf.py` ya la parsea como `move_route`). El
-   droide de (7,72) sube una celda a velocidad 4, suena, salta de vuelta y
-   espera —"se golpea contra la pared"—, y roto gira con cuatro `face_*`. El
-   de (30,55) camina un cuadrado a velocidad 2. Hacen falta: ranuras de ruta
-   que arranquen al cargar el mapa y se repitan; **la velocidad** —hoy todo
-   paso son 8 cuadros a 2 px, y la 2 y la 3 son 32 y 16 cuadros—; que una
-   orden bloqueada se **reintente** en vez de saltearse, porque es lo que
-   deja interponerse en su camino, por arriba y por abajo; y las animaciones
-   **continuas** (tipos 1 y 3, que caminan en el lugar aunque estén quietos)
-   con sus cuadros por velocidad (`GetContinuousAnimFrames`: 16, 12, 10, 8,
-   7, 6). En `animation_type` 3 la dirección es fija: los `move_*` no giran
-   pero los `face_*` sí —`SetFacing` directo en `UpdateMoveRoute`—, que es
-   por lo que el droide roto gira.
+Las otras ROMs con nombre —`demo-musica`, `demo-cinematica` y el resto— no
+se rearmaron y son de antes de todo esto.
+
+4. **Hecho el 2026-09-05: los droides del mapa 2 caminan solos.** Las
+   rutas propias de las páginas, con la velocidad, la animación de RM2k, el
+   reintento de lo bloqueado y el refresco por switches: ver "Las rutas
+   propias de las páginas" en el LEEME. Cuatro casos nuevos de `snes-escena`
+   más `bloqueo` rehecho; la tanda queda en 71 casos. De paso, **las rutas
+   forzadas caminan a la velocidad de la página, 3 y no 4**, que es lo que
+   hace RM2k y nadie había visto porque los dos lados lo hacían igual: Core,
+   Manta y Kersh caminan ahora a dieciséis cuadros por celda, y por eso los
+   cuadros de la cinemática se movieron al 300 y al 560.
+
+Dos cosas que salieron de esto y quedan para después:
+
+* **Un detector de cuadros perdidos.** Dos veces el lazo de la ROM tardó más
+  de un cuadro —el refresco y la búsqueda de capa— y la única forma de verlo
+  fue trazar la WRAM cuadro a cuadro: la comparación de pixeles lo mostraba
+  como un droide un cuadro corrido. Un contador de vblanks llegados tarde en
+  `wait_vblank`, y una receta que lo lea, lo haría gritar solo.
+* **Lo que las rutas propias no modelan** está en el LEEME: los otros tipos
+  de movimiento —106 páginas van hacia el héroe—, el giro en el lugar, y que
+  una forzada retome la de la página por donde iba.
 
 ## Hecho el 2026-09-05: la apertura entera, con quince toques de A
 

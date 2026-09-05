@@ -339,6 +339,72 @@ escribir ninguna. Lo usa una sola escena de las que se miran: la puerta de
 arriba a la izquierda del mapa 2, donde Manta la vuela y la puerta se cambia
 de lugar con el evento 21. Es el caso `puerta-izq` de `snes-escena`.
 
+### Las rutas propias de las páginas
+
+Desde el 2026-09-05 un evento cuya página activa tiene `move_type` 6 —una ruta
+propia, la que camina sola— la camina en la ROM y en la referencia, con lo que
+eso arrastra. Son 38 páginas en 13 mapas, y en el mapa 2 son los dos droides:
+el de (7,72) sube una celda a velocidad 4, suena, salta de vuelta y espera
+tres veces, y roto gira con cuatro `face_*`; el de (30,55) camina un cuadrado
+a velocidad 2, medio pixel por cuadro.
+
+* **La ranura de ruta** lleva ahora la velocidad (+17), las banderas (+18: de
+  página, se repite, saltea lo bloqueado, mira siempre igual, animación
+  continua, recargada este cuadro), la página con que se cargó (+20), lo que
+  falta del paso de 256 por celda (+22), la ruta de la página para volver a
+  ella cuando una forzada termina (+24 a +29), hacia dónde va el paso (+30,
+  que con la mirada fija no es hacia donde mira) y su capa (+31). Son doce
+  ranuras, no ocho: el mapa 127 tiene ocho páginas con ruta propia.
+* **La velocidad** es `PASO_POR_VELOCIDAD`: `1 << (1 + velocidad)` de 256 por
+  celda y por cuadro, y los pixeles son la resta tirando los dieciseisavos, de
+  los dos lados. **Una ruta forzada sobre un evento camina a la velocidad de
+  su página**, que por defecto es 3 —dieciséis cuadros por celda— y no la 4
+  del héroe: `SetupFromPage` la pone y `ForceMoveRoute` no la toca. Hasta acá
+  los dos lados caminaban a todos a 4, y por eso nadie lo vio; la fila del NPC
+  la trae en +13 y la referencia la saca de `collect_npcs`, de la misma página.
+  Las órdenes 28 y 29 la suben y la bajan, 26 y 27 fijan y sueltan la mirada.
+* **La animación es la de RM2k**, `Game_Character::UpdateAnimation`: un
+  frame de 0 a 3 y cuántos cuadros lleva en él, que sube caminando, siempre
+  con la animación continua, y quieto sólo hasta llegar al del medio; cambia
+  cada `ANIM_PARADO` cuadros caminando y cada `ANIM_CONTINUA` quieto, por
+  velocidad. El cuadro en que un salto termina ya cuenta: `UpdateAnimation`
+  corre después de que `UpdateMovement` bajó la bandera. Los tipos 2, 3 y 4
+  no giran al caminar pero sí con `face_*`, que es el `SetFacing` directo de
+  `UpdateMoveRoute`, y por eso el droide roto gira.
+* **Lo bloqueado se reintenta** si la ruta no es `skippable`: la orden no
+  avanza y se vuelve a probar cada cuadro, y es lo que deja plantarse delante
+  del droide y que se quede empujando. Las forzadas se saltean lo bloqueado,
+  como hasta ahora, pidan lo que pidan: ver "Lo que falta".
+* **Se repite** volviendo al principio en el mismo cuadro, una vez por cuadro.
+  **No lee órdenes nuevas mientras el intérprete tiene una página corriendo**
+  —`IsRunning()` en `UpdateNextMovementAction`—, pero el paso en curso se
+  termina y las esperas siguen contando. Y **no la espera `OP_RUTAS`**:
+  `ProceedWithMovement` mira sólo las forzadas.
+* **El refresco.** `Game_Map::Refresh`: al cargar el mapa y al empezar el
+  cuadro siguiente a un cambio de switch o de grupo, cada evento con rutas
+  propias vuelve a mirar cuál es su página activa; si cambió, carga la ruta
+  nueva desde el principio con la espera del giro, y si la nueva no tiene
+  ruta se queda sin órdenes. Es `rutas_de_pagina`, en dos pasadas y sólo
+  sobre las páginas de los eventos marcados por el conversor —bit 6 de +13—:
+  con todas las páginas costaba más de un cuadro, el lazo perdía uno, y se
+  vio como el droide roto girando un cuadro tarde. Por lo mismo la capa del
+  que se mueve va en la ranura y no se busca en cada paso: buscarla era otro
+  cuadro perdido, cada tanto, con el droide empujando contra el héroe.
+
+**Cómo se verifica.** Cuatro casos de `snes-escena` en el mapa 2, con el héroe
+quieto: `droide`, seis cuadros del ciclo; `droide-roto`, con el switch 22
+puesto, girando; `droide-frenado`, con el héroe en (7,71) tapándole el paso; y
+`droide-cuadrado`, el de arriba a la derecha caminando a medio pixel por
+cuadro. Más `bloqueo`, que ahora es una ruta forzada del héroe contra el droide
+en movimiento. Y todos los casos viejos con rutas forzadas cambiaron de
+resultado sin cambiar de receta, por la velocidad 3.
+
+**Lo que no se modela.** Los otros tipos de movimiento —al azar, vertical,
+horizontal, hacia el héroe: 133 páginas, 106 de ellas hacia el héroe—; el giro
+en el lugar (`AnimType_spin`, dos páginas); moverse hacia o desde el héroe
+dentro de una ruta; que una forzada retome la de la página **por donde iba**
+—acá arranca de nuevo—; y `skippable` en las forzadas.
+
 ### La frecuencia de la ruta, y encarar al héroe
 
 Hasta el 2026-09-04 una ruta con frecuencia distinta de 8 no compilaba, y el
@@ -1669,9 +1735,9 @@ comparación.
   barato. Una ruta que se queda sin órdenes por esto no se emite: RM2k la
   consume entera en el cuadro y no deja nada que esperar. Faltan **cambiar el
   gráfico** (+16 solo, y más en combinación: pide meter los tiles del CharSet
-  nuevo en el banco de sprites del mapa), las **diagonales**, **moverse hacia
-  el héroe** y la **velocidad** —que cambia cuántos cuadros dura un paso—.
-  Sigue siendo lo que más corta: 129 páginas.
+  nuevo en el banco de sprites del mapa), las **diagonales** y **moverse
+  hacia el héroe**. La velocidad ya está, desde el 2026-09-05, con las rutas
+  propias de las páginas. Sigue siendo lo que más corta.
 
   Y aparte, **girar sin moverse** (`turn_90_degree_right` y sus hermanas): no
   está afuera por costo sino por dónde arranca el giro. RM2k gira sobre la

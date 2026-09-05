@@ -173,6 +173,10 @@ def collect_npcs(game_map):
             "pose": page.character_direction * 3 + column,
             "layer": page.layer,
             "blocks": page.layer == LAYER_SAME,
+            # La velocidad de su página, que es la que lleva una ruta forzada
+            # sobre él: RM2k la pone en `SetupFromPage` y `ForceMoveRoute` no
+            # la toca. Por defecto es 3, dieciséis cuadros por celda.
+            "velocidad": page.move_speed,
         })
     return npcs
 

@@ -128,6 +128,24 @@ RUTA_SALTO_INICIO, RUTA_SALTO_FIN = 24, 25
 # Atravesar paredes, y parar o seguir la animación de caminata.
 RUTA_ATRAVESAR_ON, RUTA_ATRAVESAR_OFF = 36, 37
 RUTA_ANIM_PARAR, RUTA_ANIM_SEGUIR = 38, 39
+# Fijar y soltar hacia dónde mira —`lock_facing`—, y subir y bajar la
+# velocidad de a uno, entre 1 y 6. Entraron el 2026-09-05 con las rutas
+# propias de las páginas: los droides del mapa 2 las usan.
+RUTA_FIJAR_DIR, RUTA_SOLTAR_DIR = 26, 27
+RUTA_VEL_MAS, RUTA_VEL_MENOS = 28, 29
+
+# Cuánto avanza un paso por cuadro según la velocidad, de 256 por celda: es el
+# `1 << (1 + GetMoveSpeed())` de `Game_Character::UpdateMovement`. La 4 es la
+# del héroe, 32 por cuadro, o sea dos pixeles y ocho cuadros por celda; la 3
+# son dieciséis cuadros y la 2 treinta y dos, a medio pixel por cuadro.
+PASO_POR_VELOCIDAD = (4, 8, 16, 32, 64, 128)
+# Y el salto, `jump_speed[move_speed - 1]`.
+SALTO_VELOCIDADES = (8, 12, 16, 24, 32, 64)
+# Cada cuántos cuadros cambia el frame de la caminata, por velocidad:
+# `GetStationaryAnimFrames` mientras se camina y `GetContinuousAnimFrames`
+# quieto con la animación continua. Es `Game_Character::UpdateAnimation`.
+ANIM_PARADO = (12, 10, 8, 6, 5, 4)
+ANIM_CONTINUA = (16, 12, 10, 8, 7, 6)
 
 # El sonido va adentro de la ruta y se acepta sin hacerlo, igual que PlaySound:
 # no se ve. Se tira al compilar, así que el bytecode sigue siendo un byte por
@@ -151,7 +169,8 @@ RUTA_PASOS = {0: (0, -1), 1: (1, 0), 2: (0, 1), 3: (-1, 0)}
 RUTA_ORDENES = (set(RUTA_MIRAR) | set(RUTA_MOVER)
                 | {RUTA_ESPERAR, RUTA_SALTO_INICIO, RUTA_SALTO_FIN,
                    RUTA_ATRAVESAR_ON, RUTA_ATRAVESAR_OFF,
-                   RUTA_ANIM_PARAR, RUTA_ANIM_SEGUIR, RUTA_ENCARAR_HEROE})
+                   RUTA_ANIM_PARAR, RUTA_ANIM_SEGUIR, RUTA_ENCARAR_HEROE,
+                   RUTA_FIJAR_DIR, RUTA_SOLTAR_DIR, RUTA_VEL_MAS, RUTA_VEL_MENOS})
 
 
 def direccion_hacia(desde, hasta):
@@ -998,6 +1017,32 @@ class Ruta:
         # La frecuencia de la ruta puesta: cuánto se queda quieto entre orden y
         # orden. Ver `espera_tras_paso`.
         self.frecuencia = RUTA_FRECUENCIA
+        # La velocidad, de 1 a 6: ver PASO_POR_VELOCIDAD. Lo que falta del
+        # paso en curso va en `paso_resta`, de 256 por celda, y `paso_cuadros`
+        # es lo mismo en cuadros a la velocidad de ahora, que es lo que miran
+        # quienes deciden si el paso terminó.
+        self.velocidad = 4
+        self.paso_resta = 0
+        # Hacia dónde mira no cambia al caminar: `lock_facing`, y los tipos de
+        # animación de dirección fija de la página. Los `face_*` sí lo cambian,
+        # que es el `SetFacing` directo de `UpdateMoveRoute`.
+        self.dir_fija = False
+        # La ruta propia de la página, si la tiene: `ordenes_pagina` es de
+        # dónde se recarga si se repite, y `de_pagina` dice que es la que está
+        # corriendo —una forzada la pisa y al terminar vuelve ésta—. `pagina`
+        # es con cuál se cargó, para el refresco al cambiar un switch.
+        self.ordenes_pagina = ()
+        self.repite = False
+        self.saltable = True
+        self.de_pagina = False
+        self.pagina = None
+        self.recargada = False
+        # La animación como la lleva RM2k: el frame del ciclo, 0 a 3 con el 3
+        # dibujando la columna 1, y cuántos cuadros lleva en él. Con la
+        # animación continua el ciclo sigue aunque esté quieto.
+        self.anim_continua = False
+        self.anim_cuadro = 1
+        self.anim_cuenta = 0
 
     def reemplazar(self, ordenes, frecuencia):
         """Una ruta forzada nueva sobre quien ya tenía una, o no.
@@ -1014,6 +1059,8 @@ class Ruta:
         self.ordenes = list(ordenes)
         self.espera = 0
         self.frecuencia = frecuencia
+        self.de_pagina = False
+        self.saltable = True
 
     def cortar_paso(self):
         """Deja al personaje sobre su celda: sin paso ni salto en curso.
@@ -1023,6 +1070,7 @@ class Ruta:
         """
         self.paso_dir = None
         self.paso_cuadros = 0
+        self.paso_resta = 0
         self.salto_resta = 0
         self.arranco_salto = None
 
@@ -1034,10 +1082,67 @@ class Ruta:
         `Game_Map::IsAnyMovePending`, que es a lo que espera
         `ProceedWithMovement`.
         """
+        if self.de_pagina:
+            return False            # la ruta propia de la página no se espera
         return (bool(self.ordenes) or self.paso_cuadros > 0
                 or self.espera > 0 or self.salto_resta > 0)
 
-    def cuadro(self, puede, saltar=None, hacia_heroe=None):
+    def cargar_pagina(self, propia, pagina):
+        """La ruta propia de la página, desde el principio.
+
+        Es `Game_Event::SetupFromPage` con `MoveType_custom`: las órdenes, la
+        frecuencia y la velocidad de la página, y `SetMaxStopCountForTurn`
+        antes de la primera orden. El paso en curso no se corta.
+        """
+        self.ordenes_pagina = tuple(propia["ordenes"])
+        self.ordenes = list(self.ordenes_pagina)
+        self.frecuencia = propia["frecuencia"]
+        self.velocidad = propia["velocidad"]
+        self.repite = propia["repite"]
+        self.saltable = propia["saltable"]
+        self.dir_fija = propia["dir_fija"]
+        self.anim_continua = propia["anim_continua"]
+        self.de_pagina = True
+        self.pagina = pagina
+        self.espera = espera_tras_giro(self.frecuencia)
+
+    def sin_pagina(self):
+        """La página nueva no tiene ruta propia: se le saca."""
+        self.ordenes_pagina = ()
+        self.pagina = None
+        if self.de_pagina:
+            self.ordenes = []
+            self.espera = 0
+            self.de_pagina = False
+
+    def columna(self):
+        """La columna del CharSet que se dibuja: el frame del ciclo, con el 3
+        dibujando la misma que el 1."""
+        return 1 if self.anim_cuadro == 3 else self.anim_cuadro
+
+    def _animar(self, moviendo, saltando=False):
+        """`Game_Character::UpdateAnimation`, sin el giro en el lugar.
+
+        Con la animación parada o saltando el frame es el del medio. Si no,
+        la cuenta sube mientras se camina, siempre con la animación continua,
+        y quieto sólo hasta llegar al frame del medio; el frame cambia cada
+        `ANIM_PARADO` cuadros caminando y cada `ANIM_CONTINUA` quieto.
+        """
+        if self.anim_parada or saltando:
+            self.anim_cuadro = 1
+            self.anim_cuenta = 0
+            return
+        parado = ANIM_PARADO[self.velocidad - 1]
+        continua = ANIM_CONTINUA[self.velocidad - 1]
+        if (self.anim_continua or moviendo or self.anim_cuadro in (0, 2)
+                or self.anim_cuenta < parado - 1):
+            self.anim_cuenta += 1
+        if self.anim_cuenta >= continua or (moviendo
+                                            and self.anim_cuenta >= parado):
+            self.anim_cuadro = (self.anim_cuadro + 1) % 4
+            self.anim_cuenta = 0
+
+    def cuadro(self, puede, saltar=None, hacia_heroe=None, congelada=False):
         """Un cuadro de la ruta.
 
         `puede(direccion)` dice si se puede dar el paso, `saltar(dx, dy)` si se
@@ -1047,13 +1152,22 @@ class Ruta:
         al héroe; sin él, `face_hero` no hace nada, que es lo que hace la ROM
         con una orden que no espera.
 
+        `congelada` es que el intérprete tiene una página corriendo: la ruta
+        propia de la página no lee órdenes nuevas mientras tanto —es el
+        `Game_Map::GetInterpreter().IsRunning()` de `UpdateNextMovementAction`—
+        pero el paso en curso se termina y las esperas siguen contando. Una
+        forzada no se congela.
+
         Devuelve la dirección del paso que se está dando, o None. Un salto que
         arranca en este cuadro queda en `arranco_salto` para que quien lleve la
         posición mueva la celda, igual que hace con un paso.
         """
         self.arranco_salto = None
-        if self.paso_cuadros:
-            self.paso_cuadros -= 1
+        self.recargada = False
+        if self.paso_resta:
+            paso = PASO_POR_VELOCIDAD[self.velocidad - 1]
+            self.paso_resta -= min(paso, self.paso_resta)
+            self.paso_cuadros = -(-self.paso_resta // paso)
             # Con la animación parada el ciclo de caminata no avanza: RM2k
             # llama a `ResetAnimation` en cada cuadro mientras `IsAnimPaused()`,
             # que deja la pose del medio y el contador en cero. Camina igual;
@@ -1061,27 +1175,53 @@ class Ruta:
             self.cuadros_moviendose = 0 if self.anim_parada else \
                 self.cuadros_moviendose + 1
             direccion = self.paso_dir
-            if not self.paso_cuadros:
+            if not self.paso_resta:
                 self.paso_dir = None
                 # El paso terminó: con órdenes por delante, la frecuencia dice
                 # cuántos cuadros quieto antes de leer la siguiente. Sin
                 # órdenes no se espera nada: la ruta se cancela en el último
                 # paso —ver `paso_de_ruta` en snes_expect.py— y
                 # `ProceedWithMovement` no la tiene que esperar.
-                if self.ordenes:
+                if self.ordenes or (self.de_pagina and self.repite):
                     self.espera = espera_tras_paso(self.frecuencia)
+            self._animar(True)
             return direccion
         if self.salto_resta:
             # Un salto en curso. No hay pose de caminata: RM2k llama a
             # `ResetAnimation` mientras se salta, o sea la del medio.
-            self.salto_resta = max(0, self.salto_resta - SALTO_VELOCIDAD)
+            self.salto_resta = max(
+                0, self.salto_resta - SALTO_VELOCIDADES[self.velocidad - 1])
             self.cuadros_moviendose = 0
+            # En el cuadro en que el salto termina ya no se está saltando:
+            # `UpdateAnimation` corre después de `UpdateMovement`, que bajó
+            # la bandera, y la cuenta sube. La ROM lo hace igual sin
+            # proponérselo; acá se contaba uno de menos.
+            self._animar(False, saltando=self.salto_resta > 0)
             return None
         if self.espera:
             self.espera -= 1
             self.cuadros_moviendose = 0
+            self._animar(False)
             return None
-        while self.ordenes:
+        if congelada and self.de_pagina:
+            self.cuadros_moviendose = 0
+            self._animar(False)
+            return None
+        while True:
+            if not self.ordenes:
+                if self.de_pagina and self.repite and self.ordenes_pagina \
+                        and not self.recargada:
+                    # `repeat`: vuelve al principio en el mismo cuadro, y una
+                    # sola vez por cuadro, que es el `current_index ==
+                    # start_index -> return` de `UpdateMoveRoute`.
+                    self.ordenes = list(self.ordenes_pagina)
+                    self.recargada = True
+                    continue
+                if not self.de_pagina and self.ordenes_pagina:
+                    # La forzada terminó: vuelve la de la página. RM2k la
+                    # retoma donde la había dejado; acá arranca de nuevo.
+                    self.cargar_pagina(self._propia(), self.pagina)
+                break
             orden = self.ordenes.pop(0)
             if orden in RUTA_MIRAR or orden == RUTA_ENCARAR_HEROE:
                 if orden in RUTA_MIRAR:
@@ -1108,6 +1248,18 @@ class Ruta:
             if orden == RUTA_ANIM_SEGUIR:
                 self.anim_parada = False
                 continue
+            if orden == RUTA_FIJAR_DIR:
+                self.dir_fija = True
+                continue
+            if orden == RUTA_SOLTAR_DIR:
+                self.dir_fija = False
+                continue
+            if orden == RUTA_VEL_MAS:
+                self.velocidad = min(6, self.velocidad + 1)
+                continue
+            if orden == RUTA_VEL_MENOS:
+                self.velocidad = max(1, self.velocidad - 1)
+                continue
             if orden == RUTA_SALTO_FIN:
                 continue            # el par ya lo consumió `RUTA_SALTO_INICIO`
             if orden == RUTA_SALTO_INICIO:
@@ -1122,13 +1274,23 @@ class Ruta:
                                + espera_tras_giro(self.frecuencia))
                 break
             direccion = RUTA_MOVER[orden]
-            self.mirando = direccion
+            if not self.dir_fija:
+                self.mirando = direccion
             if not (self.atraviesa or puede(direccion)):
-                continue            # bloqueado: se saltea
+                if self.saltable:
+                    continue        # bloqueado: se saltea
+                # Sin `skippable` la orden se reintenta el cuadro que viene,
+                # y así hasta que el paso salga: es lo que deja plantarse
+                # delante de un droide del mapa 2 y que se quede empujando.
+                self.ordenes.insert(0, orden)
+                break
+            paso = PASO_POR_VELOCIDAD[self.velocidad - 1]
             self.paso_dir = direccion
-            self.paso_cuadros = CUADROS_POR_CELDA - 1
+            self.paso_resta = SALTO_PASO - paso
+            self.paso_cuadros = self.paso_resta // paso
             self.cuadros_moviendose = 0 if self.anim_parada else \
                 self.cuadros_moviendose + 1
+            self._animar(True)
             return direccion
         # Ningún paso en este cuadro: el contador vuelve a cero, que es lo que
         # hace `animate_hero` cuando `moving` está apagado —la pose parada, y el
@@ -1136,7 +1298,15 @@ class Ruta:
         # `break` y no por `return`: en la ROM una espera de ruta deja al héroe
         # quieto, igual que el final de la ruta, y antes acá seguía contando.
         self.cuadros_moviendose = 0
+        self._animar(False)
         return None
+
+    def _propia(self):
+        """Lo que `cargar_pagina` necesita, sacado de lo que ya tiene."""
+        return {"ordenes": self.ordenes_pagina, "frecuencia": self.frecuencia,
+                "velocidad": self.velocidad, "repite": self.repite,
+                "saltable": self.saltable, "dir_fija": self.dir_fija,
+                "anim_continua": self.anim_continua}
 
     def _armar_salto(self, saltar):
         """Consume las órdenes hasta `end_jump` y arranca el salto.
@@ -1175,7 +1345,7 @@ class Ruta:
             self.mirando = (2 if dy >= 0 else 0) if abs(dy) >= abs(dx) \
                 else (1 if dx >= 0 else 3)
         self.salto_dx, self.salto_dy = dx, dy
-        self.salto_resta = SALTO_PASO - SALTO_VELOCIDAD
+        self.salto_resta = SALTO_PASO - SALTO_VELOCIDADES[self.velocidad - 1]
         self.arranco_salto = (dx, dy)
         self.cuadros_moviendose = 0
         return True
@@ -1265,7 +1435,7 @@ class Estado:
         """Un cuadro de la ruta forzada del héroe."""
         return self.ruta_heroe.cuadro(puede, saltar)
 
-    def entrar_a_un_mapa(self, posiciones):
+    def entrar_a_un_mapa(self, posiciones, paginas=(), velocidades=None):
         """Las posiciones de los eventos del mapa nuevo, en celdas.
 
         Las rutas que estuvieran corriendo se tiran: en RM2k son de los eventos
@@ -1275,6 +1445,52 @@ class Estado:
         self.rutas_ev = {}
         self.flashes = {}
         self.pos_ev = dict(posiciones)
+        # Y las rutas propias de las páginas activas, que arrancan solas al
+        # entrar, como `Game_Event::SetupFromPage`. Se vuelven a mirar cuando
+        # cambia un switch o el grupo: `refrescar`.
+        self.paginas_rutas = paginas
+        self.velocidades = velocidades or {}
+        self.refresco = False
+        self.rutas_de_pagina()
+
+    def rutas_de_pagina(self):
+        """Cada evento con la ruta propia de su página activa.
+
+        Es `Game_Map::Refresh`: un evento cuya página activa cambió carga la
+        ruta de la nueva desde el principio, y uno cuya página nueva no tiene
+        ruta se queda quieto. Un evento con la misma página de antes no se
+        toca, y su ruta sigue por donde iba.
+        """
+        for indice in self.pos_ev:
+            pagina = pagina_activa(self.paginas_rutas, indice, self)
+            propia = pagina.get("ruta_propia") if pagina is not None else None
+            ruta = self.rutas_ev.get(indice)
+            if propia:
+                if ruta is not None and ruta.pagina is pagina:
+                    continue
+                if ruta is None:
+                    ruta = self.ruta_de_evento(indice)
+                ruta.cargar_pagina(propia, pagina)
+            elif ruta is not None and ruta.ordenes_pagina:
+                ruta.sin_pagina()
+
+    def paginas_caminando(self):
+        """Si alguna ruta propia de página tiene algo por hacer. No entra en
+        `algo_corriendo` a propósito: `OP_RUTAS` no las espera, y una que se
+        repite no termina nunca. Lo mira sólo el lazo con presupuesto de
+        cuadros, para no cortar antes de tiempo un mapa donde alguien camina
+        solo."""
+        return any(r.de_pagina and (r.ordenes or r.paso_resta or r.espera
+                                    or r.salto_resta)
+                   for r in self.rutas_ev.values())
+
+    def refrescar(self):
+        """El refresco pendiente, si un switch o el grupo cambió desde el
+        último. Se hace al empezar el cuadro, antes del intérprete, que es
+        cuando `Game_Map::Update` mira `GetNeedRefresh`."""
+        if self.refresco:
+            self.refresco = False
+            self.rutas_de_pagina()
 
     def evento_en(self, celda):
         """Qué evento está parado en esa celda, o None.
@@ -1290,6 +1506,12 @@ class Estado:
     def ruta_de_evento(self, indice):
         if indice not in self.rutas_ev:
             self.rutas_ev[indice] = Ruta()
+            # A la velocidad de la página con que se dibuja, que es la que
+            # RM2k le deja a una ruta forzada: `SetupFromPage` la pone y
+            # `ForceMoveRoute` no la toca. Sale de `collect_npcs`, como en la
+            # fila del NPC de la ROM; por defecto es 3, dieciséis cuadros por
+            # celda, y no la 4 del héroe.
+            self.rutas_ev[indice].velocidad = self.velocidades.get(indice, 3)
         return self.rutas_ev[indice]
 
     def mover_evento(self, indice, x, y):
@@ -1317,7 +1539,8 @@ class Estado:
         return (self.ruta_heroe.pendiente
                 or any(r.pendiente for r in self.rutas_ev.values()))
 
-    def cuadro_de_rutas_ev(self, puede_pasar, puede_caer=None, heroe=None):
+    def cuadro_de_rutas_ev(self, puede_pasar, puede_caer=None, heroe=None,
+                           congelada=False):
         """Un cuadro de todas las rutas de eventos. `puede_pasar(indice, x, y,
         direccion)` dice si ese evento puede dar ese paso, `puede_caer(x, y,
         indice)` si ese evento puede aterrizar en esa celda, y `heroe` es la
@@ -1337,7 +1560,8 @@ class Estado:
                         puede_caer is None or puede_caer(px + dx, py + dy, i)),
                 hacia_heroe=(None if heroe is None else
                              lambda px=x, py=y: direccion_hacia((px, py),
-                                                                heroe)))
+                                                                heroe)),
+                congelada=congelada)
             if ruta.arranco_salto is not None:
                 dx, dy = ruta.arranco_salto
                 self.pos_ev[indice] = (x + dx, y + dy)
@@ -1448,6 +1672,7 @@ class Estado:
                 self.grupo.remove(actor)
         elif actor not in self.grupo and len(self.grupo) < GRUPO_MAX:
             self.grupo.append(actor)
+        self.refresco = True     # las páginas que piden un actor pueden cambiar
 
     def lider(self):
         return self.grupo[0] if self.grupo else None
@@ -1541,9 +1766,12 @@ def pixeles_del_paso(x, y, ruta):
     Lo usan el héroe y los eventos, que es la razón de que viva acá.
     """
     px, py = x * CELDA_PX, y * CELDA_PX
-    if ruta.paso_cuadros and ruta.paso_dir is not None:
+    if ruta.paso_resta and ruta.paso_dir is not None:
         dx, dy = RUTA_PASOS[ruta.paso_dir]
-        faltan = ruta.paso_cuadros * WALK_SPEED
+        # De 256 por celda a pixeles: los dieciseisavos se tiran, que es lo que
+        # hace la ROM con `resta >> 4`. A velocidad 4 es lo mismo que los
+        # cuadros por dos.
+        faltan = ruta.paso_resta >> 4
         px -= dx * faltan
         py -= dy * faltan
     elif ruta.salto_resta:
@@ -1873,8 +2101,10 @@ def ejecutar(codigo, estado, desde=0):
             numero = codigo[i + 1] | (codigo[i + 2] << 8)
             if codigo[i + 3]:
                 estado.switches.add(numero)
+                estado.refresco = True
             else:
                 estado.switches.discard(numero)
+                estado.refresco = True
             i += 4
         elif op == OP_TELEPORT:
             # El resto de la página sí corre. En
@@ -2168,10 +2398,58 @@ def paginas_del_mapa(game_map, indice_de_mapa, mensajes=None, temas=None):
                 "switch_b": cond.ids["switch_b"] if "switch_b" in cond.active else 0,
                 "actor": cond.ids["actor"] if "actor" in cond.active else 0,
                 "capa": page.layer,
+                "frecuencia": page.move_frequency,
+                "velocidad": page.move_speed,
                 "codigo": codigo,
+                "ruta_propia": ruta_propia(page),
             })
         salida += grupo
     return salida
+
+
+# Los tipos de animación de la página, `rpg::EventPage::AnimType`.
+ANIM_NO_CONTINUA, ANIM_CONTINUA_TIPO, ANIM_FIJA_NO_CONTINUA = 0, 1, 2
+ANIM_FIJA_CONTINUA, ANIM_GRAFICO_FIJO, ANIM_GIRO = 3, 4, 5
+
+
+def ruta_propia(page):
+    """La ruta propia de la página —`move_type` 6, la ruta que camina sola—,
+    o None si no tiene o no se puede.
+
+    Van las mismas órdenes que en un MoveEvent, con el sonido y la
+    transparencia tirados. Lo que queda afuera: las diagonales, moverse hacia
+    o desde el héroe, cambiar el gráfico y los switches; y el giro en el lugar
+    (`AnimType_spin`), que ninguna de las dos páginas del juego que lo usan
+    está en los primeros mapas. Los otros tipos de movimiento —al azar,
+    vertical, horizontal, hacia el héroe— tampoco: son otra máquina.
+    """
+    if page.move_type != 6 or not page.move_route.commands:
+        return None
+    if not RUTA_FRECUENCIA_MIN <= page.move_frequency <= RUTA_FRECUENCIA:
+        return None
+    if not 1 <= page.move_speed <= 6 or page.animation_type == ANIM_GIRO:
+        return None
+    ordenes = []
+    for orden in page.move_route.commands:
+        if orden == RUTA_SONIDO or orden in RUTA_TRANSPARENCIA:
+            continue
+        if orden not in RUTA_ORDENES or orden == RUTA_ENCARAR_HEROE:
+            return None
+        ordenes.append(orden)
+    if not ordenes or len(ordenes) > 255:
+        return None
+    return {
+        "ordenes": ordenes,
+        "frecuencia": page.move_frequency,
+        "velocidad": page.move_speed,
+        "repite": page.move_route.repeat,
+        "saltable": page.move_route.skippable,
+        "dir_fija": page.animation_type in (ANIM_FIJA_NO_CONTINUA,
+                                           ANIM_FIJA_CONTINUA,
+                                           ANIM_GRAFICO_FIJO),
+        "anim_continua": page.animation_type in (ANIM_CONTINUA_TIPO,
+                                                ANIM_FIJA_CONTINUA),
+    }
 
 
 def bloqueada(paginas, estado, celda, capa, ignorar=None, heroe=None):
