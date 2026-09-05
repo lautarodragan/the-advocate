@@ -16,6 +16,7 @@ liblcf. Nunca de memoria: la primera versión del filtro de puertas los puso a
 ojo y tres estaban mal.
 """
 
+import math
 import os
 import sys
 
@@ -37,6 +38,7 @@ MOVE_EVENT = 11330
 # veces para traer a Core, a Manta y al droide a escena.
 CHANGE_EVENT_LOCATION = 10860
 TRADE_EVENT_LOCATIONS = 10870
+SHAKE_SCREEN = 11050
 LUGAR_CONSTANTE = 0         # p[1]: 0 es la celda escrita, 1 la lee de variables
 
 # Un cuadro de texto. RM2k emite un `ShowMessage` con la primera línea y un
@@ -402,6 +404,9 @@ OP_LUGAR    = 0x0C      # blanco (byte, como en OP_RUTA: el índice del evento
 OP_TRUEQUE  = 0x0D      # dos blancos (byte cada uno, como en OP_LUGAR): los
                         # dos eventos se cambian de celda entre sí, cada uno
                         # con `MoveTo`, que es `CommandTradeEventLocations`.
+OP_SACUDIR  = 0x0E      # fuerza (byte), velocidad (byte), cuadros (word):
+                        # `ShakeOnce`. Con cero cuadros es `ShakeEnd`: la
+                        # pantalla vuelve a su lugar. Ver `sacudida_siguiente`.
 OP_BGM      = 0x0B      # el índice del tema en `Temas` (byte). La ROM toca el
                         # que le tocó llevar —`TEMA_INDICE`— y con cualquier
                         # otro no hace nada, que es lo que hacía antes con
@@ -889,6 +894,20 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         return bytes([OP_LUGAR, blanco, p[2] & 0xFF, p[2] >> 8,
                       p[3] & 0xFF, p[3] >> 8])
 
+    if cmd.code == SHAKE_SCREEN:
+        # `CommandShakeScreen`, en su forma de RM2k: fuerza, velocidad,
+        # décimas y si espera. Las 29 del juego son de esa forma. Con cero
+        # décimas es `ShakeEnd` y no espera nunca.
+        if len(p) < 4 or not 0 <= p[0] <= 9 or not 0 <= p[1] <= 9:
+            raise NoSePuede()
+        cuadros = p[2] * CUADROS_POR_DECIMA
+        if cuadros > 0xFFFF:
+            raise NoSePuede()
+        out = bytes([OP_SACUDIR, p[0], p[1], cuadros & 0xFF, cuadros >> 8])
+        if cuadros and p[3]:
+            out += bytes([OP_ESPERAR, cuadros & 0xFF, cuadros >> 8])
+        return out
+
     if cmd.code == TRADE_EVENT_LOCATIONS:
         # `CommandTradeEventLocations`: cada uno va con `MoveTo` a la celda
         # del otro. Sobre el héroe no lo usa ninguna página del juego.
@@ -1203,6 +1222,12 @@ class Estado:
         # el juego mide cuánto tardó el jugador sin decírselo.
         self.timer_cuadros = 0
         self.timer_activo = False
+        self.timer_dibujado = 0
+        # La sacudida de pantalla: dónde está, cuánto le queda y con qué.
+        self.sacudida_pos = 0
+        self.sacudida_resta = 0
+        self.sacudida_fuerza = 0
+        self.sacudida_vel = 0
         self.timer_visible = False
 
     # El héroe visto como estaba antes. Su ruta es una `Ruta` como la de
@@ -1321,13 +1346,26 @@ class Estado:
                 self.pos_ev[indice] = (x + dx, y + dy)
 
     def algo_corriendo(self):
-        """Si queda algo andando solo: una ruta forzada o un destello.
+        """Si queda algo andando solo: una ruta forzada, un destello o la
+        sacudida de pantalla.
 
         Lo mira quien decide cuándo dejar de contar cuadros. Sin los destellos
         acá, una página que sólo destella termina en el primer cuadro y el
         destello no avanza nunca: se queda encendido para siempre.
         """
-        return bool(self.flashes) or self.rutas_pendientes()
+        return self.sacudida_resta > 0 or bool(self.flashes) or self.rutas_pendientes()
+
+    def cuadro_de_sacudida(self):
+        """Un cuadro de la sacudida: `Shake::Update` sin la continua, que
+        este juego no usa. En el último cuadro la pantalla vuelve a cero."""
+        if self.sacudida_resta > 0:
+            self.sacudida_resta -= 1
+            if self.sacudida_resta > 0:
+                self.sacudida_pos = sacudida_siguiente(
+                    self.sacudida_fuerza, self.sacudida_vel,
+                    self.sacudida_resta, self.sacudida_pos)
+            else:
+                self.sacudida_pos = 0
 
     def cuadro_de_timer(self):
         """Un cuadro del cronómetro.
@@ -1339,6 +1377,14 @@ class Estado:
         dibujado. Modelarlo como "se para" nada más dejaría a la referencia
         dibujando cinco glifos que RM2k no dibuja.
         """
+        # Lo que se dibuja es la cuenta de **antes** de este cuadro. La
+        # consola muestra en cada cuadro la OAM que armó la vuelta anterior
+        # —es el mismo cuadro de retraso de la caminata, que `paso_de_ruta`
+        # compensa con la fase del paso—, y con los dígitos y los dos puntos
+        # no había con qué compensarlo: el parpadeo cambiaba un cuadro antes
+        # acá que en la ROM, con el mismo estado de los dos lados. Lo vio el
+        # arranque fijo, que alinea los cuadros exacto.
+        self.timer_dibujado = self.timer_cuadros
         if self.timer_activo and self.timer_cuadros > 0:
             self.timer_cuadros -= 1
             if self.timer_cuadros // CUADROS_POR_SEGUNDO == 0:
@@ -1352,10 +1398,10 @@ class Estado:
         `cuadros / 60`, y los dos puntos se saltean cuando `cuadros % 60 < 30`.
         El espacio en el medio es "no dibujar nada".
         """
-        segundos = self.timer_cuadros // CUADROS_POR_SEGUNDO
+        segundos = self.timer_dibujado // CUADROS_POR_SEGUNDO
         return "%02d%s%02d" % (
             segundos // 60,
-            ":" if (self.timer_cuadros % CUADROS_POR_SEGUNDO
+            ":" if (self.timer_dibujado % CUADROS_POR_SEGUNDO
                     >= CUADROS_POR_SEGUNDO // 2) else " ",
             segundos % 60)
 
@@ -1418,8 +1464,34 @@ class Estado:
 LARGO_DE_OPCODE = {
     OP_FIN: 1, OP_SWITCH: 4, OP_TELEPORT: 6, OP_ESPERAR: 3, OP_TINTE: 5,
     OP_GRUPO: 3, OP_MENSAJE: 3, OP_RUTAS: 1, OP_FLASH: 7, OP_TIMER: 5,
-    OP_BGM: 2, OP_LUGAR: 6, OP_TRUEQUE: 3,
+    OP_BGM: 2, OP_LUGAR: 6, OP_TRUEQUE: 3, OP_SACUDIR: 5,
 }
+
+
+# La sacudida de pantalla, `Shake::NextPosition` de easyrpg:
+#
+#     amplitud = 1 + 2 * fuerza
+#     nuevo    = -amplitud * sin((resta * 4 * (velocidad + 2)) % 256 * pi / 128)
+#     corte    = velocidad * amplitud / 8 + 1
+#     posicion = clamp(nuevo, posicion - corte, posicion + corte)
+#
+# con `resta` los cuadros que le quedan, y la posición en pixeles que se le
+# suman a la cámara al dibujar el mapa —`GetDisplayX`—: la ventana de mensaje
+# no se mueve. RPG_RT lo hace en punto flotante y trunca; acá el seno es una
+# tabla de 256 bytes a escala 127 y la división es entera, **de los dos lados
+# igual**, así que la ROM y la referencia coinciden exacto y las dos pueden
+# diferir de RPG_RT en un pixel en algún cuadro. La tabla la emite el
+# conversor al mapdata.inc desde esta misma lista.
+SENO_SACUDIDA = [round(math.sin(t * math.pi / 128) * 127) for t in range(256)]
+
+
+def sacudida_siguiente(fuerza, velocidad, resta, posicion):
+    amplitud = 1 + 2 * fuerza
+    seno = SENO_SACUDIDA[(resta * 4 * (velocidad + 2)) % 256]
+    cociente = (amplitud * abs(seno)) // 127
+    nuevo = -cociente if seno > 0 else cociente
+    corte = (velocidad * amplitud) // 8 + 1
+    return max(posicion - corte, min(posicion + corte, nuevo))
 
 
 def largo_de_opcode(codigo, i):
@@ -1527,7 +1599,7 @@ def pagina_activa(paginas, evento, estado):
 
 def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
                     flash=(), switches=(), timer=(), lugar=(),
-                    frecuencia=RUTA_FRECUENCIA):
+                    frecuencia=RUTA_FRECUENCIA, sacudida=()):
     """Una página automática inventada: una ruta forzada, una espera, un tinte.
 
     No sale de ningún dato del juego, y ésa es la idea. El intérprete corre
@@ -1598,6 +1670,16 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
         codigo += bytes([OP_LUGAR, blanco, x & 0xFF, x >> 8, y & 0xFF, y >> 8])
     if ruta_ev:
         codigo += bytes([OP_RUTAS])
+    if sacudida:
+        # (fuerza, velocidad, décimas, esperar): lo mismo que compila un
+        # ShakeScreen del juego. Con esperar, el tinte de más abajo recién se
+        # aplica cuando la sacudida termina, que es lo que la hace filosa.
+        fuerza, velocidad, decimas, esperar = sacudida
+        cuadros = decimas * CUADROS_POR_DECIMA
+        codigo += bytes([OP_SACUDIR, fuerza, velocidad,
+                         cuadros & 0xFF, cuadros >> 8])
+        if cuadros and esperar:
+            codigo += bytes([OP_ESPERAR, cuadros & 0xFF, cuadros >> 8])
     if mensaje is not None:
         # El mensaje va antes de la espera y del tinte a propósito: bloquea, así
         # que lo que venga después es lo que prueba que la página **siguió**
@@ -1852,6 +1934,19 @@ def ejecutar(codigo, estado, desde=0):
                                 codigo[i + 2] | (codigo[i + 3] << 8),
                                 codigo[i + 4] | (codigo[i + 5] << 8))
             i += 6
+        elif op == OP_SACUDIR:
+            # `ShakeOnce`, que no reinicia la posición —"so that multiple
+            # shakes which interrupt each other flow smoothly"—, o `ShakeEnd`
+            # con cero cuadros. No corta el cuadro: si la página espera, el
+            # conversor le pone un OP_ESPERAR detrás.
+            cuadros = codigo[i + 3] | (codigo[i + 4] << 8)
+            if cuadros:
+                estado.sacudida_fuerza = codigo[i + 1]
+                estado.sacudida_vel = codigo[i + 2]
+                estado.sacudida_resta = cuadros
+            else:
+                estado.sacudida_pos = estado.sacudida_resta = 0
+            i += 5
         elif op == OP_TRUEQUE:
             # `CommandTradeEventLocations`: los dos `MoveTo`, con las celdas
             # leídas antes de mover a ninguno.

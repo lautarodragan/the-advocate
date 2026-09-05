@@ -25,10 +25,14 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from retro import Consola, CORE
 
-# Cuántos cuadros se le dan a la ROM antes de apretar nada. screenshot.sh
-# dormía tres segundos de reloj por la misma razón: que arranque y dibuje el
-# mapa antes de que empiece la caminata.
-ARRANQUE = 180
+# Cuántos cuadros se le dan a la ROM antes de apretar nada y de empezar a
+# contar. Desde el 2026-09-05 el arranque de la ROM dura siempre lo mismo
+# —BOOT_CUADROS en main.s, y el lazo principal corre su primer cuadro en el
+# 67, medido en la WRAM sobre seis ROMs distintas, con y sin música—, así que
+# con 67 el cuadro N de la captura muestra el tick N de la referencia, en
+# cualquier mapa. Antes cada receta llevaba un número medido a mano que se
+# corría con cada cambio de código o de datos.
+ARRANQUE = 67
 
 # Cuánto se corre de más después de los cuadros que dice el plan. La ROM llega
 # uno o dos cuadros después de `pasos x 8` —el pad se lee una vez por cuadro y

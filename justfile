@@ -412,11 +412,11 @@ snes-ventana mapa="7" nombre="ventana" mapas="":
 #
 # Con dirección el arranque no puede ser cero. La cruceta se mantiene apretada
 # desde que termina, y si empezara antes de que la página abra el mensaje el
-# héroe daría unos pasos que la referencia no modela. Treinta cuadros alcanzan
-# de sobra —el mapa 7 es mudo y la ROM llega al primer cuadro del intérprete en
-# diez— y no hace falta que el número sea exacto: lo que se compara es que el
-# héroe no se haya movido **nada**.
-snes-cerrar mapa="7" apretar="200" nombre="cerrar" direccion="none" arranque="30":
+# héroe daría unos pasos que la referencia no modela. El 67 es el de todas las
+# recetas desde que el arranque de la ROM es fijo —ver "El arranque dura
+# siempre lo mismo" en el LEEME—: el cuadro N de la captura es el tick N de
+# la referencia, en cualquier mapa.
+snes-cerrar mapa="7" apretar="200" nombre="cerrar" direccion="none" arranque="67":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
@@ -473,7 +473,7 @@ snes-cerrar mapa="7" apretar="200" nombre="cerrar" direccion="none" arranque="30
 # vblank siguiente, así que ese cuadro sale partido —mitad con la paleta vieja y
 # mitad con la nueva— y la referencia no modela eso. Un cuadro de más o de menos
 # en la cuenta de la ruta corre el borde y el 89 o el 91 se caen.
-snes-ruta-evento mapa="6" ruta="3 0 0 0 0 0 0 3 3 3 23 2 2 1 13" cuadros="89 91" arranque="10" nombre="ruta-evento":
+snes-ruta-evento mapa="6" ruta="3 0 0 0 0 0 0 3 3 3 23 2 2 1 13" cuadros="89 91" arranque="67" nombre="ruta-evento":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
@@ -525,7 +525,7 @@ snes-ruta-evento mapa="6" ruta="3 0 0 0 0 0 0 3 3 3 23 2 2 1 13" cuadros="89 91"
 #   vertical. El evento 3 arranca en (22,9) mirando a la izquierda; con el
 #   héroe en (22,12) gira hacia abajo, y con el héroe en (25,10) —tres a la
 #   derecha y una abajo— gira a la derecha.
-snes-npc mapa="6" ruta="4 2 2 2 2 1 1 12" celda="22 12" cuadros="10 27 40 60" arranque="10" nombre="npc" frecuencia="8":
+snes-npc mapa="6" ruta="4 2 2 2 2 1 1 12" celda="22 12" cuadros="10 27 40 60" arranque="67" nombre="npc" frecuencia="8":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
@@ -536,6 +536,43 @@ snes-npc mapa="6" ruta="4 2 2 2 2 1 1 12" celda="22 12" cuadros="10 27 40 60" ar
   pre={{snes_pngs}}/{{nombre}}
   python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
       --hero-tile {{celda}} --ruta-de-evento {{ruta}} --frecuencia {{frecuencia}} \
+      --cuadros {{cuadros}} \
+      --saltar $pre-{}.saltar.txt -o $pre-{}.esperado.png
+  for n in {{cuadros}}; do
+    python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre-$n.png \
+        --walk none --cuadros $n --arranque {{arranque}}
+    python3 tools/snes_compare.py $pre-$n.png $pre-$n.esperado.png \
+        --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
+  done
+
+# La sacudida de pantalla: ShakeScreen.
+#
+# Es `ShakeOnce` de easyrpg: la cámara se corre en X unos pixeles por cuadro
+# siguiendo un seno, con la amplitud de la fuerza y el paso acotado por la
+# velocidad, durante las décimas que diga, y la ventana de mensaje no se mueve.
+# La cuenta es entera de los dos lados —ver `sacudida_siguiente` en eventos.py—
+# así que puede diferir de RPG_RT en un pixel en algún cuadro, pero la ROM y la
+# referencia coinciden exacto.
+#
+# La página de prueba sacude **y espera**, y después tiñe: los cuadros del
+# medio miran la pantalla corrida, y el último mira que la sacudida terminó,
+# la pantalla volvió a su lugar y el tinte se aplicó. El mapa 7 tiene la cámara
+# en el borde izquierdo, así que la sacudida asoma lo que hay a la izquierda
+# del mapa; el segundo caso, en el 6, tiene la cámara en el medio.
+snes-sacudir mapa="7" sacudida="3 3 2 1" cuadros="3 6 9 11 13 60" arranque="67" nombre="sacudir" celda="":
+  #!/usr/bin/env bash
+  set -euo pipefail
+  mkdir -p {{snes_pngs}} {{snes_inc}}
+  celda="{{celda}}"
+  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
+      ${celda:+--inicio $celda} \
+      --sacudida-de-prueba {{sacudida}} --pagina-de-prueba 0 0 0 50 \
+      -o {{snes_inc}}/mapdata.inc
+  just snes-build
+  pre={{snes_pngs}}/{{nombre}}
+  python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
+      ${celda:+--hero-tile $celda} \
+      --sacudida-de-prueba {{sacudida}} --pagina-de-prueba 0 0 0 50 \
       --cuadros {{cuadros}} \
       --saltar $pre-{}.saltar.txt -o $pre-{}.esperado.png
   for n in {{cuadros}}; do
@@ -571,7 +608,7 @@ snes-npc mapa="6" ruta="4 2 2 2 2 1 1 12" celda="22 12" cuadros="10 27 40 60" ar
 # antes del corte, así que la ROM sin el corte también daba cero. El 14 es el
 # del corte —el evento arranca el tercer paso desde la celda nueva—, el 15 uno
 # después, el 20 caminando, y el 60 terminó.
-snes-lugar mapa="6" lugar="4 21 13 12" ruta="4 2 2 2 2" celda="22 12" cuadros="14 15 20 60" arranque="10" nombre="lugar":
+snes-lugar mapa="6" lugar="4 21 13 12" ruta="4 2 2 2 2" celda="22 12" cuadros="14 15 20 60" arranque="67" nombre="lugar":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
@@ -659,7 +696,7 @@ snes-lugar mapa="6" lugar="4 21 13 12" ruta="4 2 2 2 2" celda="22 12" cuadros="1
 #   dibujado. Con un segundo entero el corte cae en el cuadro 60, y el 61 lo
 #   agarra ya vacío. Un 00:00 congelado sería lo que sale de modelarlo como "se
 #   para", que es el error que este caso mira.
-snes-timer mapa="6" timer="600 1" celda="2 10" cuadros="2 31 61 90" tinte="12 0 0 50" arranque="10" nombre="timer":
+snes-timer mapa="6" timer="600 1" celda="2 10" cuadros="2 31 61 90" tinte="12 0 0 50" arranque="67" nombre="timer":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
@@ -709,7 +746,7 @@ snes-timer mapa="6" timer="600 1" celda="2 10" cuadros="2 31 61 90" tinte="12 0 
 #                  todo al gris. Es el (60,60,60,0) del juego sin el oscurecido
 #   0 120 120 200  el de los mapas 229 y 230: aclara **y** sobresatura, o sea
 #                  las dos mitades nuevas a la vez
-snes-saturar mapa="73" tinte="60 0 0 0 0" antes="30" despues="120" nombre="saturar":
+snes-saturar mapa="73" tinte="60 0 0 0 0" antes="30" despues="120" nombre="saturar" arranque="67":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
@@ -722,12 +759,12 @@ snes-saturar mapa="73" tinte="60 0 0 0 0" antes="30" despues="120" nombre="satur
         --pagina-de-prueba {{tinte}} --cuadros $n \
         --saltar $pre-$n.saltar.txt -o $pre-$n.esperado.png
     python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre-$n.png \
-        --walk none --cuadros $n --arranque 0
+        --walk none --cuadros $n --arranque {{arranque}}
     python3 tools/snes_compare.py $pre-$n.png $pre-$n.esperado.png \
         --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
   done
 
-snes-destello mapa="6" flash="1 31 0 0 31 24" celda="2 10" cuadros="2 12 15 23 25" tinte="12 0 0 50" arranque="10" nombre="destello":
+snes-destello mapa="6" flash="1 31 0 0 31 24" celda="2 10" cuadros="2 12 15 23 25" tinte="12 0 0 50" arranque="67" nombre="destello":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
@@ -775,7 +812,7 @@ snes-destello mapa="6" flash="1 31 0 0 31 24" celda="2 10" cuadros="2 12 15 23 2
 # que la página de los caños no queda activa y apretar A no tiene que hacer
 # nada. Es lo único que ejercita que se miren las condiciones: con el 24 puesto
 # se cumplen todas, así que una ROM que las ignorara daría lo mismo.
-snes-hablar mapa="7" celda="3 7" switch="24" apretar="25" cuadros="20 60" arranque="30" nombre="hablar":
+snes-hablar mapa="7" celda="3 7" switch="24" apretar="25" cuadros="20 60" arranque="67" nombre="hablar":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
@@ -828,7 +865,7 @@ snes-hablar mapa="7" celda="3 7" switch="24" apretar="25" cuadros="20 60" arranq
 # es sólo hacia dónde mira el héroe **al arrancar**: si la página lo gira con
 # un `face_*`, gana la página, como en la ROM. Antes `--dir` pisaba el giro al
 # dibujar y el cuadro 230 de `puerta-izq` daba 117 pixeles, todos en el héroe.
-snes-escena mapa="2" celda="4 54" ruta="12" dir="up" cuadros="60" arranque="30" nombre="escena" apretar="":
+snes-escena mapa="2" celda="4 54" ruta="12" dir="up" cuadros="60" arranque="67" nombre="escena" apretar="":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
@@ -878,13 +915,17 @@ snes-escena mapa="2" celda="4 54" ruta="12" dir="up" cuadros="60" arranque="30" 
 #
 # Los cuadros están elegidos afuera de las ventanas de los saltos, y eso está
 # medido: la ROM se toma unos seis cuadros en cada teletransporte rellenando el
-# tilemap de 64x32, y la referencia no modela ese costo —es lo mismo que pasa
-# con el arranque, que incluye la subida al SPC700—. Entre el salto y unos
+# tilemap de 64x32, y la referencia no modela ese costo. Entre el salto y unos
 # treinta cuadros después los dos lados quedan a tres o seis cuadros de
-# distancia, y como la cámara sigue al héroe, eso corre la pantalla entera.
+# distancia, y como la cámara sigue al héroe, eso corre la pantalla entera. El
+# arranque ya no es de esa familia: desde el 2026-09-05 dura siempre lo mismo
+# y el 67 alinea el cuadro N con el tick N.
 #
 # Afuera de esas ventanas dan cero, incluido el cuadro 900, que es la cinemática
 # terminada: el héroe arriba de todo, mirando arriba, con la pantalla teñida.
+# Los cuadros 480 y 540 reemplazan al 400 y al 600 desde que el arranque es
+# fijo: con la ROM y la referencia alineadas exacto, el 400 caía con el héroe
+# caminando dentro de una de esas ventanas, y daba 591 pixeles.
 #
 # **Con ventana** —el caso `apertura`, desde el 2026-09-05— la cinemática no
 # termina ahí: el último paso pisa el evento 2, que es la escena de apertura
@@ -908,7 +949,7 @@ snes-escena mapa="2" celda="4 54" ruta="12" dir="up" cuadros="60" arranque="30" 
 # el teletransporte y ese toque la ROM va unos cinco cuadros atrás —el costo
 # del tilemap que la referencia no modela— y el toque los resincroniza, porque
 # de ahí en adelante los dos lados cuentan desde el mismo cuadro.
-snes-cinematica origen="4" destino="1" cuadros="100 400 600 900" arranque="70" nombre="cinematica" ventana="" apretar="":
+snes-cinematica origen="4" destino="1" cuadros="100 480 540 900" arranque="67" nombre="cinematica" ventana="" apretar="":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
@@ -958,7 +999,7 @@ snes-cinematica origen="4" destino="1" cuadros="100 400 600 900" arranque="70" n
 # héroe sube desde (7,76) y se frena en (7,73), a una celda. Es `WouldCollide`:
 # ver `bloqueada` en eventos.py y `celda_bloqueada` en main.s. Antes lo
 # atravesaba y seguía hasta la pared, y taro lo vio jugando.
-snes-pisar mapa="70" celda="12 8" direccion="up" cuadros="200" arranque="40" nombre="pisar":
+snes-pisar mapa="70" celda="12 8" direccion="up" cuadros="200" arranque="67" nombre="pisar":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
@@ -1053,7 +1094,7 @@ snes-texto mapa="255" apretar="200" nombre="texto":
 # camina sin chocar, y es **mudo**, que es lo que hace usable el desfasaje de
 # arranque —la ROM llega al primer cuadro del intérprete en 10, contra 44 en un
 # mapa con música, y la referencia no modela nada de eso—.
-snes-anclada mapa="6" ruta="1 1 1 1 1 1 2 2 2 2 2 2" cuadros="21 23 50 130" arranque="10" nombre="anclada":
+snes-anclada mapa="6" ruta="1 1 1 1 1 1 2 2 2 2 2 2" cuadros="21 23 50 130" arranque="67" nombre="anclada":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
@@ -1223,7 +1264,7 @@ snes-mensaje mapa="1" indice="0" escala="1":
 #   97, y el `wait` del 137 dura 36. Los cuadros 20 y 88 son quieto después de
 #   un paso y de un giro, el 44 y el 100 a mitad de paso, el 150 adentro del
 #   `wait`, y el 400 asentado.
-snes-ruta mapa="6" ruta="1 1 1 1 23 23 2 2 2 2 23 23 0 0 0 0" cuadros="18 60 120 400" arranque="10" nombre="ruta" inicio="" frecuencia="8":
+snes-ruta mapa="6" ruta="1 1 1 1 23 23 2 2 2 2 23 23 0 0 0 0" cuadros="18 60 120 400" arranque="67" nombre="ruta" inicio="" frecuencia="8":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
@@ -1275,7 +1316,7 @@ snes-ruta mapa="6" ruta="1 1 1 1 23 23 2 2 2 2 23 23 0 0 0 0" cuadros="18 60 120
 # referencia del cuadro 16: con 40 —el de `snes-pisar`, que nunca lo necesitó
 # exacto porque el pad sostenido llega igual— el héroe queda tres cuadros atrás
 # y la pose no coincide.
-snes-ruta-pisa mapa="70" celda="12 8" ruta="0 0 0 0" pagina="0" cuadros="16 24 200" arranque="43" nombre="ruta-pisa":
+snes-ruta-pisa mapa="70" celda="12 8" ruta="0 0 0 0" pagina="0" cuadros="16 24 200" arranque="67" nombre="ruta-pisa":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}

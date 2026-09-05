@@ -177,6 +177,21 @@ WINDOW_ROWS = 32
 ; Cuántas celdas de 8x8 llega a tocar la pantalla. Son 32 y 28 justas más una,
 ; porque el scroll casi nunca cae parado sobre una celda.
 VIEW_COLS = 33
+; Cuántas columnas de más se tienen cargadas a cada lado de la pantalla. Es
+; por la sacudida de pantalla, que corre el dibujo hasta 19 pixeles sin mover
+; la cámara: sin margen, la columna que asoma por la izquierda es una ranura
+; del toro que nadie escribió. Cuatro son 32 pixeles, y el toro tiene 64
+; columnas para 33 visibles, así que sobran.
+MARGEN_COLS = 4
+; En qué cuadro termina el arranque, contado desde el reset. El arranque
+; —cargar el mapa, subir el banco al SPC700— tarda lo que tarda, y eso cambiaba
+; con cada cambio de código o de datos: un bucle más y el lazo principal
+; arrancaba un cuadro después, y cada receta que compara cuadros en movimiento
+; lleva ese número medido a mano. Ahora se espera hasta este cuadro y el lazo
+; arranca siempre en el mismo. Una ROM cuyo arranque tarde más que esto sale
+; sin esperar, más tarde, pero igual de fijo para ella: la del arranque con
+; música tarda 57.
+BOOT_CUADROS = 64
 VIEW_ROWS = 29
 
 ; La ventana de mensaje: 256x80 pegada abajo de una pantalla de 224 líneas, o
@@ -410,6 +425,9 @@ comp_or23:   .res 4
     ; demás, así que habilitarlo primero no serviría de nada.
     lda #$01
     sta NMITIMEN                ; que la consola lea los controles sola
+    stz boot_cuadros
+    lda #$81
+    sta NMITIMEN                ; y la NMI, que cuenta los cuadros del arranque
 
     jsr ppu_init
 
@@ -501,6 +519,13 @@ grupo_listo:
     sta movil
     lda #CAPA_HEROE
     sta movil_capa
+    stz sacudida_pos
+    stz sacudida_pos + 1
+    stz tinte_listo
+    lda #VQ_POR_CUADRO
+    sta vq_tope
+    stz sacudida_resta
+    stz sacudida_resta + 1
     rep #$20
 .a16
     stz ev_esperando
@@ -551,6 +576,14 @@ grupo_listo:
     jsr spc_upload
     jsr music_boot
 
+    ; Y se espera a que el arranque dure lo que dura siempre: BOOT_CUADROS.
+espera_boot:
+    lda boot_cuadros
+    cmp #BOOT_CUADROS
+    bcc espera_boot
+    lda #$01
+    sta NMITIMEN                ; la NMI ya cumplió; el pad automático sigue
+
 loop:
     jsr wait_vblank
     ; El control primero: la consola lo lee sola al empezar el vblank y hay que
@@ -567,6 +600,7 @@ loop:
                                 ; es el mismo que el de la referencia
     jsr flashes_tick            ; y los destellos, en el mismo lugar
     jsr timer_tick              ; y un cuadro del cronómetro
+    jsr sacudida_tick           ; y uno de la sacudida de pantalla
     jsr animate_hero
     jsr follow_camera
     jsr stream_map              ; la columna o la fila que la cámara destapó
@@ -580,6 +614,18 @@ loop:
 ; --- espera de vblank ------------------------------------------------------
 ; Sin NMI habilitada, se mira la bandera de HVBJOY: primero que salga del
 ; vblank anterior y después que entre al siguiente.
+; La NMI del arranque: suma un cuadro y baja la bandera. No toca nada más, y
+; deja P como estaba porque `rti` lo saca de la pila.
+.proc nmi_boot
+    sep #$20
+.a8
+    pha
+    inc boot_cuadros
+    lda RDNMI
+    pla
+    rti
+.endproc
+
 .proc wait_vblank
 .a8
 .i16
@@ -905,6 +951,7 @@ puesto:
     ; deja los colores donde estaban, así que no hace falta preguntar si hay
     ; tinte: el camino es siempre el mismo.
     jsr aplicar_tinte
+    jsr subir_tinte             ; la pantalla está apagada: va ya
     rts
 .endproc
 
@@ -947,11 +994,7 @@ puesto:
     lda tinte_pendiente
     beq nada
     stz tinte_pendiente
-    lda #$80
-    sta INIDISP
-    jsr aplicar_tinte
-    lda #$0F
-    sta INIDISP
+    jsr aplicar_tinte           ; a la sombra; CGRAM se escribe en el vblank
 nada:
     rts
 .endproc
@@ -1706,6 +1749,9 @@ otro:
 :   cmp #OP_TRUEQUE
     bne :+
     jmp op_trueque
+:   cmp #OP_SACUDIR
+    bne :+
+    jmp op_sacudir
 :   cmp #OP_TIMER
     bne :+
     jmp op_timer
@@ -1911,6 +1957,30 @@ op_trueque:
     sta temp
     jsr plantar_evento
     ply
+    jmp otro
+
+; `ShakeScreen`: `ShakeOnce`, que no reinicia la posición para que dos
+; sacudidas seguidas se encadenen suaves, o `ShakeEnd` con cero cuadros. No
+; corta el cuadro: si la página espera, el conversor le pone un OP_ESPERAR
+; detrás, como con los destellos.
+op_sacudir:
+    lda [cod_ptr], y            ; fuerza
+    sta sacudida_fuerza
+    iny
+    lda [cod_ptr], y            ; velocidad
+    sta sacudida_vel
+    iny
+    rep #$20
+.a16
+    lda [cod_ptr], y            ; cuadros
+    sta sacudida_resta
+    bne con_cuadros
+    stz sacudida_pos            ; ShakeEnd: la pantalla vuelve a su lugar
+con_cuadros:
+    iny
+    iny
+    sep #$20
+.a8
     jmp otro
 
 ; "Esperá a que terminen las rutas". Si no queda ninguna corriendo no cuesta ni
@@ -2211,7 +2281,35 @@ volver:
 .a8
 .i16
     jsr armar_paleta
-    jmp subir_paleta
+    jmp copiar_a_sombra
+.endproc
+; Copia la paleta recién armada en `pal_buf` a su lugar de `cgram_sombra`, y
+; deja el tinte listo para que `flush_video` lo suba en el vblank.
+.proc copiar_a_sombra
+.a8
+.i16
+    lda tin_cgadd
+    rep #$20
+.a16
+    and #$00FF
+    asl a                       ; dos bytes por color
+    tay
+    sep #$20
+.a8
+    ldx #$0000
+    cpx tin_fin
+    beq listo                   ; una paleta sin colores
+copia:
+    lda pal_buf, x
+    sta cgram_sombra, y
+    inx
+    iny
+    cpx tin_fin
+    bne copia
+listo:
+    lda #1
+    sta tinte_listo
+    rts
 .endproc
 
 ; Arma la paleta teñida en `pal_buf`, sin subirla.
@@ -2573,29 +2671,6 @@ cabe:
 .endproc
 
 ; Y la sube desde `pal_buf` a la entrada `tin_cgadd` de CGRAM.
-.proc subir_paleta
-.a8
-.i16
-    lda tin_cgadd
-    sta CGADD
-    rep #$20
-.a16
-    lda #.loword(pal_buf)
-    sta A1T0L
-    lda tin_count
-    asl a                       ; dos bytes por color
-    sta DAS0L
-    sep #$20
-.a8
-    stz A1B0                    ; pal_buf vive en el banco 0
-    lda #$00
-    sta DMAP0                   ; un registro, de a bytes
-    lda #$22
-    sta BBAD0                   ; destino: CGDATA
-    lda #$01
-    sta MDMAEN
-    rts
-.endproc
 
 ; El tinte que dejó el evento, aplicado a las tres paletas del mapa.
 .proc aplicar_tinte
@@ -2637,7 +2712,79 @@ cabe:
     ; ninguna de las tres que se acaban de subir, así que queda como la dejó
     ; `load_ventana`. Es lo que hace RM2k —el tono se aplica al mapa, a los
     ; personajes y al panorama, no a la ventana— y acá decía que no se podía.
+    ;
+    ; Nada de esto tocó CGRAM: las tres paletas quedaron en `cgram_sombra` y
+    ; las sube `subir_tinte`, en el vblank.
+    rts
+.endproc
+
+; Sube a CGRAM las tres paletas teñidas de `cgram_sombra`, y la del cronómetro
+; sin teñir detrás. Es para el vblank, o para `cargar_mapa` con la pantalla
+; apagada. Los tres DMA juntos son a lo sumo 544 bytes.
+.proc subir_tinte
+.a8
+.i16
+    stz tinte_listo
+    ldx mapa_ofs
+    rep #$20
+.a16
+    lda mapa_tabla + M_MAP_CGRAM, x
+    sta tin_count
+    sep #$20
+.a8
+    lda #0
+    jsr dma_sombra
+    ldx mapa_ofs
+    rep #$20
+.a16
+    lda mapa_tabla + M_ABOVE_CGRAM, x
+    sta tin_count
+    sep #$20
+.a8
+    lda mapa_tabla + M_ABOVE_FIRST, x
+    jsr dma_sombra
+    ldx mapa_ofs
+    rep #$20
+.a16
+    lda mapa_tabla + M_SPRITE_CGRAM, x
+    sta tin_count
+    sep #$20
+.a8
+    lda #128
+    jsr dma_sombra
     jmp subir_timer_pal
+.endproc
+; Un DMA de `tin_count` colores desde `cgram_sombra` a la entrada A de CGRAM.
+.proc dma_sombra
+.a8
+.i16
+    sta CGADD
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    clc
+    adc #.loword(cgram_sombra)
+    sta A1T0L
+    lda tin_count
+    asl a                       ; dos bytes por color
+    beq nada                    ; cero bytes serían 64 KB
+    sta DAS0L
+    sep #$20
+.a8
+    stz A1B0                    ; la sombra vive en el banco 0
+    lda #$00
+    sta DMAP0                   ; un registro, de a bytes
+    lda #$22
+    sta BBAD0                   ; destino: CGDATA
+    lda #$01
+    sta MDMAEN
+    rts
+.a16
+nada:
+    sep #$20
+.a8
+    rts
 .endproc
 
 ; La paleta del cronómetro, tal cual está en la ROM. Es la última de las de
@@ -3415,7 +3562,7 @@ otra:
     lda vq_hechas
     cmp vq_n
     beq fin
-    cmp #VQ_POR_CUADRO
+    cmp vq_tope
     beq fin
     lda vq + 2, x
     sta A1B0                    ; el banco del origen
@@ -5625,6 +5772,154 @@ positivo:
 ;
 ; El scroll es por hardware, así que esto son dos restas y dos escrituras. No
 ; hay que redibujar nada: el mapa entero ya está en el tilemap.
+; Un cuadro de la sacudida de pantalla: `Shake::Update` y `NextPosition` de
+; easyrpg, con la cuenta entera que describe `sacudida_siguiente` en eventos.py:
+;
+;     amplitud = 1 + 2 * fuerza
+;     nuevo    = -amplitud * seno[(resta * 4 * (velocidad + 2)) % 256] / 127
+;     corte    = velocidad * amplitud / 8 + 1
+;     posicion = clamp(nuevo, posicion - corte, posicion + corte)
+;
+; Los productos van por el multiplicador del hardware y la división por el
+; divisor, que son los que ya usa `aplicar_tinte`. El seno es `seno_sacudida`,
+; en el banco 0, con signo y a escala 127; el signo se saca antes de multiplicar
+; y se vuelve a poner después, que es truncar hacia cero como hace `int`.
+.proc sacudida_tick
+.a8
+.i16
+    rep #$20
+.a16
+    lda sacudida_resta
+    beq nada16
+    dec a
+    sta sacudida_resta
+    bne sigue
+    stz sacudida_pos            ; el último cuadro: la pantalla vuelve
+nada16:
+    sep #$20
+.a8
+    rts
+.a16
+sigue:
+    ; t = (resta * 4 * (velocidad + 2)) % 256: alcanza con el byte bajo de
+    ; resta * 4, porque lo que sobra de 256 se va igual.
+    asl a
+    asl a
+    sep #$20
+.a8
+    sta WRMPYA
+    lda sacudida_vel
+    inc a
+    inc a
+    sta WRMPYB                  ; arranca: el producto tarda ocho ciclos
+    lda sacudida_fuerza         ; mientras tanto, la amplitud
+    asl a
+    inc a
+    sta sac_amp
+    nop
+    nop
+    lda RDMPYL                  ; el byte bajo del producto es t
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda seno_sacudida, x
+    sta sac_seno
+    bpl positivo
+    eor #$FF
+    inc a                       ; |seno|
+positivo:
+    sta WRMPYA
+    lda sac_amp
+    sta WRMPYB                  ; |seno| * amplitud
+    nop
+    nop
+    nop
+    nop
+    rep #$20
+.a16
+    lda RDMPYL
+    sta WRDIVL                  ; el dividendo, en una sola escritura de 16
+    sep #$20
+.a8
+    lda #127
+    sta WRDIVB                  ; arranca: el cociente tarda dieciséis ciclos
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    rep #$20
+.a16
+    lda RDDIVL
+    sta sac_nuevo               ; |nuevo|
+    sep #$20
+.a8
+    lda sac_seno
+    bmi con_signo               ; seno negativo: nuevo queda positivo
+    rep #$20
+.a16
+    lda sac_nuevo
+    eor #$FFFF
+    inc a
+    sta sac_nuevo               ; seno positivo: nuevo es negativo
+    sep #$20
+.a8
+con_signo:
+    ; corte = velocidad * amplitud / 8 + 1
+    lda sacudida_vel
+    sta WRMPYA
+    lda sac_amp
+    sta WRMPYB
+    nop
+    nop
+    nop
+    nop
+    rep #$20
+.a16
+    lda RDMPYL
+    lsr a
+    lsr a
+    lsr a
+    inc a
+    sta sac_corte
+    lda sacudida_pos
+    sec
+    sbc sac_corte
+    sta sac_lo
+    lda sacudida_pos
+    clc
+    adc sac_corte
+    sta sac_hi
+    ; Los números son chicos —la amplitud no pasa de 19— así que el signo de
+    ; la resta alcanza para comparar con signo.
+    lda sac_nuevo
+    sec
+    sbc sac_lo
+    bmi usar_lo
+    lda sac_hi
+    sec
+    sbc sac_nuevo
+    bmi usar_hi
+    lda sac_nuevo
+    bra guardar
+usar_lo:
+    lda sac_lo
+    bra guardar
+usar_hi:
+    lda sac_hi
+guardar:
+    sta sacudida_pos
+    sep #$20
+.a8
+    rts
+.endproc
+
 .proc follow_camera
 .a8
 .i16
@@ -5662,6 +5957,11 @@ guarda_y:
     ; escribe es siempre uno menos que dónde queremos mirar.
     dec a
     sta scroll_y
+    ; Y lo que ve el dibujo: la cámara más la sacudida de pantalla.
+    lda camara_x
+    clc
+    adc sacudida_pos
+    sta pantalla_x
     sep #$20
 .a8
     rts
@@ -5915,33 +6215,57 @@ baja:
     dex
     bne baja
 en_la_fila:
-
+    ; La fila arranca MARGEN_COLS columnas antes de la ventana, que es el mismo
+    ; rango que cargan `fill_window` y `stream_map`: [win_col - MARGEN_COLS,
+    ; win_col + 60). Si arrancara en win_col, las cuatro últimas columnas de la
+    ; fila —win_col + 60 a 63— pisarían en el toro las ranuras del margen de la
+    ; izquierda, y eso se vio: la esquina de la pantalla del mapa 2 mostraba
+    ; columnas de 64 más adelante. Las columnas negativas y las que caen más
+    ; allá del borde derecho van vacías, como en `build_column`.
     lda win_col
+    sec
+    sbc #MARGEN_COLS
+    sta fila_col
+    and #(WINDOW_COLS - 1)
+    asl a
+    tax                         ; la ranura de la primera columna, en bytes
+    lda #WINDOW_COLS
+    sta tira_total
+vacias_izq:
+    lda fila_col
+    bpl con_mapa
+    stz tira_row, x
+    stz tira_row2, x
+    inx
+    inx
+    txa
+    and #(WINDOW_COLS * 2 - 1)
+    tax
+    inc fila_col
+    dec tira_total
+    bra vacias_izq
+con_mapa:
+    lda fila_col
     and #$0001
     beq desde_izquierda
     lda tira_ofs
     ora #$0002
     sta tira_ofs
 desde_izquierda:
-    lda win_col
+    lda fila_col
     lsr a
     asl a                       ; la columna de bloques de la izquierda, en bytes
     jsr ptr_mas
-
-    lda win_col
-    and #(WINDOW_COLS - 1)
-    asl a
-    tax
-
     lda mapa_cw
     sec
-    sbc win_col
-    cmp #WINDOW_COLS
+    sbc fila_col
+    cmp tira_total
     bcc corta
-    lda #WINDOW_COLS
+    lda tira_total
 corta:
     sta tira_resta
-
+    lda tira_resta
+    beq vacias_der              ; toda la fila cae fuera del mapa
 columna:
     lda [celdas_ptr]
     asl a
@@ -5970,8 +6294,22 @@ columna:
     lda #2
     jsr ptr_mas                 ; al bloque de al lado
 mismo:
+    dec tira_total
     dec tira_resta
     bne columna
+vacias_der:
+    lda tira_total
+    beq listo
+    stz tira_row, x
+    stz tira_row2, x
+    inx
+    inx
+    txa
+    and #(WINDOW_COLS * 2 - 1)
+    tax
+    dec tira_total
+    bra vacias_der
+listo:
     rts
 .endproc
 
@@ -6036,12 +6374,16 @@ sin_fila:
     cmp win_col
     beq sin_columna
     bcs derecha
+    pha
+    sec
+    sbc #MARGEN_COLS            ; sube: entra la del margen de la izquierda
     tax
+    pla
     bra guarda_col
 derecha:
     pha
     clc
-    adc #(VIEW_COLS - 1)
+    adc #(VIEW_COLS - 1 + MARGEN_COLS)
     tax
     pla
 guarda_col:
@@ -6102,7 +6444,9 @@ sin_filas:
     jsr ptr_a_celdas
 
     lda win_col
-    sta temp + 2
+    sec
+    sbc #MARGEN_COLS            ; con el margen de la izquierda; las columnas
+    sta temp + 2                ; negativas las saltea `build_column`
     ldy #WINDOW_COLS
 columna:
     phy
@@ -6809,7 +7153,15 @@ sin_segunda:
 .a8
 .i16
     jsr push_oam
+    lda tinte_listo
+    beq sin_tinte
+    jsr subir_tinte             ; el tinte va antes que las poses, y les come
+    lda #2                      ; presupuesto en este mismo vblank
+    sta vq_tope
+sin_tinte:
     jsr vram_drenar             ; las poses que esta OAM ya da por subidas
+    lda #VQ_POR_CUADRO
+    sta vq_tope                 ; el vblank que viene arranca con todo
 
     ; La paleta de un destello, si quedó una pendiente del cuadro anterior.
     lda flash_pend
@@ -6840,13 +7192,13 @@ sin_flash:
     ; comparten un único latch entre todos los planos, así que intercalar las
     ; escrituras —BG1 bajo, BG2 bajo, BG1 alto, BG2 alto— mezcla los valores y
     ; el plano queda desplazado dentro de su celda, moviéndose en el lugar.
-    lda camara_x
+    lda pantalla_x              ; la cámara más la sacudida, si la hay
     sta BG1HOFS
-    lda camara_x + 1
+    lda pantalla_x + 1
     sta BG1HOFS
-    lda camara_x
+    lda pantalla_x
     sta BG2HOFS
-    lda camara_x + 1
+    lda pantalla_x + 1
     sta BG2HOFS
 
     lda scroll_y
@@ -6884,10 +7236,10 @@ no_termino:
 
     lda msg_abierto
     beq sin_ventana
-    lda camara_x
+    lda pantalla_x
     sta hdma_ofs + 1
     sta hdma_ofs + 6
-    lda camara_x + 1
+    lda pantalla_x + 1
     sta hdma_ofs + 2
     sta hdma_ofs + 7
     lda scroll_y
@@ -8464,7 +8816,7 @@ no:
 .a16
     lda npc_buf + 0, x        ; su posición en el mapa
     sec
-    sbc camara_x
+    sbc pantalla_x
     sec
     sbc #SPRITE_OFF_X
     sta obj_x
@@ -8589,7 +8941,7 @@ misma_pose:
 .a16
     lda hero_x
     sec
-    sbc camara_x
+    sbc pantalla_x
     sec
     sbc #SPRITE_OFF_X
     sta obj_x
@@ -9168,10 +9520,42 @@ MOVIL_HEROE = $FF
 CAPA_HEROE  = 1
 ; La celda a la que se quiere entrar, y lo que `celda_bloqueada` va mirando.
 dest_x:      .res 2
+; Por dónde va `build_row`: la columna que arma, con signo, y cuántas le
+; faltan de las 64.
+fila_col:    .res 2
+tira_total:  .res 2
 dest_y:      .res 2
 otro_ev:     .res 1
 trueque_a:   .res 1
 trueque_b:   .res 1
+; La sacudida de pantalla: dónde está en pixeles, con signo; cuántos cuadros le
+; quedan; y con qué fuerza y velocidad. Y `pantalla_x`, que es la cámara más la
+; sacudida: es lo que ven el scroll, la tabla HDMA y la OAM, mientras que el
+; streaming del tilemap sigue mirando `camara_x`, porque la sacudida es un
+; corrimiento del dibujo y no de lo que hay que tener cargado.
+; El tinte se arma acá durante el cuadro —las tres paletas del mapa, teñidas,
+; en su lugar de CGRAM— y se sube por DMA en el vblank siguiente. Antes
+; `tinte_de_evento` apagaba la pantalla a mitad del cuadro para escribir CGRAM
+; directo, y eso es un cuadro teñido a medias en el emulador y una franja
+; negra en el hardware; lo delató la sacudida, que compara cuadro por cuadro.
+cgram_sombra: .res 512
+tinte_listo:  .res 1
+; Cuántas poses puede subir `vram_drenar` este vblank: VQ_POR_CUADRO, salvo
+; que el tinte ya se haya llevado parte del presupuesto.
+vq_tope:      .res 1
+; Los cuadros que van del reset, contados por la NMI mientras dura el arranque.
+boot_cuadros: .res 1
+sacudida_pos:    .res 2
+sacudida_resta:  .res 2
+sacudida_fuerza: .res 1
+sacudida_vel:    .res 1
+pantalla_x:      .res 2
+sac_amp:   .res 1
+sac_seno:  .res 1
+sac_nuevo: .res 2
+sac_corte: .res 2
+sac_lo:    .res 2
+sac_hi:    .res 2
 capa_ev:     .res 2
 capa_hallada: .res 1
 ; Lo que `armar_salto` va juntando mientras recorre las órdenes de un salto:
@@ -9411,7 +9795,7 @@ done:
     .word $0000     ; $FFE4  COP nativo
     .word $0000     ; $FFE6  BRK nativo
     .word $0000     ; $FFE8  ABORT nativo
-    .word $0000     ; $FFEA  NMI nativo
+    .word nmi_boot  ; $FFEA  NMI nativo: cuenta los cuadros del arranque
     .word $0000     ; $FFEC  sin usar
     .word $0000     ; $FFEE  IRQ nativo
     .word $0000     ; $FFF0  sin usar

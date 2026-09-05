@@ -144,7 +144,8 @@ class Mundo:
                                               self.prueba[5],
                                               self.prueba[6],
                                               self.prueba[7],
-                                              frecuencia=self.prueba[8]))]
+                                              frecuencia=self.prueba[8],
+                                              sacudida=self.prueba[9]))]
             self.paginas_cache[map_id] = paginas
         return self.paginas_cache[map_id]
 
@@ -278,6 +279,7 @@ def cuadro_de_eventos(estado, passable, game_map, heroe, paginas=()):
         heroe=heroe)
     estado.cuadro_de_flashes()
     estado.cuadro_de_timer()
+    estado.cuadro_de_sacudida()
 
 
 def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
@@ -844,6 +846,10 @@ def main():
                         metavar="N",
                         help="BLANCO X Y [ESPERA]: el otro lado del mismo flag "
                              "del conversor")
+    parser.add_argument("--sacudida-de-prueba", nargs="+", type=int,
+                        default=None, metavar="N",
+                        help="FUERZA VELOCIDAD DECIMAS [ESPERA]: el otro lado "
+                             "del mismo flag del conversor")
     parser.add_argument("--frecuencia", type=int, default=eventos.RUTA_FRECUENCIA,
                         metavar="F",
                         help="la frecuencia de las rutas de prueba, como en el "
@@ -907,6 +913,7 @@ def main():
     hay_prueba = (args.pagina_de_prueba or args.ruta_de_prueba
                   or args.ruta_de_evento or args.flash_de_prueba or args.switch
                   or args.timer_de_prueba or args.lugar_de_prueba
+                  or args.sacudida_de_prueba
                   or args.mensaje_de_prueba is not None)
     # El bloque de textos, armado igual que en el conversor y en el mismo orden:
     # el mensaje de prueba primero —desplazamiento 0— y después los mapas de la
@@ -920,7 +927,8 @@ def main():
                    args.flash_de_prueba or (), args.switch or (),
                    args.timer_de_prueba or (),
                    snes_convert.lugar_de_prueba(args.lugar_de_prueba),
-                   args.frecuencia)
+                   args.frecuencia,
+                   snes_convert.sacudida_de_prueba(args.sacudida_de_prueba))
                   if hay_prueba else None, mensajes)
 
     # Los CharSets y los mapas ya convertidos se comparten entre las
@@ -1064,6 +1072,11 @@ def main():
 
         game_map, mapa, encima_todo = convertir(map_id)
         cam_x, cam_y = camera_for(x, y, game_map.width * 2, game_map.height * 2)
+        # La sacudida de pantalla corre el mapa y los personajes, no la
+        # ventana: es `GetDisplayX`, la posición de la cámara más la sacudida
+        # en pixeles, sin volver a acotarla al mapa. Afuera del mapa PIL deja
+        # negro, que es lo que dibuja RM2k del otro lado del borde.
+        cam_x += estado.sacudida_pos
         view = mapa.crop((cam_x, cam_y, cam_x + SCREEN_W, cam_y + SCREEN_H))
 
         # Todo lo que se dibuja encima del mapa, con la clave con la que RM2k lo

@@ -796,6 +796,108 @@ Los cuadros 60 y 400 dan 0 de 57344, y **entre ellos difieren en 2869 pixeles**,
 todos en las filas de la ventana: si el A no avanzara al segundo mensaje serían
 cero y la receta daría verde sin probar nada.
 
+### La sacudida de pantalla
+
+`ShakeScreen` es `OP_SACUDIR` desde el 2026-09-05: fuerza, velocidad y cuadros,
+y con cero cuadros es `ShakeEnd`. Es `ShakeOnce` de easyrpg, que no reinicia la
+posición para que dos sacudidas seguidas se encadenen, y con `wait` el
+conversor le pone un `OP_ESPERAR` detrás, como a los destellos. La cuenta por
+cuadro es `Shake::NextPosition`:
+
+    amplitud = 1 + 2 * fuerza
+    nuevo    = -amplitud * sin((resta * 4 * (velocidad + 2)) % 256 * pi / 128)
+    corte    = velocidad * amplitud / 8 + 1
+    posicion = clamp(nuevo, posicion - corte, posicion + corte)
+
+RPG_RT la hace en punto flotante y trunca. Acá el seno es una tabla de 256
+bytes a escala 127, que el conversor emite al `mapdata.inc` desde la misma
+lista que usa la referencia —`SENO_SACUDIDA`—, y la división es entera, con el
+multiplicador y el divisor del hardware; el signo se saca antes y se vuelve a
+poner después, que es truncar hacia cero. **Los dos lados hacen la misma cuenta
+entera**, así que coinciden exacto entre ellos y los dos pueden diferir de
+RPG_RT en un pixel en algún cuadro. Las 29 sacudidas del juego son de la forma
+de RM2k, con fuerza hasta 9 y velocidad hasta 8: 19 pixeles de amplitud como
+mucho.
+
+La posición se le suma a la cámara **sólo al dibujar**: es `GetDisplayX`, y en
+la ROM es `pantalla_x`, que ven el scroll, la tabla HDMA de la ventana y la OAM.
+El streaming del tilemap sigue mirando `camara_x`, porque la sacudida no cambia
+lo que hay que tener cargado. La ventana de mensaje no se mueve.
+
+Cuatro cosas salieron de compararla cuadro por cuadro, que es lo que ninguna
+receta hacía hasta ahora —las esperas se miraban con margen—:
+
+* **El tinte se escribía a mitad del cuadro.** `tinte_de_evento` apagaba la
+  pantalla, recalculaba las tres paletas en CGRAM y la volvía a prender, en el
+  lazo principal: un cuadro teñido a medias en el emulador y una franja negra
+  en el hardware. Ahora `aplicar_tinte` deja las paletas en `cgram_sombra` y
+  `subir_tinte` las sube por DMA en el vblank —544 bytes como mucho, y ese
+  vblank sube dos poses en vez de cinco—; `cargar_mapa`, que tiene la pantalla
+  apagada, lo llama enseguida.
+* **El streaming carga con margen.** El toro de 64 columnas tenía al día
+  exactamente las 33 de la pantalla, y la sacudida en negativo mostraba la de
+  la izquierda, que era una ranura que nadie había escrito. `MARGEN_COLS` son
+  cuatro columnas de más a cada lado, 32 pixeles: `fill_window`, `stream_map`
+  y `build_row` cargan el mismo rango, `[win_col - 4, win_col + 60)`. Lo
+  último costó un rojo: la fila se armaba desde `win_col`, y sus cuatro
+  columnas finales pisaban en el toro las ranuras del margen de la izquierda,
+  así que la esquina de la pantalla del mapa 2 mostraba columnas de 64 más
+  adelante.
+* **Fuera del mapa hay negro.** RM2k dibuja negro más allá de los bordes, y
+  la referencia también —PIL rellena con negro—, pero la ROM no escribía las
+  columnas que caían fuera del mapa y la ranura mostraba lo que tuviera.
+  `build_column` y `build_row` escriben ahora tile 0 para lo que cae fuera,
+  que el conversor reserva vacío en el banco del fondo como ya lo reservaba
+  en el de la capa de encima; y el color de fondo —el 0 de CGRAM, el que se
+  ve donde ninguna capa dibuja— es negro y no magenta. El magenta hacía dos
+  cosas: centinela para el ojo, y **clave de recorte** de la capa de encima en
+  `render_above`, que dibuja la capa sobre ese color y después lo vuelve
+  transparente. Con negro se recortaban también los pixeles negros de los
+  tiles de encima —la sombra de una máquina del mapa 6 se volvió un tramado
+  gris—, así que la clave sigue siendo magenta, `CLAVE_RECORTE`, pero sólo
+  adentro del render.
+* **El cronómetro se dibuja con la cuenta de antes del cuadro.** La consola
+  muestra en cada cuadro la OAM que armó la vuelta anterior. Con la caminata
+  eso lo compensa la referencia por cómo modela el paso —el `hero_y` de la
+  ROM después del cuadro N es el pixel de la referencia en el N+1—, y con los
+  dígitos no había con qué: el parpadeo de los dos puntos cambiaba un cuadro
+  antes en la referencia, con el mismo estado de los dos lados. `timer_texto`
+  usa ahora la cuenta de antes de descontar el cuadro.
+
+### El arranque dura siempre lo mismo
+
+Para comparar un cuadro en movimiento el cuadro N de la captura tiene que
+mostrar el tick N de la referencia, y eso depende de en qué cuadro la ROM llega
+al primer tick del intérprete. Hasta el 2026-09-05 eso dependía del mapa —la
+subida de poses, la música— y **de cada cambio de código o de datos**: un
+bucle más en `cargar_mapa` y el lazo arrancaba un cuadro después, y cada receta
+llevaba un número medido a mano, 10 en el mapa 6, 41 en el 7, 43 en el 70, 70
+con música. Se midió, y no era uniforme: el tinte en el vblank corrió un
+cuadro a los mapas con más carga y no a los otros, y el tile 0 reservado podía
+correr otro que esa medición no veía.
+
+Ahora el arranque **espera hasta el cuadro `BOOT_CUADROS`**, 64, contado por
+una NMI mínima que sólo suma un cuadro y baja la bandera; el lazo principal
+corre su primer cuadro en el 67 en las seis ROMs con que se midió, con y sin
+música, y todas las recetas pasan `--arranque 67`, que es el default de
+`snes_correr.py`. Una ROM cuyo arranque tarde más que eso sale sin esperar,
+más tarde, pero igual de fijo para ella; la del arranque con música tarda 57.
+El costo es un segundo de pantalla negra al encender, que ya estaba casi
+entero en la subida al SPC700.
+
+Con la ROM y la referencia alineadas exacto aparecieron tres cosas que el
+margen escondía: el cuadro 400 de `snes-cinematica`, que caía con el héroe
+caminando dentro de la ventana de un teletransporte —es 480 ahora—; el
+cronómetro, de arriba; y `snes-saturar`, que pasaba `--arranque 0` fijo.
+
+**Cómo se verifica.** `snes-sacudir`, tres casos: el mapa 7 con `3 3 2 1`,
+que es la de la puerta del mapa 2; el 6 con `9 8 3 1`, la más fuerte y rápida
+que admite RM2k; y el 2 con el héroe en (4,54) y la cámara en el borde
+izquierdo, donde la sacudida asoma lo que hay fuera del mapa. La página de
+prueba sacude, espera y tiñe: los cuadros del medio miran la pantalla corrida y
+el último mira que volvió a su lugar y el tinte llegó entero. Lo que no se
+modela es la sacudida continua de RM2k3, que este juego no usa.
+
 ### El cronómetro
 
 `TimerOperation`, con sus tres operaciones: poner, arrancar y parar. Se dibuja
@@ -1382,6 +1484,13 @@ resto no, según qué escritura pescara el vblank.
 Lo segundo no lo vio la tanda: snes9x acepta esas escrituras y mednafen no. Lo
 encontró taro jugando, dos veces seguidas.
 
+Y la salida que se le dio entonces —apagar la pantalla a mitad del cuadro para
+escribir el tinte— era otra trampa: en el hardware son líneas negras mientras
+dura la cuenta, y en el emulador un cuadro teñido de la mitad para abajo. Lo
+vio la sacudida de pantalla, la primera receta que compara cuadro por cuadro.
+Desde el 2026-09-05 el tinte se arma en RAM y se sube en el vblank, como todo
+lo demás: ver "La sacudida de pantalla".
+
 **Un byte más allá del final es de otro.** `music_frame`, con un stream
 vacío —un `OP_END` solo—, volvía al principio, leía el `OP_END` otra vez y se
 iba, dejando el puntero un byte después del final por el `advance`. Al cuadro
@@ -1611,8 +1720,9 @@ comparación.
 
   Hay un costo medido y visible: subir 32 KB de muestras byte por byte cuesta
   **unos 49 cuadros** antes de que el lazo principal empiece, o sea 0,8 s de
-  pantalla negra que RM2k no gasta. Por eso `snes-cinematica` arranca en 70 y no
-  en 21.
+  pantalla negra que RM2k no gasta. Desde el 2026-09-05 el arranque dura
+  siempre lo mismo, `BOOT_CUADROS`, y ese costo queda adentro: ver "El
+  arranque dura siempre lo mismo".
 
   Y un segundo efecto que conviene tener presente: `snes-check` compara el audio
   contra el MIDI **del mapa**, así que donde el tema lo pone un evento hay que

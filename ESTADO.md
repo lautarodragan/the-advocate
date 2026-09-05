@@ -41,8 +41,23 @@ mirado en el mapa 2 —el orden es el que conviene hacerlo—:
    emite. El caso `pantalla` de `snes-escena` la compara entera con catorce
    toques, seis cuadros en cero. Se pierde el fundido de las pantallas.
 
-Después de eso viene el ascensor —el evento 30, página del switch 11, con
-`ShakeScreen`— y lo que haya del otro lado, que nadie miró todavía.
+Después de eso viene el ascensor —el evento 30, página del switch 11— y lo
+que haya del otro lado, que nadie miró todavía. `ShakeScreen` ya está, desde
+el 2026-09-05: es `OP_SACUDIR`, tres casos de `snes-sacudir` en la tanda, y
+la sección "La sacudida de pantalla" del LEEME cuenta las cuatro cosas que
+salieron de comparar cuadro por cuadro —el tinte que se escribía a mitad del
+cuadro, el streaming sin margen, el negro fuera del mapa y el arranque por
+mapa—. Con eso compilan las páginas del evento 21 y del ascensor, que no
+tienen caso en la tanda todavía.
+
+**El arranque de la ROM es fijo desde el 2026-09-05**: `BOOT_CUADROS` en
+`main.s`, y `--arranque 67` en todas las recetas, ver "El arranque dura
+siempre lo mismo" en el LEEME. Antes cada receta llevaba un número medido a
+mano que se corría con cada cambio.
+
+**Las ROMs con nombre están viejas**: `demo-apertura` se armó antes de la
+colisión, el trueque, la transparencia, la sacudida, el tinte en el vblank y
+el arranque fijo. Hay que rearmarla antes de volver a probarla en la SNES.
 
 Y lo que taro pidió además, el 2026-09-05, sobre los dos droides del mapa 2,
 que es lo caro de esta lista y va después de los tres puntos de arriba:

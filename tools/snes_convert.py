@@ -114,9 +114,16 @@ OBJ_PRIORITY = 0x10                      # prioridad 1: debajo de BG2 1
 OBJ_PRIORITY_ABOVE = 0x20                # prioridad 2: por encima
 
 # El color 0 de CGRAM es el fondo: se ve donde ninguna capa dibuja, y también
-# donde un tile usa el índice 0. Magenta, que no aparece en ningún mapa, así que
-# si asoma dentro de la pantalla es que algo está mal.
-BACKDROP = (31, 0, 31)
+# donde un tile usa el índice 0. Negro, que es lo que RM2k dibuja donde el mapa
+# no tiene nada y más allá de sus bordes, y desde el 2026-09-05 eso se ve: la
+# sacudida de pantalla asoma lo que hay a los costados. Antes era magenta, un
+# centinela para el ojo —"si asoma dentro de la pantalla es que algo está
+# mal"—; la comparación contra la referencia no lo necesita, porque los dos
+# lados lo pintan con esta misma constante.
+BACKDROP = (0, 0, 0)
+# El color con que `render_above` dibuja lo que la capa de encima no toca, para
+# recortarlo: uno que ningún tile del juego usa.
+CLAVE_RECORTE = (31, 0, 31)
 
 
 def quantize(image):
@@ -689,7 +696,12 @@ def convert(image, bg_colors=None, grid=None):
                   for line in tile for p in line if p is not None})
     palette, grid, merged = build_palette(grid, bg_colors)
 
-    pool, tilemap = {}, []
+    # El tile 0 es el vacío, igual que en la capa de encima: es lo que la ROM
+    # escribe en el tilemap para lo que queda fuera del mapa —ver
+    # `build_column`— y lo que hay en la VRAM que nadie escribió. Un mapa con
+    # una celda enteramente transparente lo reusa; los demás gastan un tile.
+    blank = tuple(tuple(0 for _ in range(CELL)) for _ in range(CELL))
+    pool, tilemap = {blank: 0}, []
     for row in grid:
         line = []
         for tile in row:
@@ -1126,10 +1138,18 @@ def render_above(cram, above):
 
     height, width = len(above[2]), len(above[2][0])
     image = Image.new("RGBA", (width * CELL, height * CELL), (0, 0, 0, 0))
-    lleno = render_converted(b"", cram, None, above)
+    # Se dibuja con un color de fondo que ningún tile usa —magenta— para
+    # recortar después lo que la capa no toca. No puede ser el fondo de
+    # verdad, que es negro: los pixeles negros de los tiles de encima se
+    # recortarían también, y el 2026-09-05 se recortaron, cuando el fondo pasó
+    # de magenta a negro y la sombra de una máquina del mapa 6 se volvió un
+    # tramado gris.
+    cram_clave = [cgram_word(CLAVE_RECORTE)] + list(cram[1:])
+    lleno = render_converted(b"", cram_clave, None, above)
     image.paste(lleno, (0, 0))
-    # Lo que la capa no toca quedó del color de fondo; ahí va transparente.
-    fondo = (BACKDROP[0] << 3, BACKDROP[1] << 3, BACKDROP[2] << 3, 255)
+    # Lo que la capa no toca quedó del color clave; ahí va transparente.
+    fondo = (CLAVE_RECORTE[0] << 3, CLAVE_RECORTE[1] << 3,
+             CLAVE_RECORTE[2] << 3, 255)
     pixels = image.load()
     for y in range(image.height):
         for x in range(image.width):
@@ -1441,6 +1461,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "OP_BGM      = $%02X\n"
         "OP_LUGAR    = $%02X\n"
         "OP_TRUEQUE  = $%02X\n"
+        "OP_SACUDIR  = $%02X\n"
         "; Las tres operaciones del cronómetro.\n"
         "TIMER_PONER    = %d\n"
         "TIMER_ARRANCAR = %d\n"
@@ -1528,7 +1549,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            eventos.OP_ESPERAR, eventos.OP_TINTE, eventos.OP_GRUPO,
            eventos.OP_RUTA, eventos.OP_MENSAJE, eventos.OP_RUTAS,
            eventos.OP_FLASH, eventos.OP_TIMER, eventos.OP_BGM,
-           eventos.OP_LUGAR, eventos.OP_TRUEQUE,
+           eventos.OP_LUGAR, eventos.OP_TRUEQUE, eventos.OP_SACUDIR,
            eventos.TIMER_PONER, eventos.TIMER_ARRANCAR,
            TIMER_X, TIMER_Y, TIMER_GLIFO_W, TIMER_GLIFOS - 1,
            eventos.CUADROS_POR_SEGUNDO, eventos.TIMER_CUADROS_DE_MAS,
@@ -1647,6 +1668,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         handle.write(bloque("fuente_color", bytes(ventana["color"])) + "\n")
         handle.write("grupo_inicial:\n    .byte %s\n\n"
                      % ",".join("%d" % a for a in grupo_inicial) or "0")
+        handle.write(tabla_de_senos() + "\n")
         # Cuántos cuadros se queda quieto un personaje después de un paso y
         # después de un giro, por frecuencia de ruta: el contador de parada de
         # RM2k, en dos tablas de nueve para indexar con la frecuencia tal cual.
@@ -1824,6 +1846,30 @@ def ruta_de_evento(argumento):
     if not argumento or len(argumento) < 2:
         return ()
     return argumento[0], list(argumento[1:])
+
+
+def sacudida_de_prueba(argumento):
+    """(fuerza, velocidad, décimas, esperar) desde `--sacudida-de-prueba`, o
+    () si no hay."""
+    if not argumento:
+        return ()
+    if len(argumento) not in (3, 4):
+        sys.exit("--sacudida-de-prueba pide FUERZA VELOCIDAD DECIMAS y, si se "
+                 "quiere, ESPERA")
+    return (argumento[0], argumento[1], argumento[2],
+            argumento[3] if len(argumento) > 3 else 0)
+
+
+def tabla_de_senos():
+    """La tabla de `sacudida_siguiente`, tal cual la usa la referencia."""
+    out = ["; El seno a escala 127, para la sacudida de pantalla: es la misma",
+           "; lista que usa la referencia, SENO_SACUDIDA en eventos.py.",
+           "seno_sacudida:"]
+    valores = eventos.SENO_SACUDIDA
+    for i in range(0, 256, 16):
+        out.append("    .byte " + ",".join("$%02X" % (v & 0xFF)
+                                            for v in valores[i:i + 16]))
+    return "\n".join(out) + "\n"
 
 
 def lugar_de_prueba(argumento):
@@ -2025,6 +2071,11 @@ def main():
                              "con la 8 las órdenes van seguidas, con las otras "
                              "el personaje se para entre orden y orden como en "
                              "RM2k")
+    parser.add_argument("--sacudida-de-prueba", nargs="+", type=int,
+                        default=None, metavar="N",
+                        help="FUERZA VELOCIDAD DECIMAS [ESPERA]: agrega a la "
+                             "página de prueba una sacudida de pantalla, como "
+                             "un ShakeScreen del juego")
     parser.add_argument("--lugar-de-prueba", nargs="+", type=int, default=None,
                         metavar="N",
                         help="BLANCO X Y [ESPERA]: planta al evento —el índice "
@@ -2159,6 +2210,7 @@ def main():
         if (args.pagina_de_prueba or args.ruta_de_prueba
                 or args.ruta_de_evento or args.flash_de_prueba or args.switch
                 or args.timer_de_prueba or args.lugar_de_prueba
+                or args.sacudida_de_prueba
                 or args.mensaje_de_prueba is not None) \
                 and mapa is mapas[args.inicial]:
             # La página inventada, sólo en el mapa donde arranca la ROM. No sale
@@ -2178,7 +2230,8 @@ def main():
                     args.flash_de_prueba or (), args.switch or (),
                     args.timer_de_prueba or (),
                     lugar_de_prueba(args.lugar_de_prueba),
-                    frecuencia=args.frecuencia)}]
+                    frecuencia=args.frecuencia,
+                    sacudida=sacudida_de_prueba(args.sacudida_de_prueba))}]
         codigo = bytearray()
         for pagina in paginas:
             pagina["offset"] = len(codigo)
