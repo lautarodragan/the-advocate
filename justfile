@@ -336,11 +336,11 @@ snes-mednafen:
 # referencia armada sin reservar la paleta, difiere en 45 pixeles. O sea que sin
 # el 348 el reparto con ventana del lado de la referencia no lo ejercitaría nada.
 #
-# El mapa 1 estuvo acá —fue el que descubrió el reparto, porque el conversor
-# cortaba, y fusionaba 2— y no está más desde el 2026-09-04: con ventana ya
-# compila la escena de apertura, que hace caminar a cuatro personajes, y son
-# 768 tiles de sprite contra los 512 que direcciona la PPU. El conversor corta,
-# y con razón. Ver "Lo que falta" en rom/LEEME.md.
+# El mapa 1 —el que descubrió el reparto, porque el conversor cortaba, y
+# fusiona 2— estuvo afuera un día: con ventana compila la escena de apertura,
+# que hace caminar a cuatro personajes, y con todas las poses residentes eran
+# 768 tiles de sprite contra los 512 que direcciona la PPU. Volvió el
+# 2026-09-05 con las poses en caliente: son 120.
 #
 # El último caso es el 7 **con el 269 en la misma ROM**. La paleta de la
 # ventana es una para toda la ROM —las celdas se emiten una sola vez con la
@@ -830,16 +830,25 @@ snes-hablar mapa="7" celda="3 7" switch="24" apretar="25" cuadros="20 60" arranq
 #
 # Afuera de esas ventanas dan cero, incluido el cuadro 900, que es la cinemática
 # terminada: el héroe arriba de todo, mirando arriba, con la pantalla teñida.
-snes-cinematica origen="4" destino="1" cuadros="100 400 600 900" arranque="70" nombre="cinematica":
+#
+# **Con ventana** —el caso `apertura`, desde el 2026-09-05— la cinemática no
+# termina ahí: el último paso pisa el evento 2, que es la escena de apertura
+# entera. El cuadro 480 es la cinemática a mitad de camino, teñida; en el 540
+# el tinte ya se apagó y Core y Manta están plantados al lado del héroe; en el
+# 620 está abierto el primer mensaje de Core, y en el 900 sigue abierto, que es
+# donde queda hasta que alguien apriete A. Son cuatro personajes caminando en
+# el mismo mapa, o sea las poses en caliente en su caso real.
+snes-cinematica origen="4" destino="1" cuadros="100 400 600 900" arranque="70" nombre="cinematica" ventana="":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
+  ventana="{{ventana}}"
   python3 tools/snes_convert.py --grupo 10 --map-id {{origen}} \
-      --mapas {{destino}} -o {{snes_inc}}/mapdata.inc
+      --mapas {{destino}} ${ventana:+--con-ventana} -o {{snes_inc}}/mapdata.inc
   just snes-build
   pre={{snes_pngs}}/{{nombre}}
   python3 tools/snes_expect.py --grupo 10 --map-id {{origen}} \
-      --mapas {{destino}} --walk none --cuadros {{cuadros}} \
+      --mapas {{destino}} ${ventana:+--con-ventana} --walk none --cuadros {{cuadros}} \
       --saltar $pre-{}.saltar.txt -o $pre-{}.esperado.png
   for n in {{cuadros}}; do
     python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre-$n.png \

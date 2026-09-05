@@ -805,12 +805,10 @@ cero:
     sta ev_total
     lda mapa_tabla + M_NPC_COUNT, x
     asl a
-    asl a                       ; por cuatro
-    sta temp
-    asl a                       ; y por ocho: NPC_STRIDE = 12 es la suma
-    clc
-    adc temp
-.controlar NPC_STRIDE = 12, "la cuenta de arriba multiplica por doce a mano"
+    asl a
+    asl a
+    asl a                       ; por dieciséis: NPC_STRIDE
+.controlar NPC_STRIDE = 16, "la cuenta de arriba multiplica por dieciséis a mano"
     sta npc_total
 
     ; Los punteros a las dos tablas que se leen desde la ROM. El segundo apunta
@@ -2542,6 +2540,8 @@ listo:
 .proc elegir_grafico_heroe
 .a8
 .i16
+    lda #$FF
+    sta hero_pose_vram          ; otro actor: su pose hay que subirla sí o sí
     stz hero_pal
     rep #$20
 .a16
@@ -2948,6 +2948,13 @@ apagar:
 .proc load_sprite
 .a8
 .i16
+    ; El banco que sube acá trae una pose por ranura. La cola de subidas
+    ; arranca vacía, y la pose del héroe en VRAM es la que puso el conversor
+    ; —mirando abajo— salvo que mire a otro lado: `place_hero` lo resuelve en
+    ; el primer cuadro, con la pantalla todavía apagada.
+    stz vq_n
+    lda #$FF
+    sta hero_pose_vram
     ldx mapa_ofs
     lda #$80
     sta VMAIN
@@ -3055,6 +3062,151 @@ chica:
     rts
 .endproc
 
+; --- las poses en caliente ---------------------------------------------------
+; En VRAM vive una pose por personaje: el héroe en el bloque 0 y cada NPC que
+; camina en su ranura. Las doce poses de cada uno están en el cartucho, y
+; cuando alguien quiere dibujarse con otra, la encola acá y sube en el vblank
+; que viene, en el mismo `flush_video` que sube la OAM que ya cuenta con ella.
+; Es lo que hacen los RPG de la consola con más de dos personajes animados:
+; con todas las poses residentes, 512 tiles son dos personajes y medio.
+;
+; Encola la pose que está en `vq_src` (24 bits, en el cartucho) para la
+; ranura que arranca en la palabra `vq_dest`. Devuelve A distinto de cero si
+; entró; si la cola está llena, quien llama tiene que volver a pedirla.
+.proc vram_encolar
+.a8
+.i16
+    lda vq_n
+    cmp #VQ_MAX
+    bcc hay_lugar
+    lda #0
+    rts
+hay_lugar:
+    sta temp + 2
+    asl a
+    asl a
+    clc
+    adc temp + 2                ; por cinco
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda vq_src
+    sta vq + 0, x
+    lda vq_src + 1
+    sta vq + 1, x
+    lda vq_src + 2
+    sta vq + 2, x
+    lda vq_dest
+    sta vq + 3, x
+    lda vq_dest + 1
+    sta vq + 4, x
+    inc vq_n
+    lda #1
+    rts
+.endproc
+
+; Sube hasta VQ_POR_CUADRO poses de la cola y deja las demás al principio.
+; Cada pose son cuatro DMA de 128 bytes: las cuatro filas del bloque de 4x4,
+; que en la grilla de nombres están a 256 palabras una de otra.
+.proc vram_drenar
+.a8
+.i16
+    lda vq_n
+    bne hay
+    rts
+hay:
+    lda #$80
+    sta VMAIN                   ; avanzar una palabra tras el byte alto
+    lda #$01
+    sta DMAP0                   ; dos registros, de a palabras
+    lda #$18
+    sta BBAD0                   ; destino: VMDATAL
+    stz vq_hechas
+    ldx #$0000                  ; la entrada, en bytes
+otra:
+    lda vq_hechas
+    cmp vq_n
+    beq fin
+    cmp #VQ_POR_CUADRO
+    beq fin
+    lda vq + 2, x
+    sta A1B0                    ; el banco del origen
+    rep #$20
+.a16
+    lda vq + 0, x
+    sta vq_src
+    lda vq + 3, x
+    sta vq_dest
+    sep #$20
+.a8
+    lda #4
+    sta vq_filas
+fila:
+    rep #$20
+.a16
+    lda vq_dest
+    sta VMADDL
+    lda vq_src
+    sta A1T0L
+    lda #128
+    sta DAS0L
+    sep #$20
+.a8
+    lda #$01
+    sta MDMAEN
+    rep #$20
+.a16
+    lda vq_src
+    clc
+    adc #128
+    sta vq_src
+    lda vq_dest
+    clc
+    adc #256                    ; la fila que sigue de la grilla de nombres
+    sta vq_dest
+    sep #$20
+.a8
+    dec vq_filas
+    bne fila
+    inc vq_hechas
+    rep #$20
+.a16
+    txa
+    clc
+    adc #VQ_STRIDE
+    tax
+    sep #$20
+.a8
+    bra otra
+fin:
+    ; Lo que no entró, al principio de la cola. X apunta a la primera entrada
+    ; que quedó.
+    lda vq_n
+    sec
+    sbc vq_hechas
+    sta vq_n
+    beq listo
+    sta temp + 2
+    asl a
+    asl a
+    clc
+    adc temp + 2                ; los bytes que quedan: entradas por cinco
+    sta temp + 2
+    ldy #$0000
+mover:
+    lda vq, x
+    sta vq, y
+    inx
+    iny
+    dec temp + 2
+    bne mover
+listo:
+    rts
+.endproc
+
 ; --- la capa que va por encima del héroe -----------------------------------
 ; Sus tiles y su paleta se suben una sola vez, con la pantalla apagada. Su
 ; tilemap no: va en la misma ventana móvil que el del fondo, y lo llena el
@@ -3144,12 +3296,10 @@ chica:
 .a16
     lda mapa_tabla + M_NPC_COUNT, x
     asl a
-    asl a                       ; por cuatro
-    sta temp
-    asl a                       ; y por ocho: NPC_STRIDE = 12 es la suma
-    clc
-    adc temp
-.controlar NPC_STRIDE = 12, "la cuenta de arriba multiplica por doce a mano"
+    asl a
+    asl a
+    asl a                       ; por dieciséis: NPC_STRIDE
+.controlar NPC_STRIDE = 16, "la cuenta de arriba multiplica por dieciséis a mano"
     sta temp
     sep #$20
 .a8
@@ -4692,36 +4842,73 @@ tiene_dir:
 sin_ajuste:
     clc
     adc temp                    ; la pose, de 0 a 11
-    asl a                       ; dos bytes por pose
-    sta temp
-    stz temp + 1
+    ; ¿Es la que está en VRAM? Entonces no hay nada que subir. El tile de la
+    ; fila es fijo —es su ranura— y lo que cambia son los tiles de la ranura,
+    ; que se encolan acá y suben en el vblank que viene con la OAM.
+    cmp npc_buf + 12, y
+    beq acomodar
+    sta npc_buf + 12, y
+    sta temp                    ; la pose
 
-    ; Y su tile, de `npc_poses`: doce palabras por cada NPC que camina.
+    ; El puntero a la pose, de `npc_poses`: doce punteros de tres bytes por
+    ; personaje animado, o sea (k * 12 + pose) * 3.
     lda npc_buf + 9, y
     rep #$20
 .a16
     and #$00FF
     asl a
-    asl a
-    asl a                       ; por ocho
+    asl a                       ; por cuatro
     sta temp + 2
-    asl a                       ; por dieciséis
+    asl a
+    asl a
+    asl a                       ; por treinta y dos
     clc
-    adc temp + 2                ; ocho más dieciséis son veinticuatro
+    adc temp + 2                ; treinta y seis por personaje
+    sta temp + 2
+    lda temp
+    and #$00FF
+    sta temp
+    asl a
     clc
-    adc temp                    ; más la pose
+    adc temp                    ; la pose por tres
+    clc
+    adc temp + 2
     tay
     lda [poses_ptr], y
-    sta temp                    ; el tile, de dieciséis bits
+    sta vq_src
     sep #$20
 .a8
+    iny
+    iny
+    lda [poses_ptr], y
+    sta vq_src + 2
+
+    ; El destino: su ranura, que es el tile de la fila por dieciséis palabras
+    ; desde donde arranca el banco de sprites.
     ldy npc_fila
-    lda temp
-    sta npc_buf + 6, y
     lda npc_buf + 7, y
-    and #$FE                    ; el bit 8 del tile vive en los atributos
-    ora temp + 1
-    sta npc_buf + 7, y
+    and #$01                    ; el bit 8 del tile vive en los atributos
+    xba
+    lda npc_buf + 6, y
+    rep #$20
+.a16
+    asl a
+    asl a
+    asl a
+    asl a                       ; dieciséis palabras por tile
+    ldx mapa_ofs
+    clc
+    adc mapa_tabla + M_VRAM_SPRITE, x
+    sta vq_dest
+    sep #$20
+.a8
+    jsr vram_encolar
+    bne acomodar
+    ; La cola estaba llena: se vuelve a pedir el cuadro que viene.
+    ldy npc_fila
+    lda #$FF
+    sta npc_buf + 12, y
+acomodar:
     jmp acomodar_npc            ; y la fila, a donde le toque ahora
 .endproc
 
@@ -6275,6 +6462,7 @@ sin_segunda:
 .a8
 .i16
     jsr push_oam
+    jsr vram_drenar             ; las poses que esta OAM ya da por subidas
 
     ; La paleta de un destello, si quedó una pendiente del cuadro anterior.
     lda flash_pend
@@ -7930,31 +8118,58 @@ sin_ajuste:
     adc hero_dir                ; dirección * 3
     clc
     adc temp                    ; más el frame
-    asl a                       ; dos bytes por pose
+    sta pose_heroe
+    ; Sin grupo el puntero a la tabla queda en cero: no se dibuja nada.
+    lda hero_poses + 2
+    beq sin_dibujar
+    ; El puntero a la pose: tres bytes por pose en la tabla del actor.
+    lda pose_heroe
+    asl a
+    clc
+    adc pose_heroe              ; por tres
     rep #$20
 .a16
     and #$00FF
     tay
     lda [hero_poses], y
-    sta temp
+    sta vq_src
     sep #$20
 .a8
-    ; $FFFF es el centinela de "este actor no tiene gráfico". Le pasa al actor
-    ; 10, DummyHero, que es con el que el juego arranca: RM2k tampoco dibuja
-    ; nada. Sin grupo el puntero queda en cero y también se sale por acá.
-    lda temp
-    and temp + 1
+    iny
+    iny
+    lda [hero_poses], y
+    sta vq_src + 2
+    ; $FFFFFF es el centinela de "este actor no tiene gráfico". Le pasa al
+    ; actor 10, DummyHero, que es con el que el juego arranca: RM2k tampoco
+    ; dibuja nada.
+    lda vq_src
+    and vq_src + 1
     cmp #$FF
     beq sin_dibujar
-    lda hero_poses + 2
-    beq sin_dibujar
 
-    lda temp
-    sta obj_tile
+    ; El tile es fijo: el héroe vive en el bloque 0 del banco, y lo que cambia
+    ; son los tiles del bloque. Si la pose que hay en VRAM es otra, se encola
+    ; la nueva y sube en el vblank que viene, junto con esta OAM.
+    stz obj_tile
     lda #HERO_PRIORITY          ; por debajo de la capa que lo tapa
     ora hero_pal
-    ora temp + 1                ; el bit 8 del tile, que va en el bit 0
     sta obj_attr
+    lda pose_heroe
+    cmp hero_pose_vram
+    beq misma_pose
+    sta hero_pose_vram
+    ldx mapa_ofs
+    rep #$20
+.a16
+    lda mapa_tabla + M_VRAM_SPRITE, x
+    sta vq_dest
+    sep #$20
+.a8
+    jsr vram_encolar
+    bne misma_pose
+    lda #$FF
+    sta hero_pose_vram          ; la cola estaba llena: el cuadro que viene
+misma_pose:
 
     ; Un salto en curso corre el dibujo hacia atrás y lo levanta. La posición
     ; es la de RM2k, con la división **al final**: `x * 256 - dx * restante`
@@ -8339,6 +8554,26 @@ hdma_ofs: .res 16
 oam:      .res 512
 oam_high: .res 32
 
+; La cola de subidas a VRAM: lo que hay que subir en el vblank que viene y no
+; se puede subir ahora. Cada entrada son tres bytes de origen en el cartucho y
+; dos de destino en palabras de VRAM, y lo que se sube es siempre una pose:
+; 512 bytes en cuatro filas de 128, porque un objeto de 32x32 son cuatro filas
+; de la grilla de nombres. Hasta VQ_POR_CUADRO por vblank; lo que sobra espera
+; al siguiente, y quien lo encoló se entera de que no entró y lo vuelve a
+; pedir. Ver `vram_encolar` y `vram_drenar`.
+VQ_MAX = 8
+VQ_POR_CUADRO = 5
+VQ_STRIDE = 5
+vq_n:      .res 1
+vq:        .res VQ_MAX * VQ_STRIDE
+vq_src:    .res 3
+vq_dest:   .res 2
+vq_hechas: .res 1
+vq_filas:  .res 1
+; La pose del héroe que hay en VRAM, o $FF si hay que subir la que toque.
+hero_pose_vram: .res 1
+pose_heroe:     .res 1
+
 ; Las tiras del mapa se arman acá fuera del vblank y se suben desde acá cuando
 ; empieza el siguiente, igual que OAM. Armarlas dentro del vblank no entraría, y
 ; escribirlas a la VRAM fuera de él las mostraría a medio hacer.
@@ -8662,6 +8897,17 @@ run:
     jsr music_start             ; se terminó: de nuevo desde arriba
     bra run
 mudo:
+    ; Un stream vacío: nada que tocar, ni en este cuadro ni en los que vienen.
+    ; Y hay que decirlo con la bandera, porque `advance` dejó el puntero **un
+    ; byte más allá del final** y volver acá al cuadro siguiente leía ese byte
+    ; como opcode. Era $FF de casualidad —el primer byte del bloque de al
+    ; lado— hasta que las poses en caliente cambiaron el reparto de la ROM y
+    ; pasó a ser $00: una escritura al DSP con su espera del SPC700, y otra, y
+    ; otra, media pantalla por cuadro, y el lazo a la mitad de velocidad. Lo
+    ; delataron tres casos de la tanda con un cuadro repetido, y una sonda de
+    ; la línea de barrido al final de cada fase del lazo.
+    lda #1
+    sta music_apagada
     rts
 
 check_wait:

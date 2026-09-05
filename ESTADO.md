@@ -8,13 +8,49 @@ justamente para eso.
 Se escribe **mientras se trabaja**, no al final. Un resumen escrito al cerrar
 es la misma operación con pérdida que compactar, sólo que a un archivo.
 
-Última vez que se tocó: 2026-09-04.
+Última vez que se tocó: 2026-09-05.
 
-## Lo próximo: subir las poses de los sprites en caliente
+## Lo próximo: apretar A más de una vez, y ver la apertura entera
 
-Escrito el 2026-09-04, con los cinco puntos del traspaso de abajo hechos y
-verificados de a uno. **No hay código a medias**. Lo que apareció al terminar
-es el muro de verdad, y no estaba en el traspaso:
+La apertura corre hasta el primer mensaje de Core, en `rom/build/demo-apertura/`
+y en el caso `apertura` de la tanda: el tinte se apaga, Core y Manta se plantan
+al lado del héroe y hablan. Para compararla entera hace falta que
+`snes_correr.py` y `snes_expect.py` acepten **varios cuadros de A** —hoy es un
+`--apretar-a` solo— y elegir cuadros entre mensaje y mensaje. Son 44 cuadros de
+texto y unas quince rutas; el presupuesto del vblank con los cuatro caminando
+a la vez se va a ver ahí.
+
+## Hecho el 2026-09-05: las poses de los sprites se suben en caliente
+
+Lo eligió taro y descartó el modo 1. El diseño, que es lo que quedó:
+
+* **En VRAM vive una pose por personaje**: el banco de sprites que sube
+  `load_sprite` sigue siendo una imagen armada por el conversor, pero con un
+  bloque de 16 tiles por *ranura* —el héroe en el bloque 0, cada NPC que
+  camina con el suyo, los quietos compartidos por (CharSet, índice, pose) como
+  hasta ahora—. Las doce poses de los que caminan y de los candidatos a líder
+  van al cartucho, 512 B cada una, en bloques `sprite_poses_N_k` de un
+  personaje por bloque para que ningún DMA cruce de banco.
+* `npc_poses` y `actor_table` pasan de tiles a **punteros de 24 bits** a esas
+  poses. `NPC_STRIDE` sube a 16 y el byte +12 de cada fila es la pose que hay
+  en VRAM; `ACTOR_BYTES` sube a 38.
+* **La cola de VRAM**: `vram_encolar` guarda (origen de 24 bits, destino en
+  palabras) y `flush_video` la drena después de `push_oam`, hasta cinco poses
+  por vblank, con cuatro DMA de 128 B cada una porque un objeto de 32x32 son
+  cuatro filas de la grilla de nombres. `refrescar_npc` y `place_hero` encolan
+  cuando la pose que quieren no es la que está; la OAM ya no cambia de tile.
+* La referencia no cambia: no modela VRAM. La tanda es la verificación.
+* Las poses van al cartucho **una vez por ROM**: con una copia por mapa la del
+  arranque se pasaba por 19 KB. Queda con 22 KB libres.
+
+Dos cosas se rompieron y están arregladas: los glifos del cronómetro
+redondeaban mal la base y la pose del héroe los pisaba; y un error viejo de la
+música —un stream vacío leía un byte más allá del final— que dejó tres casos a
+la mitad de velocidad y costó una sonda de la línea de barrido para ubicarlo.
+Los dos están en el LEEME. La tanda queda en 61 casos, con `apertura` y
+`ventana-1` adentro.
+
+Lo que apareció el 2026-09-04 al terminar el traspaso, y que motivó esto:
 
 **La página del evento 2 del mapa 1 —la escena de apertura— ya compila con
 ventana, y no entra en VRAM.** Hace caminar a Core, a Manta, al droide y a
@@ -35,8 +71,11 @@ se notaba porque esa página tampoco compilaba por otras cosas; el día que
 compiló, doce casos sin ventana se quedaron sin VRAM. Ahora respeta
 `con_ventana`, como `lideres_posibles`.
 
-Las ROMs con nombre siguen armándose; `demo-musica` es la que hay que mirar y
-sigue quedándose azul, por lo de arriba.
+Las ROMs con nombre siguen armándose. `demo-musica` es sin ventana y por eso
+sigue quedándose azul; la que hay que mirar ahora es `demo-apertura`, que es la
+misma con ventana:
+
+    rom/build/demo-apertura/   los mapas 4, 1 y 2 con ventana y `escape_newyork`
 
 ### El traspaso anterior, punto por punto
 

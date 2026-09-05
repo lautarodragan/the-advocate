@@ -266,6 +266,7 @@ OBJ_W = OBJ_H = 32                 # el tamaño real del objeto en pantalla
 OBJ_COLORS = 15                    # 4 bits por pixel, y el 0 es transparente
 COLORS_PER_PALETTE = 16            # lo que ocupa cada paleta de sprite en CGRAM
 SPRITE_POSES = 12
+POSE_INICIAL = 2 * 3 + 1           # mirando abajo, el frame del medio
 SPRITE_PALETTE = 8                 # los sprites usan las paletas 8 a 15
 
 # La tabla de nombres de OAM tiene 16 tiles de ancho, así que un objeto de
@@ -354,62 +355,120 @@ def block_tile(block):
     return (block // BLOCKS_PER_ROW) * 64 + (block % BLOCKS_PER_ROW) * 4
 
 
-def build_characters(images, characters):
-    """El banco de sprites de varios personajes, cada uno con su paleta.
+def paleta_del_personaje(image, index):
+    """La paleta de un personaje, y cómo mapear cada color a su índice.
 
-    `characters` es una lista de (charset, índice, poses). El héroe pide sus 12
-    poses porque camina; cada NPC, sólo la que declara.
+    Es la misma cuenta para la imagen que va a VRAM y para el banco de poses
+    del cartucho, y tiene que serlo: una pose subida en caliente se dibuja con
+    la paleta que ya está en CGRAM.
+    """
+    counts = sprite_colors(image, index)
+    if len(counts) <= OBJ_COLORS:
+        mapping = {c: c for c in counts}
+    else:
+        mapping, _ = pixeles.merge_least_used(counts, OBJ_COLORS)
+    palette = sorted(set(mapping.values()))
+    lookup = {color: i + 1 for i, color in enumerate(palette)}
+    return palette, lookup, mapping
 
-    Devuelve (tiles, paletas, ubicación), donde ubicación mapea
-    (charset, índice, pose) a (bloque, número de paleta).
+
+def pose_tiles(image, index, pose, lookup, mapping):
+    """Los dieciséis tiles de una pose, por filas: cuatro filas de cuatro.
+
+    Es el orden en que la PPU lee un objeto de 32x32 —cada fila son cuatro
+    tiles seguidos de la grilla de nombres, y las filas van de a dieciséis— y
+    por eso una pose se sube con cuatro DMA de 128 bytes.
+    """
+    ox, oy = pose_origin(index, pose)
+    out = []
+    for ty in range(4):
+        for tx in range(4):
+            cell = []
+            for y in range(CELL):
+                row = []
+                for x in range(CELL):
+                    sx = tx * CELL + x - (OBJ_W - SPRITE_W) // 2
+                    sy = ty * CELL + y
+                    if 0 <= sx < SPRITE_W and 0 <= sy < SPRITE_H:
+                        r, g, b, a = image.getpixel((ox + sx, oy + sy))
+                        row.append(lookup[mapping[(r >> 3, g >> 3,
+                                                   b >> 3)]] if a else 0)
+                    else:
+                        row.append(0)
+                cell.append(tuple(row))
+            out.append(pack_tile(tuple(cell), planes=4))
+    return out
+
+
+def build_characters(images, personajes, ranuras):
+    """El banco de sprites que va a VRAM: una pose por ranura.
+
+    `personajes` es la lista de (charset, índice) que necesitan paleta, en el
+    orden en que se las reparte; `ranuras` la de (clave, charset, índice,
+    pose), un bloque de 16 tiles por cada una y en ese orden. Desde el
+    2026-09-05 acá va **una pose por ranura** y nada más: las doce de los que
+    caminan viven en el cartucho —ver `banco_de_poses`— y se suben en caliente.
+    Antes iban todas acá, y la escena de apertura pedía 768 tiles de los 512
+    que direcciona la PPU.
+
+    Devuelve (tiles, paletas, ubicación, paleta_de): ubicación mapea la clave
+    de la ranura a (bloque, paleta), y paleta_de cada (charset, índice) a su
+    paleta.
     """
     tiles = bytearray()
     palettes = []
-    where = {}
-    block = 0
-
-    for charset, index, poses in characters:
-        image = images[charset]
-        counts = sprite_colors(image, index)
-        if len(counts) <= OBJ_COLORS:
-            mapping = {c: c for c in counts}
-        else:
-            mapping, _ = pixeles.merge_least_used(counts, OBJ_COLORS)
-        palette = sorted(set(mapping.values()))
-        lookup = {color: i + 1 for i, color in enumerate(palette)}
-        slot = len(palettes)
+    paleta_de = {}
+    colores = {}
+    for charset, index in personajes:
+        if (charset, index) in paleta_de:
+            continue
+        palette, lookup, mapping = paleta_del_personaje(images[charset], index)
+        paleta_de[(charset, index)] = len(palettes)
+        colores[(charset, index)] = (lookup, mapping)
         palettes.append(palette)
 
-        for pose in poses:
-            where[(charset, index, pose)] = (block, slot)
-            ox, oy = pose_origin(index, pose)
-            first = block_tile(block)
-            # El bloque no ocupa 16 tiles seguidos: es un cuadrado de 4x4 dentro
-            # de una grilla de 16 de ancho, así que hay que dejar el hueco.
-            needed = (first + 3 * OBJ_ROW + 4) * 32
-            if len(tiles) < needed:
-                tiles += bytes(needed - len(tiles))
-            for ty in range(4):
-                for tx in range(4):
-                    cell = []
-                    for y in range(CELL):
-                        row = []
-                        for x in range(CELL):
-                            sx = tx * CELL + x - (OBJ_W - SPRITE_W) // 2
-                            sy = ty * CELL + y
-                            if 0 <= sx < SPRITE_W and 0 <= sy < SPRITE_H:
-                                r, g, b, a = image.getpixel((ox + sx, oy + sy))
-                                row.append(lookup[mapping[(r >> 3, g >> 3,
-                                                           b >> 3)]] if a else 0)
-                            else:
-                                row.append(0)
-                        cell.append(tuple(row))
-                    number = first + ty * OBJ_ROW + tx
-                    tiles[number * 32:(number + 1) * 32] = pack_tile(
-                        tuple(cell), planes=4)
-            block += 1
+    where = {}
+    for block, (clave, charset, index, pose) in enumerate(ranuras):
+        lookup, mapping = colores[(charset, index)]
+        where[clave] = (block, paleta_de[(charset, index)])
+        first = block_tile(block)
+        # El bloque no ocupa 16 tiles seguidos: es un cuadrado de 4x4 dentro
+        # de una grilla de 16 de ancho, así que hay que dejar el hueco.
+        needed = (first + 3 * OBJ_ROW + 4) * 32
+        if len(tiles) < needed:
+            tiles += bytes(needed - len(tiles))
+        for i, tile in enumerate(pose_tiles(images[charset], index, pose,
+                                            lookup, mapping)):
+            number = first + (i // 4) * OBJ_ROW + (i % 4)
+            tiles[number * 32:(number + 1) * 32] = tile
+    return bytes(tiles), palettes, where, paleta_de
 
-    return bytes(tiles), palettes, where
+
+# Una pose en el cartucho: los 16 tiles seguidos, por filas.
+POSE_BYTES = 16 * 32
+
+
+def banco_de_poses(images, personajes):
+    """Las doce poses de cada personaje que cambia de pose, para el cartucho.
+
+    Un bloque por personaje —doce poses de 512 bytes, 6 KB— y no uno para
+    todos: cada uno va con `.bloque`, así que ningún DMA de una pose cruza de
+    banco. Y **de la ROM entera, no del mapa**: los mapas 1 y 2 comparten a
+    Core, a Manta y a Kersh, y con una copia por mapa la ROM del arranque con
+    ventana se pasaba del cartucho por 19 KB. La pose `p` del personaje `g`
+    está en `sprite_poses_g + p * 512`, con `g` el índice de la ROM; el mapa
+    lleva sus personajes animados en orden y `emit` traduce.
+    """
+    bancos = {}
+    for charset, index in personajes:
+        _palette, lookup, mapping = paleta_del_personaje(images[charset], index)
+        datos = bytearray()
+        for pose in range(SPRITE_POSES):
+            for tile in pose_tiles(images[charset], index, pose, lookup,
+                                   mapping):
+                datos += tile
+        bancos[(charset, index)] = bytes(datos)
+    return bancos
 
 
 # El cronómetro: once glifos de 8x16 en el System, a partir de (32, 32). Diez
@@ -448,7 +507,13 @@ def digitos_del_timer(sys_img, tiles, palettes):
     indice = {color: i + 1 for i, color in enumerate(paleta)}
 
     tiles = bytearray(tiles)
-    base = -(-(len(tiles) // 32) // 16) * 16
+    # La base se redondea a una **fila de bloques**, 64 tiles, y no a una fila
+    # de la grilla: los bloques de 4x4 de la última fila de bloques ocupan
+    # cuatro filas de la grilla, y con la imagen de VRAM chica que hay desde
+    # las poses en caliente, redondear a 16 dejaba los glifos encima de la
+    # última fila del bloque del héroe. Ahí no se veía nada hasta que la pose
+    # del héroe subía y pisaba el 0 y los dos puntos.
+    base = -(-(len(tiles) // 32) // 64) * 64
     if (base + 16 + TIMER_GLIFOS) * 32 > len(tiles):
         tiles += bytes((base + 16 + TIMER_GLIFOS) * 32 - len(tiles))
     for i in range(TIMER_GLIFOS):
@@ -468,7 +533,7 @@ def digitos_del_timer(sys_img, tiles, palettes):
     return bytes(tiles), base, paleta
 
 
-def npc_table(npcs, where, movibles=()):
+def npc_table(npcs, where, movibles=(), indice_animado=None):
     """Los NPCs listos para la ROM, ya ordenados como los dibuja RM2k.
 
     El orden de dibujado es primero por capa y recién después por Y: uno "below"
@@ -482,20 +547,23 @@ def npc_table(npcs, where, movibles=()):
     `sorted` estable sobre esta misma lista. Las dos cosas dan lo mismo sólo si
     las dos arrancan de acá.
 
-    Los de `movibles` llevan además sus doce poses, para que la ROM pueda
-    cambiarles el tile mientras caminan.
+    Los de `movibles` llevan además en qué banco de poses del cartucho están
+    sus doce, para que la ROM las suba en caliente mientras caminan.
     """
     rows = []
     for npc in sorted(npcs, key=orden_de_dibujo, reverse=True):
-        block, slot = where[(npc["charset"], npc["index"], npc["pose"])]
+        camina = npc["evento"] in movibles
+        clave = (("ev", npc["evento"]) if camina
+                 else (npc["charset"], npc["index"], npc["pose"]))
+        block, slot = where[clave]
         rows.append({
             "x": npc["x"] * 16, "y": npc["y"] * 16,
             "tile": block_tile(block), "palette": slot,
             "layer": npc["layer"], "blocks": npc["blocks"],
             "evento": npc["evento"], "dir": npc["pose"] // 3,
-            "poses": [block_tile(where[(npc["charset"], npc["index"], pose)][0])
-                      for pose in range(SPRITE_POSES)]
-            if npc["evento"] in movibles else None,
+            "pose": npc["pose"],
+            "poses": (indice_animado[(npc["charset"], npc["index"])]
+                      if camina else None),
         })
     return rows
 
@@ -1141,8 +1209,7 @@ PUERTA_BYTES = 16
 # le permite a la ROM elegir la última que cumple sus condiciones en una sola
 # pasada, sin llevar una tabla por evento.
 PAGINA_BYTES = 16
-ACTOR_BYTES = 26     # id, paleta y doce tiles de 16 bits
-ACTOR_INVISIBLE = 0xFFFF   # un actor sin gráfico: la ROM no lo dibuja
+ACTOR_BYTES = 2 + 3 * 12   # id, paleta y doce punteros de 24 bits a sus poses
 
 # Un bit por switch. El juego consulta hasta el 1003 en las condiciones de
 # página, así que con 1024 alcanza y sobra: son 128 bytes de RAM.
@@ -1287,8 +1354,12 @@ def tabla_de_paginas(mapa, numero):
     return "\n".join(out)
 
 
-def datos_del_mapa(mapa, numero):
-    """Los bloques de datos de un mapa, con el número pegado a cada etiqueta."""
+def datos_del_mapa(mapa, numero, indice_global):
+    """Los bloques de datos de un mapa, con el número pegado a cada etiqueta.
+
+    `indice_global` es el número que lleva en la ROM cada (CharSet, índice)
+    con sus doce poses: ver `banco_de_poses`.
+    """
     above, sprite = mapa["above"], mapa["sprite"]
     pares = [
         ("map_tiles", mapa["tiles"]),
@@ -1300,13 +1371,17 @@ def datos_del_mapa(mapa, numero):
         ("map_bloques", mapa["bloques"]),
         ("bloque_pass", mapa["pass"]),
         ("npc_table", npc_bytes(sprite[3]) if sprite else b""),
-        ("npc_poses", npc_poses_bytes(sprite[3]) if sprite else b""),
         ("ev_pos", mapa["ev_pos"]),
-        ("actor_table", actor_bytes(sprite[4]) if sprite else b""),
         ("puertas", mapa["puertas"]),
         ("evcodigo", mapa["evcodigo"]),
     ]
     out = [bloque("%s_%d" % (nombre, numero), datos) for nombre, datos in pares]
+    # Las dos tablas de punteros a las poses de la ROM: la de los NPCs que
+    # caminan y la de los candidatos a líder.
+    animados = sprite[7] if sprite else []
+    out.append(npc_poses_asm(numero, animados, indice_global))
+    out.append(actor_table_asm(numero, sprite[4] if sprite else [],
+                               animados, indice_global))
     # La grilla va aparte porque es la única que no se sube por DMA.
     out.append(bloque("map_celdas_%d" % numero, mapa["celdas"], alinear=2))
     out.append(tabla_de_paginas(mapa, numero))
@@ -1483,10 +1558,27 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # recorre con `lda mapa_tabla + campo, x` y ese modo direcciona el banco
         # de datos. Los datos ya no pueden estar ahí: no entran.
         handle.write('.segment "RODATA"\n')
+        # Las doce poses de cada personaje que cambia de pose, una vez por
+        # ROM: los mapas las nombran por este índice.
+        indice_global, bancos = {}, []
+        for mapa in mapas:
+            if not mapa["sprite"]:
+                continue
+            for par, datos in mapa["sprite"][8].items():
+                if par not in indice_global:
+                    indice_global[par] = len(bancos)
+                    bancos.append(datos)
+                else:
+                    assert bancos[indice_global[par]] == datos
+        handle.write("; --- las poses de los personajes que cambian de pose, "
+                     "de toda la ROM ---\n")
+        for g, datos in enumerate(bancos):
+            handle.write(bloque("sprite_poses_%d" % g, datos) + "\n")
+        handle.write("\n")
         for numero, mapa in enumerate(mapas):
             handle.write("; --- %d: mapa %d %r ---\n"
                          % (numero, mapa["id"], mapa["nombre"]))
-            handle.write(datos_del_mapa(mapa, numero))
+            handle.write(datos_del_mapa(mapa, numero, indice_global))
             handle.write("\n")
         # Las etiquetas se emiten siempre, aunque la ROM no lleve ventana: el
         # ensamblador las necesita resueltas y `VENTANA_TILES = 0` es lo que
@@ -1638,8 +1730,8 @@ FLASH_MAX = 4
 #   +9 poses     su entrada en `npc_poses`, o $FF
 #   +10 dir      hacia dónde mira su página, para la primera pose de una ruta
 #   +11 relleno, para que la ranura se indexe con dos corrimientos
-NPC_STRIDE = 12
-NPC_QUIETO = 0xFF        # en +8 y +9: este NPC no camina
+NPC_STRIDE = 16
+NPC_QUIETO = 0xFF        # en +9: este NPC no camina
 
 # La tabla de NPCs del mapa que está cargado se copia a RAM, porque build_oam la
 # recorre con un índice y eso direcciona el banco de datos. El tope no es una
@@ -1675,22 +1767,6 @@ def sort_key(layer, y):
     hace que una sola comparación de 16 bits decida las dos cosas.
     """
     return (layer << 12) | (y & 0x0FFF)
-
-
-def actor_bytes(actores):
-    """Los candidatos a líder: id, paleta, y el tile de cada una de sus poses.
-
-    Veintiséis bytes por actor. La ROM recorre la tabla buscando el id del
-    primero del grupo; son dos o tres entradas, así que buscar linealmente sale
-    más barato que indexar por id, que pediría 256 huecos.
-    """
-    out = bytearray()
-    for actor, paleta, tiles in actores:
-        out.append(actor & 0xFF)
-        out.append(paleta & 0x07)
-        for tile in tiles:
-            out += (tile & 0xFFFF).to_bytes(2, "little")
-    return bytes(out)
 
 
 # Cuánto ocupa cada opcode, para recorrer el bytecode sin ejecutarlo. Los que
@@ -1792,7 +1868,6 @@ def npc_bytes(table):
     mientras dan un paso.
     """
     out = bytearray()
-    movibles = [n for n in table if n["poses"] is not None]
     for npc in table:
         out += npc["x"].to_bytes(2, "little")
         out += npc["y"].to_bytes(2, "little")
@@ -1822,31 +1897,67 @@ def npc_bytes(table):
         # último desempate del orden de dibujado, y la referencia lo usa para
         # todos. Lo que distingue a los que caminan es la tabla de poses.
         out.append(npc["evento"])
-        out.append(NPC_QUIETO if npc["poses"] is None
-                   else movibles.index(npc))
+        out.append(NPC_QUIETO if npc["poses"] is None else npc["poses"])
         # Hacia dónde mira su página. Una ruta forzada que todavía no dio
         # ninguna orden de girar lo deja mirando para acá, que es de donde sale
         # la primera pose que se dibuja.
         out.append(npc["dir"])
-        out.append(0)               # relleno hasta NPC_STRIDE
+        out.append(0)               # relleno
+        # +12: la pose que hay en VRAM, que al cargar es la de su página. La
+        # ROM la compara con la que quiere dibujar y sube la nueva si difiere.
+        out.append(npc["pose"])
+        out += bytes(3)             # relleno hasta NPC_STRIDE
     assert len(out) == NPC_STRIDE * len(table)
     return bytes(out)
 
 
-def npc_poses_bytes(table):
-    """Las doce poses de cada NPC que camina: el tile de cada una.
+def puntero(destino):
+    """Los tres bytes de un puntero simbólico, para `.byte`."""
+    return "<(%s), >(%s), ^(%s)" % (destino, destino, destino)
 
-    Es la misma tabla que la de los candidatos a líder y por la misma razón: la
-    ROM no calcula el tile a partir de la pose, lo busca. Van sólo los que
-    caminan, que son pocos —el mapa que más tiene de este juego mueve tres—.
+
+def npc_poses_asm(numero, animados, indice_global):
+    """Los punteros a las doce poses de cada personaje que cambia de pose.
+
+    Una entrada por personaje animado —`k`, el mismo índice que lleva la fila
+    del NPC en +9 y el actor en su tabla— y en cada una doce punteros de 24
+    bits a `sprite_poses_N_k + pose * 512`. Son simbólicos porque apuntan
+    adentro de bloques que ubica el enlazador, como los de las páginas.
     """
-    out = bytearray()
-    for npc in table:
-        if npc["poses"] is None:
-            continue
-        for tile in npc["poses"]:
-            out += (tile & 0xFFFF).to_bytes(2, "little")
-    return bytes(out)
+    out = [".bloque %d" % (3 * SPRITE_POSES * max(1, len(animados))),
+           "npc_poses_%d:" % numero]
+    for par in animados:
+        for pose in range(SPRITE_POSES):
+            out.append("    .byte " + puntero(
+                "sprite_poses_%d + %d" % (indice_global[par],
+                                          pose * POSE_BYTES)))
+    if not animados:
+        out.append("    .byte $00")     # una etiqueta no puede quedar vacía
+    return "\n".join(out)
+
+
+def actor_table_asm(numero, actores, animados, indice_global):
+    """Los candidatos a líder: id, paleta, y el puntero a cada una de sus poses.
+
+    ACTOR_BYTES por actor. La ROM recorre la tabla buscando el id del primero
+    del grupo; son dos o tres entradas, así que buscar linealmente sale más
+    barato que indexar por id, que pediría 256 huecos. Un actor sin gráfico
+    lleva doce punteros en $FFFFFF, que es el centinela que `place_hero` mira.
+    """
+    out = [".bloque %d" % (ACTOR_BYTES * max(1, len(actores))),
+           "actor_table_%d:" % numero]
+    for actor, paleta, k in actores:
+        out.append("    .byte $%02X, $%02X" % (actor & 0xFF, paleta & 0x07))
+        for pose in range(SPRITE_POSES):
+            if k is None:
+                out.append("    .byte $FF, $FF, $FF")
+            else:
+                out.append("    .byte " + puntero(
+                    "sprite_poses_%d + %d" % (indice_global[animados[k]],
+                                              pose * POSE_BYTES)))
+    if not actores:
+        out.append("    .byte $00")
+    return "\n".join(out)
 
 
 def main():
@@ -2352,43 +2463,73 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
     prueba_ev = ruta_de_evento(args.ruta_de_evento)
     if prueba_ev and map_id == orden[args.inicial]:
         movibles = movibles | {prueba_ev[0] - 1}
-    poses = collections.defaultdict(set)
-    # Cada candidato a líder con sus doce poses, porque cualquiera puede
-    # terminar caminando. El primero de la lista va primero en el banco, que es
-    # el orden que espera el resto: `sorted` de más abajo lo respeta.
+    # Quiénes cambian de pose y por lo tanto llevan sus doce al cartucho: los
+    # candidatos a líder con gráfico y los NPCs que caminan. En ese orden, con
+    # el líder inicial primero, que es el orden que espera el resto.
+    actores_con_grafico = []
     for actor in args.lideres:
         a = renderer.database.actors[actor]
         if not sprite_colors(images_de(renderer, args, a.charset),
                              a.charset_index):
             continue            # no tiene un solo pixel opaco: no se dibuja
-        poses[(a.charset, a.charset_index)] |= set(range(SPRITE_POSES))
+        actores_con_grafico.append(actor)
+    primero = renderer.database.lider(args.lideres)   # (CharSet, índice)
+    animados = []
+    for actor in actores_con_grafico:
+        a = renderer.database.actors[actor]
+        if (a.charset, a.charset_index) not in animados:
+            animados.append((a.charset, a.charset_index))
+    animados.sort(key=lambda par: par != primero)   # el líder inicial primero
+    for npc in npcs:
+        if npc["evento"] in movibles \
+                and (npc["charset"], npc["index"]) not in animados:
+            animados.append((npc["charset"], npc["index"]))
+
+    # Las ranuras del banco de VRAM, una pose cada una: el héroe en el bloque
+    # 0 —si algún candidato a líder tiene gráfico—, después cada NPC que camina
+    # con la suya, y los quietos compartidas por (CharSet, índice, pose), que
+    # nunca cambian. Un NPC que camina no comparte ni con otro igual: cambian
+    # de pose cada uno por su cuenta.
+    ranuras = []
+    if actores_con_grafico:
+        charset, index = animados[0]
+        ranuras.append(("heroe", charset, index, POSE_INICIAL))
     for npc in npcs:
         if npc["evento"] in movibles:
-            poses[(npc["charset"], npc["index"])] |= set(range(SPRITE_POSES))
+            ranuras.append((("ev", npc["evento"]), npc["charset"],
+                            npc["index"], npc["pose"]))
         else:
-            poses[(npc["charset"], npc["index"])].add(npc["pose"])
+            clave = (npc["charset"], npc["index"], npc["pose"])
+            if clave not in {r[0] for r in ranuras}:
+                ranuras.append((clave, npc["charset"], npc["index"],
+                                npc["pose"]))
+    personajes = list(animados)
+    for _clave, charset, index, _pose in ranuras:
+        if (charset, index) not in personajes:
+            personajes.append((charset, index))
 
-    images, characters = {}, []
-    primero = renderer.database.lider(args.lideres)
-    for charset, index in sorted(poses, key=lambda k: k != primero):
+    images = {}
+    for charset, _index in personajes:
         if charset not in images:
             path = find_resource([REPO, args.game_dir, RTP_DIR],
                                  "CharSet", charset)
             if not path:
                 sys.exit("no encuentro el CharSet %r" % charset)
             images[charset] = load_image(path)
-        characters.append((charset, index, sorted(poses[(charset, index)])))
 
     # Los dígitos del cronómetro se llevan una de las ocho paletas de sprite,
     # así que el techo baja a siete. Se cuenta acá y no después de armarlas
     # porque el mensaje tiene que nombrar al culpable, que es el mapa.
     tope_de_personajes = 7 if args.con_timer else 8
-    if len(characters) > tope_de_personajes:
+    if len(personajes) > tope_de_personajes:
         sys.exit("el mapa usa %d personajes y hay %d paletas de sprite%s"
-                 % (len(characters), tope_de_personajes,
+                 % (len(personajes), tope_de_personajes,
                     " con el cronómetro puesto" if args.con_timer else ""))
 
-    tiles, palettes, where = build_characters(images, characters)
+    tiles, palettes, where, paleta_de = build_characters(images, personajes,
+                                                          ranuras)
+    bancos = banco_de_poses(images, animados)
+    indice_animado = {p: k for k, p in enumerate(animados)}
     # El cronómetro, si esta ROM lo lleva: sus glifos van al final del banco y
     # se llevan una paleta de sprite propia.
     timer_base, timer_pal = 0, None
@@ -2398,25 +2539,23 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
         tiles, timer_base, colores = digitos_del_timer(sys_img, tiles, palettes)
         timer_pal = len(palettes)
         palettes.append(colores)
-    table = npc_table(npcs, where, movibles)
-    # Por cada candidato a líder, dónde caen sus doce poses y con qué paleta. La
-    # ROM no calcula el tile a partir de la pose —eso valía cuando el héroe era
-    # siempre el personaje 0 del banco—: lo busca acá.
+    table = npc_table(npcs, where, movibles, indice_animado)
+    # Por cada candidato a líder, su paleta y en qué banco de poses están las
+    # doce suyas. La ROM no calcula nada a partir de la pose: busca el puntero
+    # acá y lo encola.
     actores = []
     for actor in args.lideres:
         a = renderer.database.actors[actor]
-        if (a.charset, a.charset_index, 0) not in where:
+        if actor not in actores_con_grafico:
             # Un actor con el gráfico vacío. `DummyHero`, el 10, es así: sus
             # ocho poses no tienen un pixel opaco, y RM2k no dibuja nada. Va con
-            # el tile centinela y la ROM se saltea el objeto, que además evita
-            # gastarle doce bloques del banco a algo invisible.
-            actores.append((actor, 0, [ACTOR_INVISIBLE] * SPRITE_POSES))
+            # el puntero centinela y la ROM se saltea el objeto.
+            actores.append((actor, 0, None))
             continue
-        bloques = [where[(a.charset, a.charset_index, pose)]
-                   for pose in range(SPRITE_POSES)]
-        actores.append((actor, bloques[0][1],
-                        [block_tile(b) for b, _slot in bloques]))
-    sprite = (tiles, palettes, where, table, actores, timer_base, timer_pal)
+        actores.append((actor, paleta_de[(a.charset, a.charset_index)],
+                        indice_animado[(a.charset, a.charset_index)]))
+    sprite = (tiles, palettes, where, table, actores, timer_base, timer_pal,
+              animados, bancos)
 
     # La colisión: un byte por celda de 16x16 con los cuatro bits de dirección
     # ya resueltos. Toda la lógica de RM2k —que la capa alta manda salvo que sea
@@ -2447,8 +2586,10 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
           % (summary["tiles"], summary["celdas"],
              100.0 * (1 - summary["tiles"] / summary["celdas"])))
 
-    print("  sprites: %d personajes, %d poses, %d tiles, %d paletas"
-          % (len(characters), len(where), len(tiles) // 32, len(palettes)))
+    print("  sprites: %d personajes, %d ranuras, %d tiles en VRAM, %d paletas; "
+          "%d con sus doce poses en el cartucho"
+          % (len(personajes), len(where), len(tiles) // 32, len(palettes),
+             len(animados)))
     print("  %d NPCs con CharSet de %d eventos" % (len(table), len(game_map.events)))
 
     abiertos = sum(1 for b in passable if b == 0x0F)

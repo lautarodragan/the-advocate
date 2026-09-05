@@ -920,7 +920,62 @@ encuentra, porque sin gestor de ventanas mednafen publica `_NET_WM_NAME` y
 
 Las poses de RM2k son de 24x32 y la SNES no tiene ese tamaño de objeto: el más
 chico que las cubre es 32x32, así que se rellena con transparente a los costados
-y se pierde una cuarta parte de los tiles. Son 192 tiles, 6 KB.
+y se pierde una cuarta parte de los tiles. Son 192 tiles, 6 KB, las doce poses
+de un personaje.
+
+### Las poses se suben en caliente
+
+Desde el 2026-09-05 **en VRAM vive una pose por personaje**, y las doce de
+cada uno que cambia de pose viven en el cartucho. Antes iban todas a VRAM, y
+el día que compiló la escena de apertura —Core, Manta, el droide y Kersh
+caminando en el mismo mapa— pidió 768 tiles de objeto contra los 512 que
+direcciona la PPU, que son los dos bancos de nombres y no un reparto. Es lo
+que hacen los RPG de la consola con más de dos personajes animados; con todas
+las poses residentes, 512 tiles son dos personajes y medio. Lo eligió taro
+frente a la otra salida, que era armar cada personaje con doce objetos de 8x8
+para compartir tiles y reventar los 128 lugares de OAM en cualquier mapa con
+gente.
+
+El banco que sube `load_sprite` sigue siendo una imagen armada por el
+conversor, pero con **un bloque de 16 tiles por ranura**: el héroe en el
+bloque 0, cada NPC que camina en el suyo, y los quietos compartidos por
+(CharSet, índice, pose) como siempre, porque no cambian. Un NPC que camina no
+comparte ni con otro igual: cambian de pose cada uno por su cuenta. El mapa 1
+con ventana pasó de 768 tiles a 120.
+
+Las doce poses de cada personaje que cambia van al cartucho **una vez por
+ROM** —los mapas 1 y 2 comparten a Core, a Manta y a Kersh, y con una copia
+por mapa la ROM del arranque se pasaba por 19 KB—, en un bloque de 6 KB por
+personaje con `.bloque`, así que ningún DMA cruza de banco. `npc_poses` y
+`actor_table` llevan punteros de 24 bits a esas poses en vez de tiles, y cada
+fila de NPC guarda en +12 la pose que hay en su ranura.
+
+**La cola de VRAM.** `vram_encolar` guarda un origen de 24 bits y un destino
+en palabras; `flush_video` la drena después de `push_oam`, hasta cinco poses
+por vblank, y lo que sobra espera al siguiente. Una pose son cuatro DMA de 128
+bytes, porque un objeto de 32x32 son cuatro filas de la grilla de nombres a
+256 palabras una de otra. Quien la encoló —`refrescar_npc` para un evento,
+`place_hero` para el héroe— sólo lo hace cuando la pose que quiere no es la
+que está, y si la cola estaba llena se entera y la vuelve a pedir. La OAM ya
+no cambia de tile nunca: el tile de cada fila es su ranura.
+
+Y va **en el mismo vblank que la OAM que ya cuenta con la pose nueva**, que es
+lo que mantiene el ritmo de antes: la OAM que se arma en el cuadro N sube en
+el vblank N+1, y las poses que ese armado encoló suben ahí mismo, antes que
+ella. Subirlas en el vblank N las mostraría un cuadro antes, y la tanda lo
+vería. Es la pieza reusable que taro pidió: por acá pasan las poses hoy, y
+mañana una imagen de `ShowPicture` o lo que haga falta.
+
+Lo prueba toda la tanda —cada caso con alguien caminando pasa por acá— y en
+su caso real, `apertura`: los cuatro de la escena caminando, el tinte apagado
+y el primer mensaje abierto, cero pixeles.
+
+Dos cosas se rompieron al hacerlo, y vale la pena tenerlas escritas. Los
+glifos del cronómetro se ponían al final de la imagen de VRAM redondeando a
+una fila de la grilla; con la imagen chica caían adentro de la última fila del
+bloque del héroe, y la primera pose que subía pisaba el 0 y los dos puntos.
+Ahora redondean a una fila de bloques. Y la segunda es de la música y está en
+"Trampas del hardware": un stream vacío leía un byte más allá del final.
 
 Y los sprites son **siempre de 4 bits por pixel**: no hay un modo 3 para ellos
 como para el fondo. Talan tiene 36 colores y entran 15, así que acá sí hay que
@@ -1274,6 +1329,18 @@ resto no, según qué escritura pescara el vblank.
 Lo segundo no lo vio la tanda: snes9x acepta esas escrituras y mednafen no. Lo
 encontró taro jugando, dos veces seguidas.
 
+**Un byte más allá del final es de otro.** `music_frame`, con un stream
+vacío —un `OP_END` solo—, volvía al principio, leía el `OP_END` otra vez y se
+iba, dejando el puntero un byte después del final por el `advance`. Al cuadro
+siguiente leía **ese** byte como opcode. Fue `$FF` desde siempre, de casualidad
+—el primer byte del bloque de al lado—, hasta que las poses en caliente
+cambiaron el reparto de la ROM y pasó a ser `$00`: "escribí un registro del DSP
+y esperá el eco del SPC700", y otro, y otro, media pantalla por cuadro, y el
+lazo principal a la mitad de velocidad. Ningún mapa con música lo tiene, y los
+mudos son casi todos. Lo delataron tres casos de la tanda con un cuadro
+repetido, y lo ubicó una sonda: la línea de barrido al final de cada fase del
+lazo, leída de la WRAM con `retro.py`. Ahora un stream vacío apaga la música.
+
 **La RAM arranca con basura, y el emulador rápido la arranca de otra manera.**
 Ésta es la trampa que hace invisibles a las otras: una variable que nadie
 inicializa puede dar verde en las 60 comparaciones y fallar en hardware real.
@@ -1444,23 +1511,18 @@ comparación.
   ésa es la que trae su página, que la ruta no lee. **Encarar al héroe** y la
   **frecuencia** ya están, desde el 2026-09-04: ver "La frecuencia de la ruta,
   y encarar al héroe".
-* **La escena de apertura no entra en VRAM.** Es el muro de verdad, y apareció
-  el 2026-09-04 cuando por fin compiló la página del evento 2 del mapa 1 —la
-  que apaga el tinte y arma la escena—: hace caminar a Core, a Manta, al droide
-  y a Kersh, y cada uno que camina se lleva sus doce poses de 16 tiles, o sea
-  **768 tiles de sprite contra los 512 que direcciona la PPU**. No es el
-  reparto: los dos bancos de nombres de objetos son 512 tiles, punto. Y no lo
-  arregla apretar las poses —24x32 son 12 tiles sin el relleno, 576 en total—
-  ni ninguna paleta.
+* **El cartucho.** Con las poses en el cartucho una vez por ROM, la del
+  arranque con los mapas 4, 1 y 2, ventana y música se arma con **22 KB
+  libres** de 224 de datos. Es poco margen para lo que viene —cada personaje
+  que cambia de pose son 6 KB— y el día que no entre la salida es pasar a 512
+  KB, que LoROM admite y `w65.py` tiene escrito como constante.
 
-  Lo que sí lo arregla es **subir las poses en caliente**: tener en VRAM una
-  pose por personaje y cambiarla por DMA en el vblank cuando cambia, 512 B por
-  cambio. Es la misma feature que pide cambiar el gráfico desde una ruta, y es
-  de las caras: toca el banco de sprites, la tabla de NPCs, el lazo de rutas y
-  el vblank. Hasta que exista, **el mapa 1 con ventana no se arma** —el
-  conversor corta con razón— y por eso `snes-ventana 1` salió de la tanda.
-  Sin ventana sí se arma, como siempre: la página del evento 2 no compila sin
-  cuadros de texto y nadie le da poses a nadie.
+  Y dos ideas de taro para cuando haga falta apretar assets, anotadas para no
+  perderlas: **paletas calculadas sobre todas las imágenes del juego** a la
+  vez —CharSets, ChipSets y texto—, unificando los negros y grises casi
+  iguales entre imágenes, con un impacto visual mínimo; y **hornear en un
+  ChipSet propio a los sprites que son decoración**, como el público del
+  Auditorio, que no se mueve nunca. Ninguna de las dos se encara ahora.
 * **Que un NPC frene al héroe.** En RM2k los eventos de la capa del héroe
   bloquean el paso; la ROM todavía no lo mira. La tabla ya trae el dato.
 * **Los teletransportes que siguen sin resolverse.** Los que están adentro de
@@ -1490,12 +1552,14 @@ comparación.
   contra el MIDI **del mapa**, así que donde el tema lo pone un evento hay que
   nombrarlo: `just snes-check 1 45 escape_newyork`.
 
-* **La cinemática de apertura.** La página del mapa 1 ya corre entera
-  —`rom/build/demo-musica/` la muestra, con `escape_newyork` sonando— y deja
-  al héroe parado sobre el evento 2, que es el que apaga el tinte y arma la
-  escena. Los cinco comandos que a esa página le faltaban están desde el
-  2026-09-04; lo que la deja afuera es lo de arriba: sus cuatro personajes
-  caminando no entran en VRAM.
+* **La cinemática de apertura, hasta el primer mensaje.** Corre entera con
+  ventana desde el 2026-09-05 —`rom/build/demo-apertura/`, con los mapas 4, 1
+  y 2 y `escape_newyork` sonando—: el tinte se apaga, Core y Manta aparecen y
+  Core habla. Lo que falta para verla entera es **apretar A varias veces**: la
+  escena tiene 44 cuadros de texto y las recetas modelan un solo `--apretar-a`,
+  así que la comparación llega hasta el primer mensaje. Después del último, la
+  página termina con dos `ChangeEventLocation` y un switch, y de ahí el juego
+  sigue.
 * **Lo que le falta al juego entero, medido.** De las 489 páginas automáticas
   con comandos, hoy compilan enteras **142**. Eran 16 antes de los cuadros de
   texto, 71 con ellos, 87 con las rutas forzadas sobre eventos, 110 con
