@@ -240,12 +240,94 @@ dice, con los mapas que faltan nombrados, porque el conteo de "N ejecutables"
 no distinguía esta razón de las otras veinte y ésta es la única que se arregla
 desde afuera, sumando el mapa. Ver "El ascensor no llevaba a ningún lado".
 
+### El fundido de los teletransportes
+
+RM2k funde a negro y vuelve en **cada** teletransporte, cambie de mapa o no.
+Sale de easyrpg-player: `Scene_Map::UpdateStage2` arma el `TeleportParams` con
+`erase_screen = true` siempre, `StartPendingTeleport` pide la transición que
+diga la base —la de A Blurred Line es `transition_out = 0` y `transition_in =
+0`, o sea `TransitionFadeOut` y `TransitionFadeIn`— y `GetDefaultFrames` les da
+**35 cuadros a cada una**. Mientras la transición corre, el juego está
+congelado: `Scene::MainFunction` ve `IsAsyncPending()` y llama a
+`Player::Update(false)`, que no actualiza la escena.
+
+Así que son 70 cuadros por salto, y en esos 70 no pasa nada más que el brillo.
+La ROM hace lo mismo por omisión: `fundido_tick` devuelve "congelado" y el lazo
+principal se saltea el intérprete, al héroe, los eventos, el cronómetro, la
+sacudida y `build_oam`. Lo único que sigue es la música, que en RM2k tampoco se
+corta.
+
+**El brillo es el maestro de INIDISP, y son dieciséis pasos.** No hay otra
+manera barata: fundir por CGRAM es lo que hace el tinte, y `aplicar_tinte` sola
+ya cuesta un cuadro entero. Con dieciséis pasos, estirar la rampa sobre los 35
+cuadros no da un fundido más fino, sólo repite pasos —así que la rampa son 24 y
+los 11 que quedan son negro liso—. La cuenta del PPU es
+`round(canal * brillo / 15)` sobre los cinco bits, que es la tabla que arma
+`PPU::PPU()` en bsnes, y la referencia la repite en `eventos.oscurecer`.
+
+**Los 11 cuadros de negro no son relleno: ahí se carga el mapa.** Es la parte
+que arregla un problema viejo. La carga escribe VRAM y CGRAM por DMA y cuesta
+seis o siete cuadros que la referencia no modela, y hasta ahora eso dejaba a
+los dos lados desalineados desde el salto en adelante —está contado en "Cómo se
+verifica"—. El fundido se cuenta en **cuadros de hardware** y no en vueltas del
+lazo: `fundido_tick` hace `boot_cuadros - fundido_base`, así que la carga se
+come cuadros del negro y el fundido igual mide 70. Entre el cuadro 24, que es
+donde carga, y el 47, que es donde la rampa de vuelta sale del cero, hay 23
+cuadros de margen para una carga que tarda siete.
+
+De ahí salieron dos cosas más, las dos verificadas contra la referencia:
+
+* **OAM se rearma al cargar.** El lazo no la arma mientras el fundido dura, así
+  que la rampa de vuelta iba dibujando el mapa nuevo con los sprites del
+  viejo. Son los 1031 pixeles que la referencia cobró la primera vez que se
+  comparó adentro de un fundido; `cargar_lo_pedido` llama a `build_oam`.
+* **La rampa la emite el conversor**, en `mapdata.inc`, desde
+  `eventos.rampa_de_fundido()`. Escribirla también en `main.s` sería la
+  duplicación de siempre: dos lados que se pueden equivocar igual.
+
+**Los tres cores dejaron de coincidir acá, y es la primera vez.** snes9x y
+bsnes dan exactamente `round(canal * brillo / 15)`; **mesen-s trunca** en vez
+de redondear, y con brillo 6 un canal de 7 le da 2 donde los otros dan 3.
+Seguimos a bsnes, que es de donde sale la tabla y el que mide contra hardware,
+y a snes9x, que es el core de la tanda. Ninguna receta usa mesen-s. Lo
+desempata la SNES de taro.
+
+**Lo que esto cambió de la tanda.** Los cuadros comparados de `snes-cinematica`
+se corrieron 70 por cada teletransporte anterior —la cinemática tiene tres— y
+los quince toques de A de `apertura` también. `snes-puerta` no cambió de
+números porque el plan de la caminata ahora cuenta el fundido: 142 cuadros en
+vez de 72, y la pantalla queda quieta exactamente en el 142.
+
+**Cómo se verifica.** Los cuadros **50 y 68 de `snes-cinematica`** caen adentro
+de la rampa de vuelta del primer fundido, con el mapa 1 subiendo de brillo, y
+dan cero: son lo único de la tanda que compara la rampa misma. Que aguanten es
+el diseño funcionando —esa ROM pierde siete cuadros en la carga y el brillo del
+cuadro N sigue siendo el mismo, porque se cuenta en cuadros de hardware—. Los
+otros cuatro cuadros del caso, y los seis de `apertura` con sus quince toques,
+verifican que el fundido dura exactamente 70 y que el juego queda congelado
+adentro: si durara otra cosa, todos correrían de lugar.
+
+A mano, y contra el PPU en vez de contra la referencia: se capturó cuadro por
+cuadro el fundido de `snes-puerta 30 28 down` y se buscó, para cada uno, qué
+brillo de `eventos.oscurecer` lleva el cuadro quieto al capturado. **Los 27
+cuadros de la rampa de vuelta dan cero pixeles**, y la secuencia de brillos es
+la rampa emitida, corrida un cuadro —el mismo cuadro de retraso que tiene OAM,
+porque `brillo` se escribe en el vblank siguiente—.
+
+Y la escena del ascensor, que es lo que motivó todo esto, ahora compara: el
+héroe entra, el fundido corre, y los cuadros 20 y 40 dan cero contra la
+referencia. Lo que le sigue faltando para tener caso propio en la tanda está en
+"Lo que falta".
+
 ### La pantalla se prende en el vblank, no donde se carga el mapa
 
 Cargar un mapa apaga la pantalla: `cargar_mapa` escribe VRAM y CGRAM por DMA y
 con el PPU dibujando esas escrituras se pierden. Prenderla de vuelta, en
-cambio, **no** se hace ahí. Se prende una bandera, `prender_pantalla`, y quien
-escribe `INIDISP` es `flush_video` al final del vblank siguiente.
+cambio, **no** se hace ahí. **`INIDISP` lo escribe únicamente `flush_video`**,
+al final del vblank, desde la variable `brillo`; quien quiera cambiar el brillo
+la escribe y espera al vblank siguiente, igual que quien mueve un sprite
+escribe OAM y espera. La única excepción es el blanking forzado de una carga,
+que `fundido_tick` escribe a mano porque ahí la pantalla ya está en negro.
 
 El motivo son dos defectos que se veían en todos los teletransportes, y que
 taro reportó por separado sin saber que eran el mismo:
@@ -268,19 +350,15 @@ Prendiéndola en `flush_video` el primer cuadro que se ve ya tiene el scroll,
 OAM y las paletas del mapa nuevo, y empieza donde empieza el cuadro. Cuesta un
 cuadro más de negro.
 
-**Cómo se verifica.** No lo cubre `snes-hitos`: la tanda no compara adentro de
-la ventana de un teletransporte, justamente porque la referencia no modela lo
-que tarda una carga. Se midió a mano sobre `snes-puerta 30 28 down`, capturando
-los cuadros de a uno alrededor del cruce y contando pixeles negros. Antes:
-siete cuadros negros, uno con las 22 primeras filas en negro y el resto
+**Cómo se verifica.** Se midió a mano sobre `snes-puerta 30 28 down`,
+capturando los cuadros de a uno alrededor del cruce y contando pixeles negros.
+Antes: siete cuadros negros, uno con las 22 primeras filas en negro y el resto
 dibujado —y ese resto a 47.277 pixeles de 51.712 del cuadro que sigue, o sea
 distinto de todo—, y recién después el mapa nuevo. Después: ocho cuadros
 negros y el mapa nuevo, con el primer cuadro visible idéntico bit a bit al que
-daba antes. Los 76 casos de la tanda siguen en verde.
-
-Lo que sigue faltando es el **fundido**: RM2k y EasyRPG hacen fade-out y
-fade-in en cada teletransporte, y acá la pantalla se apaga y se prende de
-golpe. Está en "Lo que falta".
+daba antes. Desde que hay fundido esto además lo cubre la tanda de costado: los
+cuadros de rampa de `snes-cinematica` sólo dan cero si el brillo cambia entre
+cuadros y no a mitad de uno.
 
 ### Pisar un evento, y pisarlo al final de una ruta forzada
 
@@ -522,25 +600,27 @@ mapa 2 pasa de 40 páginas ejecutables a 41 y el cartucho sigue entrando en los
 512 KB. Y para que no se vuelva a callar, el conversor ahora nombra los mapas
 que le faltan a las páginas que se caen por eso: ver "Las puertas".
 
-**Cómo se verifica.** No lo cubre `snes-hitos`, y no por falta de ganas: la
-escena empieza con un teletransporte y sigue con un `ShakeScreen` de mil
-cuadros, así que la ROM queda de siete a doce cuadros atrás de la referencia
-—los que le cuesta la carga, que la referencia no modela— y la pantalla no se
-queda quieta en ningún momento para volver a alinearse. Lo que sí se midió, con
-una ROM descartable de los mapas 2 y 3 y el héroe en (71,70) con el switch 11 y
-un paso hacia arriba:
+**Cómo se verifica.** No lo cubre `snes-hitos`. La razón cambió el 2026-09-05:
+ya no es la carga del mapa —el fundido se la come, ver "El fundido de los
+teletransportes"— sino los **picos del lazo**. Esta ROM pierde un cuadro en su
+primera vuelta y otro en la vuelta en que el fundido termina y la página
+retoma, y con un `ShakeScreen` de mil cuadros moviendo la cámara no hay un solo
+cuadro quieto donde ese atraso no se vea. Lo que sí se midió, con una ROM
+descartable de los mapas 2 y 3 y el héroe en (71,70) con el switch 11 y un paso
+hacia arriba:
 
 * la ROM teletransporta al héroe a (77,31) en el cuadro 9, y la referencia en
   el 9 también;
 * corriendo la escena entera —diez mensajes— la ROM termina en el **mapa 3**,
   celda (67,69), y la referencia termina en el mapa 3, celda (67,69);
-* dos cuadros de la escena comparan **0 pixeles de 57.344** contra la
-  referencia, con el desfase que explica su propio contador de cuadros
-  perdidos: los cuadros 67 a 72 de la ROM contra el 60 de la referencia, y el
-  95 a 97 contra el 90.
+* los cuadros 20 y 40 —el fundido de la entrada a la cabina— dan **0 pixeles
+  de 53.248 y de 57.344** contra la referencia, ya sin desfase;
+* más allá del fundido hace falta correr la ROM un cuadro más adelante que la
+  referencia por cada cuadro que perdió, y ahí sí dan cero: los cuadros 13, 71,
+  83 y 101 de la ROM contra el 12, el 70, el 82 y el 100 de la referencia.
 
-Alinear la ROM con la referencia a través de una carga es lo que le falta a la
-tanda para poder mirar esto sola; está en "Lo que falta".
+Que la tanda pueda mirar esto sola pide que la ROM deje de perder cuadros en
+sus picos, o que la referencia los cobre; está en "Lo que falta".
 
 ### Las rutas propias de las páginas
 
@@ -2091,27 +2171,22 @@ comparación.
   que es lo que hace `UpdateMoveRoute` con `skippable` apagado. Lo último es
   lo que más cerca está de verse: en la apertura la colisión no frena ningún
   paso, medido, pero el droide del mapa 2 vive de eso.
-* **El fundido de los teletransportes.** RM2k y EasyRPG hacen fade-out y
-  fade-in en cada cambio de mapa; acá la pantalla se apaga y se prende de
-  golpe, y taro lo pidió mirando la ROM en Mesen. El brillo de `INIDISP` tiene
-  dieciséis pasos y escribirlo es una instrucción por cuadro, así que el efecto
-  es barato; lo que no es barato es lo que arrastra. Un fundido son cuadros que
-  el teletransporte hoy no gasta, y la referencia tendría que gastarlos
-  igual: si no, todos los cuadros comparados después de un salto se corren, y
-  ésos son la cinemática de apertura entera. O sea que esto no se hace sin
-  modelarlo en `snes_expect.py`, y por eso no entró con el arreglo del cuadro
-  de basura —ver "La pantalla se prende en el vblank"—, que no mueve ningún
-  cuadro de lugar.
-* **Alinear los dos lados a través de una carga.** La ROM se toma seis o siete
-  cuadros en cada teletransporte rellenando el tilemap de 64x32 y la referencia
-  no modela ese costo, así que después de un salto la ROM va atrás y ninguna
-  receta puede comparar hasta que la pantalla se quede quieta y los dos se
-  vuelvan a encontrar. Mientras algo se mueva sin parar —un `ShakeScreen`
-  largo, por ejemplo— no se encuentran nunca, y eso es lo que deja a la escena
-  del ascensor sin caso en la tanda. La salida no es un desfase a mano en las
-  recetas —eso es un número que se ajusta hasta que dé verde— sino que la
-  referencia cobre lo que la carga cuesta, o que la ROM lo diga y la receta lo
-  lea de `cuadros_perdidos`, que ya viaja en la salida de cada captura.
+* **Los cuadros que el lazo pierde en sus picos.** Ya no los produce el
+  teletransporte —el fundido se come la carga, ver "El fundido de los
+  teletransportes"— pero siguen: la primera vuelta de una ROM con muchas
+  páginas se pasa del cuadro, y también la vuelta en que un fundido termina y
+  la página retoma. La referencia no los modela, así que a partir de ahí la ROM
+  va N cuadros atrás y sólo se la puede comparar donde la pantalla esté quieta.
+  Eso es lo único que le falta a la escena del ascensor para tener caso propio
+  en la tanda. La salida no es un desfase a mano en las recetas —eso es un
+  número que se ajusta hasta que dé verde— sino aflojar los picos, o que la
+  receta lea `cuadros_perdidos`, que ya viaja en la salida de cada captura.
+* **Las otras transiciones de RM2k.** El fundido está, que es la que este juego
+  usa —`transition_out` y `transition_in` valen 0 en su base—, pero
+  `Transition::Type` tiene 38 y un evento puede pedir cualquiera con
+  `EraseScreen`/`ShowScreen`. Las de bloques, persianas y barridos no son un
+  brillo maestro: piden tapar la pantalla por regiones, que en la consola es
+  otra máquina.
 * **Los teletransportes que siguen sin resolverse.** Los que están adentro de
   cinemáticas con variables y condiciones que todavía no modelamos. El del mapa
   donde el juego arranca ya no: es automático, entra con los cinco comandos que
@@ -2146,11 +2221,10 @@ comparación.
   lado, ver "El ascensor no llevaba a ningún lado"—, y el caso `apertura` de la tanda la compara hasta
   el final con los quince toques de A que la cierran: el tinte se apaga, Core y
   Manta aparecen, el droide camina, Kersh explica su alias, y la página termina
-  en el cuadro 2624 con dos `ChangeEventLocation` y un switch. De ahí el juego
-  sigue con el jugador al mando, y eso ya no lo mira ninguna receta. Lo que
-  la comparación **no** cubre es nada en movimiento entre el teletransporte y
-  el primer toque: ahí la ROM va unos cinco cuadros atrás por el costo del
-  tilemap, y recién el toque resincroniza los dos lados.
+  con dos `ChangeEventLocation` y un switch. De ahí el juego sigue con el
+  jugador al mando, y eso ya no lo mira ninguna receta. Lo que la comparación
+  **no** cubre es nada en movimiento en un cuadro en que la ROM venga atrasada;
+  el toque de A resincroniza los dos lados.
 * **Lo que le falta al juego entero, medido.** De las 489 páginas automáticas
   con comandos, hoy compilan enteras **142**. Eran 16 antes de los cuadros de
   texto, 71 con ellos, 87 con las rutas forzadas sobre eventos, 110 con

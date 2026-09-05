@@ -419,6 +419,40 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
                 interprete.retomar(pendiente)
                 pendiente = None
             for n in range(1, restantes + 1):
+                # El fundido del teletransporte congela el juego entero, como
+                # `fundido_tick` en la ROM y como RM2k, que mientras la
+                # transición corre llama a `Player::Update(false)`. Acá eso es
+                # no hacer nada: ni el intérprete, ni la ruta del héroe, ni los
+                # eventos. El salto se aplica adentro, en el primer cuadro
+                # negro, que es donde la consola carga el mapa.
+                if estado.fundido is not None:
+                    estado.fundido += 1
+                    if estado.fundido >= eventos.FUNDIDO_TOTAL:
+                        estado.fundido = None
+                        continue
+                    if estado.fundido != eventos.FUNDIDO_RAMPA \
+                            or estado.salto is None:
+                        continue
+                    if mundo.ids[estado.salto[0]] == map_id:
+                        # Un teletransporte **al mismo mapa** no recarga nada:
+                        # sólo mueve al héroe. Es el `map_changed = (GetMapId()
+                        # != teleport_target.GetMapId())` de
+                        # `Game_Player::PerformTeleport`. Recargarlo volvía a
+                        # encolar los eventos automáticos, y con eso la
+                        # cinemática de apertura —que salta dos veces adentro
+                        # del mapa 1— se reiniciaba sola para siempre.
+                        x, y = estado.salto[1], estado.salto[2]
+                        estado.salto = None
+                        continue
+                    # Al mapa nuevo se entra desde el lazo de afuera, y el
+                    # fundido sigue contando del otro lado: le quedan los
+                    # cuadros del negro y la rampa de vuelta.
+                    salto = estado.salto
+                    estado.salto = None
+                    restantes -= n
+                    base += n
+                    pendiente = interprete.pendiente()
+                    break
                 estado.refrescar()
                 # `apretar_a` son los cuadros en que el jugador aprieta A, y
                 # sólo cuentan esos: RM2k cierra el mensaje con el flanco, no
@@ -436,26 +470,15 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
                     if interprete.probar_accion(x, y, mirando, estado):
                         apreta = False
                 if interprete.cuadro(apreto_a=apreta):
-                    salto = estado.salto
-                    if mundo.ids[salto[0]] == map_id:
-                        # Un teletransporte **al mismo mapa** no recarga nada:
-                        # sólo mueve al héroe. Es el `map_changed = (GetMapId()
-                        # != teleport_target.GetMapId())` de
-                        # `Game_Player::PerformTeleport`. Recargarlo volvía a
-                        # encolar los eventos automáticos, y con eso la
-                        # cinemática de apertura —que salta dos veces adentro
-                        # del mapa 1— se reiniciaba sola para siempre.
-                        x, y = salto[1], salto[2]
-                        estado.salto = salto = None
-                        # Y el cuadro **sigue**: la ROM atiende el salto en
-                        # `eventos_tick` y después corre `move_hero`,
-                        # `mover_eventos` y el resto del lazo igual. Cortarlo
-                        # acá le regalaba un cuadro a cada teletransporte.
-                    else:
-                        restantes -= n  # los que quedan para el mapa nuevo
-                        base += n
-                        pendiente = interprete.pendiente()
-                        break
+                    # El salto queda pedido y nada más: lo que arranca es el
+                    # fundido, y el mapa cambia adentro. `estado.salto` lo
+                    # guarda mientras tanto.
+                    #
+                    # Y el cuadro **sigue**: la ROM pide el fundido desde
+                    # `eventos_tick` y después corre `move_hero`,
+                    # `mover_eventos` y el resto del lazo igual. Cortarlo acá
+                    # le regalaba un cuadro a cada teletransporte.
+                    estado.fundido = 0
                 x, y, llego = paso_de_ruta(estado, passable, game_map, x, y,
                                            interprete.paginas)
                 if llego:
@@ -627,6 +650,11 @@ def hero_position(mundo, estado, map_id, direction_name, inicio=None,
             # significa nada. Se corta acá en vez de dibujar cualquier cosa.
             sys.exit("el avance pedido cruza una puerta en el paso %d; este "
                      "caso no sirve para comparar a mitad de camino" % pasos)
+        # La puerta también funde: es un teletransporte y le toca la misma
+        # transición. Acá el tiempo está colapsado y el fundido no se ve —la
+        # caminata se compara cuando ya terminó todo— pero sus cuadros existen
+        # y el plan los cuenta.
+        estado.fundidos += 1
         map_id, x, y = entrar_al_mapa(mundo, estado, puerta["mapa"],
                                       (puerta["destino_x"], puerta["destino_y"]))
     if avance is not None:
@@ -684,6 +712,36 @@ def tenir_imagen(view, tinte):
                 r, g, b = color[:3]
                 palabra = eventos.tenir(
                     (r >> 3) | ((g >> 3) << 5) | ((b >> 3) << 10), tinte)
+                nuevo = ((palabra & 0x1F) << 3,
+                         ((palabra >> 5) & 0x1F) << 3,
+                         ((palabra >> 10) & 0x1F) << 3) + color[3:]
+                memo[color] = nuevo
+            pixels[x, y] = nuevo
+    return view
+
+
+def oscurecer_imagen(view, brillo):
+    """El brillo maestro de INIDISP, aplicado color por color.
+
+    Va sobre **todo** —el mapa, los sprites, la ventana de mensaje y el
+    cronómetro—, porque en la consola es lo último que toca el PPU antes de
+    sacar el pixel, después de mezclar todo. Por eso no es un tinte: el tinte
+    transforma CGRAM y la ventana, que tiene su propia paleta, no se entera.
+
+    La cuenta es la de `eventos.oscurecer`, sobre los 15 bits.
+    """
+    if brillo >= eventos.BRILLO_MAX:
+        return view
+    pixels = view.load()
+    memo = {}
+    for y in range(view.height):
+        for x in range(view.width):
+            color = pixels[x, y]
+            nuevo = memo.get(color)
+            if nuevo is None:
+                r, g, b = color[:3]
+                palabra = eventos.oscurecer(
+                    (r >> 3) | ((g >> 3) << 5) | ((b >> 3) << 10), brillo)
                 nuevo = ((palabra & 0x1F) << 3,
                          ((palabra >> 5) & 0x1F) << 3,
                          ((palabra >> 10) & 0x1F) << 3) + color[3:]
@@ -1314,7 +1372,19 @@ def main():
                 view.paste(sys_img.crop((ox, oy, ox + 8, oy + 8)), (sx, sy),
                            sys_img.crop((ox, oy, ox + 8, oy + 8)))
 
-        plan.append((walk, pasos, pasos * CUADROS_POR_CELDA))
+        # Y el brillo maestro al final de todo, que es donde lo aplica el PPU:
+        # si hay un fundido corriendo, la pantalla entera sale más oscura.
+        # `estado.fundido` es el cuadro del fundido en que quedó la corrida.
+        if estado.fundido is not None:
+            view = oscurecer_imagen(view.convert("RGB"),
+                                    eventos.brillo_de_fundido(estado.fundido))
+
+        # El plan cuenta los cuadros del fundido: cada teletransporte que la
+        # caminata cruce son FUNDIDO_TOTAL cuadros más en los que el emulador
+        # no tiene que hacer nada, pero que igual pasan.
+        plan.append((walk, pasos,
+                     pasos * CUADROS_POR_CELDA
+                     + estado.fundidos * eventos.FUNDIDO_TOTAL))
         destino = salida(args.output, etiqueta)
         view.convert("RGB").save(destino)
         # La dirección que se imprime es la que se dibuja, no la que se pidió

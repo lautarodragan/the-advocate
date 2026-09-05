@@ -1682,6 +1682,17 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "SALTO_PASO = %d\n"
         "SALTO_VELOCIDAD = %d\n"
         "TINTE_NEUTRO = %d\n"
+        "; El fundido de los teletransportes: 35 cuadros de ida y 35 de\n"
+        "; vuelta, como RM2k, y de cada 35 la rampa son 24. El mapa se carga\n"
+        "; en el primer cuadro negro, que es el %d. Ver `brillo_de_fundido`\n"
+        "; en tools/eventos.py, que es de donde salen estos números y la\n"
+        "; tabla de más abajo.\n"
+        "FUNDIDO_CUADROS = %d\n"
+        "FUNDIDO_TOTAL   = %d\n"
+        "FUNDIDO_RAMPA   = %d\n"
+        "FUNDIDO_NEGRO   = %d\n"
+        "FUNDIDO_CARGA   = %d\n"
+        "BRILLO_MAX      = %d\n"
         "; Los pesos de luminancia del Y'CbCr, que son con los que RM2k\n"
         "; satura. Suman 65536 exactos, así que sobre canales de cinco bits\n"
         "; dan una luminancia de cinco bits sin reescalar nada.\n"
@@ -1747,6 +1758,10 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            eventos.CUADROS_POR_CELDA, eventos.CUADROS_DE_ESPERA_DE_RUTA,
            eventos.SALTO_PASO, eventos.SALTO_VELOCIDAD,
            eventos.TINTE_NEUTRO,
+           eventos.FUNDIDO_RAMPA,
+           eventos.FUNDIDO_CUADROS, eventos.FUNDIDO_TOTAL,
+           eventos.FUNDIDO_RAMPA, eventos.FUNDIDO_NEGRO,
+           eventos.FUNDIDO_RAMPA, eventos.BRILLO_MAX,
            eventos.LUZ_R, eventos.LUZ_G, eventos.LUZ_B, SWITCH_BYTES,
            eventos.GRUPO_MAX, len(grupo_inicial), ACTOR_BYTES,
            rm2k.LAYER_SAME,
@@ -1765,6 +1780,15 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         handle.write(cabecera)
         handle.write(desplazamientos())
         handle.write("\n\n")
+        # La rampa del fundido, en el banco 0 porque `fundido_tick` la lee con
+        # `lda fundido_rampa, x`. Sale de `eventos.rampa_de_fundido()`, que es
+        # la misma que usa la referencia: escribirla también en main.s sería la
+        # duplicación de siempre, dos lados que se pueden equivocar igual.
+        handle.write('.segment "TABLAS"\n'
+                     '; El brillo maestro en cada cuadro de la rampa, de negro\n'
+                     '; a lleno. Bajando se lee al revés.\n'
+                     'fundido_rampa:\n    .byte %s\n\n'
+                     % ",".join(str(v) for v in eventos.rampa_de_fundido()))
         # Los datos van en RODATA, que el enlazador reparte por los bancos de
         # arriba. La tabla va en TABLAS, o sea el banco 0, porque la ROM la
         # recorre con `lda mapa_tabla + campo, x` y ese modo direcciona el banco

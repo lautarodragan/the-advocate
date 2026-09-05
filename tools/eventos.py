@@ -494,6 +494,77 @@ CELDA_PX = 16
 WALK_SPEED = 2
 CUADROS_POR_CELDA = CELDA_PX // WALK_SPEED
 
+# --- el fundido de los teletransportes -------------------------------------
+#
+# RM2k funde a negro y vuelve en **cada** teletransporte, cambie de mapa o no:
+# en `Scene_Map::UpdateStage2` de easyrpg-player el `TeleportParams` sale
+# siempre con `erase_screen = true`, y `Scene_Map::StartPendingTeleport` pide
+# la transición que diga la base. La de A Blurred Line es `transition_out = 0`
+# y `transition_in = 0`, que en la tabla de `Game_System::GetTransition` son
+# `TransitionFadeOut` y `TransitionFadeIn`, y `Transition::GetDefaultFrames`
+# les da **35 cuadros** a cada una. Mientras la transición corre el juego está
+# congelado: `Scene::MainFunction` ve `IsAsyncPending()` y llama a
+# `Player::Update(false)`, que no actualiza la escena.
+FUNDIDO_CUADROS = 35
+FUNDIDO_TOTAL = FUNDIDO_CUADROS * 2
+
+# De esos 35, la rampa son 24 y los otros 11 son negro liso. La consola no
+# puede fundir de otra manera: el brillo maestro de INIDISP tiene dieciséis
+# pasos y nada más, así que estirar la rampa sobre los 35 cuadros no da un
+# fundido más fino, sólo repite pasos. Y el negro del final no es relleno: **es
+# donde se carga el mapa**. La carga escribe VRAM y CGRAM por DMA y cuesta seis
+# o siete cuadros, que hasta ahora la referencia no modelaba y dejaban a los
+# dos lados desalineados para siempre después de un salto; adentro del negro no
+# se ven y no corren el reloj, porque el fundido se cuenta en cuadros de
+# hardware y no en vueltas del lazo. Entre que el mapa se carga —cuadro 24— y
+# que la rampa de vuelta sale del cero —cuadro 47— hay 23 cuadros de margen.
+FUNDIDO_RAMPA = 24
+FUNDIDO_NEGRO = FUNDIDO_CUADROS - FUNDIDO_RAMPA
+BRILLO_MAX = 15
+
+
+def rampa_de_fundido():
+    """El brillo de INIDISP en cada cuadro de la rampa, de negro a lleno.
+
+    Es una recta redondeada sobre los dieciséis pasos que tiene el brillo
+    maestro. La ROM no la calcula: el conversor la emite en `mapdata.inc` como
+    `fundido_rampa`, para que el número viva en un solo lado.
+    """
+    ultimo = FUNDIDO_RAMPA - 1
+    return [(BRILLO_MAX * s + ultimo // 2) // ultimo
+            for s in range(FUNDIDO_RAMPA)]
+
+
+def brillo_de_fundido(t):
+    """El brillo maestro en el cuadro `t` de un fundido, contado desde que el
+    teletransporte se pidió. Fuera del fundido es `BRILLO_MAX`."""
+    if t < 0 or t >= FUNDIDO_TOTAL:
+        return BRILLO_MAX
+    rampa = rampa_de_fundido()
+    if t < FUNDIDO_RAMPA:
+        return rampa[FUNDIDO_RAMPA - 1 - t]     # se va apagando
+    if t < FUNDIDO_CUADROS + FUNDIDO_NEGRO:
+        return 0                                # el negro donde carga el mapa
+    return rampa[t - FUNDIDO_CUADROS - FUNDIDO_NEGRO]
+
+
+def oscurecer(palabra, brillo):
+    """Los 15 bits de un color con el brillo maestro aplicado.
+
+    Es lo que hace el PPU con INIDISP, y la cuenta sale de la tabla que arma
+    `PPU::PPU()` en bsnes: `round(canal * brillo / 15)` sobre los cinco bits de
+    cada canal. Los tres cores dan lo mismo, comprobado.
+    """
+    if brillo >= BRILLO_MAX:
+        return palabra
+    salida = 0
+    for i in range(3):
+        canal = (palabra >> (5 * i)) & 0x1F
+        salida |= ((2 * canal * brillo + BRILLO_MAX)
+                   // (2 * BRILLO_MAX)) << (5 * i)
+    return salida
+
+
 # Qué dispara una página. Los de `rpg::EventPage::Trigger` de liblcf.
 TRIGGER_ACCION = 0          # el jugador aprieta la tecla de acción enfrente
 TRIGGER_TOCA_HEROE = 1      # el héroe camina encima
@@ -1405,6 +1476,11 @@ class Estado:
         self.switches = set()
         self.tinte = (TINTE_NEUTRO,) * 4      # r, g, b y saturación
         self.salto = None       # (mapa, x, y) si una página pidió mudarse
+        # El fundido del teletransporte: en qué cuadro va, o None si no hay
+        # ninguno corriendo. Mientras haya, el juego está congelado y lo único
+        # que cambia es el brillo de la pantalla. Ver `brillo_de_fundido`.
+        self.fundido = None
+        self.fundidos = 0       # cuántos hubo, para el plan de la caminata
         # El grupo, en orden. El gráfico del héroe es el del primero, así que
         # esto no es contabilidad: se ve en la pantalla que se compara.
         self.grupo = list(grupo)
@@ -2222,6 +2298,11 @@ def ejecutar(codigo, estado, desde=0):
             estado.salto = (codigo[i + 1],
                             codigo[i + 2] | (codigo[i + 3] << 8),
                             codigo[i + 4] | (codigo[i + 5] << 8))
+            # Cuántos fundidos lleva la corrida. No lo usa el intérprete: lo
+            # usa el plan de la caminata, que le dice al emulador cuántos
+            # cuadros correr y tiene que contar los 70 de cada teletransporte.
+            # Se cuenta acá, que es el único lugar por donde pasan todos.
+            estado.fundidos += 1
             return (i + 6, 0, True)     # corta el cuadro, como `return false`
         elif op == OP_ESPERAR:
             # Y acá se devuelve el control. Antes se salteaba: "no tenemos

@@ -32,10 +32,11 @@ el teletransporte se ve limpio.
    viejo. Ahora la pantalla la prende `flush_video` en el vblank siguiente.
    Ver "La pantalla se prende en el vblank" en el LEEME.
 
-El **fundido** que taro pide —RM2k y EasyRPG funden a negro en cada
-teletransporte— queda como lo que es, un feature que falta: es barato de
-hacer y caro de verificar, porque son cuadros que la referencia tendría que
-gastar igual y hoy no gasta. Está en "Lo que falta" del LEEME.
+3. **El fundido está**, pedido por taro después de lo anterior: 35 cuadros de
+   ida y 35 de vuelta con el juego congelado, como RM2k. Y de paso arregló el
+   desalineado viejo entre la ROM y la referencia, porque la carga del mapa
+   ahora pasa adentro del negro y no corre el reloj. Ver "El fundido de los
+   teletransportes" en el LEEME, y abajo qué se corrió.
 
 Los ocho puntos de abajo son de las vueltas anteriores y están hechos. De lo
 menor, el panorama queda afuera a propósito.
@@ -166,11 +167,48 @@ Queda para después:
 * **Lo que las rutas propias no modelan** está en el LEEME: los otros tipos
   de movimiento —106 páginas van hacia el héroe—, el giro en el lugar, y que
   una forzada retome la de la página por donde iba.
-* **El cuadro que se pierde al abrir un mensaje**, cada tanto, y los de los
-  teletransportes: se ven ahora, no cambian ningún pixel comparado, y no se
-  tocaron. Los del teletransporte son además lo que deja a la escena del
-  ascensor sin caso en la tanda: ver "Alinear los dos lados a través de una
-  carga" en "Lo que falta" del LEEME.
+* **El cuadro que se pierde al abrir un mensaje**, cada tanto, y los picos del
+  lazo en general: se ven, no cambian ningún pixel comparado, y no se tocaron.
+  Los del teletransporte ya no están —el fundido se los come— pero quedan el de
+  la primera vuelta de una ROM con muchas páginas y el de la vuelta en que un
+  fundido termina, y son lo único que le falta a la escena del ascensor para
+  tener caso propio en la tanda: ver "Lo que falta" del LEEME.
+
+## Hecho el 2026-09-05: el fundido de los teletransportes
+
+35 cuadros de ida y 35 de vuelta, con el juego congelado adentro, que es lo que
+hace RM2k —los números salen de `Transition::GetDefaultFrames` y de que la base
+del juego pide `TransitionFadeOut`/`FadeIn`—. El brillo es el maestro de
+INIDISP, dieciséis pasos, y la rampa la emite el conversor en `mapdata.inc`
+desde `eventos.rampa_de_fundido()`, así que vive en un solo lado.
+
+Lo que no era obvio y terminó siendo lo más importante: **el fundido se cuenta
+en cuadros de hardware, no en vueltas del lazo**, y el mapa se carga adentro de
+sus once cuadros de negro. Con eso, los seis o siete cuadros que cuesta una
+carga dejaron de correr el reloj, y la ROM y la referencia **quedan alineadas a
+través de un teletransporte**, que es lo que nunca había pasado. `snes-puerta`
+lo muestra solo: el plan dice 142 cuadros y la pantalla queda quieta en el 142.
+
+Qué se corrió:
+
+* la tanda entera, **76 casos en verde**, con `snes-cinematica` y `apertura`
+  retimados: los cuadros comparados y los quince toques de A se corrieron 70
+  por cada teletransporte anterior, y dan cero sin tocar nada más;
+* **los cuadros 50 y 68 de `snes-cinematica` son nuevos** y caen adentro de la
+  rampa de vuelta del primer fundido: son lo único de la tanda que compara la
+  rampa misma, y aguantan que esa ROM pierda siete cuadros en la carga
+  justamente porque el brillo se cuenta en cuadros de hardware;
+* a mano, contra el PPU y no contra la referencia: capturando cuadro por cuadro
+  el fundido de `snes-puerta 30 28 down` y buscando qué brillo lleva el cuadro
+  quieto al capturado, **los 27 cuadros de la rampa de vuelta dan cero
+  pixeles**;
+* y la escena del ascensor, con la ROM descartable de abajo: los cuadros 20 y
+  40 dan cero.
+
+**Los tres cores dejaron de coincidir, por primera vez.** snes9x y bsnes hacen
+`round(canal * brillo / 15)`; mesen-s trunca. Seguimos a bsnes —de donde sale
+la cuenta— y a snes9x, que es el core de la tanda; ninguna receta usa mesen-s.
+Lo desempata la SNES de taro, y es una cosa más para mirar en el FX Pak.
 
 ## Hecho el 2026-09-05: el ascensor lleva al mapa 3
 
@@ -189,8 +227,9 @@ switch 11 puesto y un paso hacia arriba:
 * corriendo la escena entera —diez mensajes— la ROM termina en el **mapa 3,
   celda (67,69)**, y la referencia termina exactamente ahí;
 * dos cuadros de la escena dan **0 pixeles de 57.344** contra la referencia,
-  con el desfase que explica el propio `cuadros_perdidos` de la ROM: sus
-  cuadros 67 a 72 contra el 60 de la referencia, y el 95 a 97 contra el 90.
+  con el desfase que explica el propio `cuadros_perdidos` de la ROM. Desde que
+  hay fundido ese desfase es de un cuadro y no de siete, y los cuadros 20 y 40
+  —los del fundido— dan cero sin desfase ninguno.
 
 La ROM descartable, para rehacerlo —no la produce ninguna receta, así que
 queda escrita acá y no en `rom/build/`—:

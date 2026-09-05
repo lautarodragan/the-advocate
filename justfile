@@ -116,11 +116,11 @@ snes-walk mapa="7" direccion="none" mapas="" inicial="0" nombre=(mapa + "-" + di
 # La referencia recibe la misma lista de mapas que la ROM: una puerta a un mapa
 # que no entró en el cartucho no lleva a ningún lado, ni en la consola ni acá.
 #
-# El margen va en 16 y no en los 8 de siempre porque cruzar la puerta le cuesta
-# a la ROM cargar el mapa entero, y eso son cuadros que la referencia no modela:
-# ella cuenta celdas caminadas y nada más. Medido en este caso, la pantalla
-# queda quieta en el cuadro 79 contra los 72 que dice el plan, o sea siete de
-# carga; 16 es una celda más de aire sobre eso.
+# El plan cuenta ahora los 70 cuadros del fundido de la puerta además de los
+# ocho por celda: en este caso son 142 y no 72, y la pantalla queda quieta
+# exactamente en el 142. Eso es un dato en sí mismo —la carga del mapa pasa
+# adentro del negro y no corre el reloj—; el margen de 16 quedó de cuando la
+# ROM se tomaba siete cuadros de más que nadie contaba, y ahora es aire nomás.
 snes-puerta origen="30" destino="28" direccion="down" nombre=("puerta-" + origen + "-" + destino):
   #!/usr/bin/env bash
   set -euo pipefail
@@ -916,33 +916,38 @@ snes-escena mapa="2" celda="4 54" ruta="12" dir="up" cuadros="60" arranque="67" 
 #   quién puede ser líder          se miraba sin el contexto del mapa, así que
 #                                  Kersh no entraba y el héroe salía invisible
 #
-# Los cuadros están elegidos afuera de las ventanas de los saltos, y eso está
-# medido: la ROM se toma unos seis cuadros en cada teletransporte rellenando el
-# tilemap de 64x32, y la referencia no modela ese costo. Entre el salto y unos
-# treinta cuadros después los dos lados quedan a tres o seis cuadros de
-# distancia, y como la cámara sigue al héroe, eso corre la pantalla entera. El
-# arranque ya no es de esa familia: desde el 2026-09-05 dura siempre lo mismo
-# y el 67 alinea el cuadro N con el tick N.
+# **Los cuadros se corrieron 70 por cada teletransporte** el 2026-09-05, que es
+# lo que ahora dura el fundido: 170, 370, 750 y 1110 son los viejos 100, 300,
+# 540 y 900 más 70 por cada salto anterior —la referencia salta en el 1, en el
+# 363 y en el 485 contando cuadros sin fundir—. La cinemática dura tres
+# fundidos, uno por salto, porque RM2k funde también los que no cambian de mapa.
 #
-# Afuera de esas ventanas dan cero, incluido el cuadro 900, que es la cinemática
-# terminada: el héroe arriba de todo, mirando arriba, con la pantalla teñida.
-# Los cuadros 300 y 540 reemplazan al 400 y al 600 desde que el arranque es
-# fijo: con la ROM y la referencia alineadas exacto, el 400 caía con el héroe
-# caminando dentro de una de esas ventanas, y daba 591 pixeles. El 300 fue 480
-# hasta que los eventos caminan a la velocidad de su página, 3 y no 4: la
-# referencia salta en el 363 y en el 485 y sus rutas corren del 364 al 475 y
-# del 486 al 509, y con el atraso de la ROM después de cada salto no queda un
-# solo cuadro quieto entre el 475 y el 540; el 300 es antes del primer salto.
+# Y los dos primeros son nuevos: **el 50 y el 68 caen adentro de la rampa de
+# vuelta del primer fundido**, con el mapa 1 subiendo de brillo, y son lo único
+# de la tanda que compara la rampa misma. Aguantan que la ROM pierda cuadros
+# —acá pierde siete, los de la carga— porque el fundido se cuenta en cuadros de
+# hardware y no en vueltas del lazo: el brillo del cuadro N es el mismo aunque
+# el lazo haya dado menos vueltas. Lo que sí los rompería es que la ROM perdiera
+# un cuadro **antes** del salto, y eso sería un rojo legítimo.
+#
+# Del atraso que había antes queda esto: la carga del mapa cuesta seis o siete
+# cuadros que la referencia no modela, y hasta el 2026-09-05 dejaba a los dos
+# lados desalineados desde el salto en adelante. Ahora esos cuadros pasan
+# adentro del negro del fundido y no corren ningún reloj. El arranque tampoco es
+# de esa familia: dura siempre lo mismo y el 67 alinea el cuadro N con el tick N.
+#
+# El 1110 es la cinemática terminada: el héroe arriba de todo, mirando arriba,
+# con la pantalla teñida. El 370 fue 480 y después 300 —hasta que los eventos
+# caminan a la velocidad de su página, 3 y no 4— y es antes del primer salto de
+# los dos que la referencia hace adentro del mapa 1.
 #
 # **Con ventana** —el caso `apertura`, desde el 2026-09-05— la cinemática no
 # termina ahí: el último paso pisa el evento 2, que es la escena de apertura
-# entera. El cuadro 300 es la cinemática a mitad de camino, teñida; en el 560
-# el tinte ya se apagó y Core y Manta están plantados al lado del héroe —fue
-# 540 hasta que caminan a la velocidad de su página: la referencia los deja
-# quietos en el 525 y la ROM, que viene quince cuadros atrás desde los saltos,
-# recién en el 540—; en el
-# 620 está abierto el primer mensaje de Core. Son cuatro personajes caminando
-# en el mismo mapa, o sea las poses en caliente en su caso real.
+# entera. Sus cuadros también se corrieron 70 por salto: el 370 —era 300— es la
+# cinemática a mitad de camino, teñida; en el 770 —era 560— el tinte ya se apagó
+# y Core y Manta están plantados al lado del héroe; en el 830 —era 620— está
+# abierto el primer mensaje de Core. Son cuatro personajes caminando en el mismo
+# mapa, o sea las poses en caliente en su caso real.
 #
 # Y desde ahí la escena se lee **entera**, con los quince toques de A que la
 # cierran: `apretar` lista los cuadros, uno por mensaje, sesenta después de que
@@ -953,13 +958,15 @@ snes-escena mapa="2" celda="4 54" ruta="12" dir="up" cuadros="60" arranque="67" 
 # de un paso, después del cuarto mensaje; es el único tramo entre mensajes en
 # que alguien camina —los demás son esperas— y fue el que delató que la ROM
 # cerraba el mensaje un cuadro tarde: ver RETRASO_DE_PANTALLA en snes_correr.py.
-# El 1770 es el noveno mensaje abierto, y el 2700 es la escena terminada.
+# Con el fundido pasó a ser el 1210.
+# El 1980 es el noveno mensaje abierto, y el 2910 es la escena terminada.
 #
-# Lo que **no** se compara: nada en movimiento antes del primer toque. Entre
-# el teletransporte y ese toque la ROM va unos cinco cuadros atrás —el costo
-# del tilemap que la referencia no modela— y el toque los resincroniza, porque
-# de ahí en adelante los dos lados cuentan desde el mismo cuadro.
-snes-cinematica origen="4" destino="1" cuadros="100 300 540 900" arranque="67" nombre="cinematica" ventana="" apretar="":
+# Lo que **no** se compara: nada en movimiento en un cuadro en que la ROM venga
+# atrasada. El atraso ya no lo produce el teletransporte —el fundido se lo
+# come— sino los picos del lazo, que en esta ROM son siete cuadros repartidos
+# por el camino; el toque de A los resincroniza, porque de ahí en adelante los
+# dos lados cuentan desde el mismo cuadro.
+snes-cinematica origen="4" destino="1" cuadros="50 68 170 370 750 1110" arranque="67" nombre="cinematica" ventana="" apretar="":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}

@@ -567,10 +567,12 @@ grupo_listo:
 .a8
     jsr timer_digitos
 
-    ; La RAM arranca con basura —snes9x la llena de $55— y `flush_video` la
-    ; mira: sin esto el primer vblank podría prender la pantalla antes de que el
-    ; arranque tenga nada que mostrar.
-    stz prender_pantalla
+    ; La RAM arranca con basura —snes9x la llena de $55— y `flush_video` mira
+    ; las dos: sin esto el primer vblank prendería la pantalla con el brillo que
+    ; hubiera quedado, y el lazo arrancaría creyéndose adentro de un fundido.
+    stz fundido
+    lda #BRILLO_MAX
+    sta brillo
 
     lda #MAPA_INICIAL
     jsr cargar_mapa
@@ -614,6 +616,10 @@ loop:
     ; significaría esperar al cuadro siguiente: medio cuadro por vuelta.
     jsr read_pad
     jsr flush_video             ; lo del cuadro anterior, todavía en vblank
+    ; El fundido de un teletransporte congela el juego entero mientras dura,
+    ; como RM2k: lo único que sigue corriendo es la música. Ver `fundido_tick`.
+    jsr fundido_tick
+    bne congelado
     jsr eventos_tick
     jsr tinte_de_evento
     jsr move_hero
@@ -630,6 +636,7 @@ loop:
     jsr mensaje_tick            ; y unos caracteres del mensaje que se esté
                                 ; componiendo, si hay alguno
     jsr build_oam               ; y se arma el siguiente, ya fuera del vblank
+congelado:
     jsr music_tick
     jsr contar_perdidos
     bra loop
@@ -1193,32 +1200,143 @@ corriendo:
 .a8
     dec saltos_restantes
     beq nada                    ; demasiadas vueltas: se queda donde está
-    ; La pantalla se apaga para cargar, igual que al cruzar una puerta:
-    ; `cargar_mapa_sin_eventos` escribe VRAM y CGRAM por DMA, y con el PPU
-    ; dibujando esas escrituras se pierden. Antes esto no hacía falta porque el
-    ; intérprete corría adentro de `cargar_mapa`, con la pantalla ya apagada;
-    ; al mudarlo al lazo principal el teletransporte pasó a ejecutarse con la
-    ; pantalla encendida y el mapa nuevo simplemente no llegaba a la VRAM: se
-    ; veía el mapa viejo, teñido, como si el salto no hubiera ocurrido.
+    ; De acá no se carga nada: se pide el fundido y el mapa se carga adentro,
+    ; en el primer cuadro negro. Ver `fundido_tick`. Lo que sí queda decidido
+    ; acá es **cuál** de los dos casos es, porque `mapa_actual` va a haber
+    ; cambiado para cuando toque hacerlo.
+    ;
     ; Un salto **al mismo mapa** no recarga nada: sólo mueve al héroe. Es el
     ; `map_changed = (GetMapId() != teleport_target.GetMapId())` de
     ; `Game_Player::PerformTeleport`. Recargarlo volvía a encolar los eventos
     ; automáticos, y con eso la cinemática de apertura —que salta dos veces
-    ; adentro del mapa 1— se reiniciaba sola para siempre.
+    ; adentro del mapa 1— se reiniciaba sola para siempre. Fundir, en cambio,
+    ; funde igual: en RM2k el `TeleportParams` sale siempre con
+    ; `erase_screen = true`, mire a donde mire el salto.
     lda salto_mapa
+    sta fundido_mapa
     cmp mapa_actual
     bne otro_mapa
-    lda #$80
-    sta INIDISP                 ; `fill_window` escribe VRAM
-    jsr mover_heroe_a
-    lda #1
-    sta prender_pantalla        ; la prende `flush_video`, no acá
-    bra nada
+    lda #FUNDIDO_MISMO          ; un salto al mismo mapa no recarga nada
+    bra pedir_fundido
 otro_mapa:
-    ; La pantalla se apaga para cargar, igual que al cruzar una puerta.
+    lda #FUNDIDO_SALTO
+pedir_fundido:
+    jsr empezar_fundido
+    ; La página que pidió el salto sigue corriendo del otro lado: su código está
+    ; en la ROM y el cursor quedó guardado. Las páginas del mapa nuevo se
+    ; encolan recién cuando ésta termine.
+nada:
+    rts
+.endproc
+
+; Arranca un fundido de teletransporte. A trae qué hay que hacer cuando la
+; pantalla llegue a negro; el mapa, si hace falta, ya está en `fundido_mapa`.
+.proc empezar_fundido
+.a8
+.i16
+    sta fundido_que
+    lda #1
+    sta fundido
+    ; El reloj del fundido es `boot_cuadros`, o sea **cuadros de hardware**, y
+    ; no las vueltas del lazo. Es lo que hace que la carga del mapa no corra el
+    ; reloj: tarda seis o siete cuadros adentro de una sola vuelta, y contando
+    ; vueltas el fundido duraría eso de más y la referencia quedaría atrás para
+    ; siempre. Contando cuadros, el fundido mide FUNDIDO_TOTAL pase lo que pase
+    ; adentro del negro.
+    lda boot_cuadros
+    sta fundido_base
+    rts
+.endproc
+
+; Un cuadro del fundido. Devuelve A distinto de cero mientras el juego tenga que
+; quedarse quieto, que es todo lo que dura.
+;
+; RM2k congela la escena entera mientras la transición corre: `Scene::MainFunction`
+; ve `IsAsyncPending()` y llama a `Player::Update(false)`, que no actualiza nada.
+; Acá es lo mismo por omisión: el lazo principal se saltea el intérprete, al
+; héroe, los eventos, el cronómetro y todo lo que mueva algo. Lo que sigue
+; corriendo es la música, que en RM2k tampoco se corta.
+.proc fundido_tick
+.a8
+.i16
+    lda fundido
+    beq no_hay
+    lda boot_cuadros
+    sec
+    sbc fundido_base            ; en ocho bits, y el fundido dura 70
+    cmp #FUNDIDO_TOTAL
+    bcs terminar
+    cmp #FUNDIDO_CARGA
+    bcc rampa                   ; todavía se está apagando
+    pha
+    jsr cargar_lo_pedido        ; una sola vez: se apaga solo
+    pla
+rampa:
+    ; El brillo de este cuadro. Bajando, la rampa se lee al revés.
+    cmp #FUNDIDO_RAMPA
+    bcs subiendo
+    eor #$FF
+    clc
+    adc #FUNDIDO_RAMPA          ; FUNDIDO_RAMPA - 1 - t
+    bra en_la_rampa
+subiendo:
+    sec
+    sbc #(FUNDIDO_CUADROS + FUNDIDO_NEGRO)
+    bcs en_la_rampa             ; pasada la carga: la rampa de vuelta
+    lda #0                      ; el negro del medio
+    sta brillo
+    bra sigue
+en_la_rampa:
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda fundido_rampa, x
+    sta brillo
+sigue:
+    lda #1                      ; el juego sigue congelado
+    rts
+terminar:
+    stz fundido
+    lda #BRILLO_MAX
+    sta brillo
+no_hay:
+    lda #0
+    rts
+.endproc
+
+; Lo que el fundido tiene que hacer en su primer cuadro negro: cargar el mapa,
+; o mover al héroe si el salto era al mismo. Se hace una vez y se apaga.
+;
+; La pantalla se pone en blanking forzado a mano en vez de esperar al vblank:
+; `cargar_mapa` escribe VRAM y CGRAM por DMA y con el PPU dibujando esas
+; escrituras se pierden. No se ve, porque el brillo ya viene en cero.
+.proc cargar_lo_pedido
+.a8
+.i16
+    lda fundido_que
+    beq listo
+    pha
     lda #$80
     sta INIDISP
-    lda salto_mapa
+    stz brillo                  ; y que el vblank que viene lo deje en negro
+    pla
+    cmp #FUNDIDO_MISMO
+    bne carga
+    jsr mover_heroe_a
+    bra hecho
+carga:
+    cmp #FUNDIDO_PUERTA
+    bne salto
+    lda fundido_mapa
+    jsr cargar_mapa             ; una puerta: además reinicia el tope de saltos
+    stz step_left               ; el paso que se estaba dando quedó allá
+    stz moving
+    bra hecho
+salto:
+    lda fundido_mapa
     jsr cargar_mapa_sin_eventos
     ; Y los eventos automáticos del mapa nuevo, a la cola. La página que pidió
     ; el salto sigue corriendo —su código está en la ROM y el cursor quedó
@@ -1231,12 +1349,15 @@ otro_mapa:
     ; eventos del mapa de destino no corrían jamás. Nada lo veía porque la única
     ; prueba que teletransportaba miraba el tinte, que lo pone el mapa de origen.
     jsr encolar_eventos
-    lda #1
-    sta prender_pantalla        ; la prende `flush_video`, no acá
-    ; La página que pidió el salto sigue corriendo del otro lado: su código está
-    ; en la ROM y el cursor quedó guardado. Las páginas del mapa nuevo se
-    ; encolan recién cuando ésta termine.
-nada:
+hecho:
+    stz fundido_que
+    ; Y OAM, que si no se queda con la del mapa que se dejó. El lazo no la
+    ; rearma mientras el fundido dura —`build_oam` es de las cosas que se
+    ; saltea— así que la rampa de vuelta iría dibujando el mapa nuevo con los
+    ; sprites viejos. No es teórico: son los mil y pico de pixeles que la
+    ; referencia cobró la primera vez que se comparó adentro de un fundido.
+    jsr build_oam
+listo:
     rts
 .endproc
 
@@ -8492,30 +8613,23 @@ sin_ventana:
     lda #>VRAM_ABOVE_MAP | MAP_LAYOUT
     sta BG2SC
 
-    ; Y último de todo, la pantalla que dejó apagada un cambio de mapa.
+    ; Y último de todo, el brillo maestro.
     ;
-    ; Va acá y no donde se carga el mapa, que es lo que hacía antes, porque allá
-    ; la pantalla se prendía **a mitad de un cuadro y con los registros del mapa
-    ; viejo**. El scroll y OAM los escribe esta rutina y sólo en el vblank: al
-    ; volver de `cargar_mapa` los registros del PPU todavía apuntan a donde
-    ; miraba la cámara antes del salto y OAM sigue siendo la del mapa anterior,
-    ; y el tilemap nuevo leído con ese scroll es cualquier cosa. Eso son los dos
-    ; defectos que se veían en cada teletransporte: medio cuadro dibujado desde
-    ; el borde de abajo —donde estuviera el haz cuando se prendía— y un cuadro
-    ; entero de basura antes del mapa nuevo. Prendiéndola acá, el primer cuadro
-    ; que se ve ya tiene el scroll, OAM y las paletas del mapa nuevo, y empieza
-    ; donde empieza el cuadro.
+    ; **INIDISP se escribe únicamente acá**, y eso no es prolijidad: es lo que
+    ; hace que el brillo cambie entre dos cuadros y no a mitad de uno. Escribirlo
+    ; desde el lazo dibuja el cuadro partido —lo de arriba con el brillo viejo y
+    ; lo de abajo con el nuevo—, que es exactamente el defecto que se veía en
+    ; cada teletransporte: la pantalla volvía a prenderse cuando terminaba la
+    ; carga, o sea a mitad de cuadro, y encima con el scroll y OAM del mapa
+    ; viejo, porque esos también se escriben acá y sólo en el vblank.
     ;
-    ; Cuesta un cuadro más de negro y no cambia un solo pixel de los que la
-    ; tanda compara: la referencia no modela lo que tarda una carga, y por eso
-    ; ningún caso mira adentro de esa ventana.
+    ; Quien quiera cambiar el brillo escribe `brillo` y espera al vblank
+    ; siguiente, igual que quien mueve un sprite escribe OAM y espera. La única
+    ; excepción es el blanking forzado de una carga, que `fundido_tick` escribe
+    ; a mano: ahí la pantalla ya está en negro y el cambio no se ve.
 prender:
-    lda prender_pantalla
-    beq listo
-    stz prender_pantalla
-    lda #$0F
+    lda brillo
     sta INIDISP
-listo:
     rts
 .endproc
 
@@ -9324,19 +9438,16 @@ cruzar:
     sep #$20
 .a8
 
-    ; La pantalla se apaga mientras se carga: cargar_mapa escribe VRAM y CGRAM
-    ; por DMA, y con el PPU dibujando eso sale basura. RM2k también funde a
-    ; negro al cruzar una puerta, así que el parpadeo no desentona.
-    pha
-    lda #$80
-    sta INIDISP
-    pla
-    jsr cargar_mapa
-    stz step_left               ; el paso que se estaba dando quedó allá
-    stz moving
+    ; Y el mapa no se carga acá: RM2k funde a negro al cruzar una puerta —una
+    ; puerta es un teletransporte y le toca la misma transición—, así que se
+    ; pide el fundido y la carga pasa adentro, con la pantalla ya apagada. El
+    ; héroe se queda visible en la celda de la puerta mientras la pantalla baja,
+    ; que es lo que se ve en el original.
+    sta fundido_mapa
+    lda #FUNDIDO_PUERTA
+    jsr empezar_fundido
     lda #1
-    sta prender_pantalla        ; la prende `flush_video`, no acá
-    rts                         ; A queda en 1: cruzó
+    rts                         ; cruzó: la celda de llegada no se pisa
 .endproc
 
 ; --- animación de caminata -------------------------------------------------
@@ -10652,12 +10763,21 @@ done:
 .segment "BSS"
 port0: .res 1
 
-; Un mapa que se acaba de cargar deja la pantalla apagada y prende esta bandera:
-; quien la prende **no** vuelve a encender la pantalla. Lo hace `flush_video` en
-; el vblank siguiente, y el porqué está ahí, en `prender`. Va en la BSS y no en
-; la página directa porque se toca dos veces por cambio de mapa y una vez por
+; Lo que `flush_video` le escribe a INIDISP al final del vblank: el brillo
+; maestro de 0 a BRILLO_MAX. Nadie más lo escribe, y el porqué está en
+; `prender`. Va en la BSS y no en la página directa porque se toca una vez por
 ; cuadro, en ningún lazo cerrado —y la página cero está llena—.
-prender_pantalla: .res 1
+brillo:      .res 1
+
+; El fundido de un teletransporte. Ver `fundido_tick`.
+fundido:      .res 1    ; si hay uno corriendo
+fundido_base: .res 1    ; el valor de `boot_cuadros` cuando arrancó
+fundido_que:  .res 1    ; qué hay que hacer en el cuadro negro, y ya no
+fundido_mapa: .res 1    ; a qué mapa, para los dos casos que cargan
+FUNDIDO_NADA   = 0      ; ya se hizo
+FUNDIDO_PUERTA = 1      ; una puerta: `cargar_mapa`, con su tope de saltos
+FUNDIDO_SALTO  = 2      ; un Teleport a otro mapa
+FUNDIDO_MISMO  = 3      ; un Teleport al mismo: sólo mover al héroe
 
 ; La ruta forzada del héroe, hasta RUTA_MAX órdenes. Vivía en la página cero y
 ; se mudó acá cuando el compositor de texto necesitó lugar: `paso_de_ruta` la
