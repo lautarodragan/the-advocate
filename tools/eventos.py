@@ -39,6 +39,7 @@ MOVE_EVENT = 11330
 CHANGE_EVENT_LOCATION = 10860
 TRADE_EVENT_LOCATIONS = 10870
 SHAKE_SCREEN = 11050
+FLASH_SCREEN = 11040
 LUGAR_CONSTANTE = 0         # p[1]: 0 es la celda escrita, 1 la lee de variables
 
 # Un cuadro de texto. RM2k emite un `ShowMessage` con la primera línea y un
@@ -360,9 +361,20 @@ WEATHER_EFFECTS = 11070
 # efectos antes de su mensaje, así que sin esto esa rama no corre.
 PLAY_SOUND = 11550
 
+# `ShowBattleAnimation` sobre el mapa —`CommandShowBattleAnimation`, 11210—:
+# la animación de batalla se dibuja encima del personaje, con sus propios
+# gráficos y su propio sonido. La ROM no lleva animaciones de batalla, así que
+# la orden se acepta y no se hace nada: lo que se pierde es el dibujo. En la
+# apertura es la explosión con la que CORE rompe la puerta de seguridad del
+# mapa 2; la página que la pide sigue con un `FlashScreen`, que sí se ve, y con
+# el mensaje "CORE performs FURY PUNCH!". Con la orden cortando, esa página no
+# corría y el juego se quedaba sin el pasillo al ascensor.
+SHOW_BATTLE_ANIMATION = 11210
+
 ACEPTADOS_SIN_HACER = {
     WEATHER_EFFECTS,
     PLAY_SOUND,
+    SHOW_BATTLE_ANIMATION,
 }
 
 
@@ -426,6 +438,9 @@ OP_TRUEQUE  = 0x0D      # dos blancos (byte cada uno, como en OP_LUGAR): los
 OP_SACUDIR  = 0x0E      # fuerza (byte), velocidad (byte), cuadros (word):
                         # `ShakeOnce`. Con cero cuadros es `ShakeEnd`: la
                         # pantalla vuelve a su lugar. Ver `sacudida_siguiente`.
+OP_DESTELLO = 0x0F      # r, g, b, fuerza (byte cada uno, 0..31) y cuadros
+                        # (byte): `FlashOnce`, el destello de la pantalla
+                        # entera. Ver `Estado.cuadro_de_destello`.
 OP_BGM      = 0x0B      # el índice del tema en `Temas` (byte). La ROM toca el
                         # que le tocó llevar —`TEMA_INDICE`— y con cualquier
                         # otro no hace nada, que es lo que hacía antes con
@@ -927,6 +942,21 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
             out += bytes([OP_ESPERAR, cuadros & 0xFF, cuadros >> 8])
         return out
 
+    if cmd.code == FLASH_SCREEN:
+        # `CommandFlashScreen`, en su forma de RM2k: color, fuerza, décimas y
+        # si espera. Las 62 del juego son de esa forma, y ninguna dura más de
+        # veinte décimas: el byte de cuadros alcanza, y la ROM divide el nivel
+        # por lo que queda con el divisor de ocho bits del hardware.
+        if len(p) < 6 or any(not 0 <= v <= 31 for v in p[:4]):
+            raise NoSePuede()
+        cuadros = p[4] * CUADROS_POR_DECIMA
+        if cuadros > 0xFF:
+            raise NoSePuede()
+        out = bytes([OP_DESTELLO, p[0], p[1], p[2], p[3], cuadros])
+        if cuadros and p[5]:
+            out += bytes([OP_ESPERAR, cuadros & 0xFF, cuadros >> 8])
+        return out
+
     if cmd.code == TRADE_EVENT_LOCATIONS:
         # `CommandTradeEventLocations`: cada uno va con `MoveTo` a la celda
         # del otro. Sobre el héroe no lo usa ninguna página del juego.
@@ -1263,8 +1293,11 @@ class Ruta:
             if orden == RUTA_SALTO_FIN:
                 continue            # el par ya lo consumió `RUTA_SALTO_INICIO`
             if orden == RUTA_SALTO_INICIO:
-                if self._armar_salto(saltar):
-                    break           # el salto arrancó y se lleva el cuadro
+                armado = self._armar_salto(saltar)
+                if armado is None or armado:
+                    # El salto arrancó y se lleva el cuadro; o no se pudo y la
+                    # ruta no es salteable, y se reintenta el cuadro que viene.
+                    break
                 continue            # no se pudo, o no había `end_jump`
             if orden == RUTA_ESPERAR:
                 # Veinte cuadros, no uno: éste y los diecinueve que siguen. Y
@@ -1318,8 +1351,17 @@ class Ruta:
 
         Sin `end_jump` el salto se saltea y las órdenes que quedaban se pierden,
         que es lo que hace RM2k al llegar al final de la ruta.
+
+        Devuelve True si el salto arrancó, False si se saltea, y None si no se
+        pudo caer y la ruta **no es salteable**: ahí RM2k vuelve el cursor al
+        `begin_jump` —`current_index = saved_index`— y corta el cuadro, así que
+        el salto se reintenta cuadro a cuadro hasta que la celda se libere. Es
+        lo que hace el droide del mapa 2 cuando el jugador se le planta en la
+        celda a la que vuelve: se queda animando contra la pared, y salta apenas
+        el jugador se corre.
         """
         dx = dy = 0
+        guardadas = [RUTA_SALTO_INICIO] + list(self.ordenes)
         direccion = self.mirando
         hubo_fin = False
         while self.ordenes:
@@ -1338,7 +1380,10 @@ class Ruta:
             self.ordenes = []
             return False
         if saltar is not None and not saltar(dx, dy):
-            return False            # no se puede caer ahí: el salto se saltea
+            if self.saltable:
+                return False        # no se puede caer ahí: el salto se saltea
+            self.ordenes = guardadas
+            return None             # se reintenta el cuadro que viene
         # Hacia dónde queda mirando: gana el eje de mayor recorrido, y con
         # empate el vertical. En el lugar no cambia nada.
         if dx or dy:
@@ -1398,6 +1443,16 @@ class Estado:
         self.sacudida_resta = 0
         self.sacudida_fuerza = 0
         self.sacudida_vel = 0
+        # El destello de pantalla: hacia qué color, cuánto nivel le queda —a
+        # escala 256, para que la resta de cada cuadro no se coma el resto— y
+        # cuántos cuadros. Ver `cuadro_de_destello`.
+        self.destello = (0, 0, 0)
+        self.destello_nivel = 0
+        self.destello_resta = 0
+        # Lo que se ve, que va un paso atrás del nivel: ver `cuadro_de_destello`.
+        self.destello_pendiente = 0
+        self.destello_mostrado = 0
+        self.tinte_cambio = False
         self.timer_visible = False
 
     # El héroe visto como estaba antes. Su ruta es una `Ruta` como la de
@@ -1577,7 +1632,49 @@ class Estado:
         acá, una página que sólo destella termina en el primer cuadro y el
         destello no avanza nunca: se queda encendido para siempre.
         """
-        return self.sacudida_resta > 0 or bool(self.flashes) or self.rutas_pendientes()
+        return (self.sacudida_resta > 0 or self.destello_nivel > 0
+                or bool(self.flashes) or self.rutas_pendientes())
+
+    def cuadro_de_destello(self):
+        """Un cuadro del destello de pantalla: `Flash::Update` sin el continuo,
+        que este juego no usa.
+
+        RM2k baja el nivel en `nivel / cuadros_que_quedan` por cuadro, con
+        `double`: de 31 en treinta cuadros, 29.97, 28.93... La consola no tiene
+        `double`, así que el nivel va a escala 256 y la resta es entera. Lo que
+        se dibuja es la parte entera del nivel, de 0 a 31; contra la cuenta con
+        `double` difiere en uno como mucho, que es lo mismo que el tinte.
+
+        En el último cuadro el nivel cae a cero de golpe, como allá: con un
+        cuadro restante la resta es el nivel entero.
+
+        Lo que se **ve** cambia cuadro por medio, y un cuadro después de la
+        cuenta. Es lo que hace la ROM: el destello es una transformación de
+        CGRAM, como el tinte, y rehacer las doscientas y pico entradas de las
+        tres paletas del mapa no entra en un cuadro junto con todo lo demás
+        —medido con `cuadros_perdidos`: perdía uno por cuadro—. Así que la ROM
+        lo reparte: en el cuadro en que a la resta le queda un número impar
+        arma las tablas del nivel de ese cuadro y pasa las paletas del fondo,
+        y en el siguiente pasa las de los sprites y sube todo junto. Un
+        destello de treinta cuadros se ve en quince escalones, y nadie lo
+        distingue de treinta. La excepción es un tinte que cambie en el cuadro
+        impar: ahí la ROM hace todo de una, para que el tinte nuevo no se vea
+        un cuadro sin destello, y lo que se ve es el nivel de ese cuadro.
+        """
+        if self.destello_nivel > 0:
+            if self.destello_resta > 0:
+                self.destello_nivel -= self.destello_nivel // self.destello_resta
+                self.destello_resta -= 1
+            if self.destello_resta <= 0:
+                self.destello_nivel = 0
+                self.destello_mostrado = 0
+            elif self.destello_resta & 1:
+                self.destello_pendiente = self.destello_nivel >> 8
+                if self.tinte_cambio:
+                    self.destello_mostrado = self.destello_pendiente
+            else:
+                self.destello_mostrado = self.destello_pendiente
+        self.tinte_cambio = False
 
     def cuadro_de_sacudida(self):
         """Un cuadro de la sacudida: `Shake::Update` sin la continua, que
@@ -1689,7 +1786,7 @@ class Estado:
 LARGO_DE_OPCODE = {
     OP_FIN: 1, OP_SWITCH: 4, OP_TELEPORT: 6, OP_ESPERAR: 3, OP_TINTE: 5,
     OP_GRUPO: 3, OP_MENSAJE: 3, OP_RUTAS: 1, OP_FLASH: 7, OP_TIMER: 5,
-    OP_BGM: 2, OP_LUGAR: 6, OP_TRUEQUE: 3, OP_SACUDIR: 5,
+    OP_BGM: 2, OP_LUGAR: 6, OP_TRUEQUE: 3, OP_SACUDIR: 5, OP_DESTELLO: 6,
 }
 
 
@@ -2177,6 +2274,15 @@ def ejecutar(codigo, estado, desde=0):
             else:
                 estado.sacudida_pos = estado.sacudida_resta = 0
             i += 5
+        elif op == OP_DESTELLO:
+            # `FlashOnce`: el nivel arranca en la fuerza y baja cuadro a
+            # cuadro. No corta el cuadro: si la página espera, el conversor le
+            # pone un OP_ESPERAR detrás. Con cero cuadros el primer
+            # `cuadro_de_destello` lo apaga sin que se vea.
+            estado.destello = (codigo[i + 1], codigo[i + 2], codigo[i + 3])
+            estado.destello_nivel = codigo[i + 4] << 8
+            estado.destello_resta = codigo[i + 5]
+            i += 6
         elif op == OP_TRUEQUE:
             # `CommandTradeEventLocations`: los dos `MoveTo`, con las celdas
             # leídas antes de mover a ninguno.
@@ -2224,6 +2330,7 @@ def ejecutar(codigo, estado, desde=0):
         elif op == OP_TINTE:
             estado.tinte = (codigo[i + 1], codigo[i + 2], codigo[i + 3],
                             codigo[i + 4])
+            estado.tinte_cambio = True      # lo mira `cuadro_de_destello`
             i += 5
         else:
             raise ValueError("opcode %d que no conozco" % op)
@@ -2294,6 +2401,36 @@ def tenir_canal(canal, valor):
     if valor <= TINTE_NEUTRO:
         return min(31, canal * valor // TINTE_NEUTRO)
     return min(31, 31 - (2 * TINTE_NEUTRO - valor) * (31 - canal) // TINTE_NEUTRO)
+
+
+def destellar_canal_pantalla(canal, hacia, nivel):
+    """Un canal de cinco bits, con el destello de pantalla encima.
+
+    RM2k dibuja el destello como un rectángulo del color pedido con alfa
+    `nivel * 8` sobre la pantalla ya compuesta —`Screen::Draw`—, o sea que
+    cada canal se acerca al del color en `nivel / 31` del camino. Acá va con
+    enteros y sobre cinco bits, y la resta se hace del lado positivo para que
+    la división truncada dé lo mismo en la consola, que no tiene signo en el
+    divisor.
+    """
+    if hacia >= canal:
+        return canal + (hacia - canal) * nivel // 31
+    return canal - (canal - hacia) * nivel // 31
+
+
+def destellar_pantalla(palabra, color, nivel):
+    """Un color de 15 bits con el destello de pantalla encima. `nivel` es la
+    parte entera del de `Estado`, de 0 a 31.
+
+    No es `destellar`, que es el destello de **un personaje** —`FlashSprite`—
+    y tiene otra cuenta: la primera versión de esto se llamaba igual y la
+    tapaba, y la comparación lo cobró con un color de diferencia.
+    """
+    salida = 0
+    for numero, hacia in enumerate(color):
+        canal = (palabra >> (numero * 5)) & 0x1F
+        salida |= destellar_canal_pantalla(canal, hacia, nivel) << (numero * 5)
+    return salida
 
 
 def tenir(palabra, tinte):

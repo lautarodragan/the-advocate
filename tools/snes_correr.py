@@ -58,6 +58,28 @@ QUIETO = 4
 RETRASO_DE_PANTALLA = 1
 
 
+def cuadros_perdidos(consola, rom):
+    """Cuántos cuadros perdió el lazo principal de la ROM, leído de su WRAM.
+
+    La ROM los cuenta en `cuadros_perdidos` —ver `contar_perdidos` en main.s—
+    y la dirección sale de la tabla de símbolos que w65.py deja al lado de la
+    ROM, `<rom>.sym`. Sin tabla no se dice nada: una ROM armada a mano no
+    tiene por qué tenerla. Es un dato en la salida, no una aserción: los
+    saltos de mapa pierden cuadros hoy, y la comparación ya los cobra.
+    """
+    try:
+        with open(rom + ".sym") as handle:
+            simbolos = dict(linea.split() for linea in handle if linea.strip())
+        direccion = int(simbolos["cuadros_perdidos"])
+    except (OSError, KeyError, ValueError):
+        return ""
+    try:
+        perdidos = consola.ram(direccion, 1)[0]
+    except RuntimeError:
+        return ""
+    return ", %d cuadro(s) perdido(s)" % perdidos if perdidos else ""
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -208,10 +230,11 @@ def main():
             # referencia a mitad de camino, que todavía no se hace.
             aviso = ", quieta desde el %d (el plan dice %d)" % (quieto_desde,
                                                                 plan[walk])
-        print("captura -> %s: %s, %d cuadros%s (%d de arranque)%s"
+        print("captura -> %s: %s, %d cuadros%s (%d de arranque)%s%s"
               % (destino, walk, cuadros,
                  " = plan %d + margen %d" % (plan[walk], args.margen)
-                 if del_plan else "", args.arranque, aviso))
+                 if del_plan else "", args.arranque, aviso,
+                 cuadros_perdidos(consola, args.rom)))
 
 
 if __name__ == "__main__":

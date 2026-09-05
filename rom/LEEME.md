@@ -339,6 +339,50 @@ escribir ninguna. Lo usa una sola escena de las que se miran: la puerta de
 arriba a la izquierda del mapa 2, donde Manta la vuela y la puerta se cambia
 de lugar con el evento 21. Es el caso `puerta-izq` de `snes-escena`.
 
+### Los eventos dibujados con un tile del chipset
+
+Una página puede no tener CharSet y dibujarse con un tile de la capa de arriba
+del chipset: así son las puertas y las pantallas del mapa 2, y 22 de sus 42
+eventos. Hasta el 2026-09-05 la ROM no los dibujaba —taro vio la puerta de
+arriba a la izquierda como "un portal negro" con el que igual se podía
+interactuar— porque `collect_npcs` sólo juntaba los que tenían CharSet.
+
+Ahora son un personaje más, con un CharSet inventado que no existe en disco:
+`@tile:<chipset>:<índice>`, que `render_map.Charsets` fabrica desde el atlas
+del chipset —el tile `UPPER + índice` puesto en el lugar del sprite de cada
+una de las doce poses de un CharSet de 24x32—. Con eso el resto no se entera:
+el conversor lo empaqueta y la referencia lo dibuja por el mismo camino que un
+CharSet común. El tile 0 es "sin gráfico" y no cuenta.
+
+Lo que sí se entera son **las paletas de sprite**. Un CharSet del juego usa
+sus quince colores y no comparte ninguna con otro; un tile usa nueve o diez, y
+las puertas del mapa 2 comparten casi todos. Por eso `build_characters`
+empaqueta: un personaje cuyos colores caben en una paleta ya armada va ahí,
+con la unión, y ningún color se fusiona por esto. Sin eso el mapa 2 pedía nueve
+paletas de las ocho. Y donde ni empaquetando alcanza —el mapa 8, siete
+personajes de CharSet más dos tiles que no comparten colores— decide
+`npcs_dibujables`, que corren **los dos lados con la misma función**: los
+CharSets van sí o sí, y los tiles entran en el orden del mapa mientras quepan;
+el que no entra no se dibuja y el conversor lo dice. El evento sigue ahí,
+cierra el paso y dispara igual. Antes de esto no se dibujaba ninguno, así que
+es estrictamente mejor.
+
+Dos cosas salieron de dibujarlos, y las dos las cobró la tanda:
+
+* **La ventana de mensaje no tapaba a los eventos "above".** En RM2k tapa
+  todo —`Priority_Window` es 130—, pero acá es BG2 con prioridad 1 y un
+  evento "above" va en objetos con prioridad 2, que en el modo 3 queda
+  adelante de BG2. Ningún evento con CharSet del juego usa esa capa, así que
+  nunca se había visto; el evento 3 del mapa 7, un tile "above" al lado de la
+  puerta, apareció a través de la ventana en seis casos. Se arregla con la
+  **ventana 1 del PPU** como máscara de objetos, de punta a punta, prendida
+  por un tercer canal de HDMA sólo en las líneas de la ventana de mensaje
+  —`hdma_mascara`, en `armar_hdma`—, y apagada a mano al cerrar, como
+  `BG2SC`. Es exacto: los objetos desaparecen debajo de la ventana y en
+  ninguna otra parte.
+* **La tabla de páginas cruzaba de banco.** Ver "Las tablas van en el banco
+  0".
+
 ### Las rutas propias de las páginas
 
 Desde el 2026-09-05 un evento cuya página activa tiene `move_type` 6 —una ruta
@@ -373,8 +417,16 @@ a velocidad 2, medio pixel por cuadro.
   `UpdateMoveRoute`, y por eso el droide roto gira.
 * **Lo bloqueado se reintenta** si la ruta no es `skippable`: la orden no
   avanza y se vuelve a probar cada cuadro, y es lo que deja plantarse delante
-  del droide y que se quede empujando. Las forzadas se saltean lo bloqueado,
-  como hasta ahora, pidan lo que pidan: ver "Lo que falta".
+  del droide y que se quede empujando. **El salto también**, desde el
+  2026-09-05: `BeginMoveRouteJump` fallido con `skippable` apagado vuelve el
+  cursor al `begin_jump` —`current_index = saved_index`— y corta el cuadro. Es
+  lo que hace el droide de (7,72) cuando el jugador se le planta en la celda
+  a la que vuelve saltando: se queda animando contra la pared, y salta apenas
+  el jugador se corre. Antes el salto se salteaba y la ruta seguía, y taro lo
+  vio como "deja de ejecutar su animación". Sin `end_jump` no hay a qué
+  volver y se saltea siempre. Es el caso `droide-tapado`. Las forzadas se
+  saltean lo bloqueado, como hasta ahora, pidan lo que pidan: ver "Lo que
+  falta".
 * **Se repite** volviendo al principio en el mismo cuadro, una vez por cuadro.
   **No lee órdenes nuevas mientras el intérprete tiene una página corriendo**
   —`IsRunning()` en `UpdateNextMovementAction`—, pero el paso en curso se
@@ -930,6 +982,74 @@ receta hacía hasta ahora —las esperas se miraban con margen—:
   antes en la referencia, con el mismo estado de los dos lados. `timer_texto`
   usa ahora la cuenta de antes de descontar el cuadro.
 
+### El destello de pantalla
+
+`FlashScreen` (11040) es `OP_DESTELLO` desde el 2026-09-05: color, fuerza y
+cuadros, y un `OP_ESPERAR` detrás si la página espera, como la sacudida. Lo
+pide la escena en que Core rompe la puerta de seguridad del mapa 2 —evento 22,
+página del switch 7, la que abre el pasillo al ascensor—, y era lo que la
+cortaba junto con `ShowBattleAnimation` (11210), que ahora **se acepta y no se
+hace**: la ROM no lleva animaciones de batalla, y lo que se pierde es la
+explosión dibujada sobre Core; el destello rojo que viene detrás sí se ve. El
+juego tiene 62 destellos, 29 de ellos blancos; ninguno dura más de veinte
+décimas.
+
+**La cuenta.** `Flash::Update` baja el nivel en `nivel / cuadros_que_quedan`
+por cuadro, con `double`: de 31 en treinta cuadros es 29.97, 28.93, ... hasta
+cero en el último. Acá el nivel va a escala 256 y la resta es entera, con el
+divisor del hardware; lo que se dibuja es la parte entera, y contra la cuenta
+con `double` difiere en uno como mucho. RM2k lo dibuja como un rectángulo del
+color con alfa `nivel * 8` sobre la pantalla compuesta —`Screen::Draw`—, y
+acá es lo mismo que el tinte: **una transformación de CGRAM**. Cada canal de
+cada color de las tres paletas del mapa se acerca al del destello en
+`nivel / 31` del camino (`destellar_canal_pantalla` en eventos.py, con la
+resta del lado positivo porque el divisor no tiene signo), el resultado va a
+`pal_buf` y `flush_video` lo sube en el vblank en lugar de la sombra. La sombra
+queda como está: es el mapa teñido sin destello, y cuando el destello se apaga
+vuelve a subirse tal cual. La ventana y el cronómetro no lo reciben, y tampoco
+allá: `Priority_Screen` es 90 contra 130 y 140.
+
+**Va en dos cuadros, y eso se midió.** Pasar las doscientas y pico entradas
+de las tres paletas —a más de cien ciclos cada una, porque cada color se parte
+en tres canales y se vuelve a armar— no entra en un cuadro junto con todo lo
+demás. La primera versión lo hacía en uno y **perdía un cuadro por cuadro**:
+el destello bajaba a la mitad de velocidad y la escena terminaba treinta
+cuadros atrás de la referencia, con el cuadro 600 en rojo y los de antes en
+cero. Lo dijo `cuadros_perdidos` —ver "Los cuadros perdidos se cuentan"—, y
+con un lazo de retardo calibrado en lugar del recoloreo salió que en esos
+cuadros hay unos 11 ms de margen, y que el recoloreo entero costaba más. Así
+que con la resta impar se arman las tablas del nivel y se pasan el fondo y la
+capa de encima, y con la par se pasan los sprites y se sube todo. Lo que se
+ve cambia cuadro por medio, un destello de treinta cuadros son quince
+escalones, y la referencia hace exactamente lo mismo —`destello_mostrado` en
+`Estado.cuadro_de_destello`—. Un tinte que cambie en el cuadro impar pisa
+`pal_buf` con la paleta recién teñida y además no puede subirse sin destello,
+así que ese cuadro se hace de una y el par rehace el fondo; la referencia
+mira `tinte_cambio` para lo mismo.
+
+**Y la RAM.** `pal_buf` es a la vez donde se arma la paleta teñida y donde
+queda la sombra con destello: la primera se copia a la sombra en el mismo
+cuadro, antes de que `destello_tick` escriba, y lo que hay se sube en el
+vblank que sigue. Las tablas son bytes y no palabras ya corridas —que le
+ahorrarían los corrimientos al recoloreo— porque **el banco 0 quedó en 7905
+bytes de 7936**, con la pila arriba de todo: quedan unas decenas de bytes de
+pila más lo que `pal_buf` no use. Es lo primero que hay que aflojar si algo
+más pide RAM.
+
+Dos trampas de nombres que costaron una vuelta cada una: el destello de
+**un personaje** (`FlashSprite`) ya tenía `destellar` y `destellar_imagen` en
+la referencia, con otra cuenta, y la primera versión de esto se llamó igual y
+las tapó —un color de diferencia en toda la pantalla—; y `pal_buf` no puede
+declararse con otro nombre por `=`, porque `w65.py` resuelve los `=` antes que
+las etiquetas.
+
+**Cómo se verifica.** El caso `core-puerta` de `snes-escena`: el héroe pisa
+el evento 22 desde (87,76) con el switch 7 puesto, seis toques de A y seis
+cuadros en cero, dos de ellos —407 y 425— con el destello a la mitad. Los
+cuadros del destello se eligieron con el nivel de cada uno leído de la
+referencia y de la ROM en un pixel negro, que es como se vio que iba a la
+mitad de velocidad.
+
 ### El arranque dura siempre lo mismo
 
 Para comparar un cuadro en movimiento el cuadro N de la captura tiene que
@@ -1137,6 +1257,34 @@ Buscar esa ventana tiene su propia trampa: `xdotool search --name` no la
 encuentra, porque sin gestor de ventanas mednafen publica `_NET_WM_NAME` y
 `search` mira `WM_NAME`. Hay que enumerar y preguntarle el nombre a cada una.
 
+### Los cuadros perdidos se cuentan
+
+Desde el 2026-09-05 la NMI queda prendida después del arranque y `boot_cuadros`
+sigue contando vblanks. Al final de cada vuelta del lazo principal,
+`contar_perdidos` mira cuántos pasaron desde la vuelta anterior: uno es lo
+normal, y cada uno de más es un cuadro que la vuelta se comió, porque tardó
+más que un cuadro y `wait_vblank` tuvo que esperar al siguiente. Se mira al
+final de la vuelta y no a la salida de `wait_vblank`, donde la NMI de ese
+cuadro puede no haber corrido todavía. `cuadros_perdidos` satura en 255.
+
+Lo lee `snes_correr.py` de la WRAM del emulador, por la tabla de símbolos que
+`w65.py --simbolos` deja al lado de la ROM —`<rom>.sym`, que `snes-build`
+pide siempre—, y lo imprime en la línea de cada captura cuando no es cero. Es
+un dato, no una aserción: **los saltos de mapa pierden cuadros hoy** —la
+cinemática de apertura suma 8 en los primeros 300 y 20 al final, todos en
+teletransportes— y la comparación ya los cobra donde importan. Lo demás que
+se midió el 2026-09-05: abrir un mensaje pierde uno cada tanto, el cronómetro
+uno, `saturar` cuatro. Ninguno cambia un pixel de los que se comparan.
+
+Sirve para dos cosas. Para saber **por qué** una comparación da rojo —un
+droide un cuadro corrido puede ser un lazo lento, y hasta ahora la única forma
+de verlo era trazar la WRAM cuadro a cuadro— y para medir cuánto margen hay:
+un lazo de retardo de N ciclos en el lazo principal, y ver desde qué N empieza
+a perder. Así salió que el destello de pantalla no entraba en un cuadro y
+cuántos milisegundos había, ver "El destello de pantalla". Y de paso, con
+`retro.Consola.ram()` y la tabla de símbolos, cualquier variable de la ROM se
+lee por nombre: fue lo que dijo que la tabla de páginas se leía de la WRAM.
+
 ## El personaje
 
 Las poses de RM2k son de 24x32 y la SNES no tiene ese tamaño de objeto: el más
@@ -1278,6 +1426,17 @@ aparece la otra cara de LoROM: **un banco sólo tiene sus 32 K de arriba**, así
 que pasarse del `$FFFF` no lleva al `$0000` del banco siguiente sino a su
 `$8000`. Dos rutinas de diez líneas, `ptr_mas` y `ptr_menos`, son las únicas que
 saben eso; todo lo demás las usa y se olvida del tema.
+
+Y una tabla que se recorra con `[ptr], y` sin cruzar de banco **tiene que
+declararse con `.bloque`**, que es lo que le dice al enlazador que la ponga
+entera de un lado. La tabla de páginas de evento no lo hacía —"sus punteros son
+simbólicos", decía el comentario, que es verdad y no tiene nada que ver— y
+sobrevivió hasta el 2026-09-05, cuando los sprites del mapa 2 crecieron con
+los eventos de tile y la tabla quedó a caballo de `$02FFFF`: la ROM leyó las
+últimas páginas desde `$03:0000`, que es el espejo de la WRAM, y con ellas la
+página de prueba de la sacudida al borde, que nunca arrancó. La tanda lo cobró
+con un fondo corrido seis pixeles y nada que dijera por qué; lo dijo la RAM:
+`pg_evento` valía `$5555`, que es con lo que snes9x llena la memoria.
 
 ## Cómo está armado
 
@@ -1745,11 +1904,18 @@ comparación.
   ésa es la que trae su página, que la ruta no lee. **Encarar al héroe** y la
   **frecuencia** ya están, desde el 2026-09-04: ver "La frecuencia de la ruta,
   y encarar al héroe".
-* **El cartucho.** Con las poses en el cartucho una vez por ROM, la del
-  arranque con los mapas 4, 1 y 2, ventana y música se arma con **22 KB
-  libres** de 224 de datos. Es poco margen para lo que viene —cada personaje
-  que cambia de pose son 6 KB— y el día que no entre la salida es pasar a 512
-  KB, que LoROM admite y `w65.py` tiene escrito como constante.
+* **El cartucho es de 512 KB desde el 2026-09-05.** Con las poses en el
+  cartucho una vez por ROM, la del arranque con los mapas 4, 1 y 2, ventana y
+  música se armaba con 1,6 KB libres de los 224 de datos —el "22 KB" que
+  decía esto era de antes de los droides—, y los sprites de los eventos de
+  tile la pasaron por 3,7 KB. Así que `ROM_BANKS` es 16, el área de datos
+  480 KB y la cabecera dice `$09`. **Es un cambio de mapeo que ningún caso de
+  la tanda ve**: los tres emuladores cargan el archivo del doble sin
+  preguntar, y el cartucho real lo lee taro con el FX Pak. Y no es la única
+  salida: el acolchado de bloques es de **20 KB** en esa ROM —un bloque de
+  18 KB que no entra en lo que queda del banco deja 12 KB vacíos—, y un
+  enlazador que acomode los bloques en los huecos los recuperaría. No se hizo
+  porque el crecimiento sigue: cada personaje que cambia de pose son 6 KB.
 
   Y dos ideas de taro para cuando haga falta apretar assets, anotadas para no
   perderlas: **paletas calculadas sobre todas las imágenes del juego** a la
@@ -1871,7 +2037,19 @@ comparación.
 * **Mapas con más de ocho personajes distintos.** Los sprites van en 4 bits y
   hay ocho paletas para ellos, una por CharSet. Yun Town usa diez y Sorbe
   Village once, así que no convierten. Los dos venían tapados detrás del
-  problema de las paletas de la capa de encima, que ya está resuelto.
+  problema de las paletas de la capa de encima, que ya está resuelto. Los
+  eventos dibujados con un tile del chipset se empaquetan desde el 2026-09-05
+  y los que no entran se dejan de dibujar en vez de cortar el mapa: ver "Los
+  eventos dibujados con un tile del chipset".
+* **El panorama.** El mapa 2 tiene uno —`screen`, puntitos sobre azul que
+  desplaza en diagonal solo— y es lo que taro vio faltar cuando la pantalla
+  grande se enciende. El modo 3 tiene dos capas de fondo y las dos están
+  tomadas, el mapa y la capa de encima con la ventana; un panorama pide una
+  tercera o el modo 1, que la conversión no usa. No es prioridad.
+* **La animación de batalla sobre el mapa.** `ShowBattleAnimation` se acepta y
+  no se hace desde el 2026-09-05: la explosión con la que Core rompe la puerta
+  de seguridad no se dibuja, y el destello que la sigue sí. Ver "El destello
+  de pantalla".
 * **El ataque y el decaimiento** siguen saliendo de las ocho familias de
   `sdsp.py`, elegidas a ojo cuando el banco era sintético. El SoundFont trae los
   suyos por instrumento y todavía no se leen. (El release ya no: ver arriba.)

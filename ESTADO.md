@@ -12,11 +12,26 @@ es la misma operación con pérdida que compactar, sólo que a un archivo.
 
 ## Lo próximo: que taro vuelva a jugar `demo-apertura`, y el ascensor
 
-Los cuatro puntos de abajo están hechos y `demo-apertura` rearmada con todo.
+Los siete puntos de abajo están hechos y `demo-apertura` rearmada con todo.
 Lo que sigue: que taro la juegue de nuevo —en el emulador y en la SNES— y
-diga qué se rompe; y el ascensor, que es el evento 30 del mapa 2 con el
-switch 11, cuya página ya compila desde `ShakeScreen` pero no tiene caso en
-la tanda ni nadie lo vio correr.
+llegue al ascensor, que es el evento 30 del mapa 2 con el switch 11, cuya
+página ya compila desde `ShakeScreen` pero no tiene caso en la tanda ni nadie
+lo vio correr. La segunda vuelta de taro (2026-09-05, más tarde) dejó tres
+cosas y dos menores, todas más abajo como 5, 6 y 7; de las menores, el
+panorama queda afuera a propósito.
+
+**Tres números para tener a mano.** El banco 0 de RAM está en **7905 bytes de
+7936**, con la pila arriba de todo: lo que sigue que pida RAM tiene que
+aflojar algo primero —`pal_buf` ya se comparte con el destello, y las tablas
+del destello son bytes por esto—. El lazo principal **no tiene margen en sus
+picos**: con 1,9 ms de más pierde cuadros en el arranque, con 11 ms en los
+cuadros de una cinemática quieta; ahora se ve, `cuadros_perdidos`, en la
+línea de cada captura de `snes_correr.py`. Y **el cartucho pasó a 512 KB**
+el 2026-09-05, porque `demo-apertura` no entraba por 3,7 KB: ver "El
+cartucho" en el LEEME. Es un cambio de mapeo que la tanda no puede ver —los
+emuladores cargan el archivo del doble sin más— y que **taro tiene que probar
+en la SNES con el FX Pak**; `snes-validar` tampoco corrió acá, que es de
+podman, pero compara el primer banco y eso no cambió.
 
 ### Lo que taro jugó el 2026-09-05, y por qué faltaba cada cosa
 
@@ -64,8 +79,9 @@ siempre lo mismo" en el LEEME. Antes cada receta llevaba un número medido a
 mano que se corría con cada cambio.
 
 **`demo-apertura` está rearmada** el 2026-09-05 con todo esto adentro —
-colisión, trueque, transparencia, sacudida, tinte en el vblank y arranque
-fijo y los droides—, así:
+colisión, trueque, transparencia, sacudida, tinte en el vblank, arranque
+fijo, los droides, los eventos de tile, el destello y el salto que se
+reintenta—, así:
 
     python3 tools/snes_convert.py --grupo 10 --map-id 4 --mapas 1 2 --con-ventana \
         -o rom/build/demo-apertura/mapdata.inc
@@ -85,16 +101,44 @@ se rearmaron y son de antes de todo esto.
    Manta y Kersh caminan ahora a dieciséis cuadros por celda, y por eso los
    cuadros de la cinemática se movieron al 300 y al 560.
 
-Dos cosas que salieron de esto y quedan para después:
+5. **Hecho el 2026-09-05: la puerta de arriba a la izquierda se ve.** taro
+   la veía como un portal negro con el que igual se podía interactuar: era un
+   evento dibujado con un tile del chipset, y ésos no se dibujaban en ningún
+   mapa. Ahora son un personaje más, con un CharSet inventado desde el atlas
+   del chipset y las paletas de sprite empaquetadas; los que no entran en las
+   ocho —el mapa 8 tiene uno— no se dibujan y el conversor lo dice, de los
+   dos lados con la misma función. Ver "Los eventos dibujados con un tile del
+   chipset" en el LEEME. De dibujarlos salieron dos errores viejos que la
+   tanda cobró: la ventana de mensaje no tapaba a los eventos "above" —ahora
+   una máscara de objetos por HDMA—, y la tabla de páginas del mapa cruzaba
+   de banco y se leía de la WRAM.
+6. **Hecho el 2026-09-05: Core rompe la puerta de seguridad.** La página del
+   switch 7 del evento 22 la cortaban `ShowBattleAnimation`, que ahora se
+   acepta sin hacerse —se pierde la explosión—, y `FlashScreen`, que es
+   `OP_DESTELLO`: una transformación de CGRAM como el tinte, repartida en dos
+   cuadros porque en uno perdía un cuadro por cuadro, medido. Ver "El
+   destello de pantalla". Es el caso `core-puerta`, seis cuadros en cero.
+7. **Hecho el 2026-09-05: el droide tapado contra la pared retoma.** El
+   salto bloqueado de una ruta no salteable se reintenta cada cuadro, como el
+   paso; antes se salteaba y taro lo vio como que dejaba de animar. Es el
+   caso `droide-tapado`. La tanda queda en **73 casos**.
 
-* **Un detector de cuadros perdidos.** Dos veces el lazo de la ROM tardó más
-  de un cuadro —el refresco y la búsqueda de capa— y la única forma de verlo
-  fue trazar la WRAM cuadro a cuadro: la comparación de pixeles lo mostraba
-  como un droide un cuadro corrido. Un contador de vblanks llegados tarde en
-  `wait_vblank`, y una receta que lo lea, lo haría gritar solo.
+Y el detector de cuadros perdidos que pedía el traspaso anterior está: ver
+"Los cuadros perdidos se cuentan" en el LEEME. Es un dato en la salida de
+cada captura, no una aserción, porque los saltos de mapa pierden cuadros hoy
+y la tanda está en verde con eso.
+
+Queda para después:
+
+* **El panorama del mapa 2**, los puntitos sobre azul que taro vio faltar al
+  encenderse la pantalla grande: pide una tercera capa de fondo y el modo 3
+  tiene dos. Anotado en "Lo que falta" del LEEME.
 * **Lo que las rutas propias no modelan** está en el LEEME: los otros tipos
   de movimiento —106 páginas van hacia el héroe—, el giro en el lugar, y que
   una forzada retome la de la página por donde iba.
+* **El cuadro que se pierde al abrir un mensaje**, cada tanto, y los de los
+  teletransportes: se ven ahora, no cambian ningún pixel comparado, y no se
+  tocaron.
 
 ## Hecho el 2026-09-05: la apertura entera, con quince toques de A
 

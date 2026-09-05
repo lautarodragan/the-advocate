@@ -65,6 +65,8 @@ snes-escena 2 "7 74" 14 down "3 8 25 60 106 200" 67 droide ""
 snes-escena 2 "7 74" 14 down "10 20 30 45 100" 67 droide-roto "" 22
 snes-escena 2 "7 71" 14 down "20 60 120 300" 67 droide-frenado ""
 snes-escena 2 "32 58" 14 down "50 120 300 600" 67 droide-cuadrado ""
+snes-escena 2 "7 73" "23 0 23 23 23 2" up "25 50 80 95 130" 67 droide-tapado ""
+snes-escena 2 "87 76" 0 up "380 407 410 425 470 600" 67 core-puerta "242 311 362 457 568 588" 7
 snes-ruta-pisa
 snes-ruta-pisa 70 "12 8" "0 0 0 0 0" 0 "100 200" 67 ruta-pasa
 snes-ruta-pisa 70 "12 8" "0 0 0 0" "60 0 0 50" "50 200" 67 ruta-pisa-cola

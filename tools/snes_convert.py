@@ -407,6 +407,74 @@ def pose_tiles(image, index, pose, lookup, mapping):
     return out
 
 
+def npcs_dibujables(renderer, game_map, lideres, tope):
+    """Los NPCs del mapa que se dibujan: todos los que tienen CharSet, y los
+    dibujados con un tile del chipset **que entren** en las paletas de sprite.
+
+    Un evento con gráfico de tile es un personaje más para la consola, con su
+    paleta, y las paletas de sprite son ocho —siete con el cronómetro—. Los
+    CharSets del juego usan quince colores cada uno y no comparten ninguna, así
+    que en un mapa con siete personajes de CharSet queda una sola paleta para
+    todos los tiles, y dos tiles que no compartan colores no entran. Pasó en el
+    mapa 8: nueve personajes en nueve paletas. Antes de esto los eventos de
+    tile directamente no se dibujaban en ningún mapa —la puerta del mapa 2 era
+    un portal negro—, así que dibujar los que entran y avisar de los que no es
+    estrictamente mejor.
+
+    La regla es una sola y la corren los dos lados con esta función: primero
+    se reparten los líderes posibles y los NPCs con CharSet, en el orden del
+    mapa y con el mismo primer-lugar-que-entre de `build_characters`; después
+    los tiles, en el orden del mapa, cada uno mientras quepa. Devuelve la lista
+    de NPCs que se dibujan y la de los (evento, tile) que quedaron afuera.
+    Un tile que quedó afuera no se dibuja, pero su evento sigue ahí: cierra el
+    paso y dispara igual.
+    """
+    paletas = []
+
+    def cabe(charset, index, forzar):
+        palette, _, _ = paleta_del_personaje(renderer.charsets.get(charset),
+                                             index)
+        for numero, existente in enumerate(paletas):
+            union = existente | set(palette)
+            if len(union) <= OBJ_COLORS:
+                paletas[numero] = union
+                return True
+        if forzar or len(paletas) < tope:
+            paletas.append(set(palette))
+            return True
+        return False
+
+    vistos = set()
+    for actor in lideres:
+        a = renderer.database.actors[actor]
+        clave = (a.charset, a.charset_index)
+        if clave not in vistos and sprite_colors(
+                renderer.charsets.get(a.charset), a.charset_index):
+            vistos.add(clave)
+            cabe(a.charset, a.charset_index, True)
+    npcs = collect_npcs(game_map)
+    for npc in npcs:
+        clave = (npc["charset"], npc["index"])
+        if clave not in vistos and not npc["charset"].startswith(rm2k.TILE_PREFIX):
+            vistos.add(clave)
+            cabe(npc["charset"], npc["index"], True)
+    entran, afuera, salida = set(), set(), []
+    for npc in npcs:
+        clave = (npc["charset"], npc["index"])
+        if clave in vistos or clave in entran:
+            salida.append(npc)
+        elif clave in afuera:
+            pass
+        elif cabe(npc["charset"], npc["index"], False):
+            entran.add(clave)
+            salida.append(npc)
+        else:
+            afuera.add(clave)
+    descartados = [(npc["evento"], npc["charset"]) for npc in npcs
+                   if (npc["charset"], npc["index"]) in afuera]
+    return salida, descartados
+
+
 def build_characters(images, personajes, ranuras):
     """El banco de sprites que va a VRAM: una pose por ranura.
 
@@ -430,9 +498,23 @@ def build_characters(images, personajes, ranuras):
         if (charset, index) in paleta_de:
             continue
         palette, lookup, mapping = paleta_del_personaje(images[charset], index)
-        paleta_de[(charset, index)] = len(palettes)
+        # Si sus colores caben en una paleta ya armada, va ahí: se le suman
+        # los que falten y se le da el índice de cada uno. Ningún color se
+        # fusiona por esto, así que la referencia no se entera. Existe por
+        # los eventos dibujados con un tile del chipset —las puertas del
+        # mapa 2—, que son cada uno un personaje y comparten casi todos los
+        # colores: sin esto el mapa 2 pedía nueve paletas de las ocho.
+        for numero, existente in enumerate(palettes):
+            union = list(existente) + [c for c in palette if c not in existente]
+            if len(union) <= OBJ_COLORS:
+                palettes[numero] = union
+                lookup = {color: union.index(color) + 1 for color in palette}
+                paleta_de[(charset, index)] = numero
+                break
+        else:
+            paleta_de[(charset, index)] = len(palettes)
+            palettes.append(list(palette))
         colores[(charset, index)] = (lookup, mapping)
-        palettes.append(palette)
 
     where = {}
     for block, (clave, charset, index, pose) in enumerate(ranuras):
@@ -448,14 +530,14 @@ def build_characters(images, personajes, ranuras):
                                             lookup, mapping)):
             number = first + (i // 4) * OBJ_ROW + (i % 4)
             tiles[number * 32:(number + 1) * 32] = tile
-    return bytes(tiles), palettes, where, paleta_de
+    return bytes(tiles), palettes, where, paleta_de, colores
 
 
 # Una pose en el cartucho: los 16 tiles seguidos, por filas.
 POSE_BYTES = 16 * 32
 
 
-def banco_de_poses(images, personajes):
+def banco_de_poses(images, personajes, colores):
     """Las doce poses de cada personaje que cambia de pose, para el cartucho.
 
     Un bloque por personaje —doce poses de 512 bytes, 6 KB— y no uno para
@@ -468,7 +550,10 @@ def banco_de_poses(images, personajes):
     """
     bancos = {}
     for charset, index in personajes:
-        _palette, lookup, mapping = paleta_del_personaje(images[charset], index)
+        # Con el lookup de `build_characters`, que es el de la paleta en la
+        # que quedó empaquetado: una pose subida en caliente se dibuja con la
+        # paleta que ya está en CGRAM.
+        lookup, mapping = colores[(charset, index)]
         datos = bytearray()
         for pose in range(SPRITE_POSES):
             for tile in pose_tiles(images[charset], index, pose, lookup,
@@ -1351,9 +1436,17 @@ def tabla_de_paginas(mapa, numero):
     """Las páginas de evento del mapa, con el puntero a su código.
 
     No pasa por `bloque()` porque sus punteros son simbólicos: apuntan adentro
-    del bloque de código, que el enlazador ubica.
+    del bloque de código, que el enlazador ubica. Pero **sí se declara** con
+    `.bloque`: la ROM la recorre con `[pag_ptr], y`, y una tabla que cruce de
+    banco sigue en `$03:0000`, que en LoROM no es ROM sino el espejo de la
+    WRAM. Sin la declaración pasó de verdad: al crecer los sprites del mapa 2
+    con los eventos dibujados con un tile, la tabla quedó a caballo de
+    `$02FFFF`, la ROM leyó basura en vez de las últimas páginas —entre ellas la
+    de prueba— y la sacudida al borde del mapa no arrancaba nunca. La tanda lo
+    cobró en pixeles sin decir por qué; lo dijo la RAM del emulador.
     """
-    out = ["paginas_%d:" % numero]
+    out = [".bloque %d" % (PAGINA_BYTES * len(mapa["paginas"])),
+           "paginas_%d:" % numero]
     # Qué eventos tienen alguna página con ruta propia: el refresco de la ROM
     # sólo mira las páginas de ésos, y con los demás no gasta ni una lectura.
     con_ruta = {p["evento"] for p in mapa["paginas"] if p.get("ruta_propia")}
@@ -1492,6 +1585,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "OP_LUGAR    = $%02X\n"
         "OP_TRUEQUE  = $%02X\n"
         "OP_SACUDIR  = $%02X\n"
+        "OP_DESTELLO = $%02X\n"
         "; Las tres operaciones del cronómetro.\n"
         "TIMER_PONER    = %d\n"
         "TIMER_ARRANCAR = %d\n"
@@ -1580,6 +1674,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            eventos.OP_RUTA, eventos.OP_MENSAJE, eventos.OP_RUTAS,
            eventos.OP_FLASH, eventos.OP_TIMER, eventos.OP_BGM,
            eventos.OP_LUGAR, eventos.OP_TRUEQUE, eventos.OP_SACUDIR,
+           eventos.OP_DESTELLO,
            eventos.TIMER_PONER, eventos.TIMER_ARRANCAR,
            TIMER_X, TIMER_Y, TIMER_GLIFO_W, TIMER_GLIFOS - 1,
            eventos.CUADROS_POR_SEGUNDO, eventos.TIMER_CUADROS_DE_MAS,
@@ -2451,10 +2546,9 @@ def inicio_del_mapa(renderer, map_id, passable, width, height, ocupadas=()):
 def images_de(renderer, args, charset):
     """El CharSet de un actor, cargado y cacheado."""
     if charset not in _charsets:
-        path = find_resource([REPO, args.game_dir, RTP_DIR], "CharSet", charset)
-        if not path:
+        _charsets[charset] = renderer.charsets.get(charset)
+        if _charsets[charset] is None:
             sys.exit("no encuentro el CharSet %r" % charset)
-        _charsets[charset] = load_image(path)
     return _charsets[charset]
 
 
@@ -2531,7 +2625,8 @@ args_game_dir = [GAME_DIR]
 
 def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
     """Un mapa entero: tiles, colores, sprites, colisión y bloques."""
-    game_map = lcf.Map(os.path.join(args.game_dir, "Map%04d.lmu" % map_id))
+    game_map = renderer.cargar_mapa(
+        os.path.join(args.game_dir, "Map%04d.lmu" % map_id))
     name = renderer.tree.map_names.get(map_id, "?")
 
     base, _above = renderer.render_layers(game_map)
@@ -2546,7 +2641,19 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
     # Los personajes: el héroe con sus 12 poses porque camina, y cada NPC con la
     # que declara su página. Si un NPC usa el mismo personaje que el héroe,
     # comparten paleta y tiles sin que haya que hacer nada.
-    npcs = collect_npcs(game_map)
+    #
+    # Los dígitos del cronómetro se llevan una de las ocho paletas de sprite,
+    # así que el techo baja a siete. Los eventos dibujados con un tile del
+    # chipset entran mientras quepan en ese techo; la referencia dibuja
+    # exactamente los mismos, con la misma función.
+    tope_de_paletas = 7 if args.con_timer else 8
+    npcs, descartados = npcs_dibujables(renderer, game_map, args.lideres,
+                                        tope_de_paletas)
+    for evento, tile in descartados:
+        print("  mapa %d: el evento %d, dibujado con el tile %s, no entra en "
+              "las %d paletas de sprite y no se dibuja"
+              % (map_id, evento + 1, tile[len(rm2k.TILE_PREFIX):],
+                 tope_de_paletas))
     # Quiénes van a caminar. A ésos les hacen falta las doce poses del ciclo, y
     # el resto se queda con la única que declara su página.
     orden = orden_de_mapas(args)
@@ -2608,24 +2715,22 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
     images = {}
     for charset, _index in personajes:
         if charset not in images:
-            path = find_resource([REPO, args.game_dir, RTP_DIR],
-                                 "CharSet", charset)
-            if not path:
+            # Por el cargador del renderer, que también fabrica el CharSet de
+            # un evento dibujado con un tile del chipset.
+            images[charset] = renderer.charsets.get(charset)
+            if images[charset] is None:
                 sys.exit("no encuentro el CharSet %r" % charset)
-            images[charset] = load_image(path)
 
-    # Los dígitos del cronómetro se llevan una de las ocho paletas de sprite,
-    # así que el techo baja a siete. Se cuenta acá y no después de armarlas
-    # porque el mensaje tiene que nombrar al culpable, que es el mapa.
-    tope_de_personajes = 7 if args.con_timer else 8
-    if len(personajes) > tope_de_personajes:
-        sys.exit("el mapa usa %d personajes y hay %d paletas de sprite%s"
-                 % (len(personajes), tope_de_personajes,
+    tiles, palettes, where, paleta_de, colores = build_characters(
+        images, personajes, ranuras)
+    # Se cuenta acá y no adentro porque el mensaje tiene que nombrar al
+    # culpable, que es el mapa. Con `npcs_dibujables` arriba esto ya no
+    # tendría que fallar por un tile; si falla es por los CharSets.
+    if len(palettes) > tope_de_paletas:
+        sys.exit("el mapa usa %d personajes en %d paletas y hay %d de sprite%s"
+                 % (len(personajes), len(palettes), tope_de_paletas,
                     " con el cronómetro puesto" if args.con_timer else ""))
-
-    tiles, palettes, where, paleta_de = build_characters(images, personajes,
-                                                          ranuras)
-    bancos = banco_de_poses(images, animados)
+    bancos = banco_de_poses(images, animados, colores)
     indice_animado = {p: k for k, p in enumerate(animados)}
     # El cronómetro, si esta ROM lo lleva: sus glifos van al final del banco y
     # se llevan una paleta de sprite propia.

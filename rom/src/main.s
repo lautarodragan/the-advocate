@@ -100,7 +100,17 @@ DMAP2    = $4320
 BBAD2    = $4321
 A1T2L    = $4322
 A1B2     = $4324
-HDMA_VENTANA = $06      ; los canales 1 y 2 prendidos a la vez
+DMAP3    = $4330
+BBAD3    = $4331
+A1T3L    = $4332
+A1B3     = $4334
+HDMA_VENTANA = $0E      ; los canales 1, 2 y 3 prendidos a la vez
+; La ventana 1 del PPU, que no es la de mensaje: es la máscara con la que se
+; esconden los objetos debajo de ella. Ver `armar_hdma`.
+WOBJSEL  = $2125        ; qué ventanas del PPU enmascaran objetos
+WH0      = $2126        ; el borde izquierdo de la ventana 1
+WH1      = $2127        ; y el derecho
+TMW      = $212E        ; a qué capas de la pantalla principal se les aplica
 
 ; El puerto de la WRAM. Sirve para lo que el DMA normal no puede hacer solo:
 ; copiar de la ROM a la RAM. El DMA va siempre del bus A al bus B, y la WRAM
@@ -526,6 +536,10 @@ grupo_listo:
     sta vq_tope
     stz sacudida_resta
     stz sacudida_resta + 1
+    stz destello_nivel          ; la RAM arranca con basura: sin esto el
+    stz destello_nivel + 1      ; primer cuadro sale destellado
+    stz destello_resta
+    stz destello_listo
     rep #$20
 .a16
     stz ev_esperando
@@ -581,8 +595,11 @@ espera_boot:
     lda boot_cuadros
     cmp #BOOT_CUADROS
     bcc espera_boot
-    lda #$01
-    sta NMITIMEN                ; la NMI ya cumplió; el pad automático sigue
+    ; La NMI sigue contando después del arranque: es la única forma de saber
+    ; si una vuelta del lazo se pasó del cuadro. Ver `contar_perdidos`.
+    lda boot_cuadros
+    sta nmi_visto
+    stz cuadros_perdidos
 
 loop:
     jsr wait_vblank
@@ -601,6 +618,7 @@ loop:
     jsr flashes_tick            ; y los destellos, en el mismo lugar
     jsr timer_tick              ; y un cuadro del cronómetro
     jsr sacudida_tick           ; y uno de la sacudida de pantalla
+    jsr destello_tick           ; y uno del destello de pantalla
     jsr animate_hero
     jsr follow_camera
     jsr stream_map              ; la columna o la fila que la cámara destapó
@@ -608,14 +626,44 @@ loop:
                                 ; componiendo, si hay alguno
     jsr build_oam               ; y se arma el siguiente, ya fuera del vblank
     jsr music_tick
+    jsr contar_perdidos
     bra loop
+.endproc
+
+; Cuántos vblanks pasaron desde la vuelta anterior: uno es lo normal, y cada
+; uno de más es un cuadro que la ROM perdió, porque la vuelta tardó más que un
+; cuadro y `wait_vblank` tuvo que esperar al siguiente. Se mira acá, al final
+; de la vuelta, y no a la salida de `wait_vblank`: ahí la NMI de este cuadro
+; puede no haber corrido todavía. Contra la referencia un cuadro perdido es
+; una posición atrasada, y la comparación lo cobra en pixeles sin decir por
+; qué; este contador dice por qué. Lo lee snes_correr.py por la WRAM del
+; emulador, y en la consola no lo lee nadie. Satura en 255.
+.proc contar_perdidos
+.a8
+.i16
+    lda boot_cuadros
+    sec
+    sbc nmi_visto
+    dec a                       ; el vblank que le tocaba a esta vuelta
+    beq al_dia
+    clc
+    adc cuadros_perdidos
+    bcc cabe
+    lda #255
+cabe:
+    sta cuadros_perdidos
+al_dia:
+    lda boot_cuadros
+    sta nmi_visto
+    rts
 .endproc
 
 ; --- espera de vblank ------------------------------------------------------
 ; Sin NMI habilitada, se mira la bandera de HVBJOY: primero que salga del
 ; vblank anterior y después que entre al siguiente.
-; La NMI del arranque: suma un cuadro y baja la bandera. No toca nada más, y
-; deja P como estaba porque `rti` lo saca de la pila.
+; La NMI: suma un cuadro y baja la bandera. No toca nada más, y deja P como
+; estaba porque `rti` lo saca de la pila. Corre durante el arranque, para que
+; dure siempre lo mismo, y después también: ver `contar_perdidos`.
 .proc nmi_boot
     sep #$20
 .a8
@@ -779,11 +827,15 @@ ppu_altos:
     .byte $00,$00,$00,$00,$00   ; $211A-E modo 7
     .byte $00,$00               ; $211F-20 modo 7
     .byte $00,$00               ; $2121 CGADD, $2122 CGDATA
-    .byte $00,$00,$00           ; $2123-5 selección de ventanas
-    .byte $00,$00,$00,$00       ; $2126-9 posiciones de ventanas
+    .byte $00,$00,$00           ; $2123-5 selección de ventanas: la 1 se le
+                                ; prende a los objetos por HDMA, sólo en las
+                                ; líneas de la ventana de mensaje
+    .byte $00,$FF,$00,$00       ; $2126-9 posiciones de ventanas: la 1 va de
+                                ; punta a punta, para que tape todo objeto
     .byte $00,$00               ; $212A-B lógica de ventanas
     .byte $00,$00               ; $212C TM, $212D TS: ninguna capa visible
-    .byte $00,$00               ; $212E TMW, $212F TSW
+    .byte $10,$00               ; $212E TMW: la máscara vale para los objetos
+                                ; de la pantalla principal. $212F TSW
     .byte $30,$00               ; $2130 CGWSEL: color math apagado. $2131
     .byte $E0,$00               ; $2132 COLDATA: color fijo negro. $2133
 ppu_altos_end:
@@ -966,6 +1018,9 @@ puesto:
     ; deja los colores donde estaban, así que no hace falta preguntar si hay
     ; tinte: el camino es siempre el mismo.
     jsr aplicar_tinte
+    stz destello_listo          ; lo que hubiera en `pal_buf` ya no
+                                ; es de este mapa; el cuadro que viene lo
+                                ; vuelve a armar si el destello sigue
     jsr subir_tinte             ; la pantalla está apagada: va ya
     rts
 .endproc
@@ -2142,6 +2197,9 @@ otro:
 :   cmp #OP_SACUDIR
     bne :+
     jmp op_sacudir
+:   cmp #OP_DESTELLO
+    bne :+
+    jmp op_destello
 :   cmp #OP_TIMER
     bne :+
     jmp op_timer
@@ -2371,6 +2429,27 @@ con_cuadros:
     iny
     sep #$20
 .a8
+    jmp otro
+
+; `FlashOnce`: el color, el nivel a escala 256 y los cuadros. No corta el
+; cuadro: si la página espera, el conversor le pone un OP_ESPERAR detrás.
+op_destello:
+    lda [cod_ptr], y            ; r
+    sta destello_rgb
+    iny
+    lda [cod_ptr], y            ; g
+    sta destello_rgb + 1
+    iny
+    lda [cod_ptr], y            ; b
+    sta destello_rgb + 2
+    iny
+    lda [cod_ptr], y            ; la fuerza, que es el nivel de arranque
+    sta destello_nivel + 1
+    stz destello_nivel
+    iny
+    lda [cod_ptr], y            ; cuadros
+    sta destello_resta
+    iny
     jmp otro
 
 ; "Esperá a que terminen las rutas". Si no queda ninguna corriendo no cuesta ni
@@ -3115,6 +3194,33 @@ cabe:
 .a8
 .i16
     stz tinte_listo
+    rep #$20
+.a16
+    lda #.loword(cgram_sombra)
+    sta sombra_origen
+    sep #$20
+.a8
+    jmp subir_paletas
+.endproc
+; Lo mismo desde `pal_buf`, que es donde queda la sombra con el destello de
+; pantalla encima. Se lleva el tinte pendiente, si lo había: el destello ya
+; se armó sobre la sombra recién teñida.
+.proc subir_destello
+.a8
+.i16
+    stz destello_listo
+    stz tinte_listo
+    rep #$20
+.a16
+    lda #.loword(pal_buf)
+    sta sombra_origen
+    sep #$20
+.a8
+    jmp subir_paletas
+.endproc
+.proc subir_paletas
+.a8
+.i16
     ldx mapa_ofs
     rep #$20
 .a16
@@ -3144,7 +3250,7 @@ cabe:
     jsr dma_sombra
     jmp subir_timer_pal
 .endproc
-; Un DMA de `tin_count` colores desde `cgram_sombra` a la entrada A de CGRAM.
+; Un DMA de `tin_count` colores desde `sombra_origen` a la entrada A de CGRAM.
 .proc dma_sombra
 .a8
 .i16
@@ -3154,7 +3260,7 @@ cabe:
     and #$00FF
     asl a
     clc
-    adc #.loword(cgram_sombra)
+    adc sombra_origen
     sta A1T0L
     lda tin_count
     asl a                       ; dos bytes por color
@@ -4638,10 +4744,26 @@ no_encara:
     cmp #24
     bne no_es_salto
     jsr preparar_movil          ; quién salta, para chocar con los demás
+    lda ruta_ev + 5, x
+    dec a
+    sta salto_orden             ; dónde está el 24, por si hay que volver
     jsr armar_salto_ev
     lda ruta_ev + 13, x
     bne salto_arranco
-    jmp otra_orden              ; no se pudo caer ahí: se saltea
+    ; No se pudo caer ahí. Con la ruta salteable el salto se saltea; sin eso
+    ; RM2k vuelve el cursor al `begin_jump` y corta el cuadro —`current_index
+    ; = saved_index`—, y el salto se reintenta cuadro a cuadro hasta que la
+    ; celda se libere. Sin `end_jump` no hay a qué volver: se saltea siempre.
+    lda salto_trabado
+    beq saltear
+    lda ruta_ev + 18, x
+    and #$04
+    bne saltear
+    lda salto_orden
+    sta ruta_ev + 5, x
+    jmp listo
+saltear:
+    jmp otra_orden
 salto_arranco:
     jmp listo
 no_es_salto:
@@ -6376,6 +6498,313 @@ positivo:
     rts
 .endproc
 
+; --- el destello de pantalla -------------------------------------------------
+; Un cuadro del destello de pantalla: `Flash::Update` de easyrpg, con la cuenta
+; entera que describe `Estado.cuadro_de_destello` en eventos.py. El nivel va a
+; escala 256 y baja en `nivel / cuadros_que_quedan` por cuadro, con el divisor
+; del hardware; en el último cuadro cae a cero.
+;
+; RM2k dibuja el destello como un rectángulo del color con alfa encima de la
+; pantalla compuesta. Acá es una transformación de CGRAM, como el tinte: cada
+; canal de cada color de las tres paletas del mapa se acerca al del destello en
+; `nivel / 31` del camino —`destellar_canal`—, y el resultado va a
+; `pal_buf`, que `flush_video` sube en el vblank en lugar de la sombra.
+; La sombra queda como está: es el mapa teñido sin destello, y cuando el
+; destello se apaga vuelve a subirse tal cual.
+;
+; Pasar las tres paletas —doscientas y pico entradas, a más de cien ciclos
+; cada una— no entra en un cuadro junto con todo lo demás: medido con
+; `cuadros_perdidos`, se perdía uno por cuadro, y el resto de la escena
+; quedaba treinta cuadros atrás de la referencia. Así que va en dos cuadros:
+; con la resta impar se arman las tablas y se pasan el fondo y la capa de
+; encima; con la resta par se pasan los sprites y se sube todo. Lo que se ve
+; cambia cuadro por medio, y la referencia hace exactamente lo mismo
+; —`Estado.cuadro_de_destello`—. Un tinte que cambie en el cuadro impar pisa
+; `pal_buf` con la paleta recién teñida, y además no puede subirse sin
+; destello; en ese cuadro se hace todo de una, y en el par se rehace el fondo.
+;
+; La ventana de mensaje y el cronómetro no reciben el destello, y tampoco allá:
+; `Priority_Screen` es 90 contra 130 de la ventana y 140 del cronómetro.
+.proc destello_tick
+.a8
+.i16
+    rep #$20
+.a16
+    lda destello_nivel
+    bne hay
+    sep #$20
+.a8
+    rts
+.a16
+hay:
+    sep #$20
+.a8
+    lda destello_resta
+    beq apagar
+    rep #$20
+.a16
+    lda destello_nivel
+    sta WRDIVL                  ; el dividendo, de 16 bits
+    sep #$20
+.a8
+    lda destello_resta
+    sta WRDIVB                  ; arranca: el cociente tarda dieciséis ciclos
+    dec destello_resta          ; seis ciclos, y los nops que faltan
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    rep #$20
+.a16
+    lda destello_nivel
+    sec
+    sbc RDDIVL
+    sta destello_nivel
+    sep #$20
+.a8
+    lda destello_resta
+    beq apagar
+    and #$01
+    beq fase_par
+    jsr tablas_de_destello
+    jsr destellar_fondo
+    lda tinte_listo
+    beq listo                   ; lo normal: los sprites van el cuadro que viene
+    jsr destellar_sprites
+    bra subir
+fase_par:
+    lda tinte_listo
+    beq sprites
+    jsr destellar_fondo         ; el tinte nuevo pisó el fondo ya pasado
+sprites:
+    jsr destellar_sprites
+subir:
+    lda #1
+    sta destello_listo
+listo:
+    rts
+apagar:
+    ; Se terminó: el nivel cae a cero y la sombra sin destello vuelve a CGRAM.
+    stz destello_nivel
+    stz destello_nivel + 1
+    stz destello_resta
+    lda #1
+    sta tinte_listo
+    rts
+.endproc
+
+; Las tres tablas del destello, una por canal: qué queda de cada valor de
+; cinco bits con el nivel de este cuadro. Son bytes y no palabras ya corridas
+; a su lugar del color, que le ahorrarían los corrimientos a
+; `destellar_rango`: la RAM del banco 0 no daba para los 96 bytes de más.
+.proc tablas_de_destello
+.a8
+.i16
+    lda destello_nivel + 1      ; la parte entera del nivel, de 0 a 31
+    sta dest_nivel
+    rep #$20
+.a16
+    lda #.loword(dest_tab_r)
+    sta temp
+    sep #$20
+.a8
+    lda destello_rgb
+    jsr una_tabla_de_destello
+    rep #$20
+.a16
+    lda #.loword(dest_tab_g)
+    sta temp
+    sep #$20
+.a8
+    lda destello_rgb + 1
+    jsr una_tabla_de_destello
+    rep #$20
+.a16
+    lda #.loword(dest_tab_b)
+    sta temp
+    sep #$20
+.a8
+    lda destello_rgb + 2
+    jmp una_tabla_de_destello
+.endproc
+
+; Una tabla: A es el canal del color del destello y `temp` apunta a la tabla.
+; Es `destellar_canal`:
+;
+;     hacia >= canal:  canal + (hacia - canal) * nivel / 31
+;     hacia <  canal:  canal - (canal - hacia) * nivel / 31
+;
+; La resta va siempre del lado positivo, porque el divisor no tiene signo.
+.proc una_tabla_de_destello
+.a8
+.i16
+    sta dest_hacia
+    ldy #0
+valor:
+    tya                         ; el valor, de 0 a 31
+    sta dest_v
+    cmp dest_hacia
+    bcc sube
+    beq sube
+    sec
+    sbc dest_hacia
+    jsr producto_sobre_31
+    sta dest_d
+    lda dest_v
+    sec
+    sbc dest_d
+    bra guardar
+sube:
+    lda dest_hacia
+    sec
+    sbc dest_v
+    jsr producto_sobre_31
+    clc
+    adc dest_v
+guardar:
+    sta (temp), y
+    iny
+    cpy #32
+    bne valor
+    rts
+
+; A = A * nivel / 31, por el multiplicador y el divisor del hardware.
+producto_sobre_31:
+    sta WRMPYA
+    lda dest_nivel
+    sta WRMPYB                  ; arranca: el producto tarda ocho ciclos
+    nop
+    nop
+    nop
+    nop
+    rep #$20
+.a16
+    lda RDMPYL
+    sta WRDIVL
+    sep #$20
+.a8
+    lda #31
+    sta WRDIVB                  ; arranca: el cociente tarda dieciséis ciclos
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    lda RDDIVL
+    rts
+.endproc
+
+; Las paletas del fondo y de la capa de encima, de la sombra a `pal_buf`
+; pasadas por las tablas. Son las mismas entradas y cuentas que `subir_tinte`.
+.proc destellar_fondo
+.a8
+.i16
+    ldx mapa_ofs
+    rep #$20
+.a16
+    lda mapa_tabla + M_MAP_CGRAM, x
+    sta tin_count
+    sep #$20
+.a8
+    lda #0
+    jsr destellar_rango
+    ldx mapa_ofs
+    rep #$20
+.a16
+    lda mapa_tabla + M_ABOVE_CGRAM, x
+    sta tin_count
+    sep #$20
+.a8
+    lda mapa_tabla + M_ABOVE_FIRST, x
+    jmp destellar_rango
+.endproc
+
+; Y las de los sprites.
+.proc destellar_sprites
+.a8
+.i16
+    ldx mapa_ofs
+    rep #$20
+.a16
+    lda mapa_tabla + M_SPRITE_CGRAM, x
+    sta tin_count
+    sep #$20
+.a8
+    lda #128
+    jmp destellar_rango
+.endproc
+
+; `tin_count` colores desde la entrada A: cada uno se parte en sus tres
+; canales, cada canal pasa por su tabla, y las tres palabras se juntan.
+.proc destellar_rango
+.a8
+.i16
+    rep #$20
+.a16
+    and #$00FF
+    asl a                       ; dos bytes por color
+    tax
+    lda tin_count
+    asl a
+    beq nada
+    sta dest_fin
+    txa
+    clc
+    adc dest_fin
+    sta dest_fin
+color:
+    lda cgram_sombra, x
+    sta temp                    ; el color, y en temp + 2 lo que se va armando
+    and #$001F
+    tay
+    lda dest_tab_r, y           ; y el byte que sigue, que se enmascara
+    and #$00FF
+    sta temp + 2
+    lda temp
+    and #$03E0
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    tay
+    lda dest_tab_g, y
+    and #$00FF
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a
+    ora temp + 2
+    sta temp + 2
+    lda temp
+    xba                         ; el azul queda en los bits 2 a 6
+    and #$007C
+    lsr a
+    lsr a
+    tay
+    lda dest_tab_b, y
+    and #$00FF
+    xba                         ; por 256, y dos más son los diez bits
+    asl a
+    asl a
+    ora temp + 2
+    sta pal_buf, x
+    inx
+    inx
+    cpx dest_fin
+    bne color
+nada:
+    sep #$20
+.a8
+    rts
+.endproc
+
 ; --- la cámara -------------------------------------------------------------
 ; Sigue al héroe: lo deja en el centro de la pantalla salvo cerca de los bordes
 ; del mapa, donde se queda pegada para no mostrar el vacío de afuera.
@@ -7079,6 +7508,14 @@ columna:
 ; Las dos tablas que el compositor consulta en su lazo interno. Van en el banco
 ; 0 como el resto de las tablas: `lda tabla, x` direcciona el banco de datos.
 .segment "TABLAS"
+; La tabla del HDMA que enmascara los objetos debajo de la ventana de mensaje:
+; nada en las 144 líneas de arriba —en dos tramos, por los 7 bits del contador—
+; y la ventana 1 prendida para los objetos en las 80 de abajo. Ver `armar_hdma`.
+hdma_mascara:
+    .byte 127, $00
+    .byte (VENTANA_LINEA - 127), $00
+    .byte (LINEAS - VENTANA_LINEA), $02
+    .byte 0
 
 ; De qué byte del buffer arranca cada una de sus dieciséis filas. El buffer son
 ; dos filas de celda, así que la fila Y cae en el tile (Y/8) por 30 columnas de
@@ -7261,6 +7698,23 @@ hay:
     ldx #hdma_ofs
     stx A1T2L
     stz A1B2
+
+    ; Y el tercer canal esconde los objetos debajo de la ventana. En RM2k la
+    ; ventana de mensaje tapa todo —`Priority_Window` es 130 y los personajes
+    ; van por debajo—, pero acá es BG2 con prioridad 1, y un evento marcado
+    ; "above" va en objetos con prioridad 2, que en el modo 3 queda *adelante*
+    ; de BG2: se veía a través de la ventana. Lo cobró la tanda con la puerta
+    ; del mapa 7 apenas los eventos dibujados con un tile pasaron a sprites.
+    ; La máscara es la ventana 1 del PPU, de punta a punta, prendida para los
+    ; objetos sólo en las líneas de la ventana de mensaje: `hdma_mascara`,
+    ; que no cambia nunca y vive en la ROM.
+    lda #$00
+    sta DMAP3
+    lda #<WOBJSEL
+    sta BBAD3
+    ldx #.loword(hdma_mascara)
+    stx A1T3L
+    stz A1B3
     rts
 .endproc
 
@@ -7763,10 +8217,17 @@ sin_segunda:
 .a8
 .i16
     jsr push_oam
+    lda destello_listo
+    beq sin_destello
+    jsr subir_destello          ; el destello, o el tinte, van antes que las
+    lda #2                      ; poses y les comen presupuesto en este
+    sta vq_tope                 ; mismo vblank
+    bra sin_tinte
+sin_destello:
     lda tinte_listo
     beq sin_tinte
-    jsr subir_tinte             ; el tinte va antes que las poses, y les come
-    lda #2                      ; presupuesto en este mismo vblank
+    jsr subir_tinte
+    lda #2
     sta vq_tope
 sin_tinte:
     jsr vram_drenar             ; las poses que esta OAM ya da por subidas
@@ -7863,6 +8324,9 @@ no_termino:
     rts
 sin_ventana:
     stz HDMAEN
+    ; Sin HDMA la máscara de objetos queda como la dejó la última línea, que
+    ; es prendida: se apaga a mano, como BG2SC acá abajo.
+    stz WOBJSEL
     ; BG2SC hay que devolverlo a mano: el HDMA lo dejó con el tilemap de la
     ; ventana en la última línea que escribió, y sin HDMA nadie lo vuelve a
     ; tocar. Cuesta dos instrucciones y evita tener que acordarse de esto al
@@ -9201,6 +9665,7 @@ listo:
 .i16
     stz salto_dx
     stz salto_dy
+    stz salto_trabado
 buscar:
     lda ruta_ev + 5, x
     cmp ruta_ev + 4, x
@@ -9245,6 +9710,7 @@ con_fin:
     cmp #0                      ; `plx` pone Z según lo que saca de la pila
     bne se_puede
     stz ruta_ev + 13, x
+    inc salto_trabado           ; había `end_jump` y la celda está ocupada
     rts
 se_puede:
     ; La celda de destino, que `celda_del_evento` dejó en celda_x/celda_y.
@@ -10174,11 +10640,29 @@ trueque_b:   .res 1
 ; negra en el hardware; lo delató la sacudida, que compara cuadro por cuadro.
 cgram_sombra: .res 512
 tinte_listo:  .res 1
+; Y el destello de pantalla: si hay uno armado en `pal_buf` para subir,
+; de dónde sube `dma_sombra`, y el destello en sí.
+destello_listo: .res 1
+sombra_origen:  .res 2
+destello_rgb:   .res 3
+destello_nivel: .res 2  ; a escala 256: el byte alto es lo que se dibuja
+destello_resta: .res 1
+dest_tab_r:  .res 32    ; las tres tablas, de 32 bytes cada una
+dest_tab_g:  .res 32
+dest_tab_b:  .res 32
+dest_nivel:  .res 1
+dest_hacia:  .res 1
+dest_v:      .res 1
+dest_d:      .res 1
+dest_fin:    .res 2
 ; Cuántas poses puede subir `vram_drenar` este vblank: VQ_POR_CUADRO, salvo
 ; que el tinte ya se haya llevado parte del presupuesto.
 vq_tope:      .res 1
-; Los cuadros que van del reset, contados por la NMI mientras dura el arranque.
+; Los cuadros que van del reset, contados por la NMI: el arranque espera a que
+; sean BOOT_CUADROS, y después sigue contando para `contar_perdidos`.
 boot_cuadros: .res 1
+nmi_visto:        .res 1  ; lo que valía al final de la vuelta anterior
+cuadros_perdidos: .res 1  ; los que el lazo principal dejó pasar, saturado
 sacudida_pos:    .res 2
 sacudida_resta:  .res 2
 sacudida_fuerza: .res 1
@@ -10192,6 +10676,8 @@ sac_lo:    .res 2
 sac_hi:    .res 2
 capa_ev:     .res 2
 capa_hallada: .res 1
+salto_orden:   .res 1  ; el índice del `begin_jump` que se está armando
+salto_trabado: .res 1  ; 1 si el salto no arrancó porque la celda está ocupada
 ; Lo que `armar_salto` va juntando mientras recorre las órdenes de un salto:
 ; cuánto se desplaza en celdas —con signo— y hacia dónde queda apuntando.
 salto_dx:  .res 1
@@ -10249,6 +10735,11 @@ puro_ofs: .res 2
 ; leyéndola y volviéndola a escribir: un segundo tinte se compondría con el
 ; primero. Siempre se parte de la paleta original, que está en la ROM.
 pal_buf:  .res 512
+; La sombra con el destello de pantalla encima —lo que arma `destellar_rango`
+; y sube `subir_destello`— vive en este mismo lugar: la paleta teñida se arma y
+; se copia a la sombra en el mismo cuadro, antes de que `destello_tick` escriba
+; acá, y lo que hay se sube en el vblank que sigue. La RAM del banco 0 no daba
+; para otros 512 bytes.
 
 .segment "CODE"
 
@@ -10412,7 +10903,7 @@ done:
     .byte "ABL SNES MUSIC POC   "  ; 21 caracteres
     .byte $20                      ; LoROM, velocidad lenta
     .byte $00                      ; sólo ROM, sin RAM ni chips extra
-    .byte $08                      ; tamaño: 256 KB (el byte es log2 de los KB)
+    .byte $09                      ; tamaño: 512 KB (el byte es log2 de los KB)
     .byte $00                      ; sin SRAM
     .byte $01                      ; región
     .byte $00                      ; desarrollador

@@ -69,7 +69,7 @@ snes-convert mapa="7":
       --reference {{snes_pngs}}/python.png
 
 snes-build:
-  python3 tools/w65.py rom/src/main.s -I {{snes_inc}} -o {{snes_rom}}
+  python3 tools/w65.py rom/src/main.s -I {{snes_inc}} -o {{snes_rom}} --simbolos {{snes_rom}}.sym
 
 # Corre la ROM sin pantalla y captura lo que dibuja. Las teclas se mantienen
 # apretadas mientras corre, para capturar con la cámara movida.

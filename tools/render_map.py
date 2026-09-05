@@ -22,6 +22,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import charset
 import lcf
+import rm2k
 from chipset import ChipsetAtlas, TILE, UPPER
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -113,18 +114,41 @@ def draw_tiles(image, atlas, game_map, flags, pass_upper):
 class Charsets:
     """Cache de CharSets, que se repiten mucho entre los eventos de un mapa."""
 
-    def __init__(self, search_dirs):
+    def __init__(self, search_dirs, atlas_por_nombre=None):
         self.search_dirs = search_dirs
         self.images = {}
         self.missing = set()
+        self.atlas_por_nombre = atlas_por_nombre
 
     def get(self, name):
         if name not in self.images:
-            path = find_resource(self.search_dirs, "CharSet", name)
-            if not path:
-                self.missing.add(name)
-            self.images[name] = load_image(path) if path else None
+            if name.startswith(rm2k.TILE_PREFIX):
+                self.images[name] = self._de_tile(name)
+            else:
+                path = find_resource(self.search_dirs, "CharSet", name)
+                if not path:
+                    self.missing.add(name)
+                self.images[name] = load_image(path) if path else None
         return self.images[name]
+
+    def _de_tile(self, name):
+        """Un CharSet inventado con un tile de la página alta del chipset en
+        las doce poses del personaje 0, apoyado en la celda: el cuadro de un
+        personaje mide 24x32 y se dibuja en (x - 4, y - 16), así que el tile
+        de 16x16 va en (4, 16) de cada cuadro. Es lo que hace `draw_events`
+        con un evento sin CharSet, sólo que como sprite, para que se mueva y
+        se cambie de lugar como cualquier otro."""
+        _, chipset, indice = name.split(":", 2)
+        atlas = self.atlas_por_nombre(chipset) if self.atlas_por_nombre else None
+        if atlas is None:
+            self.missing.add(name)
+            return None
+        tile = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
+        atlas.render_tile(tile, 0, 0, UPPER + int(indice))
+        image = Image.new("RGBA", (288, 256), (0, 0, 0, 0))
+        for pose in range(12):
+            image.paste(tile, ((pose % 3) * 24 + 4, (pose // 3) * 32 + 16))
+        return image
 
 
 def draw_events(image, atlas, charsets, events, layer, ignore_conditions):
@@ -155,18 +179,28 @@ class Renderer:
         self.database = lcf.Database(os.path.join(game_dir, "RPG_RT.ldb"))
         self.tree = lcf.TreeMap(os.path.join(game_dir, "RPG_RT.lmt"))
         self.search_dirs = [REPO, game_dir, rtp_dir]
-        self.charsets = Charsets(self.search_dirs)
+        self.charsets = Charsets(self.search_dirs, self.atlas_por_nombre)
         self.atlases = {}
         self.missing_chipsets = set()
 
     def atlas(self, chipset):
         """Los ChipSets se repiten entre mapas y expandirlos no es gratis."""
-        if chipset.filename not in self.atlases:
-            path = find_resource(self.search_dirs, "ChipSet", chipset.filename)
+        return self.atlas_por_nombre(chipset.filename)
+
+    def atlas_por_nombre(self, filename):
+        if filename not in self.atlases:
+            path = find_resource(self.search_dirs, "ChipSet", filename)
             if not path:
-                self.missing_chipsets.add(chipset.filename)
-            self.atlases[chipset.filename] = ChipsetAtlas(load_image(path)) if path else None
-        return self.atlases[chipset.filename]
+                self.missing_chipsets.add(filename)
+            self.atlases[filename] = ChipsetAtlas(load_image(path)) if path else None
+        return self.atlases[filename]
+
+    def cargar_mapa(self, path):
+        """El mapa, con el nombre de su chipset puesto: `collect_npcs` lo
+        necesita para los eventos que se dibujan con un tile."""
+        game_map = lcf.Map(path)
+        game_map.chipset_nombre = self.database.chipsets[game_map.chipset_id].filename
+        return game_map
 
     def render_layers(self, game_map):
         """El mapa en dos capas separadas, como las ordena RM2k.

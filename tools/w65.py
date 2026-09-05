@@ -48,7 +48,7 @@ import sys
 # Lo que sí paga el precio es el 65816: un puntero de 24 bits no avanza solo de
 # $00FFFF a $018000, hay que ayudarlo. Está en `advance`, en main.s.
 BANK_SIZE = 0x8000
-ROM_BANKS = 8
+ROM_BANKS = 16          # 512 KB desde el 2026-09-05: ver el LEEME, "El cartucho"
 
 # TABLAS va en el banco 0, junto al código, y no es un detalle de acomodo: el
 # direccionamiento absoluto indexado —`lda tabla, x`— usa el registro de banco
@@ -59,7 +59,7 @@ AREAS = [
     ("ROM",  0x00000, 0x07FC0, ["CODE", "TABLAS"]),
     ("HEAD", 0x07FC0, 0x00020, ["HEADER"]),
     ("VECT", 0x07FE0, 0x00020, ["VECTORS"]),
-    ("DATA", 0x08000, 0x38000, ["RODATA"]),
+    ("DATA", 0x08000, 0x78000, ["RODATA"]),
 ]
 # La RAM no sale en el archivo: se ubica por dirección, no por desplazamiento.
 RAM_AREAS = [
@@ -938,6 +938,11 @@ def main():
     parser.add_argument("--sin-checksum", action="store_true",
                         help="no completar el checksum de la cabecera, para "
                              "poder comparar contra ca65, que no lo escribe")
+    parser.add_argument("--simbolos", metavar="ARCHIVO",
+                        help="escribir la tabla de símbolos, un `nombre valor` "
+                             "por línea. Es lo que deja mirar la RAM de la "
+                             "ROM corriendo desde snes_correr.py: hoy, "
+                             "`cuadros_perdidos`")
     args = parser.parse_args()
 
     assembler = Assembler(checksum=not args.sin_checksum,
@@ -951,6 +956,11 @@ def main():
     with open(args.output, "wb") as handle:
         handle.write(rom)
     print("%s -> %s (%d bytes)" % (args.source, args.output, len(rom)))
+    if args.simbolos:
+        with open(args.simbolos, "w") as handle:
+            for nombre, valor in sorted(assembler.symbols.items()):
+                if isinstance(valor, int):
+                    handle.write("%s %d\n" % (nombre, valor))
 
 
 if __name__ == "__main__":

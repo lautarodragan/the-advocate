@@ -152,12 +152,32 @@ LAYER_SAME = 1     # la del héroe, y la única que le choca
 LAYER_ABOVE = 2
 
 
+# Un evento sin CharSet se dibuja con un tile de la página alta del chipset:
+# así están hechas las puertas, los cofres y buena parte del decorado. Para el
+# resto del programa es un CharSet más, con este nombre inventado, que lleva el
+# chipset y el índice del tile; `render_map.Charsets` sabe fabricar su imagen.
+TILE_PREFIX = "@tile:"
+
+
+def nombre_de_tile(chipset, indice):
+    return "%s%s:%d" % (TILE_PREFIX, chipset, indice)
+
+
 def collect_npcs(game_map):
-    """Los eventos visibles, con su pose y si bloquean el paso."""
+    """Los eventos visibles, con su pose y si bloquean el paso.
+
+    Los que se dibujan con un tile del chipset entran también, con un CharSet
+    inventado —ver `nombre_de_tile`—, siempre que quien cargó el mapa le haya
+    puesto `chipset_nombre`; el tile 0 es "sin gráfico".
+    """
     npcs = []
+    chipset = getattr(game_map, "chipset_nombre", None)
     for numero, event in enumerate(game_map.events):
         page = event.active_page()
-        if page is None or not page.character_name:
+        if page is None:
+            continue
+        if not page.character_name and (page.character_index == 0
+                                        or chipset is None):
             continue
         # La caminata son cuatro fases sobre tres columnas: la del medio va dos
         # veces, así que la cuarta dibuja la misma que la segunda.
@@ -168,8 +188,9 @@ def collect_npcs(game_map):
             # con huecos en la numeración.
             "evento": numero,
             "x": event.x, "y": event.y,
-            "charset": page.character_name,
-            "index": page.character_index,
+            "charset": (page.character_name or
+                        nombre_de_tile(chipset, page.character_index)),
+            "index": page.character_index if page.character_name else 0,
             "pose": page.character_direction * 3 + column,
             "layer": page.layer,
             "blocks": page.layer == LAYER_SAME,

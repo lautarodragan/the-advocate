@@ -97,13 +97,19 @@ class Mundo:
     otro mapa y la comparación mediría dos ROMs distintas.
     """
 
-    def __init__(self, renderer, game_dir, ids, prueba=None, mensajes=None):
+    def __init__(self, renderer, game_dir, ids, prueba=None, mensajes=None,
+                 grupo=(), con_timer=False):
         self.prueba = prueba
+        # Para `npcs_dibujables`: qué líderes puede haber y cuántas paletas de
+        # sprite quedan, que deciden qué eventos dibujados con un tile se ven.
+        self.grupo = list(grupo)
+        self.con_timer = con_timer
         self.renderer = renderer
         self.game_dir = game_dir
         self.ids = list(ids)
         self.indices = {map_id: i for i, map_id in enumerate(self.ids)}
         self.cache = {}
+        self.npcs_cache = {}
         self.paginas_cache = {}
         self.mensajes = mensajes
         # Los temas se numeran igual que en el conversor, en el orden en que los
@@ -151,8 +157,8 @@ class Mundo:
 
     def mapa(self, map_id):
         if map_id not in self.cache:
-            game_map = lcf.Map(os.path.join(self.game_dir,
-                                            "Map%04d.lmu" % map_id))
+            game_map = self.renderer.cargar_mapa(
+                os.path.join(self.game_dir, "Map%04d.lmu" % map_id))
             chipset = self.renderer.database.chipsets[game_map.chipset_id]
             passable = passability_map(game_map, build_passability(chipset))
             ocupadas = {(n["x"], n["y"]) for n in collect_npcs(game_map)}
@@ -160,6 +166,26 @@ class Mundo:
                        if p["mapa"] in self.ids}
             self.cache[map_id] = (game_map, passable, ocupadas, puertas)
         return self.cache[map_id]
+
+    def npcs(self, map_id):
+        """Los NPCs que se dibujan en el mapa: los mismos que dibuja la ROM.
+
+        Es `snes_convert.npcs_dibujables`, con los mismos líderes posibles y
+        el mismo tope de paletas que usó el conversor: un evento dibujado con
+        un tile que no entró en las paletas de sprite no se dibuja de ningún
+        lado. Para chocar y para las velocidades siguen valiendo todos, por
+        `collect_npcs` directo.
+        """
+        if map_id not in self.npcs_cache:
+            game_map = self.mapa(map_id)[0]
+            snes_convert.args_game_dir[0] = self.game_dir
+            lideres = snes_convert.lideres_posibles(
+                self.renderer, self.ids, self.grupo,
+                self.mensajes is not None)
+            self.npcs_cache[map_id] = snes_convert.npcs_dibujables(
+                self.renderer, game_map, lideres,
+                7 if self.con_timer else 8)[0]
+        return self.npcs_cache[map_id]
 
 
 # El mismo tope que `saltos_restantes` en la ROM: dos mapas que se
@@ -282,6 +308,7 @@ def cuadro_de_eventos(estado, passable, game_map, heroe, paginas=(),
     estado.cuadro_de_flashes()
     estado.cuadro_de_timer()
     estado.cuadro_de_sacudida()
+    estado.cuadro_de_destello()
 
 
 def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
@@ -600,6 +627,29 @@ def hero_position(mundo, estado, map_id, direction_name, inicio=None,
                 desde[1] * TILE + step[1] * avance,
                 direction, pasos)
     return map_id, x * TILE, y * TILE, direction, pasos
+
+
+def destellar_pantalla(view, color, nivel):
+    """El destello de pantalla, color por color, con la cuenta de
+    `eventos.destellar_pantalla` sobre los 15 bits. Es el hermano de
+    `tenir_imagen`, y no es `destellar_imagen`, que es el destello de **un
+    personaje** y tiene otra cuenta."""
+    pixels = view.load()
+    memo = {}
+    for y in range(view.height):
+        for x in range(view.width):
+            pixel = pixels[x, y]
+            nuevo = memo.get(pixel)
+            if nuevo is None:
+                r, g, b = pixel[:3]
+                palabra = eventos.destellar_pantalla(
+                    (r >> 3) | ((g >> 3) << 5) | ((b >> 3) << 10), color, nivel)
+                nuevo = ((palabra & 0x1F) << 3,
+                         ((palabra >> 5) & 0x1F) << 3,
+                         ((palabra >> 10) & 0x1F) << 3) + tuple(pixel[3:])
+                memo[pixel] = nuevo
+            pixels[x, y] = nuevo
+    return view
 
 
 def tenir_imagen(view, tinte):
@@ -940,7 +990,8 @@ def main():
                    snes_convert.lugar_de_prueba(args.lugar_de_prueba),
                    args.frecuencia,
                    snes_convert.sacudida_de_prueba(args.sacudida_de_prueba))
-                  if hay_prueba else None, mensajes)
+                  if hay_prueba else None, mensajes,
+                  grupo=grupo, con_timer=args.con_timer)
 
     # Los CharSets y los mapas ya convertidos se comparten entre las
     # direcciones. Convertir un mapa es lo más caro de todo esto —el 52 son
@@ -957,12 +1008,12 @@ def main():
     ventana_paleta = []
 
     def charset_image(name):
-        if name not in images:
-            path = find_resource([REPO, args.game_dir, RTP_DIR], "CharSet", name)
-            if not path:
-                sys.exit("no encuentro el CharSet %r" % name)
-            images[name] = load_image(path)
-        return images[name]
+        # Por el cargador del renderer, que es el que sabe fabricar el CharSet
+        # de un evento dibujado con un tile del chipset.
+        image = renderer.charsets.get(name)
+        if image is None:
+            sys.exit("no encuentro el CharSet %r" % name)
+        return image
 
     def natural(map_id):
         """Las capas del mapa convertidas como si estuviera solo en la ROM."""
@@ -1097,7 +1148,7 @@ def main():
         # que la consola compara, y después X e id, que allá los resuelve el
         # orden de la tabla. Ver `orden_de_dibujo` en snes_convert.py.
         actors = []
-        for npc in collect_npcs(game_map):
+        for npc in mundo.npcs(map_id):
             # Un evento que recibió una ruta forzada se dibuja donde está
             # **ahora** y con la pose del ciclo de caminata; el resto, donde y
             # como los dejó su página. La ruta sobrevive a su propio final, así
@@ -1199,6 +1250,14 @@ def main():
         # transformación de CGRAM, y CGRAM la comparten el fondo, la capa de
         # encima y los sprites.
         view = tenir_imagen(view, estado.tinte)
+        # Y el destello de pantalla encima del tinte, y también antes de la
+        # ventana y del cronómetro: en RM2k `Priority_Screen` es 90, contra
+        # 130 de la ventana y 140 del cronómetro. En la consola es la misma
+        # transformación de CGRAM que el tinte, sobre las tres paletas del
+        # mapa, y la paleta de la ventana y la del cronómetro no la reciben.
+        if estado.destello_mostrado > 0:
+            view = destellar_pantalla(view, estado.destello,
+                                      estado.destello_mostrado)
 
         # La ventana de mensaje va **después** del tinte, sin teñir. Es lo que
         # hace RM2k: en `Spriteset_Map::Update` el tono se le aplica al
