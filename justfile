@@ -857,6 +857,14 @@ snes-hablar mapa="7" celda="3 7" switch="24" apretar="25" cuadros="20 60" arranq
 #                a la izquierda y pisa el 16. Es la escena de Manta hackeando,
 #                y compila porque las ocho rutas que atenúan las pantallas se
 #                tiran enteras: ver RUTA_TRANSPARENCIA en eventos.py.
+#   puerta-emisor la puerta del Emitter Room, evento 5 del mapa 3 en (38,68):
+#                el héroe en (38,69) mira arriba y le habla. Es la que taro no
+#                podía abrir hasta que `FadeOutBGM` se hizo, y es filosa por
+#                construcción: el cuadro 10 la tiene cerrada y el 40 abierta, y
+#                entre los dos hay 300 pixeles. Si la página no compilara, los
+#                dos lados dibujarían la puerta cerrada y darían cero —es la
+#                trampa de siempre—, así que lo que la sostiene es esa
+#                diferencia de 300 y no el cero.
 #
 # Dos trampas que ya cobraron. Un cuadro elegido pocos cuadros después de que
 # abre un mensaje da miles de pixeles sin que nada esté mal: la ROM tarda unos

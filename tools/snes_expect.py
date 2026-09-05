@@ -151,7 +151,8 @@ class Mundo:
                                               self.prueba[6],
                                               self.prueba[7],
                                               frecuencia=self.prueba[8],
-                                              sacudida=self.prueba[9]))]
+                                              sacudida=self.prueba[9],
+                                              fundir_bgm=self.prueba[10]))]
             self.paginas_cache[map_id] = paginas
         return self.paginas_cache[map_id]
 
@@ -972,6 +973,12 @@ def main():
                              "ProceedWithMovement, así que lo que venga "
                              "después de la página no corre hasta que el "
                              "evento termine de caminar")
+    parser.add_argument("--fundir-bgm", type=int, default=0,
+                        metavar="MS",
+                        help="agrega a la página de prueba un FadeOutBGM de esos\n"
+                             "milisegundos. Ninguna página del juego que hoy\n"
+                             "compile apaga la música, así que sin esto el\n"
+                             "camino no lo corre nada")
     parser.add_argument("--lugar-de-prueba", nargs="+", type=int, default=None,
                         metavar="N",
                         help="BLANCO X Y [ESPERA]: el otro lado del mismo flag "
@@ -1043,7 +1050,7 @@ def main():
     hay_prueba = (args.pagina_de_prueba or args.ruta_de_prueba
                   or args.ruta_de_evento or args.flash_de_prueba or args.switch
                   or args.timer_de_prueba or args.lugar_de_prueba
-                  or args.sacudida_de_prueba
+                  or args.sacudida_de_prueba or args.fundir_bgm
                   or args.mensaje_de_prueba is not None)
     # El bloque de textos, armado igual que en el conversor y en el mismo orden:
     # el mensaje de prueba primero —desplazamiento 0— y después los mapas de la
@@ -1058,7 +1065,8 @@ def main():
                    args.timer_de_prueba or (),
                    snes_convert.lugar_de_prueba(args.lugar_de_prueba),
                    args.frecuencia,
-                   snes_convert.sacudida_de_prueba(args.sacudida_de_prueba))
+                   snes_convert.sacudida_de_prueba(args.sacudida_de_prueba),
+                   args.fundir_bgm)
                   if hay_prueba else None, mensajes,
                   grupo=grupo, con_timer=args.con_timer)
 

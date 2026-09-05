@@ -395,12 +395,21 @@ def emit(path, name, driver, samples, stream, indice=0xFF, al_arrancar=1):
             "; PlayBGM, porque ahí lo prende el evento.\n"
             "TEMA_INDICE      = $%02X\n"
             "TEMA_AL_ARRANCAR = %d\n"
+            "; El volumen general con que suena el tema y los dos registros\n"
+            "; del DSP donde va. Los emite `sdsp.py`, que es de donde salen:\n"
+            "; el stream ya los escribe al arrancar, y un `FadeOutBGM` los\n"
+            "; vuelve a escribir bajándolos. Escribirlos también en main.s\n"
+            "; serían dos lados que se pueden equivocar igual.\n"
+            "TEMA_VOLUMEN     = $%02X\n"
+            "DSP_MVOL_L       = $%02X\n"
+            "DSP_MVOL_R       = $%02X\n"
             "SPC_DRIVER_ADDR  = $%04X\n"
             "SPC_DRIVER_SIZE  = %d\n"
             "SPC_SAMPLES_ADDR = $%04X\n"
             "SPC_SAMPLES_SIZE = %d\n\n"
             '.segment "RODATA"\n%s\n%s\n%s\n'
             % (name or "sin música", indice, 1 if al_arrancar else 0,
+               sdsp.MASTER, sdsp.MVOL_L, sdsp.MVOL_R,
                DRIVER_ADDR, len(driver),
                SAMPLES_ADDR, len(samples),
                block("spc_driver", driver),

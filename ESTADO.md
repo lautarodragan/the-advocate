@@ -10,12 +10,39 @@ es la misma operación con pérdida que compactar, sólo que a un archivo.
 
 Última vez que se tocó: 2026-09-05.
 
-## Lo próximo: que taro vuelva a jugar `demo-apertura`, con el ascensor andando
+## Lo próximo: varios temas en el cartucho, y después la escena de Talan
+
+**El orden lo acordamos con taro el 2026-09-05**, y es éste:
+
+1. ~~`FadeOutBGM`~~, que era la puerta del Emitter Room entera. Hecho.
+2. Las órdenes de ruta **30 y 31**, la frecuencia: trivial, `ruta_frec` ya
+   existe.
+3. **`PanScreen`**: correr la cámara sin el héroe. Hay precedente —`pantalla_x`
+   es la cámara más la sacudida— y `just snes-destraba` le da +6 páginas.
+4. Las **diagonales** de ruta, órdenes 4 a 7, que piden la regla de
+   pasabilidad diagonal de RM2k.
+5. **`PlayBGM` con varios temas**, que taro pidió meter antes de lo caro: los
+   de las primeras secuencias nomás, `hzstream` incluido —el de después del
+   "1 year earlier", con Talan en su pad—. El cartucho puede ir a 1 MB; lo que
+   se cuida es no alargar la tanda ahora. Ver "Lo que falta" en el LEEME.
+6. La orden de ruta **34**, cambiar el gráfico a mitad de una ruta, que es lo
+   más caro que queda y lo que el LEEME viene anotando como imposible: dos
+   mecanismos sobre la misma fila. Atenuante medida: el `Future3[3]` que esa
+   ruta pide **ya está en el banco de sprites del mapa 3**, porque el evento
+   43 lo usa como gráfico de página.
+
+Con 2, 3, 4 y 6 compila la escena de Talan entera —los 233 comandos de la
+página de contacto del evento 5 del mapa 3— y el juego llega hasta el
+`Teleport` al mapa 4 con el switch 15, que de ahí salta al **mapa 5**: hay que
+sumarlo a `demo-apertura` cuando eso corra, o es el bug del ascensor otra vez.
+
+Y mientras tanto: que taro juegue `demo-apertura` de nuevo, que ahora abre esa
+puerta.
+
+### Las tres vueltas anteriores, que están hechas
 
 La cuarta vuelta de taro (`prueba-manual.md`, 2026-09-05) dejó dos cosas, y
-las dos están arregladas. Lo que sigue: que juegue de nuevo —en el emulador y
-en la SNES— **entrando al ascensor**, que ahora lleva al mapa 3, y que diga si
-el teletransporte se ve limpio.
+las dos están arregladas.
 
 1. **El ascensor no llevaba a ningún lado.** Se abría, se dejaba pisar, y
    pisarlo no hacía nada. No faltaba nada de la ROM: la página del switch 11
@@ -173,6 +200,37 @@ Queda para después:
   la primera vuelta de una ROM con muchas páginas y el de la vuelta en que un
   fundido termina, y son lo único que le falta a la escena del ascensor para
   tener caso propio en la tanda: ver "Lo que falta" del LEEME.
+
+## Hecho el 2026-09-05: `FadeOutBGM`, y la puerta del Emitter Room
+
+taro llegó hasta la puerta del cuarto del Link y no pudo abrirla. Medido: la
+página de tecla del evento 5 del mapa 3 son tres comandos —`PlaySound`,
+`FadeOutBGM 5000`, `ControlSwitches 13`— y la cortaba **`FadeOutBGM` y nada
+más**. Hecho el comando, la puerta se abre.
+
+Es barato de dos maneras: no bloquea a la página —`CommandFadeOutBGM` devuelve
+true en el mismo cuadro— así que no mueve un solo cuadro de los que la tanda
+compara; y baja el volumen general del DSP, que es una escritura por cuadro.
+El paso lo emite el conversor porque el 65816 no divide y el divisor del
+hardware es de ocho bits: 5000 ms son 300 cuadros. Ver "El `FadeOutBGM`" en el
+LEEME.
+
+Qué se corrió:
+
+* **77 casos en verde**, uno más: `puerta-emisor` habla con esa puerta y
+  compara el cuadro 10 cerrada contra el 40 abierta. Es filoso a propósito
+  —entre los dos hay 300 pixeles— para que no pueda pasar por la trampa de los
+  dos lados equivocados igual;
+* el fundido en sí, a mano y sobre el audio, que no lo compara nadie: con una
+  ROM del mapa 16 —tiene tema propio y suena desde el arranque— y
+  `--fundir-bgm 1000` en la página de prueba, `bgm_nivel` baja de a 1093 por
+  cuadro y el pico del audio va 16174, 9859, 5476, 1737 y cero a los sesenta
+  cuadros. La misma ROM sin el flag sigue entre 12000 y 24000 en el cuadro 130.
+
+De paso quedó medido qué le falta a la escena de Talan que hay detrás de esa
+puerta: los 233 comandos de su página de contacto los cortan `PanScreen` ×1 y
+cuatro `MoveEvent` con órdenes que faltan —diagonales, frecuencia y cambiar el
+gráfico—. Está en el orden de arriba.
 
 ## Hecho el 2026-09-05: el fundido de los teletransportes
 

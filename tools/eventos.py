@@ -33,6 +33,11 @@ WAIT = 11410
 CHANGE_SAVE_ACCESS = 11930
 CHANGE_PARTY_MEMBERS = 10330
 PLAY_BGM = 11510
+# Apagar el tema que esté sonando, en tantos milisegundos.
+# `Game_Interpreter::CommandFadeOutBGM` llama a `BgmFade` y devuelve **true**
+# en el mismo cuadro: no bloquea a la página, así que no cuesta un cuadro ni
+# mueve nada de lo que se compara.
+FADE_OUT_BGM = 11520
 MOVE_EVENT = 11330
 # Plantar un evento en una celda. Es `CommandChangeEventLocation`: `MoveTo`,
 # que pone la celda y deja el paso en cero, y nada más —la dirección sólo la
@@ -443,6 +448,16 @@ OP_SACUDIR  = 0x0E      # fuerza (byte), velocidad (byte), cuadros (word):
 OP_DESTELLO = 0x0F      # r, g, b, fuerza (byte cada uno, 0..31) y cuadros
                         # (byte): `FlashOnce`, el destello de la pantalla
                         # entera. Ver `Estado.cuadro_de_destello`.
+OP_FUNDIR_BGM = 0x10    # paso (word): cuánto baja por cuadro el volumen del
+                        # tema, en 1/65536 de lo que estuviera sonando.
+                        #
+                        # Va el paso y no los milisegundos que trae RM2k
+                        # porque el 65816 no divide sin hardware y la cuenta
+                        # es siempre la misma: `ceil(65536 / cuadros)`. Es la
+                        # misma clase de número que el índice de mapa de un
+                        # teletransporte —resuelto por el conversor para que
+                        # la ROM no lo vuelva a mirar—, y lo hace
+                        # `paso_de_fundido`.
 OP_BGM      = 0x0B      # el índice del tema en `Temas` (byte). La ROM toca el
                         # que le tocó llevar —`TEMA_INDICE`— y con cualquier
                         # otro no hace nada, que es lo que hacía antes con
@@ -521,6 +536,21 @@ FUNDIDO_TOTAL = FUNDIDO_CUADROS * 2
 FUNDIDO_RAMPA = 24
 FUNDIDO_NEGRO = FUNDIDO_CUADROS - FUNDIDO_RAMPA
 BRILLO_MAX = 15
+
+
+def paso_de_fundido(milisegundos):
+    """Cuánto baja por cuadro el volumen del tema, en 1/65536.
+
+    RM2k mide el `FadeOutBGM` en milisegundos y la ROM cuenta cuadros, así que
+    la conversión se hace acá una sola vez: el 65816 no divide sin pedírselo al
+    hardware, y el divisor del hardware es de ocho bits —los 5000 ms de la
+    puerta del mapa 3 son 300 cuadros y no entran—.
+
+    El nivel arranca en 65535 y baja de a `paso`; se redondea para arriba para
+    que el fundido termine **dentro** de los cuadros que pide y no uno después.
+    """
+    cuadros = max(1, milisegundos * CUADROS_POR_SEGUNDO // 1000)
+    return min(0xFFFF, -(-0x10000 // cuadros))
 
 
 def rampa_de_fundido():
@@ -849,6 +879,12 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         if temas is None or not cmd.string:
             return b""
         return bytes([OP_BGM, temas.indice(cmd.string) & 0xFF])
+
+    if cmd.code == FADE_OUT_BGM:
+        if not p or p[0] < 0:
+            raise NoSePuede()
+        paso = paso_de_fundido(p[0])
+        return bytes([OP_FUNDIR_BGM, paso & 0xFF, paso >> 8])
 
     if cmd.code in ACEPTADOS_SIN_HACER:
         return b""     # se acepta con la deuda declarada arriba
@@ -1865,6 +1901,7 @@ LARGO_DE_OPCODE = {
     OP_FIN: 1, OP_SWITCH: 4, OP_TELEPORT: 6, OP_ESPERAR: 3, OP_TINTE: 5,
     OP_GRUPO: 3, OP_MENSAJE: 3, OP_RUTAS: 1, OP_FLASH: 7, OP_TIMER: 5,
     OP_BGM: 2, OP_LUGAR: 6, OP_TRUEQUE: 3, OP_SACUDIR: 5, OP_DESTELLO: 6,
+    OP_FUNDIR_BGM: 3,
 }
 
 
@@ -2002,7 +2039,7 @@ def pagina_activa(paginas, evento, estado):
 
 def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
                     flash=(), switches=(), timer=(), lugar=(),
-                    frecuencia=RUTA_FRECUENCIA, sacudida=()):
+                    frecuencia=RUTA_FRECUENCIA, sacudida=(), fundir_bgm=0):
     """Una página automática inventada: una ruta forzada, una espera, un tinte.
 
     No sale de ningún dato del juego, y ésa es la idea. El intérprete corre
@@ -2055,6 +2092,16 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
         # jugar hasta ahí: todas las páginas del pad de Talan piden el 24, que
         # prende la cinemática de apertura.
         codigo += bytes([OP_SWITCH, numero & 0xFF, numero >> 8, 1])
+    if fundir_bgm:
+        # Los milisegundos de un `FadeOutBGM`. Va primero de todo para que el
+        # fundido arranque en el cuadro cero y se lo pueda medir contra el
+        # reloj; y existe por lo mismo que el resto de esta página: **ninguna
+        # página del juego que hoy compile apaga la música**, así que el camino
+        # no lo ejercitaría nada. La que va a ejercitarlo —la puerta del mapa
+        # 3— es de tecla y no automática, y encima su mapa no tiene tema
+        # propio, así que no hay con qué oírla.
+        paso = paso_de_fundido(fundir_bgm)
+        codigo += bytes([OP_FUNDIR_BGM, paso & 0xFF, paso >> 8])
     if ruta:
         codigo += bytes([OP_RUTA, 0, frecuencia, len(ruta)]) + bytes(ruta)
     if flash:
@@ -2337,6 +2384,12 @@ def ejecutar(codigo, estado, desde=0):
             # opcode existe igual porque **ocupa dos bytes** en el bytecode, y
             # los dos lados tienen que recorrer el mismo stream.
             i += 2
+        elif op == OP_FUNDIR_BGM:
+            # Lo mismo que OP_BGM: no se modela el audio, pero el opcode ocupa
+            # tres bytes y el stream tiene que ser el mismo de los dos lados.
+            # Y tampoco cuesta un cuadro: `CommandFadeOutBGM` devuelve true en
+            # el mismo, así que la página sigue de largo.
+            i += 3
         elif op == OP_LUGAR:
             # `MoveTo`: la celda cambia ya y el paso en curso se corta. La ruta
             # sigue desde la celda nueva, y hacia dónde mira no cambia.

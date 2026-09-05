@@ -573,6 +573,7 @@ grupo_listo:
     stz fundido
     lda #BRILLO_MAX
     sta brillo
+    stz bgm_fundido             ; y lo mismo con el del tema
 
     lda #MAPA_INICIAL
     jsr cargar_mapa
@@ -2450,6 +2451,9 @@ otro:
 :   cmp #OP_DESTELLO
     bne :+
     jmp op_destello
+:   cmp #OP_FUNDIR_BGM
+    bne :+
+    jmp op_fundir_bgm
 :   cmp #OP_TIMER
     bne :+
     jmp op_timer
@@ -2785,6 +2789,32 @@ op_bgm:
     jsr music_start
     ply
 otro_tema:
+    jmp otro
+
+; `FadeOutBGM`. El operando es cuánto baja el volumen por cuadro; lo baja
+; `bgm_fundido_tick`, no acá, y la página sigue de largo en este mismo cuadro,
+; que es lo que hace `CommandFadeOutBGM` devolviendo true.
+;
+; Con el tema apagado no se arranca nada: el fundido escribiría el volumen de un
+; tema que no suena, y encima lo dejaría en cero para el `PlayBGM` que venga.
+op_fundir_bgm:
+    lda music_apagada
+    bne fundir_nada
+    lda [cod_ptr], y
+    sta bgm_paso
+    iny
+    lda [cod_ptr], y
+    sta bgm_paso + 1
+    iny
+    lda #$FF
+    sta bgm_nivel               ; el volumen entero, que es de donde baja
+    sta bgm_nivel + 1
+    lda #1
+    sta bgm_fundido
+    jmp otro
+fundir_nada:
+    iny
+    iny
     jmp otro
 
 op_rutas:
@@ -10769,6 +10799,14 @@ port0: .res 1
 ; cuadro, en ningún lazo cerrado —y la página cero está llena—.
 brillo:      .res 1
 
+; El `FadeOutBGM`: si hay uno corriendo, cuánto le queda al volumen —de 65535 a
+; cero— y cuánto baja por cuadro. El paso lo emite el conversor; ver
+; `eventos.paso_de_fundido`.
+bgm_fundido: .res 1
+bgm_nivel:   .res 2
+bgm_paso:    .res 2
+dsp_valor:   .res 1     ; el byte que `escribir_dsp` le manda al SPC700
+
 ; El fundido de un teletransporte. Ver `fundido_tick`.
 fundido:      .res 1    ; si hay uno corriendo
 fundido_base: .res 1    ; el valor de `boot_cuadros` cuando arrancó
@@ -11204,6 +11242,12 @@ OP_END  = $FF
 .proc music_tick
 .a8
 .i16
+    ; El `FadeOutBGM` primero, y **afuera** del guard de `music_apagada`: es lo
+    ; que lo va a prender cuando el volumen llegue a cero.
+    lda bgm_fundido
+    beq sin_fundido
+    jsr bgm_fundido_tick
+sin_fundido:
     lda music_apagada
     beq suena
     rts
@@ -11233,6 +11277,77 @@ listo:
     sta music + 2
     stz wait_frames
     stz music_apagada
+    ; Y se cancela el fundido que hubiera: el stream vuelve a escribir el
+    ; volumen general al arrancar, así que seguir bajándolo apagaría el tema
+    ; que el `PlayBGM` acaba de prender.
+    stz bgm_fundido
+    rts
+.endproc
+
+; Un cuadro del `FadeOutBGM`: baja el volumen general del DSP y, cuando llega a
+; cero, corta el tema. Es `Game_System::BgmFade`, que en RM2k tampoco bloquea a
+; la página que lo pidió.
+;
+; El nivel es de dieciséis bits y va de 65535 a cero; el volumen que se escribe
+; es `TEMA_VOLUMEN` por su byte alto, con el multiplicador del hardware. La
+; alternativa —bajar el registro de siete bits de a uno— daría noventa y seis
+; escalones para un fundido de trescientos cuadros y se oiría a escalones.
+.proc bgm_fundido_tick
+.a8
+.i16
+    rep #$20
+.a16
+    lda bgm_nivel
+    sec
+    sbc bgm_paso
+    bcs baja                    ; todavía queda
+    lda #0
+baja:
+    sta bgm_nivel
+    sep #$20
+.a8
+    lda #TEMA_VOLUMEN
+    sta WRMPYA
+    lda bgm_nivel + 1
+    sta WRMPYB                  ; arranca: el producto tarda ocho ciclos
+
+    ; Mientras el multiplicador trabaja se mira si el fundido terminó, que es
+    ; lo que hay que hacer igual y alcanza de sobra para los ocho ciclos.
+    lda bgm_nivel
+    ora bgm_nivel + 1
+    bne sigue
+    stz bgm_fundido
+    lda #1
+    sta music_apagada           ; el tema se corta, como `BgmFade`
+sigue:
+    rep #$20
+.a16
+    lda RDMPYL
+    xba                         ; el byte alto del producto, o sea entre 256
+    sep #$20
+.a8
+    sta dsp_valor
+    lda #DSP_MVOL_L
+    jsr escribir_dsp
+    lda #DSP_MVOL_R
+    jsr escribir_dsp
+    rts
+.endproc
+
+; Le escribe `dsp_valor` al registro que trae A, con el testigo del SPC700. Es
+; el mismo protocolo que usa `music_frame` con cada escritura del stream.
+.proc escribir_dsp
+.a8
+.i16
+    sta APUIO0
+    lda dsp_valor
+    sta APUIO1
+    inc token                   ; el testigo le avisa al SPC700 que hay algo
+    lda token
+    sta APUIO3
+espera:
+    cmp APUIO3
+    bne espera
     rts
 .endproc
 

@@ -70,6 +70,7 @@ snes-escena 2 "87 76" 0 up "380 407 410 425 470 600" 67 core-puerta "242 311 362
 snes-escena 2 "85 71" "3 3 3" left "20 40 60 90" 67 escombros "" 10
 snes-escena 2 "85 71" "3 3 3" left "20 60" 67 escombros-cerrados ""
 snes-escena 2 "71 72" 12 up "10 30" 67 ascensor "" 11
+snes-escena 3 "38 69" 12 up "10 40" 67 puerta-emisor "20"
 snes-ruta-pisa
 snes-ruta-pisa 70 "12 8" "0 0 0 0 0" 0 "100 200" 67 ruta-pasa
 snes-ruta-pisa 70 "12 8" "0 0 0 0" "60 0 0 50" "50 200" 67 ruta-pisa-cola

@@ -1649,6 +1649,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "OP_TRUEQUE  = $%02X\n"
         "OP_SACUDIR  = $%02X\n"
         "OP_DESTELLO = $%02X\n"
+        "OP_FUNDIR_BGM = $%02X\n"
         "; Las tres operaciones del cronómetro.\n"
         "TIMER_PONER    = %d\n"
         "TIMER_ARRANCAR = %d\n"
@@ -1748,7 +1749,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            eventos.OP_RUTA, eventos.OP_MENSAJE, eventos.OP_RUTAS,
            eventos.OP_FLASH, eventos.OP_TIMER, eventos.OP_BGM,
            eventos.OP_LUGAR, eventos.OP_TRUEQUE, eventos.OP_SACUDIR,
-           eventos.OP_DESTELLO,
+           eventos.OP_DESTELLO, eventos.OP_FUNDIR_BGM,
            eventos.TIMER_PONER, eventos.TIMER_ARRANCAR,
            TIMER_X, TIMER_Y, TIMER_GLIFO_W, TIMER_GLIFOS - 1,
            eventos.CUADROS_POR_SEGUNDO, eventos.TIMER_CUADROS_DE_MAS,
@@ -2298,6 +2299,12 @@ def main():
                         help="FUERZA VELOCIDAD DECIMAS [ESPERA]: agrega a la "
                              "página de prueba una sacudida de pantalla, como "
                              "un ShakeScreen del juego")
+    parser.add_argument("--fundir-bgm", type=int, default=0,
+                        metavar="MS",
+                        help="agrega a la página de prueba un FadeOutBGM de esos\n"
+                             "milisegundos. Ninguna página del juego que hoy\n"
+                             "compile apaga la música, así que sin esto el\n"
+                             "camino no lo corre nada")
     parser.add_argument("--lugar-de-prueba", nargs="+", type=int, default=None,
                         metavar="N",
                         help="BLANCO X Y [ESPERA]: planta al evento —el índice "
@@ -2432,7 +2439,7 @@ def main():
         if (args.pagina_de_prueba or args.ruta_de_prueba
                 or args.ruta_de_evento or args.flash_de_prueba or args.switch
                 or args.timer_de_prueba or args.lugar_de_prueba
-                or args.sacudida_de_prueba
+                or args.sacudida_de_prueba or args.fundir_bgm
                 or args.mensaje_de_prueba is not None) \
                 and mapa is mapas[args.inicial]:
             # La página inventada, sólo en el mapa donde arranca la ROM. No sale
@@ -2454,7 +2461,8 @@ def main():
                     args.timer_de_prueba or (),
                     lugar_de_prueba(args.lugar_de_prueba),
                     frecuencia=args.frecuencia,
-                    sacudida=sacudida_de_prueba(args.sacudida_de_prueba))}]
+                    sacudida=sacudida_de_prueba(args.sacudida_de_prueba),
+                    fundir_bgm=args.fundir_bgm)}]
         codigo = bytearray()
         for pagina in paginas:
             pagina["offset"] = len(codigo)

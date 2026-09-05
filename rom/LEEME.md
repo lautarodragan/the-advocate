@@ -1323,6 +1323,57 @@ prueba sacude, espera y tiñe: los cuadros del medio miran la pantalla corrida y
 el último mira que volvió a su lugar y el tinte llegó entero. Lo que no se
 modela es la sacudida continua de RM2k3, que este juego no usa.
 
+### El `FadeOutBGM`
+
+Apaga el tema que esté sonando en los milisegundos que pida. Es lo único que
+separaba a taro de la puerta del Emitter Room: la página de tecla del evento 5
+del mapa 3 son tres comandos —un sonido, este fundido y el switch que abre la
+puerta— y sin él no compilaba ninguna, así que apretar A no hacía nada.
+
+No cuesta un cuadro: `Game_Interpreter::CommandFadeOutBGM` llama a `BgmFade` y
+devuelve **true** en el mismo, o sea que la página sigue de largo. Así que no
+mueve un solo cuadro de los que la tanda compara, y la referencia sólo tiene
+que saltear sus tres bytes.
+
+Lo que hace la ROM es bajar el **volumen general del DSP**, MVOL de los dos
+canales, y cortar el tema cuando llega a cero. Tres decisiones:
+
+* **El paso lo emite el conversor**, no la ROM: el bytecode lleva cuánto baja
+  el nivel por cuadro y no los milisegundos de RM2k. El 65816 no divide, y el
+  divisor del hardware es de ocho bits: los 5000 ms de esa puerta son 300
+  cuadros y no entran. Es `eventos.paso_de_fundido`, y es la misma clase de
+  número que el índice de mapa de un teletransporte.
+* **El nivel es de dieciséis bits** y de él sale el volumen multiplicando por
+  `TEMA_VOLUMEN` con el multiplicador del hardware. Bajar el registro de siete
+  bits de a uno daría noventa y seis escalones para trescientos cuadros, y eso
+  se oye.
+* **`TEMA_VOLUMEN` y los dos registros los emite `sdsp.py`** en
+  `musicdata.inc`, porque el stream ya los escribe al arrancar: tenerlos
+  además a mano en `main.s` serían dos lados que se pueden equivocar igual.
+
+Un `PlayBGM` cancela el fundido —el stream vuelve a escribir el volumen al
+arrancar—, y un `FadeOutBGM` con el tema ya apagado no hace nada.
+
+**Cómo se verifica.** La tanda lo cubre por donde puede, que es la pantalla: el
+caso `puerta-emisor` habla con esa puerta y compara el cuadro 10 con la puerta
+cerrada y el 40 con la puerta abierta. Es filoso por construcción —entre los dos
+cuadros hay 300 pixeles— y por eso no cae en la trampa de los dos lados
+equivocados igual: si la página no compilara, los dos dibujarían la puerta
+cerrada y el caso daría cero.
+
+El audio no lo compara nadie, así que el fundido en sí se midió a mano, con una
+ROM del mapa 16 —que sí tiene tema propio y suena desde el arranque— y la
+página de prueba con `--fundir-bgm 1000`:
+
+    python3 tools/snes_convert.py --grupo 11 --map-id 16 --fundir-bgm 1000 \
+        --pagina-de-prueba 240 100 100 0 -o rom/build/fb/mapdata.inc
+
+`bgm_nivel` baja de a 1093 por cuadro, que es lo que dice `paso_de_fundido`
+para 1000 ms, y el pico del audio del emulador acompaña: 16174, 9859, 5476,
+1737 y cero a los sesenta cuadros. La misma ROM sin `--fundir-bgm` sigue entre
+12000 y 24000 en el cuadro 130, o sea que lo que baja es el fundido y no el
+tema.
+
 ### El cronómetro
 
 `TimerOperation`, con sus tres operaciones: poner, arrancar y parar. Se dibuja
@@ -2214,6 +2265,13 @@ comparación.
   Y un segundo efecto que conviene tener presente: `snes-check` compara el audio
   contra el MIDI **del mapa**, así que donde el tema lo pone un evento hay que
   nombrarlo: `just snes-check 1 45 escape_newyork`.
+
+  **Es lo próximo que se hace**, decidido con taro el 2026-09-05: no todos los
+  temas del juego sino los de las primeras secuencias, `hzstream` incluido —el
+  que suena después del "1 year earlier", cuando el jugador toma control de
+  Talan en su pad—. El cartucho puede ir a 1 MB si hace falta; lo que se cuida
+  es no alargar la tanda de más ahora. Va **antes** de la orden de ruta 34
+  —cambiar el gráfico a mitad de una ruta—, que es lo más caro que queda.
 
 * **La cinemática de apertura, entera.** Corre con ventana desde el
   2026-09-05 —`rom/build/demo-apertura/`, con los mapas 4, 1, 2 y 3 y
