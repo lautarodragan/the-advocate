@@ -10,14 +10,42 @@ es la misma operación con pérdida que compactar, sólo que a un archivo.
 
 Última vez que se tocó: 2026-09-05.
 
-## Lo próximo: jugar después de la apertura
+## Lo próximo: el edificio del mapa 2, según lo que taro jugó
 
-La escena de apertura ya se compara entera (abajo). Lo que sigue no tiene
-receta: cuando la página termina —cuadro 2624, dos `ChangeEventLocation` y un
-switch— el jugador queda al mando en el mapa 1, y de ahí en adelante nadie
-miró qué pasa. Lo primero es que taro juegue `rom/build/demo-apertura/` hasta
-pasar la escena y diga qué se rompe; lo segundo, `just snes-destraba` para ver
-qué comando abre más páginas de las que siguen.
+taro jugó `rom/build/demo-apertura/` en el emulador el 2026-09-05, y está por
+probarlo en la SNES. Lo que anda: la apertura entera, Kersh al mando, el
+evento que no deja salir por abajo, entrar al edificio, la pantalla chica
+("our target knows his way around a security system") y la puerta de arriba a
+la derecha con Core y Manta apareciendo. Lo que falta, con el porqué ya
+mirado en el mapa 2 —el orden es el que conviene hacerlo—:
+
+1. **Los droides no frenan al héroe.** Es lo que ya dice "Lo que falta" del
+   LEEME: en RM2k un evento de la capa del héroe bloquea el paso, y la ROM no
+   lo mira. Y explica lo que taro vio como "no se puede interactuar": el
+   droide de (7,72) —evento 40, dos páginas de mensajes— **sí responde a A**,
+   probado con una ROM descartable del mapa 2 con el héroe en (7,71): abre su
+   mensaje y da 0 pixeles contra la referencia. Lo que pasa jugando es que
+   sin colisión uno lo atraviesa y aprieta A parado encima o del otro lado.
+   El otro droide, `FightableDroid` en (30,55), es la batalla y queda afuera.
+2. **La puerta de arriba a la izquierda** —eventos 2 `LBDoorBottom` y 6
+   `LBKeycardLeft`, 42 y 46 comandos— la corta un solo comando:
+   **`TradeEventLocations`** (10870), que intercambia las celdas de dos
+   eventos; acá el de la puerta con el 21 `MovinDoor`. Es `OP_LUGAR` dos veces
+   con las celdas cruzadas, de los dos lados. Lo que sigue después de esa
+   puerta —el 21, y el 30 con el switch 11— pide **`ShakeScreen`** (11050).
+3. **La escena de la pantalla grande** son los eventos 15 y 16
+   `SeeCompPanelTop`, en (35,73) y (35,74): no son automáticos sino de
+   contacto, y por eso no dispararon. Los 78 comandos compilan salvo ocho
+   `MoveEvent` sobre los cuatro eventos de la pantalla (11 a 14), y las ocho
+   rutas son sólo órdenes 40 y 41: **subir y bajar la transparencia** cinco
+   veces, o sea la pantalla que se atenúa mientras Manta hackea. Aceptarlas
+   sin hacerlas destraba la escena entera —Manta y Core plantados con
+   `ChangeEventLocation`, el hackeo, la Catch Colony, el ascensor— y sólo se
+   pierde el fundido de la pantalla, que sobre tiles de fondo la SNES no
+   hace barato.
+
+Después de eso viene el ascensor —el evento 30, página del switch 11, con
+`ShakeScreen`— y lo que haya del otro lado, que nadie miró todavía.
 
 ## Hecho el 2026-09-05: la apertura entera, con quince toques de A
 
