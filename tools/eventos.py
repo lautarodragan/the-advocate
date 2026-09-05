@@ -36,6 +36,7 @@ MOVE_EVENT = 11330
 # toca RM2k3, y este juego es RM2k—. La cinemática de apertura lo usa seis
 # veces para traer a Core, a Manta y al droide a escena.
 CHANGE_EVENT_LOCATION = 10860
+TRADE_EVENT_LOCATIONS = 10870
 LUGAR_CONSTANTE = 0         # p[1]: 0 es la celda escrita, 1 la lee de variables
 
 # Un cuadro de texto. RM2k emite un `ShowMessage` con la primera línea y un
@@ -168,6 +169,13 @@ def direccion_hacia(desde, hasta):
 # `rpg::MoveCommand::Code` en liblcf.
 RUTA_SWITCH_ON, RUTA_SWITCH_OFF = 32, 33
 RUTA_CAMBIAR_GRAFICO = 34
+# Subir y bajar la transparencia de a un octavo. Se aceptan y se tiran, como
+# el sonido: la SNES no atenúa un sprite por partes sin color math, y las ocho
+# rutas del juego que lo usan —las cuatro pantallas del mapa 2, que se atenúan
+# mientras Manta hackea— son un fundido decorativo dentro de una escena de 78
+# comandos que sin esto no compilaba. No cuestan cuadros: en `UpdateMoveRoute`
+# van por la rama que no toca el contador de parada.
+RUTA_TRANSPARENCIA = (40, 41)
 RUTA_SONIDO = 35
 
 
@@ -391,6 +399,9 @@ OP_LUGAR    = 0x0C      # blanco (byte, como en OP_RUTA: el índice del evento
                         # más uno), x (word), y (word). Planta al evento en la
                         # celda y le corta el paso en curso; no toca su ruta ni
                         # hacia dónde mira, que es lo que hace `MoveTo`.
+OP_TRUEQUE  = 0x0D      # dos blancos (byte cada uno, como en OP_LUGAR): los
+                        # dos eventos se cambian de celda entre sí, cada uno
+                        # con `MoveTo`, que es `CommandTradeEventLocations`.
 OP_BGM      = 0x0B      # el índice del tema en `Temas` (byte). La ROM toca el
                         # que le tocó llevar —`TEMA_INDICE`— y con cualquier
                         # otro no hace nada, que es lo que hacía antes con
@@ -835,10 +846,11 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         ruta = []
         for orden, _extras in ordenes:
 
-            if orden == RUTA_SONIDO:
+            if orden == RUTA_SONIDO or orden in RUTA_TRANSPARENCIA:
                 # Se acepta y se tira, igual que PlaySound: no se ve y no
                 # cuesta cuadros —RM2k no le toca el contador de parada—. Así
-                # el bytecode sigue siendo un byte por orden.
+                # el bytecode sigue siendo un byte por orden. La
+                # transparencia, ver RUTA_TRANSPARENCIA.
                 continue
             # Girar, esperar y moverse. Los `move_*` entraron el 2026-09-03,
             # cuando los dos lados empezaron a coincidir *durante* la caminata y
@@ -851,8 +863,15 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
             if orden == RUTA_ENCARAR_HEROE and blanco == 0:
                 raise NoSePuede()   # el héroe encarándose a sí mismo
             ruta.append(orden)
-        if not ruta or len(ruta) > 255:
+        if len(ruta) > 255:
             raise NoSePuede()
+        if not ruta:
+            # Una ruta que se quedó sin órdenes —sólo sonido o transparencia,
+            # como las de las pantallas del mapa 2— no se emite: en RM2k
+            # `UpdateMoveRoute` la consume entera en el mismo cuadro y la da
+            # por terminada, así que ni cuesta cuadros ni deja nada que
+            # esperar en `ProceedWithMovement`.
+            return b""
         return bytes([OP_RUTA, blanco, p[1], len(ruta)]) + bytes(ruta)
 
     if cmd.code == CHANGE_EVENT_LOCATION:
@@ -869,6 +888,16 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
             raise NoSePuede()
         return bytes([OP_LUGAR, blanco, p[2] & 0xFF, p[2] >> 8,
                       p[3] & 0xFF, p[3] >> 8])
+
+    if cmd.code == TRADE_EVENT_LOCATIONS:
+        # `CommandTradeEventLocations`: cada uno va con `MoveTo` a la celda
+        # del otro. Sobre el héroe no lo usa ninguna página del juego.
+        if len(p) < 2 or eventos_mapa is None:
+            raise NoSePuede()
+        blancos = [eventos_mapa.blanco(q) for q in p[:2]]
+        if any(b is None or b == 0 for b in blancos):
+            raise NoSePuede()   # el héroe, un vehículo o un evento que no existe
+        return bytes([OP_TRUEQUE] + blancos)
 
     if cmd.code == WAIT:
         if len(p) < 1:
@@ -1389,7 +1418,7 @@ class Estado:
 LARGO_DE_OPCODE = {
     OP_FIN: 1, OP_SWITCH: 4, OP_TELEPORT: 6, OP_ESPERAR: 3, OP_TINTE: 5,
     OP_GRUPO: 3, OP_MENSAJE: 3, OP_RUTAS: 1, OP_FLASH: 7, OP_TIMER: 5,
-    OP_BGM: 2, OP_LUGAR: 6,
+    OP_BGM: 2, OP_LUGAR: 6, OP_TRUEQUE: 3,
 }
 
 
@@ -1823,6 +1852,14 @@ def ejecutar(codigo, estado, desde=0):
                                 codigo[i + 2] | (codigo[i + 3] << 8),
                                 codigo[i + 4] | (codigo[i + 5] << 8))
             i += 6
+        elif op == OP_TRUEQUE:
+            # `CommandTradeEventLocations`: los dos `MoveTo`, con las celdas
+            # leídas antes de mover a ninguno.
+            a, b = codigo[i + 1] - 1, codigo[i + 2] - 1
+            donde_a, donde_b = estado.pos_ev[a], estado.pos_ev[b]
+            estado.mover_evento(a, *donde_b)
+            estado.mover_evento(b, *donde_a)
+            i += 3
         elif op == OP_TIMER:
             # `CommandTimerOperation`. No corta el cuadro: las tres operaciones
             # son asignaciones, y quien hace correr el cronómetro es

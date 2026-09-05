@@ -1032,6 +1032,12 @@ def main():
         # partida nueva de RM2k, y cada dirección arranca de cero: el estado lo
         # mueven los eventos y no puede filtrarse de una caminata a la otra.
         estado = eventos.Estado(grupo)
+        # Hacia dónde mira al arrancar, si se pidió. Es el estado y no un
+        # arreglo al final: si una página lo gira después con un `face_*`
+        # —la puerta del mapa 2 lo hace mirar abajo— gana la página, que es
+        # lo que muestra la ROM. Antes `--dir` pisaba el giro al dibujar.
+        if args.hero_tile and args.dir:
+            estado.mirando = DIRECTIONS[args.dir]
 
         # Adónde se llega es lo primero: entre los eventos del arranque y las
         # puertas que cruce la caminata, el mapa que hay que dibujar bien puede
@@ -1044,8 +1050,6 @@ def main():
                                                        args.apretar_a,
                                                        DIRECTIONS[args.dir]
                                                        if args.dir else None)
-        if args.hero_tile and args.dir:
-            direction = DIRECTIONS[args.dir]
 
         # Con qué se dibuja al héroe se decide *después* de correr los eventos,
         # no antes: `ChangePartyMembers` puede cambiar el líder del grupo, y en

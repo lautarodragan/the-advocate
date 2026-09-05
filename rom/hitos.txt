@@ -57,6 +57,8 @@ snes-saturar 73 "60 0 120 120 200" 30 120 saturar-brillo
 snes-hablar
 snes-cinematica
 snes-cinematica 4 1 "480 540 620 1000 1770 2700" 70 apertura 1 "631 691 751 811 1264 1385 1566 1687 1808 1868 2049 2170 2279 2473 2533"
+snes-escena 2 "4 54" 12 up "100 230 600 950" 30 puerta-izq "20 202 323 444 565"
+snes-escena 2 "36 74" 3 left "60 200 450 930 1300 1800" 30 pantalla "161 282 342 584 735 857 948 1008 1099 1159 1219 1430 1490 1732"
 snes-pisar
 snes-pisar 2 "7 76" up 60 30 bloqueo
 snes-ruta-pisa

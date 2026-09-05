@@ -1440,6 +1440,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "OP_TIMER    = $%02X\n"
         "OP_BGM      = $%02X\n"
         "OP_LUGAR    = $%02X\n"
+        "OP_TRUEQUE  = $%02X\n"
         "; Las tres operaciones del cronómetro.\n"
         "TIMER_PONER    = %d\n"
         "TIMER_ARRANCAR = %d\n"
@@ -1527,7 +1528,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            eventos.OP_ESPERAR, eventos.OP_TINTE, eventos.OP_GRUPO,
            eventos.OP_RUTA, eventos.OP_MENSAJE, eventos.OP_RUTAS,
            eventos.OP_FLASH, eventos.OP_TIMER, eventos.OP_BGM,
-           eventos.OP_LUGAR,
+           eventos.OP_LUGAR, eventos.OP_TRUEQUE,
            eventos.TIMER_PONER, eventos.TIMER_ARRANCAR,
            TIMER_X, TIMER_Y, TIMER_GLIFO_W, TIMER_GLIFOS - 1,
            eventos.CUADROS_POR_SEGUNDO, eventos.TIMER_CUADROS_DE_MAS,

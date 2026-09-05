@@ -795,6 +795,61 @@ snes-hablar mapa="7" celda="3 7" switch="24" apretar="25" cuadros="20 60" arranq
         --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
   done
 
+# Una escena del juego disparada por el héroe, con los toques de A que la
+# cierran.
+#
+# Es la forma general de lo que `snes-hablar` y `snes-pisar` hacen de a una
+# cosa: el héroe arranca en una celda con una ruta forzada de la página de
+# prueba —`12` es girar hacia arriba, `0` es dar un paso hacia arriba— y con
+# eso dispara la página que está enfrente con A o la que pisa, y de ahí en
+# adelante la escena se compara entera con `--apretar-a`, igual que la
+# apertura en `snes-cinematica`. Los cuadros de los toques salen de correr la
+# referencia sola y anotar dónde abre cada mensaje; hay que rehacerlos si cambia
+# lo que la página tarda.
+#
+# Los dos casos de la tanda, del mapa 2, son lo que taro vio faltar jugando:
+#
+#   puerta-izq   la puerta de arriba a la izquierda, evento 2 en (4,53): el
+#                héroe en (4,54) gira hacia arriba y le habla. Es la única
+#                página del juego que la tanda compara con
+#                `TradeEventLocations`: Manta la vuela y la puerta se cambia
+#                de lugar con el evento 21.
+#   pantalla     la pantalla grande, eventos 15 y 16 en (35,73) y (35,74), que
+#                son de contacto y se pisan desde la derecha —la columna 35 es
+#                pared arriba y abajo de ellos—: el héroe en (36,74) da un paso
+#                a la izquierda y pisa el 16. Es la escena de Manta hackeando,
+#                y compila porque las ocho rutas que atenúan las pantallas se
+#                tiran enteras: ver RUTA_TRANSPARENCIA en eventos.py.
+#
+# Dos trampas que ya cobraron. Un cuadro elegido pocos cuadros después de que
+# abre un mensaje da miles de pixeles sin que nada esté mal: la ROM tarda unos
+# veinte en componer el texto y la referencia no modela eso —el 900 de
+# `pantalla`, a doce cuadros de abrir, daba 19963; el 930 da cero—. Y `--dir`
+# es sólo hacia dónde mira el héroe **al arrancar**: si la página lo gira con
+# un `face_*`, gana la página, como en la ROM. Antes `--dir` pisaba el giro al
+# dibujar y el cuadro 230 de `puerta-izq` daba 117 pixeles, todos en el héroe.
+snes-escena mapa="2" celda="4 54" ruta="12" dir="up" cuadros="60" arranque="30" nombre="escena" apretar="":
+  #!/usr/bin/env bash
+  set -euo pipefail
+  mkdir -p {{snes_pngs}} {{snes_inc}}
+  apretar="{{apretar}}"
+  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
+      --inicio {{celda}} --con-ventana --ruta-de-prueba {{ruta}} \
+      -o {{snes_inc}}/mapdata.inc
+  just snes-build
+  pre={{snes_pngs}}/{{nombre}}
+  python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
+      --hero-tile {{celda}} --dir {{dir}} --con-ventana --ruta-de-prueba {{ruta}} \
+      --cuadros {{cuadros}} ${apretar:+--apretar-a $apretar} \
+      --saltar $pre-{}.saltar.txt -o $pre-{}.esperado.png
+  for n in {{cuadros}}; do
+    python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre-$n.png \
+        --walk none --cuadros $n --arranque {{arranque}} \
+        ${apretar:+--apretar-a $apretar}
+    python3 tools/snes_compare.py $pre-$n.png $pre-$n.esperado.png \
+        --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
+  done
+
 # El arranque son 70 cuadros y no 21 desde que la ROM lleva música: el mapa 4
 # no tiene tema propio, así que el cartucho se lleva el que pide el `PlayBGM` de
 # la cinemática —`escape_newyork`, 32 KB de muestras— y subirlas al SPC700 por

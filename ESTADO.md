@@ -29,22 +29,17 @@ mirado en el mapa 2 —el orden es el que conviene hacerlo—:
    mensaje y da 0 pixeles contra la referencia. Lo que pasa jugando es que
    sin colisión uno lo atraviesa y aprieta A parado encima o del otro lado.
    El otro droide, `FightableDroid` en (30,55), es la batalla y queda afuera.
-2. **La puerta de arriba a la izquierda** —eventos 2 `LBDoorBottom` y 6
-   `LBKeycardLeft`, 42 y 46 comandos— la corta un solo comando:
-   **`TradeEventLocations`** (10870), que intercambia las celdas de dos
-   eventos; acá el de la puerta con el 21 `MovinDoor`. Es `OP_LUGAR` dos veces
-   con las celdas cruzadas, de los dos lados. Lo que sigue después de esa
-   puerta —el 21, y el 30 con el switch 11— pide **`ShakeScreen`** (11050).
-3. **La escena de la pantalla grande** son los eventos 15 y 16
-   `SeeCompPanelTop`, en (35,73) y (35,74): no son automáticos sino de
-   contacto, y por eso no dispararon. Los 78 comandos compilan salvo ocho
-   `MoveEvent` sobre los cuatro eventos de la pantalla (11 a 14), y las ocho
-   rutas son sólo órdenes 40 y 41: **subir y bajar la transparencia** cinco
-   veces, o sea la pantalla que se atenúa mientras Manta hackea. Aceptarlas
-   sin hacerlas destraba la escena entera —Manta y Core plantados con
-   `ChangeEventLocation`, el hackeo, la Catch Colony, el ascensor— y sólo se
-   pierde el fundido de la pantalla, que sobre tiles de fondo la SNES no
-   hace barato.
+2. **Hecho el 2026-09-05: la puerta de arriba a la izquierda.** La cortaba
+   `TradeEventLocations` solo; es `OP_TRUEQUE`, `MoveTo` dos veces con las
+   celdas cruzadas. El caso `puerta-izq` de `snes-escena` la compara entera,
+   cuatro cuadros en cero. Lo que sigue después de esa puerta —el evento 21,
+   y el 30 con el switch 11— pide **`ShakeScreen`** (11050).
+3. **Hecho el 2026-09-05: la escena de la pantalla grande.** Eventos 15 y
+   16, de contacto, que se pisan desde la derecha. Lo que la cortaba eran
+   ocho rutas que sólo suben y bajan la **transparencia** de las pantallas;
+   se aceptan y se tiran como el sonido, y una ruta que queda vacía no se
+   emite. El caso `pantalla` de `snes-escena` la compara entera con catorce
+   toques, seis cuadros en cero. Se pierde el fundido de las pantallas.
 
 Después de eso viene el ascensor —el evento 30, página del switch 11, con
 `ShakeScreen`— y lo que haya del otro lado, que nadie miró todavía.

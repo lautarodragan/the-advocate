@@ -332,6 +332,13 @@ Y una trampa que costó una vuelta: la primera versión lo plantaba en una celda
 tapada por la capa de encima, y los dos lados lo dibujaban tapado. La prueba
 daba cero con el corte sacado, porque no veía al evento.
 
+**Y dos eventos que se cambian de lugar.** `TradeEventLocations` es
+`OP_TRUEQUE` desde el 2026-09-05: los dos blancos, y cada uno va con el mismo
+`MoveTo` de `OP_LUGAR` a la celda del otro, con las dos celdas leídas antes de
+escribir ninguna. Lo usa una sola escena de las que se miran: la puerta de
+arriba a la izquierda del mapa 2, donde Manta la vuela y la puerta se cambia
+de lugar con el evento 21. Es el caso `puerta-izq` de `snes-escena`.
+
 ### La frecuencia de la ruta, y encarar al héroe
 
 Hasta el 2026-09-04 una ruta con frecuencia distinta de 8 no compilaba, y el
@@ -1545,11 +1552,17 @@ comparación.
 * **Las órdenes de ruta que faltan.** Son quince las que la ROM entiende
   —mover en los cuatro sentidos, girar en los cuatro, esperar, saltar,
   atravesar paredes y parar o seguir la animación— y `play_sound_effect` se
-  acepta sin hacerlo, como PlaySound. Faltan **cambiar el gráfico** (+16 solo,
-  y más en combinación: pide meter los tiles del CharSet nuevo en el banco de
-  sprites del mapa), las **diagonales**, **moverse hacia el héroe**, la
-  **velocidad** —que cambia cuántos cuadros dura un paso— y la
-  **transparencia**. Sigue siendo lo que más corta: 129 páginas.
+  acepta sin hacerlo, como PlaySound, y la **transparencia** también, desde
+  el 2026-09-05: subirla y bajarla de a un octavo son las órdenes 40 y 41, y
+  las ocho rutas del juego que las usan son las cuatro pantallas del mapa 2
+  atenuándose mientras Manta hackea, que sin eso dejaban afuera la escena
+  entera; se pierde el fundido, que sobre tiles de fondo la SNES no hace
+  barato. Una ruta que se queda sin órdenes por esto no se emite: RM2k la
+  consume entera en el cuadro y no deja nada que esperar. Faltan **cambiar el
+  gráfico** (+16 solo, y más en combinación: pide meter los tiles del CharSet
+  nuevo en el banco de sprites del mapa), las **diagonales**, **moverse hacia
+  el héroe** y la **velocidad** —que cambia cuántos cuadros dura un paso—.
+  Sigue siendo lo que más corta: 129 páginas.
 
   Y aparte, **girar sin moverse** (`turn_90_degree_right` y sus hermanas): no
   está afuera por costo sino por dónde arranca el giro. RM2k gira sobre la

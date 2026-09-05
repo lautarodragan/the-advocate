@@ -1703,6 +1703,9 @@ otro:
 :   cmp #OP_LUGAR
     bne :+
     jmp op_lugar
+:   cmp #OP_TRUEQUE
+    bne :+
+    jmp op_trueque
 :   cmp #OP_TIMER
     bne :+
     jmp op_timer
@@ -1858,6 +1861,54 @@ op_lugar:
     sep #$20
 .a8
     phy
+    jsr plantar_evento
+    ply
+    jmp otro
+
+; `TradeEventLocations`: los dos eventos se cambian de celda, y cada uno es un
+; `MoveTo` como el de `op_lugar` —la celda, el corte del paso, y el dibujo que
+; la sigue—. Las dos celdas se leen antes de escribir ninguna.
+op_trueque:
+    lda [cod_ptr], y            ; el primero: el índice más uno
+    dec a
+    sta trueque_a
+    iny
+    lda [cod_ptr], y            ; y el segundo
+    dec a
+    sta trueque_b
+    iny
+    phy
+    rep #$20
+.a16
+    lda trueque_a
+    and #$00FF
+    asl a
+    asl a                       ; EV_STRIDE bytes por evento
+    tax
+    lda trueque_b
+    and #$00FF
+    asl a
+    asl a
+    tay
+    lda ev_pos_buf + 0, x
+    sta celda_x
+    lda ev_pos_buf + 2, x
+    sta celda_y
+    lda ev_pos_buf + 0, y
+    sta ev_pos_buf + 0, x
+    lda ev_pos_buf + 2, y
+    sta ev_pos_buf + 2, x
+    lda celda_x
+    sta ev_pos_buf + 0, y
+    lda celda_y
+    sta ev_pos_buf + 2, y
+    sep #$20
+.a8
+    lda trueque_a
+    sta temp
+    jsr plantar_evento
+    lda trueque_b
+    sta temp
     jsr plantar_evento
     ply
     jmp otro
@@ -9119,6 +9170,8 @@ CAPA_HEROE  = 1
 dest_x:      .res 2
 dest_y:      .res 2
 otro_ev:     .res 1
+trueque_a:   .res 1
+trueque_b:   .res 1
 capa_ev:     .res 2
 capa_hallada: .res 1
 ; Lo que `armar_salto` va juntando mientras recorre las órdenes de un salto:
