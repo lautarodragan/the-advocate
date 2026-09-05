@@ -19,9 +19,11 @@ evento que no deja salir por abajo, entrar al edificio, la pantalla chica
 la derecha con Core y Manta apareciendo. Lo que falta, con el porqué ya
 mirado en el mapa 2 —el orden es el que conviene hacerlo—:
 
-1. **Los droides no frenan al héroe.** Es lo que ya dice "Lo que falta" del
-   LEEME: en RM2k un evento de la capa del héroe bloquea el paso, y la ROM no
-   lo mira. Y explica lo que taro vio como "no se puede interactuar": el
+1. **Hecho el 2026-09-05: los eventos frenan al héroe, y el héroe a los
+   eventos.** Ver "La colisión con los eventos" en el LEEME; la tanda queda
+   en 62 casos con el caso `bloqueo`. Lo que decía el traspaso: en RM2k un
+   evento de la capa del héroe bloquea el paso, y la ROM no lo miraba. Y
+   explica lo que taro vio como "no se puede interactuar": el
    droide de (7,72) —evento 40, dos páginas de mensajes— **sí responde a A**,
    probado con una ROM descartable del mapa 2 con el héroe en (7,71): abre su
    mensaje y da 0 pixeles contra la referencia. Lo que pasa jugando es que
@@ -46,6 +48,24 @@ mirado en el mapa 2 —el orden es el que conviene hacerlo—:
 
 Después de eso viene el ascensor —el evento 30, página del switch 11, con
 `ShakeScreen`— y lo que haya del otro lado, que nadie miró todavía.
+
+Y lo que taro pidió además, el 2026-09-05, sobre los dos droides del mapa 2,
+que es lo caro de esta lista y va después de los tres puntos de arriba:
+
+4. **El movimiento propio de la página** (`move_type` 6, ruta propia con
+   `repeat` y sin `skippable`; `lcf.py` ya la parsea como `move_route`). El
+   droide de (7,72) sube una celda a velocidad 4, suena, salta de vuelta y
+   espera —"se golpea contra la pared"—, y roto gira con cuatro `face_*`. El
+   de (30,55) camina un cuadrado a velocidad 2. Hacen falta: ranuras de ruta
+   que arranquen al cargar el mapa y se repitan; **la velocidad** —hoy todo
+   paso son 8 cuadros a 2 px, y la 2 y la 3 son 32 y 16 cuadros—; que una
+   orden bloqueada se **reintente** en vez de saltearse, porque es lo que
+   deja interponerse en su camino, por arriba y por abajo; y las animaciones
+   **continuas** (tipos 1 y 3, que caminan en el lugar aunque estén quietos)
+   con sus cuadros por velocidad (`GetContinuousAnimFrames`: 16, 12, 10, 8,
+   7, 6). En `animation_type` 3 la dirección es fija: los `move_*` no giran
+   pero los `face_*` sí —`SetFacing` directo en `UpdateMoveRoute`—, que es
+   por lo que el droide roto gira.
 
 ## Hecho el 2026-09-05: la apertura entera, con quince toques de A
 

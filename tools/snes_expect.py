@@ -171,7 +171,8 @@ SALTOS_MAX = 8
 # propósito: tiene que no chocar con ninguno del mapa.
 EVENTO_DE_PRUEBA = {"evento": 9999, "pagina": 0,
                     "trigger": eventos.TRIGGER_AUTOMATICO,
-                    "switch_a": 0, "switch_b": 0, "actor": 0, "codigo": b""}
+                    "switch_a": 0, "switch_b": 0, "actor": 0, "capa": 0,
+                    "codigo": b""}
 
 
 def puede_caer(passable, game_map, x, y):
@@ -188,7 +189,7 @@ def puede_caer(passable, game_map, x, y):
     return passable[y * game_map.width + x] & cuatro == cuatro
 
 
-def paso_de_ruta(estado, passable, game_map, x, y):
+def paso_de_ruta(estado, passable, game_map, x, y, paginas=()):
     """Un cuadro de la ruta forzada del héroe, en celdas.
 
     Devuelve (x, y, llegó), donde `llegó` es que en este cuadro terminó el
@@ -210,15 +211,23 @@ def paso_de_ruta(estado, passable, game_map, x, y):
     igual —por eso no se notó hasta comparar durante la caminata— y en los
     intermedios son 560 pixeles de diferencia.
     """
+    # Y los eventos de su capa le cierran el paso, como con el pad: es el
+    # mismo `MakeWay`. Atravesando paredes no mira a nadie, que es el
+    # `if (self.GetThrough()) return true;` de arriba de todo.
+    def libre(cx, cy):
+        return estado.ruta_heroe.atraviesa or not eventos.bloqueada(
+            paginas, estado, (cx, cy), eventos.LAYER_MISMA)
+
     def puede(direccion):
         dx, dy = PASOS[direccion]
         return rm2k.puede_pasar(passable, game_map.width, game_map.height,
-                                x, y, dx, dy)
+                                x, y, dx, dy) and libre(x + dx, y + dy)
 
     antes = estado.paso_cuadros
     direccion = estado.cuadro_de_ruta(
         puede,
-        saltar=lambda dx, dy: puede_caer(passable, game_map, x + dx, y + dy))
+        saltar=lambda dx, dy: (puede_caer(passable, game_map, x + dx, y + dy)
+                               and libre(x + dx, y + dy)))
     salto = estado.ruta_heroe.arranco_salto
     if salto is not None:
         return x + salto[0], y + salto[1], False
@@ -231,11 +240,13 @@ def paso_de_ruta(estado, passable, game_map, x, y):
     return x, y, llego
 
 
-def cuadro_de_eventos(estado, passable, game_map, heroe):
+def cuadro_de_eventos(estado, passable, game_map, heroe, paginas=()):
     """Un cuadro de lo que corre solo: las rutas de los eventos y los destellos.
 
     `heroe` es la celda del héroe: `face_hero` la necesita, y en RM2k es la
-    de `GetX()`/`GetY()`, o sea la de destino si está a mitad de un paso.
+    de `GetX()`/`GetY()`, o sea la de destino si está a mitad de un paso. Y
+    desde el 2026-09-05 también le cierra el paso a los eventos de su capa,
+    igual que ellos entre sí: `paginas` es de donde sale la capa de cada uno.
 
     Va todo junto porque el orden importa y es uno solo: la ROM los avanza en
     el mismo lugar del lazo, después del intérprete y después del héroe.
@@ -247,13 +258,23 @@ def cuadro_de_eventos(estado, passable, game_map, heroe):
     modelarlo: si los dos lados lo ignoraran igual, esa ruta duraría ocho
     cuadros de más de los dos lados y la comparación daría cero.
     """
-    def puede(_indice, x, y, direccion):
+    def libre(indice, cx, cy):
+        # Un evento sin página activa no choca con nadie —`IsActive()`—, y
+        # el que atraviesa paredes tampoco: `Ruta.cuadro` ya no llama con
+        # `atraviesa` puesto, así que acá sólo queda la capa.
+        capa = eventos.capa_activa(paginas, estado, indice)
+        return capa is None or not eventos.bloqueada(
+            paginas, estado, (cx, cy), capa, ignorar=indice, heroe=heroe)
+
+    def puede(indice, x, y, direccion):
         dx, dy = PASOS[direccion]
         return rm2k.puede_pasar(passable, game_map.width, game_map.height,
-                                x, y, dx, dy)
+                                x, y, dx, dy) and libre(indice, x + dx, y + dy)
 
     estado.cuadro_de_rutas_ev(
-        puede, lambda cx, cy: puede_caer(passable, game_map, cx, cy),
+        puede,
+        lambda cx, cy, indice: (puede_caer(passable, game_map, cx, cy)
+                                and libre(indice, cx, cy)),
         heroe=heroe)
     estado.cuadro_de_flashes()
     estado.cuadro_de_timer()
@@ -320,7 +341,7 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
             salto = eventos.correr_automaticos(
                 mundo.paginas(map_id), estado,
                 avanzar=lambda: cuadro_de_eventos(estado, passable, game_map,
-                                                  (x, y)))
+                                                  (x, y), mundo.paginas(map_id)))
             # Sin presupuesto de cuadros la ruta forzada igual tiene que
             # caminarse entera: lo que se compara es dónde queda todo. Antes el
             # giro lo aplicaba el intérprete y esto no hacía falta; ahora la
@@ -331,8 +352,10 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
                         and not estado.cuadros_moviendose \
                         and not estado.algo_corriendo():
                     break
-                x, y, llego = paso_de_ruta(estado, passable, game_map, x, y)
-                cuadro_de_eventos(estado, passable, game_map, (x, y))
+                x, y, llego = paso_de_ruta(estado, passable, game_map, x, y,
+                                           mundo.paginas(map_id))
+                cuadro_de_eventos(estado, passable, game_map, (x, y),
+                                  mundo.paginas(map_id))
                 if llego:
                     # El último paso de la ruta pisó la celda: si hay un
                     # evento de contacto, corre. Acá el tiempo ya está
@@ -388,7 +411,8 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
                         base += n
                         pendiente = interprete.pendiente()
                         break
-                x, y, llego = paso_de_ruta(estado, passable, game_map, x, y)
+                x, y, llego = paso_de_ruta(estado, passable, game_map, x, y,
+                                           interprete.paginas)
                 if llego:
                     # Como `probar_contacto` en `advance_step`: la página va a
                     # la cola y corre en el cuadro siguiente, detrás de la que
@@ -397,7 +421,8 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
                     # termina sobre una, y ninguna prueba lo ejercita.
                     interprete.probar_celda(x, y, eventos.TRIGGER_TOCA_HEROE,
                                             estado)
-                cuadro_de_eventos(estado, passable, game_map, (x, y))
+                cuadro_de_eventos(estado, passable, game_map, (x, y),
+                                  interprete.paginas)
                 if interprete.terminado and not estado.ruta \
                         and not estado.paso_cuadros \
                         and not estado.cuadros_moviendose \
@@ -458,10 +483,12 @@ def contacto_al_pisar(mundo, estado, map_id, x, y, passable, game_map):
                                               (salto[1], salto[2]))
                 return map_id, x, y, True
             continue
-        x, y, llego = paso_de_ruta(estado, passable, game_map, x, y)
+        x, y, llego = paso_de_ruta(estado, passable, game_map, x, y,
+                                   interprete.paginas)
         if llego:
             interprete.probar_celda(x, y, eventos.TRIGGER_TOCA_HEROE, estado)
-        cuadro_de_eventos(estado, passable, game_map, (x, y))
+        cuadro_de_eventos(estado, passable, game_map, (x, y),
+                          interprete.paginas)
         if estado.mensaje is not None:
             return map_id, x, y, True
         if interprete.terminado and not estado.algo_corriendo() \
@@ -522,6 +549,14 @@ def hero_position(mundo, estado, map_id, direction_name, inicio=None,
         # inventar una diferencia.
         if not puede_pasar(passable, game_map.width, game_map.height,
                            x, y, step[0], step[1]):
+            break
+        # Y un evento de su capa parado en la celda de destino lo frena igual
+        # que una pared: `WouldCollide`, con el héroe en la capa del medio. Es
+        # lo que hace que un droide no se atraviese, y que no se pueda pisar
+        # un evento de contacto de la capa del héroe —978 de las 983 páginas
+        # de contacto del juego están en la de abajo justamente por esto—.
+        if eventos.bloqueada(mundo.paginas(map_id), estado,
+                             (x + step[0], y + step[1]), eventos.LAYER_MISMA):
             break
         x, y = x + step[0], y + step[1]
         pasos += 1

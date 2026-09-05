@@ -58,6 +58,7 @@ snes-hablar
 snes-cinematica
 snes-cinematica 4 1 "480 540 620 1000 1770 2700" 70 apertura 1 "631 691 751 811 1264 1385 1566 1687 1808 1868 2049 2170 2279 2473 2533"
 snes-pisar
+snes-pisar 2 "7 76" up 60 30 bloqueo
 snes-ruta-pisa
 snes-ruta-pisa 70 "12 8" "0 0 0 0 0" 0 "100 200" 43 ruta-pasa
 snes-ruta-pisa 70 "12 8" "0 0 0 0" "60 0 0 50" "50 200" 43 ruta-pisa-cola

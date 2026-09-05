@@ -1348,7 +1348,9 @@ def tabla_de_paginas(mapa, numero):
         out.append("    .byte %s ; +8  su código" % puntero)
         out.append("    .byte %-4d ; +11 el actor que pide en el grupo, o 0"
                    % pagina["actor"])
-        out.append("    .byte " + ",".join(["$00"] * (PAGINA_BYTES - 12)))
+        out.append("    .byte %-4d ; +12 su capa: 1 es la del héroe, la que "
+                   "le cierra el paso" % pagina["capa"])
+        out.append("    .byte " + ",".join(["$00"] * (PAGINA_BYTES - 13)))
     if not mapa["paginas"]:
         out.append("    .byte $00")     # una etiqueta no puede quedar vacía
     return "\n".join(out)
@@ -2168,7 +2170,7 @@ def main():
             paginas = paginas + [{
                 "evento": 9999, "pagina": 0,
                 "trigger": eventos.TRIGGER_AUTOMATICO,
-                "switch_a": 0, "switch_b": 0, "actor": 0,
+                "switch_a": 0, "switch_b": 0, "actor": 0, "capa": 0,
                 "codigo": eventos.pagina_de_prueba(
                     espera, tinte, args.ruta_de_prueba or (), prueba,
                     ruta_de_evento(args.ruta_de_evento),

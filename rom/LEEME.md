@@ -271,6 +271,39 @@ referencia no la mira—, y un evento disparado dos veces antes de correr, que
 entra dos veces en la cola y una sola en RM2k. Ninguna ruta del juego hace
 ninguna de las tres.
 
+### La colisión con los eventos
+
+Desde el 2026-09-05 un evento parado en una celda le cierra el paso a quien
+quiera entrar, y el héroe se lo cierra a los eventos. Es `WouldCollide` de
+`game_map.cpp` con lo que este repo modela: dos personajes chocan si están en
+la **misma capa** —la del héroe es la del medio, `CAPA_HEROE`— y no chocan si
+alguno de los dos atraviesa paredes. Un evento sin página activa no está
+—`IsActive()`— y no choca con nadie. La celda de cada uno es la de destino
+mientras camina, que es `GetX()` en RM2k y `ev_pos_buf` o `tile_x` acá: las
+dos se mueven al empezar el paso. Y el salto también mira: aterrizar sobre
+alguien es un salto que no sale.
+
+Para saber la capa de la página activa **la tabla de páginas lleva todos los
+eventos**, no sólo los que tienen código, y cada página lleva su capa en el
+byte +12. Es lo que hace que el droide de la batalla del mapa 2, cuya página
+no compila, frene igual. Un evento con una condición que la ROM no evalúa
+sigue afuera entero, y tampoco frena: su capa es tan desconocida como su
+código.
+
+De los dos lados es la misma pasada: `bloqueada` en eventos.py y
+`celda_bloqueada` en main.s recorren los eventos parados en la celda y le
+piden la capa a la página activa de cada uno; `movil` y `movil_capa` dicen
+quién se está moviendo, para no chocar consigo mismo y para saber si el héroe
+le estorba. Cuesta una pasada por la tabla de páginas por cada evento parado
+en la celda de destino, o sea nada en la práctica: casi nunca hay uno.
+
+**Cómo se verifica.** El caso `bloqueo` —`snes-pisar 2 "7 76" up 60 30
+bloqueo`—: el héroe sube hacia el droide de (7,72) y se frena en (7,73). Y el
+`snes-npc` de siempre cambió de resultado sin cambiar de receta: Kersh baja
+cuatro celdas desde (22,9) y el héroe está parado en (22,12), así que los dos
+pasos que caen ahí se saltean y termina en (24,11), donde antes terminaba en
+(24,13). Lo que no se modela está en "Lo que falta".
+
 ### Plantar un evento en una celda
 
 `ChangeEventLocation` es `Game_Character::MoveTo`, y lo que importa es lo que
@@ -1536,8 +1569,15 @@ comparación.
   iguales entre imágenes, con un impacto visual mínimo; y **hornear en un
   ChipSet propio a los sprites que son decoración**, como el público del
   Auditorio, que no se mueve nunca. Ninguna de las dos se encara ahora.
-* **Que un NPC frene al héroe.** En RM2k los eventos de la capa del héroe
-  bloquean el paso; la ROM todavía no lo mira. La tabla ya trae el dato.
+* **Lo que la colisión con los eventos no modela.** Está desde el 2026-09-05
+  —ver "La colisión con los eventos"— y deja afuera `overlap_forbidden`, 17
+  páginas del juego; el conflicto de un evento con gráfico de tile contra su
+  propio bloque; que un evento de contacto de la capa del héroe dispare al
+  chocar con él —`CheckCollisonOnMoveFailure`—; y que una ruta forzada que
+  no se puede saltear **reintente** el paso bloqueado en vez de saltearlo,
+  que es lo que hace `UpdateMoveRoute` con `skippable` apagado. Lo último es
+  lo que más cerca está de verse: en la apertura la colisión no frena ningún
+  paso, medido, pero el droide del mapa 2 vive de eso.
 * **Los teletransportes que siguen sin resolverse.** Los que están adentro de
   cinemáticas con variables y condiciones que todavía no modelamos. El del mapa
   donde el juego arranca ya no: es automático, entra con los cinco comandos que

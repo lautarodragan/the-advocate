@@ -1265,9 +1265,9 @@ class Estado:
 
     def cuadro_de_rutas_ev(self, puede_pasar, puede_caer=None, heroe=None):
         """Un cuadro de todas las rutas de eventos. `puede_pasar(indice, x, y,
-        direccion)` dice si ese evento puede dar ese paso, `puede_caer(x, y)`
-        si se puede aterrizar en esa celda, y `heroe` es la celda del héroe,
-        que es a quien encara `face_hero`.
+        direccion)` dice si ese evento puede dar ese paso, `puede_caer(x, y,
+        indice)` si ese evento puede aterrizar en esa celda, y `heroe` es la
+        celda del héroe, que es a quien encara `face_hero`.
 
         La celda se mueve al **empezar** el paso, igual que el héroe: es lo que
         hace `begin_step` en la ROM, y modelarlo distinto acá dejaría a los dos
@@ -1279,8 +1279,8 @@ class Estado:
             empezaba = ruta.paso_cuadros == 0
             direccion = ruta.cuadro(
                 lambda d, i=indice, px=x, py=y: puede_pasar(i, px, py, d),
-                saltar=(lambda dx, dy, px=x, py=y:
-                        puede_caer is None or puede_caer(px + dx, py + dy)),
+                saltar=(lambda dx, dy, px=x, py=y, i=indice:
+                        puede_caer is None or puede_caer(px + dx, py + dy, i)),
                 hacia_heroe=(None if heroe is None else
                              lambda px=x, py=y: direccion_hacia((px, py),
                                                                 heroe)))
@@ -2004,13 +2004,19 @@ def paginas_del_mapa(game_map, indice_de_mapa, mensajes=None, temas=None):
     salida = []
     del_mapa = Eventos(game_map)
     for numero_evento, event in enumerate(game_map.events):
-        if not any(page.trigger in TRIGGERS for page in event.pages):
-            continue
-
+        # Van **todos** los eventos, tengan o no una página que dispare algo:
+        # desde el 2026-09-05 la tabla dice además en qué capa está la página
+        # activa, que es lo que decide si el evento le cierra el paso al héroe
+        # —o a otro evento—, y eso lo hace cualquier evento, hasta uno que no
+        # corre nada. Antes se guardaban sólo los que tenían código, y un
+        # droide sin página compilable —el de la batalla— no habría frenado a
+        # nadie.
+        #
         # Si alguna página del evento pide una condición que la ROM no sabe
         # evaluar —un ítem, un héroe en el grupo, un cronómetro— entonces no se
         # sabe cuál página está activa, y correr la equivocada es peor que no
-        # correr ninguna. El evento entero queda afuera.
+        # correr ninguna. El evento entero queda afuera, y tampoco frena: su
+        # capa es tan desconocida como su código.
         if any(c not in ("switch_a", "switch_b", "actor")
                for page in event.pages for c in page.condition.active):
             continue
@@ -2029,11 +2035,46 @@ def paginas_del_mapa(game_map, indice_de_mapa, mensajes=None, temas=None):
                 "switch_a": cond.ids["switch_a"] if "switch_a" in cond.active else 0,
                 "switch_b": cond.ids["switch_b"] if "switch_b" in cond.active else 0,
                 "actor": cond.ids["actor"] if "actor" in cond.active else 0,
+                "capa": page.layer,
                 "codigo": codigo,
             })
-
-        # Un evento cuyas páginas disparables no se pueden compilar no aporta
-        # nada: sin código no hay nada que ejecutar y sólo ocuparía tabla.
-        if any(p["codigo"] for p in grupo):
-            salida += grupo
+        salida += grupo
     return salida
+
+
+def bloqueada(paginas, estado, celda, capa, ignorar=None, heroe=None):
+    """Si quien se mueve en la capa `capa` no puede entrar a `celda` porque hay
+    alguien parado ahí.
+
+    Es `WouldCollide` de `game_map.cpp`, con lo que este repo modela: dos
+    personajes chocan si están en la misma capa, y no chocan si alguno de los
+    dos atraviesa paredes. Lo que no se modela es `overlap_forbidden` —17
+    páginas del juego— y el conflicto de un evento con gráfico de tile contra
+    su propio bloque.
+
+    La celda de cada evento es la de `pos_ev`, que se mueve al **empezar** el
+    paso: es `IsInPosition` sobre `GetX()`/`GetY()`, o sea la de destino
+    mientras camina. Un evento sin página activa no está —`IsActive()`— y no
+    choca con nadie. `ignorar` es el índice del que se mueve, que no choca
+    consigo mismo, y `heroe` es la celda del héroe cuando quien se mueve es un
+    evento: el héroe está en la capa del medio y frena a los de su capa.
+    """
+    for indice, donde in estado.pos_ev.items():
+        if donde != celda or indice == ignorar:
+            continue
+        ruta = estado.rutas_ev.get(indice)
+        if ruta is not None and ruta.atraviesa:
+            continue
+        pagina = pagina_activa(paginas, indice, estado)
+        if pagina is not None and pagina["capa"] == capa:
+            return True
+    if heroe is not None and heroe == celda and capa == LAYER_MISMA \
+            and not estado.ruta_heroe.atraviesa:
+        return True
+    return False
+
+
+def capa_activa(paginas, estado, indice):
+    """La capa de la página activa del evento, o None si no tiene ninguna."""
+    pagina = pagina_activa(paginas, indice, estado)
+    return None if pagina is None else pagina["capa"]

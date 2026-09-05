@@ -896,6 +896,13 @@ snes-cinematica origen="4" destino="1" cuadros="100 400 600 900" arranque="70" n
 # mientras el intérprete tiene una página en el frente el pad no mueve, que es el
 # `if (Game_Map::IsAnyEventStarting()) return;` de RM2k. Sin eso el héroe daba un
 # paso de más mientras el mensaje se componía.
+#
+# Y el caso `bloqueo` —`snes-pisar 2 "7 76" up 60 30 bloqueo`, desde el
+# 2026-09-05— usa la misma receta para lo contrario: que un evento de la capa
+# del héroe **no** se pueda pisar. El droide del mapa 2 está en (7,72), y el
+# héroe sube desde (7,76) y se frena en (7,73), a una celda. Es `WouldCollide`:
+# ver `bloqueada` en eventos.py y `celda_bloqueada` en main.s. Antes lo
+# atravesaba y seguía hasta la pared, y taro lo vio jugando.
 snes-pisar mapa="70" celda="12 8" direccion="up" cuadros="200" arranque="40" nombre="pisar":
   #!/usr/bin/env bash
   set -euo pipefail

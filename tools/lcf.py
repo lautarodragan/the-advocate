@@ -144,7 +144,14 @@ PAGE_LAYER = 0x22
 PAGE_OVERLAP_FORBIDDEN = 0x23
 PAGE_ANIMATION_TYPE = 0x24
 PAGE_MOVE_SPEED = 0x25
+PAGE_MOVE_ROUTE = 0x29
 PAGE_COMMANDS = 0x34
+
+# La ruta propia de la página —la que camina sola con move_type 6— es un
+# struct MoveRoute: liblcf, src/generated/lcf/lmu/chunks.h.
+ROUTE_COMMANDS = 0x0C
+ROUTE_REPEAT = 0x15
+ROUTE_SKIPPABLE = 0x16
 
 CONDITION_FLAGS = 0x01
 # switch_a, switch_b, variable, item, actor, timer, timer2: un bit cada una,
@@ -266,6 +273,36 @@ class EventPageCondition:
         return bool(self.active)
 
 
+class MoveRoute:
+    """La ruta propia de una página: las órdenes, si se repite y si una orden
+    bloqueada se saltea. Los defaults son los de liblcf: se repite y no se
+    saltea.
+
+    Las órdenes van con los mismos códigos que las de un `MoveEvent`, y se
+    leen como `RawStruct<rpg::MoveCommand>::ReadLcf` de liblcf: el código, y
+    según cuál, sus operandos —un entero para los switches, texto y entero
+    para cambiar el gráfico, texto y tres enteros para el sonido—. Acá se
+    guarda sólo el código; ninguna de las órdenes con operandos se ejecuta.
+    """
+
+    def __init__(self, fields):
+        self.repeat = to_bool(fields.get(ROUTE_REPEAT, b"\x01"))
+        self.skippable = to_bool(fields.get(ROUTE_SKIPPABLE))
+        self.commands = []
+        reader = Reader(fields.get(ROUTE_COMMANDS, b""))
+        while not reader.eof():
+            code = reader.read_int()
+            if code in (32, 33):                # switch_on, switch_off
+                reader.read_int()
+            elif code == 34:                    # change_graphic
+                reader.read_string(reader.read_int())
+                reader.read_int()
+            elif code == 35:                    # play_sound_effect
+                reader.read_string(reader.read_int())
+                reader.read_int(); reader.read_int(); reader.read_int()
+            self.commands.append(code)
+
+
 class EventPage:
     """Una de las versiones que puede adoptar un evento.
 
@@ -288,6 +325,8 @@ class EventPage:
         self.overlap_forbidden = to_bool(fields.get(PAGE_OVERLAP_FORBIDDEN))
         self.animation_type = to_int(fields.get(PAGE_ANIMATION_TYPE, b"\x00"))
         self.commands = read_commands(fields.get(PAGE_COMMANDS, b""))
+        self.move_route = MoveRoute(
+            Reader(fields.get(PAGE_MOVE_ROUTE, b"\x00")).read_struct())
 
         self.condition = EventPageCondition(
             Reader(fields.get(PAGE_CONDITION, b"\x00")).read_struct())

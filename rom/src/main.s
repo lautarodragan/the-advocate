@@ -497,6 +497,10 @@ grupo_listo:
     ; los reescribe antes de que nadie los mire. Cuestan dos instrucciones.
     stz pad_a
     stz pad_a_ant
+    lda #MOVIL_HEROE
+    sta movil
+    lda #CAPA_HEROE
+    sta movil_capa
     rep #$20
 .a16
     stz ev_esperando
@@ -1285,6 +1289,236 @@ nada:
     iny
     lda [pag_ptr], y            ; +11 el actor que pide en el grupo, o 0
     sta pg_actor
+    iny
+    lda [pag_ptr], y            ; +12 su capa
+    sta pg_capa
+    rts
+.endproc
+
+; La capa de la página activa del evento cuyo índice trae A, o $FF si no tiene
+; ninguna. Es la misma pasada que `encolar_por_accion`: gana la última página
+; cuyas condiciones se cumplen. Conserva X e Y; pisa `pag_*` y `pg_*`, que
+; nadie tiene a medio usar cuando esto corre —se llama desde un paso, no desde
+; adentro de una búsqueda de página—.
+.proc capa_activa
+.a8
+.i16
+    phx
+    phy
+    rep #$20
+.a16
+    and #$00FF
+    sta capa_ev
+    sep #$20
+.a8
+    lda #$FF
+    sta capa_hallada
+    ldx mapa_ofs
+    rep #$20
+.a16
+    lda mapa_tabla + M_PAGINA_COUNT, x
+    beq sin_paginas
+    sta pag_restan
+    lda mapa_tabla + M_PTR_PAGINAS, x
+    sta pag_ptr
+    stz pag_ofs
+    sep #$20
+.a8
+    lda mapa_tabla + M_PTR_PAGINAS + 2, x
+    sta pag_ptr + 2
+recorrer:
+    jsr leer_pagina
+    rep #$20
+.a16
+    lda pg_evento
+    cmp capa_ev
+    sep #$20
+.a8
+    bne siguiente
+    jsr condiciones_ok
+    beq siguiente
+    lda pg_capa
+    sta capa_hallada
+siguiente:
+    rep #$20
+.a16
+    lda pag_ofs
+    clc
+    adc #PAGINA_BYTES
+    sta pag_ofs
+    dec pag_restan
+    sep #$20
+.a8
+    bne recorrer
+    lda capa_hallada
+    ply
+    plx
+    rts
+sin_paginas:
+.a16
+    sep #$20
+.a8
+    lda #$FF
+    ply
+    plx
+    rts
+.endproc
+
+; Si el evento cuyo índice trae A está atravesando paredes: tiene ranura de
+; ruta y la ranura lleva el bit. Devuelve A distinto de cero si sí. Pisa X.
+.proc atraviesa_el_evento
+.a8
+.i16
+    sta otro_ev
+    ldx #$0000
+buscar:
+    lda ruta_ev, x
+    cmp otro_ev
+    bne siguiente
+    lda ruta_ev + 12, x
+    and #$01
+    rts
+siguiente:
+    rep #$20
+.a16
+    txa
+    clc
+    adc #RUTA_EV_STRIDE
+    tax
+    cmp #RUTA_EV_MAX * RUTA_EV_STRIDE
+    sep #$20
+.a8
+    bcc buscar
+    lda #0
+    rts
+.endproc
+
+; ¿Hay alguien parado en `dest_x`/`dest_y` que le cierre el paso a `movil`?
+; Devuelve A distinto de cero si sí.
+;
+; Es `WouldCollide` de `game_map.cpp` con lo que este repo modela: dos
+; personajes chocan si están en la misma capa —la del héroe es CAPA_HEROE— y
+; no chocan si alguno de los dos atraviesa paredes. Un evento sin página
+; activa no está y no choca. La celda de cada evento es la de `ev_pos_buf`,
+; que se mueve al **empezar** el paso: es `IsInPosition` sobre `GetX()`, o sea
+; la de destino mientras camina; y la del héroe es `tile_x`/`tile_y`, que
+; `begin_step` mueve igual. Lo que no se modela es `overlap_forbidden` —17
+; páginas del juego— y el conflicto de un evento con gráfico de tile contra su
+; propio bloque. Pisa X e Y.
+.proc celda_bloqueada
+.a8
+.i16
+    lda movil_capa
+    cmp #$FF
+    beq libre_cerca             ; sin página activa no choca con nadie
+    lda movil
+    cmp #MOVIL_HEROE
+    beq es_heroe
+    jsr atraviesa_el_evento
+    bne libre_cerca
+    bra recorrer
+es_heroe:
+    lda ruta_atraviesa
+    beq recorrer
+libre_cerca:
+    jmp libre                   ; `libre` queda lejos para un salto corto
+recorrer:
+    ldx #$0000
+    ldy #$0000
+otro:
+    cpx ev_total
+    beq eventos_listos
+    rep #$20
+.a16
+    lda ev_pos_buf, y
+    cmp dest_x
+    bne siguiente
+    lda ev_pos_buf + 2, y
+    cmp dest_y
+    bne siguiente
+    sep #$20
+.a8
+    txa                         ; el índice cabe en un byte: EV_MAX es 128
+    cmp movil
+    beq siguiente8              ; consigo mismo no
+    sta otro_ev
+    phx
+    phy
+    jsr atraviesa_el_evento
+    bne no_choca
+    lda otro_ev
+    jsr capa_activa
+    cmp movil_capa
+    bne no_choca
+    ply
+    plx
+    lda #1
+    rts
+no_choca:
+    ply
+    plx
+siguiente8:
+    rep #$20
+siguiente:
+.a16
+    tya
+    clc
+    adc #EV_STRIDE
+    tay
+    sep #$20
+.a8
+    inx
+    bra otro
+eventos_listos:
+    ; Y el héroe, cuando quien se mueve es un evento de su capa.
+    lda movil
+    cmp #MOVIL_HEROE
+    beq libre
+    lda movil_capa
+    cmp #CAPA_HEROE
+    bne libre
+    lda ruta_atraviesa
+    bne libre
+    rep #$20
+.a16
+    lda tile_x
+    cmp dest_x
+    bne libre16
+    lda tile_y
+    cmp dest_y
+    bne libre16
+    sep #$20
+.a8
+    lda #1
+    rts
+libre16:
+.a16
+    sep #$20
+.a8
+libre:
+    lda #0
+    rts
+.endproc
+
+; `celda_bloqueada` para el héroe: la celda de destino ya está en dest_x/dest_y.
+.proc heroe_bloqueado
+.a8
+.i16
+    lda #MOVIL_HEROE
+    sta movil
+    lda #CAPA_HEROE
+    sta movil_capa
+    jmp celda_bloqueada
+.endproc
+
+; `movil` y `movil_capa` desde la ranura de ruta que apunta X. Conserva X.
+.proc preparar_movil
+.a8
+.i16
+    lda ruta_ev + 0, x
+    sta movil
+    jsr capa_activa
+    sta movil_capa
     rts
 .endproc
 
@@ -3614,6 +3848,11 @@ siguiente:
     sep #$20
 .a8
     bcc otra
+    ; De acá en adelante el que se mueve es el héroe otra vez.
+    lda #MOVIL_HEROE
+    sta movil
+    lda #CAPA_HEROE
+    sta movil_capa
     rts
 .endproc
 
@@ -3723,6 +3962,7 @@ no_encara:
     ; Girar sin moverse no se compila: acá no llega.
     cmp #24
     bne no_es_salto
+    jsr preparar_movil          ; quién salta, para chocar con los demás
     jsr armar_salto_ev
     lda ruta_ev + 13, x
     bne salto_arranco
@@ -3784,6 +4024,7 @@ mover:
     stz ruta_dir + 1
     phx
     jsr celda_del_evento        ; deja su posición en celda_x/celda_y
+    jsr preparar_movil          ; y quién es, para chocar con los demás
     lda ruta_ev + 12, x
     and #$01
     sta atravesando             ; walk_everywhere: `puede_celda` lo mira
@@ -5266,9 +5507,64 @@ entra:
 .a8
     ldx celda_dir
     and pass_entrar, x
+    beq no
+    ; Y que no haya nadie parado en la celda de al lado. Con `atravesando`
+    ; no se llega acá: es el `GetThrough()` de arriba.
+    rep #$20
+.a16
+    lda celda_x
+    sta dest_x
+    lda celda_y
+    sta dest_y
+    sep #$20
+.a8
+    lda paso_dx, x
+    jsr sumar_a_dest_x
+    lda paso_dy, x
+    jsr sumar_a_dest_y
+    jsr celda_bloqueada
+    bne no
+    lda #1
     rts
 no:
     lda #0
+    rts
+.endproc
+
+; Le suman a dest_x / dest_y el byte con signo que trae A.
+.proc sumar_a_dest_x
+.a8
+.i16
+    rep #$20
+.a16
+    and #$00FF
+    cmp #$0080
+    bcc positivo
+    ora #$FF00
+positivo:
+    clc
+    adc dest_x
+    sta dest_x
+    sep #$20
+.a8
+    rts
+.endproc
+
+.proc sumar_a_dest_y
+.a8
+.i16
+    rep #$20
+.a16
+    and #$00FF
+    cmp #$0080
+    bcc positivo
+    ora #$FF00
+positivo:
+    clc
+    adc dest_y
+    sta dest_y
+    sep #$20
+.a8
     rts
 .endproc
 
@@ -6787,6 +7083,17 @@ no_derecha:
     lda #PASS_DOWN              ; y esa celda tiene que dejar entrar
     jsr can_enter
     beq no
+    lda tile_x
+    sta dest_x
+    lda tile_y
+    dec a
+    sta dest_y
+    sep #$20
+.a8
+    jsr heroe_bloqueado         ; alguien parado ahí lo frena como una pared
+    bne no8
+    rep #$20
+.a16
     dec tile_y
     lda #0
     sta step_dx
@@ -6801,6 +7108,7 @@ no:
     ; se llega en dieciséis; el `sep` de abajo lo achica
     sep #$20
 .a8
+no8:
     rts
 .endproc
 
@@ -6822,6 +7130,17 @@ no:
     lda #PASS_UP
     jsr can_enter
     beq no
+    lda tile_x
+    sta dest_x
+    lda tile_y
+    inc a
+    sta dest_y
+    sep #$20
+.a8
+    jsr heroe_bloqueado         ; alguien parado ahí lo frena como una pared
+    bne no8
+    rep #$20
+.a16
     inc tile_y
     lda #0
     sta step_dx
@@ -6836,6 +7155,7 @@ no:
     ; se llega en dieciséis; el `sep` de abajo lo achica
     sep #$20
 .a8
+no8:
     rts
 .endproc
 
@@ -6855,6 +7175,17 @@ no:
     lda #PASS_RIGHT
     jsr can_enter
     beq no
+    lda tile_x
+    dec a
+    sta dest_x
+    lda tile_y
+    sta dest_y
+    sep #$20
+.a8
+    jsr heroe_bloqueado         ; alguien parado ahí lo frena como una pared
+    bne no8
+    rep #$20
+.a16
     dec tile_x
     lda #-WALK_SPEED
     sta step_dx
@@ -6869,6 +7200,7 @@ no:
     ; se llega en dieciséis; el `sep` de abajo lo achica
     sep #$20
 .a8
+no8:
     rts
 .endproc
 
@@ -6890,6 +7222,17 @@ no:
     lda #PASS_LEFT
     jsr can_enter
     beq no
+    lda tile_x
+    inc a
+    sta dest_x
+    lda tile_y
+    sta dest_y
+    sep #$20
+.a8
+    jsr heroe_bloqueado         ; alguien parado ahí lo frena como una pared
+    bne no8
+    rep #$20
+.a16
     inc tile_x
     lda #WALK_SPEED
     sta step_dx
@@ -6904,6 +7247,7 @@ no:
     ; se llega en dieciséis; el `sep` de abajo lo achica
     sep #$20
 .a8
+no8:
     rts
 .endproc
 
@@ -8036,6 +8380,18 @@ no_mueve:
     and #(PASS_UP | PASS_DOWN | PASS_LEFT | PASS_RIGHT)
     cmp #(PASS_UP | PASS_DOWN | PASS_LEFT | PASS_RIGHT)
     bne no
+    ; Y que no haya nadie parado ahí: el salto también es `MakeWay`, y mira a
+    ; los demás igual que un paso.
+    rep #$20
+.a16
+    lda celda_x
+    sta dest_x
+    lda celda_y
+    sta dest_y
+    sep #$20
+.a8
+    jsr celda_bloqueada
+    bne no
     lda #1
     rts
 .a16
@@ -8745,6 +9101,26 @@ ruta_salto_dy: .res 1
 ; miran `can_leave` y `can_enter`, que también usa la caminata con el pad: por
 ; eso vive acá y no adentro de la ruta.
 atravesando: .res 2
+; Quién está probando un paso o un salto, para chocar con los demás: el índice
+; del evento, o MOVIL_HEROE. Y la capa de su página activa, o $FF si no tiene
+; ninguna, que es un evento que no está —`IsActive()`— y no choca con nadie.
+; Los pone `preparar_movil` para un evento y `heroe_bloqueado` para el héroe,
+; y `mover_eventos` los devuelve al héroe al terminar, así que fuera de una
+; ruta de evento siempre dicen "el héroe".
+movil:       .res 1
+movil_capa:  .res 1
+; En qué capa está la página que `leer_pagina` acaba de leer. Va acá y no con
+; los otros `pg_*` porque la página directa está llena —257 bytes en 256 con
+; éste adentro— y se lee con direccionamiento absoluto, que alcanza.
+pg_capa:     .res 1
+MOVIL_HEROE = $FF
+CAPA_HEROE  = 1
+; La celda a la que se quiere entrar, y lo que `celda_bloqueada` va mirando.
+dest_x:      .res 2
+dest_y:      .res 2
+otro_ev:     .res 1
+capa_ev:     .res 2
+capa_hallada: .res 1
 ; Lo que `armar_salto` va juntando mientras recorre las órdenes de un salto:
 ; cuánto se desplaza en celdas —con signo— y hacia dónde queda apuntando.
 salto_dx:  .res 1
