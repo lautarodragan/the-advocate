@@ -79,7 +79,14 @@ def hero_start(passable, width, height, blocked=()):
                 if best is None or distance < best[0]:
                     best = (distance, x, y)
     if best is None:
-        sys.exit("El mapa no tiene ningún tile abierto por los cuatro lados.")
+        # `sys.exit` sin `import sys`, que es lo que había, convertía un mensaje
+        # escrito a propósito en un `NameError` que no dice nada. Y esta rama se
+        # alcanza de verdad: hay mapas del juego —el 44 entre ellos— donde
+        # ninguna celda está abierta por los cuatro lados, y el conversor tiene
+        # que poder decirlo.
+        raise ValueError(
+            "el mapa no tiene ninguna celda abierta por los cuatro lados, así "
+            "que no hay dónde poner al héroe; hace falta pasarle un --inicio")
     return best[1], best[2]
 
 
