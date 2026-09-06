@@ -8,15 +8,14 @@ justamente para eso.
 Se escribe **mientras se trabaja**, no al final. Un resumen escrito al cerrar
 es la misma operación con pérdida que compactar, sólo que a un archivo.
 
-Última vez que se tocó: 2026-09-05.
+Última vez que se tocó: 2026-09-06.
 
 ## Lo próximo: varios temas en el cartucho, y después la escena de Talan
 
 **El orden lo acordamos con taro el 2026-09-05**, y es éste:
 
 1. ~~`FadeOutBGM`~~, que era la puerta del Emitter Room entera. Hecho.
-2. Las órdenes de ruta **30 y 31**, la frecuencia: trivial, `ruta_frec` ya
-   existe.
+2. ~~Las órdenes de ruta **30 y 31**, la frecuencia.~~ Hecho el 2026-09-06.
 3. **`PanScreen`**: correr la cámara sin el héroe. Hay precedente —`pantalla_x`
    es la cámara más la sacudida— y `just snes-destraba` le da +6 páginas.
 4. Las **diagonales** de ruta, órdenes 4 a 7, que piden la regla de
@@ -200,6 +199,43 @@ Queda para después:
   la primera vuelta de una ROM con muchas páginas y el de la vuelta en que un
   fundido termina, y son lo único que le falta a la escena del ascensor para
   tener caso propio en la tanda: ver "Lo que falta" del LEEME.
+
+## Hecho el 2026-09-06: la frecuencia se sube y se baja a mitad de una ruta
+
+Las órdenes 30 y 31, que las usa **una sola ruta de todo el juego**: la que
+sacude a Manta en la escena del Emitter Room. Mecánico salvo por el tope de
+abajo: con la frecuencia 1 la espera tras un paso son 256 cuadros y no entran
+en el byte de `ruta_tras_paso`, así que las dos partes topan en 1 como RM2k y
+lo que garantiza que no se llegue es el conversor, que **rechaza la ruta**
+—`eventos.frecuencia_minima`—. Topar en 2 habría sido que los dos lados se
+equivoquen igual. Ninguna ruta del juego cae en el guard hoy.
+
+Qué se corrió: **79 casos en verde**, dos más. `ruta-frec` sobre el héroe y
+`npc-frec` sobre un evento, los dos medidos contra la misma ruta sin las
+órdenes para que no puedan dar cero por casualidad: 8 y 16 pixeles de cámara en
+el primero, 271 y 448 pixeles de sprite en el segundo.
+
+La escena de Talan pasó de cinco comandos que la cortan a cuatro: quedan
+`PanScreen` y tres `MoveEvent` —dos con diagonales y uno que cambia el
+gráfico—.
+
+### Lo que apareció midiendo esto, y no está arreglado
+
+**Sobre el héroe, la ROM ignora las órdenes 26 a 29 y la referencia no.**
+`paso_de_ruta` las saltea con un comentario que dice "acá no llegan", y llegan:
+`Ruta` es la misma clase para el héroe y para los eventos, así que la
+referencia le cambia la velocidad o le fija la mirada y la ROM lo deja igual.
+
+Medido: el juego tiene 163 rutas sobre el héroe con la orden 28 y 148 con la
+29; de las páginas que **hoy compilan**, siete tienen una, y una de ésas es el
+evento 1 del **mapa 7, Talan's Pad** —adonde va el juego después de esto, y
+donde suena `hzstream`—. Ninguna prueba lo cobra porque ningún caso mira esas
+páginas.
+
+No lo arreglé: no es un comando que falte sino dos lados que dejaron de hacer
+lo mismo, y la velocidad del héroe pide además que su paso deje de ser fijo
+—hoy son `WALK_SPEED` y ocho cuadros por celda—. Queda para que taro decida
+dónde entra; está en "Lo que falta" del LEEME.
 
 ## Hecho el 2026-09-05: `FadeOutBGM`, y la puerta del Emitter Room
 

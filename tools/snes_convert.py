@@ -1672,6 +1672,11 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "; una cuenta en la ROM: es lo que los dos lados tienen que contar\n"
         "; igual para que una ruta forzada termine en el mismo cuadro.\n"
         "CUADROS_POR_CELDA = %d\n"
+        "; La frecuencia más alta de una ruta, que es donde topan las\n"
+        "; órdenes 30 y 31. La más baja la topa la ROM en 1, como RM2k;\n"
+        "; lo que garantiza que no se llegue es el conversor, que rechaza\n"
+        "; la ruta.\n"
+        "RUTA_FRECUENCIA = %d\n"
         "; Y cuánto cuesta un `wait` adentro de una ruta forzada. **No es un\n"
         "; cuadro**: en RM2k es `SetMaxStopCountForWait`, o sea\n"
         "; `20 + (1 << (8 - frecuencia))`, y con la frecuencia 8 —la única\n"
@@ -1756,7 +1761,8 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            FLASH_MAX,
            eventos.TRIGGER_AUTOMATICO, eventos.TRIGGER_ACCION,
            eventos.TRIGGER_TOCA_HEROE,
-           eventos.CUADROS_POR_CELDA, eventos.CUADROS_DE_ESPERA_DE_RUTA,
+           eventos.CUADROS_POR_CELDA, eventos.RUTA_FRECUENCIA,
+           eventos.CUADROS_DE_ESPERA_DE_RUTA,
            eventos.SALTO_PASO, eventos.SALTO_VELOCIDAD,
            eventos.TINTE_NEUTRO,
            eventos.FUNDIDO_RAMPA,

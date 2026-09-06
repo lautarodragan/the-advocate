@@ -3905,6 +3905,10 @@ no_es_salto:
     bne no_es_fin
     jmp otra_orden              ; el par ya lo consumió el `begin_jump`
 no_es_fin:
+    cmp #30
+    bcc otra_orden              ; 26 a 29 no llegan sobre el héroe
+    cmp #32
+    bcc frecuencia              ; 30 y 31: la frecuencia de la ruta
     cmp #36
     bcc otra_orden              ; los demás: acá no llegan
     cmp #38
@@ -3922,6 +3926,29 @@ atravesar:
     and #$01
     eor #$01
     sta ruta_atraviesa
+    jmp otra_orden
+frecuencia:
+    ; 30 sube la frecuencia de la ruta y 31 la baja, topando en 8 y en 1: es
+    ; `increase/decrease_movement_frequence`. De ella salen los cuadros quieto
+    ; tras cada orden, así que se lee de `ruta_frec` y no de otro lado.
+    ;
+    ; Con la 1 la espera tras un paso son 256 cuadros y no entran en el byte de
+    ; `ruta_tras_paso`; que no se llegue lo garantiza el conversor, que rechaza
+    ; la ruta entera. Acá se topa igual en 1, como RM2k: topar distinto sería
+    ; que los dos lados se equivoquen igual el día que ese guard falle.
+    and #$01
+    bne frec_menos
+    lda ruta_frec
+    cmp #RUTA_FRECUENCIA
+    bcs frec_listo
+    inc ruta_frec
+    bra frec_listo
+frec_menos:
+    lda ruta_frec
+    cmp #2
+    bcc frec_listo
+    dec ruta_frec
+frec_listo:
     jmp otra_orden
 face:
     sec
@@ -5051,9 +5078,9 @@ no_es_salto:
     beq seguir
     cmp #26
     bcc seguir                  ; los demás no hacen nada
-    cmp #30
-    bcc fijar_o_velocidad       ; 26 y 27 fijan la mirada, 28 y 29 la velocidad
-    cmp #36
+    cmp #32
+    bcc fijar_o_velocidad       ; 26 y 27 la mirada, 28 y 29 la velocidad,
+    cmp #36                     ; 30 y 31 la frecuencia
     bcc seguir
     cmp #38
     bcs anim
@@ -5085,6 +5112,8 @@ guardar_banderas:
 seguir:
     jmp otra_orden
 fijar_o_velocidad:
+    cmp #30
+    bcs ev_frecuencia
     cmp #28
     bcs velocidad
     ; 26 fija hacia dónde mira, 27 lo suelta: `lock_facing`.
@@ -5111,6 +5140,23 @@ mas_lenta:
     cmp #2
     bcc seguir
     dec ruta_ev + 17, x
+    bra seguir
+ev_frecuencia:
+    ; 30 sube la frecuencia y 31 la baja, entre 1 y 8. Ver `frecuencia` en
+    ; `paso_de_ruta`, que es lo mismo para el héroe: de acá salen los cuadros
+    ; quieto tras cada orden, y la 1 la rechaza el conversor.
+    and #$01
+    bne menos_frec
+    lda ruta_ev + 16, x
+    cmp #RUTA_FRECUENCIA
+    bcs seguir
+    inc ruta_ev + 16, x
+    bra seguir
+menos_frec:
+    lda ruta_ev + 16, x
+    cmp #2
+    bcc seguir
+    dec ruta_ev + 16, x
     bra seguir
 guardar_18:
     sta ruta_ev + 18, x

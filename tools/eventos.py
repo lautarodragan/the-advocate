@@ -109,6 +109,29 @@ RUTA_FRECUENCIA = 8
 RUTA_FRECUENCIA_MIN = 2
 
 
+def frecuencia_minima(frecuencia, ordenes, repite=False):
+    """La frecuencia más baja por la que pasa una ruta con las órdenes 30 y 31.
+
+    Es lo que decide si la ruta se puede compilar: con la frecuencia 1 la
+    espera tras un paso son 256 cuadros y el byte de `ruta_tras_paso` no los
+    tiene, así que una ruta que baje hasta ahí se rechaza entera.
+
+    Con `repite` se recorren las órdenes nueve veces y no una. No es por las
+    dudas: la frecuencia se topa en 8 y en 1, así que una ruta que se repita y
+    baje más de lo que sube termina en 1 sí o sí, y nueve pasadas alcanzan para
+    que llegue desde cualquier punto de partida.
+    """
+    actual = minima = frecuencia
+    for _ in range(9 if repite else 1):
+        for orden in ordenes:
+            if orden == RUTA_FREC_MAS:
+                actual = min(RUTA_FRECUENCIA, actual + 1)
+            elif orden == RUTA_FREC_MENOS:
+                actual = max(1, actual - 1)
+            minima = min(minima, actual)
+    return minima
+
+
 def espera_tras_paso(frecuencia):
     """`GetMaxStopCountForStep`: los cuadros quieto después de un paso."""
     return 0 if frecuencia >= 8 else 1 << (9 - frecuencia)
@@ -141,6 +164,11 @@ RUTA_ANIM_PARAR, RUTA_ANIM_SEGUIR = 38, 39
 # propias de las páginas: los droides del mapa 2 las usan.
 RUTA_FIJAR_DIR, RUTA_SOLTAR_DIR = 26, 27
 RUTA_VEL_MAS, RUTA_VEL_MENOS = 28, 29
+# Subir y bajar la frecuencia a mitad de una ruta:
+# `increase/decrease_movement_frequence`, que RM2k topa en 8 y en 1. Las usa
+# **una sola ruta de todo el juego** —la que sacude a Manta en la escena del
+# Emitter Room, que baja dos veces de 8 a 6— y sin ellas esa página no compila.
+RUTA_FREC_MAS, RUTA_FREC_MENOS = 30, 31
 
 # Cuánto avanza un paso por cuadro según la velocidad, de 256 por celda: es el
 # `1 << (1 + GetMoveSpeed())` de `Game_Character::UpdateMovement`. La 4 es la
@@ -178,7 +206,8 @@ RUTA_ORDENES = (set(RUTA_MIRAR) | set(RUTA_MOVER)
                 | {RUTA_ESPERAR, RUTA_SALTO_INICIO, RUTA_SALTO_FIN,
                    RUTA_ATRAVESAR_ON, RUTA_ATRAVESAR_OFF,
                    RUTA_ANIM_PARAR, RUTA_ANIM_SEGUIR, RUTA_ENCARAR_HEROE,
-                   RUTA_FIJAR_DIR, RUTA_SOLTAR_DIR, RUTA_VEL_MAS, RUTA_VEL_MENOS})
+                   RUTA_FIJAR_DIR, RUTA_SOLTAR_DIR, RUTA_VEL_MAS, RUTA_VEL_MENOS,
+                   RUTA_FREC_MAS, RUTA_FREC_MENOS})
 
 
 def direccion_hacia(desde, hasta):
@@ -991,6 +1020,9 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         if not RUTA_FRECUENCIA_MIN <= p[1] <= RUTA_FRECUENCIA:
             raise NoSePuede()   # la 1 no entra en el byte de espera de la ROM
         ordenes = decodificar_ruta(list(p[4:]))
+        if frecuencia_minima(p[1], [o for o, _ in ordenes],
+                             bool(p[2])) < RUTA_FRECUENCIA_MIN:
+            raise NoSePuede()   # las órdenes 30 y 31 la bajarían hasta la 1
         ruta = []
         for orden, _extras in ordenes:
 
@@ -1398,6 +1430,17 @@ class Ruta:
                 continue
             if orden == RUTA_VEL_MENOS:
                 self.velocidad = max(1, self.velocidad - 1)
+                continue
+            if orden == RUTA_FREC_MAS:
+                self.frecuencia = min(RUTA_FRECUENCIA, self.frecuencia + 1)
+                continue
+            if orden == RUTA_FREC_MENOS:
+                # Topa en 1 como RM2k y no en RUTA_FRECUENCIA_MIN, aunque con
+                # la 1 la ROM no sepa esperar: lo que garantiza que no se
+                # llegue es `frecuencia_minima`, que rechaza la ruta al
+                # compilarla. Topando distinto acá, los dos lados se
+                # equivocarían igual el día que el guard fallara.
+                self.frecuencia = max(1, self.frecuencia - 1)
                 continue
             if orden == RUTA_SALTO_FIN:
                 continue            # el par ya lo consumió `RUTA_SALTO_INICIO`
@@ -2716,6 +2759,9 @@ def ruta_propia(page):
         if orden not in RUTA_ORDENES or orden == RUTA_ENCARAR_HEROE:
             return None
         ordenes.append(orden)
+    if frecuencia_minima(page.move_frequency, ordenes,
+                         page.move_route.repeat) < RUTA_FRECUENCIA_MIN:
+        return None             # las órdenes 30 y 31 la bajarían hasta la 1
     if not ordenes or len(ordenes) > 255:
         return None
     return {

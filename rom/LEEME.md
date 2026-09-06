@@ -1374,6 +1374,40 @@ para 1000 ms, y el pico del audio del emulador acompaña: 16174, 9859, 5476,
 12000 y 24000 en el cuadro 130, o sea que lo que baja es el fundido y no el
 tema.
 
+### La frecuencia se sube y se baja a mitad de una ruta
+
+Las órdenes 30 y 31 —`increase/decrease_movement_frequence`— mueven la
+frecuencia de la ruta de a uno, topando en 8 y en 1. De la frecuencia salen los
+cuadros quieto después de cada orden, así que cambiarla a mitad de camino
+cambia el ritmo de lo que queda.
+
+**Las usa una sola ruta de todo el juego**: la que sacude a Manta en la escena
+del Emitter Room, que baja de 8 a 6 y no vuelve a subir. Sin ellas esa página
+no compila, y por eso entraron.
+
+Lo único que no es mecánico es el tope de abajo. **Con la frecuencia 1 la
+espera tras un paso son 256 cuadros** y no entran en el byte de
+`ruta_tras_paso`, así que una ruta que llegue ahí no se puede correr. La salida
+no fue topar en 2 —eso sería que los dos lados se equivoquen igual el día que
+alguna ruta lo pidiera— sino **rechazar la ruta al compilarla**:
+`eventos.frecuencia_minima` recorre las órdenes desde la frecuencia inicial y
+devuelve la más baja por la que pasa, y si es menor que `RUTA_FRECUENCIA_MIN`
+la ruta no se emite. Con una ruta que se repite se recorre nueve veces y no
+una: la frecuencia se topa en los dos extremos, así que una que baje más de lo
+que sube termina en 1 sí o sí. Ninguna ruta del juego cae en el guard hoy.
+
+Con eso, la ROM y la referencia topan las dos en 1, como RM2k, y el camino que
+la ROM no sabe recorrer simplemente no se compila.
+
+**Cómo se verifica.** Dos casos nuevos, y los dos son filosos por construcción
+—se midió contra la misma ruta sin las órdenes—:
+
+* `ruta-frec`: el héroe camina seis celdas con un 31 y un 30 en el medio. En el
+  cuadro 30 la referencia lo deja ocho pixeles más arriba que sin las órdenes,
+  y en el 40, dieciséis; como la cámara lo sigue, eso corre la pantalla entera.
+* `npc-frec`: lo mismo sobre un evento, donde la diferencia es sólo el sprite:
+  271 pixeles en el cuadro 40 y 448 en el 60.
+
 ### El cronómetro
 
 `TimerOperation`, con sus tres operaciones: poner, arrancar y parar. Se dibuja
@@ -2186,7 +2220,23 @@ comparación.
   gráfico** (+16 solo, y más en combinación: pide meter los tiles del CharSet
   nuevo en el banco de sprites del mapa), las **diagonales** y **moverse
   hacia el héroe**. La velocidad ya está, desde el 2026-09-05, con las rutas
-  propias de las páginas. Sigue siendo lo que más corta.
+  propias de las páginas, y **subir y bajar la frecuencia** —las órdenes 30 y
+  31— desde el 2026-09-06: ver "La frecuencia se sube y se baja a mitad de una
+  ruta". Sigue siendo lo que más corta.
+
+  Y una que apareció midiendo lo anterior, el 2026-09-06: **sobre el héroe, la
+  ROM ignora las órdenes 26 a 29** —fijar y soltar la mirada, subir y bajar la
+  velocidad— y **la referencia no**. `paso_de_ruta` las saltea con un "acá no
+  llegan" que dejó de ser cierto: `Ruta` es la misma clase para el héroe y para
+  los eventos, así que la referencia le cambia la velocidad y la ROM lo deja
+  caminando igual. En el juego hay 163 rutas sobre el héroe con la orden 28 y
+  148 con la 29; **de las páginas que hoy compilan, siete tienen una**, y una
+  de ésas es el evento 1 del **mapa 7, Talan's Pad**, que es adonde va el juego
+  después del Emitter Room. No lo cobra ninguna prueba porque ningún caso mira
+  una de esas páginas, y no es lo mismo que lo de arriba: no es un comando que
+  falte sino dos lados que ya no hacen lo mismo. La velocidad del héroe pide
+  además que su paso deje de ser fijo, que hoy son `WALK_SPEED` y ocho cuadros
+  por celda.
 
   Y aparte, **girar sin moverse** (`turn_90_degree_right` y sus hermanas): no
   está afuera por costo sino por dónde arranca el giro. RM2k gira sobre la
