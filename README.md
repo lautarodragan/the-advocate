@@ -546,6 +546,25 @@ héroe entra, el fundido corre, y los cuadros 20 y 40 dan cero contra la
 referencia. Lo que le sigue faltando para tener caso propio en la tanda está en
 "Lo que falta".
 
+#### El cuadro que el fundido regalaba al terminar
+
+Un teletransporte congela el juego setenta cuadros. Los dos lados contaban
+setenta, y la referencia gastaba **uno más**: el cuadro en que el contador llega
+al final lo consumía sin hacer nada, mientras que en la ROM `fundido_tick`
+devuelve cero y el lazo sigue con `eventos_tick`, `move_hero` y todo lo demás.
+
+Es la misma trampa que ya se había arreglado del lado de la ida —ahí está
+escrito "el cuadro **sigue**: la ROM pide el fundido desde `eventos_tick` y
+después corre `move_hero` igual"— y había quedado sin arreglar del lado de la
+vuelta.
+
+No lo cobraba ninguna prueba porque los casos de teletransporte comparan el
+cuadro final, cuando ya se acomodó todo. Lo destapó la escena de Talan, que
+empieza teletransportándose adentro del mapa y sigue caminando al héroe: un
+cuadro de más son **dos pixeles**, la cámara lo sigue, y con la cámara corrida
+difiere media pantalla. De ahí el 60% del cuadro 120 contra ceros a los dos
+lados.
+
 #### La pantalla se prende en el vblank, no donde se carga el mapa
 
 Cargar un mapa apaga la pantalla: `cargar_mapa` escribe VRAM y CGRAM por DMA y
@@ -1020,8 +1039,7 @@ Arreglarlo pidió tres cosas, y las tres hacen falta:
 **Cómo se verifica.** Lo cobra `puerta-emisor`, que abre la puerta del Emitter
 Room apretando A y mira el cuadro 40: con la página activa calculada viva daba
 300 pixeles de diferencia y con la instantánea da cero. Se le hizo además un
-caso de la escena de Talan entera, y hubo que sacarlo: esa página no compilaba
-entonces, así que daba cero sin ejercitar nada. Ver ESTADO.md.
+caso de la escena de Talan entera, `talan`.
 
 #### El intérprete de eventos
 
@@ -1883,8 +1901,8 @@ Adentro de un salto la orden se consume y **no se ejecuta**: el lazo de
 Ninguna ruta del juego tiene una ahí adentro —medido, cero—, así que eso está
 por corrección y no porque pase.
 
-Con esto **la escena de Talan compila y corre**. Todavía no tiene caso en la
-tanda: diverge entre los cuadros 90 y 140 —ver ESTADO.md—.
+Con esto **la escena de Talan compila y corre**, y tiene caso propio: `talan`,
+el más largo de la tanda —mil doscientos cuadros de los 233 comandos—.
 
 **Cómo se verifica.** Dos casos, y son la misma ruta con distinto destino: el
 evento 3 del mapa 6 baja dos celdas, cambia de gráfico y sigue bajando dos. Los

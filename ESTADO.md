@@ -23,26 +23,17 @@ Los seis puntos que acordamos el 2026-09-05 —`FadeOutBGM`, las órdenes de rut
 30 y 31, `PanScreen`, las diagonales, `PlayBGM` con varios temas y la orden 34—
 están **los seis hechos**, entre el 2026-09-05 y el 2026-09-06. Con eso la
 escena de Talan —los 233 comandos de la página de contacto del evento 5 del
-mapa 3— compila y corre, y `demo-apertura` lleva los mapas 4, 1, 2, 3, 5 y 6.
+mapa 3— corre y **está verificada** en mil doscientos cuadros, y
+`demo-apertura` lleva los mapas 4, 1, 2, 3, 5 y 6.
 
 Las páginas automáticas que compilan enteras son **209 de 489**.
 
 ### Lo próximo, si no se decide otra cosa
 
-1. **La divergencia de la escena de Talan, entre los cuadros 90 y 140.** Ahora
-   que la escena corre de verdad la comparación dice algo: los cuadros 40, 60,
-   80, 150, 200, 400, 700 y 1200 dan **cero** y los del medio hasta 60%. No es
-   un corrimiento de cuadros —ROM 100 contra referencia 100 es la comparación
-   que menos difiere de todas— así que es contenido distinto. Con ese
-   porcentaje huele a la cámara corrida un par de pixeles, y ahí es donde corre
-   el `PanScreen` de la escena; la sospecha es que arranca en cuadros distintos
-   porque algo anterior tarda distinto. Resuelto eso, la escena tiene caso
-   propio en la tanda.
-
-2. **`ConditionalBranch`**, el desbloqueo más grande que queda: +24 páginas de
+1. **`ConditionalBranch`**, el desbloqueo más grande que queda: +24 páginas de
    las 209 que compilan hoy. Y lo caro no sirve: limitado a condiciones de
    **switch** se lleva 24 de las 27; agregarle variables suma cero, medido.
-3. **La secuencia del "1 year earlier"**, que es lo que sigue en el juego y lo
+2. **La secuencia del "1 year earlier"**, que es lo que sigue en el juego y lo
    que hoy deja mudo a `hzstream`: la página que lo prende —evento 1, página 2
    del mapa 4— pide `ChangeItems`, `ShowPicture`/`MovePicture` y
    `ChangePartyMembers`.
@@ -52,6 +43,13 @@ Las páginas automáticas que compilan enteras son **209 de 489**.
 
 Las que hay que conocer para no rehacerlas ni contradecirlas. El porqué largo
 de cada una está en `README.md`.
+
+* **Un caso largo en cero no prueba nada por sí solo.** El caso `talan` estuvo
+  una vez en verde sin ejercitar nada —la página no compilaba, los dos lados no
+  hacían nada— y mil doscientos cuadros de cero se ven muy convincentes. Antes
+  de creerle a un cero hay que **ver la página compilar**, y mejor todavía,
+  verlo dar rojo con algo roto a propósito. Lo delató algo suelto: la lista de
+  temas del cartucho bajó de cuatro a tres.
 
 * **La página activa de un evento se congela hasta el refresco.** No se
   recalcula cada vez que alguien pregunta: es `Game_Event::page`, y sólo la
@@ -148,21 +146,9 @@ de cada una está en `README.md`.
 
 ## Lo que la tanda no cubre
 
-`just snes-hitos-foto` son **85 casos, todos en verde**. Lo que no mira:
-
-* **La escena de Talan**, que corre pero diverge entre los cuadros 90 y 140:
-  ver arriba. No tiene caso hasta que eso se resuelva.
-
-  Hubo uno el 2026-09-06 y se sacó, y vale contar por qué. Estaba en verde **por
-  la razón equivocada**: la página no compilaba —la orden 28 sobre el héroe se
-  rechazaba entonces— así que los dos lados no hacían nada y la comparación daba
-  cero. Mil doscientos cuadros de nada. Lo delató algo suelto: la lista de temas
-  del cartucho bajó de cuatro a tres, y `lufsorr` es el segundo tema de esa
-  misma página.
-
-  La lección, para el próximo caso largo: **antes de creerle a un cero hay que
-  ver la página compilar**. Un caso que no ejercita nada da cero igual, y cuanto
-  más largo el caso, más convincente se ve el cero.
+`just snes-hitos-foto` son **86 casos, todos en verde**, y el más largo es
+`talan`: mil doscientos cuadros de la escena entera del Emitter Room. Lo que la
+tanda no mira:
 
 * **El audio.** `just snes-bgm <tema>` graba cuarenta segundos y los compara
   contra el MIDI, y **no está en la tanda**: es visual. Los cuatro temas de la

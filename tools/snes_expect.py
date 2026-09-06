@@ -468,11 +468,17 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
                 # no hacer nada: ni el intérprete, ni la ruta del héroe, ni los
                 # eventos. El salto se aplica adentro, en el primer cuadro
                 # negro, que es donde la consola carga el mapa.
-                if estado.fundido is not None:
+                if estado.fundido is not None and \
+                        estado.fundido + 1 >= eventos.FUNDIDO_TOTAL:
+                    # El último cuadro del fundido, y **corre igual**: en la
+                    # ROM `fundido_tick` devuelve cero y el lazo sigue con
+                    # `eventos_tick` y `move_hero`. Acá se hacía `continue` y
+                    # se le regalaba un cuadro a cada teletransporte, que es la
+                    # misma trampa que ya se había arreglado del lado de la
+                    # ida —"el cuadro sigue"—.
+                    estado.fundido = None
+                elif estado.fundido is not None:
                     estado.fundido += 1
-                    if estado.fundido >= eventos.FUNDIDO_TOTAL:
-                        estado.fundido = None
-                        continue
                     if estado.fundido != eventos.FUNDIDO_RAMPA \
                             or estado.salto is None:
                         continue

@@ -604,12 +604,19 @@ snes-grafico mapa="6" ruta="4 2 2 34 0 2 2" grafico="Future1 0" celda="22 12" cu
         --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
   done
 
-# Hubo acá un caso `talan` —la escena entera del Emitter Room, mil doscientos
-# cuadros— y se sacó el 2026-09-06 porque **estaba en verde por la razón
-# equivocada**: la página no compila desde que la orden 28 sobre el héroe dejó
-# de compilar, así que los dos lados no hacían nada y la comparación daba cero.
-# Vuelve cuando el héroe sepa cambiar de velocidad. El argumento `mapas` de
-# `snes-escena` se queda: lo va a necesitar igual.
+# El caso `talan` es la escena entera del Emitter Room, y es el más largo de la
+# tanda: mil doscientos cuadros de los 233 comandos de la página de contacto del
+# evento 5 del mapa 3, la que se destrabó con los seis puntos del 2026-09-06.
+# Pide `--mapas 1 2 4 5` porque termina teletransportando al 4, y el switch 13
+# para que la página de contacto esté activa: en el juego lo prende la puerta al
+# hablarle, y acá se pone de entrada para no gastar cuatrocientos cuadros en
+# abrirla. La ruta es `23 0`: esperar y subir, y lo de esperar no es decorativo
+# —lo que abre la puerta es el refresco, que corre al cuadro siguiente—.
+#
+# Este caso ya estuvo una vez y **estaba en verde por la razón equivocada**: la
+# página no compilaba, los dos lados no hacían nada y la comparación daba cero.
+# Ahora sí ejercita, y lo prueba que haya dado rojo: el cuadro 120 daba 60% por
+# el cuadro que la referencia le regalaba a cada fundido.
 
 # La cámara corrida sin el héroe: PanScreen.
 #
