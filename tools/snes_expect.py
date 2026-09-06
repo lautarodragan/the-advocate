@@ -98,8 +98,14 @@ class Mundo:
     """
 
     def __init__(self, renderer, game_dir, ids, prueba=None, mensajes=None,
-                 grupo=(), con_timer=False):
+                 grupo=(), con_timer=False, graficos_de_prueba=()):
         self.prueba = prueba
+        # Los (CharSet, índice) de `--grafico-de-prueba`, que la página
+        # inventada usa con la orden 34. Se registran **después** de los del
+        # juego y sólo en el mapa donde arranca la ROM, que es el mismo orden
+        # y el mismo lugar que en el conversor: el índice que lleva el
+        # bytecode tiene que significar lo mismo de los dos lados.
+        self.graficos_de_prueba = tuple(graficos_de_prueba)
         # Para `npcs_dibujables`: qué líderes puede haber y cuántas paletas de
         # sprite quedan, que deciden qué eventos dibujados con un tile se ven.
         self.grupo = list(grupo)
@@ -111,6 +117,11 @@ class Mundo:
         self.cache = {}
         self.npcs_cache = {}
         self.paginas_cache = {}
+        # Los gráficos a los que las rutas de cada mapa cambian con la orden
+        # 34. Van por mapa y no globales —ver `eventos.Graficos`— y se guardan
+        # porque el dibujo los necesita: la ruta lleva el índice, y de acá sale
+        # el CharSet.
+        self.graficos_cache = {}
         self.mensajes = mensajes
         # Los temas se numeran igual que en el conversor, en el orden en que los
         # PlayBGM los piden. Acá no suena nada —la comparación es de pixeles—
@@ -131,9 +142,14 @@ class Mundo:
     def paginas(self, map_id):
         """Las páginas de evento del mapa, compiladas como las compiló la ROM."""
         if map_id not in self.paginas_cache:
+            self.graficos_cache[map_id] = eventos.Graficos()
             paginas = eventos.paginas_del_mapa(self.mapa(map_id)[0],
                                                self.indices.get, self.mensajes,
-                                               self.temas)
+                                               self.temas,
+                                               self.graficos_cache[map_id])
+            if self.graficos_de_prueba and map_id == self.ids[0]:
+                for charset, index in self.graficos_de_prueba:
+                    self.graficos_cache[map_id].indice(charset, index)
             if self.prueba is not None and map_id == self.ids[0]:
                 # La página inventada va sólo en el mapa donde arranca la ROM,
                 # que es el mismo que el conversor le agrega la suya.
@@ -156,6 +172,12 @@ class Mundo:
                                               pan=self.prueba[11]))]
             self.paginas_cache[map_id] = paginas
         return self.paginas_cache[map_id]
+
+    def graficos(self, map_id):
+        """Los gráficos que las rutas de este mapa piden, en el mismo orden en
+        que los numeró el conversor."""
+        self.paginas(map_id)            # los junta compilando las páginas
+        return self.graficos_cache[map_id]
 
     def mapa(self, map_id):
         if map_id not in self.cache:
@@ -184,10 +206,22 @@ class Mundo:
             lideres = snes_convert.lideres_posibles(
                 self.renderer, self.ids, self.grupo,
                 self.mensajes is not None)
+            # Con los gráficos de la orden 34, que son un personaje más y
+            # piden paleta: sin ellos acá el reparto sería otro y un evento
+            # dibujado con un tile podía entrar de este lado y no del otro.
             self.npcs_cache[map_id] = snes_convert.npcs_dibujables(
                 self.renderer, game_map, lideres,
-                7 if self.con_timer else 8)[0]
-        return self.npcs_cache[map_id]
+                7 if self.con_timer else 8,
+                self.graficos(map_id).pares)
+        return self.npcs_cache[map_id][0]
+
+    def paleta_de_sprite(self, map_id):
+        """Qué (CharSet, índice) entraron en las paletas de sprite del mapa.
+
+        Lo mira el dibujo de la orden 34: un gráfico que no entró no se
+        dibuja, igual que una página cuyo gráfico quedó afuera."""
+        self.npcs(map_id)
+        return self.npcs_cache[map_id][2][1]
 
 
 # El mismo tope que `saltos_restantes` en la ROM: dos mapas que se
@@ -981,6 +1015,11 @@ def main():
                              "prueba: el blanco es 0 para el héroe o el índice "
                              "del evento más uno, el color va de 0 a 31 y los "
                              "cuadros son cuántos dura")
+    parser.add_argument("--grafico-de-prueba", nargs=2, action="append",
+                        default=None, metavar=("CHARSET", "INDICE"),
+                        help="el mismo de snes_convert.py: registra un gráfico\n"
+                             "para que la orden 34 de --ruta-de-evento pueda\n"
+                             "cambiarse a él")
     parser.add_argument("--ruta-de-evento", nargs="+", type=int, default=None,
                         metavar="N",
                         help="el primer número es sobre quién —el índice del "
@@ -1093,6 +1132,8 @@ def main():
                    snes_convert.sacudida_de_prueba(args.sacudida_de_prueba),
                    args.fundir_bgm, snes_convert.pan_de_prueba(args.pan_de_prueba))
                   if hay_prueba else None, mensajes,
+                  graficos_de_prueba=snes_convert.graficos_de_prueba(
+                      args.grafico_de_prueba),
                   grupo=grupo, con_timer=args.con_timer)
 
     # Los CharSets y los mapas ya convertidos se comparten entre las
@@ -1273,6 +1314,25 @@ def main():
                 capa = pagina["capa"]
             elif not npc["visible"]:
                 continue
+            if ruta is not None and ruta.grafico is not None:
+                # Una orden 34 le cambió el gráfico, y eso gana sobre lo de la
+                # página: `SetSpriteGraphic` escribe el dato del personaje. La
+                # pose no se toca —sigue el ciclo de caminata donde estaba— y
+                # tampoco la capa, que es de la página.
+                charset_npc, index_npc = mundo.graficos(map_id).pares[
+                    ruta.grafico]
+                if (not snes_convert.sprite_colors(charset_image(charset_npc),
+                                                   index_npc)
+                        or (charset_npc, index_npc)
+                        not in mundo.paleta_de_sprite(map_id)):
+                    # Un CharSet sin un solo pixel opaco —`nobodyhere`, 185
+                    # de las 437 órdenes 34 del juego— o uno que no entró en
+                    # las paletas de sprite: el evento desaparece. Hay que
+                    # saltearlo y no dibujarlo transparente, porque en la
+                    # consola la fila se esconde y deja de ocupar un objeto:
+                    # dibujarlo acá cambiaría qué se pierde en una línea con
+                    # muchos sprites.
+                    continue
             if ruta is None:
                 px, py, pose = cx * TILE, cy * TILE, pose_pagina
             else:

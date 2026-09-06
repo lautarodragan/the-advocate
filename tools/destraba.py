@@ -104,10 +104,18 @@ def mover_otro(cmd, pagina):
         ordenes = eventos.decodificar_ruta(q[4:])
     except eventos.NoSePuede:
         return False
-    if blanco == MOVE_HEROE and any(o in eventos.RUTA_DIAGONALES
-                                    for o, _e in ordenes):
-        return False        # el héroe no camina en diagonal: ver `traducir`
-    return bool(ordenes) and all(o in ORDENES for o, _e in ordenes)
+    if blanco == MOVE_HEROE and any(
+            o in eventos.RUTA_DIAGONALES or o == eventos.RUTA_CAMBIAR_GRAFICO
+            for o, _e in ordenes):
+        # Sobre el héroe la ROM no camina en diagonal ni le cambia el gráfico:
+        # ver `traducir`. Las dos son suyas nomás; sobre eventos ya están.
+        return False
+    # Una ruta **vacía** cuenta como que se puede: `traducir` la acepta y no
+    # emite nada —RM2k la consume entera en el cuadro y no deja nada que
+    # esperar—. Pedir `ordenes` no vacía era otra forma del agujero de la
+    # transparencia: la columna realista daba menos que la base, esta vez por
+    # los dos MoveEvent sin órdenes de una página del mapa 2.
+    return all(o in ORDENES for o, _e in ordenes)
 
 
 # Los grupos. Un comando no se puede medir suelto cuando RM2k lo emite siempre
@@ -195,7 +203,8 @@ def compila(comandos, extra, con_call, comunes, filtros=(), pagina=None,
             continue
         try:
             eventos._compilar(cmd, lambda m: 0, eventos.Mensajes(), lineas,
-                              pagina.ctx if pagina is not None else None)
+                              pagina.ctx if pagina is not None else None,
+                              graficos=eventos.Graficos())
         except eventos.NoSePuede:
             return False
     return True
@@ -256,7 +265,7 @@ def main():
                 continue
             try:
                 eventos._compilar(cmd, lambda m: 0, eventos.Mensajes(),
-                                  lineas, p.ctx)
+                                  lineas, p.ctx, graficos=eventos.Graficos())
             except eventos.NoSePuede:
                 corta[cmd.code] += 1
                 break

@@ -407,7 +407,7 @@ def pose_tiles(image, index, pose, lookup, mapping):
     return out
 
 
-def npcs_dibujables(renderer, game_map, lideres, tope):
+def npcs_dibujables(renderer, game_map, lideres, tope, graficos_de_ruta=()):
     """Los NPCs del mapa que se dibujan: todos los que tienen CharSet, y los
     dibujados con un tile del chipset **que entren** en las paletas de sprite.
 
@@ -422,9 +422,11 @@ def npcs_dibujables(renderer, game_map, lideres, tope):
     estrictamente mejor.
 
     La regla es una sola y la corren los dos lados con esta función: primero
-    se reparten los líderes posibles y los NPCs con CharSet, en el orden del
-    mapa y con el mismo primer-lugar-que-entre de `build_characters`; después
-    los tiles, en el orden del mapa, cada uno mientras quepa. Devuelve la lista
+    se reparten los líderes posibles, los NPCs con CharSet y los gráficos a los
+    que las rutas cambian con la orden 34 —que son un personaje más, con su
+    paleta—, en el orden del mapa y con el mismo primer-lugar-que-entre de
+    `build_characters`; después los tiles, en el orden del mapa, cada uno
+    mientras quepa. Devuelve la lista
     de NPCs que se dibujan y la de los (evento, tile) que quedaron afuera.
     Un tile que quedó afuera no se dibuja, pero su evento sigue ahí: cierra el
     paso y dispara igual.
@@ -470,6 +472,18 @@ def npcs_dibujables(renderer, game_map, lideres, tope):
             if clave not in vistos and not clave[0].startswith(rm2k.TILE_PREFIX):
                 vistos.add(clave)
                 cabe(clave[0], clave[1], True)
+    # Y los de la orden 34, después de los NPCs y antes de los tiles.
+    # **Mientras quepan**, como los tiles y no como los CharSets de una página:
+    # forzarlos rompía tres mapas del juego —el 108, el 114 y el 207 pedían
+    # nueve paletas de las ocho— y romper un mapa que hoy convierte es peor que
+    # no dibujar un cambio de gráfico. El que no entra no se dibuja, que es lo
+    # mismo que ya pasa con una página cuyo gráfico no entró. Los transparentes
+    # ni siquiera piden paleta.
+    for clave in graficos_de_ruta:
+        if clave not in vistos and sprite_colors(
+                renderer.charsets.get(clave[0]), clave[1]):
+            vistos.add(clave)
+            cabe(clave[0], clave[1], False)
     entran, afuera, salida, descartados = set(), set(), [], []
     for npc in npcs:
         for clave in claves(npc):
@@ -1325,6 +1339,7 @@ MAPA_ESCALARES = [
     ("ACTOR_COUNT", "cuántos candidatos a líder del grupo"),
     ("PUERTA_COUNT", "cuántas puertas salen de este mapa"),
     ("PAGINA_COUNT", "cuántas páginas de evento hay que resolver"),
+    ("RUTA_GRAFICO_COUNT", "cuántos gráficos distintos pide la orden 34"),
 ]
 MAPA_BYTES = [
     ("OBSEL_VALUE", "objetos de 8x8 y 32x32, y la página de sus tiles"),
@@ -1335,7 +1350,7 @@ MAPA_BYTES = [
 MAPA_PUNTEROS = ["map_tiles", "map_cgram", "above_tiles", "above_cgram",
                  "sprite_tiles", "sprite_cgram", "map_celdas", "map_bloques",
                  "bloque_pass", "npc_table", "actor_table", "puertas",
-                 "paginas", "ev_pos", "npc_poses"]
+                 "paginas", "ev_pos", "npc_poses", "ruta_grafico"]
 MAPA_PTR_PASO = 4
 # Dónde arrancan los punteros: justo después de los escalares y de los bytes,
 # redondeado al paso. **Se calcula y no se escribe a mano**, porque escrito a
@@ -1368,6 +1383,15 @@ ACTOR_BYTES = 2 + 3 * 12   # id, paleta y doce punteros de 24 bits a sus poses
 # página, así que con 1024 alcanza y sobra: son 128 bytes de RAM.
 SWITCH_BYTES = 128
 
+# Cuántos gráficos distintos puede pedir la orden 34 en un mapa. La tabla se
+# copia a la RAM al cargar el mapa, como la de NPCs, así que el tope cuesta
+# bytes de los ocho kilos del banco 0 —dos por gráfico— y no puede ser
+# generoso porque sí. **El mapa que más pide de todo el juego pide seis**,
+# medido sobre los 335; ocho deja dos de aire y son dieciséis bytes. El
+# conversor corta si algún mapa se pasa, así que no puede quedar corto en
+# silencio.
+RUTA_GRAF_MAX = 8
+
 
 def campos_del_mapa(mapa):
     """Los valores del registro de un mapa, en el orden en que se emiten."""
@@ -1398,6 +1422,7 @@ def campos_del_mapa(mapa):
         "ACTOR_COUNT": len(sprite[4]) if sprite else 0,
         "PUERTA_COUNT": len(mapa["puertas"]) // PUERTA_BYTES,
         "PAGINA_COUNT": len(mapa["paginas"]),
+        "RUTA_GRAFICO_COUNT": len(sprite[9]) if sprite else 0,
         "OBSEL_VALUE": 0x20 | (layout["sprites"][0] // 0x2000),
         "BG12NBA_VALUE": ((layout["encima"][0] // 0x1000) << 4)
                          | (layout["tiles"][0] // 0x1000),
@@ -1579,6 +1604,10 @@ def datos_del_mapa(mapa, numero, indice_global):
         ("map_bloques", mapa["bloques"]),
         ("bloque_pass", mapa["pass"]),
         ("npc_table", npc_bytes(sprite[3]) if sprite else b""),
+        # Dos bytes por gráfico de la orden 34: su entrada en `npc_poses` —o
+        # $FF, que es esconder— y su paleta. Ver `Graficos` en eventos.py.
+        ("ruta_grafico",
+         bytes(b for par in (sprite[9] if sprite else []) for b in par)),
         ("ev_pos", mapa["ev_pos"]),
         ("puertas", mapa["puertas"]),
         ("evcodigo", mapa["evcodigo"]),
@@ -1632,6 +1661,9 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "RUTA_EV_MAX = %d\n"
         "PUERTA_BYTES = %d\n"
         "PAGINA_BYTES = %d\n"
+        "; Y cuántos gráficos distintos puede pedir la orden 34 en un mapa:\n"
+        "; su tabla se copia a la RAM como la de NPCs.\n"
+        "RUTA_GRAF_MAX = %d\n"
         "; Los opcodes del intérprete de eventos.\n"
         "OP_FIN      = $%02X\n"
         "OP_SWITCH   = $%02X\n"
@@ -1752,7 +1784,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            len(mapas), MAPA_STRIDE, inicial,
            VRAM_MAP, VRAM_ABOVE_MAP, MAP_LAYOUT, NPC_STRIDE, NPC_MAX,
            EV_STRIDE, EV_MAX, RUTA_EV_MAX,
-           PUERTA_BYTES, PAGINA_BYTES,
+           PUERTA_BYTES, PAGINA_BYTES, RUTA_GRAF_MAX,
            eventos.OP_FIN, eventos.OP_SWITCH, eventos.OP_TELEPORT,
            eventos.OP_ESPERAR, eventos.OP_TINTE, eventos.OP_GRUPO,
            eventos.OP_RUTA, eventos.OP_MENSAJE, eventos.OP_RUTAS,
@@ -2046,7 +2078,7 @@ def orden_de_mapas(args):
 
 def eventos_movibles(game_map, indice_de_mapa, con_ventana=False):
     """Los eventos con gráfico a los que alguna página compilable manda a
-    caminar, por índice de la tabla de eventos.
+    caminar, y los gráficos a los que alguna ruta cambia con la orden 34.
 
     `con_ventana` tiene que ser el de la ROM que se está armando, por lo mismo
     que en `lideres_posibles`: decide **qué páginas compilan**. Acá se
@@ -2061,19 +2093,35 @@ def eventos_movibles(game_map, indice_de_mapa, con_ventana=False):
     declaran. Dárselas a cualquiera que aparezca en un MoveEvent sería más
     simple y no entra: hay mapas con siete, y son 1232 tiles de sprite.
 
+    Los gráficos de la orden 34 salen de la misma pasada y por lo mismo: a un
+    evento que cambia de gráfico hay que meterle en el cartucho las doce poses
+    del gráfico nuevo, y eso se decide antes de armar el banco. **El orden
+    tiene que ser el mismo que el de la compilación de verdad**, porque el
+    bytecode lleva el índice: lo garantiza que las dos pasadas compilen las
+    mismas páginas, que es lo que `con_ventana` cuida. Sin `Graficos` acá una
+    ruta con la 34 no compilaría en esta pasada y sí en la otra, y las dos
+    listas se irían.
+
     Se compilan las páginas para saberlo y se tira lo compilado. Es trabajo
     repetido —main() las vuelve a compilar con el bloque de textos de verdad—
     pero no es una **regla** repetida: la decisión de qué compila la toma la
     misma función las dos veces.
     """
+    graficos = eventos.Graficos()
     paginas = eventos.paginas_del_mapa(
         game_map, indice_de_mapa,
-        eventos.Mensajes() if con_ventana else None)
+        eventos.Mensajes() if con_ventana else None, graficos=graficos)
     visibles = {npc["evento"] for npc in rm2k.collect_npcs(game_map)}
     # Y los que caminan solos con la ruta propia de alguna página, que
     # necesitan las doce poses igual que los que manda a caminar un MoveEvent.
     propios = {p["evento"] for p in paginas if p.get("ruta_propia")}
-    return (eventos.blancos_de_ruta(paginas) | propios) & visibles
+    return ((eventos.blancos_de_ruta(paginas) | propios) & visibles,
+            list(graficos.pares))
+
+
+def graficos_de_prueba(argumento):
+    """Los (CharSet, índice) de `--grafico-de-prueba`, o () si no hay."""
+    return tuple((charset, int(indice)) for charset, indice in argumento or ())
 
 
 def ruta_de_evento(argumento):
@@ -2354,6 +2402,15 @@ def main():
                              "milisegundos. Ninguna página del juego que hoy\n"
                              "compile apaga la música, así que sin esto el\n"
                              "camino no lo corre nada")
+    parser.add_argument("--grafico-de-prueba", nargs=2, action="append",
+                        default=None, metavar=("CHARSET", "INDICE"),
+                        help="registra un gráfico para que la ruta de\n"
+                             "--ruta-de-evento pueda cambiarse a él con la\n"
+                             "orden 34: en la ruta va `34 N`, donde N es la\n"
+                             "posición en la que se pasó éste. Se puede\n"
+                             "repetir. Ninguna página que compile hoy cambia\n"
+                             "de gráfico, así que sin esto el camino no lo\n"
+                             "corre nada")
     parser.add_argument("--tema-de-arranque", default=None, metavar="NOMBRE",
                         help="hace que la ROM arranque tocando ese tema en vez\n"
                              "del que le toca al mapa. Existe para poder\n"
@@ -2490,8 +2547,22 @@ def main():
 
         # Los eventos automáticos: sus páginas con las condiciones, y el código
         # de las que se pueden ejecutar, todo seguido en un solo bloque.
+        # Un registro de gráficos por mapa: la orden 34 lleva el índice y la
+        # tabla `ruta_grafico` del mapa lo resuelve. Ver `eventos.Graficos`.
+        graficos = eventos.Graficos()
         paginas = eventos.paginas_del_mapa(mapa["game_map"], indices.get,
-                                           mensajes, temas)
+                                           mensajes, temas, graficos)
+        if args.grafico_de_prueba and mapa is mapas[args.inicial]:
+            for charset, index in graficos_de_prueba(args.grafico_de_prueba):
+                graficos.indice(charset, index)
+        if graficos.pares != mapa["graficos_de_ruta"]:
+            # Las dos pasadas compilaron cosas distintas. No puede pasar —las
+            # dos usan `paginas_del_mapa` con el mismo `con_ventana`— y si
+            # pasara, el bytecode quedaría apuntando a la tabla equivocada sin
+            # que nada lo diga.
+            sys.exit("mapa %d: las dos pasadas numeraron distinto los gráficos "
+                     "de ruta: %s contra %s"
+                     % (mapa["id"], graficos.pares, mapa["graficos_de_ruta"]))
         if (args.pagina_de_prueba or args.ruta_de_prueba
                 or args.ruta_de_evento or args.flash_de_prueba or args.switch
                 or args.timer_de_prueba or args.lugar_de_prueba
@@ -2858,9 +2929,27 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
     # así que el techo baja a siete. Los eventos dibujados con un tile del
     # chipset entran mientras quepan en ese techo; la referencia dibuja
     # exactamente los mismos, con la misma función.
+    # Quiénes van a caminar y a qué gráficos cambian las rutas. Va **antes**
+    # del reparto de paletas porque un gráfico de la orden 34 es un personaje
+    # más y pide paleta como cualquiera: repartiendo sin contarlo, entraría
+    # después y podía no haber lugar.
+    orden = orden_de_mapas(args)
+    movibles, graficos_de_ruta = eventos_movibles(
+        game_map, {m: i for i, m in enumerate(orden)}.get,
+        con_ventana=args.con_ventana)
+    # Y los de `--grafico-de-prueba`, que van sólo en el mapa donde arranca la
+    # ROM, igual que la ruta inventada y por lo mismo: es donde el conversor
+    # mete la página de prueba. Se agregan **después** de los del juego, que es
+    # el orden en que los numera la compilación de verdad.
+    if args.grafico_de_prueba and map_id == orden[args.inicial]:
+        for charset, index in graficos_de_prueba(args.grafico_de_prueba):
+            if (charset, index) not in graficos_de_ruta:
+                graficos_de_ruta.append((charset, index))
+
     tope_de_paletas = 7 if args.con_timer else 8
     npcs, descartados, reparto = npcs_dibujables(renderer, game_map,
-                                                 args.lideres, tope_de_paletas)
+                                                 args.lideres, tope_de_paletas,
+                                                 graficos_de_ruta)
     for evento, tile in descartados:
         print("  mapa %d: el evento %d, dibujado con el tile %s, no entra en "
               "las %d paletas de sprite y no se dibuja"
@@ -2868,10 +2957,6 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
                  tope_de_paletas))
     # Quiénes van a caminar. A ésos les hacen falta las doce poses del ciclo, y
     # el resto se queda con la única que declara su página.
-    orden = orden_de_mapas(args)
-    movibles = eventos_movibles(game_map,
-                                {m: i for i, m in enumerate(orden)}.get,
-                                con_ventana=args.con_ventana)
     # La ruta inventada de `--ruta-de-evento` también manda a caminar a alguien,
     # y su página no sale de `paginas_del_mapa`: hay que sumarla a mano o el NPC
     # caminaría con una sola pose. Va sólo en el mapa donde arranca la ROM, que
@@ -2900,6 +2985,35 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
         if npc["evento"] in movibles \
                 and (npc["charset"], npc["index"]) not in animados:
             animados.append((npc["charset"], npc["index"]))
+    # Y los gráficos a los que una orden 34 cambia. Van al banco por lo mismo
+    # que los que caminan: después de cambiar, el evento sigue caminando, así
+    # que le hacen falta las doce poses del gráfico nuevo y no la que declaraba
+    # su página.
+    #
+    # Los que no tienen **un solo pixel opaco** no entran, y no es un caso
+    # raro: `nobodyhere` son 185 de las 437 órdenes 34 del juego. Un CharSet
+    # transparente no tiene colores, así que no tiene paleta que pedirle al
+    # banco; y no hace falta, porque lo que la orden hace ahí es esconder la
+    # fila. Es el mismo `sprite_colors` con que se descarta a un actor sin
+    # gráfico.
+    grafico_se_ve = []
+    for charset, index in graficos_de_ruta:
+        # Se dibuja si tiene un pixel opaco **y** entró en el reparto de
+        # paletas. Lo segundo casi siempre es que sí; cuando no, la orden lo
+        # esconde igual que a un transparente, que es lo que hace la ROM con
+        # cualquier gráfico que no entró.
+        grafico_se_ve.append(
+            bool(sprite_colors(images_de(renderer, args, charset), index))
+            and (charset, index) in reparto[1])
+        if grafico_se_ve[-1] and (charset, index) not in animados:
+            animados.append((charset, index))
+    afuera_de_ruta = [par for par, se_ve in zip(graficos_de_ruta, grafico_se_ve)
+                      if not se_ve and sprite_colors(
+                          images_de(renderer, args, par[0]), par[1])]
+    for charset, index in afuera_de_ruta:
+        print("  mapa %d: el gráfico %s:%d, al que cambia una ruta, no entra "
+              "en las %d paletas de sprite: esa orden esconde al evento en vez "
+              "de cambiarlo" % (map_id, charset, index, tope_de_paletas))
 
     # Las ranuras del banco de VRAM, una pose cada una: el héroe en el bloque
     # 0 —si algún candidato a líder tiene gráfico—, después cada NPC que camina
@@ -2958,6 +3072,12 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
                     " con el cronómetro puesto" if args.con_timer else ""))
     bancos = banco_de_poses(images, animados, colores)
     indice_animado = {p: k for k, p in enumerate(animados)}
+    # La tabla de la orden 34: por cada gráfico que una ruta pide, en qué
+    # entrada de `npc_poses` está y con qué paleta. $FF en la entrada es
+    # "esconder la fila", que es lo que hace un CharSet transparente.
+    ruta_graficos = [
+        (indice_animado[par], paleta_de[par]) if se_ve else (0xFF, 0)
+        for par, se_ve in zip(graficos_de_ruta, grafico_se_ve)]
     # El cronómetro, si esta ROM lo lleva: sus glifos van al final del banco y
     # se llevan una paleta de sprite propia.
     timer_base, timer_pal = 0, None
@@ -2983,7 +3103,7 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
         actores.append((actor, paleta_de[(a.charset, a.charset_index)],
                         indice_animado[(a.charset, a.charset_index)]))
     sprite = (tiles, palettes, where, table, actores, timer_base, timer_pal,
-              animados, bancos)
+              animados, bancos, ruta_graficos)
 
     # La colisión: un byte por celda de 16x16 con los cuatro bits de dirección
     # ya resueltos. Toda la lógica de RM2k —que la capa alta manda salvo que sea
@@ -3005,6 +3125,9 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
     if len(table) > NPC_MAX:
         sys.exit("el mapa %d tiene %d NPCs y en OAM entran %d"
                  % (map_id, len(table), NPC_MAX))
+    if len(ruta_graficos) > RUTA_GRAF_MAX:
+        sys.exit("el mapa %d tiene %d gráficos de orden 34 y entran %d: ver "
+                 "RUTA_GRAF_MAX" % (map_id, len(ruta_graficos), RUTA_GRAF_MAX))
 
     print("Mapa %d %r: %dx%d celdas de %dx%d px"
           % (map_id, name, len(tilemap[0]), len(tilemap),
@@ -3056,6 +3179,11 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
         "id": map_id, "nombre": name,
         "tiles": tile_data, "cram": bytes(colors), "cram_words": cram,
         "tilemap": tilemap, "above": above_data, "sprite": sprite,
+        # Los gráficos de la orden 34 tal como los numeró la pasada que arma
+        # el banco. `main()` compara contra los que junte compilando de
+        # verdad: si las dos pasadas se fueran, el bytecode llevaría índices
+        # de una tabla que dice otra cosa.
+        "graficos_de_ruta": graficos_de_ruta,
         "collision": collision, "celdas": bytes(words),
         "ev_pos": ev_pos_bytes(game_map),
         "bloques": bloques, "pass": block_pass,

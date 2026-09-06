@@ -1050,6 +1050,7 @@ puesto:
     jsr load_above
     jsr load_sprite
     jsr load_npcs
+    jsr load_ruta_graficos
     jsr load_ev_pos             ; y dónde arranca cada evento, con o sin gráfico
     stz refresco
     jsr rutas_de_pagina         ; y las rutas propias de las páginas activas
@@ -4012,7 +4013,11 @@ no_es_fin:
     cmp #32
     bcc frecuencia              ; 30 y 31: la frecuencia de la ruta
     cmp #36
-    bcc otra_orden              ; los demás: acá no llegan
+    bcc otra_orden              ; los demás: acá no llegan. Y de los cuatro,
+                                ; la 34 no llega **con más razón**: lleva un
+                                ; operando detrás, así que si el conversor la
+                                ; dejara pasar sobre el héroe, este `otra_orden`
+                                ; leería el gráfico como si fuera una orden
     cmp #38
     bcc atravesar               ; 36 y 37
     cmp #40
@@ -4666,6 +4671,44 @@ listo:
     rts
 .endproc
 
+; Y la tabla de gráficos de la orden 34, con el mismo lazo y el mismo puntero
+; prestado. Son dieciséis bytes como mucho.
+.proc load_ruta_graficos
+.a8
+.i16
+    rep #$20
+.a16
+    lda #M_PTR_RUTA_GRAFICO
+    clc
+    adc mapa_ofs
+    tax
+    lda mapa_tabla, x
+    sta npc_ptr
+    sep #$20
+.a8
+    lda mapa_tabla + 2, x
+    sta npc_ptr + 2
+
+    ldx mapa_ofs
+    rep #$20
+.a16
+    lda mapa_tabla + M_RUTA_GRAFICO_COUNT, x
+    asl a                       ; dos bytes por gráfico
+    sta temp
+    sep #$20
+.a8
+    ldy #$0000
+copiar:
+    cpy temp
+    beq listo
+    lda [npc_ptr], y
+    sta ruta_graf_buf, y
+    iny
+    bra copiar
+listo:
+    rts
+.endproc
+
 ; La tabla de posiciones de eventos a la RAM, y las rutas que hubiera corriendo
 ; a la basura.
 ;
@@ -5187,7 +5230,11 @@ no_es_salto:
     bcc seguir                  ; los demás no hacen nada
     cmp #32
     bcc fijar_o_velocidad       ; 26 y 27 la mirada, 28 y 29 la velocidad,
-    cmp #36                     ; 30 y 31 la frecuencia
+    cmp #34                     ; 30 y 31 la frecuencia
+    bne no_es_grafico           ; y la 34 el gráfico, que lleva operando
+    jmp cambiar_grafico         ; queda lejos para un salto corto
+no_es_grafico:
+    cmp #36
     bcc seguir
     cmp #38
     bcs anim
@@ -5268,6 +5315,71 @@ menos_frec:
 guardar_18:
     sta ruta_ev + 18, x
     bra seguir
+
+; `change_graphic`: la única orden con operando. Detrás del 34 va el índice del
+; gráfico en la tabla del mapa —dos bytes por gráfico, ver `load_ruta_graficos`—
+; y de ahí salen de qué personaje sacar las doce poses y con qué paleta
+; dibujarlas.
+;
+; No cuesta un cuadro: en `UpdateMoveRoute` cae en la rama que no toca el
+; contador de parada, así que la orden que sigue corre en este mismo cuadro.
+; Tampoco toca la pose: el ciclo de caminata sigue donde estaba, que es lo que
+; hace `SetSpriteGraphic`.
+cambiar_grafico:
+    lda ruta_ev + 5, x          ; el cursor ya avanzó al leer la orden
+    rep #$20
+.a16
+    and #$00FF
+    tay
+    sep #$20
+.a8
+    lda [ruta_ptr], y
+    inc ruta_ev + 5, x          ; y ahora por el operando
+    asl a                       ; dos bytes por entrada
+    rep #$20
+.a16
+    and #$00FF
+    tay
+    sep #$20
+.a8
+    lda ruta_graf_buf, y
+    sta graf_k                  ; su entrada en `npc_poses`, o $FF
+    lda ruta_graf_buf + 1, y
+    sta graf_pal
+
+    lda ruta_ev + 0, x
+    phx
+    jsr npc_de_evento           ; su fila, que es lo que hay que cambiar
+    plx
+    cpy #$FFFF
+    beq listo_graf              ; un evento sin gráfico no tiene fila
+    lda #$FF
+    sta npc_buf + 15, y         ; un CharSet no le impone nada a la celda
+    lda graf_k
+    cmp #$FF
+    bne con_grafico
+    ; Un CharSet sin un solo pixel opaco: el evento desaparece. Es lo mismo
+    ; que hace `esconder_npc`, y son 185 de las 437 órdenes 34 del juego
+    ; —`nobodyhere`—, así que no es el caso raro sino el más común.
+    lda #0
+    sta npc_buf + 14, y
+    bra listo_graf
+con_grafico:
+    sta npc_buf + 9, y          ; de qué personaje salen sus poses
+    lda npc_buf + 7, y
+    and #$F1                    ; la paleta vive en los bits 1 a 3 de vhoopppN
+    sta temp
+    lda graf_pal
+    asl a
+    and #$0E
+    ora temp
+    sta npc_buf + 7, y
+    lda #$FF
+    sta npc_buf + 12, y         ; la pose que hay en la VRAM ya no es la suya
+    lda #1
+    sta npc_buf + 14, y         ; y se ve, por si venía escondido
+listo_graf:
+    jmp otra_orden
 face:
     sec
     sbc #12
@@ -11405,6 +11517,16 @@ tira_row2:  .res WINDOW_COLS * 2
 ; más NPCs de todo el juego tiene 89, y acá entran 127, que es el tope que
 ; impone OAM.
 npc_buf:  .res NPC_MAX * NPC_STRIDE
+; Los gráficos a los que las rutas de este mapa cambian con la orden 34: dos
+; bytes por gráfico, la entrada en `npc_poses` y la paleta. Se copia acá al
+; cargar el mapa, como la tabla de NPCs, y por lo mismo: se lee con un índice
+; —`lda ruta_graf_buf, x`— y eso direcciona el banco de datos.
+;
+; Copiarla y no leerla del cartucho con un puntero largo es lo que la hace
+; barata: un `lda [ptr], y` pide el puntero en la página directa, y la página
+; directa está llena. Cabe de sobra: el mapa que más pide de todo el juego
+; pide seis. Ver RUTA_GRAF_MAX en snes_convert.py.
+ruta_graf_buf: .res RUTA_GRAF_MAX * 2
 
 ; Dónde está cada evento del mapa, en celdas, por índice de la tabla. Se copia
 ; de la ROM al cargar el mapa, igual que la de NPCs, y por una razón que no es
@@ -11506,6 +11628,10 @@ slot_paso:    .res 1
 ; tiene que sobrevivir a la llamada que usa `celda_dir`.
 ruta_dir:  .res 2
 celda_dir: .res 2
+; Lo que la orden 34 saca de la tabla del mapa: de qué personaje van a salir
+; las poses —$FF es "esconder la fila"— y con qué paleta.
+graf_k:   .res 1
+graf_pal: .res 1
 ; Lo que un paso en diagonal necesita mientras prueba sus dos eles: las dos
 ; componentes, y la celda de la que sale, porque `puede_celda` trabaja sobre
 ; `celda_x`/`celda_y` y hay que correrla hasta el codo y devolverla.

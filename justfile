@@ -565,6 +565,45 @@ snes-npc mapa="6" ruta="4 2 2 2 2 1 1 12" celda="22 12" cuadros="10 27 40 60" ar
         --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
   done
 
+# Un evento que cambia de gráfico a mitad de una ruta: la orden 34.
+#
+# Es la última de `MoveCommand` que faltaba de las que este juego usa, y la
+# única con **operando**: detrás del 34 va el índice del gráfico, que
+# `--grafico-de-prueba` registra acá y las páginas del juego registran solas.
+#
+# Dos cosas que hay que mirar y no son la misma:
+#
+#   que cambie          el evento camina con un gráfico y sigue caminando con
+#                       otro, con la pose del ciclo donde estaba y la paleta
+#                       del gráfico nuevo
+#   que desaparezca     185 de las 437 órdenes 34 del juego cambian a
+#                       `nobodyhere`, un CharSet sin un solo pixel opaco. Ahí
+#                       la fila se esconde y deja de ocupar un objeto
+#
+# El mapa 6 otra vez, con el evento 3 —blanco 4— bajando cuatro celdas y
+# cambiando de gráfico en el medio: los cuadros de antes lo miran con el suyo y
+# los de después con el nuevo, **caminando**, que es lo que separa "cambió el
+# gráfico" de "cambió y se quedó quieto".
+snes-grafico mapa="6" ruta="4 2 2 34 0 2 2" grafico="Future1 0" celda="22 12" cuadros="10 25 40 70" arranque="115" nombre="grafico":
+  #!/usr/bin/env bash
+  set -euo pipefail
+  mkdir -p {{snes_pngs}} {{snes_inc}}
+  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
+      --inicio {{celda}} --ruta-de-evento {{ruta}} \
+      --grafico-de-prueba {{grafico}} -o {{snes_inc}}/mapdata.inc
+  just snes-build
+  pre={{snes_pngs}}/{{nombre}}
+  python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
+      --hero-tile {{celda}} --ruta-de-evento {{ruta}} \
+      --grafico-de-prueba {{grafico}} --cuadros {{cuadros}} \
+      --saltar $pre-{}.saltar.txt -o $pre-{}.esperado.png
+  for n in {{cuadros}}; do
+    python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre-$n.png \
+        --walk none --cuadros $n --arranque {{arranque}}
+    python3 tools/snes_compare.py $pre-$n.png $pre-$n.esperado.png \
+        --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
+  done
+
 # La cámara corrida sin el héroe: PanScreen.
 #
 # Es `Game_Player::StartPan` y `UpdatePan` de easyrpg: el destino se corre

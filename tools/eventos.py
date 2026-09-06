@@ -179,6 +179,11 @@ def frecuencia_minima(frecuencia, ordenes, repite=False):
     espera tras un paso son 256 cuadros y el byte de `ruta_tras_paso` no los
     tiene, así que una ruta que baje hasta ahí se rechaza entera.
 
+    `ordenes` son códigos pelados, sin los operandos: los dos que llaman acá lo
+    hacen con lo que devolvió `decodificar_ruta`, que ya los separó. No es lo
+    mismo que una ruta compilada, donde la 34 arrastra un byte —para ésa está
+    `recorrer_ruta`—.
+
     Con `repite` se recorren las órdenes nueve veces y no una. No es por las
     dudas: la frecuencia se topa en 8 y en 1, así que una ruta que se repita y
     baje más de lo que sube termina en 1 sí o sí, y nueve pasadas alcanzan para
@@ -232,6 +237,10 @@ RUTA_VEL_MAS, RUTA_VEL_MENOS = 28, 29
 # **una sola ruta de todo el juego** —la que sacude a Manta en la escena del
 # Emitter Room, que baja dos veces de 8 a 6— y sin ellas esa página no compila.
 RUTA_FREC_MAS, RUTA_FREC_MENOS = 30, 31
+# Cambiar el gráfico a mitad de una ruta. Es la **única orden con operando**:
+# el bytecode lleva detrás el índice del CharSet en `Graficos`. Sólo sobre
+# eventos; sobre el héroe no se compila, ver `traducir`.
+RUTA_CAMBIAR_GRAFICO = 34
 
 # Cuánto avanza un paso por cuadro según la velocidad, de 256 por celda: es el
 # `1 << (1 + GetMoveSpeed())` de `Game_Character::UpdateMovement`. La 4 es la
@@ -317,7 +326,28 @@ RUTA_ORDENES = (set(RUTA_MIRAR) | set(RUTA_MOVER)
                    RUTA_ATRAVESAR_ON, RUTA_ATRAVESAR_OFF,
                    RUTA_ANIM_PARAR, RUTA_ANIM_SEGUIR, RUTA_ENCARAR_HEROE,
                    RUTA_FIJAR_DIR, RUTA_SOLTAR_DIR, RUTA_VEL_MAS, RUTA_VEL_MENOS,
-                   RUTA_FREC_MAS, RUTA_FREC_MENOS})
+                   RUTA_FREC_MAS, RUTA_FREC_MENOS, RUTA_CAMBIAR_GRAFICO})
+
+
+def recorrer_ruta(ruta):
+    """Las órdenes de una ruta **ya compilada**, con su operando si lo lleva.
+
+    El bytecode es un byte por orden salvo la 34, que arrastra detrás a qué
+    gráfico cambia. Recorrerlo plano sería la trampa de `decodificar_ruta` otra
+    vez: el operando se leería como una orden, y con un 30 o un 31 de operando
+    cambiaría la frecuencia de la ruta sin que nadie lo pidiera.
+    """
+    i = 0
+    while i < len(ruta):
+        orden = ruta[i]
+        i += 1
+        if orden == RUTA_CAMBIAR_GRAFICO:
+            if i >= len(ruta):
+                raise NoSePuede()
+            yield orden, ruta[i]
+            i += 1
+        else:
+            yield orden, None
 
 
 def direccion_hacia(desde, hasta):
@@ -336,7 +366,7 @@ def direccion_hacia(desde, hasta):
 # Las órdenes que llevan algo detrás, y qué. Los números son los de
 # `rpg::MoveCommand::Code` en liblcf.
 RUTA_SWITCH_ON, RUTA_SWITCH_OFF = 32, 33
-RUTA_CAMBIAR_GRAFICO = 34
+# RUTA_CAMBIAR_GRAFICO, la 34, está más arriba: la necesita `RUTA_ORDENES`.
 # Subir y bajar la transparencia de a un octavo. Se aceptan y se tiran, como
 # el sonido: la SNES no atenúa un sprite por partes sin color math, y las ocho
 # rutas del juego que lo usan —las cuatro pantallas del mapa 2, que se atenúan
@@ -548,6 +578,30 @@ class Temas:
         if nombre not in self.nombres:
             self.nombres.append(nombre)
         return self.nombres.index(nombre)
+
+class Graficos:
+    """Los gráficos a los que las rutas cambian con la orden 34, numerados en
+    el orden en que aparecen.
+
+    Hermano de `Temas` y de `Mensajes`, con una diferencia que importa: es **por
+    mapa**. Lo que la ROM necesita de un gráfico —sus doce poses y su paleta—
+    vive en el banco de sprites, y el banco es de cada mapa; dos mapas que
+    cambien al mismo CharSet lo numeran cada uno por su cuenta.
+
+    El bytecode lleva el índice y no el nombre, como con los temas y los
+    mapas: quien lo resuelve es el conversor, y la ROM no vuelve a mirar el
+    LCF.
+    """
+
+    def __init__(self):
+        self.pares = []
+
+    def indice(self, charset, index):
+        par = (charset, index)
+        if par not in self.pares:
+            self.pares.append(par)
+        return self.pares.index(par)
+
 
 # --- los opcodes que emitimos -----------------------------------------------
 # Uno por comando, con los operandos ya resueltos: la ROM no vuelve a mirar el
@@ -989,7 +1043,7 @@ def puede_dispararse(page):
 
 
 def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
-                    temas=None):
+                    temas=None, graficos=None):
     """Los comandos de una página como bytes, o None si no se puede.
 
     `indice_de_mapa` traduce el id de mapa de RM2k al índice en la tabla de la
@@ -1008,7 +1062,7 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
     marca = mensajes.marca() if mensajes is not None else None
     try:
         codigo = b"".join(_compilar(cmd, indice_de_mapa, mensajes, extra,
-                                    eventos_mapa, temas)
+                                    eventos_mapa, temas, graficos)
                           for cmd, extra in agrupar(page.commands)) \
             + bytes([OP_FIN])
         return codigo
@@ -1019,7 +1073,7 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
 
 
 def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
-              eventos_mapa=None, temas=None):
+              eventos_mapa=None, temas=None, graficos=None):
     p = cmd.parameters
 
     if cmd.code == END or cmd.code in IGNORABLES:
@@ -1163,7 +1217,7 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
                              bool(p[2])) < RUTA_FRECUENCIA_MIN:
             raise NoSePuede()   # las órdenes 30 y 31 la bajarían hasta la 1
         ruta = []
-        for orden, _extras in ordenes:
+        for orden, extras in ordenes:
 
             if orden == RUTA_SONIDO or orden in RUTA_TRANSPARENCIA:
                 # Se acepta y se tira, igual que PlaySound: no se ve y no
@@ -1175,8 +1229,8 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
             # cuando los dos lados empezaron a coincidir *durante* la caminata y
             # no sólo al final: lo prueba `snes-ruta`, que compara cuatro
             # cuadros de una ruta de doce celdas con esperas en el medio. Todo
-            # lo demás de `rpg::MoveCommand::Code` —saltar, cambiar el gráfico,
-            # atravesar paredes, la velocidad, la frecuencia— sigue afuera.
+            # lo demás de `rpg::MoveCommand::Code` —moverse hacia el héroe o
+            # desde él, girar en el lugar, los switches— sigue afuera.
             if orden not in RUTA_ORDENES:
                 raise NoSePuede()
             if orden == RUTA_ENCARAR_HEROE and blanco == 0:
@@ -1189,6 +1243,25 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
                 # `try_left` por descarte—, o peor, los dos lados harían lo
                 # mismo mal el día que alguien "arregle" uno solo.
                 raise NoSePuede()
+            if orden == RUTA_CAMBIAR_GRAFICO:
+                # La única orden con operando: detrás del 34 va el índice del
+                # gráfico en `Graficos`, que el conversor resuelve al banco de
+                # sprites del mapa. Ver `recorrer_ruta`, que es por dónde tiene
+                # que pasar todo el que recorra una ruta ya compilada.
+                #
+                # Sobre el héroe no se compila. Su gráfico sale de la tabla de
+                # actores —`place_hero` lo busca por el id del líder— y una
+                # ruta que se lo cambie tendría que pisar ese mecanismo. Son
+                # 89 rutas de páginas automáticas y diez páginas más, medido;
+                # queda anotado en "Lo que falta".
+                if blanco == 0 or graficos is None or len(extras) < 2:
+                    raise NoSePuede()
+                elegido = graficos.indice(extras[0], extras[1])
+                if elegido > 0xFF:
+                    raise NoSePuede()
+                ruta.append(orden)
+                ruta.append(elegido)
+                continue
             ruta.append(orden)
         if len(ruta) > 255:
             raise NoSePuede()
@@ -1322,6 +1395,12 @@ class Ruta:
         # Y el salto que arrancó **en este cuadro**, para que quien lleva la
         # posición mueva la celda. Se limpia en cada vuelta.
         self.arranco_salto = None
+        # A qué gráfico la cambió una orden 34, o None si ninguna. Es el
+        # índice en `Graficos` del mapa, y sobrevive a la ruta: RM2k no lo
+        # devuelve al terminar —`SetSpriteGraphic` escribe el dato del
+        # personaje, no un estado de la ruta—, así que el evento se queda con
+        # el gráfico nuevo hasta que otra cosa se lo cambie.
+        self.grafico = None
         # Atravesar paredes, y la animación de caminata parada. Las dos son
         # estado de la ruta y sobreviven a las órdenes que las prendieron.
         self.atraviesa = False
@@ -1563,6 +1642,13 @@ class Ruta:
                     continue
                 self.espera = giro - 1
                 break
+            if orden == RUTA_CAMBIAR_GRAFICO:
+                # La única con operando, y no cuesta un cuadro: en
+                # `UpdateMoveRoute` cae en la rama que no toca el contador de
+                # parada, así que la orden que sigue corre en este mismo
+                # cuadro.
+                self.grafico = self.ordenes.pop(0) if self.ordenes else None
+                continue
             if orden == RUTA_ATRAVESAR_ON:
                 self.atraviesa = True
                 continue
@@ -1683,6 +1769,17 @@ class Ruta:
         hubo_fin = False
         while self.ordenes:
             orden = self.ordenes.pop(0)
+            if orden == RUTA_CAMBIAR_GRAFICO:
+                # Adentro de un salto **no se ejecuta**: el lazo de
+                # `BeginMoveRouteJump` sólo mira los `move_*`, los que giran y
+                # el `end_jump`, y todo lo demás lo consume sin hacer nada. Lo
+                # que sí hay que hacer es tragarse el operando, o se leería
+                # como una orden. Ninguna ruta del juego tiene una acá adentro
+                # —medido, cero—, así que esto es por corrección y no porque
+                # pase.
+                if self.ordenes:
+                    self.ordenes.pop(0)
+                continue
             if orden == RUTA_SALTO_FIN:
                 hubo_fin = True
                 break
@@ -2916,7 +3013,8 @@ def deudas_de_la_pagina(page):
                    if cmd.code in ACEPTADOS_SIN_HACER})
 
 
-def paginas_del_mapa(game_map, indice_de_mapa, mensajes=None, temas=None):
+def paginas_del_mapa(game_map, indice_de_mapa, mensajes=None, temas=None,
+                     graficos=None):
     """Las páginas que la ROM necesita para resolver los eventos del mapa.
 
     Se emiten *todas* las páginas de un evento que tenga alguna disparable, no
@@ -2951,7 +3049,8 @@ def paginas_del_mapa(game_map, indice_de_mapa, mensajes=None, temas=None):
             grafico = rm2k.grafico_de_pagina(page, chipset)
             if page.trigger in TRIGGERS and puede_dispararse(page):
                 codigo = compilar_pagina(page, indice_de_mapa, mensajes,
-                                         del_mapa.para(event.id), temas)
+                                         del_mapa.para(event.id), temas,
+                                         graficos)
             grupo.append({
                 "evento": numero_evento,
                 "pagina": numero_pagina,
@@ -2987,8 +3086,8 @@ def ruta_propia(page):
     Van las mismas órdenes que en un MoveEvent, con el sonido y la
     transparencia tirados. Las diagonales entran: una ruta propia es siempre
     de un evento, que es sobre quien la ROM las camina. Lo que queda afuera:
-    moverse hacia o desde el héroe, cambiar el gráfico y los switches; y el
-    giro en el lugar
+    moverse hacia o desde el héroe, cambiar el gráfico —ninguna la usa— y los
+    switches; y el giro en el lugar
     (`AnimType_spin`), que ninguna de las dos páginas del juego que lo usan
     está en los primeros mapas. Los otros tipos de movimiento —al azar,
     vertical, horizontal, hacia el héroe— tampoco: son otra máquina.
@@ -3004,6 +3103,13 @@ def ruta_propia(page):
         if orden == RUTA_SONIDO or orden in RUTA_TRANSPARENCIA:
             continue
         if orden not in RUTA_ORDENES or orden == RUTA_ENCARAR_HEROE:
+            return None
+        if orden == RUTA_CAMBIAR_GRAFICO:
+            # Acá no hay dónde poner el operando —una ruta de página es una
+            # lista pelada de códigos, no un MoveEvent con su texto— y no hace
+            # falta: **ninguna de las 3509 rutas propias del juego cambia de
+            # gráfico**, medido. El día que aparezca una, esto la rechaza en
+            # vez de compilar un 34 sin a qué cambiar.
             return None
         ordenes.append(orden)
     if frecuencia_minima(page.move_frequency, ordenes,

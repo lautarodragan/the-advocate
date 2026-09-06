@@ -45,6 +45,8 @@ snes-npc 6 "4 2 31 2 1 1 30 12" "22 12" "20 40 60 80" 115 npc-frec
 snes-npc 6 "4 24 2 2 25 1 1" "22 12" "3 6 10 14 20 40" 115 salto-npc
 snes-npc 10 "1 4 6 7 6" "6 10" "10 25 40 70" 115 npc-diagonal
 snes-npc 6 "4 15 5 5 5" "22 12" "20 40" 115 npc-diagonal-gira
+snes-grafico
+snes-grafico 6 "4 2 2 34 0 2 2" "nobodyhere 0" "22 12" "10 25 40 70" 115 invisible
 snes-pagina 121 10 grupo-121
 snes-pagina 74 21 ruta-74
 snes-espera

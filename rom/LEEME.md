@@ -1547,6 +1547,86 @@ la ROM no sabe recorrer simplemente no se compila.
 * `npc-frec`: lo mismo sobre un evento, donde la diferencia es sólo el sprite:
   271 pixeles en el cuadro 40 y 448 en el 60.
 
+### Cambiar el gráfico a mitad de una ruta
+
+La orden 34, `change_graphic`, que 437 rutas de este juego usan y que el LEEME
+venía anotando como lo más caro que quedaba. Es la última de `MoveCommand` de
+las que este juego usa, y la única con **operando**: detrás del 34 va el índice
+del gráfico. Todo lo demás del bytecode de una ruta es un byte por orden, así
+que el que recorra una ruta ya compilada tiene que pasar por `recorrer_ruta` —
+plano, el operando se leería como una orden, y con un 30 o un 31 ahí adentro
+cambiaría la frecuencia sin que nadie lo pidiera.
+
+**El caso más común es desaparecer.** De las 437 órdenes, **185 cambian a
+`nobodyhere`**, un CharSet sin un solo pixel opaco. Ahí no hay nada que subir a
+la VRAM: la fila se esconde, que es lo que ya hacía `esconder_npc`. Verlo
+primero cambió el tamaño del problema.
+
+**Lo caro es la paleta, no el cartucho.** Un gráfico al que una ruta cambia es
+un personaje más para la consola: pide una de las ocho paletas de sprite y sus
+doce poses en el cartucho, porque después de cambiar el evento **sigue
+caminando** y el ciclo tiene que salir de algún lado. Las doce poses son seis
+kilobytes y de eso sobra; las paletas no. Forzarlas rompía tres mapas —el 108,
+el 114 y el 207 pedían nueve de las ocho—, así que entran **mientras quepan**,
+que es la misma regla que ya corría para los eventos dibujados con un tile del
+chipset. El que no entra no se dibuja: la orden lo esconde en vez de cambiarlo,
+los dos lados hacen lo mismo y el conversor lo dice al convertir. Pasa en esos
+tres mapas y con un solo gráfico, `ABLDalia:3`.
+
+Que el reparto de paletas lo decida `npcs_dibujables` **con los gráficos de
+ruta adentro** no es un detalle de orden: esa función es la regla única que
+corren los dos lados, así que si el conversor contara un personaje más que la
+referencia, un evento de tile podría entrar de un lado y no del otro.
+
+**Cómo viaja el índice.** `Graficos` numera los gráficos por mapa —hermano de
+`Temas` y de `Mensajes`, pero por mapa, porque el banco de sprites es por
+mapa— y la ROM lo resuelve con `ruta_grafico`, dos bytes por gráfico: de qué
+personaje salen sus doce poses y con qué paleta. Esa tabla se copia a la RAM al
+cargar el mapa, como la de NPCs, y por una razón concreta: leerla del cartucho
+pediría un puntero largo en la página directa, y **la página directa está
+llena** —259 bytes de los 256 al intentarlo—. Copiarla cuesta dieciséis bytes
+de RAM y el mapa que más gráficos pide de todo el juego pide seis.
+
+Hay un invariante del que esto depende y conviene tenerlo escrito: **el blanco
+de una orden 34 siempre tiene ranura propia en la VRAM**. La orden sólo existe
+adentro de un `MoveEvent`, así que su blanco está en `blancos_de_ruta` y por lo
+tanto en `movibles`, y un evento que camina no comparte ranura ni con otro
+igual. Sin eso, subir la pose nueva pisaría la de los NPCs quietos que
+compartieran esa ranura.
+
+Aplicarla es escribir tres campos de la fila: de qué personaje salen las poses,
+la paleta —bits 1 a 3 de los atributos, sin tocar el resto— y $FF en la pose
+que hay en la VRAM, que es lo que hace que `refrescar_npc` la vuelva a subir.
+La pose del ciclo **no se toca**: el evento sigue caminando donde estaba, que
+es lo que hace `SetSpriteGraphic`. Y no cuesta un cuadro: en `UpdateMoveRoute`
+cae en la rama que no toca el contador de parada.
+
+**Sobre el héroe no se compila**, como las diagonales. Su gráfico sale de la
+tabla de actores —`place_hero` lo busca por el id del líder— y una ruta que se
+lo cambie tendría que pisar ese mecanismo. Son 89 rutas de páginas automáticas
+y diez páginas más; queda en "Lo que falta". El corte importa más acá que con
+las diagonales: si una 34 llegara al héroe, `paso_de_ruta` la saltearía y
+leería el operando **como si fuera una orden**.
+
+Adentro de un salto la orden se consume y **no se ejecuta**: el lazo de
+`BeginMoveRouteJump` sólo mira los `move_*`, los que giran y el `end_jump`.
+Ninguna ruta del juego tiene una ahí adentro —medido, cero—, así que eso está
+por corrección y no porque pase.
+
+Y una advertencia que conviene tener a mano: con esto **la escena de Talan
+compila entera**, pero comparada de punta a punta los dos lados no coinciden, y
+no por la orden 34: la ROM dispara la página de contacto un cuadro más tarde que
+la referencia. Está medido en ESTADO.md, "Lo que apareció midiendo esto".
+
+**Cómo se verifica.** Dos casos, y son la misma ruta con distinto destino: el
+evento 3 del mapa 6 baja dos celdas, cambia de gráfico y sigue bajando dos. Los
+cuadros 10 y 25 lo miran con el suyo y el 40 y el 70 con el nuevo, **caminando**,
+que es lo que separa "cambió el gráfico" de "cambió y se quedó quieto". El
+primero cambia a `Future1:0` y el segundo a `nobodyhere`, o sea que desaparece.
+Los dos medidos contra la misma ruta sin la orden: 146 pixeles de diferencia el
+primero y 207 el segundo —el sprite entero—, y cero en los cuadros de antes del
+cambio.
+
 ### Las diagonales de ruta
 
 Las órdenes 4 a 7 —`move_upright`, `move_downright`, `move_downleft`,
@@ -2463,14 +2543,14 @@ comparación.
   entera; se pierde el fundido, que sobre tiles de fondo la SNES no hace
   barato. Una ruta que se queda sin órdenes por esto no se emite: RM2k la
   consume entera en el cuadro y no deja nada que esperar. Faltan **cambiar el
-  gráfico** (+16 solo, y más en combinación: pide meter los tiles del CharSet
-  nuevo en el banco de sprites del mapa) y **moverse hacia el héroe**. La
+  gráfico** —la orden 34— **sobre el héroe**, y **moverse hacia el héroe**. La
   velocidad ya está, desde el 2026-09-05, con las rutas propias de las
   páginas; **subir y bajar la frecuencia** —las órdenes 30 y 31— desde el
-  2026-09-06, ver "La frecuencia se sube y se baja a mitad de una ruta"; y las
-  **diagonales** —las órdenes 4 a 7, +7 páginas— desde ese mismo día, sobre
-  eventos y no sobre el héroe: ver "Las diagonales de ruta". Sigue siendo lo
-  que más corta.
+  2026-09-06, ver "La frecuencia se sube y se baja a mitad de una ruta"; las
+  **diagonales** —las órdenes 4 a 7, +7 páginas— desde ese mismo día; y
+  **cambiar el gráfico sobre un evento** —+25 páginas—, ver "Cambiar el
+  gráfico a mitad de una ruta". Las tres últimas van sobre eventos y no sobre
+  el héroe. Sigue siendo lo que más corta, aunque bastante menos.
 
   Y una que apareció midiendo lo anterior, el 2026-09-06: **sobre el héroe, la
   ROM ignora las órdenes 26 a 29** —fijar y soltar la mirada, subir y bajar la
@@ -2571,31 +2651,34 @@ comparación.
   **no** cubre es nada en movimiento en un cuadro en que la ROM venga atrasada;
   el toque de A resincroniza los dos lados.
 * **Lo que le falta al juego entero, medido.** De las 489 páginas automáticas
-  con comandos, hoy compilan enteras **184**. Eran 16 antes de los cuadros de
+  con comandos, hoy compilan enteras **209**. Eran 16 antes de los cuadros de
   texto, 71 con ellos, 87 con las rutas forzadas sobre eventos, 110 con
   FlashSprite, 117 aceptando `PlaySound`, 126 con la saturación del tinte, 137
   con los saltos y las demás órdenes de ruta, 142 con `ChangeEventLocation`,
-  177 con `FadeOutBGM`, `PanScreen` y las órdenes 30 y 31 del 2026-09-06, y 184
-  con las diagonales del mismo día. El cronómetro no cambió el número: suma
-  cero, y está medido. Y esto es cuántas pasarían a compilar con cada comando
-  que falta —`just snes-destraba`—:
+  177 con `FadeOutBGM`, `PanScreen` y las órdenes 30 y 31 del 2026-09-06, 184
+  con las diagonales del mismo día, y **209 con la orden 34** sobre eventos. El
+  cronómetro no cambió el número: suma cero, y está medido. Y esto es cuántas
+  pasarían a compilar con cada comando que falta —`just snes-destraba`—:
 
-      ConditionalBranch         +22      FullHeal               +1
+      ConditionalBranch         +27      FullHeal               +1
       ControlVars                +4      FlashSprite            +0
       ChangeItems                +3      CallEvent              +0
 
   Y aparte, `MoveEvent` con las órdenes de ruta que todavía no sabemos caminar:
-  +35 de techo. Puestos todos juntos se llega a **249 de 489**, y lo que seguiría
-  cortando después es, de lejos, **`MoveEvent` en su forma general: 92
-  páginas** —rutas con saltos, con cambio de gráfico, o apuntadas a un
-  vehículo—. Después vienen los 13 cuadros de texto con códigos de escape y
-  `ShowChoice` con 11.
+  +10 de techo, que es lo que quedaría dándole la 34 y las diagonales **al
+  héroe**. Puestos todos juntos se llega a **281 de 489**, y lo que seguiría
+  cortando después sigue siendo `MoveEvent`, ahora con 49 páginas —rutas con
+  saltos, apuntadas a un vehículo, o de las que le cambian el gráfico al
+  héroe—. Después vienen los 16 cuadros de texto con códigos de escape y
+  `ShowChoice` con 12.
 
-  Y una trampa más de las de medir, que apareció el 2026-09-06 con las
-  diagonales: la lista de órdenes de `destraba.py` no tenía la **transparencia**,
-  que `traducir` acepta y tira, así que la columna realista de `MoveEvent` daba
-  **menos** que la base. Nadie lo había notado porque hasta ese día ninguna
-  página tenía a la vez una transparencia y algo que la trabara.
+  Y dos trampas más de las de medir, las dos del mismo día y las dos con la
+  misma forma: la columna realista de `MoveEvent` daba **menos** que la base.
+  La lista de órdenes de `destraba.py` no tenía la **transparencia**, y su
+  filtro pedía que la ruta tuviera al menos una orden; `traducir` acepta las
+  dos cosas —la transparencia la tira, y una ruta vacía no la emite—. Ninguna
+  de las dos se había visto porque hasta ese día ninguna página tenía a la vez
+  una de ésas y algo más que la trabara.
 
   **Dos veces se corrigió este número, y las dos por lo mismo: medía un techo.**
   La primera versión contaba qué comando corta **primero** cada página

@@ -10,7 +10,7 @@ es la misma operación con pérdida que compactar, sólo que a un archivo.
 
 Última vez que se tocó: 2026-09-06.
 
-## Lo próximo: cambiar el gráfico a mitad de una ruta, y con eso la escena de Talan
+## Lo próximo: lo decide taro
 
 **El orden lo acordamos con taro el 2026-09-05**, y es éste:
 
@@ -20,17 +20,14 @@ es la misma operación con pérdida que compactar, sólo que a un archivo.
    destapó que la RAM se había acabado: ver abajo.
 4. ~~Las **diagonales** de ruta, órdenes 4 a 7.~~ Hecho el 2026-09-06.
 5. ~~**`PlayBGM` con varios temas.**~~ Hecho el 2026-09-06.
-6. La orden de ruta **34**, cambiar el gráfico a mitad de una ruta, que es lo
-   más caro que queda y lo que el LEEME viene anotando como imposible: dos
-   mecanismos sobre la misma fila. Atenuante medida: el `Future3[3]` que esa
-   ruta pide **ya está en el banco de sprites del mapa 3**, porque el evento
-   43 lo usa como gráfico de página.
+6. ~~La orden de ruta **34**, cambiar el gráfico a mitad de una ruta.~~ Hecho
+   el 2026-09-06.
 
-Hecho 2, 3 y 4, la escena de Talan —los 233 comandos de la página de contacto
-del evento 5 del mapa 3— queda a **un solo comando**: el `MoveEvent` que cambia
-el gráfico, o sea el punto 6. Cuando eso corra, el juego llega hasta el
-`Teleport` al mapa 4 con el switch 15, que de ahí salta al **mapa 5**: hay que
-sumarlo a `demo-apertura` entonces, o es el bug del ascensor otra vez.
+**Con eso la escena de Talan compila entera**: los 233 comandos de la página de
+contacto del evento 5 del mapa 3, que era el objetivo de los seis puntos. De
+ahí el juego sigue hasta el `Teleport` al mapa 4 con el switch 15, que salta al
+**mapa 5**: hay que sumarlo a `demo-apertura`, o es el bug del ascensor otra
+vez.
 
 Y mientras tanto: que taro juegue `demo-apertura` de nuevo, que ahora abre esa
 puerta y suena con los tres temas de las primeras secuencias.
@@ -200,6 +197,72 @@ Queda para después:
   la primera vuelta de una ROM con muchas páginas y el de la vuelta en que un
   fundido termina, y son lo único que le falta a la escena del ascensor para
   tener caso propio en la tanda: ver "Lo que falta" del LEEME.
+
+## Hecho el 2026-09-06: cambiar el gráfico a mitad de una ruta
+
+La orden 34, la última de `MoveCommand` de las que este juego usa y la que el
+LEEME venía anotando como lo más caro que quedaba. Con ella, **la escena de
+Talan compila entera**.
+
+Lo que hay que saber para tocarlo:
+
+* **El caso más común es desaparecer.** De las 437 órdenes 34 del juego, 185
+  cambian a `nobodyhere`, un CharSet sin un solo pixel opaco: ahí no hay nada
+  que subir, la fila se esconde. Verlo primero cambió el tamaño del problema.
+* **Lo caro es la paleta, no el cartucho.** Un gráfico al que una ruta cambia
+  es un personaje más: pide una de las ocho paletas de sprite y sus doce poses
+  en el cartucho, porque el evento sigue caminando después de cambiar.
+  Forzarlos rompía tres mapas —el 108, el 114 y el 207 pedían nueve paletas—,
+  así que entran **mientras quepan**, igual que los eventos dibujados con un
+  tile. El que no entra se esconde en vez de cambiar, los dos lados hacen lo
+  mismo y el conversor lo dice; pasa en esos tres mapas y con un solo gráfico.
+* **Es la única orden con operando.** Detrás del 34 va el índice del gráfico,
+  así que recorrer una ruta compilada plana volvió a ser peligroso: para eso
+  está `eventos.recorrer_ruta`.
+* **La tabla se copia a la RAM** al cargar el mapa, como la de NPCs, porque
+  leerla del cartucho pedía un puntero largo en la página directa y la página
+  directa está llena: 259 de 256 al intentarlo. Son dieciséis bytes.
+* **Sobre el héroe no se compila**, como las diagonales, y acá el corte importa
+  más: si una 34 llegara al héroe, la ROM leería el operando como si fuera una
+  orden.
+
+Ver "Cambiar el gráfico a mitad de una ruta" en el LEEME.
+
+Qué se corrió: **85 casos en verde**, dos más —`grafico` e `invisible`—, los
+dos medidos contra la misma ruta sin la orden: 146 pixeles de diferencia el
+primero y 207 el segundo, y cero en los cuadros de antes del cambio.
+
+Las páginas automáticas que compilan enteras pasaron de **184 a 209**, y lo que
+más corta —`MoveEvent`— bajó de 92 páginas a 49.
+
+### Lo que apareció midiendo esto, y no está arreglado
+
+**La escena de Talan compila y corre, y los dos lados no coinciden.** Es la
+primera vez que se la puede comparar de punta a punta, así que era esperable
+que apareciera algo; lo que apareció está medido y **no es la orden 34**.
+
+Armada a mano —mapa 3 con el 1, el 2, el 4 y el 5, el héroe en (38,69), el
+switch 13 puesto para que la página de contacto esté activa, y una ruta forzada
+de una sola orden que lo hace subir— los cuadros 1 a 9 dan **cero**, y el 10 da
+34%. El cuadro 10 de la ROM es idéntico al tick 9 de la referencia: **la ROM
+dispara la página de contacto un cuadro más tarde**.
+
+El primer comando de esa página es un `Teleport` al mismo mapa, o sea que
+arranca un fundido; de ahí que un cuadro de corrimiento se vea como un tercio
+de la pantalla. No lo cobra ninguna prueba porque `ruta-pisa` y `ruta-pisa-cola`
+comparan los cuadros 50 y 200, cuando ya se acomodó todo: es exactamente la
+trampa del camino que ninguna prueba ejecuta, sólo que en la ventana de tiempo
+en vez de en el código.
+
+Dónde mirar: `paso_de_ruta` en snes_expect.py decide `llego` en el mismo tick en
+que el paso termina, y en la ROM el orden del lazo pone `fundido_tick` **antes**
+de `eventos_tick`, así que lo que la página arranca se ve recién en la vuelta
+siguiente. Arreglarlo es decidir cuál de los dos tiene razón contra RM2k
+—`Game_Player::UpdateMovement`— y después rehacer los cuadros de los casos que
+se corran.
+
+Y hasta que eso esté, **la escena de Talan no está verificada**: compila, corre,
+y de los 233 comandos sólo se comparó el arranque.
 
 ## Hecho el 2026-09-06: varios temas en el cartucho
 
