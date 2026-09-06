@@ -201,11 +201,34 @@ de cada una está en `README.md`.
   Las otras ROMs con nombre —`demo-musica`, `demo-cinematica` y el resto— son
   viejas y no se rearmaron.
 
-* **La SNES de verdad, con el FX Pak.** Nada de esto se corrió en hardware.
-  Dos cosas concretas para mirar ahí: el mapeo del cartucho de 512 KB, y el
-  **redondeo del brillo de `INIDISP`** —mesen-s trunca donde bsnes y snes9x
-  redondean, que es la primera vez que los tres cores no coinciden, y el
-  hardware es el que desempata—.
+* **La SNES de verdad, con el FX Pak.** Nada de esto se corrió en hardware, y
+  **queda parado por un tiempo**: el CRT de taro dejó de andar el 2026-09-06.
+  Dos cosas para mirar cuando vuelva: el mapeo del cartucho de 512 KB y el
+  redondeo del brillo de `INIDISP`, que es lo de abajo.
+
+* **El brillo de `INIDISP`: mesen-s contra los otros dos, medido.** El
+  2026-09-06 se compararon los tres cores cuadro por cuadro sobre el fundido de
+  entrada al mapa 1 de `demo-apertura`, que recorre los dieciséis niveles:
+
+      brillo 0 y 15           los tres coinciden, cero pixeles de diferencia
+      brillo 1 a 14           snes9x y bsnes coinciden exactamente;
+                              mesen-s difiere en 30% a 48% de los pixeles
+
+  O sea que difiere **exactamente mientras dura un fundido** y en ningún otro
+  momento, que es lo que confirma que el asunto es el escalado y nada más. Y
+  difiere para abajo: da un paso menos —3 contra 2, 11 contra 10, a 15 bits— y
+  nunca más. Es "trunca donde los otros redondean"; la fórmula exacta no sale
+  de esta medición porque la escena lleva además un tinte en CGRAM, así que el
+  pixel no es color puro por brillo.
+
+  **La trampa práctica:** el justfile toma el core de la variable `CORE`, así
+  que correr la tanda con `CORE=mesen-s` es un comando —y pondría en rojo todos
+  los cuadros que caigan en un fundido, sin que haya ningún bug. La tanda usa
+  snes9x, y `snes-bsnes` y `snes-mednafen` la respaldan.
+
+  Dos de tres no desempata: el hardware es el que decide, y para eso hay que
+  esperar al CRT. A ojo, taro no distingue mednafen de mesen y los dos le
+  parecen bien.
 
 
 * **Las pruebas de estado son la otra mitad de la red, no un reemplazo.**
