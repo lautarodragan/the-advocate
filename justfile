@@ -1087,18 +1087,25 @@ snes-escena mapa="2" celda="4 54" ruta="12" dir="up" cuadros="60" arranque="115"
 # come— sino los picos del lazo, que en esta ROM son siete cuadros repartidos
 # por el camino; el toque de A los resincroniza, porque de ahí en adelante los
 # dos lados cuentan desde el mismo cuadro.
-snes-cinematica origen="4" destino="1" cuadros="50 68 170 370 750 1110" arranque="115" nombre="cinematica" ventana="" apretar="":
+snes-cinematica origen="4" destino="1" cuadros="50 68 170 370 750 1110" arranque="115" nombre="cinematica" ventana="" apretar="" switch="":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
   ventana="{{ventana}}"
   apretar="{{apretar}}"
+  # `switch` prende switches desde la página de prueba, que es cómo se pone al
+  # mundo en un estado al que el juego llega más tarde. Acá hace falta porque
+  # el recuerdo de CORE y MANTA lo destraba el 16, que lo prende una página de
+  # un mapa que no está en la ROM del caso.
+  switch="{{switch}}"
   python3 tools/snes_convert.py --grupo 10 --map-id {{origen}} \
-      --mapas {{destino}} ${ventana:+--con-ventana} -o {{snes_inc}}/mapdata.inc
+      --mapas {{destino}} ${ventana:+--con-ventana} ${switch:+--switch $switch} \
+      -o {{snes_inc}}/mapdata.inc
   just snes-build
   pre={{snes_pngs}}/{{nombre}}
   python3 tools/snes_expect.py --grupo 10 --map-id {{origen}} \
-      --mapas {{destino}} ${ventana:+--con-ventana} --walk none --cuadros {{cuadros}} \
+      --mapas {{destino}} ${ventana:+--con-ventana} ${switch:+--switch $switch} \
+      --walk none --cuadros {{cuadros}} \
       ${apretar:+--apretar-a $apretar} \
       --saltar $pre-{}.saltar.txt -o $pre-{}.esperado.png
   for n in {{cuadros}}; do

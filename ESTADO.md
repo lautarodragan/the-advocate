@@ -198,7 +198,7 @@ de cada una está en `README.md`.
 
 ## Lo que la tanda no cubre
 
-`just snes-hitos-foto` son **87 casos, todos en verde**, y el más largo es
+`just snes-hitos-foto` son **88 casos, todos en verde**, y el más largo es
 `talan`: mil doscientos cuadros de la escena entera del Emitter Room. Lo que la
 tanda no mira:
 
@@ -215,17 +215,22 @@ tanda no mira:
   caminata de la tanda encadena una cinemática con interacciones sueltas
   después.
 
-* **La cadena entera del recuerdo de CORE y MANTA.** Corre en el modelo —mapa
-  5, 5, 6, 3 y 4, con los 864 cuadros de la cinemática de la ciudad que antes
-  no existían— pero **ningún caso la compara**: encadenarla desde la escena de
-  Talan pide una lista de toques de A que todavía no armé. Es el mejor
-  candidato a caso nuevo que hay.
+* **La cadena del recuerdo, después del mapa 6.** El caso `manta` la compara
+  hasta ahí —3900 cuadros, del mapa 5 al 6, con 34 toques de A—, y sigue: el 6
+  salta al 3 y el 3 al 4. Eso no lo mira nadie todavía.
 
-* **Los primeros nueve cuadros de un mensaje.** La ROM abre la ventana animada
-  y la referencia la pone de golpe: con el toque de A en el cuadro 25, la
-  referencia ya la muestra en el 25 y la ROM recién en el 34. Es sabido y no se
-  modela; lo que hay que cuidar es que ningún caso caiga adentro de esa
-  ventanita, porque ahí el rojo no dice nada.
+* **Los primeros veinte cuadros de un mensaje.** La ROM compone la ventana
+  cuadro a cuadro y la referencia la pone de golpe. **Cuánto tarda depende del
+  texto**: medido, 9 cuadros con el mensaje de prueba y 17 a 19 con los del
+  recuerdo de CORE y MANTA. Antes acá decía "nueve" a secas, y eso era el
+  número de un solo caso.
+
+  De ahí salen dos cuidados, y los dos costaron un rojo: ningún cuadro que se
+  compare puede caer adentro de esa ventanita, y **ningún toque de A tampoco**.
+  La ROM ignora el botón mientras `msg_abierto` esté en cero, la referencia
+  no, y a partir de ahí las dos corren escenas distintas. Al armar una lista de
+  toques hay que dejar treinta cuadros desde que el mensaje se abre, no veinte:
+  con veinte, el toque del cuadro 1976 llegó **uno** antes de tiempo.
 
 * **El audio.** `just snes-bgm <tema>` graba cuarenta segundos y los compara
   contra el MIDI, y **no está en la tanda**: es visual. Los cuatro temas de la
