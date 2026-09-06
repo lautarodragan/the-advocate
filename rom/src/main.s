@@ -342,8 +342,17 @@ saltos_restantes: .res 1 ; cuántas cadenas de teletransporte quedan permitidas
 ; el lazo principal las va comiendo.
 COLA_MAX = 8
 cola:        .res 24    ; hasta ocho punteros de tres bytes
-cola_n:      .res 1     ; cuántas hay
-cola_i:      .res 1     ; cuál sigue
+; Un anillo de verdad: `cola_n` son las que están **esperando** —no las que
+; entraron alguna vez— y `cola_i` de cuál se lee. El que escribe lo hace en
+; `(cola_i + cola_n) mod COLA_MAX`.
+;
+; Antes `cola_n` sólo crecía, así que esto era un buffer que se llenaba una vez
+; por visita al mapa: llegado a ocho, `encolar_elegida` descartaba todo y el
+; mapa se quedaba sin disparar nada. La misma cola atiende **todos** los
+; disparos de la visita —cada tecla de acción, cada contacto—, no sólo las
+; páginas automáticas de la carga, que es lo que el número ocho suponía.
+cola_n:      .res 1     ; cuántas esperan
+cola_i:      .res 1     ; de cuál se lee
 ev_cur:      .res 2     ; el cursor dentro de la página que corre
 ev_activo:   .res 1     ; si hay una página a medio correr
 ev_esperando: .res 2    ; cuántos cuadros faltan de la espera en curso
@@ -1180,8 +1189,7 @@ sin_mensaje:
     lda ev_activo
     bne corriendo
     ; No hay página a medio correr: se toma la siguiente de la cola.
-    lda cola_i
-    cmp cola_n
+    lda cola_n
     bne hay_en_cola
 
     ; La cola está vacía, así que el flanco de A es para hablar. En RM2k es el
@@ -1201,25 +1209,9 @@ sin_mensaje:
     beq nada
     ; Encoló algo: se toma en este mismo cuadro.
 hay_en_cola:
+    lda cola_n
+    beq nada                    ; no queda ninguna
     lda cola_i
-    cmp cola_n
-    bne hay_una
-    ; Vacía: los dos punteros vuelven a cero. Sin esto la cola no es circular
-    ; sino un buffer que **se llena una sola vez por mapa**: `cola_n` nunca
-    ; bajaba, así que después de ocho páginas encoladas en esa visita
-    ; `encolar_elegida` descartaba todo y el mapa se quedaba sin disparar nada
-    ; —ni una puerta, ni un cartel—. El comentario de COLA_MAX decía "ningún
-    ; mapa del juego llega a ocho páginas automáticas", y es cierto al cargar;
-    ; lo que no vio es que la misma cola atiende **todos** los disparos de la
-    ; visita: cada A, cada contacto.
-    ;
-    ; taro lo vio como "me deja interactuar una vez y después nada", que es lo
-    ; que pasa cuando la cinemática dejó el contador en siete. Salir del mapa y
-    ; volver lo arreglaba porque `encolar_eventos` los pone en cero.
-    stz cola_i
-    stz cola_n
-    bra nada
-hay_una:
     asl a
     clc
     adc cola_i                  ; índice * 3, en ocho bits
@@ -1234,7 +1226,15 @@ hay_una:
 .a8
     lda cola + 2, x
     sta cod_ptr + 2
-    inc cola_i
+    ; Se leyó una: el lector avanza dando la vuelta y quedan una menos.
+    lda cola_i
+    inc a
+    cmp #COLA_MAX
+    bcc guardar_lector
+    lda #0
+guardar_lector:
+    sta cola_i
+    dec cola_n
     lda #1
     sta ev_activo
 
@@ -2427,13 +2427,22 @@ no:
     ; de al lado; ningún mapa del juego llega a ocho páginas automáticas.
     lda cola_n
     cmp #COLA_MAX
-    beq no
-    ; El índice por tres, en ocho bits. En dieciséis, `adc cola_n` leería dos
-    ; bytes y se llevaría puesto el de al lado: es la trampa del ancho que ya
-    ; mordió dos veces hoy.
+    beq no                      ; llena de verdad: hay ocho esperando
+    ; Dónde escribir: `(cola_i + cola_n) mod COLA_MAX`, que es lo que hace de
+    ; esto un anillo. Antes se escribía en `cola_n` a secas, con `cola_n`
+    ; creciendo para siempre.
+    clc
+    adc cola_i
+    cmp #COLA_MAX
+    bcc con_hueco
+    sbc #COLA_MAX
+con_hueco:
+    ; El índice por tres, en ocho bits. En dieciséis, `adc` leería dos bytes y
+    ; se llevaría puesto el de al lado: es la trampa del ancho de siempre.
+    sta cola_pos
     asl a                       ; 2n
     clc
-    adc cola_n                  ; 3n
+    adc cola_pos                ; 3n
     rep #$20
 .a16
     and #$00FF
@@ -5154,8 +5163,7 @@ sin_espera:
     beq no_congelada
     lda ev_activo
     bne congelada
-    lda cola_i
-    cmp cola_n
+    lda cola_n
     bne congelada
 no_congelada:
     ; El puntero de la ruta a la página directa, que es de donde se puede leer
@@ -9453,8 +9461,7 @@ sin_ruta:
     ; abrirse y `msg_abierto` recién se prende al final.
     lda ev_activo
     bne no_derecha
-    lda cola_i
-    cmp cola_n
+    lda cola_n
     bne no_derecha
     lda pad
     and #PAD_UP
@@ -11416,6 +11423,12 @@ done:
 .endproc
 
 .segment "BSS"
+
+; Dónde escribe el que encola, mientras lo calcula. Va aparte y no en `temp`
+; porque `encolar_elegida` corre en medio de `accion_en_celda` y de
+; `encolar_eventos`, y pisarles el scratch es la clase de error que se ve como
+; un evento disparándose solo.
+cola_pos:    .res 1
 port0: .res 1
 
 ; Lo que `flush_video` le escribe a INIDISP al final del vblank: el brillo

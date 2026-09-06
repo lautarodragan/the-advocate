@@ -124,10 +124,13 @@ de cada una está en `README.md`.
 
 ## Lo que taro todavía no probó
 
-* **`rom/build/demo-apertura/`, rearmada el 2026-09-06** con todo lo de los
-  seis puntos adentro: la puerta del Emitter Room que se abre y se cruza, la
-  escena de Talan entera, los mapas 4, 1, 2, 3, **5** y **6**, y cuatro temas
-  —`escape_newyork`, `TF3_1_awe`, `evilrhys`, `lufsorr`—. Se arma así:
+* **`rom/build/demo-apertura/`, rearmada el 2026-09-06 con la cola circular**
+  y con todo lo de los seis puntos adentro: la puerta del Emitter Room que se
+  abre y se cruza, la escena de Talan entera, los mapas 4, 1, 2, 3, **5** y
+  **6**, y cuatro temas —`escape_newyork`, `TF3_1_awe`, `evilrhys`,
+  `lufsorr`—. Lo que hay que mirar primero es lo que taro venía viendo: que un
+  mapa siga aceptando disparos pasada la octava interacción, y que ni el
+  droide ni ninguna otra página arranque sola. Se arma así:
 
       python3 tools/snes_convert.py --grupo 10 --map-id 4 --mapas 1 2 3 5 \
           --con-ventana -o rom/build/demo-apertura/mapdata.inc
@@ -146,22 +149,28 @@ de cada una está en `README.md`.
 
 ## Lo que la tanda no cubre
 
-`just snes-hitos-foto` son **86 casos, todos en verde**, y el más largo es
+`just snes-hitos-foto` son **87 casos, todos en verde**, y el más largo es
 `talan`: mil doscientos cuadros de la escena entera del Emitter Room. Lo que la
 tanda no mira:
 
-* **Que un mapa acepte muchas interacciones seguidas.** Los dos bugs que taro
-  encontró jugando el 2026-09-06 —el presupuesto de saltos y la cola de páginas
-  que no era circular— **no los cobraba ningún caso**, y los dos se manifiestan
-  recién después de una cinemática larga o de ocho disparos en la misma visita.
-  Ningún caso de la tanda hace eso.
+* **Que un mapa acepte muchas interacciones seguidas** — ya no, desde el
+  2026-09-06: el caso `hablar-repetido` son diecisiete toques de A sobre el
+  mismo evento del mapa 7, o sea nueve aperturas de mensaje, y mira el cuadro
+  360. Es el primer caso que pasa de la octava interacción, que era justo donde
+  se rompía la cola. Verificado que **da rojo con la ROM de antes del anillo**,
+  en el cuadro 360 y sólo ahí: un caso nuevo que no da rojo con el bug puesto
+  no prueba nada.
 
-  Y hay una pista sin resolver ahí: un caso exploratorio con **dieciocho toques
-  de A** sobre el mismo evento del mapa 7 da rojo en el cuadro 380 —34%—, y con
-  la ROM de antes de los arreglos daba cero. No es una regresión: la ROM vieja
-  coincidía *porque* estaba trabada. Falta averiguar de qué lado está la
-  diferencia a partir de la interacción número nueve. Es el mejor candidato a
-  caso nuevo que hay.
+  Lo que sigue sin cubrir es la otra mitad del mismo agujero: los dos bugs que
+  taro encontró jugando ese día —el presupuesto de saltos y la cola— aparecen
+  después de una cinemática larga, y ninguna caminata de la tanda encadena una
+  cinemática con interacciones sueltas después.
+
+* **Los primeros nueve cuadros de un mensaje.** La ROM abre la ventana animada
+  y la referencia la pone de golpe: con el toque de A en el cuadro 25, la
+  referencia ya la muestra en el 25 y la ROM recién en el 34. Es sabido y no se
+  modela; lo que hay que cuidar es que ningún caso caiga adentro de esa
+  ventanita, porque ahí el rojo no dice nada.
 
 * **El audio.** `just snes-bgm <tema>` graba cuarenta segundos y los compara
   contra el MIDI, y **no está en la tanda**: es visual. Los cuatro temas de la

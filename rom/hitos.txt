@@ -71,6 +71,7 @@ snes-escena 2 "7 74" 14 down "3 8 25 60 106 200" 115 droide ""
 snes-escena 2 "7 74" 14 down "10 20 30 45 100" 115 droide-roto "" 22
 snes-escena 2 "7 71" 14 down "20 60 120 300" 115 droide-frenado ""
 snes-escena 2 "32 58" 14 down "50 120 300 600" 115 droide-cuadrado ""
+snes-hablar 7 "3 7" 24 "25 45 65 85 105 125 145 165 185 205 225 245 265 285 305 325 345" "40 200 360" 115 hablar-repetido
 snes-escena 2 "7 73" "23 0 23 23 23 2" up "25 50 80 95 130" 115 droide-tapado ""
 snes-escena 2 "87 76" 0 up "380 407 410 425 470 600" 115 core-puerta "242 311 362 457 568 588" 7
 snes-escena 2 "85 71" "3 3 3" left "20 40 60 90" 115 escombros "" 10
