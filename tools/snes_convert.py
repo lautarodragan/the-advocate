@@ -1220,6 +1220,41 @@ def unpack_tile(data, planes=8):
     return tuple(rows)
 
 
+def _filas_de_celda(cell, data, planes, palette):
+    """Las ocho filas de una celda del tilemap, ya en RGBA.
+
+    Devuelve, por fila, los 32 bytes y qué columnas pintan: `None` quiere decir
+    que pintan todas, que es siempre el caso en 8 bits —ahí el índice 0 es un
+    color como cualquier otro— y deja escribir la fila de una rebanada. En 4
+    bits el índice 0 es transparente y hay que saltearlo, que es lo que hacía
+    el `continue` del lazo viejo.
+    """
+    number = cell & 0x03FF
+    pal = (cell >> 10) & 0x07
+    indices = unpack_tile(
+        data[number * (planes * 8):(number + 1) * (planes * 8)], planes)
+    filas = []
+    for y in range(CELL):
+        sy = CELL - 1 - y if cell & 0x8000 else y
+        fila = bytearray(CELL * 4)
+        opacos = [] if planes == 4 else None
+        for x in range(CELL):
+            sx = CELL - 1 - x if cell & 0x4000 else x
+            value = indices[sy][sx]
+            if planes == 4:
+                if not value:
+                    continue                    # transparente
+                # En 4 bits el índice se cuenta dentro de la paleta que dice la
+                # celda; ésa ya lleva el desplazamiento.
+                value += pal * COLORS_PER_PALETTE
+                opacos.append(x)
+            color = palette[value] if value < len(palette) else (0, 0, 0)
+            fila[x * 4:x * 4 + 4] = bytes((color[0] << 3, color[1] << 3,
+                                           color[2] << 3, 255))
+        filas.append((bytes(fila), tuple(opacos) if opacos is not None else None))
+    return filas
+
+
 def render_converted(tile_data, cram, tilemap, above=None):
     """La imagen que la consola va a mostrar, armada desde los datos convertidos.
 
@@ -1248,34 +1283,47 @@ def render_converted(tile_data, cram, tilemap, above=None):
             words[first + i] = int.from_bytes(colors[i * 2:i * 2 + 2], "little")
     palette = [((c & 0x1F), (c >> 5) & 0x1F, (c >> 10) & 0x1F) for c in words]
 
+    # El lienzo es un bytearray de RGBA y no una `Image`: se dibujaba con
+    # `putpixel`, uno por pixel, y eran dos millones y medio de llamadas por
+    # cada corrida de la referencia —el 40% del tiempo de un caso de la tanda,
+    # que son once segundos de los cuales siete son esto—. Un `bytearray` se
+    # escribe por rebanadas y la imagen se arma una sola vez al final.
+    #
+    # Arrancar en cero no es un detalle: `render_above` cuenta con que lo que
+    # la capa no toca quede en (0, 0, 0, 0), que es lo que daba `Image.new`.
+    ancho = width * CELL
+    lienzo = bytearray(ancho * height * CELL * 4)
+
     def draw(cells, data, planes):
+        # Las filas ya en RGBA de cada celda distinta. La clave es la celda
+        # entera —número, paleta y los dos espejados—, así que dos celdas
+        # iguales se dibujan una sola vez: un mapa de diez mil celdas usa unos
+        # pocos cientos de tiles distintos, que es justamente para lo que el
+        # conversor los reusa. De acá salen las 80.000 llamadas a
+        # `unpack_tile`, que quedan en tantas como celdas distintas haya.
+        cache = {}
         for ty, row in enumerate(cells):
+            base_y = ty * CELL
             for tx, cell in enumerate(row):
-                number = cell & 0x03FF
-                pal = (cell >> 10) & 0x07
-                indices = unpack_tile(
-                    data[number * (planes * 8):(number + 1) * (planes * 8)],
-                    planes)
-                for y in range(CELL):
-                    for x in range(CELL):
-                        sx = CELL - 1 - x if cell & 0x4000 else x
-                        sy = CELL - 1 - y if cell & 0x8000 else y
-                        value = indices[sy][sx]
-                        if planes == 4:
-                            if not value:
-                                continue        # transparente
-                            # En 4 bits el índice se cuenta dentro de la paleta
-                            # que dice la celda; ésa ya lleva el desplazamiento.
-                            value += pal * COLORS_PER_PALETTE
-                        color = palette[value] if value < len(palette) else (0, 0, 0)
-                        image.putpixel((tx * CELL + x, ty * CELL + y),
-                                       (color[0] << 3, color[1] << 3,
-                                        color[2] << 3, 255))
+                filas = cache.get(cell)
+                if filas is None:
+                    filas = _filas_de_celda(cell, data, planes, palette)
+                    cache[cell] = filas
+                base = (base_y * ancho + tx * CELL) * 4
+                for y, (fila, opacos) in enumerate(filas):
+                    desde = base + y * ancho * 4
+                    if opacos is None:           # todos los pixeles pintan
+                        lienzo[desde:desde + CELL * 4] = fila
+                        continue
+                    for x in opacos:             # 4 bits: el índice 0 no pinta
+                        lienzo[desde + x * 4:desde + x * 4 + 4] = \
+                            fila[x * 4:x * 4 + 4]
 
     if tilemap is not None:
         draw(tilemap, tile_data, 8)
     if above:
         draw(above[2], above[0], 4)
+    image.frombytes(bytes(lienzo))
     return image
 
 
