@@ -936,8 +936,8 @@ pixeles:
 
 O sea: **un cuadro de cada cuatro por eje**. Y aparecían dos problemas más —la
 franja hay que reestamparla entera en cada cruce, no la columna que entra, y la
-fila que sale de la franja no la redibujaba nadie—. El detalle está en
-ESTADO.md; el intento vivió tres commits.
+fila que sale de la franja no la redibujaba nadie—. El intento vivió tres
+commits; está en `git log`.
 
 **Lo que sí funciona es HDMA**, que era la opción que se había descartado por
 2 KB de VRAM que no había. El DMA de siempre transfiere todo de una; el HDMA es
@@ -1616,7 +1616,7 @@ por corrección y no porque pase.
 Y una advertencia que conviene tener a mano: con esto **la escena de Talan
 compila entera**, pero comparada de punta a punta los dos lados no coinciden, y
 no por la orden 34: la ROM dispara la página de contacto un cuadro más tarde que
-la referencia. Está medido en ESTADO.md, "Lo que apareció midiendo esto".
+la referencia. Está medido en ESTADO.md, "Lo que la tanda no cubre".
 
 **Cómo se verifica.** Dos casos, y son la misma ruta con distinto destino: el
 evento 3 del mapa 6 baja dos celdas, cambia de gráfico y sigue bajando dos. Los

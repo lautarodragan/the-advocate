@@ -1378,7 +1378,7 @@ snes-mensaje mapa="1" indice="0" escala="1":
 # de contador sólo se ven si la columna en la que queda el ciclo **no** es la
 # parada, y 8 cuadros por celda por 12 celdas da 96, que cae justo en la parada.
 # Con cuatro celdas da 32, que cae en la columna 2. Elegido midiendo: los tres
-# errores se volvieron a meter de a uno y los tres dan rojo. Ver ESTADO.md.
+# errores se volvieron a meter de a uno y los tres dan rojo.
 #
 # * **La frecuencia.** Con una que no sea la 8 el personaje se queda quieto
 #   entre orden y orden: es el contador de parada de RM2k, `1 << (9 - f)`
