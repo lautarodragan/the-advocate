@@ -1671,6 +1671,46 @@ snes-hitos:
 # cuadros en los mismos segundos, el héroe quedaba corto de la pared y la
 # comparación se disparaba sin que nada estuviera roto. Ahora N cuadros son N
 # cuadros, con la carga que sea.
+# La tanda sobre una **foto** del árbol, para poder seguir editando mientras
+# corre.
+#
+# El problema que resuelve: cada receta recompila desde `rom/src/main.s`, así
+# que tocar un fuente a mitad de una tanda mezcla dos versiones y el resultado
+# no dice nada. La regla escrita —"mientras corre una tanda no se toca ningún
+# fuente"— funciona hasta que alguien se olvida, y eso ya costó dos tandas.
+#
+# `git stash create` deja un commit colgado con el árbol sucio **sin tocar el
+# índice ni el stash**, y el worktree sale de ahí: la foto incluye lo que no
+# está commiteado, que es justo lo que uno quiere probar. Medido: 0,034 s y
+# 19 MB. Al terminar imprime el hash de la foto, que es lo que permite después
+# ver qué se probó y qué se agregó encima —`git diff <foto>`—.
+#
+# Dos cosas para tener presentes:
+#
+# * **Los archivos sin trackear no entran en la foto.** `git stash create` sólo
+#   toma lo modificado. Un archivo nuevo que todavía no se hizo `git add` no
+#   viaja, así que la receta avisa si ve alguno.
+# * **Dos tandas a la vez se pelean por CPU.** Esto sirve para seguir editando,
+#   no para que la tanda termine antes.
+snes-hitos-foto trabajos="4" donde="/extras/hitos-foto":
+  #!/usr/bin/env bash
+  set -uo pipefail
+  nuevos=$(git status --porcelain | grep "^??" | grep -E "tools/|rom/src/|justfile|rom/hitos.txt" || true)
+  if [ -n "$nuevos" ]; then
+    echo "ojo: estos archivos no están trackeados y NO entran en la foto:" >&2
+    echo "$nuevos" >&2
+  fi
+  foto=$(git stash create)
+  foto=${foto:-$(git rev-parse HEAD)}
+  git worktree remove --force {{donde}} 2>/dev/null || true
+  git worktree add --detach {{donde}} "$foto" >/dev/null
+  echo "foto $foto -> {{donde}}"
+  ( cd {{donde}} && just snes-hitos-paralelo {{trabajos}} )
+  estado=$?
+  git worktree remove --force {{donde}} 2>/dev/null || true
+  echo "la foto era $foto; para ver qué se agregó encima: git diff $foto"
+  exit $estado
+
 snes-hitos-paralelo trabajos="4":
   #!/usr/bin/env bash
   set -uo pipefail

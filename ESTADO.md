@@ -80,6 +80,13 @@ de cada una está en `README.md`.
   tile del chipset y, desde la orden 34, para los gráficos a los que una ruta
   cambia: ahí la orden esconde al evento en vez de cambiarlo. Forzarlos rompía
   tres mapas —el 108, el 114 y el 207—.
+* **La tanda se corre sobre una foto del árbol.** `just snes-hitos-foto` la
+  saca con `git stash create` y la corre en un worktree de `/extras`, así que
+  editar mientras corre dejó de ser un problema. El riesgo que queda no es de
+  git sino de cabeza —si la tanda sale en rojo con otro cambio ya encima, hay
+  que separar cuál fue—, y lo desambigua el hash de la foto que la receta
+  imprime: `git diff <foto>` dice qué se agregó después.
+
 * **Los builds numerados de `rom/build/` no se arman a mano.** No están en git
   y no los produce ninguna receta salvo el 12. Armar uno a mano es cómo se
   terminó mirando el mapa 6 creyendo que era la demo del hito 12.
