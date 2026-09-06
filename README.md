@@ -1017,10 +1017,11 @@ Arreglarlo pidió tres cosas, y las tres hacen falta:
   no se notaba; con la instantánea, `puerta-emisor` dibujaba la puerta cerrada
   después de abrirla.
 
-**Cómo se verifica.** El caso `talan`, el más largo de la tanda: mil doscientos
-cuadros de los 233 comandos de la escena del Emitter Room, comparados en siete
-puntos y todos en cero. Antes de esto, el cuadro 120 daba 60% y la ROM no corría
-la página en absoluto.
+**Cómo se verifica.** Lo cobra `puerta-emisor`, que abre la puerta del Emitter
+Room apretando A y mira el cuadro 40: con la página activa calculada viva daba
+300 pixeles de diferencia y con la instantánea da cero. Se le hizo además un
+caso de la escena de Talan entera, y hubo que sacarlo: esa página no compila
+—ver ESTADO.md— así que daba cero sin ejercitar nada.
 
 #### El intérprete de eventos
 
@@ -1882,10 +1883,9 @@ Adentro de un salto la orden se consume y **no se ejecuta**: el lazo de
 Ninguna ruta del juego tiene una ahí adentro —medido, cero—, así que eso está
 por corrección y no porque pase.
 
-Con esto **la escena de Talan compila entera**, y desde el 2026-09-06 tiene
-caso propio en la tanda: `talan`, mil doscientos cuadros de los 233 comandos, en
-cero. Llegar ahí pidió arreglar además cómo la referencia elige la página activa
-de un evento: ver "La página activa se congela hasta el refresco".
+Con esto **la escena de Talan compila** —salvo por una ruta del héroe que
+empieza con la orden 28, que desde el 2026-09-06 no compila y la vuelve a
+trabar: ver ESTADO.md—.
 
 **Cómo se verifica.** Dos casos, y son la misma ruta con distinto destino: el
 evento 3 del mapa 6 baja dos celdas, cambia de gráfico y sigue bajando dos. Los

@@ -29,11 +29,22 @@ Las páginas automáticas que compilan enteras son **209 de 489**.
 
 ### Lo próximo, si no se decide otra cosa
 
-1. **`ConditionalBranch`**, que es el desbloqueo más grande que queda: +24
-   páginas de las 205 que compilan hoy. Y lo caro no sirve: limitado a
-   condiciones de **switch** se lleva 24 de las 27; agregarle variables suma
-   cero, medido.
-2. **La secuencia del "1 year earlier"**, que es lo que sigue en el juego y lo
+1. **La velocidad variable del héroe**, que se volvió blocker. La escena de
+   Talan —la que motivó los seis puntos— tiene una ruta del héroe que empieza
+   con la **orden 28**, y desde que ésas no compilan la escena entera no corre.
+   Es lo que taro previó al dejarlas afuera: "si se vuelven blockers, las
+   encararemos en ese momento". Ese momento es éste.
+
+   Lo que pide: que el paso del héroe deje de ser fijo —hoy `WALK_SPEED`, ocho
+   cuadros por celda, escrito a mano en `try_up` y sus tres hermanas— y pase al
+   acumulador de 256 por celda que ya tienen los eventos. Toca además caminar
+   con el pad, la cámara, y el plan de cuadros con que se comparan los casos.
+   Con eso vuelve el caso `talan`.
+
+2. **`ConditionalBranch`**, el desbloqueo más grande que queda: +24 páginas de
+   las 205 que compilan hoy. Y lo caro no sirve: limitado a condiciones de
+   **switch** se lleva 24 de las 27; agregarle variables suma cero, medido.
+3. **La secuencia del "1 year earlier"**, que es lo que sigue en el juego y lo
    que hoy deja mudo a `hzstream`: la página que lo prende —evento 1, página 2
    del mapa 4— pide `ChangeItems`, `ShowPicture`/`MovePicture` y
    `ChangePartyMembers`.
