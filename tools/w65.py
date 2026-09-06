@@ -48,7 +48,7 @@ import sys
 # Lo que sí paga el precio es el 65816: un puntero de 24 bits no avanza solo de
 # $00FFFF a $018000, hay que ayudarlo. Está en `advance`, en main.s.
 BANK_SIZE = 0x8000
-ROM_BANKS = 16          # 512 KB desde el 2026-09-05: ver el LEEME, "El cartucho"
+ROM_BANKS = 16          # 512 KB desde el 2026-09-05: ver el README, "El cartucho"
 
 # TABLAS va en el banco 0, junto al código, y no es un detalle de acomodo: el
 # direccionamiento absoluto indexado —`lda tabla, x`— usa el registro de banco

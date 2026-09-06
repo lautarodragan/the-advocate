@@ -2,7 +2,7 @@
 """Cuánto destraba cada comando de evento que todavía no hacemos.
 
 Existe porque el número que este repo venía usando para decidir el orden medía
-otra cosa. La tabla de `rom/LEEME.md` cuenta **qué comando corta primero** cada
+otra cosa. La tabla de `README.md` cuenta **qué comando corta primero** cada
 página automática, y de ahí salía "ShowMessage 144, es lo que más
 desbloquearía". Pero una página cortada por un cuadro de texto puede estar
 cortada además por otras cuatro cosas: hacer los cuadros de texto no la

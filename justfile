@@ -28,7 +28,7 @@ export:
 # Una corrida aislada. `CORRIDA=algo just snes-hitos` deja el mapdata, la ROM y
 # las capturas adentro de rom/build/algo/ y no toca nada de lo de siempre; sin
 # CORRIDA, todo queda exactamente donde estaba, para que `mednafen
-# rom/build/abl.sfc` y las rutas escritas en el LEEME sigan valiendo.
+# rom/build/abl.sfc` y las rutas escritas en el README sigan valiendo.
 #
 # Existe por dos cosas que hasta ahora hacían imposible compilar mientras algo
 # corría: rom/src/mapdata.inc es estado global —lo pisa cualquier
@@ -414,7 +414,7 @@ snes-ventana mapa="7" nombre="ventana" mapas="":
 # desde que termina, y si empezara antes de que la página abra el mensaje el
 # héroe daría unos pasos que la referencia no modela. El 115 es el de todas las
 # recetas desde que el arranque de la ROM es fijo —ver "El arranque dura
-# siempre lo mismo" en el LEEME—: el cuadro N de la captura es el tick N de
+# siempre lo mismo" en el README—: el cuadro N de la captura es el tick N de
 # la referencia, en cualquier mapa.
 snes-cerrar mapa="7" apretar="200" nombre="cerrar" direccion="none" arranque="115":
   #!/usr/bin/env bash
@@ -1245,7 +1245,7 @@ snes-anclada mapa="6" ruta="1 1 1 1 1 1 2 2 2 2 2 2" cuadros="21 23 50 130" arra
 # Cuánto destraba cada comando de evento que todavía no hacemos.
 #
 # Es lo que decide por dónde seguir, y existe porque el número que este repo
-# venía usando medía otra cosa: la tabla de "Lo que falta" del LEEME cuenta qué
+# venía usando medía otra cosa: la tabla de "Lo que falta" del README cuenta qué
 # comando corta **primero** cada página, y una página cortada por un cuadro de
 # texto puede estar cortada además por otras cuatro cosas. Lo que hay que contar
 # es cuántas páginas pasan a compilar enteras, que es lo que hace esto.

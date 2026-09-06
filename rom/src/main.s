@@ -506,7 +506,7 @@ grupo_listo:
     ; sin inicializar, `ruta_i < ruta_n` da falso las diez corridas de snes9x y
     ; el error desaparece; en bsnes con entropía alta se ve. La tanda entera
     ; daba verde con esto adentro, y en hardware real habría fallado igual que
-    ; en mednafen. Está medido en "Trampas del hardware" del LEEME.
+    ; en mednafen. Está medido en "Trampas del hardware" del README.
     stz ev_activo
     stz cola_n
     stz cola_i
@@ -3794,7 +3794,7 @@ buscar:
 estaba:
     ; `temp` se mira con A y no con `ldy temp`: con .i16 eso leería dos bytes y
     ; el de al lado no es nuestro. Es la trampa del ancho de los índices, que ya
-    ; está anotada en el LEEME, y acá dio exactamente el síntoma que promete:
+    ; está anotada en el README, y acá dio exactamente el síntoma que promete:
     ; ningún cambio de grupo tenía efecto y no había ningún error.
     pha
     lda temp
@@ -3968,7 +3968,7 @@ hay_orden:
     ; El índice a X pasando por A de dieciséis bits y limpiando el alto: `tax`
     ; transfiere los dos bytes del acumulador aunque A esté en ocho, y el alto
     ; trae lo que dejó la operación anterior. Es la trampa que ya está anotada
-    ; en el LEEME, y acá hacía que la ruta leyera basura y se cortara al primer
+    ; en el README, y acá hacía que la ruta leyera basura y se cortara al primer
     ; paso: el héroe caminaba una celda de tres y no había ningún error.
     rep #$20
 .a16

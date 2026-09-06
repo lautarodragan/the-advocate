@@ -5,9 +5,9 @@ fuentes mejores, y hay que ir a ellas antes que a este archivo:
 
     ESTADO.md        dónde quedamos: lo que está a medias y lo que se supone
     justfile         qué se puede correr; los comentarios explican el porqué
-    rom/LEEME.md     el port a SNES entero, con sus trampas y "Lo que falta"
-    data/README.md   el volcado a JSON: qué es y de dónde sale
-    README.md        el juego original y cómo se lo lee
+    README.md        el juego original, el volcado a JSON, y el port a SNES
+                     entero con sus trampas y "Lo que falta"
+    data/README.md   el volcado a JSON visto desde adentro de data/
     git log          los mensajes son largos a propósito: son el registro
 
 Al empezar, leer `ESTADO.md`. Al terminar algo, actualizarlo —y mientras se

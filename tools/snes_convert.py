@@ -1387,7 +1387,7 @@ SWITCH_BYTES = 128
 # copia a la RAM al cargar el mapa, como la de NPCs, así que el tope cuesta
 # bytes de los ocho kilos del banco 0 —dos por gráfico— y no puede ser
 # generoso porque sí. **El mapa que más pide de todo el juego pide seis**,
-# medido sobre los 335; ocho deja dos de aire y son dieciséis bytes. El
+# medido sobre los 328; ocho deja dos de aire y son dieciséis bytes. El
 # conversor corta si algún mapa se pasa, así que no puede quedar corto en
 # silencio.
 RUTA_GRAF_MAX = 8
@@ -1754,7 +1754,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "; Su prioridad de objeto. $10 —debajo de la capa de encima— en\n"
         "; toda ROM que no sea la de `snes-encima`, que la sube a $20\n"
         "; para ejercitar la prioridad 2. Ningún evento del juego llega\n"
-        "; a ejercitarla: ver 'Cómo se verifica' en rom/LEEME.md.\n"
+        "; a ejercitarla: ver 'Cómo se verifica' en README.md.\n"
         "HERO_PRIORITY = $%02X\n"
         "; La ventana de mensaje: sus tiles viven en la segunda mitad del\n"
         "; banco de BG2, o sea a partir del índice 256, y sus celdas ya\n"
@@ -1988,7 +1988,7 @@ def puertas_bytes(puertas, indices):
 # porque hay mapas de 500 celdas de ancho.
 EV_STRIDE = 4
 # Cuántos eventos guarda la RAM. El mapa más poblado de este juego tiene 114
-# —medido sobre los 335—; el conversor corta si alguno se pasa, así que el
+# —medido sobre los 328—; el conversor corta si alguno se pasa, así que el
 # número no puede quedar corto en silencio. Cada uno cuesta seis bytes de RAM
 # entre `ev_pos_buf` y `eleg_por_ev`.
 EV_MAX = 120
@@ -2023,8 +2023,8 @@ NPC_QUIETO = 0xFF        # en +9: este NPC no camina
 # El número no es ése desde el 2026-09-06, y no por gusto: la fila mide
 # dieciséis bytes, así que el tope se lleva dos kilos de los ocho que tiene el
 # banco 0 de RAM, y la RAM se acabó —ver "La pila y la BSS comparten los ocho
-# kilos" en rom/LEEME.md—. **El mapa con más filas de todo el juego tiene 99**,
-# medido sobre los 335, así que 104 deja cinco de aire y devuelve 368 bytes. No
+# kilos" en README.md—. **El mapa con más filas de todo el juego tiene 99**,
+# medido sobre los 328, así que 104 deja cinco de aire y devuelve 368 bytes. No
 # puede quedar corto en silencio: el conversor corta si algún mapa se pasa.
 NPC_MAX = 104
 
@@ -2754,7 +2754,7 @@ def main():
     # muestras, y suena el del mapa donde la ROM arranca; los demás los prende
     # un `PlayBGM`. Lo que decide cuántos entran es la ARAM y no el cartucho:
     # ver `Banco` en snes_music.py, y "Varios temas en el cartucho" en el
-    # LEEME.
+    # README.
     musica = os.path.join(os.path.dirname(os.path.abspath(args.output)),
                           "musicdata.inc")
     pedidos, arranque = temas_de_la_rom(mapas[args.inicial]["id"], temas,

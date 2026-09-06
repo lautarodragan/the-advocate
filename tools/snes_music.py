@@ -170,7 +170,7 @@ class Banco:
     saca temas no llega a dispararse. Lo que se degrada es la resolución, y sin
     aviso: con los treinta y pico de temas del juego entero cada instrumento
     tendría una miga. Para eso hace falta otra cosa —subir bancos en caliente—,
-    anotada en "Lo que falta" del LEEME.
+    anotada en "Lo que falta" del README.
     """
 
     def __init__(self, programas, golpes):

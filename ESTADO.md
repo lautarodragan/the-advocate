@@ -6,7 +6,7 @@ la tanda, y hacia dónde vamos.
 
 Lo que **no** va acá: el relato de lo hecho. Eso está en `git log`, que en este
 repo tiene mensajes largos justamente para eso, y lo durable está en
-`rom/LEEME.md`. Este archivo llegó a tener dos mil líneas por append-only y se
+`README.md`. Este archivo llegó a tener dos mil líneas por append-only y se
 volvió inusable; se borra sin culpa lo que ya esté en esos dos lados.
 
 Se escribe **mientras se trabaja**, no al final.
@@ -40,7 +40,7 @@ Las páginas automáticas que compilan enteras son **209 de 489**.
 ## Decisiones tomadas que siguen valiendo
 
 Las que hay que conocer para no rehacerlas ni contradecirlas. El porqué largo
-de cada una está en `rom/LEEME.md`.
+de cada una está en `README.md`.
 
 * **Las diagonales y la orden 34 van sobre eventos, no sobre el héroe.** El
   paso del héroe está escrito una vez por dirección y su gráfico sale de la

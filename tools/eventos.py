@@ -490,7 +490,7 @@ IGNORABLES = {
 # un comando más. Lo que se pierde: una página que cambie la música deja la que
 # venía sonando. La pantalla no lo nota, pero `snes-check` compararía el audio
 # contra el MIDI del mapa y no contra el tema que la página pidió, así que ahí
-# la prueba mediría lo que no es. Ver "Lo que falta" en rom/LEEME.md.
+# la prueba mediría lo que no es. Ver "Lo que falta" en README.md.
 # WeatherEffects prende o apaga la lluvia. Se acepta sin dibujarla, y la deuda
 # es de las grandes, así que va con todas las letras.
 #
@@ -530,7 +530,7 @@ WEATHER_EFFECTS = 11070
 # Cuánto destraba, medido y no supuesto: **+10 páginas de tecla de acción y +6
 # automáticas**. Es mucho menos de lo que parece: `PlaySound` es el comando que
 # corta *primero* en 349 páginas, pero casi todas están cortadas además por otra
-# cosa. Es exactamente la trampa que la tabla de orden de `rom/LEEME.md` ya tiene
+# cosa. Es exactamente la trampa que la tabla de orden de `README.md` ya tiene
 # anotada, y vale la pena que quede escrita también acá.
 #
 # Lo que sí destraba es concreto: el Insta-Shave del pad de Talan toca cuatro
