@@ -62,7 +62,13 @@ MOVE_HEROE, MOVE_ESTE = 10001, 10005
 
 # Las órdenes de ruta que la ROM ya sabe caminar. Salen de `eventos.py` y no de
 # una lista propia, así que el día que aprenda una más este número sube solo.
-ORDENES = set(eventos.RUTA_ORDENES) | {eventos.RUTA_SONIDO}
+# El sonido y la transparencia van también porque `traducir` los acepta y los
+# tira: sin ellos acá, una página que los usa contaba como compilando en la
+# medición de base y como no compilando en la columna realista, y ésta daba
+# **menos** que aquélla. Apareció con las diagonales, que fueron las que
+# hicieron compilar a la primera página que tenía las dos cosas.
+ORDENES = (set(eventos.RUTA_ORDENES) | {eventos.RUTA_SONIDO}
+           | set(eventos.RUTA_TRANSPARENCIA))
 
 
 def mover_otro(cmd, pagina):
@@ -98,6 +104,9 @@ def mover_otro(cmd, pagina):
         ordenes = eventos.decodificar_ruta(q[4:])
     except eventos.NoSePuede:
         return False
+    if blanco == MOVE_HEROE and any(o in eventos.RUTA_DIAGONALES
+                                    for o, _e in ordenes):
+        return False        # el héroe no camina en diagonal: ver `traducir`
     return bool(ordenes) and all(o in ORDENES for o, _e in ordenes)
 
 

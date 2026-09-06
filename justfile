@@ -525,6 +525,26 @@ snes-ruta-evento mapa="6" ruta="3 0 0 0 0 0 0 3 3 3 23 2 2 1 13" cuadros="89 91"
 #   vertical. El evento 3 arranca en (22,9) mirando a la izquierda; con el
 #   héroe en (22,12) gira hacia abajo, y con el héroe en (25,10) —tres a la
 #   derecha y una abajo— gira a la derecha.
+#
+# Y dos de diagonales, desde el 2026-09-06. Las camina sólo un evento: de las
+# 26 rutas del juego que las usan ninguna es del héroe, y el conversor rechaza
+# la que lo intente.
+#
+# * `npc-diagonal` es la **regla de paso**, y por eso no corre en el mapa 6,
+#   que está abierto por los cuatro lados. Va en el mapa 10, donde el evento 0
+#   está en (3,10) con una pared pegada a la derecha y otra justo abajo, y las
+#   tres respuestas posibles salen de esa sola celda: arriba-derecha no se
+#   puede por ninguna de las dos eles y se saltea sin costar un cuadro,
+#   abajo-izquierda **sólo** se puede rodeando primero por la izquierda —o
+#   sea que es la segunda ele la que lo salva—, y arriba-izquierda se puede
+#   por las dos. Medido contra un control: la ruta que baja en diagonal
+#   mueve al evento 340 pixeles respecto de una que espera, y la trabada da
+#   cero contra ella.
+# * `npc-diagonal-gira` es hacia dónde queda mirando, que no es hacia el
+#   rincón: el charset tiene cuatro poses. El evento mira a la izquierda y
+#   camina abajo-derecha, así que se da vuelta 180° y termina mirando a la
+#   derecha. Comprobado por los dos lados: el caso da idéntico a mirar a la
+#   derecha desde el principio, y distinto a mirar hacia abajo.
 snes-npc mapa="6" ruta="4 2 2 2 2 1 1 12" celda="22 12" cuadros="10 27 40 60" arranque="67" nombre="npc" frecuencia="8":
   #!/usr/bin/env bash
   set -euo pipefail

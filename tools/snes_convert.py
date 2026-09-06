@@ -2077,9 +2077,21 @@ def eventos_movibles(game_map, indice_de_mapa, con_ventana=False):
 
 
 def ruta_de_evento(argumento):
-    """(blanco, órdenes) desde el flag, o () si no se pidió ninguna."""
+    """(blanco, órdenes) desde el flag, o () si no se pidió ninguna.
+
+    El blanco es el byte que va en OP_RUTA: 0 es el héroe y un evento es su
+    índice **más uno**. Ver `Eventos.blanco`.
+    """
     if not argumento or len(argumento) < 2:
         return ()
+    if argumento[0] == 0 and any(o in eventos.RUTA_DIAGONALES
+                                 for o in argumento[1:]):
+        # El mismo corte que hace `traducir` con un MoveEvent del juego, para
+        # que no se pueda armar a mano el caso que la ROM no sabe hacer: la
+        # referencia caminaría la diagonal y la ROM se iría hacia la
+        # izquierda. Ya pasó al escribir estas pruebas.
+        sys.exit("--ruta-de-evento: el héroe no camina en diagonal, y el "
+                 "blanco 0 es el héroe (un evento es su índice más uno)")
     return argumento[0], list(argumento[1:])
 
 

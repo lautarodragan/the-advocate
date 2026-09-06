@@ -251,11 +251,12 @@ def paso_de_ruta(estado, passable, game_map, x, y, paginas=()):
     def pasa(cx, cy):
         return eventos.pasabilidad_de_evento(paginas, estado, (cx, cy))
 
-    def puede(direccion):
+    def puede(direccion, desde=(0, 0)):
         dx, dy = PASOS[direccion]
+        ox, oy = desde
         return rm2k.puede_pasar(passable, game_map.width, game_map.height,
-                                x, y, dx, dy, pasa_evento=pasa) \
-            and libre(x + dx, y + dy)
+                                x + ox, y + oy, dx, dy, pasa_evento=pasa) \
+            and libre(x + ox + dx, y + oy + dy)
 
     antes = estado.paso_cuadros
     direccion = estado.cuadro_de_ruta(
@@ -305,6 +306,8 @@ def cuadro_de_eventos(estado, passable, game_map, heroe, paginas=(),
         return eventos.pasabilidad_de_evento(paginas, estado, (cx, cy))
 
     def puede(indice, x, y, direccion):
+        # La celda de partida ya viene corrida por el codo de la diagonal:
+        # `cuadro_de_rutas_ev` le suma el `desde` antes de llamar.
         dx, dy = PASOS[direccion]
         return rm2k.puede_pasar(passable, game_map.width, game_map.height,
                                 x, y, dx, dy, pasa_evento=pasa) \
@@ -370,6 +373,8 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
                                  for n, ev in enumerate(game_map.events)},
                                 mundo.paginas(map_id),
                                 {npc["evento"]: npc["velocidad"]
+                                 for npc in collect_npcs(game_map)},
+                                {npc["evento"]: npc["pose"] // 3
                                  for npc in collect_npcs(game_map)})
         if entrada is None:
             x, y = snes_convert.inicio_del_mapa(mundo.renderer, map_id,

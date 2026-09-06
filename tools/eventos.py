@@ -143,7 +143,10 @@ RUTA_HEROE = 10001
 RUTA_ESTE_EVENTO = 10005                    # "este evento", el dueño de la página
 RUTA_VEHICULOS = (10002, 10003, 10004)      # barco, nave, avión: no existen acá
 RUTA_MIRAR = {12: 0, 13: 1, 14: 2, 15: 3}   # face_up/right/down/left
-RUTA_MOVER = {0: 0, 1: 1, 2: 2, 3: 3}       # move_up/right/down/left
+RUTA_MOVER = {n: n for n in range(8)}      # los cuatro move_* y las
+                                           # cuatro diagonales: el código
+                                           # de la orden **es** la
+                                           # dirección. Ver RUTA_DIAGONALES
 RUTA_ESPERAR = 23
 
 # Cuánto cuesta un `wait` adentro de una ruta forzada. **No es un cuadro**: en
@@ -258,7 +261,54 @@ SALTO_VELOCIDAD = 24
 
 # Qué celda es "la de al lado" en cada dirección. Vive acá y no en quien camina
 # porque ahora camina más de uno: el héroe y los eventos con ruta forzada.
-RUTA_PASOS = {0: (0, -1), 1: (1, 0), 2: (0, 1), 3: (-1, 0)}
+RUTA_PASOS = {0: (0, -1), 1: (1, 0), 2: (0, 1), 3: (-1, 0),
+              4: (1, -1), 5: (1, 1), 6: (-1, 1), 7: (-1, -1)}
+
+# Las cuatro diagonales de ruta, cada una con sus dos componentes: primero la
+# vertical y después la horizontal. Son `move_upright`, `move_downright`,
+# `move_downleft` y `move_upleft`.
+#
+# Las caminan **sólo los eventos**. De las 26 rutas del juego que las usan
+# ninguna es del héroe, así que la ROM no las tiene sobre él: caminar en
+# diagonal con el pad no existe y darle un paso diagonal al héroe pediría
+# duplicar `try_up` y sus tres hermanas para nada. El conversor rechaza la
+# página que lo intente —ver MOVE_EVENT en `traducir`—, que es lo que impide
+# que los dos lados se separen en silencio.
+RUTA_DIAGONALES = {4: (0, 1), 5: (2, 1), 6: (2, 3), 7: (0, 3)}
+
+
+def encarar_en_diagonal(mirando, orden):
+    """Hacia dónde queda mirando quien da un paso en diagonal.
+
+    Es `Game_Character::UpdateFacing`, y la respuesta no es "hacia la
+    diagonal": el charset tiene cuatro poses y ninguna apunta a un rincón. RM2k
+    se queda con la que el personaje ya tenía si es una de las dos componentes
+    del paso, y si no la da vuelta 180°. O sea que caminar arriba-derecha
+    mirando abajo deja mirando arriba, y mirando arriba no cambia nada.
+    """
+    vertical, horizontal = RUTA_DIAGONALES[orden]
+    if mirando in (vertical, horizontal):
+        return mirando
+    return (mirando + 2) % 4
+
+
+def puede_en_diagonal(orden, puede):
+    """Si el paso diagonal sale, con la regla de `Game_Character::Move`.
+
+    RM2k **no mira la celda diagonal**: prueba las dos eles. Primero la
+    vertical y después la horizontal, y si esa no sale, la horizontal y después
+    la vertical; alcanza con que una de las dos esté libre entera, codo
+    incluido. Por eso no se cruza el vértice de dos paredes en diagonal, pero
+    sí se pasa si hay por dónde rodear.
+
+    `puede(direccion, desde)` es el mismo del paso derecho con la celda de
+    partida corrida: la segunda pata de cada ele arranca en el codo, no donde
+    está parado el personaje.
+    """
+    vertical, horizontal = RUTA_DIAGONALES[orden]
+    codo_v, codo_h = RUTA_PASOS[vertical], RUTA_PASOS[horizontal]
+    return ((puede(vertical) and puede(horizontal, codo_v))
+            or (puede(horizontal) and puede(vertical, codo_h)))
 
 # Las órdenes de ruta que sabemos caminar, en un solo lugar. `destraba.py` mide
 # con esta misma lista, así que el día que aprenda una más el número sube solo.
@@ -1131,6 +1181,14 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
                 raise NoSePuede()
             if orden == RUTA_ENCARAR_HEROE and blanco == 0:
                 raise NoSePuede()   # el héroe encarándose a sí mismo
+            if orden in RUTA_DIAGONALES and blanco == 0:
+                # Y el héroe en diagonal: la ROM no lo sabe hacer y ninguna
+                # de las 26 rutas del juego con diagonales es del héroe. Sin
+                # este corte la referencia caminaría la diagonal y la ROM se
+                # iría para la izquierda —el `mover` de `paso_de_ruta` cae en
+                # `try_left` por descarte—, o peor, los dos lados harían lo
+                # mismo mal el día que alguien "arregle" uno solo.
+                raise NoSePuede()
             ruta.append(orden)
         if len(ruta) > 255:
             raise NoSePuede()
@@ -1274,6 +1332,13 @@ class Ruta:
         # Hacia dónde mira si una ruta se lo dijo. None es "lo decide la
         # caminata", que es lo de siempre.
         self.mirando = None
+        # Y hacia dónde mira su página, que es lo que RM2k tiene ahí mientras
+        # `mirando` sea None: el dibujo ya lo usaba de reemplazo y un paso en
+        # diagonal lo necesita **como dato**, porque de la pose de antes sale
+        # la de después. Lo pone `Estado.ruta_de_evento` desde la fila del NPC,
+        # igual que la velocidad; 2 —abajo— es para un evento sin gráfico, al
+        # que no se le ve la pose.
+        self.mirando_pagina = 2
         # La frecuencia de la ruta puesta: cuánto se queda quieto entre orden y
         # orden. Ver `espera_tras_paso`.
         self.frecuencia = RUTA_FRECUENCIA
@@ -1405,8 +1470,10 @@ class Ruta:
     def cuadro(self, puede, saltar=None, hacia_heroe=None, congelada=False):
         """Un cuadro de la ruta.
 
-        `puede(direccion)` dice si se puede dar el paso, `saltar(dx, dy)` si se
-        puede caer en esa celda —es `MakeWay` con el personaje saltando, que
+        `puede(direccion, desde)` dice si se puede dar el paso, con `desde`
+        el corrimiento en celdas de dónde arranca —(0, 0) salvo la segunda
+        pata de una diagonal, que sale del codo: ver `puede_en_diagonal`—;
+        `saltar(dx, dy)` si se puede caer en esa celda —es `MakeWay` con el personaje saltando, que
         saltea la cara que se deja y pide que la de destino sea pasable por los
         cuatro lados— y `hacia_heroe()` hacia dónde hay que mirar para encarar
         al héroe; sin él, `face_hero` no hace nada, que es lo que hace la ROM
@@ -1548,9 +1615,18 @@ class Ruta:
                                + espera_tras_giro(self.frecuencia))
                 break
             direccion = RUTA_MOVER[orden]
+            diagonal = orden in RUTA_DIAGONALES
             if not self.dir_fija:
-                self.mirando = direccion
-            if not (self.atraviesa or puede(direccion)):
+                # En diagonal no se gira hacia el rincón: se conserva la pose
+                # o se da vuelta. Ver `encarar_en_diagonal`.
+                self.mirando = (
+                    encarar_en_diagonal(
+                        self.mirando if self.mirando is not None
+                        else self.mirando_pagina, orden)
+                    if diagonal else direccion)
+            libre = (puede_en_diagonal(orden, puede) if diagonal
+                     else puede(direccion))
+            if not (self.atraviesa or libre):
                 if self.saltable:
                     continue        # bloqueado: se saltea
                 # Sin `skippable` la orden se reintenta el cuadro que viene,
@@ -1741,7 +1817,8 @@ class Estado:
         """Un cuadro de la ruta forzada del héroe."""
         return self.ruta_heroe.cuadro(puede, saltar)
 
-    def entrar_a_un_mapa(self, posiciones, paginas=(), velocidades=None):
+    def entrar_a_un_mapa(self, posiciones, paginas=(), velocidades=None,
+                         miradas=None):
         """Las posiciones de los eventos del mapa nuevo, en celdas.
 
         Las rutas que estuvieran corriendo se tiran: en RM2k son de los eventos
@@ -1762,6 +1839,15 @@ class Estado:
         # cambia un switch o el grupo: `refrescar`.
         self.paginas_rutas = paginas
         self.velocidades = velocidades or {}
+        # Y hacia dónde mira la página de cada uno. Sale de `collect_npcs`,
+        # como la velocidad, así que se queda con la del mapa recién cargado.
+        # La ROM la lee viva de la fila del NPC, que el refresco reescribe
+        # cuando un evento cambia de página; que las dos coincidan igual no es
+        # suerte: **los 21 eventos del juego que caminan una diagonal miran
+        # para el mismo lado en todas sus páginas**, así que no hay refresco
+        # que las separe. El día que eso deje de ser cierto, esto tiene que
+        # pasar a leerse de la página activa.
+        self.miradas = miradas or {}
         self.refresco = False
         self.rutas_de_pagina()
 
@@ -1824,6 +1910,8 @@ class Estado:
             # fila del NPC de la ROM; por defecto es 3, dieciséis cuadros por
             # celda, y no la 4 del héroe.
             self.rutas_ev[indice].velocidad = self.velocidades.get(indice, 3)
+            # Y mirando adonde mira su página: ver `Ruta.mirando_pagina`.
+            self.rutas_ev[indice].mirando_pagina = self.miradas.get(indice, 2)
         return self.rutas_ev[indice]
 
     def mover_evento(self, indice, x, y):
@@ -1867,7 +1955,8 @@ class Estado:
             x, y = self.pos_ev.get(indice, (0, 0))
             empezaba = ruta.paso_cuadros == 0
             direccion = ruta.cuadro(
-                lambda d, i=indice, px=x, py=y: puede_pasar(i, px, py, d),
+                lambda d, desde=(0, 0), i=indice, px=x, py=y: puede_pasar(
+                    i, px + desde[0], py + desde[1], d),
                 saltar=(lambda dx, dy, px=x, py=y, i=indice:
                         puede_caer is None or puede_caer(px + dx, py + dy, i)),
                 hacia_heroe=(None if heroe is None else
@@ -2272,6 +2361,10 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
         paso = paso_de_fundido(fundir_bgm)
         codigo += bytes([OP_FUNDIR_BGM, paso & 0xFF, paso >> 8])
     if ruta:
+        if any(o in RUTA_DIAGONALES for o in ruta):
+            # El mismo corte que hace `traducir` con un MoveEvent del juego: la
+            # ROM camina las diagonales sobre eventos y no sobre el héroe.
+            raise NoSePuede("el héroe no camina en diagonal")
         codigo += bytes([OP_RUTA, 0, frecuencia, len(ruta)]) + bytes(ruta)
     if flash:
         # (blanco, r, g, b, potencia, cuadros). Existe por lo mismo que todo lo
@@ -2892,8 +2985,10 @@ def ruta_propia(page):
     o None si no tiene o no se puede.
 
     Van las mismas órdenes que en un MoveEvent, con el sonido y la
-    transparencia tirados. Lo que queda afuera: las diagonales, moverse hacia
-    o desde el héroe, cambiar el gráfico y los switches; y el giro en el lugar
+    transparencia tirados. Las diagonales entran: una ruta propia es siempre
+    de un evento, que es sobre quien la ROM las camina. Lo que queda afuera:
+    moverse hacia o desde el héroe, cambiar el gráfico y los switches; y el
+    giro en el lugar
     (`AnimType_spin`), que ninguna de las dos páginas del juego que lo usan
     está en los primeros mapas. Los otros tipos de movimiento —al azar,
     vertical, horizontal, hacia el héroe— tampoco: son otra máquina.

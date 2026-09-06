@@ -18,8 +18,7 @@ es la misma operación con pérdida que compactar, sólo que a un archivo.
 2. ~~Las órdenes de ruta **30 y 31**, la frecuencia.~~ Hecho el 2026-09-06.
 3. ~~**`PanScreen`**: correr la cámara sin el héroe.~~ Hecho el 2026-09-06, y
    destapó que la RAM se había acabado: ver abajo.
-4. Las **diagonales** de ruta, órdenes 4 a 7, que piden la regla de
-   pasabilidad diagonal de RM2k.
+4. ~~Las **diagonales** de ruta, órdenes 4 a 7.~~ Hecho el 2026-09-06.
 5. **`PlayBGM` con varios temas**, que taro pidió meter antes de lo caro: los
    de las primeras secuencias nomás, `hzstream` incluido —el de después del
    "1 year earlier", con Talan en su pad—. El cartucho puede ir a 1 MB; lo que
@@ -30,10 +29,11 @@ es la misma operación con pérdida que compactar, sólo que a un archivo.
    ruta pide **ya está en el banco de sprites del mapa 3**, porque el evento
    43 lo usa como gráfico de página.
 
-Con 2, 3, 4 y 6 compila la escena de Talan entera —los 233 comandos de la
-página de contacto del evento 5 del mapa 3— y el juego llega hasta el
+Hecho 2, 3 y 4, la escena de Talan —los 233 comandos de la página de contacto
+del evento 5 del mapa 3— queda a **un solo comando**: el `MoveEvent` que cambia
+el gráfico, o sea el punto 6. Cuando eso corra, el juego llega hasta el
 `Teleport` al mapa 4 con el switch 15, que de ahí salta al **mapa 5**: hay que
-sumarlo a `demo-apertura` cuando eso corra, o es el bug del ascensor otra vez.
+sumarlo a `demo-apertura` entonces, o es el bug del ascensor otra vez.
 
 Y mientras tanto: que taro juegue `demo-apertura` de nuevo, que ahora abre esa
 puerta.
@@ -203,6 +203,44 @@ Queda para después:
   fundido termina, y son lo único que le falta a la escena del ascensor para
   tener caso propio en la tanda: ver "Lo que falta" del LEEME.
 
+## Hecho el 2026-09-06: las diagonales de ruta
+
+Las órdenes 4 a 7, `move_upright` y sus tres hermanas. Tres cosas que no se
+deducen mirando el código:
+
+* **Las camina sólo un evento.** De las 26 rutas del juego que usan diagonales
+  **ninguna es del héroe**, así que la ROM no las tiene sobre él: dárselas
+  pediría duplicar `try_up` y sus tres hermanas para cero rutas. El conversor
+  rechaza la página que lo intente, y `--ruta-de-evento` también, porque
+  escribiendo estas pruebas armé a mano justo ese caso —el blanco 0 es el
+  héroe, un evento es su índice **más uno**— y la referencia caminó la
+  diagonal mientras la ROM se iba a la izquierda.
+* **Nadie mira la celda diagonal.** `Game_Character::Move` prueba dos eles
+  —vertical y después horizontal, y si ésa no sale, al revés— y alcanza con
+  que una esté libre entera, codo incluido. Por eso no se cruza el vértice de
+  dos paredes y sí se pasa si hay por dónde rodear.
+* **No se gira hacia el rincón**: el charset tiene cuatro poses. Se conserva la
+  que ya tenía si es una de las dos componentes del paso, y si no se da vuelta
+  180°. Y eso obliga a saber la pose de **antes**, que en veinte de las
+  veintiséis rutas todavía es la de la página del evento y no una que la ruta
+  haya puesto.
+
+Ver "Las diagonales de ruta" en el LEEME.
+
+Qué se corrió: **83 casos en verde**, dos más. `npc-diagonal` va en el mapa 10
+y no en el 6, que está abierto por los cuatro lados: desde la celda del evento
+0 salen las tres respuestas —una diagonal trabada por las dos eles, otra que
+sólo se puede por la segunda, y otra que se puede por las dos—. Y
+`npc-diagonal-gira` es el giro de 180°. Los dos medidos contra un control: la
+diagonal que baja mueve al evento 340 pixeles respecto de una ruta que espera,
+la trabada da cero contra ella, y el giro da idéntico a mirar a la derecha
+desde el principio y distinto a mirar hacia abajo.
+
+Las páginas automáticas que compilan enteras pasaron de **177 a 184**. Y
+midiendo eso apareció un agujero viejo en `destraba.py`: su lista de órdenes no
+tenía la transparencia, que `traducir` acepta y tira, así que la columna
+realista de `MoveEvent` daba **menos** que la base. Arreglado ahí mismo.
+
 ## Hecho el 2026-09-06: la cámara corrida, y la RAM que se había acabado
 
 `PanScreen`, las dos operaciones que el juego usa: correr la cámara sin el
@@ -242,7 +280,7 @@ la espera al cuadro: en el primero el tinte cae en el 66 y no en el 65, y en el
 segundo en el 83 y no en el 82.
 
 La escena de Talan queda a tres comandos: dos `MoveEvent` con diagonales y uno
-que cambia el gráfico.
+que cambia el gráfico. (Las diagonales entraron el mismo día: queda uno.)
 
 ## Hecho el 2026-09-06: la frecuencia se sube y se baja a mitad de una ruta
 

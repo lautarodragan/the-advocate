@@ -804,11 +804,20 @@ pass_salir:
 pass_entrar:
     .byte PASS_DOWN, PASS_LEFT, PASS_UP, PASS_RIGHT
 ; Y cuánto se corre cada dirección, en celdas: arriba, derecha, abajo,
-; izquierda. Con signo, que es como las suma `armar_salto`.
+; izquierda, y las cuatro diagonales. Con signo, que es como las suma
+; `armar_salto`. Son RUTA_PASOS de eventos.py.
 paso_dx:
-    .byte 0, 1, 0, $FF
+    .byte 0, 1, 0, $FF, 1, 1, $FF, $FF
 paso_dy:
-    .byte $FF, 0, 1, 0
+    .byte $FF, 0, 1, 0, $FF, 1, 1, $FF
+; Las dos componentes de cada diagonal, indexadas por la dirección menos
+; cuatro: primero la vertical y después la horizontal. De acá salen las dos
+; eles que prueba `puede_celda_diag` y las dos poses que compara
+; `encarar_diagonal`. Son RUTA_DIAGONALES de eventos.py.
+diag_vert:
+    .byte DIR_UP, DIR_DOWN, DIR_DOWN, DIR_UP
+diag_horiz:
+    .byte DIR_RIGHT, DIR_RIGHT, DIR_LEFT, DIR_LEFT
 ; Cuánto avanza un paso por cuadro según la velocidad, 1 a 6, de 256 por
 ; celda, y cuánto el salto: PASO_POR_VELOCIDAD y SALTO_VELOCIDADES de
 ; eventos.py. La 4 es la del héroe: 32 por cuadro, dos pixeles.
@@ -4047,6 +4056,11 @@ giro_espera:
 
 
 mover:
+    ; Acá no llegan las diagonales: el conversor rechaza la página que le dé
+    ; una al héroe —ver MOVE_EVENT en `eventos.traducir`— porque la ROM sólo
+    ; las camina sobre eventos, y ninguna de las 26 rutas del juego que las
+    ; usan es del héroe. Sin ese corte, el descarte de abajo mandaría al héroe
+    ; hacia la izquierda.
     sta hero_dir                ; move_* mira hacia donde va
     ; Atravesando paredes las dos caras dan que sí. Es el
     ; `if (self.GetThrough()) return true;` de `Game_Map::CheckOrMakeWayEx`, y
@@ -5261,15 +5275,17 @@ giro_espera:
 mover:
     sta ruta_dir
     stz ruta_dir + 1
-    pha
     lda ruta_ev + 18, x
     and #$08
     bne sin_girar               ; mira siempre igual: `lock_facing` o el tipo
-    pla                         ; de animación de la página
+                                ; de animación de la página
+    lda ruta_dir
+    cmp #4
+    bcc derecho                 ; los cuatro de siempre miran hacia donde van
+    jsr encarar_diagonal        ; una diagonal no tiene pose propia: ver ahí
+derecho:
     sta ruta_ev + 8, x          ; move_* mira hacia donde va
-    pha
 sin_girar:
-    pla
     phx
     jsr celda_del_evento        ; deja su posición en celda_x/celda_y
     jsr preparar_movil          ; y quién es, para chocar con los demás
@@ -5278,7 +5294,13 @@ sin_girar:
     sta atravesando             ; walk_everywhere: `puede_celda` lo mira
     stz atravesando + 1
     lda ruta_dir
+    cmp #4
+    bcc recto
+    jsr puede_celda_diag        ; las dos eles: nadie mira la celda diagonal
+    bra probado
+recto:
     jsr puede_celda
+probado:
     plx
     stz atravesando
     stz atravesando + 1
@@ -5397,6 +5419,7 @@ listo:
 .a8
 .i16
     sta ruta_dir
+    stz ruta_dir + 1            ; se usa como índice de dieciséis
     lda ruta_ev + 0, x
     rep #$20
 .a16
@@ -5406,45 +5429,45 @@ listo:
     tay
     sep #$20
 .a8
-    lda ruta_dir
-    cmp #DIR_UP
-    bne no_arriba
-    rep #$20
+    ; Por tabla y no por cuatro comparaciones: con las diagonales la celda se
+    ; corre en los dos ejes a la vez, y así el caso derecho es el que tiene un
+    ; cero de un lado. X queda pisado; el que llama ya lo guardó.
+    ldx ruta_dir
+    lda paso_dx, x
+    beq sin_dx
+    jsr con_signo_16
 .a16
-    lda ev_pos_buf + 2, y
-    dec a
-    sta ev_pos_buf + 2, y
-    bra fin
-no_arriba:
-.a8
-    cmp #DIR_DOWN
-    bne no_abajo
-    rep #$20
-.a16
-    lda ev_pos_buf + 2, y
-    inc a
-    sta ev_pos_buf + 2, y
-    bra fin
-no_abajo:
-.a8
-    cmp #DIR_LEFT
-    bne no_izquierda
-    rep #$20
-.a16
-    lda ev_pos_buf, y
-    dec a
-    sta ev_pos_buf, y
-    bra fin
-no_izquierda:
-.a8
-    rep #$20
-.a16
-    lda ev_pos_buf, y
-    inc a
-    sta ev_pos_buf, y
-fin:
+    clc                         ; vuelve con el acumulador en dieciséis
+    adc ev_pos_buf + 0, y
+    sta ev_pos_buf + 0, y
     sep #$20
 .a8
+sin_dx:
+    lda paso_dy, x
+    beq sin_dy
+    jsr con_signo_16
+.a16
+    clc
+    adc ev_pos_buf + 2, y
+    sta ev_pos_buf + 2, y
+    sep #$20
+.a8
+sin_dy:
+    rts
+.endproc
+
+; El byte con signo que trae A, extendido a dieciséis bits. Sale con el
+; acumulador **en dieciséis**, que es donde lo quieren los que suman celdas.
+.proc con_signo_16
+.a8
+.i16
+    rep #$20
+.a16
+    and #$00FF
+    cmp #$0080
+    bcc listo
+    ora #$FF00
+listo:
     rts
 .endproc
 
@@ -6357,24 +6380,33 @@ sin_paso_npc:
 con_paso_npc:
 
     ; La dirección del paso, que va aparte de hacia dónde mira: con la mirada
-    ; fija —los droides del mapa 2— sube mirando abajo.
+    ; fija —los droides del mapa 2— sube mirando abajo. Por tabla, porque en
+    ; diagonal hay que descontar en los dos ejes: los pixeles que faltan se le
+    ; restan al sentido del paso, o sea que quien va hacia la derecha se dibuja
+    ; todavía a la izquierda de su celda. X se pisa y no lo necesita nadie
+    ; más: de acá en adelante el índice es `npc_fila`.
     lda slot_dir
-    cmp #DIR_UP
-    bne no_arriba
-    jsr sumar_a_py              ; venía de abajo: todavía le falta subir
-    bra puesto
-no_arriba:
-    cmp #DIR_DOWN
-    bne no_abajo
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda paso_dx, x
+    beq sin_dx_npc
+    bmi mas_px                  ; $FF, o sea hacia la izquierda
+    jsr restar_a_px
+    bra sin_dx_npc
+mas_px:
+    jsr sumar_a_px
+sin_dx_npc:
+    lda paso_dy, x
+    beq puesto
+    bmi mas_py                  ; venía de abajo: todavía le falta subir
     jsr restar_a_py
     bra puesto
-no_abajo:
-    cmp #DIR_LEFT
-    bne no_izquierda
-    jsr sumar_a_px
-    bra puesto
-no_izquierda:
-    jsr restar_a_px
+mas_py:
+    jsr sumar_a_py
 
 puesto:
     ; A la fila: la posición, y la clave con la capa que ya traía.
@@ -6891,6 +6923,193 @@ entra:
     rts
 no:
     lda #0
+    rts
+.endproc
+
+; Si desde (celda_x, celda_y) se puede dar el paso diagonal que trae A, 4 a 7.
+; Devuelve A distinto de cero si se puede, y deja la celda donde la encontró.
+;
+; RM2k **no mira la celda diagonal**: es `Game_Character::Move`, que prueba las
+; dos eles. Primero la vertical y después la horizontal desde el codo, y si esa
+; no sale, la horizontal y después la vertical; alcanza con que una de las dos
+; esté libre entera. Por eso no se cruza el vértice de dos paredes en diagonal,
+; y sí se pasa si hay por dónde rodear.
+;
+; Cada pata es una llamada a `puede_celda`, o sea las mismas dos caras y el
+; mismo chequeo de quién está parado dónde que un paso derecho. Del lado de
+; Python es `puede_en_diagonal`, con la misma forma.
+.proc puede_celda_diag
+.a8
+.i16
+    sec
+    sbc #4
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda diag_vert, x
+    sta diag_v
+    lda diag_horiz, x
+    sta diag_h
+    rep #$20
+.a16
+    lda celda_x                 ; de dónde sale, para volver entre ele y ele
+    sta diag_x
+    lda celda_y
+    sta diag_y
+    sep #$20
+.a8
+
+    lda diag_v                  ; la ele vertical: arriba y después al costado
+    jsr puede_celda
+    beq otra_ele
+    lda diag_v
+    jsr celda_al_codo
+    lda diag_h
+    jsr puede_celda
+    bne si
+otra_ele:
+    jsr celda_al_origen         ; la ele horizontal: al costado y después arriba
+    lda diag_h
+    jsr puede_celda
+    beq no
+    lda diag_h
+    jsr celda_al_codo
+    lda diag_v
+    jsr puede_celda
+    bne si
+no:
+    jsr celda_al_origen
+    lda #0
+    rts
+si:
+    jsr celda_al_origen
+    lda #1
+    rts
+.endproc
+
+; La celda pasa a ser la de origen más el paso de la dirección que trae A: el
+; codo de la ele, de donde arranca la segunda pata.
+.proc celda_al_codo
+.a8
+.i16
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    lda diag_x
+    sta celda_x
+    lda diag_y
+    sta celda_y
+    sep #$20
+.a8
+    lda paso_dx, x
+    beq sin_x
+    rep #$20
+.a16
+    and #$00FF
+    cmp #$0080
+    bcc mas_x
+    ora #$FF00
+mas_x:
+    clc
+    adc celda_x
+    sta celda_x
+    sep #$20
+.a8
+sin_x:
+    lda paso_dy, x
+    beq sin_y
+    rep #$20
+.a16
+    and #$00FF
+    cmp #$0080
+    bcc mas_y
+    ora #$FF00
+mas_y:
+    clc
+    adc celda_y
+    sta celda_y
+    sep #$20
+.a8
+sin_y:
+    rts
+.endproc
+
+; Y la celda vuelve a ser la de origen.
+.proc celda_al_origen
+.a8
+.i16
+    rep #$20
+.a16
+    lda diag_x
+    sta celda_x
+    lda diag_y
+    sta celda_y
+    sep #$20
+.a8
+    rts
+.endproc
+
+; Hacia dónde queda mirando el evento de la ranura X después de un paso en la
+; diagonal de `ruta_dir`. La pose nueva sale en A.
+;
+; Es `Game_Character::UpdateFacing`, y la respuesta no es "hacia la diagonal":
+; el charset tiene cuatro poses y ninguna apunta a un rincón. Se conserva la
+; que ya tenía si es una de las dos componentes del paso, y si no se da vuelta
+; 180°. Del lado de Python es `encarar_en_diagonal`.
+;
+; Lo primero es de dónde sale el giro, y no es sólo leer +8: veinte de las
+; veintiséis rutas con diagonales de este juego arrancan **con** la diagonal,
+; sin girar antes, así que ahí todavía está RUTA_EV_SIN_MIRAR y la pose de
+; verdad es la de su página, que vive en la fila del NPC. Del lado de Python
+; es `Ruta.mirando_pagina`.
+.proc encarar_diagonal
+.a8
+.i16
+    lda ruta_ev + 8, x
+    cmp #RUTA_EV_SIN_MIRAR
+    bne con_pose
+    phx
+    lda ruta_ev + 0, x
+    jsr npc_de_evento
+    plx
+    cpy #$FFFF
+    beq sin_fila
+    lda npc_buf + 10, y
+    bra con_pose
+sin_fila:
+    lda #DIR_DOWN               ; sin gráfico: no se le ve la pose a nadie
+con_pose:
+    sta diag_mira
+    lda ruta_dir
+    sec
+    sbc #4
+    phx
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda diag_vert, x
+    sta diag_v
+    lda diag_horiz, x
+    plx
+    cmp diag_mira
+    beq queda
+    lda diag_v
+    cmp diag_mira
+    beq queda
+    lda diag_mira               ; ninguna de las dos: 180°
+    clc
+    adc #2
+    and #$03
+    rts
+queda:
+    lda diag_mira
     rts
 .endproc
 
@@ -10514,8 +10733,9 @@ sin_girar:
 .proc acumular_salto
 .a8
 .i16
-    cmp #4
-    bcs no_mueve
+    cmp #8                      ; los cuatro derechos y las cuatro diagonales:
+    bcs no_mueve                ; adentro de un salto una diagonal aporta sus
+                                ; dos ejes, que es lo que suma RM2k
     rep #$20
 .a16
     and #$00FF
@@ -11275,6 +11495,16 @@ slot_paso:    .res 1
 ; tiene que sobrevivir a la llamada que usa `celda_dir`.
 ruta_dir:  .res 2
 celda_dir: .res 2
+; Lo que un paso en diagonal necesita mientras prueba sus dos eles: las dos
+; componentes, y la celda de la que sale, porque `puede_celda` trabaja sobre
+; `celda_x`/`celda_y` y hay que correrla hasta el codo y devolverla.
+diag_v: .res 1
+diag_h: .res 1
+; Y la pose de la que sale el giro de una diagonal, ya resuelta: +8 puede
+; traer todavía RUTA_EV_SIN_MIRAR.
+diag_mira: .res 1
+diag_x: .res 2
+diag_y: .res 2
 
 ; El cronómetro. Los cuadros no se guardan enteros sino partidos en segundos y
 ; el resto adentro del segundo, y eso no es una optimización: es lo que evita

@@ -1451,6 +1451,73 @@ la ROM no sabe recorrer simplemente no se compila.
 * `npc-frec`: lo mismo sobre un evento, donde la diferencia es sólo el sprite:
   271 pixeles en el cuadro 40 y 448 en el 60.
 
+### Las diagonales de ruta
+
+Las órdenes 4 a 7 —`move_upright`, `move_downright`, `move_downleft`,
+`move_upleft`—, que 26 rutas de este juego usan.
+
+**Las camina sólo un evento.** De esas 26 rutas ninguna es del héroe, y por eso
+la ROM no las tiene sobre él: el paso del héroe está escrito una vez por
+dirección —`try_up` y sus tres hermanas, cada una con su borde de mapa, sus dos
+permisos y su `step_dx`/`step_dy`— y darle diagonales sería duplicarlas para
+cero rutas. El conversor rechaza la página que le dé una al héroe, igual que
+rechaza al héroe encarándose a sí mismo. Sin ese corte los dos lados se
+separan en silencio: la referencia camina la diagonal y la ROM se va hacia la
+izquierda, que es donde cae el descarte de `paso_de_ruta`. No es hipotético
+—pasó escribiendo las pruebas de esto—, así que `--ruta-de-evento` lleva el
+mismo corte: ahí el blanco 0 es el héroe y un evento es su índice **más uno**.
+
+**Nadie mira la celda diagonal.** `Game_Character::Move` prueba dos eles:
+primero vertical y después horizontal, y si ésa no sale, primero horizontal y
+después vertical. Alcanza con que **una** esté libre entera, codo incluido, y
+cada pata se consulta como un paso derecho —las dos caras, la que se deja y la
+que se entra, y quién está parado dónde—. La consecuencia visible es que no se
+cruza el vértice de dos paredes en diagonal, pero sí se pasa si hay por dónde
+rodear. En la ROM es `puede_celda_diag`, que llama dos veces a `puede_celda`
+corriendo `celda_x`/`celda_y` hasta el codo y devolviéndolas; del lado de
+Python es `eventos.puede_en_diagonal`, con la misma forma.
+
+**No se gira hacia el rincón.** El charset tiene cuatro poses y ninguna apunta
+a un rincón, así que `UpdateFacing` hace otra cosa: si la pose de antes es una
+de las dos componentes del paso se queda como está, y si no se da vuelta 180°.
+Caminar arriba-derecha mirando abajo deja mirando arriba; mirando arriba no
+cambia nada.
+
+Y eso obliga a saber la pose de **antes**, que no siempre está puesta: en
+veinte de las veintiséis rutas la diagonal es la primera orden, así que en la
+ranura todavía está `RUTA_EV_SIN_MIRAR` y la pose de verdad es la de la página
+del evento —`npc_buf + 10`, la misma que usa el dibujo—. `encarar_diagonal` la
+resuelve ahí y la escribe; del lado de Python es `Ruta.mirando_pagina`, que
+`Estado.ruta_de_evento` saca de `collect_npcs` igual que la velocidad.
+
+Ahí hay una asimetría que conviene tener anotada: **la ROM lee esa pose viva**
+—el refresco reescribe `npc_buf + 10` cuando un evento cambia de página— y la
+referencia se queda con la del mapa recién cargado. Que las dos coincidan no es
+suerte: los 21 eventos del juego que caminan una diagonal **miran para el mismo
+lado en todas sus páginas**, así que no hay refresco que las separe. El día que
+eso deje de ser cierto, `miradas` tiene que pasar a leerse de la página activa.
+
+Lo demás sale por tabla y no por comparaciones: `paso_dx`/`paso_dy` pasaron a
+ocho entradas, y con eso mover la celda, descontar los pixeles que le faltan al
+paso —en diagonal hay que descontar en los **dos** ejes— y sumar el
+desplazamiento adentro de un salto quedaron escritos una sola vez cada uno.
+
+**Cómo se verifica.** Dos casos, `npc-diagonal` y `npc-diagonal-gira`.
+
+El primero no corre en el mapa 6, que es el de siempre y está abierto por los
+cuatro lados: ahí la regla de paso no se ejerce. Va en el **mapa 10**, donde el
+evento 0 está en (3,10) con una pared pegada a la derecha y otra justo abajo, y
+las tres respuestas posibles salen de esa sola celda: arriba-derecha no se
+puede por ninguna de las dos eles y se saltea sin costar un cuadro,
+abajo-izquierda **sólo** se puede rodeando primero por la izquierda —o sea que
+la salva la segunda ele— y arriba-izquierda se puede por las dos. Medido contra
+un control: la ruta que baja en diagonal mueve al evento 340 pixeles respecto
+de una que espera, y la trabada da cero contra ella.
+
+El segundo es el giro de 180°: el evento mira a la izquierda y camina
+abajo-derecha. Da idéntico a mirar a la derecha desde el principio y distinto a
+mirar hacia abajo, que es lo que separa la regla de RM2k de "no girar nunca".
+
 ### El cronómetro
 
 `TimerOperation`, con sus tres operaciones: poner, arrancar y parar. Se dibuja
@@ -2301,11 +2368,13 @@ comparación.
   barato. Una ruta que se queda sin órdenes por esto no se emite: RM2k la
   consume entera en el cuadro y no deja nada que esperar. Faltan **cambiar el
   gráfico** (+16 solo, y más en combinación: pide meter los tiles del CharSet
-  nuevo en el banco de sprites del mapa), las **diagonales** y **moverse
-  hacia el héroe**. La velocidad ya está, desde el 2026-09-05, con las rutas
-  propias de las páginas, y **subir y bajar la frecuencia** —las órdenes 30 y
-  31— desde el 2026-09-06: ver "La frecuencia se sube y se baja a mitad de una
-  ruta". Sigue siendo lo que más corta.
+  nuevo en el banco de sprites del mapa) y **moverse hacia el héroe**. La
+  velocidad ya está, desde el 2026-09-05, con las rutas propias de las
+  páginas; **subir y bajar la frecuencia** —las órdenes 30 y 31— desde el
+  2026-09-06, ver "La frecuencia se sube y se baja a mitad de una ruta"; y las
+  **diagonales** —las órdenes 4 a 7, +7 páginas— desde ese mismo día, sobre
+  eventos y no sobre el héroe: ver "Las diagonales de ruta". Sigue siendo lo
+  que más corta.
 
   Y una que apareció midiendo lo anterior, el 2026-09-06: **sobre el héroe, la
   ROM ignora las órdenes 26 a 29** —fijar y soltar la mirada, subir y bajar la
@@ -2417,24 +2486,31 @@ comparación.
   **no** cubre es nada en movimiento en un cuadro en que la ROM venga atrasada;
   el toque de A resincroniza los dos lados.
 * **Lo que le falta al juego entero, medido.** De las 489 páginas automáticas
-  con comandos, hoy compilan enteras **177**. Eran 16 antes de los cuadros de
+  con comandos, hoy compilan enteras **184**. Eran 16 antes de los cuadros de
   texto, 71 con ellos, 87 con las rutas forzadas sobre eventos, 110 con
   FlashSprite, 117 aceptando `PlaySound`, 126 con la saturación del tinte, 137
-  con los saltos y las demás órdenes de ruta, 142 con `ChangeEventLocation`, y
-  177 con `FadeOutBGM`, `PanScreen` y las órdenes 30 y 31 del 2026-09-06. El
-  cronómetro no cambió el número: suma cero, y está medido. Y esto es cuántas
-  pasarían a compilar con cada comando que falta —`just snes-destraba`—:
+  con los saltos y las demás órdenes de ruta, 142 con `ChangeEventLocation`,
+  177 con `FadeOutBGM`, `PanScreen` y las órdenes 30 y 31 del 2026-09-06, y 184
+  con las diagonales del mismo día. El cronómetro no cambió el número: suma
+  cero, y está medido. Y esto es cuántas pasarían a compilar con cada comando
+  que falta —`just snes-destraba`—:
 
       ConditionalBranch         +22      FullHeal               +1
       ControlVars                +4      FlashSprite            +0
       ChangeItems                +3      CallEvent              +0
 
   Y aparte, `MoveEvent` con las órdenes de ruta que todavía no sabemos caminar:
-  +42 de techo. Puestos todos juntos se llega a **242 de 489**, y lo que seguiría
-  cortando después es, de lejos, **`MoveEvent` en su forma general: 101
-  páginas** —rutas con saltos, con cambio de gráfico, con diagonales, o
-  apuntadas a un vehículo—. Después vienen los 13 cuadros de texto con códigos
-  de escape y `ShowChoice` con 11.
+  +35 de techo. Puestos todos juntos se llega a **249 de 489**, y lo que seguiría
+  cortando después es, de lejos, **`MoveEvent` en su forma general: 92
+  páginas** —rutas con saltos, con cambio de gráfico, o apuntadas a un
+  vehículo—. Después vienen los 13 cuadros de texto con códigos de escape y
+  `ShowChoice` con 11.
+
+  Y una trampa más de las de medir, que apareció el 2026-09-06 con las
+  diagonales: la lista de órdenes de `destraba.py` no tenía la **transparencia**,
+  que `traducir` acepta y tira, así que la columna realista de `MoveEvent` daba
+  **menos** que la base. Nadie lo había notado porque hasta ese día ninguna
+  página tenía a la vez una transparencia y algo que la trabara.
 
   **Dos veces se corrigió este número, y las dos por lo mismo: medía un techo.**
   La primera versión contaba qué comando corta **primero** cada página
