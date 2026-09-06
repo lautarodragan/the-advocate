@@ -1240,18 +1240,24 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
                 raise NoSePuede()   # el héroe encarándose a sí mismo
             if orden in RUTA_HEROE_AFUERA and blanco == 0:
                 # Fijar y soltar la mirada y subir y bajar la velocidad, sobre
-                # **el héroe**. La ROM las ignora —`paso_de_ruta` las saltea— y
-                # acá se caminaban, así que eran dos lados haciendo cosas
-                # distintas sin que ninguna prueba lo cobrara. Decidido con
-                # taro el 2026-09-06: quedan afuera del cartucho, como los
-                # efectos climáticos, y lo que arregla la paridad es no
-                # compilar la página que las pida.
+                # **el héroe**: se aceptan y se tiran, como el sonido y la
+                # transparencia. La ROM las ignora —su paso es fijo,
+                # `WALK_SPEED`, ocho cuadros por celda— y tirarlas al compilar
+                # es lo que hace que la referencia tampoco las camine. Sobre
+                # eventos sí se hacen.
                 #
-                # Cuestan 4 de las 209 páginas automáticas que compilan, y
-                # partirlo no sirve: **ninguna de las cuatro usa sólo la
-                # mirada**, todas piden la velocidad, que es la cara —el paso
-                # del héroe es fijo, `WALK_SPEED`, ocho cuadros por celda—.
-                raise NoSePuede()
+                # Rechazar la página entera, que fue lo primero que se probó,
+                # arreglaba la paridad y costaba demasiado: **la escena de
+                # Talan tiene una ruta del héroe que empieza con la 28**, así
+                # que la escena que motivó los seis puntos del 2026-09-06 se
+                # quedaba sin compilar y el jugador no podía salir del pasillo
+                # del Emitter Room. Son 4 páginas automáticas más esa.
+                #
+                # Lo que se pierde es el cambio de ritmo: donde RM2k acelera al
+                # héroe, acá camina a la suya. Es visible y está aceptado; lo
+                # que lo arregla de verdad es que su paso deje de ser fijo, y
+                # eso está en ESTADO.md.
+                continue
             if orden in RUTA_DIAGONALES and blanco == 0:
                 # Y el héroe en diagonal: la ROM no lo sabe hacer y ninguna
                 # de las 26 rutas del juego con diagonales es del héroe. Sin
@@ -2509,6 +2515,9 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
         codigo += bytes([OP_FUNDIR_BGM, paso & 0xFF, paso >> 8])
     if ruta:
         if any(o in RUTA_HEROE_AFUERA for o in ruta):
+            # Acá **sí** se corta en vez de tirarlas. Una ruta escrita a mano
+            # con `--ruta-de-prueba` es una prueba: si se tiraran en silencio,
+            # el caso mediría otra cosa que la que dice su línea.
             raise NoSePuede("el héroe no fija la mirada ni cambia de velocidad")
         if any(o in RUTA_DIAGONALES for o in ruta):
             # El mismo corte que hace `traducir` con un MoveEvent del juego: la

@@ -1020,8 +1020,8 @@ Arreglarlo pidió tres cosas, y las tres hacen falta:
 **Cómo se verifica.** Lo cobra `puerta-emisor`, que abre la puerta del Emitter
 Room apretando A y mira el cuadro 40: con la página activa calculada viva daba
 300 pixeles de diferencia y con la instantánea da cero. Se le hizo además un
-caso de la escena de Talan entera, y hubo que sacarlo: esa página no compila
-—ver ESTADO.md— así que daba cero sin ejercitar nada.
+caso de la escena de Talan entera, y hubo que sacarlo: esa página no compilaba
+entonces, así que daba cero sin ejercitar nada. Ver ESTADO.md.
 
 #### El intérprete de eventos
 
@@ -1883,9 +1883,8 @@ Adentro de un salto la orden se consume y **no se ejecuta**: el lazo de
 Ninguna ruta del juego tiene una ahí adentro —medido, cero—, así que eso está
 por corrección y no porque pase.
 
-Con esto **la escena de Talan compila** —salvo por una ruta del héroe que
-empieza con la orden 28, que desde el 2026-09-06 no compila y la vuelve a
-trabar: ver ESTADO.md—.
+Con esto **la escena de Talan compila y corre**. Todavía no tiene caso en la
+tanda: diverge entre los cuadros 90 y 140 —ver ESTADO.md—.
 
 **Cómo se verifica.** Dos casos, y son la misma ruta con distinto destino: el
 evento 3 del mapa 6 baja dos celdas, cambia de gráfico y sigue bajando dos. Los
@@ -2813,9 +2812,8 @@ comparación.
   barato. Una ruta que se queda sin órdenes por esto no se emite: RM2k la
   consume entera en el cuadro y no deja nada que esperar. Faltan **cambiar el
   gráfico** —la orden 34— **sobre el héroe**, **fijar la mirada y cambiarle la
-  velocidad** —las órdenes 26 a 29, que desde el 2026-09-06 no compilan sobre
-  él por decisión y no por olvido: ver ESTADO.md—, y **moverse hacia el
-  héroe**. La
+  velocidad** —las órdenes 26 a 29, que sobre él se aceptan y se tiran por
+  decisión y no por olvido: ver ESTADO.md—, y **moverse hacia el héroe**. La
   velocidad ya está, desde el 2026-09-05, con las rutas propias de las
   páginas; **subir y bajar la frecuencia** —las órdenes 30 y 31— desde el
   2026-09-06, ver "La frecuencia se sube y se baja a mitad de una ruta"; las

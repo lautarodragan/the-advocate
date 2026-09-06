@@ -23,26 +23,24 @@ Los seis puntos que acordamos el 2026-09-05 —`FadeOutBGM`, las órdenes de rut
 30 y 31, `PanScreen`, las diagonales, `PlayBGM` con varios temas y la orden 34—
 están **los seis hechos**, entre el 2026-09-05 y el 2026-09-06. Con eso la
 escena de Talan —los 233 comandos de la página de contacto del evento 5 del
-mapa 3— compila entera, y `demo-apertura` lleva los mapas 4, 1, 2, 3 y 5.
+mapa 3— compila y corre, y `demo-apertura` lleva los mapas 4, 1, 2, 3, 5 y 6.
 
 Las páginas automáticas que compilan enteras son **209 de 489**.
 
 ### Lo próximo, si no se decide otra cosa
 
-1. **La velocidad variable del héroe**, que se volvió blocker. La escena de
-   Talan —la que motivó los seis puntos— tiene una ruta del héroe que empieza
-   con la **orden 28**, y desde que ésas no compilan la escena entera no corre.
-   Es lo que taro previó al dejarlas afuera: "si se vuelven blockers, las
-   encararemos en ese momento". Ese momento es éste.
-
-   Lo que pide: que el paso del héroe deje de ser fijo —hoy `WALK_SPEED`, ocho
-   cuadros por celda, escrito a mano en `try_up` y sus tres hermanas— y pase al
-   acumulador de 256 por celda que ya tienen los eventos. Toca además caminar
-   con el pad, la cámara, y el plan de cuadros con que se comparan los casos.
-   Con eso vuelve el caso `talan`.
+1. **La divergencia de la escena de Talan, entre los cuadros 90 y 140.** Ahora
+   que la escena corre de verdad la comparación dice algo: los cuadros 40, 60,
+   80, 150, 200, 400, 700 y 1200 dan **cero** y los del medio hasta 60%. No es
+   un corrimiento de cuadros —ROM 100 contra referencia 100 es la comparación
+   que menos difiere de todas— así que es contenido distinto. Con ese
+   porcentaje huele a la cámara corrida un par de pixeles, y ahí es donde corre
+   el `PanScreen` de la escena; la sospecha es que arranca en cuadros distintos
+   porque algo anterior tarda distinto. Resuelto eso, la escena tiene caso
+   propio en la tanda.
 
 2. **`ConditionalBranch`**, el desbloqueo más grande que queda: +24 páginas de
-   las 205 que compilan hoy. Y lo caro no sirve: limitado a condiciones de
+   las 209 que compilan hoy. Y lo caro no sirve: limitado a condiciones de
    **switch** se lleva 24 de las 27; agregarle variables suma cero, medido.
 3. **La secuencia del "1 year earlier"**, que es lo que sigue en el juego y lo
    que hoy deja mudo a `hzstream`: la página que lo prende —evento 1, página 2
@@ -63,21 +61,25 @@ de cada una está en `README.md`.
   respetar: **el lazo de la referencia no puede cortar con un refresco
   pendiente**, porque el cuadro que viene sí hace algo.
 
-* **Las órdenes de ruta 26 a 29 sobre el héroe quedan afuera del cartucho.**
-  Fijar y soltar la mirada y subir y bajar la velocidad. Decidido con taro el
+* **Las órdenes de ruta 26 a 29 sobre el héroe se aceptan y se tiran.** Fijar y
+  soltar la mirada y subir y bajar la velocidad. Decidido con taro el
   2026-09-06: son un extra, como los efectos climáticos, y el juego se puede
-  jugar sin ellas; si alguna vez son un blocker se encaran entonces. Lo que
-  arregla la paridad es que **el conversor no compile la página que las pida**,
-  así que la referencia tampoco las camina.
+  jugar sin ellas. Se tiran **al compilar**, como el sonido y la transparencia,
+  así que la referencia tampoco las camina y los dos lados quedan iguales por
+  construcción.
 
-  Cuestan 4 de las 209 páginas automáticas que compilaban —quedan 205— y
-  partirlo no sirve: ninguna de las cuatro usa sólo la mirada, todas piden la
-  velocidad, que es la cara. El paso del héroe es fijo, `WALK_SPEED`, ocho
-  cuadros por celda, escrito a mano en `try_up` y sus tres hermanas; darle
-  velocidad variable es darle el acumulador de 256 por celda que ya tienen los
-  eventos, y eso toca también caminar con el pad, la cámara y el plan de
-  cuadros de los casos. En todo el juego son 178 rutas, y el **mapa 7, Talan's
-  Pad**, tiene tres.
+  El primer intento fue **rechazar la página entera**, y costaba demasiado: la
+  escena de Talan tiene una ruta del héroe que empieza con la 28, así que la
+  escena que motivó los seis puntos no compilaba y el jugador se quedaba
+  encerrado en el pasillo del Emitter Room —taro lo encontró jugando—. Son 4
+  páginas automáticas más ésa.
+
+  Lo que se pierde es el cambio de ritmo: donde RM2k acelera al héroe, acá
+  camina a la suya. Es visible y está aceptado. Arreglarlo de verdad es que su
+  paso deje de ser fijo —hoy `WALK_SPEED`, ocho cuadros por celda, escrito a
+  mano en `try_up` y sus tres hermanas— y pase al acumulador de 256 por celda
+  que ya tienen los eventos; eso toca además caminar con el pad, la cámara y el
+  plan de cuadros de los casos. En todo el juego son 178 rutas.
 
 * **Las diagonales y la orden 34 van sobre eventos, no sobre el héroe.** El
   paso del héroe está escrito una vez por dirección y su gráfico sale de la
@@ -126,7 +128,7 @@ de cada una está en `README.md`.
 
 * **`rom/build/demo-apertura/`, rearmada el 2026-09-06** con todo lo de los
   seis puntos adentro: la puerta del Emitter Room que se abre y se cruza, la
-  escena de Talan entera, los mapas 4, 1, 2, 3 y **5**, y cuatro temas
+  escena de Talan entera, los mapas 4, 1, 2, 3, **5** y **6**, y cuatro temas
   —`escape_newyork`, `TF3_1_awe`, `evilrhys`, `lufsorr`—. Se arma así:
 
       python3 tools/snes_convert.py --grupo 10 --map-id 4 --mapas 1 2 3 5 \
@@ -146,7 +148,21 @@ de cada una está en `README.md`.
 
 ## Lo que la tanda no cubre
 
-`just snes-hitos-paralelo` son **85 casos, todos en verde**. Lo que no mira:
+`just snes-hitos-foto` son **85 casos, todos en verde**. Lo que no mira:
+
+* **La escena de Talan**, que corre pero diverge entre los cuadros 90 y 140:
+  ver arriba. No tiene caso hasta que eso se resuelva.
+
+  Hubo uno el 2026-09-06 y se sacó, y vale contar por qué. Estaba en verde **por
+  la razón equivocada**: la página no compilaba —la orden 28 sobre el héroe se
+  rechazaba entonces— así que los dos lados no hacían nada y la comparación daba
+  cero. Mil doscientos cuadros de nada. Lo delató algo suelto: la lista de temas
+  del cartucho bajó de cuatro a tres, y `lufsorr` es el segundo tema de esa
+  misma página.
+
+  La lección, para el próximo caso largo: **antes de creerle a un cero hay que
+  ver la página compilar**. Un caso que no ejercita nada da cero igual, y cuanto
+  más largo el caso, más convincente se ve el cero.
 
 * **El audio.** `just snes-bgm <tema>` graba cuarenta segundos y los compara
   contra el MIDI, y **no está en la tanda**: es visual. Los cuatro temas de la
