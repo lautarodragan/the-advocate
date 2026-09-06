@@ -435,6 +435,7 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
             for _ in range(10000):
                 if not estado.ruta and not estado.paso_cuadros \
                         and not estado.cuadros_moviendose \
+                        and not estado.refresco \
                         and not estado.algo_corriendo():
                     break
                 estado.refrescar()
@@ -538,6 +539,7 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
                         and not estado.paso_cuadros \
                         and not estado.cuadros_moviendose \
                         and not estado.algo_corriendo() \
+                        and not estado.refresco \
                         and not estado.paginas_caminando() \
                         and not estado.timer_activo \
                         and (ultimo_a is None or base + n >= ultimo_a) \
@@ -610,7 +612,14 @@ def contacto_al_pisar(mundo, estado, map_id, x, y, passable, game_map):
                           interprete.paginas, congelada=interprete.ocupado())
         if estado.mensaje is not None:
             return map_id, x, y, True
+        # `not estado.refresco`: con un refresco pendiente el cuadro que viene
+        # **sí** hace algo —rehacer la página activa de cada evento— y cortar
+        # antes dejaba la instantánea vieja. Es lo que hacía que `puerta-emisor`
+        # dibujara la puerta cerrada después de abrirla: la página que la abre
+        # es un `ControlSwitches` y nada más, así que el intérprete terminaba en
+        # el mismo cuadro y el lazo cortaba con el refresco sin hacer.
         if interprete.terminado and not estado.algo_corriendo() \
+                and not estado.refresco \
                 and not estado.paso_cuadros and not estado.cuadros_moviendose:
             break
     return map_id, x, y, False

@@ -980,6 +980,48 @@ dónde entrás depende de por dónde viniste. La regla vive en `inicio_del_mapa(
 y la usan el conversor y la referencia: si cada uno eligiera por su cuenta, la
 comparación estaría midiendo dos cosas distintas.
 
+#### La página activa se congela hasta el refresco
+
+Qué página de un evento está activa **no se recalcula cada vez que alguien
+pregunta**. En RM2k es `Game_Event::page`, y sólo la reescribe
+`Game_Map::Refresh()`, que corre al principio de `Game_Map::Update`:
+
+    if (GetNeedRefresh()) Refresh();
+    ...
+    UpdateMapEvents(actx);        // acá los intérpretes prenden switches
+    game_player->Update();        // y el héroe se mueve con la página VIEJA
+
+La ROM ya lo hacía sin proponérselo: la página activa vive en la fila del NPC
+—la capa, el gráfico, lo que el tile le impone a la celda— y sólo la reescribe
+el refresco, que `eventos_tick` atiende arriba de todo. **La referencia la
+calculaba viva**, con los switches del momento, y eso son dos lados haciendo
+cosas distintas.
+
+La diferencia no es de un cuadro. Un switch prendido por una página le abría el
+paso al héroe en ese mismo cuadro del lado de la referencia y en el siguiente
+del lado de la ROM; y como **una orden de ruta bloqueada se saltea y no se
+reintenta**, lo que se veía no era un cuadro de atraso sino que el héroe nunca
+cruzaba la puerta del Emitter Room. La escena de Talan entera colgaba de eso.
+
+Arreglarlo pidió tres cosas, y las tres hacen falta:
+
+* **La instantánea**, `Estado.paginas_activas`, que rehace `rutas_de_pagina` y
+  nadie más.
+* **El refresco en un solo lugar**: arriba de `Interprete.cuadro`, que es por
+  donde pasa todo cuadro. Estaba repartido en los lazos que llaman ahí, y uno
+  de ellos no lo llamaba nunca después de prender un switch.
+* **No cortar el lazo con un refresco pendiente.** Ésta fue la que costó: la
+  página que abre la puerta es un `ControlSwitches` y nada más, así que el
+  intérprete terminaba en el mismo cuadro, el lazo cortaba —"ya no pasa nada"—
+  y la instantánea quedaba vieja para siempre. Con la página calculada viva eso
+  no se notaba; con la instantánea, `puerta-emisor` dibujaba la puerta cerrada
+  después de abrirla.
+
+**Cómo se verifica.** El caso `talan`, el más largo de la tanda: mil doscientos
+cuadros de los 233 comandos de la escena del Emitter Room, comparados en siete
+puntos y todos en cero. Antes de esto, el cuadro 120 daba 60% y la ROM no corría
+la página en absoluto.
+
 #### El intérprete de eventos
 
 RM2k tiene unos 130 comandos de evento. La ROM entiende diez —prender y apagar
@@ -1840,11 +1882,10 @@ Adentro de un salto la orden se consume y **no se ejecuta**: el lazo de
 Ninguna ruta del juego tiene una ahí adentro —medido, cero—, así que eso está
 por corrección y no porque pase.
 
-Y una advertencia que conviene tener a mano: con esto **la escena de Talan
-compila entera**, pero de sus 233 comandos sólo se comparó el arranque, y hay
-una divergencia sin resolver que no es de la orden 34 —la referencia calcula la
-página activa de cada evento viva y RM2k la congela hasta el refresco—. Está
-medido en ESTADO.md, "Lo que la tanda no cubre".
+Con esto **la escena de Talan compila entera**, y desde el 2026-09-06 tiene
+caso propio en la tanda: `talan`, mil doscientos cuadros de los 233 comandos, en
+cero. Llegar ahí pidió arreglar además cómo la referencia elige la página activa
+de un evento: ver "La página activa se congela hasta el refresco".
 
 **Cómo se verifica.** Dos casos, y son la misma ruta con distinto destino: el
 evento 3 del mapa 6 baja dos celdas, cambia de gráfico y sigue bajando dos. Los

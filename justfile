@@ -604,6 +604,16 @@ snes-grafico mapa="6" ruta="4 2 2 34 0 2 2" grafico="Future1 0" celda="22 12" cu
         --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
   done
 
+# El caso `talan` es la escena entera del Emitter Room, y es el más largo de la
+# tanda: mil doscientos cuadros de los 233 comandos de la página de contacto del
+# evento 5 del mapa 3 —la que se destrabó con los seis puntos del 2026-09-06—.
+# Pide `--mapas 1 2 4 5` porque termina teletransportando al 4, y el switch 13
+# para que la página de contacto esté activa: en el juego lo prende la puerta al
+# hablarle, y acá se pone de entrada para no gastar cuatrocientos cuadros en
+# abrirla. La ruta es `23 0`: esperar y subir. Lo de esperar no es decorativo
+# —el paso al que abre la puerta es el refresco, que corre al cuadro siguiente,
+# y sin la espera el héroe se estrella contra ella—.
+
 # La cámara corrida sin el héroe: PanScreen.
 #
 # Es `Game_Player::StartPan` y `UpdatePan` de easyrpg: el destino se corre
@@ -971,21 +981,22 @@ snes-hablar mapa="7" celda="3 7" switch="24" apretar="25" cuadros="20 60" arranq
 # es sólo hacia dónde mira el héroe **al arrancar**: si la página lo gira con
 # un `face_*`, gana la página, como en la ROM. Antes `--dir` pisaba el giro al
 # dibujar y el cuadro 230 de `puerta-izq` daba 117 pixeles, todos en el héroe.
-snes-escena mapa="2" celda="4 54" ruta="12" dir="up" cuadros="60" arranque="115" nombre="escena" apretar="" switch="":
+snes-escena mapa="2" celda="4 54" ruta="12" dir="up" cuadros="60" arranque="115" nombre="escena" apretar="" switch="" mapas="":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
   apretar="{{apretar}}"
   switch="{{switch}}"
+  mapas="{{mapas}}"
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
       --inicio {{celda}} --con-ventana --ruta-de-prueba {{ruta}} \
-      ${switch:+--switch $switch} \
+      ${switch:+--switch $switch} ${mapas:+--mapas $mapas} \
       -o {{snes_inc}}/mapdata.inc
   just snes-build
   pre={{snes_pngs}}/{{nombre}}
   python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
       --hero-tile {{celda}} --dir {{dir}} --con-ventana --ruta-de-prueba {{ruta}} \
-      ${switch:+--switch $switch} \
+      ${switch:+--switch $switch} ${mapas:+--mapas $mapas} \
       --cuadros {{cuadros}} ${apretar:+--apretar-a $apretar} \
       --saltar $pre-{}.saltar.txt -o $pre-{}.esperado.png
   for n in {{cuadros}}; do

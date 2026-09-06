@@ -1848,6 +1848,9 @@ class Estado:
         # `cuadros_moviendose`— siguen valiendo y son ésta.
         self.ruta_heroe = Ruta()
         self.rutas_ev = {}
+        # Qué página tiene activa cada evento, como la dejó el último refresco.
+        # Ver `pagina_activa`.
+        self.paginas_activas = {}
         # Los destellos corriendo, por blanco: (r, g, b, potencia, cuadros, k).
         # `k` es cuántos cuadros pasaron desde que empezó.
         self.flashes = {}
@@ -1973,8 +1976,13 @@ class Estado:
         ruta se queda quieto. Un evento con la misma página de antes no se
         toca, y su ruta sigue por donde iba.
         """
+        # La instantánea de qué página tiene cada evento. Se rehace acá y en
+        # ningún otro lado: es `Game_Event::page`, que sólo escribe `Refresh`.
+        self.paginas_activas = {
+            indice: pagina_activa_viva(self.paginas_rutas, indice, self)
+            for indice in self.pos_ev}
         for indice in self.pos_ev:
-            pagina = pagina_activa(self.paginas_rutas, indice, self)
+            pagina = self.paginas_activas[indice]
             propia = pagina.get("ruta_propia") if pagina is not None else None
             ruta = self.rutas_ev.get(indice)
             if propia:
@@ -2390,17 +2398,34 @@ def altura_del_salto(ruta):
 
 
 def pagina_activa(paginas, evento, estado):
+    """La página activa del evento **como la dejó el último refresco**.
+
+    En RM2k la página activa no se recalcula cada vez que alguien pregunta: es
+    `Game_Event::page`, y sólo la reescribe `Game_Map::Refresh()`, que corre al
+    principio de `Game_Map::Update`. Todo lo que pasa después en ese cuadro —el
+    intérprete, el héroe, los eventos— ve la página **vieja**. La ROM hace lo
+    mismo, guardándola en la fila del NPC.
+
+    Acá se calculaba viva, y la diferencia no era teórica: un switch prendido
+    por una página le abría el paso al héroe en ese mismo cuadro, y en la ROM
+    no. Y como una orden de ruta bloqueada se saltea y no se reintenta, eso no
+    se veía como un cuadro de atraso sino como que el héroe **nunca** cruzaba
+    la puerta del Emitter Room.
+
+    Sin instantánea —antes del primer refresco— se calcula viva, que es lo que
+    hace `Refresh` la primera vez.
+    """
+    if evento in estado.paginas_activas:
+        return estado.paginas_activas[evento]
+    return pagina_activa_viva(paginas, evento, estado)
+
+
+def pagina_activa_viva(paginas, evento, estado):
     """La página de número más alto del evento cuyas condiciones se cumplen.
 
-    Es la regla de RM2k, y es la misma pasada que hace la ROM.
-
-    **Y se calcula viva, que no es lo que hace RM2k**: allá la página activa es
-    `Game_Event::page` y sólo la reescribe `Game_Map::Refresh()`, al principio
-    del cuadro, así que todo lo que pasa después en ese cuadro ve la vieja. La
-    ROM hace lo de RM2k —la guarda en la fila del NPC y la reescribe en el
-    refresco— y acá no. Está anotado en ESTADO.md, "Lo que la tanda no cubre":
-    el intento de guardarla acá arregló la escena de Talan y puso en rojo
-    `puerta-emisor`, así que falta entender por qué antes de meterlo.
+    Es la regla de RM2k, y es la misma pasada que hace la ROM. La usa el
+    refresco; todo lo demás pregunta por `pagina_activa`, que devuelve lo que
+    el refresco dejó.
     """
     elegida = None
     for pagina in paginas:
@@ -2636,7 +2661,15 @@ class Interprete:
         `apreto_a` es que el jugador **acaba de** apretar A en este cuadro, no
         que lo tenga apretado: RM2k cierra el mensaje con `IsTriggered`, o sea
         con el flanco. En la ROM eso es `pad_a` contra `pad_a_ant`.
+
+        **El refresco pendiente se hace acá**, arriba de todo, que es donde lo
+        hace `Game_Map::Update`: `if (GetNeedRefresh()) Refresh();` y recién
+        después los intérpretes y el héroe. Estaba en los lazos que llaman acá,
+        y uno de ellos no lo llamaba nunca después de prender un switch: la
+        página activa quedaba sin rehacer y nadie se enteraba porque se
+        calculaba viva. Un solo lugar es lo que hace que no vuelva a pasar.
         """
+        self.estado.refrescar()
         if self.estado.mensaje is not None:
             if not apreto_a:
                 return False

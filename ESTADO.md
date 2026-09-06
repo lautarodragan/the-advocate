@@ -29,8 +29,10 @@ Las páginas automáticas que compilan enteras son **209 de 489**.
 
 ### Lo próximo, si no se decide otra cosa
 
-1. **El desfase de un cuadro de la página de contacto**, que es lo único que
-   separa a la escena de Talan de estar verificada. Ver abajo.
+1. **`ConditionalBranch`**, que es el desbloqueo más grande que queda: +24
+   páginas de las 205 que compilan hoy. Y lo caro no sirve: limitado a
+   condiciones de **switch** se lleva 24 de las 27; agregarle variables suma
+   cero, medido.
 2. **La secuencia del "1 year earlier"**, que es lo que sigue en el juego y lo
    que hoy deja mudo a `hzstream`: la página que lo prende —evento 1, página 2
    del mapa 4— pide `ChangeItems`, `ShowPicture`/`MovePicture` y
@@ -41,6 +43,14 @@ Las páginas automáticas que compilan enteras son **209 de 489**.
 
 Las que hay que conocer para no rehacerlas ni contradecirlas. El porqué largo
 de cada una está en `README.md`.
+
+* **La página activa de un evento se congela hasta el refresco.** No se
+  recalcula cada vez que alguien pregunta: es `Game_Event::page`, y sólo la
+  reescribe `Game_Map::Refresh()`, al principio de `Game_Map::Update`. La ROM
+  ya lo hacía —la guarda en la fila del NPC— y la referencia no; desde el
+  2026-09-06 las dos guardan la instantánea. De ahí sale una regla que hay que
+  respetar: **el lazo de la referencia no puede cortar con un refresco
+  pendiente**, porque el cuadro que viene sí hace algo.
 
 * **Las órdenes de ruta 26 a 29 sobre el héroe quedan afuera del cartucho.**
   Fijar y soltar la mirada y subir y bajar la velocidad. Decidido con taro el
@@ -126,35 +136,6 @@ de cada una está en `README.md`.
 ## Lo que la tanda no cubre
 
 `just snes-hitos-paralelo` son **85 casos, todos en verde**. Lo que no mira:
-
-* **La escena de Talan.** Compila, corre, y de los 233 comandos sólo se
-  comparó el arranque. Armada a mano —mapa 3 con el 1, el 2, el 4 y el 5, el
-  héroe en (38,69), el switch 13 puesto, y una ruta forzada que lo hace
-  esperar y subir— los cuadros 40 y 400 dan **cero** y el 120 da 60%. Falta
-  encontrar qué pasa en el medio.
-
-  **Y hay algo más grande escondido ahí, diagnosticado el 2026-09-06 y sin
-  arreglar.** La referencia calcula la página activa de cada evento **viva**,
-  con los switches del momento; RM2k no: es `Game_Event::page` y sólo la
-  reescribe `Game_Map::Refresh()`, que corre al principio de
-  `Game_Map::Update`, así que todo lo que pasa después en ese cuadro ve la
-  página vieja. La ROM hace lo de RM2k —la guarda en la fila del NPC—.
-
-  La diferencia no es cosmética: un switch prendido por una página le abre el
-  paso al héroe **en ese mismo cuadro** del lado de la referencia y en el
-  cuadro siguiente del lado de la ROM. Y como una orden de ruta bloqueada se
-  saltea y no se reintenta, eso no se ve como un cuadro de atraso sino como
-  "el héroe nunca cruza la puerta".
-
-  El intento de guardarla en una instantánea que sólo reescribe el refresco
-  **arregló la escena de Talan y puso en rojo `puerta-emisor`**, en el gráfico
-  del evento 6 del mapa 3 —300 pixeles en el cuadro 40—. O sea que falta
-  entender por qué antes de meterlo: o la instantánea no se está rehaciendo
-  cuando debería, o `puerta-emisor` estaba en verde por la razón equivocada.
-  Se revirtió para no dejar la tanda en rojo.
-
-  Nada de esto lo cobra `ruta-pisa` ni `ruta-pisa-cola`, que comparan los
-  cuadros 50 y 200, cuando ya se acomodó todo.
 
 * **El audio.** `just snes-bgm <tema>` graba cuarenta segundos y los compara
   contra el MIDI, y **no está en la tanda**: es visual. Los cuatro temas de la
