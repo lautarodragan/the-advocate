@@ -30,12 +30,43 @@ Las páginas automáticas que compilan enteras son **272 de 489**.
 
 ### Lo próximo, si no se decide otra cosa
 
-1. **El mapa 8 no entra en el cartucho.** Es lo que frena la demo hoy: el
+1. **El juego entero no entra en ningún cartucho, y hay que deduplicar.**
+   Medido el 2026-09-06, pesando los 328 mapas de a uno: convierten 287 y
+   juntos dan **unos 13 MB** —la medición cruda dio 14,9 pero cada mapa cargó
+   su propio stream de música, y en una ROM los temas se comparten: son 43 para
+   328 mapas, y 185 mapas no tienen tema propio—. El neto por mapa es 39 KB de
+   mediana, 53 de promedio y 244 el peor.
+
+   Cuántos entrarían, tomando siempre los más chicos: 71 en 512 KB, 105 en
+   1 MB, 138 en 2 MB, **183 en 4 MB**, que es el techo práctico de LoROM. O
+   sea que ni agrandando al máximo se llega al 60% del juego.
+
+   Dónde se van los bytes, desglosado sobre el mapa 1 —96 KB de datos—:
+
+       sprite_poses    27,9 KB   28%    las poses de los personajes
+       map_tiles       21,9 KB   22%    los tiles del fondo
+       map_celdas      20,4 KB   21%    la grilla de bloques
+       fundido_rampa    6,2 KB    6%    tabla fija, no es del mapa
+       el resto                  23%    paletas, capa de encima, sprites
+
+   Lo más pesado son **las poses de los personajes**, no los tiles del mapa. Y
+   eso decide por dónde empezar: los personajes se repiten entre mapas mucho
+   más que los chipsets —que ya son 43 para 328 mapas—, así que la ganancia
+   grande es **deduplicar material compartido**, no comprimir. Comprimir la
+   grilla viene después, y ahí pega fuerte en los mapas casi vacíos: el "Blank
+   (Leave START here)" es un solo tile repetido diez mil veces.
+
+   Agrandar el cartucho, para cuando haga falta, es barato: `ROM_BANKS`, el
+   tamaño del área DATA en `w65.py` y un byte del encabezado —`$09` es log2 de
+   los KB—. Cruzar de banco con un puntero de 24 bits ya está resuelto en
+   `advance`.
+
+2. **El mapa 8 no entra en el cartucho.** Es lo que frena la demo hoy: el
    exterior del pad de Talan pesa unos 140 KB y con el resto se pasa —632092
    bytes contra 491520—. Ni siquiera el mínimo que llega ahí, 4-1-2-3-7-8,
    entra: 564928. Así que salir de la casa de Talan pide **agrandar la ROM**,
    que hoy es de 512 KB y cuyo mapeo tampoco se probó en hardware.
-2. **`ChangePartyMembers` de verdad**, si alguna página que compile cambia de
+3. **`ChangePartyMembers` de verdad**, si alguna página que compile cambia de
    líder: el gráfico del héroe sale del primero del grupo, así que hoy quedaría
    con la cara equivocada. Ninguna lo hace todavía.
 

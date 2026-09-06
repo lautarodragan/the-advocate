@@ -276,6 +276,31 @@ class Consola:
             largo = total - direccion
         return ctypes.string_at(base + direccion, largo)
 
+    def escribir_ram(self, direccion, datos):
+        """Escribe bytes en la WRAM, en la dirección del banco $7E.
+
+        El puntero que devuelve `retro_get_memory_data` es la memoria del core,
+        no una copia, así que escribirla es escribirle a la consola.
+
+        Existe para las pruebas de estado, que ponen el mundo en una situación a
+        la que el juego llega más tarde —un switch prendido, por ejemplo— sin
+        tener que armar una ROM distinta para cada una. **La tanda de pixeles no
+        lo usa ni tiene que usarlo**: ahí se compara contra una referencia que
+        modela el camino de verdad, y saltearse ese camino sería comparar dos
+        cosas que no pasaron por lo mismo.
+        """
+        self.lib.retro_get_memory_data.restype = ctypes.c_void_p
+        self.lib.retro_get_memory_size.restype = ctypes.c_size_t
+        base = self.lib.retro_get_memory_data(self.MEMORIA_SISTEMA)
+        total = self.lib.retro_get_memory_size(self.MEMORIA_SISTEMA)
+        if not base or not total:
+            raise RuntimeError("este core no expone la WRAM")
+        datos = bytes(datos)
+        if direccion + len(datos) > total:
+            raise ValueError("escribir %d bytes en %d se pasa de la WRAM (%d)"
+                             % (len(datos), direccion, total))
+        ctypes.memmove(base + direccion, datos, len(datos))
+
     def imagen(self):
         """El último cuadro como PIL, a 8 bits por canal y recortado a ALTO."""
         datos, w, h, pitch = self.cuadro

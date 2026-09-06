@@ -22,7 +22,7 @@ TOQUES = [212, 243, 394, 515, 727, 758, 789, 820, 971, 1517, 1548, 1699, 1790,
 
 def test_el_recuerdo_arranca(partida):
     """La página del recuerdo pide el switch 16 y arranca sola al entrar."""
-    una = partida(map_id=5, mapas=[3, 6], switch=[16])
+    una = partida(switch=[16])
     una.correr(400, apretar_a=TOQUES)
     assert una.corriendo_una_pagina(), \
         "la página automática del mapa 5 nunca arrancó"
@@ -36,7 +36,7 @@ def test_el_recuerdo_cruza_a_la_ciudad(partida):
     depende de que una página automática que se vuelve activa con el mapa ya
     cargado dispare igual; mientras eso no funcionó, acá se quedaba en el 5.
     """
-    una = partida(map_id=5, mapas=[3, 6], switch=[16])
+    una = partida(switch=[16])
     una.correr(3900, apretar_a=TOQUES)
     assert una.mapa() == 6
     assert una.switch(17), "el recuerdo del mapa 6 no se destrabó"

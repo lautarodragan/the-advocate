@@ -42,28 +42,28 @@ RAMA = (300, 301, 302)
 
 def test_la_pagina_del_juego_sigue_despues_del_end(partida):
     """Con la rama salteada, la página tiene que llegar igual al final."""
-    una = partida(map_id=MAPA, con_ventana=False)
+    una = partida(con_ventana=False)
     una.correr(120)
     assert una.switch(DESPUES), \
         "la página no llegó al final: o no compiló, o el salto se pasó de largo"
 
 
 def test_la_rama_del_juego_se_saltea(partida):
-    una = partida(map_id=MAPA, con_ventana=False)
+    una = partida(con_ventana=False)
     una.correr(120)
     assert not una.switch(ADENTRO), \
         "corrió la rama de adentro con el switch apagado"
 
 
 def test_la_rama_corre_con_el_switch_prendido(partida):
-    una = partida(map_id=MAPA, switch=[RAMA[0]], rama=RAMA, con_ventana=False)
+    una = partida(switch=[RAMA[0]], rama=RAMA, con_ventana=False)
     una.correr(120)
     assert una.switch(RAMA[1]), "no corrió la rama de adentro"
     assert una.switch(RAMA[2]), "la página no siguió después del `end`"
 
 
 def test_la_rama_no_corre_con_el_switch_apagado(partida):
-    una = partida(map_id=MAPA, rama=RAMA, con_ventana=False)
+    una = partida(rama=RAMA, con_ventana=False)
     una.correr(120)
     assert not una.switch(RAMA[1]), "corrió la rama con el switch apagado"
     assert una.switch(RAMA[2]), "la página no siguió después del `end`"

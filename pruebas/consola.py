@@ -20,6 +20,8 @@ exactamente lo que se quiere: ruidoso y en el lugar. Una constante copiada a
 mano se desfasaría en silencio y leería la dirección de al lado.
 """
 
+import glob
+import hashlib
 import os
 import re
 import subprocess
@@ -73,7 +75,7 @@ class Partida:
     en un caso de pixeles y en una prueba de estado.
     """
 
-    def __init__(self, sfc, simbolos, mapas):
+    def __init__(self, sfc, simbolos, mapas, switches=()):
         self.simbolos = simbolos
         # Los ids de mapa de RM2k en el orden de la tabla de la ROM, que es lo
         # que `mapa_actual` indexa. Sale del `mapdata.inc` generado y no de
@@ -90,7 +92,15 @@ class Partida:
         # desde el primer cuadro de juego, que es como los cuenta `--arranque`
         # en `snes_correr.py`. Contándolo, cada toque caía ciento quince
         # cuadros antes de tiempo y la escena no avanzaba.
-        self.consola.correr(self.simbolos["BOOT_CUADROS"] + 3)
+        self.consola.correr(self.simbolos["BOOT_CUADROS"])
+        # Los switches se escriben **antes del primer cuadro de juego**, no
+        # después: mientras dura el arranque el mapa está congelado y no corre
+        # ninguna página, así que acá el estado inicial llega a tiempo para
+        # todas. Escribiéndolo tres cuadros más tarde ya era tarde para la
+        # página de prueba, que corre en el primero.
+        if switches:
+            self.prender(*switches)
+        self.consola.correr(3)
 
     def correr(self, cuadros, apretar_a=()):
         """Avanza `cuadros` cuadros. `apretar_a` son toques de A, por número."""
@@ -131,6 +141,65 @@ class Partida:
         octeto = self.consola.ram(self.simbolos["switches"] + numero // 8, 1)
         return bool(octeto[0] & (1 << (numero % 8)))
 
+    def prender(self, *numeros):
+        """Prende switches escribiendo el bitmap, como si el juego los hubiera
+        prendido antes.
+
+        Reemplaza al `--switch` del conversor, que los prendía desde una página
+        de prueba inventada, y es mejor por dos razones. La primera es que **la
+        ROM deja de depender de la prueba**: es la misma para todas, así que se
+        arma una vez.
+
+        La segunda importa más. Esa página tenía el número de evento más alto
+        de la tabla, y el barrido de eventos va de menor a mayor, así que corría
+        **después** que las del mapa: un switch que decide lo que hace una
+        página del mapa llegaba tarde. Acá se escribe antes del primer cuadro de
+        juego, así que llega siempre a tiempo. Es lo que hacía imposible probar
+        la rama de `ConditionalBranch` que sí corre.
+
+        El `refresco` es lo que hace `OP_SWITCH` después de tocar el bitmap: sin
+        él la ROM no vuelve a mirar qué página está activa hasta que algo más lo
+        pida.
+        """
+        base = self.simbolos["switches"]
+        for numero in numeros:
+            direccion = base + numero // 8
+            octeto = self.consola.ram(direccion, 1)[0] | (1 << (numero % 8))
+            self.consola.escribir_ram(direccion, [octeto])
+        self.consola.escribir_ram(self.simbolos["refresco"], [1])
+        return self
+
+    def ir_al_mapa(self, map_id, x, y, cuadros=90):
+        """Teletransporta a la partida, como lo haría una puerta del juego.
+
+        No hay atajo acá: se le pide a la ROM el mismo fundido que pide una
+        puerta —`empezar_fundido` con `FUNDIDO_PUERTA`— y la carga del mapa la
+        hace ella, por su camino. Lo único que se escribe desde afuera es el
+        pedido: a dónde, a qué celda, y la bandera.
+
+        Es lo que permite que una sola ROM sirva para pruebas que arrancan en
+        mapas distintos. Cuesta los cuadros del fundido, así que una prueba con
+        una lista de toques de A afinada al cuadro conviene que arranque en el
+        mapa que la ROM carga sola.
+        """
+        if map_id not in self.mapas:
+            raise AssertionError(
+                "el mapa %d no está en esta ROM; lleva %s" % (map_id, self.mapas))
+        self.consola.escribir_ram(self.simbolos["fundido_mapa"],
+                                  [self.mapas.index(map_id)])
+        for nombre, valor in (("entrada_x", x), ("entrada_y", y)):
+            self.consola.escribir_ram(self.simbolos[nombre],
+                                      [valor & 0xFF, valor >> 8])
+        # `empezar_fundido`, desde afuera: qué fundido es, que hay uno, y el
+        # reloj, que son cuadros de hardware y no vueltas del lazo.
+        self.consola.escribir_ram(self.simbolos["fundido_que"],
+                                  [self.simbolos["FUNDIDO_PUERTA"]])
+        self.consola.escribir_ram(self.simbolos["fundido"], [1])
+        self.consola.escribir_ram(self.simbolos["fundido_base"],
+                                  [self.byte("boot_cuadros")])
+        self.correr(cuadros)
+        return self
+
     def corriendo_una_pagina(self):
         return bool(self.byte("ev_activo"))
 
@@ -141,24 +210,56 @@ class Partida:
         return self.byte("cuadros_perdidos")
 
 
-def armar(map_id, mapas=(), switch=(), con_ventana=True, destino=None,
-          rama=()):
+def huella():
+    """De qué depende una ROM de prueba, además de sus mapas.
+
+    Todo lo que participa de armarla: el fuente de la ROM, el conversor, el
+    ensamblador y el modelo. Si nada de eso cambió, la ROM que está en disco
+    sigue siendo la que se habría armado, y armarla otra vez son tres segundos
+    tirados en cada corrida.
+
+    Se mira el contenido y no la fecha: `git checkout` de ida y vuelta deja
+    fechas nuevas con el mismo contenido, y ahí rearmar no sirve para nada.
+    """
+    h = hashlib.sha256()
+    partes = [os.path.join(RAIZ, "rom", "src", "main.s")]
+    partes += sorted(glob.glob(os.path.join(RAIZ, "tools", "*.py")))
+    for ruta in partes:
+        with open(ruta, "rb") as archivo:
+            h.update(archivo.read())
+    return h.hexdigest()[:16]
+
+
+def armar(map_id, mapas=(), con_ventana=True, destino=None, rama=()):
     """Convierte, ensambla y devuelve (ROM, símbolos, ids de mapa en orden).
 
     Los mismos dos comandos que corre el justfile, para que una ROM de prueba
     no sea nunca una ROM armada a mano: ver "Trampas del entorno" en CLAUDE.md.
+
+    Se saltea si ya está hecha y nada de lo que la arma cambió; ver `huella`.
+    El estado inicial —los switches— ya no se hornea en la ROM sino que se
+    escribe en la RAM, así que dos pruebas que piden los mismos mapas comparten
+    el mismo cartucho.
     """
     destino = destino or os.path.join(RAIZ, "rom", "build", "pruebas")
     os.makedirs(destino, exist_ok=True)
     inc = os.path.join(destino, "mapdata.inc")
     sfc = os.path.join(destino, "prueba.sfc")
+    sello = os.path.join(destino, "huella.txt")
+
+    actual = huella()
+    if os.path.exists(sfc) and os.path.exists(inc):
+        try:
+            with open(sello) as archivo:
+                if archivo.read().strip() == actual:
+                    return sfc, Simbolos(sfc + ".sym"), mapas_de(inc)
+        except OSError:
+            pass
 
     convertir = [sys.executable, os.path.join(RAIZ, "tools", "snes_convert.py"),
                  "--grupo", GRUPO, "--map-id", str(map_id)]
     if mapas:
         convertir += ["--mapas"] + [str(m) for m in mapas]
-    if switch:
-        convertir += ["--switch"] + [str(s) for s in switch]
     if rama:
         convertir += ["--rama-de-prueba"] + [str(n) for n in rama]
     if con_ventana:
@@ -170,6 +271,8 @@ def armar(map_id, mapas=(), switch=(), con_ventana=True, destino=None,
                     os.path.join(RAIZ, "rom", "src", "main.s"),
                     "-I", destino, "-o", sfc, "--simbolos", sfc + ".sym"],
                    check=True, capture_output=True, cwd=RAIZ)
+    with open(sello, "w") as archivo:
+        archivo.write(actual)
 
     return sfc, Simbolos(sfc + ".sym"), mapas_de(inc)
 
