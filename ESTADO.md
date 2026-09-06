@@ -196,6 +196,28 @@ de cada una está en `README.md`.
   hardware es el que desempata—.
 
 
+* **Las pruebas de estado son la otra mitad de la red, no un reemplazo.**
+  `just pruebas` corre pytest sobre `pruebas/`: se le pregunta a la ROM en qué
+  mapa está, qué switch tiene prendido, qué evento corre. No miran la pantalla.
+
+  El reparto es por dónde se queda ciega cada una. La tanda de pixeles cobra
+  los errores de PPU —una paleta mal repartida, una prioridad de OAM— y no
+  puede cobrar nada donde la referencia se equivoca igual que la ROM. Las de
+  estado no ven un pixel, pero no dependen de que la referencia esté bien: el
+  recuerdo de CORE y MANTA que no arrancaba daba **verde en los 87 casos** y da
+  rojo en una línea acá. Medido: con la ROM de antes del arreglo,
+  `test_el_recuerdo_cruza_a_la_ciudad` dice mapa 5 en vez de 6.
+
+  Ninguna dirección de RAM está escrita a mano: salen de la tabla que deja
+  `w65.py --simbolos`, que además exporta las constantes del ensamblador
+  —`BOOT_CUADROS`, `FLAG_AUTO`, `EV_MAX`—. Renombrar una variable en `main.s`
+  hace fallar la prueba diciendo qué símbolo falta, en vez de leer en silencio
+  la dirección de al lado.
+
+  Decidido con taro el 2026-09-06: **los casos nuevos se escriben acá**, y la
+  tanda de pixeles se mantiene pero deja de crecer.
+
+
 ## Lo que la tanda no cubre
 
 `just snes-hitos-foto` son **88 casos, todos en verde**, y el más largo es

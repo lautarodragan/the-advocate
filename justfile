@@ -1683,6 +1683,22 @@ snes-hitos:
     eval "just $caso" || fallo=1
   done < <(grep -v '^#' rom/hitos.txt | grep -v '^$')
   exit $fallo
+# Las pruebas de estado: se le pregunta a la ROM en qué mapa está, qué switch
+# tiene prendido, qué evento corre. No miran la pantalla.
+#
+# Son la otra mitad de la red y no un reemplazo de `snes-hitos`: ésta compara
+# pixeles contra la referencia de Python y cobra los errores de PPU —una paleta
+# mal repartida, una prioridad de OAM—; aquélla cobra los de lógica sin
+# depender de que la referencia esté bien, que es donde la comparación de
+# pixeles se queda ciega. El recuerdo de CORE y MANTA que no arrancaba daba
+# verde en la tanda entera, porque los dos lados se equivocaban igual.
+#
+# Se apoyan en la tabla de símbolos que deja `w65.py --simbolos`, así que
+# ninguna dirección de RAM está escrita a mano: renombrar una variable en
+# `main.s` hace fallar la prueba diciendo qué símbolo falta.
+pruebas *args:
+  python3 -m pytest pruebas {{args}}
+
 
 # Los mismos casos, uno por proceso y cada uno en su propia corrida aislada.
 # En serie son unos dos minutos y medio y repartida no llega al minuto; lo que
