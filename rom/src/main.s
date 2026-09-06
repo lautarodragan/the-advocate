@@ -2808,6 +2808,12 @@ otro:
 :   cmp #OP_TIMER
     bne :+
     jmp op_timer
+:   cmp #OP_SI
+    bne :+
+    jmp op_si
+:   cmp #OP_IR
+    bne :+
+    jmp op_ir
 :   cmp #OP_TELEPORT
     bne :+
     jmp op_teleport
@@ -2840,6 +2846,62 @@ op_mensaje:
 .a8
     sty ev_cur
     rts
+
+; `ConditionalBranch` con condición de switch. Los operandos son el número (dos
+; bytes), la polaridad —copiada tal cual de RM2k, donde 0 quiere decir "tiene
+; que estar prendido"— y el destino: **el índice absoluto dentro de la página**
+; al que va el cursor si la condición no se cumple, o sea el `else` o el `end`
+; que le corresponde. Quién es ese destino lo resolvió el conversor, que es el
+; único que ve la página entera; acá saltar es asignar Y.
+op_si:
+    rep #$20
+.a16
+    phy                         ; el cursor: `switch_encendido` se lleva X e Y
+    lda [cod_ptr], y            ; el número, de 16 bits
+    jsr switch_encendido        ; Z=1 apagado, Z=0 prendido
+    beq si_apagado
+    lda #$0001
+    bra si_tengo
+si_apagado:
+    lda #$0000
+si_tengo:
+    ply                         ; el cursor de vuelta; `ply` no toca A
+    sep #$20
+.a8
+    iny
+    iny                         ; Y -> la polaridad
+    ; A vale 1 si el switch está prendido, y la polaridad 0 si tenía que
+    ; estarlo: el `eor` da distinto de cero exactamente cuando se cumple, en
+    ; los dos sentidos, y sin ninguna rama de más. Va por `temp` porque el
+    ; ensamblador no tiene `eor [dp], y`.
+    sta temp
+    lda [cod_ptr], y
+    eor temp
+    beq si_no_cumple
+    iny
+    iny
+    iny                         ; Y -> el opcode siguiente
+    jmp otro
+si_no_cumple:
+    iny                         ; Y -> el destino
+    rep #$20
+.a16
+    lda [cod_ptr], y
+    tay
+    sep #$20
+.a8
+    jmp otro
+
+; El salto sin condición que el conversor pone donde estaba el `else`, para que
+; la rama de arriba se saltee la de abajo.
+op_ir:
+    rep #$20
+.a16
+    lda [cod_ptr], y
+    tay
+    sep #$20
+.a8
+    jmp otro
 
 op_switch:
     rep #$20

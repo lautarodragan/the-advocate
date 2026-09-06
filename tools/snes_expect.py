@@ -170,7 +170,8 @@ class Mundo:
                                               frecuencia=self.prueba[8],
                                               sacudida=self.prueba[9],
                                               fundir_bgm=self.prueba[10],
-                                              pan=self.prueba[11])),
+                                              pan=self.prueba[11],
+                                              rama=self.prueba[12])),
                                      dict(PAGINA_DE_PRUEBA_APAGADA,
                                           evento=numero)]
             self.paginas_cache[map_id] = paginas
@@ -1040,6 +1041,9 @@ def main():
                         help="prende estos switches desde la página de prueba, "
                              "que es la forma de poner al mundo en un estado al "
                              "que el juego llega más tarde")
+    parser.add_argument("--rama-de-prueba", nargs=3, type=int, default=None,
+                        metavar=("SWITCH", "ADENTRO", "DESPUES"),
+                        help="la misma rama que arma el conversor; ver allá")
     parser.add_argument("--flash-de-prueba", nargs=6, type=int, default=None,
                         metavar=("BLANCO", "R", "G", "B", "POTENCIA", "CUADROS"),
                         help="hace destellar a alguien desde la página de "
@@ -1145,7 +1149,7 @@ def main():
                   or args.ruta_de_evento or args.flash_de_prueba or args.switch
                   or args.timer_de_prueba or args.lugar_de_prueba
                   or args.sacudida_de_prueba or args.fundir_bgm
-                or args.pan_de_prueba
+                or args.pan_de_prueba or args.rama_de_prueba
                   or args.mensaje_de_prueba is not None)
     # El bloque de textos, armado igual que en el conversor y en el mismo orden:
     # el mensaje de prueba primero —desplazamiento 0— y después los mapas de la
@@ -1161,7 +1165,8 @@ def main():
                    snes_convert.lugar_de_prueba(args.lugar_de_prueba),
                    args.frecuencia,
                    snes_convert.sacudida_de_prueba(args.sacudida_de_prueba),
-                   args.fundir_bgm, snes_convert.pan_de_prueba(args.pan_de_prueba))
+                   args.fundir_bgm, snes_convert.pan_de_prueba(args.pan_de_prueba),
+                   tuple(args.rama_de_prueba or ()))
                   if hay_prueba else None, mensajes,
                   graficos_de_prueba=snes_convert.graficos_de_prueba(
                       args.grafico_de_prueba),

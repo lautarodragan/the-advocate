@@ -26,14 +26,11 @@ escena de Talan —los 233 comandos de la página de contacto del evento 5 del
 mapa 3— corre y **está verificada** en mil doscientos cuadros, y
 `demo-apertura` lleva los mapas 4, 1, 2, 3, 5 y 6.
 
-Las páginas automáticas que compilan enteras son **209 de 489**.
+Las páginas automáticas que compilan enteras son **257 de 489**.
 
 ### Lo próximo, si no se decide otra cosa
 
-1. **`ConditionalBranch`**, el desbloqueo más grande que queda: +24 páginas de
-   las 209 que compilan hoy. Y lo caro no sirve: limitado a condiciones de
-   **switch** se lleva 24 de las 27; agregarle variables suma cero, medido.
-2. **La secuencia del "1 year earlier"**, que es lo que sigue en el juego y lo
+1. **La secuencia del "1 year earlier"**, que es lo que sigue en el juego y lo
    que hoy deja mudo a `hzstream`: la página que lo prende —evento 1, página 2
    del mapa 4— pide `ChangeItems`, `ShowPicture`/`MovePicture` y
    `ChangePartyMembers`.
@@ -100,6 +97,21 @@ de cada una está en `README.md`.
   que las automáticas se repiten, la página de prueba reiniciaría su propia
   ruta para siempre. Su evento es el primer índice libre del mapa y no un
   número alto: los barridos de la ROM van de cero a `ev_total`.
+
+* **`ConditionalBranch` sólo con condiciones de switch.** Son 21 páginas de
+   las 24 que el comando destraba; las tres que faltan preguntan por el héroe
+   en el grupo, y sin grupo variable esa rama daría siempre lo mismo: modelarla
+   sin nada que la ejercite es inventarse una diferencia. Las variables suman
+   cero, medido.
+
+  Compila a dos opcodes: `OP_SI` —switch, polaridad y destino— y `OP_IR`, el
+  salto sin condición que va donde estaba el `else`. **El destino es absoluto
+  dentro de la página**, así que en la ROM saltar es asignar el cursor; quién
+  es ese destino lo resuelve el conversor, que es el único que ve la página
+  entera, emitiéndolo en blanco y parcheándolo al cerrar la rama. El
+  anidamiento sale de una pila y no de mirar la indentación como
+  `SkipToNextConditional`: él recorre una lista lineal, acá los bloques ya
+  vienen anidados.
 
 * **Las órdenes de ruta 26 a 29 sobre el héroe se aceptan y se tiran.** Fijar y
   soltar la mirada y subir y bajar la velocidad. Decidido con taro el

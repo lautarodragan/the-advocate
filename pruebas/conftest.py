@@ -27,16 +27,18 @@ def partida(builds):
     """Devuelve una fábrica: `partida(map_id=5, mapas=[3, 6], switch=[16])`."""
     abiertas = []
 
-    def hacer(map_id, mapas=(), switch=(), con_ventana=True):
-        clave = (map_id, tuple(mapas), tuple(switch), con_ventana)
+    def hacer(map_id, mapas=(), switch=(), con_ventana=True, rama=()):
+        clave = (map_id, tuple(mapas), tuple(switch), con_ventana, tuple(rama))
         if clave not in builds:
             destino = os.path.join(
                 os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                 "rom", "build", "pruebas",
                 "m%s-%s-s%s%s" % (map_id, "_".join(str(m) for m in mapas) or "0",
                                   "_".join(str(s) for s in switch) or "0",
-                                  "-v" if con_ventana else ""))
-            builds[clave] = armar(map_id, mapas, switch, con_ventana, destino)
+                                  "-v" if con_ventana else "")
+                + ("-r" + "_".join(str(n) for n in rama) if rama else ""))
+            builds[clave] = armar(map_id, mapas, switch, con_ventana, destino,
+                                  rama)
         sfc, simbolos, tabla = builds[clave]
         una = Partida(sfc, simbolos, tabla)
         abiertas.append(una)

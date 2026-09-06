@@ -645,6 +645,20 @@ OP_SACUDIR  = 0x0E      # fuerza (byte), velocidad (byte), cuadros (word):
 OP_DESTELLO = 0x0F      # r, g, b, fuerza (byte cada uno, 0..31) y cuadros
                         # (byte): `FlashOnce`, el destello de la pantalla
                         # entera. Ver `Estado.cuadro_de_destello`.
+OP_SI       = 0x12      # switch (word), polaridad (byte), destino (word):
+                        # `ConditionalBranch` con condición de switch. Si no se
+                        # cumple, el cursor salta al destino, que es el `else`
+                        # o el `end` de esa misma rama. La polaridad es la de
+                        # RM2k al revés y a propósito: allá `parameters[2] == 0`
+                        # quiere decir "tiene que estar prendido", así que acá
+                        # 0 es "prendido" y 1 es "apagado", igual que el dato.
+                        #
+                        # El destino es **absoluto** dentro de la página, no
+                        # relativo: el cursor de la ROM es un índice de 16 bits
+                        # en el mismo array, así que asignarlo es todo el salto.
+OP_IR       = 0x13      # destino (word): el salto sin condición que se emite
+                        # donde estaba el `else`, para que la rama de arriba se
+                        # saltee la de abajo.
 OP_PAN      = 0x11      # operación (byte: PAN_CORRER o PAN_VOLVER), cuánto se
                         # corre el destino en x y en y (word con signo cada
                         # uno, en 1/16 de pixel), el paso por cuadro (byte) y
@@ -1045,6 +1059,47 @@ def puede_dispararse(page):
     return True
 
 
+# `ConditionalBranch` y sus dos cierres. Salen de `event_codes.py`, que se
+# genera de liblcf: los de las puertas se pusieron de memoria una vez y tres
+# estaban mal.
+COND_RAMA = 12010
+COND_SINO = 22010
+COND_FIN = 22011
+
+# El tipo de condición que sabemos hacer: `parameters[0] == 0` es un switch.
+# Las otras once —variable, oro, objeto, héroe en el grupo— se rechazan, y eso
+# deja afuera tres páginas de las veinticuatro; ver ESTADO.md.
+COND_SWITCH = 0
+
+# Cuántos switches entra el bitmap de la ROM: `SWITCH_BYTES` son 128, o sea del
+# 0 al 1023. Una rama sobre uno más alto escribiría fuera, así que no compila.
+SWITCH_MAX = 1024
+
+
+def bytes_de_rama(cmd):
+    """Un `ConditionalBranch` con condición de switch, con el destino en blanco.
+
+    Las otras once clases de condición —variable, oro, objeto, tiempo, héroe en
+    el grupo— se rechazan. No es que sean difíciles: es que no hay con qué
+    ejercitarlas. Sin variables, sin oro y sin inventario, una rama sobre
+    cualquiera de ésas daría siempre la misma respuesta y la prueba no diría
+    nada. Deja afuera tres páginas de las veinticuatro.
+    """
+    p = cmd.parameters
+    if len(p) < 3 or p[0] != COND_SWITCH:
+        raise NoSePuede("rama sobre algo que no es un switch")
+    numero = p[1]
+    if not 0 <= numero < SWITCH_MAX:
+        raise NoSePuede("switch %d fuera del bitmap" % numero)
+    # La polaridad se copia tal cual de RM2k: 0 es "tiene que estar prendido".
+    return bytes([OP_SI, numero & 0xFF, numero >> 8, 1 if p[2] else 0, 0, 0])
+
+
+def con_destino(pieza, destino):
+    """La misma pieza con el destino puesto en sus dos últimos bytes."""
+    return pieza[:-2] + bytes([destino & 0xFF, destino >> 8])
+
+
 def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
                     temas=None, graficos=None):
     """Los comandos de una página como bytes, o None si no se puede.
@@ -1064,10 +1119,43 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
     """
     marca = mensajes.marca() if mensajes is not None else None
     try:
-        codigo = b"".join(_compilar(cmd, indice_de_mapa, mensajes, extra,
-                                    eventos_mapa, temas, graficos)
-                          for cmd, extra in agrupar(page.commands)) \
-            + bytes([OP_FIN])
+        # Las ramas se emiten con el destino en blanco y se parchean al
+        # cerrarlas, que es la única manera: hasta que no se compiló lo de
+        # adentro no se sabe cuánto ocupa. La pila lleva el anidamiento, así
+        # que no hace falta mirar la indentación como hace
+        # `SkipToNextConditional` —él recorre la lista de comandos, acá los
+        # bloques ya vienen bien anidados—.
+        piezas = []
+        largo = 0
+        pila = []            # piezas con el destino todavía en blanco
+        for cmd, extra in agrupar(page.commands):
+            if cmd.code == COND_RAMA:
+                pila.append(len(piezas))
+                pieza = bytes_de_rama(cmd)
+            elif cmd.code == COND_SINO:
+                if not pila:
+                    raise NoSePuede("un `else` sin su `if`")
+                abierta = pila.pop()
+                pieza = bytes([OP_IR, 0, 0])
+                # El destino del `if` es **después** de este salto, que es
+                # donde arranca la rama de abajo; el del salto se resuelve en
+                # el `end`, con la pieza que queda abierta en su lugar.
+                piezas[abierta] = con_destino(piezas[abierta], largo + 3)
+                pila.append(len(piezas))
+            elif cmd.code == COND_FIN:
+                if not pila:
+                    raise NoSePuede("un `end` sin su `if`")
+                abierta = pila.pop()
+                piezas[abierta] = con_destino(piezas[abierta], largo)
+                pieza = b""
+            else:
+                pieza = _compilar(cmd, indice_de_mapa, mensajes, extra,
+                                  eventos_mapa, temas, graficos)
+            piezas.append(pieza)
+            largo += len(pieza)
+        if pila:
+            raise NoSePuede("una rama sin cerrar")
+        codigo = b"".join(piezas) + bytes([OP_FIN])
         return codigo
     except NoSePuede:
         if mensajes is not None:
@@ -2325,7 +2413,7 @@ LARGO_DE_OPCODE = {
     OP_FIN: 1, OP_SWITCH: 4, OP_TELEPORT: 6, OP_ESPERAR: 3, OP_TINTE: 5,
     OP_GRUPO: 3, OP_MENSAJE: 3, OP_RUTAS: 1, OP_FLASH: 7, OP_TIMER: 5,
     OP_BGM: 2, OP_LUGAR: 6, OP_TRUEQUE: 3, OP_SACUDIR: 5, OP_DESTELLO: 6,
-    OP_FUNDIR_BGM: 3, OP_PAN: 8,
+    OP_FUNDIR_BGM: 3, OP_PAN: 8, OP_SI: 6, OP_IR: 3,
 }
 
 
@@ -2518,7 +2606,7 @@ def evento_de_prueba(game_map):
 def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
                     flash=(), switches=(), timer=(), lugar=(),
                     frecuencia=RUTA_FRECUENCIA, sacudida=(), fundir_bgm=0,
-                    pan=()):
+                    pan=(), rama=()):
     """Una página automática inventada: una ruta forzada, una espera, un tinte.
 
     No sale de ningún dato del juego, y ésa es la idea. El intérprete corre
@@ -2583,6 +2671,28 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
         # jugar hasta ahí: todas las páginas del pad de Talan piden el 24, que
         # prende la cinemática de apertura.
         codigo += bytes([OP_SWITCH, numero & 0xFF, numero >> 8, 1])
+    if rama:
+        # (switch, adentro, después): una rama de verdad, con la condición
+        # decidida por un switch que esta misma página prendió arriba. Existe
+        # por lo mismo que el resto: ninguna página del juego que use
+        # `ConditionalBranch` prende antes el switch que la decide, así que no
+        # hay ninguna donde se pueda elegir qué rama se toma. Sin eso, la rama
+        # que **corre** no la ejercita nada; sólo la que se saltea.
+        #
+        # Compila a lo mismo que compilaría el juego —`OP_SI` y `OP_IR`, con el
+        # destino puesto por el mismo parcheo— porque sale del mismo camino:
+        # se arma la lista de comandos y la compila `compilar_pagina`.
+        cual, adentro, despues = rama
+        # El destino es el mismo que pondría `compilar_pagina` al cerrar la
+        # rama: después del `OP_SI` —seis bytes— y del `OP_SWITCH` de adentro
+        # —cuatro—. Acá se calcula a mano porque esta página no sale de comandos
+        # de RM2k, así que no pasa por el parcheo; el bytecode que resulta es el
+        # mismo byte por byte, que es lo que hace que pruebe algo.
+        destino = len(codigo) + 6 + 4
+        codigo += bytes([OP_SI, cual & 0xFF, cual >> 8, 0,
+                         destino & 0xFF, destino >> 8])
+        codigo += bytes([OP_SWITCH, adentro & 0xFF, adentro >> 8, 1])
+        codigo += bytes([OP_SWITCH, despues & 0xFF, despues >> 8, 1])
     if fundir_bgm:
         # Los milisegundos de un `FadeOutBGM`. Va primero de todo para que el
         # fundido arranque en el cuadro cero y se lo pueda medir contra el
@@ -2956,6 +3066,18 @@ def ejecutar(codigo, estado, desde=0):
                 estado.switches.discard(numero)
                 estado.refresco = True
             i += 4
+        elif op == OP_SI:
+            # `CommandConditionalBranch` con condición de switch: si no se
+            # cumple, el cursor se va al `else` o al `end`. El destino es
+            # absoluto dentro de la página, así que el salto es la asignación.
+            numero = codigo[i + 1] | (codigo[i + 2] << 8)
+            quiere_prendido = not codigo[i + 3]
+            if (numero in estado.switches) == quiere_prendido:
+                i += 6
+            else:
+                i = codigo[i + 4] | (codigo[i + 5] << 8)
+        elif op == OP_IR:
+            i = codigo[i + 1] | (codigo[i + 2] << 8)
         elif op == OP_TELEPORT:
             # El resto de la página sí corre. En
             # `Game_Interpreter_Map::CommandTeleport` el motor reserva el

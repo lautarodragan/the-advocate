@@ -141,7 +141,8 @@ class Partida:
         return self.byte("cuadros_perdidos")
 
 
-def armar(map_id, mapas=(), switch=(), con_ventana=True, destino=None):
+def armar(map_id, mapas=(), switch=(), con_ventana=True, destino=None,
+          rama=()):
     """Convierte, ensambla y devuelve (ROM, símbolos, ids de mapa en orden).
 
     Los mismos dos comandos que corre el justfile, para que una ROM de prueba
@@ -158,6 +159,8 @@ def armar(map_id, mapas=(), switch=(), con_ventana=True, destino=None):
         convertir += ["--mapas"] + [str(m) for m in mapas]
     if switch:
         convertir += ["--switch"] + [str(s) for s in switch]
+    if rama:
+        convertir += ["--rama-de-prueba"] + [str(n) for n in rama]
     if con_ventana:
         convertir.append("--con-ventana")
     convertir += ["-o", inc]

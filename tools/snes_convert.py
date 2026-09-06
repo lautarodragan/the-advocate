@@ -1740,6 +1740,8 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "OP_DESTELLO = $%02X\n"
         "OP_FUNDIR_BGM = $%02X\n"
         "OP_PAN      = $%02X\n"
+        "OP_SI       = $%02X\n"
+        "OP_IR       = $%02X\n"
         "; Las dos operaciones de PanScreen que compilan.\n"
         "PAN_CORRER  = %d\n"
         "PAN_VOLVER  = %d\n"
@@ -1848,6 +1850,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            eventos.OP_FLASH, eventos.OP_TIMER, eventos.OP_BGM,
            eventos.OP_LUGAR, eventos.OP_TRUEQUE, eventos.OP_SACUDIR,
            eventos.OP_DESTELLO, eventos.OP_FUNDIR_BGM, eventos.OP_PAN,
+           eventos.OP_SI, eventos.OP_IR,
            eventos.PAN_CORRER, eventos.PAN_VOLVER,
            eventos.TIMER_PONER, eventos.TIMER_ARRANCAR,
            TIMER_X, TIMER_Y, TIMER_GLIFO_W, TIMER_GLIFOS - 1,
@@ -2415,6 +2418,12 @@ def main():
                         help="prende estos switches desde la página de prueba, "
                              "que es la forma de poner al mundo en un estado al "
                              "que el juego llega más tarde")
+    parser.add_argument("--rama-de-prueba", nargs=3, type=int, default=None,
+                        metavar=("SWITCH", "ADENTRO", "DESPUES"),
+                        help="una rama en la página de prueba: si SWITCH está "
+                             "prendido prende ADENTRO, y prenda o no, después "
+                             "prende DESPUES. Con --switch se elige qué rama "
+                             "se toma; sin él se toma la otra")
     parser.add_argument("--flash-de-prueba", nargs=6, type=int, default=None,
                         metavar=("BLANCO", "R", "G", "B", "POTENCIA", "CUADROS"),
                         help="hace destellar a alguien desde la página de "
@@ -2621,6 +2630,7 @@ def main():
                      "de ruta: %s contra %s"
                      % (mapa["id"], graficos.pares, mapa["graficos_de_ruta"]))
         if (args.pagina_de_prueba or args.ruta_de_prueba
+                or args.rama_de_prueba
                 or args.ruta_de_evento or args.flash_de_prueba or args.switch
                 or args.timer_de_prueba or args.lugar_de_prueba
                 or args.sacudida_de_prueba or args.fundir_bgm
@@ -2650,7 +2660,8 @@ def main():
                     frecuencia=args.frecuencia,
                     sacudida=sacudida_de_prueba(args.sacudida_de_prueba),
                     fundir_bgm=args.fundir_bgm,
-                    pan=pan_de_prueba(args.pan_de_prueba))}, {
+                    pan=pan_de_prueba(args.pan_de_prueba),
+                    rama=tuple(args.rama_de_prueba or ()))}, {
                 # Y la que la apaga: misma idea que en la referencia, ver
                 # `PAGINA_DE_PRUEBA_APAGADA`. Sin código, así que en cuanto
                 # gana, el evento inventado deja de tener una automática que
