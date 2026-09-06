@@ -199,9 +199,19 @@ MARGEN_COLS = 4
 ; arrancaba un cuadro después, y cada receta que compara cuadros en movimiento
 ; lleva ese número medido a mano. Ahora se espera hasta este cuadro y el lazo
 ; arranca siempre en el mismo. Una ROM cuyo arranque tarde más que esto sale
-; sin esperar, más tarde, pero igual de fijo para ella: la del arranque con
-; música tarda 57.
-BOOT_CUADROS = 64
+; sin esperar, más tarde, pero igual de fijo para ella.
+;
+; Eran 64 hasta el 2026-09-06, cuando el cartucho pasó a llevar varios temas: el
+; banco de muestras lo comparten todos y creció, y **la subida al SPC700 va byte
+; a byte con acuse**, que es lo caro —unos 1,4 cuadros por kilobyte—. El número
+; está medido y sale del techo, no del banco de hoy: con la ARAM llena, 62310 B,
+; la ROM llega al lazo en el cuadro 101. 112 lo cubre con margen, y de paso hace
+; que llenar la ARAM no cueste nada: el arranque ya está pagado.
+;
+; Lo que compraría los 48 cuadros de vuelta es un driver que sepa recibir datos
+; por los cuatro puertos en vez de por el protocolo del IPL, que manda uno.
+; Está anotado en "Lo que falta".
+BOOT_CUADROS = 112
 VIEW_ROWS = 29
 
 ; La ventana de mensaje: 256x80 pegada abajo de una pantalla de 224 líneas, o
@@ -2806,13 +2816,14 @@ timer_fin:
     jmp otro
 
 ; `PlayBGM`. El operando es el índice del tema en `Temas`, y el cartucho lleva
-; uno solo: si coincide con `TEMA_INDICE` suena, y si no no pasa nada, que es lo
-; que pasaba antes con todos. Ver `tema_de_la_rom` en el conversor.
+; los que hayan entrado en la ARAM: los primeros `TEMA_TOTAL`. Un índice más
+; alto es un tema que no entró y no suena, que es lo que pasaba con todos menos
+; uno hasta el 2026-09-06. Ver `temas_de_la_rom` en el conversor.
 op_bgm:
     lda [cod_ptr], y
     iny
-    cmp #TEMA_INDICE
-    bne otro_tema
+    cmp #TEMA_TOTAL
+    bcs otro_tema
     phy
     jsr music_start
     ply
@@ -11667,6 +11678,9 @@ mirar_abs: .res 2
 ; 1 mientras no haya ningún tema sonando. Va en la BSS y no en la página directa
 ; —donde vive el resto del estado de la música— porque ahí ya no entra.
 music_apagada: .res 1
+; Qué tema está sonando, en dos bytes con el alto en cero porque se usa como
+; índice de las tres tablas de punteros y X es de dieciséis.
+tema_actual: .res 2
 ; El desplazamiento del salto con el signo ya extendido a dieciséis bits, que
 ; es como se suma a la celda.
 salto_dx16: .res 2
@@ -11756,15 +11770,30 @@ listo:
     rts
 .endproc
 
-; Arranca el tema desde el principio. El comienzo del stream trae la puesta a
-; punto del DSP —los volúmenes, el directorio de muestras— así que volver a
-; llamar acá es exactamente lo que hace un `PlayBGM`: empezar de cero.
+; Arranca desde el principio el tema cuyo índice trae A. El comienzo del stream
+; trae la puesta a punto del DSP —los volúmenes, el directorio de muestras— así
+; que volver a llamar acá es exactamente lo que hace un `PlayBGM`: empezar de
+; cero.
+;
+; El cartucho lleva varios temas desde el 2026-09-06 y **todos comparten el
+; banco de muestras**, que se sube una sola vez al arrancar: cambiar de tema es
+; cambiar de stream y nada más, o sea que no cuesta ni un cuadro. De ahí que
+; acá no haya nada que subir. Ver `Banco` en tools/snes_music.py.
+;
+; Qué índice está sonando queda en `tema_actual`, que es lo que `music_frame`
+; necesita para volver a empezar cuando el stream termina: sin eso el loop
+; volvía siempre al primero.
 .proc music_start
 .a8
 .i16
-    ldx #.loword(tema_stream)
-    stx music
-    lda #^tema_stream
+    sta tema_actual
+    stz tema_actual + 1
+    ldx tema_actual
+    lda tema_lo, x
+    sta music
+    lda tema_hi, x
+    sta music + 1
+    lda tema_bk, x
     sta music + 2
     stz wait_frames
     stz music_apagada
@@ -11842,14 +11871,15 @@ espera:
     rts
 .endproc
 
-; La música al arrancar la ROM. Si el tema que se llevó el cartucho es el del
-; mapa, suena solo; si es el que pide un `PlayBGM`, no suena hasta que el evento
-; lo prenda, que es lo que hace RM2k. Callado quiere decir que al DSP no se le
-; escribe nada, así que no hay nada que silenciar.
+; La música al arrancar la ROM. `TEMA_ARRANQUE` es el tema del mapa donde la
+; ROM arranca, o $FF si ese mapa no tiene —que es lo normal en este juego: los
+; primeros mapas no traen música y la prende un `PlayBGM`—. Callado quiere
+; decir que al DSP no se le escribe nada, así que no hay nada que silenciar.
 .proc music_boot
 .a8
 .i16
-    lda #TEMA_AL_ARRANCAR
+    lda #TEMA_ARRANQUE
+    cmp #$FF
     bne suena
     lda #1
     sta music_apagada
@@ -11888,7 +11918,8 @@ run:
     lda reinicio
     bne mudo
     inc reinicio
-    jsr music_start             ; se terminó: de nuevo desde arriba
+    lda tema_actual             ; se terminó: el mismo, de nuevo desde arriba
+    jsr music_start
     bra run
 mudo:
     ; Un stream vacío: nada que tocar, ni en este cuadro ni en los que vienen.

@@ -2354,6 +2354,13 @@ def main():
                              "milisegundos. Ninguna página del juego que hoy\n"
                              "compile apaga la música, así que sin esto el\n"
                              "camino no lo corre nada")
+    parser.add_argument("--tema-de-arranque", default=None, metavar="NOMBRE",
+                        help="hace que la ROM arranque tocando ese tema en vez\n"
+                             "del que le toca al mapa. Existe para poder\n"
+                             "verificar cada tema del cartucho con snes-check,\n"
+                             "que escucha desde el arranque: los mapas donde\n"
+                             "esto empieza no traen música propia y sin el flag\n"
+                             "la ROM sale callada. No cambia el bytecode")
     parser.add_argument("--lugar-de-prueba", nargs="+", type=int, default=None,
                         metavar="N",
                         help="BLANCO X Y [ESPERA]: planta al evento —el índice "
@@ -2672,54 +2679,58 @@ def main():
     # había generado a mano. Emitirlos juntos es lo único que garantiza que los
     # dos describan la misma ROM.
     #
-    # Suena el tema del mapa donde la ROM arranca. Que la música siga al mapa
-    # cuando uno se teletransporta pide varios bancos de muestras en el
-    # cartucho, y no está: ver 'Lo que falta' en rom/LEEME.md.
+    # Van **todos los temas que quepan**, compartiendo un solo banco de
+    # muestras, y suena el del mapa donde la ROM arranca; los demás los prende
+    # un `PlayBGM`. Lo que decide cuántos entran es la ARAM y no el cartucho:
+    # ver `Banco` en snes_music.py, y "Varios temas en el cartucho" en el
+    # LEEME.
     musica = os.path.join(os.path.dirname(os.path.abspath(args.output)),
                           "musicdata.inc")
-    elegido, indice, al_arrancar = tema_de_la_rom(
-        mapas[args.inicial]["id"], temas, args.game_dir)
-    nombre, driver, muestras, stream, segundos, _resumen = \
-        snes_music.build_nombre(elegido, args.game_dir)
-    snes_music.emit(musica, nombre, driver, muestras, stream,
-                    indice if nombre else 0xFF, al_arrancar)
-    print("música -> %s: %s" % (musica, nombre or "ninguna, sale muda"))
-    if nombre:
-        print("  %.0f s, %d B de muestras y %d B de stream, %s"
-              % (segundos, len(muestras), len(stream),
-                 "suena desde el arranque" if al_arrancar
-                 else "lo prende un PlayBGM (índice %d)" % indice))
-    if len(temas.nombres) > 1:
-        print("  los otros %d que piden los PlayBGM quedan mudos: %s"
-              % (len(temas.nombres) - 1,
-                 ", ".join(n for n in temas.nombres if n != elegido)))
+    pedidos, arranque = temas_de_la_rom(mapas[args.inicial]["id"], temas,
+                                        args.game_dir,
+                                        args.tema_de_arranque)
+    driver, muestras, hechos, banco, afuera = snes_music.build_varios(
+        pedidos, args.game_dir)
+    if arranque != 0xFF and arranque >= len(hechos):
+        arranque = 0xFF             # el del mapa fue uno de los que no entró
+    snes_music.emit(musica, hechos, driver, muestras, arranque)
+    print("música -> %s: %s"
+          % (musica, ", ".join(t["nombre"] for t in hechos)
+             or "ninguna, sale muda"))
+    for i, tema in enumerate(hechos):
+        print("  %d. %-16s %4.0f s, %6d B de stream%s"
+              % (i, tema["nombre"], tema["segundos"], len(tema["stream"]),
+                 ", suena desde el arranque" if i == arranque else ""))
+    if hechos:
+        print("  banco compartido: %d muestras, %d B de los %d de ARAM"
+              % (len(banco.voces), banco.bytes, snes_music.ARAM_LIBRE))
+    if afuera:
+        print("  no entraron en ARAM y quedan mudos: %s" % ", ".join(afuera))
 
     if args.reference:
         mapas[args.inicial]["base"].save(args.reference)
         print("referencia -> %s" % args.reference)
 
 
-def tema_de_la_rom(map_id, temas, game_dir):
-    """Cuál de los temas se lleva el cartucho, con qué índice, y si suena desde
-    el arranque.
+def temas_de_la_rom(map_id, temas, game_dir, forzado=None):
+    """Qué temas pide el cartucho y cuál suena al arrancar.
 
-    Entra uno solo, y no por espacio de cartucho sino de ARAM: el banco de
-    muestras vive en los 64 KB del SPC700 y se sube una sola vez, con el
-    protocolo del IPL, que después de saltar al driver ya no está. Llevar dos
-    pide o que entren los dos bancos juntos —el de `escape_newyork` son 32 KB—
-    o un driver que sepa recibir datos, y ninguna de las dos cosas está.
+    Se piden **todos**: los que los `PlayBGM` compilados nombran, más el del
+    mapa donde la ROM arranca, que es el que suena sin que pase nada. Cuántos
+    entran de verdad lo decide `snes_music.build_varios`, y no lo limita el
+    cartucho sino la ARAM: las muestras las comparten y el banco compartido
+    vive en los 64 KB del SPC700.
 
-    Gana el tema del mapa donde la ROM arranca, porque es el que suena sin que
-    pase nada. Si ese mapa no tiene, gana el primero que pida un `PlayBGM` de
-    los que se compilaron, y entonces no suena hasta que el evento lo prenda.
+    Los índices son los de `Temas` y no se tocan: el bytecode ya los lleva
+    emitidos, así que uno que no entre simplemente no suena —lo mismo que
+    hacían todos menos uno hasta el 2026-09-06—. Por eso el del mapa se agrega
+    **al final**, que es lo único que no renumera a los demás.
     """
-    propio = snes_music.tema_del_mapa(map_id, game_dir)
+    propio = forzado or snes_music.tema_del_mapa(map_id, game_dir)
     if propio:
-        return propio, (temas.indice(propio) if propio in temas.nombres
-                        else 0xFF), True
-    if temas.nombres:
-        return temas.nombres[0], 0, False
-    return "", 0xFF, True
+        temas.indice(propio)            # lo agrega al final si no estaba
+    nombres = list(temas.nombres)
+    return nombres, (nombres.index(propio) if propio else 0xFF)
 
 
 def inicio_del_mapa(renderer, map_id, passable, width, height, ocupadas=()):

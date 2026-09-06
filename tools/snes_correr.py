@@ -27,12 +27,16 @@ from retro import Consola, CORE
 
 # Cuántos cuadros se le dan a la ROM antes de apretar nada y de empezar a
 # contar. Desde el 2026-09-05 el arranque de la ROM dura siempre lo mismo
-# —BOOT_CUADROS en main.s, y el lazo principal corre su primer cuadro en el
-# 67, medido en la WRAM sobre seis ROMs distintas, con y sin música—, así que
-# con 67 el cuadro N de la captura muestra el tick N de la referencia, en
-# cualquier mapa. Antes cada receta llevaba un número medido a mano que se
-# corría con cada cambio de código o de datos.
-ARRANQUE = 67
+# —BOOT_CUADROS en main.s más tres—, así que con este número el cuadro N de la
+# captura muestra el tick N de la referencia, en cualquier mapa. Antes cada
+# receta llevaba un número medido a mano que se corría con cada cambio de
+# código o de datos.
+#
+# Eran 67 hasta el 2026-09-06. Subió a 115 cuando el cartucho pasó a llevar
+# varios temas: el banco de muestras es uno solo para todos y creció, y subirlo
+# al SPC700 va byte a byte con acuse. El porqué del 112 de BOOT_CUADROS está
+# en main.s.
+ARRANQUE = 115
 
 # Cuánto se corre de más después de los cuadros que dice el plan. La ROM llega
 # uno o dos cuadros después de `pasos x 8` —el pad se lee una vez por cuadro y

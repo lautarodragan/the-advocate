@@ -295,6 +295,14 @@ def build_drum_bank(notes, budget=DRUM_BUDGET, soundfont=SOUNDFONT):
     return drums
 
 
+# Cuánto de su parte tiene que haber gastado un instrumento para que se lo
+# considere "con hambre" y entre en el reparto de lo que sobró. No es 100%
+# porque el largo real se redondea a bloques de 16 muestras y casi nunca cae
+# justo.
+PARTE_LLENA = 0.95
+VUELTAS_DE_REPARTO = 3
+
+
 def build_bank(programs, budget=ARAM_BUDGET, soundfont=SOUNDFONT,
                key=REFERENCE_KEY):
     """Un banco con todos los instrumentos pedidos, repartiendo el presupuesto.
@@ -302,15 +310,34 @@ def build_bank(programs, budget=ARAM_BUDGET, soundfont=SOUNDFONT,
     Se reparte en partes iguales. Podría ponderarse por cuánto suena cada uno,
     pero el que más suena no es el que más resolución necesita: un bajo aguanta
     4 kHz sin que se note y un arpa no.
+
+    **Y lo que sobra se vuelve a repartir**, que es lo que hace que varios temas
+    puedan compartir un banco sin sonar peor. Un instrumento corto, o uno que
+    topa en MAX_RATE, no gasta su parte: con cinco programas sobraban 10 de los
+    40 KB. Repartir ese sobrante entre los que sí la gastaron es la diferencia
+    entre que el piano de `escape_newyork` baje a 12,6 kHz al meter cuatro temas
+    y que se quede en 21. Dos o tres vueltas alcanzan para converger; después no
+    queda nadie con hambre.
     """
     font = sf2.SoundFont(soundfont)
-    share = budget // max(1, len(programs))
+    parte = budget // max(1, len(programs))
+    reparto = {program: parte for program in programs}
+    hechas = {}
 
-    voices = []
-    for program in programs:
-        voice = build_voice(font, program, share, key)
-        if voice is not None:
-            voices.append(voice)
+    for _ in range(max(1, VUELTAS_DE_REPARTO)):
+        for program in programs:
+            if program not in hechas:
+                hechas[program] = build_voice(font, program, reparto[program],
+                                              key)
+        voices = [hechas[p] for p in programs if hechas[p] is not None]
+        sobra = budget - sum(len(v.data) for v in voices)
+        hambrientos = [v.program for v in voices
+                       if len(v.data) >= reparto[v.program] * PARTE_LLENA]
+        if sobra <= 0 or not hambrientos:
+            break
+        for program in hambrientos:
+            reparto[program] += sobra // len(hambrientos)
+            del hechas[program]         # sólo se rearman los que cambiaron
     return voices
 
 

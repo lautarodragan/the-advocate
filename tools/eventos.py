@@ -529,15 +529,16 @@ class Temas:
     que aparecen.
 
     Es el hermano de `Mensajes`: el bytecode lleva un índice y no un nombre, y
-    quien resuelve el índice es el conversor. La ROM **no lleva todos**: el
-    banco de muestras vive en los 64 KB de ARAM y se sube una sola vez al
-    arrancar, así que hoy entra uno. El que entró es `TEMA_INDICE`; los demás
-    índices existen igual en el bytecode y la ROM los ignora, que es lo mismo
-    que hacía antes con todos.
+    quien resuelve el índice es el conversor. La ROM lleva **los primeros
+    `TEMA_TOTAL`**, que son los que entraron en la ARAM: las muestras las
+    comparten todos y el banco compartido vive en los 64 KB del SPC700, que se
+    suben una sola vez al arrancar. Un índice más alto es un tema que no entró
+    y no suena.
 
-    Numerarlos a todos y no sólo al que entra no es un detalle: así el bytecode
-    no depende de cuál se eligió, y el día que entren dos no hay que recompilar
-    nada distinto.
+    Numerarlos a todos y no sólo a los que entran es lo que hace que el
+    bytecode no dependa de cuáles se eligieron. Hasta el 2026-09-06 entraba uno
+    solo y esto ya estaba escrito así; el día que entraron cuatro no hubo que
+    recompilar nada distinto.
     """
 
     def __init__(self):
@@ -611,10 +612,9 @@ OP_FUNDIR_BGM = 0x10    # paso (word): cuánto baja por cuadro el volumen del
                         # teletransporte —resuelto por el conversor para que
                         # la ROM no lo vuelva a mirar—, y lo hace
                         # `paso_de_fundido`.
-OP_BGM      = 0x0B      # el índice del tema en `Temas` (byte). La ROM toca el
-                        # que le tocó llevar —`TEMA_INDICE`— y con cualquier
-                        # otro no hace nada, que es lo que hacía antes con
-                        # todos. Ver `Temas`.
+OP_BGM      = 0x0B      # el índice del tema en `Temas` (byte). La ROM toca
+                        # los que llevó —los primeros `TEMA_TOTAL`— y con
+                        # cualquier otro no hace nada. Ver `Temas`.
 OP_TIMER    = 0x0A      # operación (byte), segundos (word), visible (byte).
                         # Los cinco bytes son fijos aunque cada operación use
                         # dos: así el intérprete lo saltea sin mirar cuál es,

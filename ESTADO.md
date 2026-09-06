@@ -10,7 +10,7 @@ es la misma operación con pérdida que compactar, sólo que a un archivo.
 
 Última vez que se tocó: 2026-09-06.
 
-## Lo próximo: varios temas en el cartucho, y después la escena de Talan
+## Lo próximo: cambiar el gráfico a mitad de una ruta, y con eso la escena de Talan
 
 **El orden lo acordamos con taro el 2026-09-05**, y es éste:
 
@@ -19,10 +19,7 @@ es la misma operación con pérdida que compactar, sólo que a un archivo.
 3. ~~**`PanScreen`**: correr la cámara sin el héroe.~~ Hecho el 2026-09-06, y
    destapó que la RAM se había acabado: ver abajo.
 4. ~~Las **diagonales** de ruta, órdenes 4 a 7.~~ Hecho el 2026-09-06.
-5. **`PlayBGM` con varios temas**, que taro pidió meter antes de lo caro: los
-   de las primeras secuencias nomás, `hzstream` incluido —el de después del
-   "1 year earlier", con Talan en su pad—. El cartucho puede ir a 1 MB; lo que
-   se cuida es no alargar la tanda ahora. Ver "Lo que falta" en el LEEME.
+5. ~~**`PlayBGM` con varios temas.**~~ Hecho el 2026-09-06.
 6. La orden de ruta **34**, cambiar el gráfico a mitad de una ruta, que es lo
    más caro que queda y lo que el LEEME viene anotando como imposible: dos
    mecanismos sobre la misma fila. Atenuante medida: el `Future3[3]` que esa
@@ -36,7 +33,7 @@ el gráfico, o sea el punto 6. Cuando eso corra, el juego llega hasta el
 sumarlo a `demo-apertura` entonces, o es el bug del ascensor otra vez.
 
 Y mientras tanto: que taro juegue `demo-apertura` de nuevo, que ahora abre esa
-puerta.
+puerta y suena con los tres temas de las primeras secuencias.
 
 ### Las tres vueltas anteriores, que están hechas
 
@@ -124,9 +121,10 @@ mapa—. Con eso compilan las páginas del evento 21 y del ascensor, que no
 tienen caso en la tanda todavía.
 
 **El arranque de la ROM es fijo desde el 2026-09-05**: `BOOT_CUADROS` en
-`main.s`, y `--arranque 67` en todas las recetas, ver "El arranque dura
-siempre lo mismo" en el LEEME. Antes cada receta llevaba un número medido a
-mano que se corría con cada cambio.
+`main.s`, y ese número más tres como `--arranque` en todas las recetas, ver "El
+arranque dura siempre lo mismo" en el LEEME. Antes cada receta llevaba un
+número medido a mano que se corría con cada cambio. Eran 64 y 67 hasta el
+2026-09-06; son **112 y 115** desde que el cartucho lleva varios temas.
 
 **`demo-apertura` está rearmada** el 2026-09-05 con todo esto adentro —
 colisión, trueque, transparencia, sacudida, tinte en el vblank, arranque
@@ -202,6 +200,55 @@ Queda para después:
   la primera vuelta de una ROM con muchas páginas y el de la vuelta en que un
   fundido termina, y son lo único que le falta a la escena del ascensor para
   tener caso propio en la tanda: ver "Lo que falta" del LEEME.
+
+## Hecho el 2026-09-06: varios temas en el cartucho
+
+El cartucho lleva ahora todos los temas que pidan los `PlayBGM` compilados y
+quepan; con las primeras secuencias son tres, o cuatro con `hzstream`. No hizo
+falta ir a 1 MB: los streams son 95 KB de los 480 que quedaban.
+
+Lo que hay que saber para tocarlo:
+
+* **El límite es la ARAM, no el cartucho**, y por eso los temas **comparten un
+  solo banco de muestras**. Un banco por tema pediría subirlo en cada
+  `PlayBGM`, medio segundo de transferencia, y eso habría que modelarlo en la
+  referencia para que la comparación cuadro a cuadro siga valiendo. Compartir
+  sale casi gratis porque el banco es por programa de General MIDI.
+* **Lo que lo hace gratis de verdad es repartir lo que sobra** en
+  `snes_samples.build_bank`. Sin eso, doce programas recibían la mitad que
+  cinco y el piano bajaba de 22,1 a 12,6 kHz. Con eso, las escrituras melódicas
+  al DSP de `evilrhys` con el banco compartido son las **mismas 8627** que con
+  un banco propio, byte por byte. La percusión sí queda más gruesa: ahí no hay
+  nada que compartir.
+* **Y costó ocho décimas de arranque.** La subida al SPC700 va byte a byte con
+  acuse, 1,4 cuadros por kilobyte; con `BOOT_CUADROS` en 64 la ROM se pasaba y
+  el lazo arrancaba en el 101. Ahora son 112, medidos sobre el techo —la ARAM
+  llena— y no sobre el banco de hoy, así que llenar la ARAM ya no cuesta nada.
+  `--arranque` pasó de 67 a 115 en todas las recetas.
+
+Qué se corrió: **83 casos en verde**, y `just snes-bgm` sobre los cuatro temas,
+que arma la ROM con `--tema-de-arranque`, graba el audio sin pantalla y lo
+compara contra el MIDI: `escape_newyork` 96%, `TF3_1_awe` 98%, `evilrhys` 83% y
+`hzstream` 90%, éste último con el banco de los cuatro y la ARAM casi llena.
+`snes-bgm` **no está en la tanda**: es visual y esto pide grabar cuarenta
+segundos por tema.
+
+### Lo que apareció midiendo esto, y no está arreglado
+
+**`evilrhys` es ruidoso de medir**: dio 66%, 75% y 83% en tres corridas, contra
+un techo de 95% que le da FluidSynth con el mismo MIDI. La medida sale de
+sesenta ventanas de una grabación que arranca donde haya señal, así que en un
+tema con poca nota sostenida el corrimiento elegido mueve el número. Lo que
+**no** lo mueve es el banco compartido: sus escrituras melódicas son idénticas
+con banco propio. Lo que lo tiene al límite es que tiene **ocho canales
+melódicos para seis voces**, así que dos no suenan nunca. Arreglar eso es otro
+tema —cómo se reparten las voces— y no entra en éste.
+
+**`hzstream` todavía no se llega a oír jugando.** Su `PlayBGM` está en la
+página 2 del evento 1 del mapa 4 —la secuencia del "1 year earlier"— y esa
+página no compila: pide `ChangeItems`, `ShowPicture`/`MovePicture`, y
+`ChangePartyMembers`. El cartucho sabe llevarlo y se verificó que suena; lo que
+falta es la página que lo prende.
 
 ## Hecho el 2026-09-06: las diagonales de ruta
 

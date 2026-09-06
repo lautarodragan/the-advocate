@@ -33,18 +33,18 @@ snes-evento 4 "7 19 1" tabla
 snes-caminando 73 right "40 60 80"
 snes-caminando 6 down "40 60 80"
 snes-ruta
-snes-ruta 6 "1 1 24 1 1 25 2 2" "10 14 20 26 60" 67 salto
-snes-ruta 6 "36 0 0 0 0 0 0" "20 40 60" 67 through "10 8"
-snes-ruta 6 "38 2 2 2 39 2 2 2" "4 10 16 28 34 44" 67 anim "10 8"
-snes-ruta 6 "1 1 12 2 23 2" "20 44 88 100 150 400" 67 ruta-lenta "" 4
-snes-ruta 6 "2 2 31 2 2 30 2 2" "20 30 40 52" 67 ruta-frec
-snes-npc 6 "4 2 2 12 1" "22 12" "20 44 88 100 200" 67 npc-lento 4
-snes-npc 6 "4 21" "22 12" "5 30" 67 npc-encara
-snes-npc 6 "4 21" "25 10" "5 30" 67 npc-encara-lado
-snes-npc 6 "4 2 31 2 1 1 30 12" "22 12" "20 40 60 80" 67 npc-frec
-snes-npc 6 "4 24 2 2 25 1 1" "22 12" "3 6 10 14 20 40" 67 salto-npc
-snes-npc 10 "1 4 6 7 6" "6 10" "10 25 40 70" 67 npc-diagonal
-snes-npc 6 "4 15 5 5 5" "22 12" "20 40" 67 npc-diagonal-gira
+snes-ruta 6 "1 1 24 1 1 25 2 2" "10 14 20 26 60" 115 salto
+snes-ruta 6 "36 0 0 0 0 0 0" "20 40 60" 115 through "10 8"
+snes-ruta 6 "38 2 2 2 39 2 2 2" "4 10 16 28 34 44" 115 anim "10 8"
+snes-ruta 6 "1 1 12 2 23 2" "20 44 88 100 150 400" 115 ruta-lenta "" 4
+snes-ruta 6 "2 2 31 2 2 30 2 2" "20 30 40 52" 115 ruta-frec
+snes-npc 6 "4 2 2 12 1" "22 12" "20 44 88 100 200" 115 npc-lento 4
+snes-npc 6 "4 21" "22 12" "5 30" 115 npc-encara
+snes-npc 6 "4 21" "25 10" "5 30" 115 npc-encara-lado
+snes-npc 6 "4 2 31 2 1 1 30 12" "22 12" "20 40 60 80" 115 npc-frec
+snes-npc 6 "4 24 2 2 25 1 1" "22 12" "3 6 10 14 20 40" 115 salto-npc
+snes-npc 10 "1 4 6 7 6" "6 10" "10 25 40 70" 115 npc-diagonal
+snes-npc 6 "4 15 5 5 5" "22 12" "20 40" 115 npc-diagonal-gira
 snes-pagina 121 10 grupo-121
 snes-pagina 74 21 ruta-74
 snes-espera
@@ -53,39 +53,39 @@ snes-texto
 snes-ruta-evento
 snes-npc
 snes-lugar
-snes-lugar 6 "4 21 10" "" "22 12" "10 60" 67 lugar-quieto
+snes-lugar 6 "4 21 10" "" "22 12" "10 60" 115 lugar-quieto
 snes-destello
 snes-saturar
 snes-saturar 73 "60 100 100 100 0" 30 120 saturar-gris
 snes-saturar 73 "60 0 120 120 200" 30 120 saturar-brillo
 snes-hablar
 snes-cinematica
-snes-cinematica 4 1 "370 770 830 1210 1980 2910" 67 apertura 1 "841 901 961 1021 1474 1595 1776 1897 2018 2078 2259 2380 2489 2683 2743"
-snes-escena 2 "4 54" 12 up "100 230 600 950" 67 puerta-izq "20 202 323 444 565"
-snes-escena 2 "36 74" 3 left "60 200 450 930 1300 1800" 67 pantalla "161 282 342 584 735 857 948 1008 1099 1159 1219 1430 1490 1732"
+snes-cinematica 4 1 "370 770 830 1210 1980 2910" 115 apertura 1 "841 901 961 1021 1474 1595 1776 1897 2018 2078 2259 2380 2489 2683 2743"
+snes-escena 2 "4 54" 12 up "100 230 600 950" 115 puerta-izq "20 202 323 444 565"
+snes-escena 2 "36 74" 3 left "60 200 450 930 1300 1800" 115 pantalla "161 282 342 584 735 857 948 1008 1099 1159 1219 1430 1490 1732"
 snes-pisar
-snes-escena 2 "7 76" "0 0 0 0" up "40 60 100" 67 bloqueo ""
-snes-escena 2 "7 74" 14 down "3 8 25 60 106 200" 67 droide ""
-snes-escena 2 "7 74" 14 down "10 20 30 45 100" 67 droide-roto "" 22
-snes-escena 2 "7 71" 14 down "20 60 120 300" 67 droide-frenado ""
-snes-escena 2 "32 58" 14 down "50 120 300 600" 67 droide-cuadrado ""
-snes-escena 2 "7 73" "23 0 23 23 23 2" up "25 50 80 95 130" 67 droide-tapado ""
-snes-escena 2 "87 76" 0 up "380 407 410 425 470 600" 67 core-puerta "242 311 362 457 568 588" 7
-snes-escena 2 "85 71" "3 3 3" left "20 40 60 90" 67 escombros "" 10
-snes-escena 2 "85 71" "3 3 3" left "20 60" 67 escombros-cerrados ""
-snes-escena 2 "71 72" 12 up "10 30" 67 ascensor "" 11
-snes-escena 3 "38 69" 12 up "10 40" 67 puerta-emisor "20"
+snes-escena 2 "7 76" "0 0 0 0" up "40 60 100" 115 bloqueo ""
+snes-escena 2 "7 74" 14 down "3 8 25 60 106 200" 115 droide ""
+snes-escena 2 "7 74" 14 down "10 20 30 45 100" 115 droide-roto "" 22
+snes-escena 2 "7 71" 14 down "20 60 120 300" 115 droide-frenado ""
+snes-escena 2 "32 58" 14 down "50 120 300 600" 115 droide-cuadrado ""
+snes-escena 2 "7 73" "23 0 23 23 23 2" up "25 50 80 95 130" 115 droide-tapado ""
+snes-escena 2 "87 76" 0 up "380 407 410 425 470 600" 115 core-puerta "242 311 362 457 568 588" 7
+snes-escena 2 "85 71" "3 3 3" left "20 40 60 90" 115 escombros "" 10
+snes-escena 2 "85 71" "3 3 3" left "20 60" 115 escombros-cerrados ""
+snes-escena 2 "71 72" 12 up "10 30" 115 ascensor "" 11
+snes-escena 3 "38 69" 12 up "10 40" 115 puerta-emisor "20"
 snes-ruta-pisa
-snes-ruta-pisa 70 "12 8" "0 0 0 0 0" 0 "100 200" 67 ruta-pasa
-snes-ruta-pisa 70 "12 8" "0 0 0 0" "60 0 0 50" "50 200" 67 ruta-pisa-cola
+snes-ruta-pisa 70 "12 8" "0 0 0 0 0" 0 "100 200" 115 ruta-pasa
+snes-ruta-pisa 70 "12 8" "0 0 0 0" "60 0 0 50" "50 200" 115 ruta-pisa-cola
 snes-pan
-snes-pan 6 "2 0 2 2 1 3 0 0 4 1" "16 48 65 70 82 83" 67 pan-vuelve
+snes-pan 6 "2 0 2 2 1 3 0 0 4 1" "16 48 65 70 82 83" 115 pan-vuelve
 snes-sacudir
-snes-sacudir 6 "9 8 3 1" "2 5 9 14 17 60" 67 sacudir-fuerte
-snes-sacudir 2 "3 3 2 1" "3 6 9 11 13 60" 67 sacudir-borde "4 54"
+snes-sacudir 6 "9 8 3 1" "2 5 9 14 17 60" 115 sacudir-fuerte
+snes-sacudir 2 "3 3 2 1" "3 6 9 11 13 60" 115 sacudir-borde "4 54"
 snes-timer
-snes-timer 6 "1 1" "2 10" "2 40 59 61" "12 0 0 50" 67 timer-cero
-snes-hablar 7 "3 7" 25 25 "20 60" 67 hablar-sin-switch
+snes-timer 6 "1 1" "2 10" "2 40 59 61" "12 0 0 50" 115 timer-cero
+snes-hablar 7 "3 7" 25 25 "20 60" 115 hablar-sin-switch
 snes-cerrar
 snes-cerrar 7 200 cerrar-right right
 snes-ventana 1 ventana-1

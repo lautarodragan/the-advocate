@@ -42,6 +42,17 @@ TICKS_PER_SECOND = musica.TICKS_PER_SECOND
 DRIVER_ADDR = 0x0200
 SAMPLES_ADDR = 0x0400
 
+# Y cuánto queda para las muestras: de $0400 hasta el final de los 64 KB.
+# Entero, sin reserva: el eco está apagado —FLG con el bit de "no escribir el
+# buffer"— y la pila del SPC700 vive en $0100, o sea debajo. Es el límite que
+# decide cuántos temas entran, porque el banco es uno solo y lo comparten
+# todos: ver `Banco`.
+ARAM_LIBRE = 0x10000 - SAMPLES_ADDR
+# Y lo que se le deja libre igual. No lo necesita nadie: es para que el último
+# golpe de percusión, que se pide por presupuesto y se guarda redondeado a
+# bloques de BRR, no se pase de los 64 KB por unos cientos de bytes.
+ARAM_MARGEN = 1024
+
 # Opcodes del stream, los mismos que interpreta music_frame en main.s.
 OP_DSP = 0x00
 OP_WAIT = 0x01
@@ -130,6 +141,73 @@ def assign(notes):
     return voices
 
 
+# --- el banco compartido ----------------------------------------------------
+
+class Banco:
+    """Las muestras que comparten **todos** los temas de la ROM.
+
+    Es uno solo, y no por ahorrar cartucho —de ése sobra— sino por ARAM: las
+    muestras viven en los 64 KB del SPC700 y se suben una sola vez al arrancar,
+    con el protocolo del IPL, que después de saltar al driver ya no está. Un
+    banco por tema pediría un driver que sepa recibir datos y, con 32 KB por
+    banco, del orden de medio segundo de transferencia en cada `PlayBGM`. Eso
+    último es lo que lo decide y no el trabajo: la ROM se compara cuadro contra
+    cuadro con la referencia, y un freno de treinta cuadros a mitad de una
+    escena habría que modelarlo en Python, que es justo lo que no se puede
+    medir honestamente.
+
+    Compartirlo sale casi gratis porque el banco es por **programa** de General
+    MIDI: dos temas que tocan piano usan la misma muestra. Lo que crece es la
+    cantidad de programas distintos, y de que eso no se pague en calidad se
+    ocupa el reparto de sobrantes de `snes_samples.build_bank`. Medido con los
+    cuatro temas de las primeras secuencias: doce programas y dieciocho golpes
+    ocupan 62310 de los 64512 B, y ninguna muestra melódica baja de 21 kHz, que
+    es donde estaban con un tema solo.
+
+    Y conviene tener claro cuál es el límite de verdad. **No es la cantidad de
+    temas**: lo melódico está topado en `ARAM_BUDGET` y la percusión se lleva lo
+    que sobre, así que el banco entra siempre y el lazo de `build_varios` que
+    saca temas no llega a dispararse. Lo que se degrada es la resolución, y sin
+    aviso: con los treinta y pico de temas del juego entero cada instrumento
+    tendría una miga. Para eso hace falta otra cosa —subir bancos en caliente—,
+    anotada en "Lo que falta" del LEEME.
+    """
+
+    def __init__(self, programas, golpes):
+        melodicas = snes_samples.build_bank(sorted(programas))
+        # A la percusión se le da **lo que sobre**, y no los 16 KB fijos de
+        # `DRUM_BUDGET`. Con un tema solo daba igual; compartiendo, no: los
+        # ocho golpes de `evilrhys` pasaban a ser catorce entre los tres temas
+        # de la demo y su plato chino bajaba de 18,3 a 11,9 kHz, que se oye.
+        # Repartiendo lo libre vuelve a 20,2. Y no le cuesta un tema a nadie:
+        # el que se queda corto es el golpe, no el tema, que es lo que pasaría
+        # subiendo `DRUM_BUDGET` a secas.
+        golpes = sorted(golpes)
+        libre = (ARAM_LIBRE - ARAM_MARGEN - 4 * (len(melodicas) + len(golpes))
+                 - sum(len(v.data) for v in melodicas))
+        percusion = []
+        while golpes and libre > 0:
+            percusion = snes_samples.build_drum_bank({n: 1 for n in golpes},
+                                                     budget=libre)
+            if sum(len(v.data) for v in percusion) <= libre:
+                break
+            # Se pasó: el presupuesto es una guía y el largo real se redondea
+            # a bloques. Se pide menos y se vuelve a preguntar.
+            libre = libre * 9 // 10
+        self.voces = melodicas + percusion
+        # De programa de MIDI a índice en el banco, que es lo que va en
+        # `V_SRCN`; los golpes van después de los melódicos, así que el DSP no
+        # distingue percusión de nada más.
+        self.melodicas = {v.program: i for i, v in enumerate(melodicas)}
+        self.golpes = {d.program: len(melodicas) + i
+                       for i, d in enumerate(percusion)}
+
+    @property
+    def bytes(self):
+        """Cuánto ocupa en ARAM: el directorio más las muestras."""
+        return 4 * len(self.voces) + sum(len(v.data) for v in self.voces)
+
+
 # --- eventos ----------------------------------------------------------------
 
 class Frame:
@@ -149,32 +227,20 @@ class Frame:
         self.kof = 0
 
 
-def build_events(notes, voices, programs, drum_voices):
+def build_events(notes, voices, programs, drum_voices, banco):
     """Las escrituras al DSP, cuadro por cuadro.
 
     Cada canal tiene su grupo de voces; una nota que arranca toma la que lleve
     más tiempo libre, y si están todas ocupadas se la saca a la que termina
     antes. Es lo mismo que hace un sintetizador cuando se le acaba la polifonía,
     y lo mismo que ya hacíamos en la Mega Drive.
+
+    El banco viene de afuera y no se arma acá: lo comparten todos los temas de
+    la ROM, así que los índices de `V_SRCN` que este stream escribe son los de
+    ese banco y no los de uno propio. Ver `Banco`.
     """
     frames = collections.defaultdict(Frame)
-
-    # Un instrumento del banco por cada programa distinto que pida el MIDI. Se
-    # comparte entre canales: si dos tocan piano, usan la misma muestra, que en
-    # 64 KB de ARAM no es un detalle.
-    wanted = sorted({programs.get(c, 0) for c in voices
-                     if c != midi.DRUM_CHANNEL})
-    bank = snes_samples.build_bank(wanted)
-    index_of = {voice.program: index for index, voice in enumerate(bank)}
-
-    # Y una muestra por cada golpe de percusión que aparezca. Van al final del
-    # mismo banco, así que el DSP no distingue percusión de nada más: para él
-    # son todas voces leyendo una muestra.
-    hits = collections.Counter(n.pitch for n in notes
-                               if n.channel == midi.DRUM_CHANNEL)
-    drums = snes_samples.build_drum_bank(dict(hits)) if hits else []
-    drum_index = {drum.program: len(bank) + i for i, drum in enumerate(drums)}
-    bank = bank + drums
+    bank, index_of, drum_index = banco.voces, banco.melodicas, banco.golpes
 
     busy = {}
     for note in sorted(notes, key=lambda n: n.start):
@@ -230,11 +296,15 @@ def build_events(notes, voices, programs, drum_voices):
         if voice not in drum_voices:
             end.release.append((base, sdsp.fade(sdsp.for_program(program))))
 
-    return frames, bank
+    return frames
 
 
-def init_writes(bank_size, drum_voices):
-    """El estado del DSP antes de la primera nota."""
+def init_writes():
+    """El estado del DSP antes de la primera nota.
+
+    No depende del banco ni de qué voces son percusión: todo lo que hay acá es
+    global del DSP. Llevaba los dos como parámetros y no los miraba.
+    """
     writes = [
         (sdsp.FLG, sdsp.FLG_BASE),          # sin eco, sin mute
         (sdsp.MVOL_L, sdsp.MASTER), (sdsp.MVOL_R, sdsp.MASTER),
@@ -337,64 +407,151 @@ def tema_del_mapa(map_id, game_dir=GAME_DIR):
     return music["name"] if music else ""
 
 
-def build_nombre(name, game_dir=GAME_DIR):
-    """Lo mismo, pero pidiendo el tema por nombre.
+def leer_tema(name, game_dir=GAME_DIR):
+    """Lo que hay que saber de un tema **antes** de tener el banco.
 
-    Existe porque la música ya no sale sólo del mapa: un `PlayBGM` la pide por
-    nombre, y el conversor tiene que poder armar ése. Un nombre que no esté, o
-    que no sea un MIDI, devuelve el tema vacío y la ROM sale muda, igual que un
-    mapa sin música.
+    Devuelve None si el nombre no está o no es un MIDI, que es como un mapa sin
+    música: el tema entra igual en la numeración —el bytecode ya lleva su
+    índice— pero su stream es un `OP_END` solo y la ROM sale muda cuando lo
+    prenden.
     """
     path = (find_resource([game_dir], "Music", name, (".mid", ".wav"))
             if name else None)
-
-    driver = spc700.assemble(DRIVER, DRIVER_ADDR)
-
     if not path or not path.lower().endswith(".mid"):
-        return name, driver, build_samples([]), bytes([OP_END]), 0.0, {}
-
+        return None
     notes, tempos, division, programs = midi.read(path)
-    length = musica.timeline(notes, tempos, division)
     voices = assign(notes)
-    drum_voices = set(voices.get(midi.DRUM_CHANNEL, []))
+    return {
+        "nombre": name,
+        "notas": notes,
+        "largo": musica.timeline(notes, tempos, division),
+        "voces": voices,
+        "programas": programs,
+        "percusion": set(voices.get(midi.DRUM_CHANNEL, [])),
+        # Lo que aporta al banco compartido: los programas de sus canales
+        # melódicos y las teclas de percusión que toca.
+        "melodicos": {programs.get(c, 0) for c in voices
+                      if c != midi.DRUM_CHANNEL},
+        "golpes": {n.pitch for n in notes if n.channel == midi.DRUM_CHANNEL},
+    }
 
-    frames, bank = build_events(notes, voices, programs, drum_voices)
-    stream = pack(frames, length, init_writes(len(bank), drum_voices))
 
+def build_varios(nombres, game_dir=GAME_DIR):
+    """Todos los temas de la ROM, compartiendo un solo banco de muestras.
+
+    Devuelve (driver, bloque de muestras, temas, banco, los que no entraron).
+    Hay un dict por tema en el orden en que vinieron: los índices son los de
+    `Temas`, el bytecode ya los lleva emitidos, así que **no se pueden
+    reordenar** —y por eso los que no entran se caen desde el final y no desde
+    donde sea—.
+
+    Lo que los limita no es el cartucho sino la ARAM: ver `Banco`. Si el banco
+    de todos no entra en `ARAM_LIBRE`, se saca el último y se prueba de nuevo.
+    Con los presupuestos de hoy eso no llega a pasar nunca —el banco se achica
+    solo—, y está igual porque el día que alguno cambie el guard tiene que
+    existir.
+    """
+    driver = spc700.assemble(DRIVER, DRIVER_ADDR)
+    leidos = [leer_tema(n, game_dir) for n in nombres]
+
+    nombres, leidos, afuera = list(nombres), list(leidos), []
+    while True:
+        vivos = [t for t in leidos if t]
+        banco = Banco(set().union(*[t["melodicos"] for t in vivos]) if vivos
+                      else set(),
+                      set().union(*[t["golpes"] for t in vivos]) if vivos
+                      else set())
+        if banco.bytes <= ARAM_LIBRE or not nombres:
+            break
+        afuera.insert(0, nombres.pop())
+        leidos.pop()
+
+    temas = []
+    for nombre, leido in zip(nombres, leidos):
+        if leido is None:
+            temas.append({"nombre": nombre, "stream": bytes([OP_END]),
+                          "segundos": 0.0, "resumen": {}})
+            continue
+        frames = build_events(leido["notas"], leido["voces"],
+                              leido["programas"], leido["percusion"], banco)
+        stream = pack(frames, leido["largo"], init_writes())
+        temas.append({"nombre": nombre, "stream": stream,
+                      "segundos": leido["largo"] / TICKS_PER_SECOND,
+                      "resumen": resumen_del_tema(leido, banco)})
+    return driver, build_samples(banco.voces), temas, banco, afuera
+
+
+def resumen_del_tema(leido, banco):
+    """Lo que imprime la receta: voces, timbres y cuánto se llega a tocar."""
+    notes, voices = leido["notas"], leido["voces"]
+    programs = leido["programas"]
     spans = {c: musica.note_time([n for n in notes if n.channel == c])
              for c in {n.channel for n in notes}}
     total = sum(sum(a * b for a, b in spans[c].items()) for c in spans)
-    summary = {
+    return {
         "voices": {c: v for c, v in sorted(voices.items())},
         "sounds": {c: programs.get(c, 0)
                    for c in sorted(voices) if c != midi.DRUM_CHANNEL},
         "bank": ["%s (%.0f Hz, %d B)" % (v.name.strip(), v.rate, len(v.data))
-                 for v in bank],
+                 for v in banco.voces],
         "coverage": sum(musica.coverage(spans[c], len(voices.get(c, [])))
                         * sum(a * b for a, b in spans[c].items())
                         for c in spans) / max(1, total),
     }
-    return name, driver, build_samples(bank), stream, length / TICKS_PER_SECOND, summary
 
 
-def emit(path, name, driver, samples, stream, indice=0xFF, al_arrancar=1):
-    """El .inc que arma el ensamblador junto con main.s."""
+def build_nombre(name, game_dir=GAME_DIR):
+    """Un tema solo, con el banco armado nada más que para él.
+
+    Queda para `snes-music` y `snes-check`, que miran un tema suelto. La ROM no
+    pasa por acá desde que lleva varios: ver `build_varios`.
+    """
+    driver, samples, temas, _banco, _afuera = build_varios([name], game_dir)
+    tema = temas[0]
+    return (name, driver, samples, tema["stream"], tema["segundos"],
+            tema["resumen"])
+
+
+def emit(path, temas, driver, samples, arranque=0xFF):
+    """El .inc que arma el ensamblador junto con main.s.
+
+    `temas` son los de `build_varios`, en el orden de `Temas`: el bytecode ya
+    lleva esos índices emitidos. `arranque` es cuál suena desde el primer
+    cuadro, o $FF si la ROM arranca callada y lo prende un `PlayBGM`.
+    """
     def block(label, data):
-        out = [".bloque %d" % len(data), "%s:" % label]
+        # Sin `.bloque`: eso es relleno para que un DMA no cruce de banco, y
+        # nada de acá se sube por DMA. El driver y las muestras van byte a byte
+        # por los puertos —`spc_block` hace el salto de banco a mano— y el
+        # stream lo recorre `advance`, que hace el mismo salto. Puesto igual,
+        # un stream de más de 32 KB alineaba a banco **y cruzaba lo mismo**:
+        # eran hasta 32 KB de relleno por bloque a cambio de nada.
+        out = ["%s:" % label]
         for i in range(0, len(data), 16):
             out.append("    .byte " + ",".join("$%02X" % b for b in data[i:i + 16]))
         return "\n".join(out)
 
+    etiquetas = ["tema_stream_%d" % i for i in range(len(temas))] or \
+        ["tema_stream_0"]
+    streams = [t["stream"] for t in temas] or [bytes([OP_END])]
+    tabla = "\n".join(
+        "%s:\n    .byte %s" % (nombre, ", ".join(prefijo + e for e in etiquetas))
+        for nombre, prefijo in (("tema_lo", "<"), ("tema_hi", ">"),
+                                ("tema_bk", "^")))
+
     with open(path, "w") as handle:
         handle.write(
             "; Generado por tools/snes_music.py. No editar.\n"
-            "; Tema: %s\n\n"
-            "; Cuál de los temas de `Temas` es éste, y si suena desde el\n"
-            "; arranque. $FF es 'la ROM no lleva ninguno'; y no suena desde el\n"
-            "; arranque cuando el tema no es el del mapa sino el que pide un\n"
-            "; PlayBGM, porque ahí lo prende el evento.\n"
-            "TEMA_INDICE      = $%02X\n"
-            "TEMA_AL_ARRANCAR = %d\n"
+            "; Temas: %s\n\n"
+            "; Cuántos temas lleva el cartucho y cuál suena desde el arranque.\n"
+            "; Los índices son los de `Temas` en eventos.py, o sea los que el\n"
+            "; bytecode de los PlayBGM ya trae emitidos; un índice que no\n"
+            "; entró no suena, que es lo que hacía antes con todos menos uno.\n"
+            "; $FF en TEMA_ARRANQUE es 'la ROM arranca callada': el tema del\n"
+            "; mapa donde arranca no existe o no entró, así que lo tiene que\n"
+            "; prender un evento.\n"
+            "TEMA_TOTAL       = %d\n"
+            "TEMA_ARRANQUE    = $%02X\n"
             "; El volumen general con que suena el tema y los dos registros\n"
             "; del DSP donde va. Los emite `sdsp.py`, que es de donde salen:\n"
             "; el stream ya los escribe al arrancar, y un `FadeOutBGM` los\n"
@@ -407,14 +564,21 @@ def emit(path, name, driver, samples, stream, indice=0xFF, al_arrancar=1):
             "SPC_DRIVER_SIZE  = %d\n"
             "SPC_SAMPLES_ADDR = $%04X\n"
             "SPC_SAMPLES_SIZE = %d\n\n"
+            "; Dónde arranca el stream de cada tema, partido en tres tablas\n"
+            "; porque se leen con un índice: van en el banco 0 como todo lo\n"
+            "; que la CPU recorre con `lda tabla, x`.\n"
+            '.segment "TABLAS"\n%s\n\n'
             '.segment "RODATA"\n%s\n%s\n%s\n'
-            % (name or "sin música", indice, 1 if al_arrancar else 0,
+            % (", ".join(t["nombre"] or "sin música" for t in temas)
+               or "ninguno",
+               len(temas), arranque,
                sdsp.MASTER, sdsp.MVOL_L, sdsp.MVOL_R,
                DRIVER_ADDR, len(driver),
                SAMPLES_ADDR, len(samples),
+               tabla,
                block("spc_driver", driver),
                block("spc_samples", samples),
-               block("tema_stream", stream)))
+               "\n".join(block(e, st) for e, st in zip(etiquetas, streams))))
 
 
 def main():
@@ -439,7 +603,10 @@ def main():
         print("  se reproduce el %.0f%% del tiempo-nota"
               % (100 * summary["coverage"]))
 
-    emit(args.output, name, driver, samples, stream)
+    emit(args.output,
+         [{"nombre": name, "stream": stream, "segundos": seconds,
+           "resumen": summary}],
+         driver, samples, arranque=0)
     print("  driver %d B, muestras %d B, stream %d B -> %s"
           % (len(driver), len(samples), len(stream), args.output))
 

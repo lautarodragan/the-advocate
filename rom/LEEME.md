@@ -1301,14 +1301,21 @@ con música. Se midió, y no era uniforme: el tinte en el vblank corrió un
 cuadro a los mapas con más carga y no a los otros, y el tile 0 reservado podía
 correr otro que esa medición no veía.
 
-Ahora el arranque **espera hasta el cuadro `BOOT_CUADROS`**, 64, contado por
-una NMI mínima que sólo suma un cuadro y baja la bandera; el lazo principal
-corre su primer cuadro en el 67 en las seis ROMs con que se midió, con y sin
-música, y todas las recetas pasan `--arranque 67`, que es el default de
-`snes_correr.py`. Una ROM cuyo arranque tarde más que eso sale sin esperar,
-más tarde, pero igual de fijo para ella; la del arranque con música tarda 57.
-El costo es un segundo de pantalla negra al encender, que ya estaba casi
-entero en la subida al SPC700.
+Ahora el arranque **espera hasta el cuadro `BOOT_CUADROS`**, contado por una
+NMI mínima que sólo suma un cuadro y baja la bandera; el lazo principal corre
+su primer cuadro tres cuadros después, y todas las recetas pasan ese número
+como `--arranque`, que es el default de `snes_correr.py`. Una ROM cuyo arranque
+tarde más que eso sale sin esperar, más tarde, pero igual de fijo para ella.
+
+Eran **64 y 67** hasta el 2026-09-06, y son **112 y 115** desde que el cartucho
+lleva varios temas: el banco de muestras es uno solo para todos, creció, y
+subirlo al SPC700 va byte a byte con acuse —unos 1,4 cuadros por kilobyte—. El
+112 no sale del banco de hoy sino del techo: con la ARAM llena, 62310 B, la ROM
+llega al lazo en el cuadro 101. Sacarlo del techo tiene una ventaja que no es
+sólo margen: **llenar la ARAM deja de costar nada**, porque el arranque ya está
+pagado. El costo son ocho décimas más de mapa congelado al encender, casi todas
+en la subida al SPC700; lo que las compraría de vuelta es un driver que reciba
+por los cuatro puertos en vez del protocolo del IPL, que manda uno.
 
 Con la ROM y la referencia alineadas exacto aparecieron tres cosas que el
 margen escondía: el cuadro 400 de `snes-cinematica`, que caía con el héroe
@@ -1365,6 +1372,95 @@ a mitad de camino y el tinte pincha el largo de la espera al cuadro.
   cuadros y el tinte aparece en el 66 y no en el 65.
 * `pan-vuelve`: lo mismo y después `reset` a velocidad 4, que la trae de vuelta
   en dieciséis cuadros; el tinte cae en el 83 y no en el 82.
+
+### Varios temas en el cartucho
+
+Hasta el 2026-09-06 la ROM llevaba **un** tema. Los `PlayBGM` de las páginas
+compilaban igual —el bytecode lleva el índice del tema en `Temas`— pero la ROM
+tocaba sólo el que le había tocado llevar y con cualquier otro índice no hacía
+nada. Ahora lleva todos los que entren.
+
+**Lo que los limita no es el cartucho: es la ARAM.** Las muestras viven en los
+64 KB del SPC700 y se suben una sola vez al arrancar, con el protocolo del IPL,
+que después de saltar al driver ya no está. De streams sobra lugar —tres temas
+son 95 KB de los 480 que quedan— pero de bancos de muestras entra uno solo, y
+el de `escape_newyork` son 32 KB.
+
+Las dos salidas eran un driver que sepa recibir datos —o sea rebootear el
+SPC700 y volver a subir— o **un solo banco compartido**. Gana el compartido, y
+lo que lo decide no es el trabajo: subir 32 KB byte a byte con acuse es del
+orden de medio segundo, o sea que cada `PlayBGM` frenaría el juego treinta
+cuadros, y eso habría que modelarlo en la referencia para que la comparación
+cuadro a cuadro siga valiendo. Modelar cuánto tarda una transferencia es
+exactamente lo que no se puede medir honestamente.
+
+Compartir sale casi gratis porque **el banco es por programa de General MIDI**:
+dos temas que tocan piano usan la misma muestra. Lo que crece es la cantidad de
+programas distintos, y ahí estaba la trampa: `build_bank` repartía el
+presupuesto en partes iguales, así que doce programas recibían la mitad que
+cinco y el piano de `escape_newyork` bajaba de 22,1 a 12,6 kHz. **Lo que lo
+arregla es repartir lo que sobra**: un instrumento corto, o uno que topa en
+`MAX_RATE`, no gasta su parte —con cinco programas sobraban 10 de los 40 KB— y
+devolvérsela a los que sí la gastaron los deja a todos donde estaban. Está
+medido y es exacto, no aproximado: las escrituras melódicas al DSP del stream
+de `evilrhys` con el banco compartido son **las mismas 8627** que con un banco
+propio, byte por byte.
+
+Lo que sí cambia es la percusión. Ahí no hay programas que compartir: cada
+tecla es un golpe distinto, así que dieciocho golpes se reparten lo que ocho
+tenían. Se le da lo que sobre de ARAM en vez de un presupuesto fijo, que
+alcanza para que los platos vuelvan a su tasa nativa, pero un bombo de tres
+temas juntos igual queda más grueso que solo. Es el precio de compartir.
+
+**En la ROM cambia poco.** Tres tablas de un byte —`tema_lo`, `tema_hi`,
+`tema_bk`— en el banco 0, porque se leen con un índice; `music_start` toma el
+índice en A y arma el puntero; `tema_actual` recuerda cuál está sonando, que es
+lo que `music_frame` necesita para volver a empezar el mismo cuando el stream
+termina. Cambiar de tema **no cuesta un cuadro**: no hay nada que subir.
+
+De paso se fue el `.bloque` de los tres bloques de música. Eso es relleno para
+que un DMA no cruce de banco, y nada de acá va por DMA: el driver y las
+muestras se mandan byte a byte —`spc_block` hace el salto de banco a mano— y el
+stream lo recorre `advance`, que hace el mismo salto. Puesto igual, un stream
+de más de 32 KB alineaba a banco **y cruzaba lo mismo**: eran hasta 32 KB de
+relleno por bloque a cambio de nada.
+
+**Lo que sí costó caro es el arranque.** La subida al SPC700 va byte a byte con
+acuse, unos 1,4 cuadros por kilobyte, así que un banco de 62 KB tarda el doble
+que uno de 32. Con `BOOT_CUADROS` en 64 la ROM se pasaba y el lazo arrancaba en
+el cuadro 101 en vez del 67: dos casos de la tanda se pusieron rojos con el
+mapa 18 y 85 cuadros perdidos, que eran RAM sin inicializar. Ahora
+`BOOT_CUADROS` son 112, medidos **sobre el techo y no sobre el banco de hoy**
+—con la ARAM llena la ROM llega al lazo en el 101—, y las recetas pasan
+`--arranque 115`. Cuesta ocho décimas más de arranque y a cambio llenar la ARAM
+ya no cuesta nada. Ver "El arranque dura siempre lo mismo".
+
+**Cómo se verifica.** `just snes-bgm <tema>`, que arma la ROM de las primeras
+secuencias con `--tema-de-arranque`, la corre sin pantalla, graba el audio y se
+lo pasa a `snes_check`. El flag existe porque `snes-check` escucha desde el
+arranque y los mapas de estas secuencias no traen música propia —la prende un
+`PlayBGM`—, así que sin él la ROM sale callada; no toca el bytecode, es el
+mismo stream prendido antes. Lo que la prueba mira es justamente lo del banco
+compartido: que las notas de cada tema salgan de los índices de muestra del
+banco de todos.
+
+**`snes-bgm` no está en `snes-hitos`**, y conviene tenerlo presente: la tanda
+es visual y esto pide grabar cuarenta segundos de audio por tema. O sea que
+este camino no lo corre nadie salvo que se lo pida a mano.
+
+Los cuatro pasan: `escape_newyork` 96%, `TF3_1_awe` 98%, `evilrhys` 83% y
+`hzstream` 90% —éste con el banco de los cuatro, 62310 B, o sea la ARAM casi
+llena—.
+
+**`evilrhys` es el ruidoso y conviene saberlo antes de asustarse**: en tres
+corridas dio 66%, 75% y 83%, contra un techo de 95% que le da FluidSynth
+tocando el mismo MIDI. La medida se toma sobre sesenta ventanas de una
+grabación que arranca donde haya señal, así que en un tema con poca nota
+sostenida el corrimiento elegido cambia bastante el número. Lo que **no**
+cambia es el banco compartido: las escrituras melódicas de su stream son las
+mismas con banco propio y con banco compartido. Lo que sí lo tiene al límite es
+que tiene ocho canales melódicos para seis voces, así que dos no suenan nunca y
+los seis que quedan son monofónicos.
 
 ### El `FadeOutBGM`
 
@@ -2444,36 +2540,25 @@ comparación.
   cinemáticas con variables y condiciones que todavía no modelamos. El del mapa
   donde el juego arranca ya no: es automático, entra con los cinco comandos que
   la ROM entiende, y `Blank (Leave START here)` ahora se sale solo.
-* **`PlayBGM` con más de un tema.** Desde el 2026-09-04 el comando **se hace**,
-  pero el cartucho lleva **un solo tema**. El límite no es de cartucho sino de
-  ARAM: el banco de muestras vive en los 64 KB del SPC700 y se sube una sola vez
-  con el protocolo del IPL, que después de saltar al driver ya no está. Llevar
-  dos pide o que entren los dos bancos juntos —el de `escape_newyork` son
-  32 KB— o un driver que sepa recibir datos, y ninguna de las dos cosas está.
+* **El resto de los temas.** Desde el 2026-09-06 el cartucho lleva **varios**:
+  los que pidan los `PlayBGM` compilados, compartiendo un solo banco de
+  muestras. Con las primeras secuencias son tres o cuatro y usan 62310 de los
+  64512 B de ARAM. El techo no es la cantidad de temas —el banco se achica
+  solo— sino la resolución: con los treinta y pico del juego entero cada
+  instrumento quedaría en una miga, y sin aviso. Ver "Varios temas en el
+  cartucho".
 
-  Cuál se lleva lo decide `tema_de_la_rom` en el conversor: gana el del mapa
-  donde la ROM arranca, y si ese mapa no tiene, el primero que pida un `PlayBGM`
-  de los que se compilaron. El bytecode numera **todos** los temas que se piden,
-  no sólo el que entró, así que el día que entren dos no hay que compilar nada
-  distinto: la ROM mira `TEMA_INDICE` y con cualquier otro índice no hace nada,
-  que es exactamente lo que hacía antes con todos.
+  Lo que subiría ese techo es un **driver que sepa recibir datos**: hoy las
+  muestras se suben una sola vez al arrancar con el protocolo del IPL, que manda
+  un byte por acuse y desaparece al saltar al driver. Con un banco por tema el
+  costo sería medio segundo de transferencia en cada `PlayBGM` —y habría que
+  modelarlo en la referencia, que es lo que lo descartó—; con los cuatro
+  puertos en vez de uno, en cambio, se acorta el arranque, que hoy son 112
+  cuadros dimensionados para una ARAM llena.
 
-  Hay un costo medido y visible: subir 32 KB de muestras byte por byte cuesta
-  **unos 49 cuadros** antes de que el lazo principal empiece, o sea 0,8 s de
-  pantalla negra que RM2k no gasta. Desde el 2026-09-05 el arranque dura
-  siempre lo mismo, `BOOT_CUADROS`, y ese costo queda adentro: ver "El
-  arranque dura siempre lo mismo".
-
-  Y un segundo efecto que conviene tener presente: `snes-check` compara el audio
-  contra el MIDI **del mapa**, así que donde el tema lo pone un evento hay que
-  nombrarlo: `just snes-check 1 45 escape_newyork`.
-
-  **Es lo próximo que se hace**, decidido con taro el 2026-09-05: no todos los
-  temas del juego sino los de las primeras secuencias, `hzstream` incluido —el
-  que suena después del "1 year earlier", cuando el jugador toma control de
-  Talan en su pad—. El cartucho puede ir a 1 MB si hace falta; lo que se cuida
-  es no alargar la tanda de más ahora. Va **antes** de la orden de ruta 34
-  —cambiar el gráfico a mitad de una ruta—, que es lo más caro que queda.
+  Y un efecto que conviene tener presente: `snes-check` compara el audio contra
+  el MIDI **del mapa**, así que donde el tema lo pone un evento hay que
+  nombrarlo. Para eso está `just snes-bgm <tema>`.
 
 * **La cinemática de apertura, entera.** Corre con ventana desde el
   2026-09-05 —`rom/build/demo-apertura/`, con los mapas 4, 1, 2 y 3 y
