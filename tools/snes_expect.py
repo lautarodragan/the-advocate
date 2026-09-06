@@ -156,7 +156,8 @@ class Mundo:
                 espera, tinte = 0, ()
                 if self.prueba[0] is not None:
                     espera, *tinte = self.prueba[0]
-                paginas = paginas + [dict(EVENTO_DE_PRUEBA,
+                numero = eventos.evento_de_prueba(self.mapa(map_id)[0])
+                paginas = paginas + [dict(EVENTO_DE_PRUEBA, evento=numero,
                                           codigo=eventos.pagina_de_prueba(
                                               espera, tinte,
                                               self.prueba[1] or (),
@@ -169,7 +170,9 @@ class Mundo:
                                               frecuencia=self.prueba[8],
                                               sacudida=self.prueba[9],
                                               fundir_bgm=self.prueba[10],
-                                              pan=self.prueba[11]))]
+                                              pan=self.prueba[11])),
+                                     dict(PAGINA_DE_PRUEBA_APAGADA,
+                                          evento=numero)]
             self.paginas_cache[map_id] = paginas
         return self.paginas_cache[map_id]
 
@@ -232,11 +235,18 @@ SALTOS_MAX = 8
 
 # Cómo se ve la página inventada en la tabla. El número de evento es alto a
 # propósito: tiene que no chocar con ninguno del mapa.
-EVENTO_DE_PRUEBA = {"evento": 9999, "pagina": 0,
+EVENTO_DE_PRUEBA = {"evento": 0, "pagina": 0,
                     "trigger": eventos.TRIGGER_AUTOMATICO,
                     "switch_a": 0, "switch_b": 0, "actor": 0, "capa": 0,
                     "frecuencia": eventos.RUTA_FRECUENCIA, "velocidad": 4,
                     "codigo": b""}
+
+# La segunda página del evento inventado: sin código y pidiendo el switch que
+# la primera prende al terminar. Gana en cuanto ese switch está —la activa es
+# la de número más alto que cumple— y con eso la primera deja de repetirse. Es
+# el mismo idioma con el que las páginas del juego se apagan solas.
+PAGINA_DE_PRUEBA_APAGADA = dict(EVENTO_DE_PRUEBA, pagina=1,
+                                switch_a=eventos.SWITCH_DE_PRUEBA)
 
 
 def puede_caer(passable, game_map, x, y):

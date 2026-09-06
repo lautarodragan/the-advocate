@@ -1525,6 +1525,12 @@ def tabla_de_paginas(mapa, numero):
     # Y cuáles cambian de gráfico con la página: el refresco también mira las
     # de ésos, bit 5, y les copia a la fila lo que la página activa dibuja.
     cambian = mapa.get("cambian", set())
+    # Y cuáles tienen alguna página automática que compiló: bit 7. El refresco
+    # de la ROM tiene que saber si la página activa de un evento es automática
+    # —de ahí sale qué arranca solo— y con esto se ahorra leer las páginas de
+    # los eventos que no pueden serlo nunca. Es el mismo truco que el bit 6.
+    con_auto = {p["evento"] for p in mapa["paginas"]
+                if p["trigger"] == eventos.TRIGGER_AUTOMATICO and p["codigo"]}
     for pagina in mapa["paginas"]:
         if pagina["codigo"]:
             destino = "evcodigo_%d + %d" % (numero, pagina["offset"])
@@ -1552,7 +1558,8 @@ def tabla_de_paginas(mapa, numero):
                         | (4 if propia["saltable"] else 0)
                         | (8 if propia["dir_fija"] else 0)
                         | (16 if propia["anim_continua"] else 0) | 64
-                        | (32 if pagina["evento"] in cambian else 0))
+                        | (32 if pagina["evento"] in cambian else 0)
+                        | (128 if pagina["evento"] in con_auto else 0))
             destino = "evcodigo_%d + %d" % (numero, pagina["ruta_offset"])
             out.append("    .byte %-4d ; +13 las banderas de su ruta propia"
                        % banderas)
@@ -1564,9 +1571,11 @@ def tabla_de_paginas(mapa, numero):
         else:
             out.append("    .byte %-4d ; +13 sin ruta propia; el bit 6 dice si "
                        "otra página del evento la tiene, el 5 si el gráfico "
-                       "sigue a la página"
+                       "sigue a la página, el 7 si el evento tiene alguna "
+                       "automática"
                        % ((64 if pagina["evento"] in con_ruta else 0)
-                          | (32 if pagina["evento"] in cambian else 0)))
+                          | (32 if pagina["evento"] in cambian else 0)
+                          | (128 if pagina["evento"] in con_auto else 0)))
             out.append("    .byte %-4d ; +14 su frecuencia" % pagina["frecuencia"])
             out.append("    .byte %-4d ; +15 y su velocidad, la de una ruta "
                        "forzada sobre el evento" % pagina["velocidad"])
@@ -2574,11 +2583,13 @@ def main():
             # de ningún dato del juego: existe porque ninguna página que compile
             # tiene una espera, así que el intérprete cuadro a cuadro no lo
             # ejercitaba nada. La referencia arma la misma con la misma función.
+            # El primer índice libre del mapa; ver `eventos.evento_de_prueba`.
+            mapa["EV_COUNT_PRUEBA"] = len(mapa["ev_pos"]) // EV_STRIDE
             espera, tinte = 0, ()
             if args.pagina_de_prueba:
                 espera, *tinte = args.pagina_de_prueba
             paginas = paginas + [{
-                "evento": 9999, "pagina": 0,
+                "evento": mapa["EV_COUNT_PRUEBA"], "pagina": 0,
                 "trigger": eventos.TRIGGER_AUTOMATICO,
                 "switch_a": 0, "switch_b": 0, "actor": 0, "capa": 0,
                 "frecuencia": eventos.RUTA_FRECUENCIA, "velocidad": 4,
@@ -2591,7 +2602,17 @@ def main():
                     frecuencia=args.frecuencia,
                     sacudida=sacudida_de_prueba(args.sacudida_de_prueba),
                     fundir_bgm=args.fundir_bgm,
-                    pan=pan_de_prueba(args.pan_de_prueba))}]
+                    pan=pan_de_prueba(args.pan_de_prueba))}, {
+                # Y la que la apaga: misma idea que en la referencia, ver
+                # `PAGINA_DE_PRUEBA_APAGADA`. Sin código, así que en cuanto
+                # gana, el evento inventado deja de tener una automática que
+                # correr y la primera no se repite.
+                "evento": mapa["EV_COUNT_PRUEBA"], "pagina": 1,
+                "trigger": eventos.TRIGGER_AUTOMATICO,
+                "switch_a": eventos.SWITCH_DE_PRUEBA, "switch_b": 0,
+                "actor": 0, "capa": 0,
+                "frecuencia": eventos.RUTA_FRECUENCIA, "velocidad": 4,
+                "codigo": b""}]
         codigo = bytearray()
         for pagina in paginas:
             pagina["offset"] = len(codigo)

@@ -59,6 +59,48 @@ de cada una está en `README.md`.
   respetar: **el lazo de la referencia no puede cortar con un refresco
   pendiente**, porque el cuadro que viene sí hace algo.
 
+* **Los eventos disparan con dos bits cada uno, no con una cola.** Es el
+  `waiting_execution` de `Game_Event`: `FLAG_AUTO` dice si la página activa del
+  evento es una automática que compiló y `FLAG_ESPERA` si tiene una página
+  esperando turno, la haya puesto el barrido de las automáticas, la tecla de
+  acción o un contacto. Reemplazó a una cola de ocho punteros que se llenaba y
+  descartaba —y que pasada la octava interacción leía sus propios contadores
+  como bytecode—.
+
+  De ahí salen dos cosas que antes no pasaban: una automática **se repite**
+  mientras siga siendo la activa, y una que se vuelve activa con el mapa ya
+  cargado **arranca**. Lo segundo es lo que dejaba muerta la segunda mitad del
+  recuerdo de CORE y MANTA, y como la ROM y la referencia se equivocaban igual,
+  la comparación daba cero.
+
+* **El refresco corre en tres momentos y está partido en dos mitades.** No es
+  una optimización de gusto: es lo que lo hace entrar en un cuadro.
+
+      al salir del intérprete   elige sólo los eventos con automáticas
+      al empezar el cuadro      elige todas las páginas activas
+      ídem, después             recarga rutas y gráficos de los NPCs
+
+  Lo primero es el `if (GetNeedRefresh()) Refresh();` del final de
+  `Game_Interpreter::Update`, y de él depende que el idioma de RM2k funcione:
+  una página que prende el switch que la desactiva deja de ser la activa antes
+  de que se decida qué corre después. Sin eso perdía ocho cuadros en el mapa 2
+  arrancándose a sí misma.
+
+  EasyRPG además refresca **antes de cada comando**. Acá no hace falta y sale
+  caro —cinco cuadros en la cinemática de apertura, que prende switches de a
+  montones—: ningún opcode de los que hay lee cuál es la página activa de un
+  evento. El día que aparezca uno que sí, esto vuelve al lazo.
+
+  Y la mitad cara —recargar filas de OAM y ranuras de ruta— se posterga al
+  cuadro siguiente porque no se ve hasta que se dibuje.
+
+* **La página de prueba se apaga sola**, prendiendo el switch 1023 en su primer
+  comando, con una segunda página vacía que lo pide. Es el idioma con el que
+  las páginas del juego se desactivan, y no lo ejercitaba nada; sin él, ahora
+  que las automáticas se repiten, la página de prueba reiniciaría su propia
+  ruta para siempre. Su evento es el primer índice libre del mapa y no un
+  número alto: los barridos de la ROM van de cero a `ev_total`.
+
 * **Las órdenes de ruta 26 a 29 sobre el héroe se aceptan y se tiran.** Fijar y
   soltar la mirada y subir y bajar la velocidad. Decidido con taro el
   2026-09-06: son un extra, como los efectos climáticos, y el juego se puede
@@ -124,8 +166,9 @@ de cada una está en `README.md`.
 
 ## Lo que taro todavía no probó
 
-* **`rom/build/demo-apertura/`, rearmada el 2026-09-06** con la cola circular
-  y con el **mapa 6 adentro**, que antes no estaba: la línea de este archivo
+* **`rom/build/demo-apertura/`, rearmada el 2026-09-06** con el disparo de
+  páginas rehecho —ver la decisión de abajo— y con el **mapa 6 adentro**, que
+  antes no estaba: la línea de este archivo
   que decía "los mapas 4, 1, 2, 3, 5 y 6" era falsa y el `--mapas` nunca lo
   llevó. Sin el 6, las cuatro páginas automáticas del mapa 5 daban **cero
   ejecutables** —tres de ellas teletransportan al 6— y el recuerdo de CORE y
@@ -167,26 +210,16 @@ tanda no mira:
   en el cuadro 360 y sólo ahí: un caso nuevo que no da rojo con el bug puesto
   no prueba nada.
 
-  Lo que sigue sin cubrir es la otra mitad del mismo agujero: los dos bugs que
-  taro encontró jugando ese día —el presupuesto de saltos y la cola— aparecen
-  después de una cinemática larga, y ninguna caminata de la tanda encadena una
-  cinemática con interacciones sueltas después.
+  Lo que sigue sin cubrir es la otra mitad del mismo agujero: los bugs que taro
+  encontró jugando ese día aparecen después de una cinemática larga, y ninguna
+  caminata de la tanda encadena una cinemática con interacciones sueltas
+  después.
 
-* **Una página automática que se vuelve activa con el mapa ya cargado.** La
-  ROM encola las automáticas **una sola vez, al cargar el mapa**, y la
-  referencia hace lo mismo en `Interprete.__init__`. RM2k no: `Game_Map::Update`
-  arranca una automática en cuanto pasa a ser la página activa, cada cuadro.
-  Así que si estando parado en un mapa se prende el switch que activa una
-  automática de ese mismo mapa, en RM2k arranca y acá no arranca nunca.
-
-  **Los dos lados se equivocan igual, así que la comparación da cero**: es
-  exactamente la trampa de `CLAUDE.md`, y por eso ningún caso lo ve. Medido con
-  el mapa 5: entrando con el switch 16 ya prendido la página se encola; si se
-  lo prende después, la cola se queda en cero para siempre.
-
-  El tamaño: **101 páginas automáticas en 60 mapas** tienen una condición de
-  switch que otra página del mismo mapa prende. De los de la demo, 1 en el mapa
-  2 y 3 en el mapa 3. No está arreglado y no se decidió arreglarlo.
+* **La cadena entera del recuerdo de CORE y MANTA.** Corre en el modelo —mapa
+  5, 5, 6, 3 y 4, con los 864 cuadros de la cinemática de la ciudad que antes
+  no existían— pero **ningún caso la compara**: encadenarla desde la escena de
+  Talan pide una lista de toques de A que todavía no armé. Es el mejor
+  candidato a caso nuevo que hay.
 
 * **Los primeros nueve cuadros de un mensaje.** La ROM abre la ventana animada
   y la referencia la pone de golpe: con el toque de A en el cuadro 25, la

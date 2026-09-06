@@ -340,19 +340,17 @@ saltos_restantes: .res 1 ; cuántas cadenas de teletransporte quedan permitidas
 ; salteaban: eso colapsaba el tiempo, y todo lo que en RM2k pasa *durante* una
 ; página no existía. Ahora las páginas elegidas se encolan al cargar el mapa y
 ; el lazo principal las va comiendo.
-COLA_MAX = 8
-cola:        .res 24    ; hasta ocho punteros de tres bytes
-; Un anillo de verdad: `cola_n` son las que están **esperando** —no las que
-; entraron alguna vez— y `cola_i` de cuál se lee. El que escribe lo hace en
-; `(cola_i + cola_n) mod COLA_MAX`.
-;
-; Antes `cola_n` sólo crecía, así que esto era un buffer que se llenaba una vez
-; por visita al mapa: llegado a ocho, `encolar_elegida` descartaba todo y el
-; mapa se quedaba sin disparar nada. La misma cola atiende **todos** los
-; disparos de la visita —cada tecla de acción, cada contacto—, no sólo las
-; páginas automáticas de la carga, que es lo que el número ocho suponía.
-cola_n:      .res 1     ; cuántas esperan
-cola_i:      .res 1     ; de cuál se lee
+; Cuántas páginas se pueden arrancar en un mismo cuadro, encadenadas. En RM2k
+; el tope no es de páginas sino de comandos —`loop_limit = 10000` en
+; `game_interpreter.h`— y se reparte entre todas las que arranquen en el
+; cuadro. Acá se cuenta por página, que es más grueso: sólo se nota con una
+; página que termine sin hacer nada y vuelva a activarse, o sea la que en RM2k
+; cuelga el juego. Ahí ésta no cuelga: gasta el cuadro y sigue.
+ARRANQUES_MAX = 8
+
+; Los dos bits de `ev_flags`, uno por evento.
+FLAG_ESPERA = $01
+FLAG_AUTO   = $02
 ev_cur:      .res 2     ; el cursor dentro de la página que corre
 ev_activo:   .res 1     ; si hay una página a medio correr
 ev_esperando: .res 2    ; cuántos cuadros faltan de la espera en curso
@@ -517,8 +515,7 @@ grupo_listo:
     ; daba verde con esto adentro, y en hardware real habría fallado igual que
     ; en mednafen. Está medido en "Trampas del hardware" del README.
     stz ev_activo
-    stz cola_n
-    stz cola_i
+    jsr limpiar_esperas
     stz ruta_n                  ; sin ruta forzada pendiente
     stz ruta_i
     stz ruta_espera
@@ -960,6 +957,13 @@ cero:
     sta cam_max_y
     lda mapa_tabla + M_EV_COUNT, x
     sta ev_total
+    ; Uno más: la página de prueba se cuela en la tabla de páginas con el
+    ; primer índice libre del mapa, que es justo `ev_total`. Todo lo que barre
+    ; eventos va hasta acá y no hasta `EV_MAX`; con los ciento veinte, un mapa
+    ; de cuatro eventos barría ciento dieciséis de más y eso alcanzaba para
+    ; perder el cuadro.
+    inc a
+    sta ev_tope
     lda mapa_tabla + M_NPC_COUNT, x
     asl a
     asl a
@@ -1062,6 +1066,10 @@ puesto:
     jsr load_ruta_graficos
     jsr load_ev_pos             ; y dónde arranca cada evento, con o sin gráfico
     stz refresco
+    ; Antes del refresco, no después: las marcas del mapa anterior no valen
+    ; nada acá —sus índices de evento apuntarían a otros eventos— y el refresco
+    ; es el que vuelve a prender el `FLAG_AUTO` de los que corresponda.
+    jsr limpiar_esperas
     jsr rutas_de_pagina         ; y las rutas propias de las páginas activas
     ; La tabla de actores es de este mapa, así que dónde caen las poses del
     ; líder cambia al cambiar de mapa aunque el grupo sea el mismo.
@@ -1099,7 +1107,6 @@ puesto:
     sta saltos_restantes        ; con stx serían dos bytes y pisaría el de al lado
     pla
     jsr cargar_mapa_sin_eventos
-    jsr encolar_eventos
     rts
 .endproc
 
@@ -1143,10 +1150,25 @@ nada:
     ; El refresco pendiente, antes del intérprete: es cuando `Game_Map::Update`
     ; mira `GetNeedRefresh`.
     lda refresco
-    beq sin_refresco
+    ora refresco_cuadro         ; o uno de adentro del lazo de comandos, que
+    beq sin_refresco            ; hizo la pasada corta y dejó ésta debiendo
     stz refresco
-    jsr rutas_de_pagina
+    stz refresco_cuadro
+    jsr rutas_de_pagina         ; que además rehace el `FLAG_AUTO` de cada
+                                ; evento: la página activa cambió
 sin_refresco:
+    ; `Game_Event::CheckEventAutostart`: todo evento con una automática activa
+    ; queda esperando, una vez por cuadro y **antes** del intérprete, que es el
+    ; orden de `Game_Map::Update`. Marcarlo más tarde —al terminar una página—
+    ; le adelantaba un cuadro a las que se activan en medio de otra.
+    ;
+    ; `auto_n` está para que el lazo de ciento veinte no corra cuando no hay
+    ; ninguna, que es casi siempre: corriéndolo igual se perdía el cuadro justo
+    ; donde caía algo caro, como el tinte de `snes-pan`.
+    lda auto_n
+    beq sin_automaticas
+    jsr esperar_automaticas
+sin_automaticas:
     rep #$20
 .a16
     lda ev_esperando
@@ -1188,9 +1210,9 @@ sin_mensaje:
 
     lda ev_activo
     bne corriendo
-    ; No hay página a medio correr: se toma la siguiente de la cola.
-    lda cola_n
-    bne hay_en_cola
+    ; No hay página a medio correr: se toma la del primer evento que espere.
+    lda esperando_n
+    bne hay_esperando
 
     ; La cola está vacía, así que el flanco de A es para hablar. En RM2k es el
     ; mismo botón que cierra un mensaje y que confirma, y el orden importa: con
@@ -1207,41 +1229,53 @@ sin_mensaje:
     bne nada                    ; a mitad de un paso no se habla
     jsr probar_accion
     beq nada
-    ; Encoló algo: se toma en este mismo cuadro.
-hay_en_cola:
-    lda cola_n
-    beq nada                    ; no queda ninguna
-    lda cola_i
-    asl a
-    clc
-    adc cola_i                  ; índice * 3, en ocho bits
-    rep #$20
-.a16
-    and #$00FF
-    tax
-    lda cola, x
-    sta cod_ptr
-    stz ev_cur
-    sep #$20
-.a8
-    lda cola + 2, x
-    sta cod_ptr + 2
-    ; Se leyó una: el lector avanza dando la vuelta y quedan una menos.
-    lda cola_i
-    inc a
-    cmp #COLA_MAX
-    bcc guardar_lector
-    lda #0
-guardar_lector:
-    sta cola_i
-    dec cola_n
-    lda #1
-    sta ev_activo
+    ; Marcó un evento: se arranca en este mismo cuadro.
+hay_esperando:
+    jsr arrancar_esperando
+    beq nada                    ; ninguno tenía página con qué correr
 
 corriendo:
+    ; El `while (!interp.IsRunning())` de `Game_Map::UpdateForegroundEvents`:
+    ; si la página termina, la que siga esperando arranca **en este mismo
+    ; cuadro** y no en el que viene. Encadenarlas al cuadro siguiente metía un
+    ; cuadro de diferencia por página, y una cinemática son decenas.
+    lda #ARRANQUES_MAX
+    sta arranques
+seguir_corriendo:
     jsr correr_codigo
+    ; El refresco pendiente, **al salir del intérprete**: es el
+    ; `if (Game_Map::GetNeedRefresh()) Game_Map::Refresh();` del final de
+    ; `Game_Interpreter::Update`, y de él depende que el idioma de RM2k
+    ; funcione. Una página que prende el switch que la desactiva deja de ser la
+    ; activa antes de que se decida qué corre después; sin esto, al terminar
+    ; seguía pareciendo automática y volvía a arrancar en el mismo cuadro, una
+    ; y otra vez hasta agotar el presupuesto de `ARRANQUES_MAX`.
+    ;
+    ; EasyRPG además refresca **antes de cada comando**, arriba del lazo. Acá
+    ; no hace falta y sale caro: ningún opcode de los que hay lee cuál es la
+    ; página activa de un evento —el único que la lee es `arrancar_esperando`,
+    ; que corre justo acá abajo—. Haciéndolo por comando, la cinemática de
+    ; apertura perdía cinco cuadros: sus páginas prenden switches de a montones.
+    ; El día que aparezca un opcode que sí la lea, esto vuelve al lazo.
+    lda refresco
+    beq sin_refresco_aca
+    stz refresco
+    lda #1
+    sta refresco_cuadro         ; la completa, al principio del cuadro que viene
+    jsr elegir_automaticas
+sin_refresco_aca:
     lda salto_hay
+    bne hubo_salto
+    lda ev_activo
+    bne nada                    ; sigue corriendo: el cuadro terminó
+    lda esperando_n
     beq nada
+    dec arranques
+    beq nada                    ; se acabó el presupuesto del cuadro
+    jsr arrancar_esperando
+    bne seguir_corriendo
+    rts
+hubo_salto:
     stz salto_hay
     rep #$20
 .a16
@@ -1414,11 +1448,11 @@ salto:
     ; orden de RM2k: `Game_Interpreter_Map::OnMapChange` no toca la pila del
     ; intérprete, sólo los ids de evento.
     ;
-    ; Antes no se encolaban nunca. El comentario decía que se encolaban "cuando
+    ; Antes no se marcaban nunca. El comentario decía que se encolaban "cuando
     ; ésta termine" y no lo hacía nadie: después de un teletransporte, los
     ; eventos del mapa de destino no corrían jamás. Nada lo veía porque la única
     ; prueba que teletransportaba miraba el tinte, que lo pone el mapa de origen.
-    jsr encolar_eventos
+    ; Hoy lo hace `cargar_mapa_sin_eventos`, adentro de su refresco.
 hecho:
     stz fundido_que
     ; Y OAM, que si no se queda con la del mapa que se dejó. El lazo no la
@@ -1474,98 +1508,6 @@ listo:
 ;
 ; Sólo se corren las automáticas. Las de contacto ya las cubren las puertas, y
 ; las de botón necesitan que haya un botón que apretar.
-.proc encolar_eventos
-.a8
-.i16
-    stz cola_n
-    stz cola_i
-    ldx mapa_ofs
-    rep #$20
-.a16
-    lda mapa_tabla + M_PAGINA_COUNT, x
-    bne hay_paginas
-    ; Salir por acá sin volver a 8 bits dejaría al que llama con el acumulador
-    ; del ancho equivocado. El ancho es estado y se escapa de las rutinas.
-    sep #$20
-.a8
-    rts
-hay_paginas:
-.a16
-    ; se llega en dieciséis; el `sep` de abajo lo achica
-    rep #$20
-.a16
-    sta pag_restan
-    lda mapa_tabla + M_PTR_PAGINAS, x
-    sta pag_ptr
-    stz pag_ofs
-    sep #$20
-.a8
-    lda mapa_tabla + M_PTR_PAGINAS + 2, x
-    sta pag_ptr + 2
-    stz elegida_hay
-
-    jsr leer_pagina
-    rep #$20
-.a16
-    lda pg_evento
-    sta ev_actual
-    sep #$20
-.a8
-
-recorrer:
-    jsr leer_pagina
-    rep #$20
-.a16
-    lda pg_evento
-    cmp ev_actual
-    sep #$20
-.a8
-    beq mismo_evento
-
-    jsr ejecutar_elegida
-    lda salto_hay
-    bne nada                    ; un teletransporte corta el resto
-    rep #$20
-.a16
-    lda pg_evento
-    sta ev_actual
-    sep #$20
-.a8
-    stz elegida_hay
-
-mismo_evento:
-    jsr condiciones_ok
-    beq siguiente               ; no se cumplen: esta página no compite
-    ; Gana, por ahora: es la de número más alto que cumplió hasta acá.
-    lda pg_trigger
-    sta elegida_trigger
-    rep #$20
-.a16
-    lda pg_cod
-    sta elegida
-    sep #$20
-.a8
-    lda pg_cod + 2
-    sta elegida + 2
-    lda #1
-    sta elegida_hay
-
-siguiente:
-    rep #$20
-.a16
-    lda pag_ofs
-    clc
-    adc #PAGINA_BYTES
-    sta pag_ofs
-    dec pag_restan
-    sep #$20
-.a8
-    bne recorrer
-
-    jsr ejecutar_elegida
-nada:
-    rts
-.endproc
 
 ; Los campos de la página que está en pag_ofs, a variables.
 .proc leer_pagina
@@ -1657,19 +1599,71 @@ nada:
 ; una sola vez anotando la ganadora de cada evento, y después se mira evento
 ; por evento. Con eventos por páginas costaba más de un cuadro, y un cuadro
 ; perdido en un switch es un cuadro corrido contra la referencia.
+; `Game_Map::Refresh` entero: elegir las páginas activas y aplicarlas.
 .proc rutas_de_pagina
 .a8
 .i16
+    jsr elegir_paginas
+    jmp aplicar_paginas
+.endproc
+
+; Como `elegir_paginas`, pero mirando **sólo** los eventos con automáticas.
+;
+; Es lo que corre el refresco de adentro del lazo de comandos, y es lo único
+; que ese refresco necesita hacer en el acto: lo que el comando siguiente puede
+; llegar a mirar es qué evento tiene una automática activa. En el mapa 2 son
+; cuatro páginas de sesenta y tres, contra las veintitrés que mira la completa.
+; La completa corre igual, al principio del cuadro que viene.
+.proc elegir_automaticas
+.a8
+.i16
+    lda #1
+    sta solo_auto
+    jmp elegir_con_filtro
+.endproc
+
+; La primera mitad: qué página queda activa en cada evento, y de paso el
+; `FLAG_AUTO` de cada uno.
+.proc elegir_paginas
+.a8
+.i16
+    stz solo_auto
+    jmp elegir_con_filtro
+.endproc
+
+; El cuerpo de las dos, con `solo_auto` diciendo cuál es.
+.proc elegir_con_filtro
+.a8
+.i16
+    ; El `FLAG_AUTO` no se apaga con un lazo aparte sino en la primera página
+    ; de cada evento, más abajo: ciento veinte vueltas en cada refresco
+    ; costaban el cuadro entero cuando el refresco caía sobre algo caro.
+    lda solo_auto
+    beq vaciar_todo
+    rep #$20
+.a16
+    lda #$FFFF
+    sta rp_ev_ant
+    bra sin_vaciar              ; la pasada corta no pisa lo de las rutas
+.a8
+vaciar_todo:
     rep #$20
 .a16
     ldx #$0000
+    lda ev_tope
+    asl a
+    sta rp_ev_ant               ; el tope en bytes, prestado un momento
 vaciar:
     lda #$FFFF
     sta eleg_por_ev, x
     inx
     inx
-    cpx #EV_MAX * 2
+    cpx rp_ev_ant
     bne vaciar
+    lda #$FFFF
+    sta rp_ev_ant               ; y ahora sí, "ningún evento visto todavía"
+.a16
+sin_vaciar:
     ldx mapa_ofs
     lda mapa_tabla + M_PAGINA_COUNT, x
     bne hay_paginas
@@ -1684,9 +1678,15 @@ hay_paginas:
     lda mapa_tabla + M_PTR_PAGINAS + 2, x
     sta pag_ptr + 2
 recorrer:
-    ; Sólo las páginas de los eventos que tienen alguna con ruta propia: el
-    ; bit 6 de +13 lo dice, y se lee ese byte solo. Con todas las páginas
-    ; enteras esto costaba más de un cuadro, y el cuadro se perdía.
+    ; Sólo las páginas de los eventos que tienen alguna con ruta propia, o
+    ; gráfico que sigue a la página, o alguna automática: los bits 5, 6 y 7 de
+    ; +13 lo dicen, y se lee ese byte solo. Con todas las páginas enteras esto
+    ; costaba más de un cuadro, y el cuadro se perdía.
+    ;
+    ; Las tres cosas se resuelven en **una sola** recorrida a propósito. Con la
+    ; de las automáticas aparte —que es como nació— el refresco hacía dos
+    ; vueltas y volvía a perder el cuadro: se veía como el tinte de
+    ; `snes-pan` llegando uno tarde.
     rep #$20
 .a16
     lda pag_ofs
@@ -1696,11 +1696,99 @@ recorrer:
     sep #$20
 .a8
     lda [pag_ptr], y
-    and #$60                    ; con ruta propia, o con gráfico que sigue a
-    beq siguiente               ; la página
+    ldx solo_auto
+    beq filtro_completo
+    and #$80                    ; la pasada corta: sólo las automáticas
+    bra con_filtro
+filtro_completo:
+    and #$E0
+con_filtro:
+    bne mirar_pagina
+    jmp siguiente               ; la recorrida creció y ya no entra en un beq
+mirar_pagina:
     jsr leer_pagina
+    ; La primera página de un evento con automáticas le apaga el `FLAG_AUTO`:
+    ; lo vuelve a prender, más abajo, la última de sus páginas que cumpla. Las
+    ; páginas de un evento vienen juntas, así que alcanza con mirar si cambió.
+    lda pg_flags
+    and #$80
+    beq no_es_auto
+    rep #$20
+.a16
+    lda pg_evento
+    cmp rp_ev_ant
+    beq mismo_ev16
+    sta rp_ev_ant
+    tax
+    sep #$20
+.a8
+    cpx #EV_MAX
+    bcs no_es_auto
+    lda ev_flags, x
+    and #FLAG_AUTO
+    beq ya_apagada
+    dec auto_n
+ya_apagada:
+    ; Los **dos** bits, y la última página que cumpla los vuelve a poner. El
+    ; de espera también: si ninguna página del evento cumple, se queda sin
+    ; página activa y la marca tiene que irse, que es el
+    ; `ClearWaitingForegroundExecution` que `RefreshPage` hace cuando no
+    ; encuentra ninguna. Dejándola puesta, la página que acababa de terminar
+    ; volvía a arrancar: en la cinemática de apertura eso reiniciaba la escena
+    ; entera en el cuadro 692.
+    jsr desmarcar_esperando     ; el de espera, con su cuenta
+    stz ev_flags, x             ; y el de automática, que la cuenta ya bajó
+    bra no_es_auto
+.a16
+mismo_ev16:
+    sep #$20
+.a8
+no_es_auto:
     jsr condiciones_ok
     beq no_cumple
+    ; Cumple, así que por ahora es la activa de su evento. Si el evento tiene
+    ; automáticas, acá se decide si la activa lo es: escribir en cada página
+    ; que cumple deja al final lo que diga la última, que es la que gana.
+    lda pg_flags
+    and #$80
+    beq sin_auto
+    ldx pg_evento
+    cpx #EV_MAX
+    bcs sin_auto
+    lda ev_flags, x
+    and #FLAG_AUTO
+    beq sigue_apagada
+    dec auto_n
+sigue_apagada:
+    lda ev_flags, x
+    and #FLAG_ESPERA            ; se apaga, y abajo se vuelve a prender si toca
+    sta ev_flags, x
+    lda pg_trigger
+    cmp #TRIGGER_AUTOMATICO
+    bne no_gana_una_auto
+    lda pg_cod
+    ora pg_cod + 1
+    ora pg_cod + 2
+    beq no_gana_una_auto        ; no compiló: no hay nada que arrancar
+    lda ev_flags, x
+    ora #FLAG_AUTO
+    sta ev_flags, x
+    inc auto_n
+    jsr marcar_esperando        ; sigue siendo automática: la marca vuelve
+    bra sin_auto
+no_gana_una_auto:
+    ; La que gana no es automática, así que el evento **deja** de esperar. Se
+    ; escribe en cada página que cumple y gana la última, que es la activa;
+    ; marcando y no desmarcando, la página 0 de un evento dejaba la marca
+    ; puesta aunque ganara la 1. Es el `ClearWaitingForegroundExecution` que
+    ; `Game_Event::RefreshPage` hace al cambiar de página.
+    jsr desmarcar_esperando
+sin_auto:
+    ; La página activa se anota para los tres casos, no sólo para los de ruta o
+    ; gráfico: `arrancar_esperando` la lee de acá en vez de volver a recorrer
+    ; las páginas del mapa. En el mapa 2 eso son sesenta y tres páginas por
+    ; cada página que arranca, y se perdía el cuadro. La segunda pasada, que
+    ; es la que toca rutas y gráficos, saltea a los que no tienen esos bits.
     rep #$20
 .a16
     lda pg_evento
@@ -1712,6 +1800,11 @@ recorrer:
 .a8
     bra siguiente
 no_cumple:
+    lda pg_flags
+    and #$60
+    bne con_rutas
+    jmp siguiente               ; sólo automáticas: ya quedó apagado arriba
+con_rutas:
     ; Un evento con rutas y sin página que cumpla todavía: $FFFE, para que la
     ; segunda pasada lo distinga de los que no tienen rutas.
     rep #$20
@@ -1753,8 +1846,36 @@ siguiente:
     dec pag_restan
     sep #$20
 .a8
-    bne recorrer
-    ; Segunda pasada: cada evento con su página ganadora.
+    beq listo_eligiendo
+    jmp recorrer                ; la recorrida creció y ya no entra en un bcc
+listo_eligiendo:
+    rts
+sin_paginas:
+    sep #$20
+.a8
+    rts
+.endproc
+
+; La segunda mitad: cada evento con la ruta y el gráfico de su página activa.
+; Recorre los eventos del mapa recargando filas de OAM y ranuras de ruta, así
+; que es la cara: hacerla en medio de un cuadro costaba el cuadro entero en el
+; mapa 2. Por eso el refresco a mitad de comando la deja para el principio del
+; cuadro que viene, donde no cambia nada: lo que toca no se ve hasta que se
+; dibuje.
+.proc aplicar_paginas
+.a8
+.i16
+    ; El puntero a las páginas se rearma acá y no se hereda de `elegir_paginas`:
+    ; entre una y otra puede haber pasado un cuadro entero.
+    ldx mapa_ofs
+    rep #$20
+.a16
+    lda mapa_tabla + M_PTR_PAGINAS, x
+    sta pag_ptr
+    sep #$20
+.a8
+    lda mapa_tabla + M_PTR_PAGINAS + 2, x
+    sta pag_ptr + 2
     stz rp_ev
     stz rp_ev + 1
 cada_evento:
@@ -1784,6 +1905,11 @@ cada_evento:
     sep #$20
 .a8
     jsr leer_pagina
+    lda pg_flags
+    and #$60
+    bne con_ruta_o_grafico
+    jmp proximo                 ; sólo automáticas: la anotación es para otro
+con_ruta_o_grafico:
     jsr grafico_de_pagina       ; lo que la página dibuja, a la fila del NPC
     lda rp_ev
     jsr ranura_del_evento       ; X = su ranura, o $FFFF
@@ -2395,65 +2521,209 @@ falla:
     rts                         ; rep no toca Z, así que el and sigue valiendo
 .endproc
 
-; Corre la página que ganó, si ganó alguna, es automática y tiene código.
-.proc ejecutar_elegida
+; La parte de encolar, que comparten los automáticos y la tecla de acción.
+; Ningún evento esperando y ninguno automático: al entrar a un mapa las marcas
+; del anterior no valen nada, y sus índices de evento apuntarían a otros
+; eventos. La llama la carga del mapa **antes** del refresco, que es quien
+; vuelve a prender el `FLAG_AUTO` de los que corresponda.
+.proc limpiar_esperas
 .a8
 .i16
+    ldx #$0000
+:   stz ev_flags, x
+    inx
+    cpx #EV_MAX
+    bne :-
+    stz esperando_n
+    stz auto_n
+    stz refresco_cuadro
+    ; Y de quién era la página que corre: si sobrevivió a un teletransporte, su
+    ; índice ya no significa nada en el mapa nuevo.
+    rep #$20
+.a16
+    lda #$FFFF
+    sta ev_corriendo
+    sep #$20
+.a8
+    rts
+.endproc
+
+; Todo evento con una automática activa vuelve a quedar esperando. Es
+; `Game_Event::CheckEventAutostart`, que corre una vez por cuadro y para todos.
+; Lo llama `eventos_tick` antes del intérprete, y sólo si `auto_n` dice que hay
+; alguna.
+.proc esperar_automaticas
+.a8
+.i16
+    ldx #$0000
+mirar:
+    lda ev_flags, x
+    and #FLAG_AUTO
+    beq siguiente
+    jsr marcar_esperando
+siguiente:
+    inx
+    cpx ev_tope
+    bne mirar
+    rts
+.endproc
+
+; La página activa que anotó el refresco para el evento X, a `elegida`. Z=1 si
+; no hay ninguna anotada y hay que salir a buscarla.
+;
+; Existe para que arrancar una página no cueste una recorrida de todas las del
+; mapa. El refresco ya la resolvió; volver a resolverla acá era hacer dos veces
+; el mismo trabajo, y el segundo caía en un cuadro cualquiera.
+.proc pagina_desde_eleg
+.a8
+.i16
+    stz elegida_hay
+    cpx #EV_MAX
+    bcs no
+    rep #$20
+.a16
+    txa
+    asl a
+    tay
+    lda eleg_por_ev, y
+    cmp #$FFFD                  ; $FFFD, $FFFE y $FFFF son centinelas
+    bcc anotada
+    sep #$20
+.a8
+no:
+    lda #0
+    rts
+.a16
+anotada:
+    sta pag_ofs
+    ldy mapa_ofs
+    lda mapa_tabla + M_PTR_PAGINAS, y
+    sta pag_ptr
+    sep #$20
+.a8
+    lda mapa_tabla + M_PTR_PAGINAS + 2, y
+    sta pag_ptr + 2
+    jsr leer_pagina
+    lda pg_trigger
+    sta elegida_trigger
+    rep #$20
+.a16
+    lda pg_cod
+    sta elegida
+    sep #$20
+.a8
+    lda pg_cod + 2
+    sta elegida + 2
+    lda #1
+    sta elegida_hay
+    rts
+.endproc
+
+; Arranca la página del primer evento que esté esperando. Devuelve 0 si no
+; arrancó ninguna. El orden es por número de evento, que es el mismo en que
+; `Game_Map::Update` recorre `events`.
+;
+; La página se resuelve **acá**, no cuando se marcó el evento: entre una cosa y
+; la otra puede haber pasado un refresco y ser otra la activa.
+.proc arrancar_esperando
+.a8
+.i16
+    ldx #$0000
+buscar:
+    lda ev_flags, x
+    and #FLAG_ESPERA
+    bne encontrado
+    inx
+    cpx ev_tope
+    bne buscar
+    lda #0
+    rts
+encontrado:
+    ; Se desmarca antes de saber si hay con qué correr, igual que el
+    ; `ClearWaitingForegroundExecution` de `Game_Map::Update`, que corre
+    ; siempre. Si la página no compiló, el evento pierde el turno; y si es
+    ; automática, el barrido del cuadro que viene lo vuelve a marcar.
+    lda ev_flags, x
+    and #(FLAG_AUTO)            ; deja sólo el de automática
+    sta ev_flags, x
+    dec esperando_n
+    phx
+    jsr pagina_desde_eleg
+    bne con_pagina
+    rep #$20
+.a16
+    txa
+    sta ev_buscado
+    sep #$20
+.a8
+    jsr buscar_pagina_de_evento
+con_pagina:
+    plx
     lda elegida_hay
-    beq no
-    lda elegida_trigger
-    cmp #TRIGGER_AUTOMATICO
-    bne no
-    jmp encolar_elegida
+    beq buscar_mas
+    lda elegida
+    ora elegida + 1
+    ora elegida + 2
+    beq buscar_mas              ; la página activa no se pudo compilar
+    rep #$20
+.a16
+    lda elegida
+    sta cod_ptr
+    stz ev_cur
+    sep #$20
+.a8
+    lda elegida + 2
+    sta cod_ptr + 2
+    rep #$20
+.a16
+    txa
+    sta ev_corriendo            ; para poder remarcarlo cuando termine
+    sep #$20
+.a8
+    lda #1
+    sta ev_activo
+    rts
+buscar_mas:
+    inx
+    cpx ev_tope
+    bne buscar
+    lda #0
+    rts
+.endproc
+
+; Lo contrario de `marcar_esperando`, con la misma cuenta.
+.proc desmarcar_esperando
+.a8
+.i16
+    cpx #EV_MAX
+    bcs no
+    lda ev_flags, x
+    and #FLAG_ESPERA
+    beq no                      ; no estaba: no se descuenta de nuevo
+    lda ev_flags, x
+    and #(FLAG_AUTO)            ; deja sólo el de automática
+    sta ev_flags, x
+    dec esperando_n
 no:
     rts
 .endproc
 
-; La parte de encolar, que comparten los automáticos y la tecla de acción.
-.proc encolar_elegida
+; Marca al evento X como que tiene una página esperando turno. Es
+; `Game_Event::ScheduleForegroundExecution`: un bit por evento, no una cola.
+; Marcarlo dos veces no lo encola dos veces, que es lo que hacía falta para que
+; el barrido de cada cuadro pueda remarcar sin miedo.
+.proc marcar_esperando
 .a8
 .i16
-    lda elegida
-    ora elegida + 1
-    ora elegida + 2
-    beq no                      ; sin código: no se pudo compilar
-    ; Acá se escribía también `cod_ptr`, y era peor que inútil: lo que se encola
-    ; es `elegida`, y `eventos_tick` pone `cod_ptr` al sacar la página de la
-    ; cola. Encolando **mientras otra página corre** —que es lo que pasa al
-    ; teletransportar— le pisaba el puntero a la que estaba corriendo.
-    stz elegida_hay             ; que no se encole dos veces
-    ; A la cola en vez de ejecutarla: el lazo principal la va a correr cuadro a
-    ; cuadro. Si la cola está llena se descarta, que es preferible a pisar RAM
-    ; de al lado; ningún mapa del juego llega a ocho páginas automáticas.
-    lda cola_n
-    cmp #COLA_MAX
-    beq no                      ; llena de verdad: hay ocho esperando
-    ; Dónde escribir: `(cola_i + cola_n) mod COLA_MAX`, que es lo que hace de
-    ; esto un anillo. Antes se escribía en `cola_n` a secas, con `cola_n`
-    ; creciendo para siempre.
-    clc
-    adc cola_i
-    cmp #COLA_MAX
-    bcc con_hueco
-    sbc #COLA_MAX
-con_hueco:
-    ; El índice por tres, en ocho bits. En dieciséis, `adc` leería dos bytes y
-    ; se llevaría puesto el de al lado: es la trampa del ancho de siempre.
-    sta cola_pos
-    asl a                       ; 2n
-    clc
-    adc cola_pos                ; 3n
-    rep #$20
-.a16
-    and #$00FF
-    tax
-    lda elegida
-    sta cola, x
-    sep #$20
-.a8
-    lda elegida + 2
-    sta cola + 2, x
-    inc cola_n
+    cpx #EV_MAX
+    bcs no
+    lda ev_flags, x
+    and #FLAG_ESPERA
+    bne no                      ; ya estaba: no se cuenta de nuevo
+    lda ev_flags, x
+    ora #FLAG_ESPERA
+    sta ev_flags, x
+    inc esperando_n
 no:
     rts
 .endproc
@@ -5163,7 +5433,7 @@ sin_espera:
     beq no_congelada
     lda ev_activo
     bne congelada
-    lda cola_n
+    lda esperando_n
     bne congelada
 no_congelada:
     ; El puntero de la ruta a la página directa, que es de donde se puede leer
@@ -5687,7 +5957,12 @@ no_hay:
 ; Es la misma regla de selección que `encolar_eventos` —gana la de número más
 ; alto que cumpla sus condiciones— pero para un evento solo, y sin tocar el
 ; cursor de la cola de los automáticos.
-.proc encolar_por_accion
+; La página activa del evento `ev_buscado`, a `elegida`. Sin mirar el trigger:
+; quien llama decide qué hacer con ella. Es la misma regla de siempre —gana la
+; de número más alto cuyas condiciones se cumplen— y se resuelve **en el
+; momento de usarla**, no cuando se marcó el evento, que es lo que hace
+; `Game_Map::Update` al empujar el evento que estaba esperando.
+.proc buscar_pagina_de_evento
 .a8
 .i16
     ldx mapa_ofs
@@ -5741,6 +6016,21 @@ siguiente:
 .a8
     bne recorrer
 
+    rts
+sin_paginas:
+.a16                            ; se llega en dieciséis; el `sep` lo achica
+    sep #$20
+.a8
+    stz elegida_hay
+    rts
+.endproc
+
+; El disparo por tecla de acción o por contacto: busca la página activa del
+; evento y, si es del trigger que se pide y compiló, marca al evento.
+.proc encolar_por_accion
+.a8
+.i16
+    jsr buscar_pagina_de_evento
     lda elegida_hay
     beq no
     lda elegida_trigger
@@ -5750,16 +6040,11 @@ siguiente:
     ora elegida + 1
     ora elegida + 2
     beq no                      ; la página activa no se pudo compilar
-    jsr encolar_elegida
+    ldx ev_buscado
+    jsr marcar_esperando
     lda #1
     rts
 no:
-    lda #0
-    rts
-sin_paginas:
-.a16                            ; se llega en dieciséis; el `sep` lo achica
-    sep #$20
-.a8
     lda #0
     rts
 .endproc
@@ -9461,7 +9746,7 @@ sin_ruta:
     ; abrirse y `msg_abierto` recién se prende al final.
     lda ev_activo
     bne no_derecha
-    lda cola_n
+    lda esperando_n
     bne no_derecha
     lda pad
     and #PAD_UP
@@ -11424,11 +11709,25 @@ done:
 
 .segment "BSS"
 
-; Dónde escribe el que encola, mientras lo calcula. Va aparte y no en `temp`
-; porque `encolar_elegida` corre en medio de `accion_en_celda` y de
-; `encolar_eventos`, y pisarles el scratch es la clase de error que se ve como
-; un evento disparándose solo.
-cola_pos:    .res 1
+; Dos bits por evento, en vez de una cola. `FLAG_AUTO` dice si la página activa
+; del evento es una automática que compiló —lo rehace el refresco— y
+; `FLAG_ESPERA` es el `waiting_execution` de EasyRPG: quién tiene una página
+; esperando turno, la haya puesto el barrido de las automáticas, la tecla de
+; acción o un contacto.
+;
+; Reemplazan a una cola de ocho punteros que se llenaba y descartaba. Un bit
+; por evento no puede desbordar ni marcar dos veces al mismo, que es justamente
+; lo que hace posible remarcar en cada cuadro. Los dos bits van en la misma
+; tabla y no en dos: 128 bytes más no entraban en los 7680 de RAM.
+ev_flags:     .res EV_MAX
+esperando_n:  .res 1     ; cuántos esperan, para no barrer 128 bytes por gusto
+ev_corriendo: .res 2     ; de qué evento es la página que corre, o $FFFF
+ev_tope:      .res 2     ; `ev_total` + 1: hasta dónde barren los lazos
+solo_auto:    .res 1     ; la pasada corta de `elegir_automaticas`
+auto_n:       .res 1     ; cuántos eventos tienen una automática activa
+refresco_cuadro: .res 1  ; un refresco a mitad de comando dejó la pasada larga
+rp_ev_ant:    .res 2     ; el evento de la página anterior, en el refresco
+arranques:    .res 1     ; presupuesto de páginas por cuadro; ver ARRANQUES_MAX
 port0: .res 1
 
 ; Lo que `flush_video` le escribe a INIDISP al final del vblank: el brillo

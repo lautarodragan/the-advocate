@@ -1972,21 +1972,33 @@ class Estado:
         # pasar a leerse de la página activa.
         self.miradas = miradas or {}
         self.refresco = False
+        self.aplicar = False
         self.rutas_de_pagina()
 
     def rutas_de_pagina(self):
-        """Cada evento con la ruta propia de su página activa.
+        """`Game_Map::Refresh` entero: elegir las páginas y aplicarlas."""
+        self.elegir_paginas()
+        self.aplicar_paginas()
 
-        Es `Game_Map::Refresh`: un evento cuya página activa cambió carga la
-        ruta de la nueva desde el principio, y uno cuya página nueva no tiene
-        ruta se queda quieto. Un evento con la misma página de antes no se
-        toca, y su ruta sigue por donde iba.
+    def elegir_paginas(self):
+        """La instantánea de qué página tiene cada evento.
+
+        Se rehace acá y en ningún otro lado: es `Game_Event::page`, que sólo
+        escribe `Refresh`. Va separada de `aplicar_paginas` porque el refresco
+        a mitad de comando corre sólo esta mitad; ver `ejecutar`.
         """
-        # La instantánea de qué página tiene cada evento. Se rehace acá y en
-        # ningún otro lado: es `Game_Event::page`, que sólo escribe `Refresh`.
         self.paginas_activas = {
             indice: pagina_activa_viva(self.paginas_rutas, indice, self)
             for indice in self.pos_ev}
+
+    def aplicar_paginas(self):
+        """Cada evento con la ruta propia de su página activa.
+
+        Un evento cuya página activa cambió carga la ruta de la nueva desde el
+        principio, y uno cuya página nueva no tiene ruta se queda quieto. Un
+        evento con la misma página de antes no se toca, y su ruta sigue por
+        donde iba.
+        """
         for indice in self.pos_ev:
             pagina = self.paginas_activas[indice]
             propia = pagina.get("ruta_propia") if pagina is not None else None
@@ -2013,10 +2025,37 @@ class Estado:
     def refrescar(self):
         """El refresco pendiente, si un switch o el grupo cambió desde el
         último. Se hace al empezar el cuadro, antes del intérprete, que es
-        cuando `Game_Map::Update` mira `GetNeedRefresh`."""
+        cuando `Game_Map::Update` mira `GetNeedRefresh`.
+
+        La otra mitad —`aplicar`— puede venir de un refresco a mitad de
+        comando, que sólo eligió las páginas. Ver `refrescar_eligiendo`."""
         if self.refresco:
             self.refresco = False
+            self.aplicar = False
             self.rutas_de_pagina()
+        elif self.aplicar:
+            self.aplicar = False
+            self.aplicar_paginas()
+
+    def refrescar_eligiendo(self):
+        """El refresco de adentro del lazo de comandos, que sólo elige.
+
+        `Game_Interpreter::Update` refresca antes de cada comando, y de eso
+        depende que una página que apaga su propia condición deje de ser la
+        activa en el acto. Lo que el comando siguiente puede llegar a mirar es
+        **cuál es la página activa**; recargar las rutas y los gráficos de los
+        NPCs no cambia nada hasta que se dibuje el cuadro, así que eso queda
+        para el principio del cuadro que viene.
+
+        No es un atajo de la referencia: es lo que hace la ROM, y por la misma
+        razón. Su segunda pasada recorre los eventos del mapa recargando filas
+        de OAM y ranuras de ruta, y hacerla en medio de un cuadro le costaba el
+        cuadro entero en el mapa 2.
+        """
+        if self.refresco:
+            self.refresco = False
+            self.aplicar = True
+            self.elegir_paginas()
 
     def evento_en(self, celda):
         """Qué evento está parado en esa celda, o None.
@@ -2447,6 +2486,35 @@ def pagina_activa_viva(paginas, evento, estado):
     return elegida
 
 
+# El switch con el que la página de prueba se apaga a sí misma: el último del
+# bitmap de la ROM —`SWITCH_BYTES` son 128, o sea del 0 al 1023— y el juego
+# llega hasta el 1003. Uno más alto se escribiría **fuera** del bitmap, que es
+# lo que pasó la primera vez que esto se escribió con el 2000.
+#
+# Existe desde que las automáticas se repiten mientras siguen activas, que es
+# lo que hacen en RM2k: una página inventada sin condición se repetiría para
+# siempre y reiniciaría su propia ruta cada vez. Las páginas de verdad no
+# tienen ese problema porque terminan prendiendo el switch que las desactiva
+# —es el idioma de RM2k— así que la de prueba hace lo mismo, y de paso ejercita
+# ese idioma.
+SWITCH_DE_PRUEBA = 1023
+
+def evento_de_prueba(game_map):
+    """Qué número de evento le toca a la página inventada: el primero libre.
+
+    Tiene que **entrar en la tabla** —la ROM lleva un byte de estado por
+    evento, indexado por este número— y no chocar con ninguno del mapa. Y tiene
+    que ser **bajo**: los barridos de la ROM van de cero a `ev_total`, así que
+    un número alto los obliga a recorrer eventos que no existen. Con el 119
+    fijo, un mapa de cuatro eventos barría ciento veinte, y eso alcanzaba para
+    perder el cuadro.
+
+    Antes de eso fue 9999, que entraba en el bytecode pero se caía de la tabla:
+    la ROM lo descartaba en silencio y la página de prueba no arrancaba nunca.
+    """
+    return len(game_map.events)
+
+
 def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
                     flash=(), switches=(), timer=(), lugar=(),
                     frecuencia=RUTA_FRECUENCIA, sacudida=(), fundir_bgm=0,
@@ -2487,7 +2555,19 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
     la ruta no termine, el tinte de más abajo no se aplica, así que el cuadro en
     que la pantalla cambia de color es el cuadro en que la ruta terminó.
     """
-    codigo = b""
+    # Lo primero de todo: el switch que la desactiva. Sin esto la página se
+    # repetiría mientras siga siendo la activa, que es lo que hace una
+    # automática en RM2k; ver `SWITCH_DE_PRUEBA`.
+    #
+    # Va al principio y no al final por una razón de tiempo, no de gusto: el
+    # refresco que dispara le apaga el `FLAG_AUTO` antes de que la página
+    # termine, así que cuando termina no queda nada por hacer. Al final, en
+    # cambio, el evento seguía marcado en ese mismo cuadro y la ROM volvía a
+    # resolver su página activa —una recorrida entera de las páginas del mapa—
+    # justo ahí, y perdía el cuadro. La página que corre no se entera del
+    # cambio: su código está en la ROM y el cursor es suyo, igual que en RM2k.
+    codigo = bytes([OP_SWITCH, SWITCH_DE_PRUEBA & 0xFF,
+                    SWITCH_DE_PRUEBA >> 8, 1])
     if timer:
         # (segundos, visible). El cronómetro del juego lo prende una página que
         # no compila —la del despertador del pad—, así que sin esto no habría
@@ -2574,6 +2654,15 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
     return codigo + bytes([OP_FIN])
 
 
+# Cuántas páginas se pueden arrancar encadenadas en un mismo cuadro. En RM2k el
+# tope no es de páginas sino de comandos —`loop_limit = 10000` en
+# `game_interpreter.h`— repartido entre todas las que arranquen en el cuadro.
+# Acá se cuenta por página, que es más grueso: sólo se nota con una página que
+# termine sin hacer nada y vuelva a activarse, o sea la que en RM2k cuelga el
+# juego. El número tiene que ser el mismo que `ARRANQUES_MAX` en la ROM.
+ARRANQUES_MAX = 8
+
+
 class Interprete:
     """El intérprete corriendo, con su cursor y su espera, cuadro a cuadro.
 
@@ -2593,15 +2682,26 @@ class Interprete:
 
     def __init__(self, paginas, estado):
         self.estado = estado
-        # Las páginas elegidas, en el orden en que la ROM recorre los eventos.
-        self.cola = []
-        for evento in sorted({p["evento"] for p in paginas}):
-            pagina = pagina_activa(paginas, evento, estado)
-            if (pagina is not None
-                    and pagina["trigger"] == TRIGGER_AUTOMATICO
-                    and pagina["codigo"]):
-                self.cola.append(pagina["codigo"])
+        # Qué eventos tienen una página esperando turno. Es el
+        # `waiting_execution` de EasyRPG y el `ev_flags` de la ROM: un evento,
+        # no un puntero, y por eso no puede entrar dos veces.
+        #
+        # Antes esto era una cola armada **una sola vez acá**, con las páginas
+        # automáticas activas al cargar el mapa. Una que se volvía activa
+        # después —porque una página prendió su switch— no arrancaba nunca, y
+        # como la ROM hacía lo mismo la comparación daba cero. Con eso quedaba
+        # muerta la segunda mitad del recuerdo de CORE y MANTA, que prende su
+        # switch recién después de aterrizar en el mapa.
+        self.esperando_ev = set()
         self.paginas = paginas
+        self.eventos = sorted({p["evento"] for p in paginas})
+        # Los eventos que tienen **alguna** página automática que compiló. Son
+        # los únicos a los que un refresco les puede sacar o poner la marca, y
+        # es el bit 7 que el conversor le pone a sus páginas para que la ROM
+        # sepa a quiénes mirar sin leerlas todas.
+        self.eventos_auto = {p["evento"] for p in paginas
+                             if p["trigger"] == TRIGGER_AUTOMATICO
+                             and p["codigo"]}
         self.codigo = None
         self.cursor = 0
         self.esperando = 0
@@ -2623,7 +2723,7 @@ class Interprete:
 
     def ocupado(self):
         """Si hay una página corriendo o esperando su turno."""
-        return self.codigo is not None or bool(self.cola)
+        return self.codigo is not None or bool(self.esperando_ev)
 
     def probar_accion(self, x, y, mirando, estado):
         """La tecla de acción: el evento de la celda de adelante.
@@ -2656,13 +2756,79 @@ class Interprete:
         pagina = pagina_activa(self.paginas, indice, estado)
         if (pagina is not None and pagina["trigger"] == trigger
                 and pagina["codigo"]):
-            self.cola.append(pagina["codigo"])
+            self.esperando_ev.add(indice)
             return True
+        return False
+
+    def refrescar_y_remarcar(self, eligiendo):
+        """Un refresco, y las marcas que deja.
+
+        Es `Game_Event::RefreshPage`: al rehacer la página activa, el evento
+        que se queda sin una automática pierde la marca —incluido el que se
+        queda sin página del todo, que es el
+        `ClearWaitingForegroundExecution` del `if (!new_page)`— y el que la
+        conserva la mantiene. Sin lo primero, una página que acaba de terminar
+        volvía a arrancar en el mismo cuadro: en la cinemática de apertura eso
+        reiniciaba la escena entera.
+        """
+        antes = self.estado.refresco
+        if eligiendo:
+            self.estado.refrescar_eligiendo()
+        else:
+            self.estado.refrescar()
+        if antes:
+            self.esperando_ev -= self.eventos_auto
+            self.esperando_ev |= set(self.automaticos())
+
+    def automaticos(self):
+        """Los eventos cuya página activa es una automática que compiló.
+
+        Es `Game_Event::CheckEventAutostart`, que RM2k pregunta **cada cuadro**
+        y para todos los eventos. La respuesta sólo cambia cuando cambia la
+        página activa —o sea en un refresco— así que la ROM la guarda en el bit
+        `FLAG_AUTO` de `ev_flags` y la rehace ahí; acá se recalcula, que sale
+        igual porque `pagina_activa` lee la instantánea.
+        """
+        salida = []
+        for evento in self.eventos:
+            pagina = pagina_activa(self.paginas, evento, self.estado)
+            if (pagina is not None
+                    and pagina["trigger"] == TRIGGER_AUTOMATICO
+                    and pagina["codigo"]):
+                salida.append(evento)
+        return salida
+
+    def _arrancar(self):
+        """La página del primer evento que espere. False si no hay ninguna.
+
+        El orden es por número de evento, que es el mismo en que
+        `Game_Map::Update` recorre `events`. La página se resuelve **acá** y no
+        cuando se marcó el evento: entre una cosa y la otra pudo haber un
+        refresco y ser otra la activa.
+        """
+        while self.esperando_ev:
+            evento = min(self.esperando_ev)
+            # Se desmarca sepa o no correrse, igual que el
+            # `ClearWaitingForegroundExecution` de `Game_Map::Update`. Si es
+            # automática, el barrido del cuadro que viene la vuelve a marcar.
+            self.esperando_ev.discard(evento)
+            pagina = pagina_activa(self.paginas, evento, self.estado)
+            if pagina is not None and pagina["codigo"]:
+                self.codigo, self.cursor = pagina["codigo"], 0
+                return True
         return False
 
     @property
     def terminado(self):
-        return self.codigo is None and not self.cola
+        # También las automáticas que el barrido del cuadro que viene va a
+        # marcar: sin eso esto decía "terminado" en el cuadro en que una página
+        # prende el switch que activa a otra, y los lazos que lo miran cortaban
+        # justo antes de que arrancara.
+        # Y tampoco con un refresco pendiente: la página que acaba de terminar
+        # pudo prender el switch que activa a otra, y `automaticos` lee la
+        # instantánea, que recién se rehace en el refresco del cuadro que viene.
+        return (self.codigo is None and not self.esperando_ev
+                and not self.estado.refresco and not self.automaticos())
 
     def cuadro(self, apreto_a=False):
         """Avanza un cuadro. Devuelve True si en éste se pidió un salto.
@@ -2678,7 +2844,19 @@ class Interprete:
         página activa quedaba sin rehacer y nadie se enteraba porque se
         calculaba viva. Un solo lugar es lo que hace que no vuelva a pasar.
         """
-        self.estado.refrescar()
+        self.refrescar_y_remarcar(eligiendo=False)
+        # `Game_Event::CheckEventAutostart`, cada cuadro y para todos. Que
+        # corra **también mientras la página de ese evento está corriendo** es
+        # lo que hace que una automática se repita al terminar, mientras siga
+        # siendo la activa; la que apaga su propia condición no se repite,
+        # porque el refresco la saca de la lista.
+        #
+        # Va **antes** del intérprete, que es el orden de `Game_Map::Update`:
+        # una página que se vuelve activa en medio de otra arranca recién en el
+        # cuadro siguiente. La ROM se saltea el lazo cuando no hay ninguna
+        # automática activa —lleva la cuenta en `auto_n`—; acá el lazo no
+        # cuesta nada y se deja el que se lee igual que la fuente.
+        self.esperando_ev.update(self.automaticos())
         if self.estado.mensaje is not None:
             if not apreto_a:
                 return False
@@ -2694,14 +2872,27 @@ class Interprete:
         elif self.esperando:
             self.esperando -= 1
             return False
+        # El `while (!interp.IsRunning())` de
+        # `Game_Map::UpdateForegroundEvents`: una página que termina deja
+        # arrancar a la que siga esperando **en este mismo cuadro**.
+        arranques = ARRANQUES_MAX
         while True:
-            if self.codigo is None:
-                if not self.cola:
-                    return False
-                self.codigo, self.cursor = self.cola.pop(0), 0
+            if self.codigo is None and not self._arrancar():
+                return False
             corte = ejecutar(self.codigo, self.estado, self.cursor)
+            # El refresco pendiente, al salir del intérprete: es el
+            # `if (Game_Map::GetNeedRefresh()) Game_Map::Refresh();` del final
+            # de `Game_Interpreter::Update`. De él depende que el idioma de
+            # RM2k funcione: la página que prende el switch que la desactiva
+            # deja de ser la activa antes de que se decida qué corre después.
+            # Sin esto, al terminar seguía pareciendo automática y volvía a
+            # arrancar en el mismo cuadro.
+            self.refrescar_y_remarcar(eligiendo=True)
             if corte is None:               # la página terminó
                 self.codigo = None
+                arranques -= 1
+                if not arranques:
+                    return False
                 continue
             self.cursor, self.esperando, salto = corte
             return salto
