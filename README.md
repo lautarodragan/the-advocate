@@ -546,6 +546,63 @@ héroe entra, el fundido corre, y los cuadros 20 y 40 dan cero contra la
 referencia. Lo que le sigue faltando para tener caso propio en la tanda está en
 "Lo que falta".
 
+#### La cola de páginas no era circular
+
+Las páginas que un evento dispara van a una cola de ocho —`cola`, con `cola_n`
+para las que entraron y `cola_i` para las que salieron— y el lazo las come de a
+una. **`cola_n` nunca volvía a bajar**, así que no era un anillo sino un buffer
+que se llena una sola vez por visita al mapa: llegado a ocho, `encolar_elegida`
+descartaba todo y el mapa se quedaba sin disparar nada —ni una puerta, ni un
+cartel—.
+
+El comentario que estaba puesto decía "ningún mapa del juego llega a ocho
+páginas automáticas", y es cierto **al cargar**. Lo que no vio es que la misma
+cola atiende todos los disparos de la visita: cada tecla de acción, cada
+contacto. Una cinemática larga deja el contador cerca del tope y después el
+mapa acepta una interacción y ni una más.
+
+Se arregla poniendo los dos punteros en cero cuando la cola queda vacía, que es
+lo que la vuelve circular de verdad. Medido con dieciocho toques de A sobre el
+mismo evento: antes `cola_n` llegaba a 8 y se quedaba ahí, ahora el pico es 2.
+
+Lo encontró taro jugando, y la firma fue lo que lo delató: **"me deja
+interactuar una vez y después nada"**. Salir del mapa y volver lo arreglaba
+porque `encolar_eventos` pone los punteros en cero.
+
+#### El presupuesto de saltos se drenaba solo
+
+Hay un tope de ocho teletransportes encadenados —`saltos_restantes`— para que
+dos mapas que se apunten entre sí no cuelguen la ROM. Se reponía en
+`cargar_mapa` y se cobraba en **todo** salto, y ahí estaba el error: **un salto
+al mismo mapa no llama a `cargar_mapa`** —a propósito, para no reencolar los
+eventos automáticos— así que gastaba presupuesto y no lo reponía nunca.
+
+La escena de Talan salta tres veces adentro del mapa 3 y la apertura dos adentro
+del 1. Después de ocho, **todo teletransporte se descartaba en silencio**: las
+puertas se abren y no llevan a ningún lado. taro lo vio como algo que "a veces
+pasa y a veces no", y lo era: dependía de cuántos saltos llevara esa partida.
+
+Encima el tope fallaba **una sola vez**. Era `dec` y después `beq`, así que con
+el contador en cero el byte daba la vuelta a 255 y los siguientes doscientos
+cincuenta y cinco saltos pasaban. De ahí que salir del mapa y volver a entrar lo
+"arreglara": ese salto era el que daba la vuelta.
+
+Ahora se cobra sólo al cambiar de mapa, que es lo que hace la referencia
+—`saltos` es local a `entrar_al_mapa` y sólo lo baja el lazo que entra a un mapa
+nuevo—, y se mira antes de bajarlo.
+
+Queda una asimetría anotada: la ROM repone en cada `cargar_mapa` y la referencia
+sólo al entrar desde afuera de la cadena, así que un ping-pong A→B→A agotaría el
+tope de un lado y no del otro. **Con los datos de este juego no puede pasar** y
+está medido —un solo mapa teletransporta al entrar, la cadena más larga es de un
+salto y no hay ciclos—, pero si alguna vez aparece uno, es acá.
+
+**Cómo se encontró.** No lo encontró la tanda: lo encontró taro jugando, y lo
+cerró un volcado de memoria de mesen. Con el `.sym` del build —el dump del PRG
+coincidía byte a byte con la ROM— se leyó `saltos_restantes = 0` en la WRAM, y
+de ahí salió todo. Vale la pena recordar el camino: **un dump de memoria más el
+`.sym` contesta en un minuto lo que a ojo son horas.**
+
 #### El cuadro que el fundido regalaba al terminar
 
 Un teletransporte congela el juego setenta cuadros. Los dos lados contaban

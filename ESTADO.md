@@ -150,6 +150,19 @@ de cada una está en `README.md`.
 `talan`: mil doscientos cuadros de la escena entera del Emitter Room. Lo que la
 tanda no mira:
 
+* **Que un mapa acepte muchas interacciones seguidas.** Los dos bugs que taro
+  encontró jugando el 2026-09-06 —el presupuesto de saltos y la cola de páginas
+  que no era circular— **no los cobraba ningún caso**, y los dos se manifiestan
+  recién después de una cinemática larga o de ocho disparos en la misma visita.
+  Ningún caso de la tanda hace eso.
+
+  Y hay una pista sin resolver ahí: un caso exploratorio con **dieciocho toques
+  de A** sobre el mismo evento del mapa 7 da rojo en el cuadro 380 —34%—, y con
+  la ROM de antes de los arreglos daba cero. No es una regresión: la ROM vieja
+  coincidía *porque* estaba trabada. Falta averiguar de qué lado está la
+  diferencia a partir de la interacción número nueve. Es el mejor candidato a
+  caso nuevo que hay.
+
 * **El audio.** `just snes-bgm <tema>` graba cuarenta segundos y los compara
   contra el MIDI, y **no está en la tanda**: es visual. Los cuatro temas de la
   demo pasaron el 2026-09-06 —96%, 98%, 83% y 90%—, pero eso hay que volver a

@@ -1203,7 +1203,23 @@ sin_mensaje:
 hay_en_cola:
     lda cola_i
     cmp cola_n
-    beq nada                    ; no queda ninguna
+    bne hay_una
+    ; Vacía: los dos punteros vuelven a cero. Sin esto la cola no es circular
+    ; sino un buffer que **se llena una sola vez por mapa**: `cola_n` nunca
+    ; bajaba, así que después de ocho páginas encoladas en esa visita
+    ; `encolar_elegida` descartaba todo y el mapa se quedaba sin disparar nada
+    ; —ni una puerta, ni un cartel—. El comentario de COLA_MAX decía "ningún
+    ; mapa del juego llega a ocho páginas automáticas", y es cierto al cargar;
+    ; lo que no vio es que la misma cola atiende **todos** los disparos de la
+    ; visita: cada A, cada contacto.
+    ;
+    ; taro lo vio como "me deja interactuar una vez y después nada", que es lo
+    ; que pasa cuando la cinemática dejó el contador en siete. Salir del mapa y
+    ; volver lo arreglaba porque `encolar_eventos` los pone en cero.
+    stz cola_i
+    stz cola_n
+    bra nada
+hay_una:
     asl a
     clc
     adc cola_i                  ; índice * 3, en ocho bits
@@ -1235,8 +1251,6 @@ corriendo:
     sta entrada_y
     sep #$20
 .a8
-    dec saltos_restantes
-    beq nada                    ; demasiadas vueltas: se queda donde está
     ; De acá no se carga nada: se pide el fundido y el mapa se carga adentro,
     ; en el primer cuadro negro. Ver `fundido_tick`. Lo que sí queda decidido
     ; acá es **cuál** de los dos casos es, porque `mapa_actual` va a haber
@@ -1256,6 +1270,25 @@ corriendo:
     lda #FUNDIDO_MISMO          ; un salto al mismo mapa no recarga nada
     bra pedir_fundido
 otro_mapa:
+    ; El presupuesto de saltos se gasta **acá y no antes**, o sea sólo cuando
+    ; se cambia de mapa. Es lo que hace la referencia, donde `saltos` es local
+    ; a `entrar_al_mapa` y sólo lo baja el lazo que entra a un mapa nuevo; un
+    ; salto al mismo mapa no lo toca.
+    ;
+    ; Cobrándoselo a los saltos al mismo mapa —que es lo que hacía— el
+    ; presupuesto se drenaba sin reponerse nunca, porque un salto al mismo mapa
+    ; no llama a `cargar_mapa`, que es quien lo repone. La escena de Talan salta
+    ; tres veces adentro del mapa 3 y la apertura dos adentro del 1: después de
+    ; ocho, **todo teletransporte se descartaba en silencio**. taro lo vio como
+    ; puertas que se abren y no llevan a ningún lado, y como algo que "a veces
+    ; pasa y a veces no": dependía de cuántos saltos llevara la partida.
+    ;
+    ; Y se mira antes de bajarlo, no después: con `dec` sobre cero el byte daba
+    ; la vuelta a 255 y el tope fallaba **una sola vez** y después dejaba pasar
+    ; doscientos cincuenta y cinco más.
+    lda saltos_restantes
+    beq nada                    ; demasiadas vueltas: se queda donde está
+    dec saltos_restantes
     lda #FUNDIDO_SALTO
 pedir_fundido:
     jsr empezar_fundido
