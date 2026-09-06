@@ -124,18 +124,24 @@ de cada una está en `README.md`.
 
 ## Lo que taro todavía no probó
 
-* **`rom/build/demo-apertura/`, rearmada el 2026-09-06 con la cola circular**
-  y con todo lo de los seis puntos adentro: la puerta del Emitter Room que se
-  abre y se cruza, la escena de Talan entera, los mapas 4, 1, 2, 3, **5** y
-  **6**, y cuatro temas —`escape_newyork`, `TF3_1_awe`, `evilrhys`,
-  `lufsorr`—. Lo que hay que mirar primero es lo que taro venía viendo: que un
-  mapa siga aceptando disparos pasada la octava interacción, y que ni el
-  droide ni ninguna otra página arranque sola. Se arma así:
+* **`rom/build/demo-apertura/`, rearmada el 2026-09-06** con la cola circular
+  y con el **mapa 6 adentro**, que antes no estaba: la línea de este archivo
+  que decía "los mapas 4, 1, 2, 3, 5 y 6" era falsa y el `--mapas` nunca lo
+  llevó. Sin el 6, las cuatro páginas automáticas del mapa 5 daban **cero
+  ejecutables** —tres de ellas teletransportan al 6— y el recuerdo de CORE y
+  MANTA no arrancaba: el héroe quedaba caminando invisible por la casa. taro
+  lo encontró jugando el 2026-09-06. Ahora el 5 y el 6 tienen una ejecutable
+  cada uno. Se arma así:
 
-      python3 tools/snes_convert.py --grupo 10 --map-id 4 --mapas 1 2 3 5 \
+      python3 tools/snes_convert.py --grupo 10 --map-id 4 --mapas 1 2 3 5 6 \
           --con-ventana -o rom/build/demo-apertura/mapdata.inc
       python3 tools/w65.py rom/src/main.s -I rom/build/demo-apertura \
           -o rom/build/demo-apertura/demo-apertura.sfc
+
+  Lleva además la escena de Talan entera, la puerta del Emitter Room, y cuatro
+  temas —`escape_newyork`, `TF3_1_awe`, `evilrhys`, `lufsorr`—. El banco de
+  muestras quedó en 61569 B de los 64512 de ARAM: agregar un mapa más con tema
+  propio ya no entra sin sacar algo.
 
   Las otras ROMs con nombre —`demo-musica`, `demo-cinematica` y el resto— son
   viejas y no se rearmaron.
@@ -165,6 +171,22 @@ tanda no mira:
   taro encontró jugando ese día —el presupuesto de saltos y la cola— aparecen
   después de una cinemática larga, y ninguna caminata de la tanda encadena una
   cinemática con interacciones sueltas después.
+
+* **Una página automática que se vuelve activa con el mapa ya cargado.** La
+  ROM encola las automáticas **una sola vez, al cargar el mapa**, y la
+  referencia hace lo mismo en `Interprete.__init__`. RM2k no: `Game_Map::Update`
+  arranca una automática en cuanto pasa a ser la página activa, cada cuadro.
+  Así que si estando parado en un mapa se prende el switch que activa una
+  automática de ese mismo mapa, en RM2k arranca y acá no arranca nunca.
+
+  **Los dos lados se equivocan igual, así que la comparación da cero**: es
+  exactamente la trampa de `CLAUDE.md`, y por eso ningún caso lo ve. Medido con
+  el mapa 5: entrando con el switch 16 ya prendido la página se encola; si se
+  lo prende después, la cola se queda en cero para siempre.
+
+  El tamaño: **101 páginas automáticas en 60 mapas** tienen una condición de
+  switch que otra página del mismo mapa prende. De los de la demo, 1 en el mapa
+  2 y 3 en el mapa 3. No está arreglado y no se decidió arreglarlo.
 
 * **Los primeros nueve cuadros de un mensaje.** La ROM abre la ventana animada
   y la referencia la pone de golpe: con el toque de A en el cuadro 25, la
