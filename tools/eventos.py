@@ -47,6 +47,66 @@ CHANGE_EVENT_LOCATION = 10860
 TRADE_EVENT_LOCATIONS = 10870
 SHAKE_SCREEN = 11050
 FLASH_SCREEN = 11040
+# Correr la cámara sin el héroe: `CommandPanScreen`. De sus cuatro operaciones
+# el juego usa dos —112 `pan` y 21 `reset`, y ni un `lock` ni un `unlock`— así
+# que ésas son las que compilan.
+PAN_SCREEN = 11060
+PAN_FIJAR, PAN_SOLTAR, PAN_CORRER, PAN_VOLVER = 0, 1, 2, 3
+# Las unidades de la cámara adentro de RM2k: `SCREEN_TILE_SIZE`, o sea 1/16 de
+# pixel, con una celda de 16 pixeles valiendo 256. No es capricho quedarse con
+# ellas: la velocidad 2 mueve la cámara **medio pixel por cuadro**, y en
+# pixeles enteros eso no se puede contar.
+PAN_UNIDAD = 256
+PAN_ARRIBA, PAN_DERECHA, PAN_ABAJO, PAN_IZQUIERDA = 0, 1, 2, 3
+# Hacia dónde corre la cámara con cada dirección, en (dx, dy) por unidad.
+PAN_SENTIDO = {PAN_ARRIBA: (0, -1), PAN_DERECHA: (1, 0),
+               PAN_ABAJO: (0, 1), PAN_IZQUIERDA: (-1, 0)}
+PAN_VEL_MIN, PAN_VEL_MAX = 1, 6
+
+
+def bytes_de_pan(operacion, direccion, distancia, velocidad, esperar):
+    """El OP_PAN de un `PanScreen`, o None si no se puede.
+
+    La dirección y la distancia se resuelven acá a un desplazamiento con signo
+    en 1/16 de pixel, y la velocidad a su paso por cuadro: son cuentas fijas y
+    la ROM no tiene por qué repetirlas. Lo que sí queda para la consola son los
+    cuadros que la página espera.
+    """
+    dx, dy = (0, 0) if operacion == PAN_VOLVER else PAN_SENTIDO[direccion]
+    dx *= distancia * PAN_UNIDAD
+    dy *= distancia * PAN_UNIDAD
+    if not (-0x8000 <= dx < 0x8000 and -0x8000 <= dy < 0x8000):
+        return None
+    return bytes([OP_PAN, operacion,
+                  dx & 0xFF, (dx >> 8) & 0xFF,
+                  dy & 0xFF, (dy >> 8) & 0xFF,
+                  paso_de_pan(velocidad), 1 if esperar else 0])
+
+
+def con_signo(palabra):
+    """Los dieciséis bits de un word leídos como entero con signo."""
+    return palabra - 0x10000 if palabra & 0x8000 else palabra
+
+
+def paso_de_pan(velocidad):
+    """Cuánto corre la cámara por cuadro, en 1/16 de pixel.
+
+    Es `data()->pan_speed = 2 << speed` de `Game_Player::StartPan`, con la
+    velocidad topada entre 1 y 6 como hace `CommandPanScreen`. El juego usa de
+    la 2 a la 6: de medio pixel por cuadro a ocho.
+    """
+    return 2 << min(PAN_VEL_MAX, max(PAN_VEL_MIN, velocidad))
+
+
+def cuadros_de_pan(falta, paso):
+    """Cuántos cuadros espera la página que pidió el pan con `esperar`.
+
+    Es `Game_Player::GetPanWait`: la distancia que falta dividida por el paso,
+    redondeando para arriba. Se mide **al pedirlo** y sobre lo que falta, no
+    sobre lo que este comando pidió: con un pan todavía corriendo RM2k espera
+    por los dos, y de ahí el comentario de `CommandPanScreen` sobre el máximo.
+    """
+    return -(-falta // paso)
 LUGAR_CONSTANTE = 0         # p[1]: 0 es la celda escrita, 1 la lee de variables
 
 # Un cuadro de texto. RM2k emite un `ShowMessage` con la primera línea y un
@@ -477,6 +537,20 @@ OP_SACUDIR  = 0x0E      # fuerza (byte), velocidad (byte), cuadros (word):
 OP_DESTELLO = 0x0F      # r, g, b, fuerza (byte cada uno, 0..31) y cuadros
                         # (byte): `FlashOnce`, el destello de la pantalla
                         # entera. Ver `Estado.cuadro_de_destello`.
+OP_PAN      = 0x11      # operación (byte: PAN_CORRER o PAN_VOLVER), cuánto se
+                        # corre el destino en x y en y (word con signo cada
+                        # uno, en 1/16 de pixel), el paso por cuadro (byte) y
+                        # si la página espera (byte).
+                        #
+                        # La dirección y la distancia vienen resueltas a un
+                        # desplazamiento con signo, y la velocidad a su paso:
+                        # son cuentas fijas y el conversor las hace una vez.
+                        # Lo que **no** se puede resolver acá son los cuadros
+                        # que la página espera: salen de lo que le falta al pan
+                        # cuando el comando corre, y con uno todavía en curso
+                        # eso no es lo que este comando pidió. Ver `GetPanWait`
+                        # y el comentario de `CommandPanScreen` sobre el
+                        # máximo.
 OP_FUNDIR_BGM = 0x10    # paso (word): cuánto baja por cuadro el volumen del
                         # tema, en 1/65536 de lo que estuviera sonando.
                         #
@@ -908,6 +982,21 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         if temas is None or not cmd.string:
             return b""
         return bytes([OP_BGM, temas.indice(cmd.string) & 0xFF])
+
+    if cmd.code == PAN_SCREEN:
+        # Fijar y soltar la cámara no las usa ninguna página del juego, así que
+        # no compilan: modelarlas sin nada que las ejercite es inventarse una
+        # diferencia. Correr y volver sí, que son las 133 que hay.
+        if len(p) < 5 or p[0] not in (PAN_CORRER, PAN_VOLVER):
+            raise NoSePuede()
+        if p[0] == PAN_CORRER and p[1] not in PAN_SENTIDO:
+            raise NoSePuede()
+        if not 0 <= p[2] <= 255:
+            raise NoSePuede()
+        salida = bytes_de_pan(p[0], p[1], p[2], p[3], p[4])
+        if salida is None:
+            raise NoSePuede()
+        return salida
 
     if cmd.code == FADE_OUT_BGM:
         if not p or p[0] < 0:
@@ -1597,6 +1686,11 @@ class Estado:
         self.timer_dibujado = 0
         # La sacudida de pantalla: dónde está, cuánto le queda y con qué.
         self.sacudida_pos = 0
+        # La cámara corrida sin el héroe: dónde está y adónde va, las dos en
+        # 1/16 de pixel, y cuánto corre por cuadro. Ver `cuadro_de_pan`.
+        self.pan_x = self.pan_y = 0
+        self.pan_dest_x = self.pan_dest_y = 0
+        self.pan_paso = 0
         self.sacudida_resta = 0
         self.sacudida_fuerza = 0
         self.sacudida_vel = 0
@@ -1656,6 +1750,12 @@ class Estado:
         """
         self.rutas_ev = {}
         self.flashes = {}
+        # Y la cámara corrida vuelve a cero, de golpe: es lo que hace
+        # `PerformTeleport` con `map_changed`, devolviéndole a `pan_current` y a
+        # `pan_finish` el valor por omisión. Un salto al mismo mapa no pasa por
+        # acá y no la toca, igual que en RM2k.
+        self.pan_x = self.pan_y = 0
+        self.pan_dest_x = self.pan_dest_y = 0
         self.pos_ev = dict(posiciones)
         # Y las rutas propias de las páginas activas, que arrancan solas al
         # entrar, como `Game_Event::SetupFromPage`. Se vuelven a mirar cuando
@@ -1782,15 +1882,16 @@ class Estado:
                 self.pos_ev[indice] = (x + dx, y + dy)
 
     def algo_corriendo(self):
-        """Si queda algo andando solo: una ruta forzada, un destello o la
-        sacudida de pantalla.
+        """Si queda algo andando solo: una ruta forzada, un destello, la
+        sacudida de pantalla o la cámara corriéndose.
 
         Lo mira quien decide cuándo dejar de contar cuadros. Sin los destellos
         acá, una página que sólo destella termina en el primer cuadro y el
         destello no avanza nunca: se queda encendido para siempre.
         """
         return (self.sacudida_resta > 0 or self.destello_nivel > 0
-                or bool(self.flashes) or self.rutas_pendientes())
+                or bool(self.flashes) or self.rutas_pendientes()
+                or self.pan_falta() > 0)
 
     def cuadro_de_destello(self):
         """Un cuadro del destello de pantalla: `Flash::Update` sin el continuo,
@@ -1844,6 +1945,30 @@ class Estado:
                     self.sacudida_resta, self.sacudida_pos)
             else:
                 self.sacudida_pos = 0
+
+    def cuadro_de_pan(self):
+        """Un cuadro de la cámara corrida: `Game_Player::UpdatePan`.
+
+        Se acerca al destino de a `pan_paso` por eje, sin pasarse. Las dos
+        cuentas son de dieciseisavos de pixel, que es donde RM2k lleva la
+        cámara; quien dibuja las baja a pixeles enteros con `pan_en_pixeles`.
+        """
+        if not self.pan_paso:
+            return
+        for eje in ("x", "y"):
+            actual = getattr(self, "pan_" + eje)
+            destino = getattr(self, "pan_dest_" + eje)
+            if actual == destino:
+                continue
+            paso = min(self.pan_paso, abs(destino - actual))
+            setattr(self, "pan_" + eje,
+                    actual + (paso if destino > actual else -paso))
+
+    def pan_falta(self):
+        """Lo que le falta al pan, que es de lo que sale la espera. Es el
+        `max` de los dos ejes de `GetPanWait`."""
+        return max(abs(self.pan_x - self.pan_dest_x),
+                   abs(self.pan_y - self.pan_dest_y))
 
     def cuadro_de_timer(self):
         """Un cuadro del cronómetro.
@@ -1944,7 +2069,7 @@ LARGO_DE_OPCODE = {
     OP_FIN: 1, OP_SWITCH: 4, OP_TELEPORT: 6, OP_ESPERAR: 3, OP_TINTE: 5,
     OP_GRUPO: 3, OP_MENSAJE: 3, OP_RUTAS: 1, OP_FLASH: 7, OP_TIMER: 5,
     OP_BGM: 2, OP_LUGAR: 6, OP_TRUEQUE: 3, OP_SACUDIR: 5, OP_DESTELLO: 6,
-    OP_FUNDIR_BGM: 3,
+    OP_FUNDIR_BGM: 3, OP_PAN: 8,
 }
 
 
@@ -2082,7 +2207,8 @@ def pagina_activa(paginas, evento, estado):
 
 def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
                     flash=(), switches=(), timer=(), lugar=(),
-                    frecuencia=RUTA_FRECUENCIA, sacudida=(), fundir_bgm=0):
+                    frecuencia=RUTA_FRECUENCIA, sacudida=(), fundir_bgm=0,
+                    pan=()):
     """Una página automática inventada: una ruta forzada, una espera, un tinte.
 
     No sale de ningún dato del juego, y ésa es la idea. El intérprete corre
@@ -2163,6 +2289,15 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
         codigo += bytes([OP_LUGAR, blanco, x & 0xFF, x >> 8, y & 0xFF, y >> 8])
     if ruta_ev:
         codigo += bytes([OP_RUTAS])
+    if pan:
+        # Uno o más (operación, dirección, distancia, velocidad, esperar): lo
+        # mismo que compila un PanScreen del juego. Existe por lo mismo que el
+        # resto de esta página: ninguna de las que hoy compilan corre la
+        # cámara, y la que va a hacerlo —la escena de Talan— tiene otros tres
+        # comandos que todavía la cortan. Van varios para poder correr la
+        # cámara y **devolverla**, que es la otra operación que el juego usa.
+        for k in range(0, len(pan), 5):
+            codigo += bytes_de_pan(*pan[k:k + 5])
     if sacudida:
         # (fuerza, velocidad, décimas, esperar): lo mismo que compila un
         # ShakeScreen del juego. Con esperar, el tinte de más abajo recién se
@@ -2427,6 +2562,23 @@ def ejecutar(codigo, estado, desde=0):
             # opcode existe igual porque **ocupa dos bytes** en el bytecode, y
             # los dos lados tienen que recorrer el mismo stream.
             i += 2
+        elif op == OP_PAN:
+            # `CommandPanScreen`. Mueve el destino y devuelve el control en el
+            # mismo cuadro; con `esperar`, la página se queda los cuadros que
+            # dice `GetPanWait` sobre lo que falta **después** de moverlo.
+            if codigo[i + 1] == PAN_VOLVER:
+                estado.pan_dest_x = estado.pan_dest_y = 0
+            else:
+                estado.pan_dest_x += con_signo(codigo[i + 2]
+                                               | (codigo[i + 3] << 8))
+                estado.pan_dest_y += con_signo(codigo[i + 4]
+                                               | (codigo[i + 5] << 8))
+            estado.pan_paso = codigo[i + 6]
+            espera = (cuadros_de_pan(estado.pan_falta(), estado.pan_paso)
+                      if codigo[i + 7] else 0)
+            if espera:
+                return (i + 8, espera, False)
+            i += 8
         elif op == OP_FUNDIR_BGM:
             # Lo mismo que OP_BGM: no se modela el audio, pero el opcode ocupa
             # tres bytes y el stream tiene que ser el mismo de los dos lados.

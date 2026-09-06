@@ -545,6 +545,45 @@ snes-npc mapa="6" ruta="4 2 2 2 2 1 1 12" celda="22 12" cuadros="10 27 40 60" ar
         --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
   done
 
+# La cámara corrida sin el héroe: PanScreen.
+#
+# Es `Game_Player::StartPan` y `UpdatePan` de easyrpg: el destino se corre
+# tantas celdas en una dirección y la cámara se le acerca `2 << velocidad`
+# **dieciseisavos de pixel** por cuadro. La velocidad 2 son medio pixel por
+# cuadro, y por eso los dos lados llevan la cámara en dieciseisavos y no en
+# pixeles enteros: en pixeles ese caso no se puede contar.
+#
+# La página de prueba corre la cámara **y espera**, y después tiñe, como la de
+# `snes-sacudir`: los cuadros del medio miran la cámara a mitad de camino, y el
+# último mira que llegó y que el tinte se aplicó. Ese tinte es lo que hace
+# filoso al caso: si los cuadros que espera la página salieran mal, aparecería
+# en otro cuadro.
+#
+# El caso de la tanda es el del juego: dos celdas para arriba a velocidad 2, o
+# sea 64 cuadros, que es el PanScreen de la escena de Talan en el mapa 3.
+snes-pan mapa="6" pan="2 0 2 2 1" cuadros="16 32 48 64 65 66" arranque="67" nombre="pan" celda="":
+  #!/usr/bin/env bash
+  set -euo pipefail
+  mkdir -p {{snes_pngs}} {{snes_inc}}
+  celda="{{celda}}"
+  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
+      ${celda:+--inicio $celda} \
+      --pan-de-prueba {{pan}} --pagina-de-prueba 0 0 0 50 \
+      -o {{snes_inc}}/mapdata.inc
+  just snes-build
+  pre={{snes_pngs}}/{{nombre}}
+  python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
+      ${celda:+--hero-tile $celda} \
+      --pan-de-prueba {{pan}} --pagina-de-prueba 0 0 0 50 \
+      --cuadros {{cuadros}} \
+      --saltar $pre-{}.saltar.txt -o $pre-{}.esperado.png
+  for n in {{cuadros}}; do
+    python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre-$n.png \
+        --walk none --cuadros $n --arranque {{arranque}}
+    python3 tools/snes_compare.py $pre-$n.png $pre-$n.esperado.png \
+        --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
+  done
+
 # La sacudida de pantalla: ShakeScreen.
 #
 # Es `ShakeOnce` de easyrpg: la cámara se corre en X unos pixeles por cuadro

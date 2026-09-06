@@ -16,8 +16,8 @@ es la misma operación con pérdida que compactar, sólo que a un archivo.
 
 1. ~~`FadeOutBGM`~~, que era la puerta del Emitter Room entera. Hecho.
 2. ~~Las órdenes de ruta **30 y 31**, la frecuencia.~~ Hecho el 2026-09-06.
-3. **`PanScreen`**: correr la cámara sin el héroe. Hay precedente —`pantalla_x`
-   es la cámara más la sacudida— y `just snes-destraba` le da +6 páginas.
+3. ~~**`PanScreen`**: correr la cámara sin el héroe.~~ Hecho el 2026-09-06, y
+   destapó que la RAM se había acabado: ver abajo.
 4. Las **diagonales** de ruta, órdenes 4 a 7, que piden la regla de
    pasabilidad diagonal de RM2k.
 5. **`PlayBGM` con varios temas**, que taro pidió meter antes de lo caro: los
@@ -67,10 +67,13 @@ las dos están arregladas.
 Los ocho puntos de abajo son de las vueltas anteriores y están hechos. De lo
 menor, el panorama queda afuera a propósito.
 
-**Tres números para tener a mano.** El banco 0 de RAM está en **7905 bytes de
-7936**, con la pila arriba de todo: lo que sigue que pida RAM tiene que
-aflojar algo primero —`pal_buf` ya se comparte con el destello, y las tablas
-del destello son bytes por esto—. El lazo principal **no tiene margen en sus
+**Tres números para tener a mano.** El banco 0 de RAM está en **7519 bytes de
+7936**, y desde el 2026-09-06 `w65.py` reserva 256 para la pila y corta si la
+BSS los toca: quedan 161 de aire sobre esa reserva. Hasta ese día no los
+reservaba nadie y la BSS llegó a ocupar los 7936 exactos, con la pila
+escribiendo arriba de `pal_buf`; ver "La pila y la BSS comparten los ocho
+kilos" en el LEEME. Lo que siga pidiendo RAM tiene que aflojar algo, como se
+aflojaron `NPC_MAX` y `EV_MAX`. El lazo principal **no tiene margen en sus
 picos**: con 1,9 ms de más pierde cuadros en el arranque, con 11 ms en los
 cuadros de una cinemática quieta; ahora se ve, `cuadros_perdidos`, en la
 línea de cada captura de `snes_correr.py`. Y **el cartucho pasó a 512 KB**
@@ -199,6 +202,47 @@ Queda para después:
   la primera vuelta de una ROM con muchas páginas y el de la vuelta en que un
   fundido termina, y son lo único que le falta a la escena del ascensor para
   tener caso propio en la tanda: ver "Lo que falta" del LEEME.
+
+## Hecho el 2026-09-06: la cámara corrida, y la RAM que se había acabado
+
+`PanScreen`, las dos operaciones que el juego usa: correr la cámara sin el
+héroe (112 veces) y devolverla (21). Ninguna de las otras dos —fijar y soltar—
+aparece en el juego, así que no compilan.
+
+Lo que hay que saber para tocarlo: **la cámara corrida se lleva en
+dieciseisavos de pixel**, como en RM2k, porque la velocidad 2 —la que usa la
+escena de Talan— la mueve medio pixel por cuadro y en enteros eso no se cuenta.
+El desplazamiento y el paso los resuelve el conversor; los cuadros que la
+página espera los cuenta la ROM, porque salen de lo que le falta al pan cuando
+el comando corre y no de lo que ese comando pidió. Ver "La cámara corrida sin
+el héroe" en el LEEME.
+
+**Y de paso se acabó la RAM.** Los catorce bytes del pan hicieron que la BSS
+ocupara los 7936 exactos del banco 0, y la pila —que arranca en `$1FFF` y crece
+hacia abajo— empezó a escribir arriba de `pal_buf`. El síntoma no fue un error
+al armar sino el caso `core-puerta` cayéndose en el cuadro 406 con la RAM
+entera pisada, cuatrocientos cuadros adentro de una escena. Lo que lo cerró fue
+reproducirlo con el `main.s` de antes más catorce bytes de relleno: no era el
+código nuevo, era dónde caían las variables.
+
+Dos arreglos, y van juntos:
+
+* **`w65.py` reserva 256 bytes para la pila** y corta al armar si la BSS los
+  toca. El número está medido: la pila más honda de la tanda baja 24 bytes y la
+  apertura entera 28. Es el mismo agujero que ya había tenido el ZEROPAGE.
+* **`NPC_MAX` pasó de 127 a 104 y `EV_MAX` de 128 a 120**, con la medida al
+  lado: el mapa con más filas de NPC de todo el juego tiene 99 y el que más
+  eventos tiene 114, los dos medidos sobre los 335. Son 416 bytes, y el
+  conversor corta si un mapa se pasa, así que no puede quedar corto en
+  silencio.
+
+Qué se corrió: **81 casos en verde**, dos más —`pan` y `pan-vuelve`—. Los dos
+corren la cámara **y esperan**, y tienen un tinte detrás que pincha el largo de
+la espera al cuadro: en el primero el tinte cae en el 66 y no en el 65, y en el
+segundo en el 83 y no en el 82.
+
+La escena de Talan queda a tres comandos: dos `MoveEvent` con diagonales y uno
+que cambia el gráfico.
 
 ## Hecho el 2026-09-06: la frecuencia se sube y se baja a mitad de una ruta
 

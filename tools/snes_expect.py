@@ -152,7 +152,8 @@ class Mundo:
                                               self.prueba[7],
                                               frecuencia=self.prueba[8],
                                               sacudida=self.prueba[9],
-                                              fundir_bgm=self.prueba[10]))]
+                                              fundir_bgm=self.prueba[10],
+                                              pan=self.prueba[11]))]
             self.paginas_cache[map_id] = paginas
         return self.paginas_cache[map_id]
 
@@ -317,6 +318,7 @@ def cuadro_de_eventos(estado, passable, game_map, heroe, paginas=(),
     estado.cuadro_de_flashes()
     estado.cuadro_de_timer()
     estado.cuadro_de_sacudida()
+    estado.cuadro_de_pan()
     estado.cuadro_de_destello()
 
 
@@ -751,10 +753,19 @@ def oscurecer_imagen(view, brillo):
     return view
 
 
-def camera_for(x, y, map_w, map_h):
-    """Dónde mira la cámara: centrada en el héroe y pegada a los bordes."""
-    cam_x = max(0, min(map_w * 8 - SCREEN_W, x + 8 - SCREEN_W // 2))
-    cam_y = max(0, min(map_h * 8 - SCREEN_H, y + 8 - SCREEN_H // 2))
+def camera_for(x, y, map_w, map_h, pan=(0, 0)):
+    """Dónde mira la cámara: centrada en el héroe, corrida por el pan y pegada
+    a los bordes.
+
+    El pan viene en dieciseisavos de pixel y se baja a pixeles enteros con
+    división **al piso**, que es lo que hace `Spriteset_Map` dividiendo
+    `GetDisplayX()` por 16. Va adentro del acote y no después, como la
+    sacudida: RM2k corre la posición del mapa, y el borde la frena.
+    """
+    cam_x = max(0, min(map_w * 8 - SCREEN_W,
+                       x + 8 - SCREEN_W // 2 + (pan[0] >> 4)))
+    cam_y = max(0, min(map_h * 8 - SCREEN_H,
+                       y + 8 - SCREEN_H // 2 + (pan[1] >> 4)))
     return cam_x, cam_y
 
 
@@ -973,6 +984,14 @@ def main():
                              "ProceedWithMovement, así que lo que venga "
                              "después de la página no corre hasta que el "
                              "evento termine de caminar")
+    parser.add_argument("--pan-de-prueba", nargs="+", type=int,
+                        default=None, metavar="N",
+                        help="OPERACION DIRECCION DISTANCIA VELOCIDAD ESPERAR:\n"
+                             "agrega a la página de prueba un PanScreen. La\n"
+                             "operación es 2 para correr la cámara y 3 para\n"
+                             "devolverla; ninguna página del juego que hoy\n"
+                             "compile corre la cámara. Se puede repetir de a\n"
+                             "cinco para encadenar varios")
     parser.add_argument("--fundir-bgm", type=int, default=0,
                         metavar="MS",
                         help="agrega a la página de prueba un FadeOutBGM de esos\n"
@@ -1051,6 +1070,7 @@ def main():
                   or args.ruta_de_evento or args.flash_de_prueba or args.switch
                   or args.timer_de_prueba or args.lugar_de_prueba
                   or args.sacudida_de_prueba or args.fundir_bgm
+                or args.pan_de_prueba
                   or args.mensaje_de_prueba is not None)
     # El bloque de textos, armado igual que en el conversor y en el mismo orden:
     # el mensaje de prueba primero —desplazamiento 0— y después los mapas de la
@@ -1066,7 +1086,7 @@ def main():
                    snes_convert.lugar_de_prueba(args.lugar_de_prueba),
                    args.frecuencia,
                    snes_convert.sacudida_de_prueba(args.sacudida_de_prueba),
-                   args.fundir_bgm)
+                   args.fundir_bgm, snes_convert.pan_de_prueba(args.pan_de_prueba))
                   if hay_prueba else None, mensajes,
                   grupo=grupo, con_timer=args.con_timer)
 
@@ -1210,7 +1230,9 @@ def main():
             charset, charset_index = renderer.database.lider(estado.grupo)
 
         game_map, mapa, encima_todo = convertir(map_id)
-        cam_x, cam_y = camera_for(x, y, game_map.width * 2, game_map.height * 2)
+        cam_x, cam_y = camera_for(x, y, game_map.width * 2,
+                                  game_map.height * 2,
+                                  (estado.pan_x, estado.pan_y))
         # La sacudida de pantalla corre el mapa y los personajes, no la
         # ventana: es `GetDisplayX`, la posición de la cámara más la sacudida
         # en pixeles, sin volver a acotarla al mapa. Afuera del mapa PIL deja

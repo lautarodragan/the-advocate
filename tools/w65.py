@@ -62,9 +62,24 @@ AREAS = [
     ("DATA", 0x08000, 0x78000, ["RODATA"]),
 ]
 # La RAM no sale en el archivo: se ubica por dirección, no por desplazamiento.
+# La pila arranca en $1FFF y **crece hacia abajo, contra la BSS**: los dos
+# comparten los ocho kilos del banco 0. Así que la BSS no puede llegar hasta el
+# final, y esto es cuánto se le deja.
+#
+# El número está medido, no elegido: con la BSS bien lejos, la pila del caso
+# `core-puerta` —el más hondo de la tanda, con el intérprete adentro de una NMI—
+# baja 24 bytes. 256 son diez veces eso.
+#
+# Existe porque faltaba, y costó una tarde: la BSS creció catorce bytes, llegó a
+# ocupar los 7936 exactos, y la pila empezó a escribir arriba de `pal_buf`. La
+# ROM no fallaba al armarse ni en el arranque; fallaba en el cuadro 406 de una
+# escena, con la RAM entera pisada. Es el mismo agujero que ya había tenido el
+# ZEROPAGE, y la misma cura.
+PILA_RESERVADA = 256
+
 RAM_AREAS = [
     ("ZP",  0x0000, 0x0100, ["ZEROPAGE"]),
-    ("RAM", 0x0100, 0x1F00, ["BSS"]),
+    ("RAM", 0x0100, 0x1F00 - PILA_RESERVADA, ["BSS"]),
 ]
 
 SEGMENTS = ([n for _, _, _, names in AREAS for n in names]
@@ -806,8 +821,10 @@ class Assembler:
                     address += item.size
                 self.addresses[(segment, len(self.items[segment]))] = address
             if address > start + size:
-                raise Error("%s no entra: %d bytes en %d"
-                            % (nombre, address - start, size))
+                raise Error("%s no entra: %d bytes en %d%s"
+                            % (nombre, address - start, size,
+                               " (y %d más reservados para la pila)"
+                               % PILA_RESERVADA if nombre == "RAM" else ""))
 
         for segment, index, name in self.pending:
             self.symbols[name] = self.addresses[(segment, index)]

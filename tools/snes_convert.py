@@ -1650,6 +1650,10 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "OP_SACUDIR  = $%02X\n"
         "OP_DESTELLO = $%02X\n"
         "OP_FUNDIR_BGM = $%02X\n"
+        "OP_PAN      = $%02X\n"
+        "; Las dos operaciones de PanScreen que compilan.\n"
+        "PAN_CORRER  = %d\n"
+        "PAN_VOLVER  = %d\n"
         "; Las tres operaciones del cronómetro.\n"
         "TIMER_PONER    = %d\n"
         "TIMER_ARRANCAR = %d\n"
@@ -1754,7 +1758,8 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            eventos.OP_RUTA, eventos.OP_MENSAJE, eventos.OP_RUTAS,
            eventos.OP_FLASH, eventos.OP_TIMER, eventos.OP_BGM,
            eventos.OP_LUGAR, eventos.OP_TRUEQUE, eventos.OP_SACUDIR,
-           eventos.OP_DESTELLO, eventos.OP_FUNDIR_BGM,
+           eventos.OP_DESTELLO, eventos.OP_FUNDIR_BGM, eventos.OP_PAN,
+           eventos.PAN_CORRER, eventos.PAN_VOLVER,
            eventos.TIMER_PONER, eventos.TIMER_ARRANCAR,
            TIMER_X, TIMER_Y, TIMER_GLIFO_W, TIMER_GLIFOS - 1,
            eventos.CUADROS_POR_SEGUNDO, eventos.TIMER_CUADROS_DE_MAS,
@@ -1950,10 +1955,11 @@ def puertas_bytes(puertas, indices):
 # Un evento en la tabla de posiciones: x e y en celdas, las dos de 16 bits
 # porque hay mapas de 500 celdas de ancho.
 EV_STRIDE = 4
-# Cuántos eventos guarda la RAM. El mapa más poblado de este juego tiene 114;
-# el conversor corta si alguno se pasa, así que el número no puede quedar corto
-# en silencio.
-EV_MAX = 128
+# Cuántos eventos guarda la RAM. El mapa más poblado de este juego tiene 114
+# —medido sobre los 335—; el conversor corta si alguno se pasa, así que el
+# número no puede quedar corto en silencio. Cada uno cuesta seis bytes de RAM
+# entre `ev_pos_buf` y `eleg_por_ev`.
+EV_MAX = 120
 # Cuántas rutas forzadas pueden estar corriendo a la vez sobre eventos. La
 # página que más manda a caminar de este juego mueve cuatro eventos distintos, y
 # una ruta sobrevive al final de su página, así que puede haber otra corriendo
@@ -1978,10 +1984,17 @@ NPC_STRIDE = 16
 NPC_QUIETO = 0xFF        # en +9: este NPC no camina
 
 # La tabla de NPCs del mapa que está cargado se copia a RAM, porque build_oam la
-# recorre con un índice y eso direcciona el banco de datos. El tope no es una
-# elección: en OAM entran 128 objetos y uno es el héroe, así que ningún mapa
-# puede mostrar más. El que más tiene en todo el juego son 89.
-NPC_MAX = 127
+# recorre con un índice y eso direcciona el banco de datos. El techo de arriba
+# lo pone OAM: entran 128 objetos y uno es el héroe, así que ningún mapa puede
+# **mostrar** más de 127.
+#
+# El número no es ése desde el 2026-09-06, y no por gusto: la fila mide
+# dieciséis bytes, así que el tope se lleva dos kilos de los ocho que tiene el
+# banco 0 de RAM, y la RAM se acabó —ver "La pila y la BSS comparten los ocho
+# kilos" en rom/LEEME.md—. **El mapa con más filas de todo el juego tiene 99**,
+# medido sobre los 335, así que 104 deja cinco de aire y devuelve 368 bytes. No
+# puede quedar corto en silencio: el conversor corta si algún mapa se pasa.
+NPC_MAX = 104
 
 
 def orden_de_dibujo(npc):
@@ -2068,6 +2081,16 @@ def ruta_de_evento(argumento):
     if not argumento or len(argumento) < 2:
         return ()
     return argumento[0], list(argumento[1:])
+
+
+def pan_de_prueba(argumento):
+    """Los PanScreen de la página de prueba, de a cinco números."""
+    if not argumento:
+        return ()
+    if len(argumento) % 5:
+        sys.exit("--pan-de-prueba pide OPERACION DIRECCION DISTANCIA VELOCIDAD "
+                 "ESPERAR, y se puede repetir de a cinco")
+    return tuple(argumento)
 
 
 def sacudida_de_prueba(argumento):
@@ -2305,6 +2328,14 @@ def main():
                         help="FUERZA VELOCIDAD DECIMAS [ESPERA]: agrega a la "
                              "página de prueba una sacudida de pantalla, como "
                              "un ShakeScreen del juego")
+    parser.add_argument("--pan-de-prueba", nargs="+", type=int,
+                        default=None, metavar="N",
+                        help="OPERACION DIRECCION DISTANCIA VELOCIDAD ESPERAR:\n"
+                             "agrega a la página de prueba un PanScreen. La\n"
+                             "operación es 2 para correr la cámara y 3 para\n"
+                             "devolverla; ninguna página del juego que hoy\n"
+                             "compile corre la cámara. Se puede repetir de a\n"
+                             "cinco para encadenar varios")
     parser.add_argument("--fundir-bgm", type=int, default=0,
                         metavar="MS",
                         help="agrega a la página de prueba un FadeOutBGM de esos\n"
@@ -2446,6 +2477,7 @@ def main():
                 or args.ruta_de_evento or args.flash_de_prueba or args.switch
                 or args.timer_de_prueba or args.lugar_de_prueba
                 or args.sacudida_de_prueba or args.fundir_bgm
+                or args.pan_de_prueba
                 or args.mensaje_de_prueba is not None) \
                 and mapa is mapas[args.inicial]:
             # La página inventada, sólo en el mapa donde arranca la ROM. No sale
@@ -2468,7 +2500,8 @@ def main():
                     lugar_de_prueba(args.lugar_de_prueba),
                     frecuencia=args.frecuencia,
                     sacudida=sacudida_de_prueba(args.sacudida_de_prueba),
-                    fundir_bgm=args.fundir_bgm)}]
+                    fundir_bgm=args.fundir_bgm,
+                    pan=pan_de_prueba(args.pan_de_prueba))}]
         codigo = bytearray()
         for pagina in paginas:
             pagina["offset"] = len(codigo)

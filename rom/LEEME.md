@@ -1323,6 +1323,49 @@ prueba sacude, espera y tiñe: los cuadros del medio miran la pantalla corrida y
 el último mira que volvió a su lugar y el tinte llegó entero. Lo que no se
 modela es la sacudida continua de RM2k3, que este juego no usa.
 
+### La cámara corrida sin el héroe
+
+`PanScreen`. De sus cuatro operaciones el juego usa dos —112 `pan` y 21
+`reset`, y ni un `lock` ni un `unlock`— así que ésas son las que compilan.
+
+La cámara se corre tantas celdas en una dirección y se le acerca al destino
+`2 << velocidad` **dieciseisavos de pixel** por cuadro: es `pan_speed` de
+`Game_Player::StartPan` y el `dx = min(step, |remain|)` de `UpdatePan`. Las
+unidades no son un capricho heredado: la velocidad 2 —la que usa la escena de
+Talan— mueve la cámara **medio pixel por cuadro**, y en pixeles enteros eso no
+se puede contar. Así que los dos lados llevan la cámara corrida en
+dieciseisavos y la bajan a pixeles con una división **al piso**, que es lo que
+hace `Spriteset_Map` dividiendo `GetDisplayX()` por 16.
+
+Tres cosas que decidir, y por qué:
+
+* **El desplazamiento lo resuelve el conversor.** El bytecode lleva cuánto se
+  corre el destino en x y en y, con signo, y el paso por cuadro; la dirección y
+  la velocidad no llegan a la ROM. Son cuentas fijas.
+* **Los cuadros que la página espera, no.** Ésos salen de **lo que le falta** al
+  pan cuando el comando corre, y con uno todavía en curso eso no es lo que este
+  comando pidió: es el `GetPanWait` de RM2k y el comentario de
+  `CommandPanScreen` sobre el máximo. Los cuenta la ROM, con el divisor del
+  hardware.
+* **El pan entra antes del acote y no después**, al revés que la sacudida: RM2k
+  corre la posición del mapa y el borde la frena, mientras que la sacudida
+  asoma lo que hay del otro lado. Lo que **no** se modela es que en el borde
+  RM2k frena el pan y lo deja pendiente; acá el acote es de la cámara y el pan
+  sigue contando. Ninguna de las páginas que hoy compilan lo pide.
+
+Y al cambiar de mapa la cámara vuelve a cero de golpe, que es lo que hace
+`PerformTeleport` con `map_changed`. Un salto al mismo mapa no la toca.
+
+**Cómo se verifica.** Dos casos, los dos con la página de prueba corriendo la
+cámara **y esperando**, y un tinte detrás: los cuadros del medio miran la cámara
+a mitad de camino y el tinte pincha el largo de la espera al cuadro.
+
+* `pan`: dos celdas para arriba a velocidad 2 —el PanScreen de la escena de
+  Talan—, o sea 64 cuadros. La cámara baja de a ocho pixeles cada dieciséis
+  cuadros y el tinte aparece en el 66 y no en el 65.
+* `pan-vuelve`: lo mismo y después `reset` a velocidad 4, que la trae de vuelta
+  en dieciséis cuadros; el tinte cae en el 83 y no en el 82.
+
 ### El `FadeOutBGM`
 
 Apaga el tema que esté sonando en los milisegundos que pida. Es lo único que
@@ -1726,6 +1769,46 @@ falten no se acepta otra dirección.
 
 Que frene en celdas interiores y no en los bordes del mapa es lo que dice que la
 tabla se está mirando de verdad.
+
+## La pila y la BSS comparten los ocho kilos
+
+El banco 0 de RAM son ocho kilos: la página directa, la BSS y **la pila**, que
+arranca en `$1FFF` y crece hacia abajo, contra la BSS. No hay más: la pila del
+65816 vive en el banco 0 y ese banco es el espejo de `$7E0000`-`$7E1FFF`, así
+que los `$7E2000` para arriba no le sirven.
+
+Hasta el 2026-09-06 nadie contaba ese choque. `w65.py` comprobaba que la BSS
+entrara en los 7936 bytes del área, y entraba: llegó a ocuparlos **exactos**, y
+entonces el primer `jsr` empezó a escribir arriba de `pal_buf`, que es lo último
+que hay. Y así estuvo un rato, porque la BSS venía dejando catorce bytes y la
+pila más honda medida son veinticuatro: le pisaba diez bytes a la cola de la
+paleta y no se notaba.
+
+Lo que sí se notó: catorce bytes más de BSS —los del `PanScreen`— y el caso
+`core-puerta` se caía en el cuadro 406 con **la RAM entera pisada**. No al
+armarse, no al arrancar: cuatrocientos cuadros adentro de una escena. Costó una
+tarde llegar, y lo que la cerró fue reproducirlo con el `main.s` de antes más
+catorce bytes de relleno: ahí quedó claro que no era el código nuevo sino el
+lugar donde caían las variables.
+
+Dos cosas salieron de eso, y las dos van juntas:
+
+* **`w65.py` reserva la pila.** `PILA_RESERVADA` son 256 bytes que la BSS no
+  puede tocar, y pasarse es un error al armar. El número está medido: la pila
+  más honda de la tanda —`core-puerta`, con el intérprete adentro de una NMI—
+  baja 24 bytes, y la cinemática de apertura entera, 28. Es el mismo agujero
+  que ya había tenido el ZEROPAGE, y la misma cura: un área que no se controla
+  se desborda en silencio.
+* **Se aflojaron dos topes, con la medida al lado.** `NPC_MAX` pasó de 127 a
+  104 y `EV_MAX` de 128 a 120. El techo de `NPC_MAX` lo pone OAM —128 objetos,
+  uno es el héroe— pero el mapa con más filas de todo el juego tiene **99**, y
+  el que más eventos tiene, **114**; los dos medidos sobre los 335. Son 416
+  bytes, y ninguno puede quedar corto en silencio porque el conversor corta si
+  un mapa se pasa.
+
+Hoy la BSS termina en `$1E5F` y quedan **417 bytes** hasta la pila, de los
+cuales 256 son la reserva. Lo que siga pidiendo RAM tiene que aflojar algo, y
+ahora `w65.py` lo va a decir en vez de dejarlo pasar.
 
 ## Las tablas van en el banco 0
 
@@ -2334,25 +2417,24 @@ comparación.
   **no** cubre es nada en movimiento en un cuadro en que la ROM venga atrasada;
   el toque de A resincroniza los dos lados.
 * **Lo que le falta al juego entero, medido.** De las 489 páginas automáticas
-  con comandos, hoy compilan enteras **142**. Eran 16 antes de los cuadros de
+  con comandos, hoy compilan enteras **177**. Eran 16 antes de los cuadros de
   texto, 71 con ellos, 87 con las rutas forzadas sobre eventos, 110 con
   FlashSprite, 117 aceptando `PlaySound`, 126 con la saturación del tinte, 137
-  con los saltos y las demás órdenes de ruta y 142 con `ChangeEventLocation`,
-  que dio las cinco que prometía. El cronómetro no cambió el número: suma
-  cero, y está medido. Y esto es cuántas pasarían a compilar con cada comando
-  que falta —`just snes-destraba`—:
+  con los saltos y las demás órdenes de ruta, 142 con `ChangeEventLocation`, y
+  177 con `FadeOutBGM`, `PanScreen` y las órdenes 30 y 31 del 2026-09-06. El
+  cronómetro no cambió el número: suma cero, y está medido. Y esto es cuántas
+  pasarían a compilar con cada comando que falta —`just snes-destraba`—:
 
-      ConditionalBranch         +13      ChangeItems            +2
-      FadeOutBGM                +10      FullHeal               +1
-      PanScreen                  +5      WeatherEffects         +0
-      ControlVars                +4      CallEvent              +0
+      ConditionalBranch         +22      FullHeal               +1
+      ControlVars                +4      FlashSprite            +0
+      ChangeItems                +3      CallEvent              +0
 
   Y aparte, `MoveEvent` con las órdenes de ruta que todavía no sabemos caminar:
-  +35 de techo. Puestos todos juntos se llega a **213 de 489**, y lo que seguiría
-  cortando después es, de lejos, **`MoveEvent` en su forma general: 129
+  +42 de techo. Puestos todos juntos se llega a **242 de 489**, y lo que seguiría
+  cortando después es, de lejos, **`MoveEvent` en su forma general: 101
   páginas** —rutas con saltos, con cambio de gráfico, con diagonales, o
-  apuntadas a un vehículo—. Después vienen `ShowChoice` con 9 y los 7 cuadros de
-  texto con códigos de escape.
+  apuntadas a un vehículo—. Después vienen los 13 cuadros de texto con códigos
+  de escape y `ShowChoice` con 11.
 
   **Dos veces se corrigió este número, y las dos por lo mismo: medía un techo.**
   La primera versión contaba qué comando corta **primero** cada página

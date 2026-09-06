@@ -630,6 +630,7 @@ loop:
     jsr flashes_tick            ; y los destellos, en el mismo lugar
     jsr timer_tick              ; y un cuadro del cronómetro
     jsr sacudida_tick           ; y uno de la sacudida de pantalla
+    jsr pan_tick                ; y uno de la cámara corrida sin el héroe
     jsr destello_tick           ; y uno del destello de pantalla
     jsr animate_hero
     jsr follow_camera
@@ -1009,6 +1010,21 @@ puesto:
 .a8
     lda mapa_tabla + M_BG12NBA_VALUE, x
     sta BG12NBA
+
+    ; La cámara corrida vuelve a cero al cambiar de mapa, y de golpe: es lo que
+    ; hace `Game_Player::PerformTeleport` con `map_changed`, que le devuelve a
+    ; `pan_current` y a `pan_finish` el valor por omisión. Un salto al mismo
+    ; mapa no pasa por acá y no la toca, que es también lo que hace RM2k.
+    rep #$20
+.a16
+    stz pan_x
+    stz pan_y
+    stz pan_dest_x
+    stz pan_dest_y
+    stz pan_px
+    stz pan_py
+    sep #$20
+.a8
 
     jsr follow_camera
     jsr load_map
@@ -2454,6 +2470,9 @@ otro:
 :   cmp #OP_FUNDIR_BGM
     bne :+
     jmp op_fundir_bgm
+:   cmp #OP_PAN
+    bne :+
+    jmp op_pan
 :   cmp #OP_TIMER
     bne :+
     jmp op_timer
@@ -2853,6 +2872,69 @@ op_esperar:
     iny
     sty ev_cur
     rts
+
+; `PanScreen`, en sus dos operaciones: correr la cámara sin el héroe y
+; devolverla. El desplazamiento viene con signo y en 1/16 de pixel, y el paso
+; por cuadro ya resuelto; lo que se cuenta acá son los cuadros que la página
+; espera, que salen de **lo que falta** después de mover el destino y no de lo
+; que este comando pidió. Ver `GetPanWait`.
+op_pan:
+    lda [cod_ptr], y            ; la operación
+    iny
+    cmp #PAN_VOLVER
+    bne pan_correr
+    rep #$20
+.a16
+    stz pan_dest_x              ; volver es ir al cero
+    stz pan_dest_y
+    sep #$20
+.a8
+    bra pan_saltear_desp
+pan_correr:
+    rep #$20
+.a16
+    lda [cod_ptr], y            ; el desplazamiento en x, con signo
+    clc
+    adc pan_dest_x
+    sta pan_dest_x
+    iny
+    iny
+    lda [cod_ptr], y            ; y en y
+    clc
+    adc pan_dest_y
+    sta pan_dest_y
+    sep #$20
+.a8
+    iny                         ; los dos de la y
+    iny
+    bra pan_leer_paso
+pan_saltear_desp:
+    iny                         ; los cuatro bytes del desplazamiento
+    iny
+    iny
+    iny
+pan_leer_paso:
+    lda [cod_ptr], y            ; el paso por cuadro
+    iny
+    rep #$20
+.a16
+    and #$00FF
+    sta pan_paso
+    sep #$20
+.a8
+    lda [cod_ptr], y            ; si la página espera
+    iny
+    beq pan_sin_espera
+    jsr pan_cuadros
+    rep #$20
+.a16
+    sta ev_esperando
+    sep #$20
+.a8
+    sty ev_cur
+    rts
+pan_sin_espera:
+    jmp otro
 
 op_tinte:
     lda [cod_ptr], y
@@ -7156,6 +7238,123 @@ nada:
     rts
 .endproc
 
+; Cuántos cuadros espera la página que pidió el pan: lo que le falta al eje que
+; más falta, dividido por el paso y redondeado para arriba. Es `GetPanWait`.
+; Devuelve el número en A de dieciséis bits.
+;
+; Lo que falta llega hasta quince celdas —3840 dieciseisavos— y el paso no pasa
+; de 128, así que entran justo en el dividendo de dieciséis y el divisor de ocho
+; del hardware.
+.proc pan_cuadros
+.a8
+.i16
+    rep #$20
+.a16
+    lda pan_dest_x
+    sec
+    sbc pan_x
+    bpl falta_x
+    eor #$FFFF
+    inc a
+falta_x:
+    sta temp
+    lda pan_dest_y
+    sec
+    sbc pan_y
+    bpl falta_y
+    eor #$FFFF
+    inc a
+falta_y:
+    cmp temp
+    bcs mayor
+    lda temp
+mayor:
+    ; Redondear para arriba es sumarle el paso menos uno antes de dividir.
+    clc
+    adc pan_paso
+    sec
+    sbc #1
+    sta WRDIVL                  ; el dividendo, en una escritura de dieciséis
+    sep #$20
+.a8
+    lda pan_paso
+    sta WRDIVB                  ; arranca: el cociente tarda dieciséis ciclos
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    rep #$20
+.a16
+    lda RDDIVL
+    sep #$20
+.a8
+    rts
+.endproc
+
+; --- la cámara corrida sin el héroe ----------------------------------------
+; `Game_Player::UpdatePan`: cada eje se acerca a su destino de a `pan_paso`
+; dieciseisavos de pixel, sin pasarse. Y de paso se baja a pixeles enteros, que
+; es lo que `follow_camera` suma: la división es **al piso** y con signo, que es
+; lo que hace `Spriteset_Map` dividiendo `GetDisplayX()` por 16.
+;
+; Se guarda en pixeles en vez de dividir en cada uso porque `follow_camera`
+; corre una vez por cuadro y esto también, pero acá la cuenta se hace una sola
+; vez por eje.
+.proc pan_tick
+.a8
+.i16
+    rep #$20
+.a16
+    ldx #0                      ; el eje: 0 es la x, 2 la y
+otro_eje:
+    lda pan_dest_x, x
+    sec
+    sbc pan_x, x
+    beq en_su_lugar             ; ya llegó
+    bpl hacia_adelante
+    ; Falta hacia atrás: se resta el paso, o lo que quede si es menos.
+    eor #$FFFF
+    inc a                       ; el valor absoluto de lo que falta
+    cmp pan_paso
+    bcc corto
+    lda pan_paso
+corto:
+    eor #$FFFF
+    inc a                       ; y de vuelta con signo
+    bra sumar
+hacia_adelante:
+    cmp pan_paso
+    bcc sumar
+    lda pan_paso
+sumar:
+    clc
+    adc pan_x, x
+    sta pan_x, x
+en_su_lugar:
+    ; A pixeles: cuatro corrimientos aritméticos, que conservan el signo.
+    lda pan_x, x
+    cmp #$8000
+    ror a
+    cmp #$8000
+    ror a
+    cmp #$8000
+    ror a
+    cmp #$8000
+    ror a
+    sta pan_px, x
+    inx
+    inx
+    cpx #4
+    bcc otro_eje
+    sep #$20
+.a8
+    rts
+.endproc
+
 ; --- la cámara -------------------------------------------------------------
 ; Sigue al héroe: lo deja en el centro de la pantalla salvo cerca de los bordes
 ; del mapa, donde se queda pegada para no mostrar el vacío de afuera.
@@ -7320,6 +7519,8 @@ guardar:
     adc #8                      ; el centro de su celda de 16x16
     sec
     sbc #128                    ; media pantalla de ancho
+    clc
+    adc pan_px                  ; y la cámara corrida sin el héroe
     bpl limite_x
     lda #0                      ; el héroe está cerca del borde izquierdo
 limite_x:
@@ -7334,6 +7535,8 @@ guarda_x:
     adc #8
     sec
     sbc #112                    ; media pantalla de alto
+    clc
+    adc pan_py
     bpl limite_y
     lda #0
 limite_y:
@@ -10852,6 +11055,18 @@ bgm_fundido: .res 1
 bgm_nivel:   .res 2
 bgm_paso:    .res 2
 dsp_valor:   .res 1     ; el byte que `escribir_dsp` le manda al SPC700
+
+; La cámara corrida sin el héroe: `PanScreen`. Dónde está y adónde va, las dos
+; en 1/16 de pixel y con signo, y cuánto corre por cuadro. `pan_px` y `pan_py`
+; son lo mismo ya bajado a pixeles enteros, que es lo que suma `follow_camera`:
+; se calcula una vez por cuadro en `pan_tick` y no en cada uso.
+pan_x:      .res 2
+pan_y:      .res 2
+pan_dest_x: .res 2
+pan_dest_y: .res 2
+pan_paso:   .res 2
+pan_px:     .res 2
+pan_py:     .res 2
 
 ; El fundido de un teletransporte. Ver `fundido_tick`.
 fundido:      .res 1    ; si hay uno corriendo
