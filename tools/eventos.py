@@ -550,10 +550,60 @@ PLAY_SOUND = 11550
 # corría y el juego se quedaba sin el pasillo al ascensor.
 SHOW_BATTLE_ANIMATION = 11210
 
+# `ChangeItems` (10320) y `ChangeGold` (10310): dan y quitan objetos y dinero.
+# Se aceptan sin hacerlos porque **nadie lee el inventario**: no hay menú, no
+# hay batallas, y `ConditionalBranch` sólo sabe preguntar por switches. El día
+# que exista una de esas tres cosas, esto vuelve a la lista de lo que corta.
+#
+# Cuánto destraba, medido: `ChangeItems` +5 páginas automáticas y `ChangeGold`
+# +1. Lo que importa no es el número sino cuál: la página del "1 year earlier"
+# —mapa 4, evento 1, página 3— arranca con siete `ChangeItems` seguidos, y es
+# la que continúa la historia después del recuerdo de CORE y MANTA.
+CHANGE_GOLD = 10310
+CHANGE_ITEMS = 10320
+
+# `ChangePartyMembers` (10330): quién va en el grupo. Se acepta sin hacerlo, y
+# es la deuda más rara de la lista porque **no destraba una sola página**:
+# medido, +0, solo y combinado con todo lo demás. Está acá porque aparece al
+# final de la página del "1 year earlier" —después del teletransporte— y
+# rechazarla ahí costaría la página entera por un comando que no cambia nada
+# de lo que se ve.
+#
+# Lo que se pierde sí importa más adelante: el gráfico del héroe sale del
+# primero del grupo, así que una página que cambie de líder va a dejar al héroe
+# con la cara equivocada. Hoy no hay ninguna que lo haga y compile.
+CHANGE_PARTY_MEMBERS = 10330
+
+# `ShowPicture` (11110), `MovePicture` (11120) y `ErasePicture` (11130): una
+# imagen encima de todo, movida y borrada. Se aceptan sin hacerlas y lo que se
+# pierde es la imagen.
+#
+# En modo 3 las dos capas de fondo están ocupadas por el mapa, así que una
+# imagen encima pide una decisión de video, no un opcode más. Pero hay un
+# atajo que este juego habilita y conviene tener anotado: **las cinemáticas
+# tiñen a negro antes de mostrar el cartel**, o sea que el mapa es invisible
+# mientras dura y la imagen podría tomar prestada una capa entera en vez de
+# componerse encima. Eso no sirve para los sistemas custom del juego, que las
+# usan sobre el mapa, pero sí para los carteles.
+#
+# Cuánto destraba, medido: +8 páginas automáticas los tres juntos. La que
+# importa es la del "1 year earlier", donde la imagen es el cartel de "One
+# year previous": aceptándola, el jugador ve negro donde va el cartel y la
+# escena sigue hasta Talan's Pad.
+SHOW_PICTURE = 11110
+MOVE_PICTURE = 11120
+ERASE_PICTURE = 11130
+
 ACEPTADOS_SIN_HACER = {
     WEATHER_EFFECTS,
     PLAY_SOUND,
     SHOW_BATTLE_ANIMATION,
+    CHANGE_GOLD,
+    CHANGE_ITEMS,
+    CHANGE_PARTY_MEMBERS,
+    SHOW_PICTURE,
+    MOVE_PICTURE,
+    ERASE_PICTURE,
 }
 
 

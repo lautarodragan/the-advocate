@@ -26,14 +26,18 @@ escena de Talan —los 233 comandos de la página de contacto del evento 5 del
 mapa 3— corre y **está verificada** en mil doscientos cuadros, y
 `demo-apertura` lleva los mapas 4, 1, 2, 3, 5 y 6.
 
-Las páginas automáticas que compilan enteras son **257 de 489**.
+Las páginas automáticas que compilan enteras son **272 de 489**.
 
 ### Lo próximo, si no se decide otra cosa
 
-1. **La secuencia del "1 year earlier"**, que es lo que sigue en el juego y lo
-   que hoy deja mudo a `hzstream`: la página que lo prende —evento 1, página 2
-   del mapa 4— pide `ChangeItems`, `ShowPicture`/`MovePicture` y
-   `ChangePartyMembers`.
+1. **El mapa 8 no entra en el cartucho.** Es lo que frena la demo hoy: el
+   exterior del pad de Talan pesa unos 140 KB y con el resto se pasa —632092
+   bytes contra 491520—. Ni siquiera el mínimo que llega ahí, 4-1-2-3-7-8,
+   entra: 564928. Así que salir de la casa de Talan pide **agrandar la ROM**,
+   que hoy es de 512 KB y cuyo mapeo tampoco se probó en hardware.
+2. **`ChangePartyMembers` de verdad**, si alguna página que compile cambia de
+   líder: el gráfico del héroe sale del primero del grupo, así que hoy quedaría
+   con la cara equivocada. Ninguna lo hace todavía.
 
 
 ## Decisiones tomadas que siguen valiendo
