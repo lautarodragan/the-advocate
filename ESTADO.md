@@ -61,6 +61,38 @@ Las páginas automáticas que compilan enteras son **272 de 489**.
    los KB—. Cruzar de banco con un puntero de 24 bits ya está resuelto en
    `advance`.
 
+   **Cuánto se recupera deduplicando**, medido el 2026-09-06:
+
+       personajes   903 referencias a 161 distintos   -> cada uno se paga 5,6 veces
+       chipsets     328 referencias a  43 distintos   -> cada uno se paga 7,6 veces
+
+   `emily[4]` está en 39 mapas y el chipset más usado en 33. Proyectado sobre
+   el desglose de arriba, separar el material de los mapas deja el tamaño en un
+   **44%**: unos 5,8 MB. Todavía no entra en 4 MB, pero es otra conversación.
+
+   Y adentro del material también sobra: los CharSets de RM2k traen ocho
+   personajes cada uno, y de los 456 que hay entre el juego y el RTP, **22
+   están vacíos y 96 son repetidos** —un 22% de los que tienen dibujo—. Hay
+   personajes que aparecen seis veces en archivos distintos.
+
+   **La trampa, y es la que ordena el trabajo:** deduplicar tiles entre mapas
+   sólo sirve si las paletas coinciden, y hoy el conversor cuantiza **por
+   mapa**. Dos mapas que comparten un chipset reciben paletas distintas, así
+   que el mismo tile termina siendo bytes distintos. La deduplicación no es un
+   problema de empaquetado sino uno de paletas disfrazado.
+
+   Eso parte el trabajo en dos mitades de costo muy distinto: partir los
+   CharSets y tirar vacíos y repetidos no depende de ninguna decisión de
+   paletas y se puede hacer ya; compartir un personaje entre los 39 mapas donde
+   aparece no se puede hasta que la paleta sea global. Y ahí está casi toda la
+   ganancia.
+
+   La paleta global tiene con qué: **2319 colores distintos a 15 bits** en todo
+   el material, pero los 64 más usados cubren el 67% de los pixeles, los 256 el
+   85% y los 512 el 93%. Es la firma de gráficos que salieron de juegos de
+   SNES, que es de donde salieron. Es además una decisión artística que taro
+   quiere tomar igual.
+
 2. **El mapa 8 no entra en el cartucho.** Es lo que frena la demo hoy: el
    exterior del pad de Talan pesa unos 140 KB y con el resto se pasa —632092
    bytes contra 491520—. Ni siquiera el mínimo que llega ahí, 4-1-2-3-7-8,
