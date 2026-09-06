@@ -232,6 +232,9 @@ RUTA_ANIM_PARAR, RUTA_ANIM_SEGUIR = 38, 39
 # propias de las páginas: los droides del mapa 2 las usan.
 RUTA_FIJAR_DIR, RUTA_SOLTAR_DIR = 26, 27
 RUTA_VEL_MAS, RUTA_VEL_MENOS = 28, 29
+# Las cuatro de arriba, **sobre el héroe**, no se compilan: ver `traducir`.
+RUTA_HEROE_AFUERA = {RUTA_FIJAR_DIR, RUTA_SOLTAR_DIR,
+                     RUTA_VEL_MAS, RUTA_VEL_MENOS}
 # Subir y bajar la frecuencia a mitad de una ruta:
 # `increase/decrease_movement_frequence`, que RM2k topa en 8 y en 1. Las usa
 # **una sola ruta de todo el juego** —la que sacude a Manta en la escena del
@@ -1235,6 +1238,20 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
                 raise NoSePuede()
             if orden == RUTA_ENCARAR_HEROE and blanco == 0:
                 raise NoSePuede()   # el héroe encarándose a sí mismo
+            if orden in RUTA_HEROE_AFUERA and blanco == 0:
+                # Fijar y soltar la mirada y subir y bajar la velocidad, sobre
+                # **el héroe**. La ROM las ignora —`paso_de_ruta` las saltea— y
+                # acá se caminaban, así que eran dos lados haciendo cosas
+                # distintas sin que ninguna prueba lo cobrara. Decidido con
+                # taro el 2026-09-06: quedan afuera del cartucho, como los
+                # efectos climáticos, y lo que arregla la paridad es no
+                # compilar la página que las pida.
+                #
+                # Cuestan 4 de las 209 páginas automáticas que compilan, y
+                # partirlo no sirve: **ninguna de las cuatro usa sólo la
+                # mirada**, todas piden la velocidad, que es la cara —el paso
+                # del héroe es fijo, `WALK_SPEED`, ocho cuadros por celda—.
+                raise NoSePuede()
             if orden in RUTA_DIAGONALES and blanco == 0:
                 # Y el héroe en diagonal: la ROM no lo sabe hacer y ninguna
                 # de las 26 rutas del juego con diagonales es del héroe. Sin
@@ -2376,6 +2393,14 @@ def pagina_activa(paginas, evento, estado):
     """La página de número más alto del evento cuyas condiciones se cumplen.
 
     Es la regla de RM2k, y es la misma pasada que hace la ROM.
+
+    **Y se calcula viva, que no es lo que hace RM2k**: allá la página activa es
+    `Game_Event::page` y sólo la reescribe `Game_Map::Refresh()`, al principio
+    del cuadro, así que todo lo que pasa después en ese cuadro ve la vieja. La
+    ROM hace lo de RM2k —la guarda en la fila del NPC y la reescribe en el
+    refresco— y acá no. Está anotado en ESTADO.md, "Lo que la tanda no cubre":
+    el intento de guardarla acá arregló la escena de Talan y puso en rojo
+    `puerta-emisor`, así que falta entender por qué antes de meterlo.
     """
     elegida = None
     for pagina in paginas:
@@ -2458,6 +2483,8 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
         paso = paso_de_fundido(fundir_bgm)
         codigo += bytes([OP_FUNDIR_BGM, paso & 0xFF, paso >> 8])
     if ruta:
+        if any(o in RUTA_HEROE_AFUERA for o in ruta):
+            raise NoSePuede("el héroe no fija la mirada ni cambia de velocidad")
         if any(o in RUTA_DIAGONALES for o in ruta):
             # El mismo corte que hace `traducir` con un MoveEvent del juego: la
             # ROM camina las diagonales sobre eventos y no sobre el héroe.

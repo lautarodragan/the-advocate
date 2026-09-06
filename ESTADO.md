@@ -42,6 +42,22 @@ Las páginas automáticas que compilan enteras son **209 de 489**.
 Las que hay que conocer para no rehacerlas ni contradecirlas. El porqué largo
 de cada una está en `README.md`.
 
+* **Las órdenes de ruta 26 a 29 sobre el héroe quedan afuera del cartucho.**
+  Fijar y soltar la mirada y subir y bajar la velocidad. Decidido con taro el
+  2026-09-06: son un extra, como los efectos climáticos, y el juego se puede
+  jugar sin ellas; si alguna vez son un blocker se encaran entonces. Lo que
+  arregla la paridad es que **el conversor no compile la página que las pida**,
+  así que la referencia tampoco las camina.
+
+  Cuestan 4 de las 209 páginas automáticas que compilaban —quedan 205— y
+  partirlo no sirve: ninguna de las cuatro usa sólo la mirada, todas piden la
+  velocidad, que es la cara. El paso del héroe es fijo, `WALK_SPEED`, ocho
+  cuadros por celda, escrito a mano en `try_up` y sus tres hermanas; darle
+  velocidad variable es darle el acumulador de 256 por celda que ya tienen los
+  eventos, y eso toca también caminar con el pad, la cámara y el plan de
+  cuadros de los casos. En todo el juego son 178 rutas, y el **mapa 7, Talan's
+  Pad**, tiene tres.
+
 * **Las diagonales y la orden 34 van sobre eventos, no sobre el héroe.** El
   paso del héroe está escrito una vez por dirección y su gráfico sale de la
   tabla de actores; darle las dos cosas sería duplicar ese código. Medido: de
@@ -70,21 +86,6 @@ de cada una está en `README.md`.
 
 
 ## Esperando respuesta de taro
-
-* **Sobre el héroe, la ROM ignora las órdenes de ruta 26 a 29 y la referencia
-  no.** Fijar y soltar la mirada, subir y bajar la velocidad. `paso_de_ruta`
-  las saltea con un comentario que dice "acá no llegan", y llegan: `Ruta` es la
-  misma clase para el héroe y para los eventos.
-
-  Medido: el juego tiene 163 rutas sobre el héroe con la orden 28 y 148 con la
-  29; de las páginas que **hoy compilan**, siete tienen una, y una de ésas es
-  el evento 1 del **mapa 7, Talan's Pad**, adonde el juego va después de esto.
-  Ninguna prueba lo cobra porque ningún caso mira esas páginas.
-
-  No lo arreglé porque no es un comando que falte sino dos lados que dejaron de
-  hacer lo mismo, y la velocidad del héroe pide además que su paso deje de ser
-  fijo —hoy son `WALK_SPEED` y ocho cuadros por celda—. **Dónde entra lo decide
-  taro.**
 
 * **`rom/build/demo-apertura-jugable/`**: es la copia pre-fundido que taro pidió
   el 2026-09-05 para que un test no se la pisara. Nunca dijo si la refresca o
@@ -119,24 +120,34 @@ de cada una está en `README.md`.
 
 `just snes-hitos-paralelo` son **85 casos, todos en verde**. Lo que no mira:
 
-* **La escena de Talan.** Compila y corre, y los dos lados **no coinciden**.
-  Armada a mano —mapa 3 con el 1, el 2, el 4 y el 5, el héroe en (38,69), el
-  switch 13 puesto para que la página de contacto esté activa, y una ruta
-  forzada de una sola orden que lo hace subir— los cuadros 1 a 9 dan cero y el
-  10 da 34%. El cuadro 10 de la ROM es idéntico al tick 9 de la referencia:
-  **la ROM dispara la página de contacto un cuadro más tarde**.
+* **La escena de Talan.** Compila, corre, y de los 233 comandos sólo se
+  comparó el arranque. Armada a mano —mapa 3 con el 1, el 2, el 4 y el 5, el
+  héroe en (38,69), el switch 13 puesto, y una ruta forzada que lo hace
+  esperar y subir— los cuadros 40 y 400 dan **cero** y el 120 da 60%. Falta
+  encontrar qué pasa en el medio.
 
-  El primer comando de esa página es un `Teleport` al mismo mapa, o sea que
-  arranca un fundido, y por eso un cuadro de corrimiento se ve como un tercio
-  de la pantalla. Dónde mirar: `paso_de_ruta` en `snes_expect.py` decide
-  `llego` en el mismo tick en que el paso termina, y en la ROM el orden del
-  lazo pone `fundido_tick` **antes** de `eventos_tick`, así que lo que la
-  página arranca se ve recién en la vuelta siguiente. Arreglarlo es decidir
-  cuál de los dos tiene razón contra `Game_Player::UpdateMovement`.
+  **Y hay algo más grande escondido ahí, diagnosticado el 2026-09-06 y sin
+  arreglar.** La referencia calcula la página activa de cada evento **viva**,
+  con los switches del momento; RM2k no: es `Game_Event::page` y sólo la
+  reescribe `Game_Map::Refresh()`, que corre al principio de
+  `Game_Map::Update`, así que todo lo que pasa después en ese cuadro ve la
+  página vieja. La ROM hace lo de RM2k —la guarda en la fila del NPC—.
 
-  No lo cobra `ruta-pisa` ni `ruta-pisa-cola` porque comparan los cuadros 50 y
-  200, cuando ya se acomodó todo: es la trampa del camino que ninguna prueba
-  ejecuta, pero en la ventana de tiempo en vez de en el código.
+  La diferencia no es cosmética: un switch prendido por una página le abre el
+  paso al héroe **en ese mismo cuadro** del lado de la referencia y en el
+  cuadro siguiente del lado de la ROM. Y como una orden de ruta bloqueada se
+  saltea y no se reintenta, eso no se ve como un cuadro de atraso sino como
+  "el héroe nunca cruza la puerta".
+
+  El intento de guardarla en una instantánea que sólo reescribe el refresco
+  **arregló la escena de Talan y puso en rojo `puerta-emisor`**, en el gráfico
+  del evento 6 del mapa 3 —300 pixeles en el cuadro 40—. O sea que falta
+  entender por qué antes de meterlo: o la instantánea no se está rehaciendo
+  cuando debería, o `puerta-emisor` estaba en verde por la razón equivocada.
+  Se revirtió para no dejar la tanda en rojo.
+
+  Nada de esto lo cobra `ruta-pisa` ni `ruta-pisa-cola`, que comparan los
+  cuadros 50 y 200, cuando ya se acomodó todo.
 
 * **El audio.** `just snes-bgm <tema>` graba cuarenta segundos y los compara
   contra el MIDI, y **no está en la tanda**: es visual. Los cuatro temas de la

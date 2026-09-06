@@ -1841,9 +1841,10 @@ Ninguna ruta del juego tiene una ahí adentro —medido, cero—, así que eso e
 por corrección y no porque pase.
 
 Y una advertencia que conviene tener a mano: con esto **la escena de Talan
-compila entera**, pero comparada de punta a punta los dos lados no coinciden, y
-no por la orden 34: la ROM dispara la página de contacto un cuadro más tarde que
-la referencia. Está medido en ESTADO.md, "Lo que la tanda no cubre".
+compila entera**, pero de sus 233 comandos sólo se comparó el arranque, y hay
+una divergencia sin resolver que no es de la orden 34 —la referencia calcula la
+página activa de cada evento viva y RM2k la congela hasta el refresco—. Está
+medido en ESTADO.md, "Lo que la tanda no cubre".
 
 **Cómo se verifica.** Dos casos, y son la misma ruta con distinto destino: el
 evento 3 del mapa 6 baja dos celdas, cambia de gráfico y sigue bajando dos. Los
@@ -2770,7 +2771,10 @@ comparación.
   entera; se pierde el fundido, que sobre tiles de fondo la SNES no hace
   barato. Una ruta que se queda sin órdenes por esto no se emite: RM2k la
   consume entera en el cuadro y no deja nada que esperar. Faltan **cambiar el
-  gráfico** —la orden 34— **sobre el héroe**, y **moverse hacia el héroe**. La
+  gráfico** —la orden 34— **sobre el héroe**, **fijar la mirada y cambiarle la
+  velocidad** —las órdenes 26 a 29, que desde el 2026-09-06 no compilan sobre
+  él por decisión y no por olvido: ver ESTADO.md—, y **moverse hacia el
+  héroe**. La
   velocidad ya está, desde el 2026-09-05, con las rutas propias de las
   páginas; **subir y bajar la frecuencia** —las órdenes 30 y 31— desde el
   2026-09-06, ver "La frecuencia se sube y se baja a mitad de una ruta"; las

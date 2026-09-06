@@ -585,6 +585,13 @@ def contacto_al_pisar(mundo, estado, map_id, x, y, passable, game_map):
     if not interprete.probar_celda(x, y, eventos.TRIGGER_TOCA_HEROE, estado):
         return map_id, x, y, False
     for _ in range(10000):
+        # El refresco va **arriba de todo**, antes del intérprete, que es donde
+        # lo hace `Game_Map::Update`: `if (GetNeedRefresh()) Refresh();` y
+        # recién después `UpdateMapEvents` y `game_player->Update()`. Acá
+        # estaba después del intérprete, o sea que un switch prendido en este
+        # cuadro le abría el paso al héroe en este mismo cuadro y en la ROM no.
+        # Ver "El refresco va antes del intérprete" en el README.
+        estado.refrescar()
         if interprete.cuadro():
             salto = estado.salto
             estado.salto = None
@@ -595,7 +602,6 @@ def contacto_al_pisar(mundo, estado, map_id, x, y, passable, game_map):
                                               (salto[1], salto[2]))
                 return map_id, x, y, True
             continue
-        estado.refrescar()
         x, y, llego = paso_de_ruta(estado, passable, game_map, x, y,
                                    interprete.paginas)
         if llego:

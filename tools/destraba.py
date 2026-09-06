@@ -106,9 +106,11 @@ def mover_otro(cmd, pagina):
         return False
     if blanco == MOVE_HEROE and any(
             o in eventos.RUTA_DIAGONALES or o == eventos.RUTA_CAMBIAR_GRAFICO
+            or o in eventos.RUTA_HEROE_AFUERA
             for o, _e in ordenes):
-        # Sobre el héroe la ROM no camina en diagonal ni le cambia el gráfico:
-        # ver `traducir`. Las dos son suyas nomás; sobre eventos ya están.
+        # Sobre el héroe la ROM no camina en diagonal, no le cambia el gráfico
+        # y no le toca la mirada ni la velocidad: ver `traducir`. Todas son
+        # suyas nomás; sobre eventos ya están.
         return False
     # Una ruta **vacía** cuenta como que se puede: `traducir` la acepta y no
     # emite nada —RM2k la consume entera en el cuadro y no deja nada que
