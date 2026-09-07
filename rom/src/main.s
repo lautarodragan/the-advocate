@@ -12786,7 +12786,7 @@ done:
     .byte "ABL SNES MUSIC POC   "  ; 21 caracteres
     .byte $20                      ; LoROM, velocidad lenta
     .byte $00                      ; sólo ROM, sin RAM ni chips extra
-    .byte $09                      ; tamaño: 512 KB (el byte es log2 de los KB)
+    .byte $0A                      ; tamaño: 1 MB (el byte es log2 de los KB)
     .byte $00                      ; sin SRAM
     .byte $01                      ; región
     .byte $00                      ; desarrollador

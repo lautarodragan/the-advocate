@@ -48,7 +48,8 @@ import sys
 # Lo que sí paga el precio es el 65816: un puntero de 24 bits no avanza solo de
 # $00FFFF a $018000, hay que ayudarlo. Está en `advance`, en main.s.
 BANK_SIZE = 0x8000
-ROM_BANKS = 16          # 512 KB desde el 2026-09-05: ver el README, "El cartucho"
+ROM_BANKS = 32          # 1 MB desde el 2026-09-07; 512 KB desde el 2026-09-05.
+                        # Ver el README, "El cartucho".
 
 # TABLAS va en el banco 0, junto al código, y no es un detalle de acomodo: el
 # direccionamiento absoluto indexado —`lda tabla, x`— usa el registro de banco
@@ -59,7 +60,7 @@ AREAS = [
     ("ROM",  0x00000, 0x07FC0, ["CODE", "TABLAS"]),
     ("HEAD", 0x07FC0, 0x00020, ["HEADER"]),
     ("VECT", 0x07FE0, 0x00020, ["VECTORS"]),
-    ("DATA", 0x08000, 0x78000, ["RODATA"]),
+    ("DATA", 0x08000, BANK_SIZE * ROM_BANKS - 0x08000, ["RODATA"]),
 ]
 # La RAM no sale en el archivo: se ubica por dirección, no por desplazamiento.
 # La pila arranca en $1FFF y **crece hacia abajo, contra la BSS**: los dos

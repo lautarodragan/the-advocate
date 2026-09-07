@@ -287,6 +287,25 @@ Detalles del arreglo, por si alguno vuelve a morder:
 * El tinte no toca la ventana **por dónde arranca el rango** y no por acordarse.
 
 
+**El cronómetro comparte paleta, y el cartucho pasa a 1 MB.** Los dígitos usan
+dos colores —negro y rojo puro— y se llevaban una de las ocho paletas de sprite
+para ellos solos. Ese número no es contabilidad: `npcs_dibujables` decide con él
+**qué eventos se dibujan**, y un evento que no se dibuja igual ocupa. Con siete,
+el mapa 2 perdía el evento 30, que es la celda del medio de la puerta que Core
+rompe: taro llegó a la cinemática, la puerta no cambió de tile y no pudo pasar.
+
+Ahora entran en la paleta de cualquier personaje que tenga trece o menos, con el
+mismo primer-ajuste que ya se usaba para los eventos dibujados con un tile del
+chipset. Y al recuperar esos eventos la ROM se pasaba por 8 KB, así que
+`ROM_BANKS` pasó a 32: el área de datos ahora se deriva de ahí en vez de estar
+escrita a mano, y la cabecera dice `$0A`.
+
+Queda algo que **sigue sin cubrir ninguna red**: que un evento que no entra en
+las paletas se descarte en silencio y encima bloquee el paso. El conversor lo
+avisa por nombre, pero nada relaciona "no se dibuja" con "y además no se puede
+pasar". El mapa 2 todavía pierde los eventos 31 y 32 por esto.
+
+
 ## Esperando respuesta de taro
 
 * **`rom/build/demo-apertura-jugable/`**: es la copia pre-fundido que taro pidió

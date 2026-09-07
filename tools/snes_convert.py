@@ -303,6 +303,7 @@ COLORS_PER_PALETTE = 16            # lo que ocupa cada paleta de sprite en CGRAM
 SPRITE_POSES = 12
 POSE_INICIAL = 2 * 3 + 1           # mirando abajo, el frame del medio
 SPRITE_PALETTE = 8                 # los sprites usan las paletas 8 a 15
+OBJ_PALETTES = 8                   # y son ocho, con cronómetro o sin él
 
 # La tabla de nombres de OAM tiene 16 tiles de ancho, así que un objeto de
 # 32x32 no ocupa 16 tiles seguidos sino un bloque de 4x4 dentro de esa grilla.
@@ -440,7 +441,7 @@ def npcs_dibujables(renderer, game_map, lideres, tope, graficos_de_ruta=()):
     dibujados con un tile del chipset **que entren** en las paletas de sprite.
 
     Un evento con gráfico de tile es un personaje más para la consola, con su
-    paleta, y las paletas de sprite son ocho —siete con el cronómetro—. Los
+    paleta, y las paletas de sprite son ocho. Los
     CharSets del juego usan quince colores cada uno y no comparten ninguna, así
     que en un mapa con siete personajes de CharSet queda una sola paleta para
     todos los tiles, y dos tiles que no compartan colores no entran. Pasó en el
@@ -668,8 +669,19 @@ def digitos_del_timer(sys_img, tiles, palettes):
     de dieciséis: el glifo i ocupa el tile `base + i` y el `base + 16 + i`. La
     base se redondea a una fila para que esa cuenta valga.
 
-    Devuelve (tiles, base, paleta). La paleta es propia y no la de un personaje:
-    los dígitos salen del System, que no comparte colores con ningún CharSet.
+    Devuelve (tiles, base, número de paleta). **No se lleva una paleta propia si
+    no hace falta**: son dos colores —negro y rojo puro— y entran de sobra en la
+    de cualquier personaje que tenga trece o menos, exactamente como entran los
+    eventos dibujados con un tile del chipset. Sólo se agrega una si ninguna
+    tiene lugar.
+
+    Reservársela de entrada costaba una paleta de las ocho, y eso no es
+    contabilidad: `npcs_dibujables` decide con ese número **qué eventos se
+    dibujan**. El 2026-09-07, al armar `demo-apertura` con el cronómetro, el
+    mapa 2 perdió dos eventos, y uno era el del medio de la puerta que Core
+    rompe: taro llegó a la cinemática, la puerta no cambió de tile y no pudo
+    pasar. Un evento que no se dibuja **igual ocupa**, así que la pérdida no es
+    sólo visual.
     """
     colores = collections.Counter()
     for i in range(TIMER_GLIFOS):
@@ -682,8 +694,24 @@ def digitos_del_timer(sys_img, tiles, palettes):
     if len(colores) > OBJ_COLORS:
         raise SystemExit("los dígitos del cronómetro usan %d colores y entran %d"
                          % (len(colores), OBJ_COLORS))
-    paleta = sorted(colores)
-    indice = {color: i + 1 for i, color in enumerate(paleta)}
+    quiere = sorted(colores)
+    # La primera paleta en la que entren sus colores sin fusionar nada. Es el
+    # mismo primer-ajuste de `build_characters` y por la misma razón.
+    for numero, existente in enumerate(palettes):
+        union = list(existente) + [c for c in quiere if c not in existente]
+        if len(union) <= OBJ_COLORS:
+            palettes[numero] = union
+            paleta, cual = union, numero
+            break
+    else:
+        if len(palettes) >= OBJ_PALETTES:
+            raise SystemExit(
+                "el cronómetro no entra: el mapa ya usa las %d paletas de "
+                "sprite y ninguna tiene lugar para sus %d colores"
+                % (OBJ_PALETTES, len(quiere)))
+        paleta, cual = list(quiere), len(palettes)
+        palettes.append(paleta)
+    indice = {color: paleta.index(color) + 1 for color in quiere}
 
     tiles = bytearray(tiles)
     # La base se redondea a una **fila de bloques**, 64 tiles, y no a una fila
@@ -709,7 +737,7 @@ def digitos_del_timer(sys_img, tiles, palettes):
             numero = base + mitad * 16 + i
             tiles[numero * 32:(numero + 1) * 32] = pack_tile(tuple(celda),
                                                              planes=4)
-    return bytes(tiles), base, paleta
+    return bytes(tiles), base, cual
 
 
 def npc_table(npcs, where, movibles=(), indice_animado=None):
@@ -3180,7 +3208,10 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
             if (charset, index) not in graficos_de_ruta:
                 graficos_de_ruta.append((charset, index))
 
-    tope_de_paletas = 7 if args.con_timer else 8
+    # Las ocho, con o sin cronómetro: sus dos colores entran en la paleta de
+    # algún personaje. Reservarle una acá le sacaba eventos al mapa, porque este
+    # número es el que decide cuáles se dibujan.
+    tope_de_paletas = OBJ_PALETTES
     npcs, descartados, reparto = npcs_dibujables(renderer, game_map,
                                                  args.lideres, tope_de_paletas,
                                                  graficos_de_ruta)
@@ -3301,9 +3332,8 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
     # culpable, que es el mapa. Con `npcs_dibujables` arriba esto ya no
     # tendría que fallar por un tile; si falla es por los CharSets.
     if len(palettes) > tope_de_paletas:
-        sys.exit("el mapa usa %d personajes en %d paletas y hay %d de sprite%s"
-                 % (len(personajes), len(palettes), tope_de_paletas,
-                    " con el cronómetro puesto" if args.con_timer else ""))
+        sys.exit("el mapa usa %d personajes en %d paletas y hay %d de sprite"
+                 % (len(personajes), len(palettes), tope_de_paletas))
     bancos = banco_de_poses(images, animados, colores)
     indice_animado = {p: k for k, p in enumerate(animados)}
     # La tabla de la orden 34: por cada gráfico que una ruta pide, en qué
@@ -3313,14 +3343,13 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
         (indice_animado[par], paleta_de[par]) if se_ve else (0xFF, 0)
         for par, se_ve in zip(graficos_de_ruta, grafico_se_ve)]
     # El cronómetro, si esta ROM lo lleva: sus glifos van al final del banco y
-    # se llevan una paleta de sprite propia.
+    # comparten paleta con quien tenga lugar, que casi siempre hay.
     timer_base, timer_pal = 0, None
     if args.con_timer:
         import ventana as ventana_mod
         sys_img = ventana_mod.skin(args.game_dir, renderer.database.system_name)
-        tiles, timer_base, colores = digitos_del_timer(sys_img, tiles, palettes)
-        timer_pal = len(palettes)
-        palettes.append(colores)
+        tiles, timer_base, timer_pal = digitos_del_timer(sys_img, tiles,
+                                                         palettes)
     table = npc_table(npcs, where, movibles, indice_animado)
     # Por cada candidato a líder, su paleta y en qué banco de poses están las
     # doce suyas. La ROM no calcula nada a partir de la pose: busca el puntero
