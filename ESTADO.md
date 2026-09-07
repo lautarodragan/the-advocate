@@ -479,6 +479,17 @@ El 2026-09-07, sobre `demo-apertura` en mednafen:
 
 ## Lo que la tanda no cubre
 
+* **El destello de un evento sobre la paleta de otro.** En la consola
+  `FlashSprite` es un tinte de CGRAM: `pintar_flash` sube la paleta entera del
+  personaje, así que tiñe todo lo que la comparta. La referencia lo aplica sobre
+  la **imagen** del sprite, que es lo que hace RM2k. Son dos cosas distintas y
+  ninguno de los 89 casos lo ve, porque ninguno tiene un segundo sprite visible
+  compartiendo la paleta del que destella. Lo cuida `test_destello_paleta.py`,
+  que exige que nadie comparta la paleta de un líder posible. **Protege al líder
+  y no al que destella**: el blanco se decide corriendo y el héroe es el único
+  que se puede saber al convertir, así que un destello sobre otro evento
+  filtraría igual.
+
 * **El cursor de `ShowChoice`.** La tanda sólo aprieta A, así que arriba, abajo
   y B no los toca nadie de ese lado; por eso la referencia tampoco los modela.
   Los cubre `pruebas/test_elegir.py`. Lo que la tanda sí compara es la ventana

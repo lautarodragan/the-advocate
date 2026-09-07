@@ -516,17 +516,38 @@ def npcs_dibujables(renderer, game_map, lideres, tope, graficos_de_ruta=()):
     """
     paletas = []
     paleta_de = {}
+    # Las paletas de los líderes posibles. **Nadie más se mete ahí**, y no es
+    # por prolijidad: el destello de un evento —`FlashSprite`— en la consola es
+    # un tinte de CGRAM, así que tiñe la paleta entera y con ella todo lo que la
+    # comparta. La referencia, en cambio, lo aplica sobre la imagen del sprite,
+    # que es lo que hace RM2k; o sea que compartir la paleta del héroe es una
+    # diferencia real entre los dos lados y no un detalle de empaquetado.
+    #
+    # taro lo vio el 2026-09-07 en el Emitter Room: cuando Talan absorbe el
+    # enojo de Core y destella en rojo, dos tiles negros encima de unos cofres
+    # —invisibles, porque son todo negro— se ponían rojos con él. Compartían la
+    # paleta 0 con `Future1:0`.
+    #
+    # Se protege al líder y no a "el que destella" porque el blanco de un
+    # destello puede ser cualquier evento y se decide en tiempo de ejecución; el
+    # héroe es el que destella en este juego y es el único que se puede saber
+    # acá. Si aparece un destello sobre otro evento, va a filtrar igual.
+    de_lider = set()
 
-    def cabe(charset, index, forzar):
+    def cabe(charset, index, forzar, lider=False):
         palette, _, _ = paleta_del_personaje(renderer.charsets.get(charset),
                                              index)
         for numero, existente in enumerate(paletas):
+            if numero in de_lider and not lider:
+                continue
             union = existente + [c for c in palette if c not in existente]
             if len(union) <= OBJ_COLORS:
                 paletas[numero] = union
                 paleta_de[(charset, index)] = numero
                 return True
         if forzar or len(paletas) < tope:
+            if lider:
+                de_lider.add(len(paletas))
             paleta_de[(charset, index)] = len(paletas)
             paletas.append(list(palette))
             return True
@@ -539,7 +560,7 @@ def npcs_dibujables(renderer, game_map, lideres, tope, graficos_de_ruta=()):
         if clave not in vistos and sprite_colors(
                 renderer.charsets.get(a.charset), a.charset_index):
             vistos.add(clave)
-            cabe(a.charset, a.charset_index, True)
+            cabe(a.charset, a.charset_index, True, lider=True)
     npcs = collect_npcs(game_map)
 
     def claves(npc):
