@@ -411,23 +411,54 @@ Armada el 2026-09-07. Es `demo-apertura` **más el mapa 8** —Lashe City, la ca
 a la que da el pad de Talan— y por lo tanto la primera ROM en la que se puede
 salir del pad: con el 8 adentro, la puerta `TalDoorTop` compila.
 
-Va **sin `--con-timer`**, y ésa es la única razón por la que existe aparte: el
-mapa 8 usa las ocho paletas de sprite justas y al cronómetro le falta una
-entrada para su rojo. Se arma así:
+Va **con cronómetro** desde el 2026-09-07: el mapa 8 usa las ocho paletas justas
+y para hacerle lugar al rojo de los dígitos, `BLVehicles:5` baja de 15 a 14
+colores —105 pixeles de 4648, el 2,26%—. Se arma así:
 
     python3 tools/snes_convert.py --grupo 10 --map-id 4 --mapas 1 2 3 5 6 7 8 \
-        --con-ventana --descartar-eventos -o rom/build/demo-ciudad/mapdata.inc
+        --con-ventana --con-timer --descartar-eventos \
+        -o rom/build/demo-ciudad/mapdata.inc
     python3 tools/w65.py rom/src/main.s -I rom/build/demo-ciudad \
         -o rom/build/demo-ciudad/demo-ciudad.sfc \
         --simbolos rom/build/demo-ciudad/demo-ciudad.sfc.sym
 
-Para que el cronómetro entre hay que bajar `BLVehicles:5` de 15 a 14 colores:
-**105 pixeles de 4648, 2,26%**, con un salto de 4 sobre 31. taro lo aceptó; no
-está hecho. El resto de los mapas donde el cronómetro puede aparecer no paga
-nada: de los diez, en ocho entra en una paleta que ya tiene lugar.
+A quién bajarle un color lo elige el conversor, y sólo cuando de verdad no
+tiene dónde: ni una paleta con lugar **ni una ranura libre**. Mirar sólo lo
+primero le bajaba dos colores a `People4:5` en el mapa 5 —16,85% de sus
+pixeles— cuando ese mapa usa cuatro paletas de las ocho.
 
-Y uno de esos diez tiene un problema aparte y más grande: **el Hover-Tram (mapa
-13) pide once paletas de sprite de las ocho**. No lo arregla nada de lo de hoy.
+Y el candidato tiene que estar **sólo en este mapa**: el banco de poses es de la
+ROM entera, así que cuantizar a alguien distinto en dos mapas no da una imagen
+fea sino un corte al emitir. Pasó con `Future1:4` la primera vez que se escribió.
+
+El resto de los mapas donde el cronómetro puede aparecer no paga nada: de los
+diez, en ocho entra en una paleta que ya tiene lugar.
+
+### El Hover-Tram (mapa 13), analizado
+
+Pide **once paletas de sprite de las ocho**, y no lo arregla nada de lo de hoy.
+Son 27 eventos con gráfico dibujados con **diez sprites distintos**, más Talan.
+Dato que cierra puertas: **los 27 tienen una sola página cada uno**, así que no
+son alternativas que se excluyan sino 27 pasajeros que están todos a la vez. El
+truco de la ranura compartida no aplica: no hay cambio de página que recargar.
+
+**No dibujar a los tres más raros** es la salida barata. Tres de los diez
+aparecen en un solo evento cada uno —`Chara2:4`, `Future1:2` y `BLPeople:0`—,
+así que se pierden 3 pasajeros de 27 sin tocarle un pixel a nadie.
+
+**Fusionar** cuesta tres fusiones, y el mejor trío mueve el 20,5%, el 25,0% y el
+29,0% de los pixeles, con saltos de hasta 19 sobre 31. Descartada.
+
+Lo que falta para poder hacer la primera: **el conversor no elige, corta**. Los
+NPCs con CharSet se fuerzan y si no entran hay `sys.exit`. Habría que hacer con
+ellos lo que ya se hace con los eventos dibujados con un tile del chipset
+—dibujar los que entran y avisar de los que no— pero eligiendo por costo: los
+que aparecen en más eventos primero. Eso arregla la familia entera, no este
+mapa: hoy el conversor sabe degradar con los tiles y no sabe con los CharSets.
+
+Con un límite anotado: un pasajero que no se dibuja **igual cierra el paso**, así
+que podría dejar un asiento intransitable. Ninguno de los tres candidatos cambia
+de gráfico, así que el guard de `aviso_de_descarte` no lo marcaría.
 
 
 ## Lo que taro probó y anda

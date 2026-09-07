@@ -47,9 +47,9 @@ def test_ningun_tile_entra_en_la_paleta_de_un_lider(map_id):
     ren = render_map.Renderer(JUEGO)
     lideres = snes_convert.lideres_posibles(ren, DEMO, GRUPO, True)
     game_map = ren.cargar_mapa(os.path.join(JUEGO, "Map%04d.lmu" % map_id))
-    _npcs, _fuera, (paletas, paleta_de, _propios, _de_lider) = \
-        snes_convert.npcs_dibujables(
+    _npcs, _fuera, reparto = snes_convert.npcs_dibujables(
         ren, game_map, lideres, snes_convert.OBJ_PALETTES, [])
+    paletas, paleta_de = reparto[0], reparto[1]
 
     de_lider = set()
     for actor in lideres:

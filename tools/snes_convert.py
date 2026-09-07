@@ -391,18 +391,27 @@ def block_tile(block):
     return (block // BLOCKS_PER_ROW) * 64 + (block % BLOCKS_PER_ROW) * 4
 
 
-def paleta_del_personaje(image, index):
+def paleta_del_personaje(image, index, tope=None):
     """La paleta de un personaje, y cómo mapear cada color a su índice.
 
     Es la misma cuenta para la imagen que va a VRAM y para el banco de poses
     del cartucho, y tiene que serlo: una pose subida en caliente se dibuja con
     la paleta que ya está en CGRAM.
+
+    `tope` baja el número de colores por debajo de los quince, y existe para
+    hacerle lugar al cronómetro: sus dígitos son dos colores y el negro suele
+    estar ya, así que le alcanza con una entrada. **Quién lo paga y cuánto lo
+    decide `npcs_dibujables`**, que es el único que ve todas las paletas del
+    mapa; acá sólo se obedece. Si el conversor lo eligiera acá, dos llamadas
+    para el mismo personaje podrían dar paletas distintas y las poses del
+    cartucho no coincidirían con la CGRAM.
     """
+    tope = OBJ_COLORS if tope is None else tope
     counts = sprite_colors(image, index)
-    if len(counts) <= OBJ_COLORS:
+    if len(counts) <= tope:
         mapping = {c: c for c in counts}
     else:
-        mapping, _ = pixeles.merge_least_used(counts, OBJ_COLORS)
+        mapping, _ = pixeles.merge_least_used(counts, tope)
     palette = sorted(set(mapping.values()))
     lookup = {color: i + 1 for i, color in enumerate(palette)}
     return palette, lookup, mapping
@@ -490,7 +499,8 @@ def aviso_de_descarte(args, texto, peligroso):
         "Si es lo que se quiere, `--descartar-eventos` deja seguir y los marca." % texto)
 
 
-def npcs_dibujables(renderer, game_map, lideres, tope, graficos_de_ruta=()):
+def npcs_dibujables(renderer, game_map, lideres, tope, graficos_de_ruta=(),
+                    timer_colores=(), solo_aqui=None):
     """Los NPCs del mapa que se dibujan: todos los que tienen CharSet, y los
     dibujados con un tile del chipset **que entren** en las paletas de sprite.
 
@@ -641,10 +651,63 @@ def npcs_dibujables(renderer, game_map, lideres, tope, graficos_de_ruta=()):
                 continue
             npc["charset"], npc["index"], npc["pose"] = otra
         salida.append(npc)
+    # Y por último, el cronómetro. Sus dígitos son dos colores y el negro suele
+    # estar ya en casi todas, así que le alcanza con **una entrada libre**; el
+    # problema aparece en un mapa que llene las ocho paletas a quince, que es el
+    # 8 —Lashe City, la calle a la que da el pad de Talan—.
+    #
+    # Ahí se le hace lugar bajando a un personaje de quince colores a catorce, y
+    # se elige **el que menos pixeles mueva**. Sólo se miran paletas de un
+    # personaje solo: bajar una que comparten dos obligaría a recuantizar a los
+    # dos contra la paleta nueva, y eso es bastante más código para un caso que
+    # no aparece. Tampoco se miran las de líder: la ROM las pisa.
+    #
+    # Medido en el mapa 8: `BLVehicles:5` mueve 105 pixeles de 4648, el 2,26%,
+    # con un salto de 4 sobre 31. El siguiente candidato cuesta 11,84%.
+    topes = {}
+    # Sólo si de verdad no tiene dónde: ni una paleta con lugar **ni una ranura
+    # libre**. Sin mirar las ranuras libres, esto le bajaba dos colores a
+    # `People4:5` en el mapa 5 —16,85% de sus pixeles— cuando el mapa usa cuatro
+    # paletas de las ocho y al cronómetro le sobraba una entera.
+    if timer_colores and len(paletas) >= OBJ_PALETTES and not any(
+            n not in de_lider
+            and len(set(p) | set(timer_colores)) <= OBJ_COLORS
+            for n, p in enumerate(paletas)):
+        solos = collections.Counter()
+        for clave, n in paleta_de.items():
+            solos[n] += 1
+        mejor = None
+        for clave, n in paleta_de.items():
+            if n in de_lider or solos[n] != 1 or clave[0].startswith(
+                    rm2k.TILE_PREFIX):
+                continue
+            # Y sólo si no está en ningún otro mapa de la ROM: el banco de poses
+            # es global, así que cuantizarlo distinto acá que allá no da una
+            # imagen fea sino un corte al emitir.
+            if solo_aqui is not None and clave not in solo_aqui:
+                continue
+            cuenta = sprite_colors(renderer.charsets.get(clave[0]), clave[1])
+            if not cuenta:
+                continue
+            faltan = len([c for c in timer_colores if c not in paletas[n]])
+            nuevo_tope = OBJ_COLORS - faltan
+            m, _ = pixeles.merge_least_used(cuenta, nuevo_tope)
+            movidos = sum(v for c, v in cuenta.items() if m[c] != c)
+            costo = movidos / float(sum(cuenta.values()))
+            if mejor is None or costo < mejor[0]:
+                mejor = (costo, clave, n, nuevo_tope, sorted(set(m.values())))
+        if mejor is not None:
+            _costo, clave, n, nuevo_tope, paleta_nueva = mejor
+            print("  para que entre el cronómetro, %s:%d baja a %d colores "
+                  "(%.2f%% de sus pixeles)"
+                  % (clave[0], clave[1], nuevo_tope, 100 * _costo))
+            paletas[n] = paleta_nueva
+            topes[clave] = nuevo_tope
+
     # El reparto se devuelve para que `build_characters` lo use tal cual: un
     # segundo primer-lugar-que-entre en otro orden puede dar otra cuenta, y
     # dio: el mapa 8 entraba acá en ocho paletas y allá pedía nueve.
-    return salida, descartados, (paletas, paleta_de, propios, de_lider)
+    return salida, descartados, (paletas, paleta_de, propios, de_lider, topes)
 
 
 def build_characters(images, personajes, ranuras, reparto=None):
@@ -676,10 +739,17 @@ def build_characters(images, personajes, ranuras, reparto=None):
         # paleta y no de la de la ranura, porque la ROM va a subir sus colores
         # ahí cuando le toque liderar. Ver `npcs_dibujables`.
         propios = set(reparto[2]) if len(reparto) > 2 else set()
+        # Y a quién se le bajó el número de colores para que entrara el
+        # cronómetro. Tiene que ser el mismo número que usó `npcs_dibujables`:
+        # si acá se cuantizara con quince, las poses del cartucho no
+        # coincidirían con la paleta que la ROM sube a CGRAM.
+        topes = dict(reparto[4]) if len(reparto) > 4 else {}
     for charset, index in personajes:
         if (charset, index) in colores:
             continue
-        palette, lookup, mapping = paleta_del_personaje(images[charset], index)
+        palette, lookup, mapping = paleta_del_personaje(
+            images[charset], index,
+            topes.get((charset, index)) if reparto is not None else None)
         if reparto is not None:
             if (charset, index) not in paleta_de:
                 sys.exit("%s:%d no está en el reparto de paletas" % (charset, index))
@@ -770,6 +840,24 @@ TIMER_ORIGEN = (32, 32)
 TIMER_X, TIMER_Y = 4, 4
 
 
+def colores_del_timer(sys_img):
+    """Los colores que usan los once glifos del cronómetro.
+
+    Hace falta **antes** de repartir las paletas y no sólo al empaquetar los
+    dígitos: si un mapa llena las ocho, hay que decidir a quién bajarle un color
+    para hacerle lugar, y esa decisión cambia cómo se cuantiza a ese personaje.
+    """
+    colores = collections.Counter()
+    for i in range(TIMER_GLIFOS):
+        for y in range(TIMER_GLIFO_H):
+            for x in range(TIMER_GLIFO_W):
+                r, g, b, a = sys_img.getpixel((TIMER_ORIGEN[0] + i * 8 + x,
+                                               TIMER_ORIGEN[1] + y))
+                if a:
+                    colores[(r >> 3, g >> 3, b >> 3)] += 1
+    return colores
+
+
 def digitos_del_timer(sys_img, tiles, palettes, de_lider=()):
     """Los once glifos del cronómetro, al final del banco de sprites.
 
@@ -791,14 +879,7 @@ def digitos_del_timer(sys_img, tiles, palettes, de_lider=()):
     pasar. Un evento que no se dibuja **igual ocupa**, así que la pérdida no es
     sólo visual.
     """
-    colores = collections.Counter()
-    for i in range(TIMER_GLIFOS):
-        for y in range(TIMER_GLIFO_H):
-            for x in range(TIMER_GLIFO_W):
-                r, g, b, a = sys_img.getpixel((TIMER_ORIGEN[0] + i * 8 + x,
-                                               TIMER_ORIGEN[1] + y))
-                if a:
-                    colores[(r >> 3, g >> 3, b >> 3)] += 1
+    colores = colores_del_timer(sys_img)
     if len(colores) > OBJ_COLORS:
         raise SystemExit("los dígitos del cronómetro usan %d colores y entran %d"
                          % (len(colores), OBJ_COLORS))
@@ -2210,7 +2291,14 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                     indice_global[par] = len(bancos)
                     bancos.append(datos)
                 else:
-                    assert bancos[indice_global[par]] == datos
+                    if bancos[indice_global[par]] != datos:
+                        sys.exit(
+                            "el personaje %s:%d tiene dos bancos de poses "
+                            "distintos en esta ROM: el mapa %d lo cuantizó de "
+                            "otra manera. El banco es de la ROM entera, así que "
+                            "el número de colores tiene que ser el mismo en "
+                            "todos los mapas."
+                            % (par[0], par[1], mapa["id"]))
         handle.write("; --- las poses de los personajes que cambian de pose, "
                      "de toda la ROM ---\n")
         for g, datos in enumerate(bancos):
@@ -2880,6 +2968,24 @@ def main():
     args_game_dir[0] = args.game_dir
     todos = orden_de_mapas(args)
     args.lideres = lideres_posibles(renderer, todos, grupo, args.con_ventana)
+    # En cuántos mapas de esta ROM aparece cada personaje. Lo usa el reparto de
+    # paletas para elegir a quién puede bajarle un color sin romper nada: el
+    # banco de poses es **de la ROM entera**, así que un personaje que está en
+    # dos mapas tiene que quedar cuantizado igual en los dos. Cuantizarlo
+    # distinto no da una imagen fea sino un `sys.exit` al emitir, que es lo que
+    # pasó la primera vez que esto se escribió: `Future1:4` bajaba en un mapa y
+    # no en el otro.
+    args.mapas_por_personaje = collections.Counter()
+    for otro in todos:
+        gm = renderer.cargar_mapa(
+            os.path.join(args.game_dir, "Map%04d.lmu" % otro))
+        suyos = set()
+        for evento in gm.events:
+            for pagina in evento.pages:
+                nombre = (getattr(pagina, "character_name", "") or "").strip()
+                if nombre:
+                    suyos.add((nombre, pagina.character_index))
+        args.mapas_por_personaje.update(suyos)
 
     mapas = [convertir(renderer, map_id, args,
                        inicio=args.inicio if map_id == args.map_id else None)
@@ -3358,9 +3464,21 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
     # algún personaje. Reservarle una acá le sacaba eventos al mapa, porque este
     # número es el que decide cuáles se dibujan.
     tope_de_paletas = OBJ_PALETTES
+    # Los colores del cronómetro se pasan al reparto y no sólo al empaquetado:
+    # en un mapa que llene las ocho paletas hay que decidir a quién bajarle un
+    # color para hacerle lugar, y eso cambia cómo se cuantiza a ese personaje.
+    timer_colores = ()
+    if args.con_timer:
+        import ventana as ventana_mod
+        timer_colores = sorted(colores_del_timer(ventana_mod.skin(
+            args.game_dir, renderer.database.system_name)))
     npcs, descartados, reparto = npcs_dibujables(renderer, game_map,
                                                  args.lideres, tope_de_paletas,
-                                                 graficos_de_ruta)
+                                                 graficos_de_ruta,
+                                                 timer_colores,
+                                                 {c for c, n in getattr(
+                                                     args, "mapas_por_personaje",
+                                                     {}).items() if n == 1})
     for evento, tile in descartados:
         aviso_de_descarte(
             args, "mapa %d: el evento %d, dibujado con el tile %s, no entra en "
