@@ -300,10 +300,31 @@ chipset. Y al recuperar esos eventos la ROM se pasaba por 8 KB, así que
 `ROM_BANKS` pasó a 32: el área de datos ahora se deriva de ahí en vez de estar
 escrita a mano, y la cabecera dice `$0A`.
 
-Queda algo que **sigue sin cubrir ninguna red**: que un evento que no entra en
-las paletas se descarte en silencio y encima bloquee el paso. El conversor lo
-avisa por nombre, pero nada relaciona "no se dibuja" con "y además no se puede
-pasar". El mapa 2 todavía pierde los eventos 31 y 32 por esto.
+**Y descartar un evento dejó de ser silencioso.** Era un `print` entre otros
+cincuenta y por eso costó una tarde.
+
+El ruido va en el conversor y no en la ROM a propósito, aunque taro pidió que
+"crasheara el juego": un descarte se decide **al convertir**, y para cuando la
+consola corre el evento ya no está en ninguna tabla. Hacerla explotar al cargar
+el mapa sería lo mismo que no armar la ROM, pero más tarde y sin poder decir
+cuál evento.
+
+Y no corta con **todos** los descartes, porque eso tampoco protegería: hoy hay
+decorativos que no entran en varios mapas, así que todas las recetas tendrían
+que pedir seguir y el corte quedaría apagado en todas partes. El tope es
+`cambia_de_grafico`: un evento con una sola página que no se dibuja se pierde y
+ya —el `CoreBlood` del mapa 3, los cuatro `Link`—, pero uno que **cambia de
+gráfico entre páginas** es un mecanismo, y sin dibujarse deja una pared
+invisible donde el juego esperaba una puerta. El evento 30 del mapa 2 era de
+esa clase, así que el corte lo habría agarrado.
+
+Dos builds lo declaran con `--descartar-eventos`, y los dos tienen un mecanismo
+roto de verdad que arregla el trabajo de paletas y no un flag:
+
+* **`demo-apertura`**: los eventos 31 y 32 del mapa 2, los costados de la misma
+  puerta que Core rompe. Hoy la puerta funciona porque el 30, el del medio, es
+  el que abre el paso.
+* **`snes-convert`**, que usa `snes-heroe 8`: `PawnDoorTop` del mapa 8.
 
 
 ## Esperando respuesta de taro
@@ -338,6 +359,25 @@ problemas distintos.
    la receta de abajo.
 
 
+## Lo que taro probó y anda
+
+El 2026-09-07, sobre `demo-apertura` en mednafen:
+
+* **La apertura entera hasta el ascensor**, incluida la cinemática en la que
+  Core rompe la puerta, que era la que estaba rota.
+* **El Insta-Shave**, o sea `ShowChoice` con su cursor.
+* **El cronómetro**, contando bien. Llegar a cero todavía no hace nada: en RM2k
+  eso dispara un evento común con la condición "cronómetro en 0", y los eventos
+  comunes no están.
+* **Los mapas se ven mejor**, y hay un caso concreto: la sangre de Core en el
+  piso era marrón y ahora es roja. Es el efecto de que el mapa 2 pasara de
+  fusionar 13 colores a fusionar ninguno —ver la ventana de mensaje en la
+  paleta 0—. `merge_least_used` fusiona el menos usado con su vecino más
+  cercano por luma, y un rojo de unos pocos pixeles era justo el candidato a
+  que lo absorbiera un marrón. No se buscó ni se predijo: es lo que el número
+  anunciaba.
+
+
 ## Lo que taro todavía no probó
 
 * **La salida del pad de Talan, con el presupuesto de saltos arreglado.** El
@@ -364,7 +404,8 @@ problemas distintos.
   cada uno. Se arma así:
 
       python3 tools/snes_convert.py --grupo 10 --map-id 4 --mapas 1 2 3 5 6 7 \
-          --con-ventana --con-timer -o rom/build/demo-apertura/mapdata.inc
+          --con-ventana --con-timer --descartar-eventos \
+          -o rom/build/demo-apertura/mapdata.inc
       python3 tools/w65.py rom/src/main.s -I rom/build/demo-apertura \
           -o rom/build/demo-apertura/demo-apertura.sfc \
           --simbolos rom/build/demo-apertura/demo-apertura.sfc.sym

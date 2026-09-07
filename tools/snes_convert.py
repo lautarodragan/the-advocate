@@ -436,6 +436,60 @@ def pose_tiles(image, index, pose, lookup, mapping):
     return out
 
 
+def cambia_de_grafico(evento):
+    """Si alguna página del evento dibuja algo distinto de otra.
+
+    Es lo que separa un descarte molesto de uno que rompe el juego. Un evento
+    decorativo de una sola página que no se dibuja se pierde y ya —el `CoreBlood`
+    del mapa 3, los cuatro `Link`—. Uno que **cambia de gráfico** es un mecanismo:
+    una puerta que se abre, una máquina que se enciende. Si no se dibuja, el
+    cambio no se ve nunca, y como el evento igual cierra el paso, lo que queda es
+    una pared invisible que el jugador esperaba que se abriera.
+    """
+    graficos = {((getattr(p, "character_name", "") or "").strip(),
+                 p.character_index) for p in evento.pages}
+    return len(graficos) > 1
+
+
+def aviso_de_descarte(args, texto, peligroso):
+    """Un evento que no se dibuja. Si es de los que rompen, corta la conversión.
+
+    **Y corta a propósito.** Esto era un `print` entre otros cincuenta, y el
+    2026-09-07 costó una tarde: `demo-apertura` se armó con el cronómetro, el
+    mapa 2 perdió el evento 30 —la celda del medio de la puerta que Core rompe—
+    y el aviso pasó de largo en la salida del build. taro llegó a la cinemática,
+    la puerta no cambió de tile y no pudo pasar.
+
+    Es el mismo criterio que `entrar_en_panico` en la ROM: algo que no debería
+    pasar no se descarta en silencio. La diferencia es dónde se hace ruido. Un
+    descarte se decide **al convertir**, y para cuando la ROM corre el evento ya
+    no está en ninguna tabla: no queda nada que la consola pueda mirar. Hacerla
+    explotar al cargar el mapa sería lo mismo que no armar la ROM, pero más tarde
+    y sin poder decir cuál evento.
+
+    Cortar con **todos** los descartes tampoco sirve: hoy hay decorativos que no
+    entran en varios mapas, así que todas las recetas tendrían que pedir seguir y
+    el corte no protegería de nada. Por eso el tope es `cambia_de_grafico`, que
+    es exactamente la clase a la que pertenecía el evento 30.
+
+    `--descartar-eventos` deja seguir igual, y entonces es una decisión escrita
+    en el comando y no un renglón que se pasa de largo.
+    """
+    if not peligroso:
+        print("  " + texto)
+        return
+    if getattr(args, "descartar_eventos", False):
+        print("  DESCARTADO Y CAMBIA DE GRÁFICO: " + texto)
+        return
+    sys.exit(
+        "%s\n\n"
+        "No se arma la ROM: ese evento **cambia de gráfico entre sus páginas**, o\n"
+        "sea que es un mecanismo y no un adorno. Sin dibujarse, el cambio no se ve\n"
+        "nunca, y como el evento igual cierra el paso y dispara, lo que queda es\n"
+        "una pared invisible donde el juego esperaba una puerta.\n\n"
+        "Si es lo que se quiere, `--descartar-eventos` deja seguir y los marca." % texto)
+
+
 def npcs_dibujables(renderer, game_map, lideres, tope, graficos_de_ruta=()):
     """Los NPCs del mapa que se dibujan: todos los que tienen CharSet, y los
     dibujados con un tile del chipset **que entren** en las paletas de sprite.
@@ -2586,7 +2640,13 @@ def main():
     parser.add_argument("--con-timer", action="store_true",
                         help="la ROM lleva los dígitos del cronómetro: once "
                              "glifos de la imagen de System al final del banco "
-                             "de sprites, y una paleta")
+                             "de sprites. Comparten paleta con un personaje")
+    parser.add_argument("--descartar-eventos", action="store_true",
+                        help="seguir aunque algún evento no entre en las "
+                             "paletas de sprite. Sin esto la conversión corta: "
+                             "un evento que no se dibuja igual cierra el paso, "
+                             "así que descartarlo puede dejar una pared "
+                             "invisible. Ver `aviso_de_descarte`")
     parser.add_argument("--switch", nargs="+", type=int, default=None,
                         metavar="N",
                         help="prende estos switches desde la página de prueba, "
@@ -3216,10 +3276,12 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
                                                  args.lideres, tope_de_paletas,
                                                  graficos_de_ruta)
     for evento, tile in descartados:
-        print("  mapa %d: el evento %d, dibujado con el tile %s, no entra en "
-              "las %d paletas de sprite y no se dibuja"
-              % (map_id, evento + 1, tile[len(rm2k.TILE_PREFIX):],
-                 tope_de_paletas))
+        aviso_de_descarte(
+            args, "mapa %d: el evento %d, dibujado con el tile %s, no entra en "
+            "las %d paletas de sprite y no se dibuja"
+            % (map_id, evento + 1, tile[len(rm2k.TILE_PREFIX):],
+               tope_de_paletas),
+            cambia_de_grafico(game_map.events[evento]))
     # Quiénes van a caminar. A ésos les hacen falta las doce poses del ciclo, y
     # el resto se queda con la única que declara su página.
     # La ruta inventada de `--ruta-de-evento` también manda a caminar a alguien,
@@ -3276,9 +3338,12 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
                       if not se_ve and sprite_colors(
                           images_de(renderer, args, par[0]), par[1])]
     for charset, index in afuera_de_ruta:
-        print("  mapa %d: el gráfico %s:%d, al que cambia una ruta, no entra "
-              "en las %d paletas de sprite: esa orden esconde al evento en vez "
-              "de cambiarlo" % (map_id, charset, index, tope_de_paletas))
+        aviso_de_descarte(
+            args, "mapa %d: el gráfico %s:%d, al que cambia una ruta, no entra "
+            "en las %d paletas de sprite: esa orden esconde al evento en vez "
+            "de cambiarlo" % (map_id, charset, index, tope_de_paletas),
+            # Una orden 34 **es** un cambio de gráfico, así que siempre cuenta.
+            True)
 
     # Las ranuras del banco de VRAM, una pose cada una: el héroe en el bloque
     # 0 —si algún candidato a líder tiene gráfico—, después cada NPC que camina

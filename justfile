@@ -63,10 +63,14 @@ snes_pngs := if corrida == "" { "rom/shots" } else { snes_dir / "shots" }
 
 # ChipSet + mapa -> tiles de 8x8 a 8bpp, paleta de 15 bits y tilemap, más el
 # render de Python contra el que se compara después.
+# `--descartar-eventos` porque el mapa 8 tiene `PawnDoorTop`, que cambia de
+# gráfico entre sus páginas y no entra en las ocho paletas de sprite: sin el
+# flag el conversor corta, que es lo que se quiere en un build de verdad. Acá se
+# está mirando cómo se dibuja el héroe y da lo mismo, así que se deja pasar.
 snes-convert mapa="7":
   mkdir -p {{snes_pngs}} {{snes_inc}}
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} -o {{snes_inc}}/mapdata.inc \
-      --reference {{snes_pngs}}/python.png
+      --descartar-eventos --reference {{snes_pngs}}/python.png
 
 snes-build:
   python3 tools/w65.py rom/src/main.s -I {{snes_inc}} -o {{snes_rom}} --simbolos {{snes_rom}}.sym
