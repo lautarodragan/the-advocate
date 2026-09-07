@@ -76,6 +76,37 @@ personajes de menos colores el problema no existe; para éste, la salida es no
 dibujar lo prescindible y no fusionar.
 
 
+## Un evento de una sola página condicionada no se dibuja nunca
+
+`collect_npcs` mira qué gráficos puede llegar a dibujar un evento y, si es uno
+solo y al cargar el mapa no está activo, lo saltea: no le arma fila. Pero el
+conjunto de estados posibles no es sólo el gráfico de cada página — si la
+**primera** tiene condición, puede no haber ninguna activa, y ese "nada" es un
+estado más. Sin contarlo, un evento de una sola página con switch queda invisible
+para siempre.
+
+taro lo vio el 2026-09-07 con el `TalDoorBottom` del mapa 8: se puede usar y
+corre sus comandos, pero no se dibuja. **No son dos bugs**: la tabla de páginas
+—que dispara— y la de NPCs —que dibuja— son distintas, y el evento está en la
+primera.
+
+Son **350 eventos en 68 mapas**. Contarlo es una línea y **está sin hacer a
+propósito**: destapa más gráficos de los que entran. El mapa 8 pasa de pedir 8
+paletas de sprite a pedir **13**, y el conversor corta, porque hoy fuerza a los
+CharSets en vez de elegir cuáles dibujar.
+
+Y elegir es una decisión de contenido. Simulado sobre el mapa 8, con
+"mecanismos primero, después por cantidad de eventos": entra la puerta —su tile
+se cuelga de la paleta de otro, trece colores entre los dos— y se caen el save
+point, tres peatones y un vehículo. Con cualquier otro orden se cae otra cosa:
+trece gráficos no entran en ocho paletas.
+
+Lo que destrabaría la familia entera —esto y el Hover-Tram— es que el conversor
+**elija en vez de cortar**, como ya hace con los eventos dibujados con un tile
+del chipset, más una lista de "estos sí o sí" para lo que el orden automático no
+puede saber.
+
+
 ## El destello de un evento tiñe la paleta, no el sprite
 
 `FlashSprite` en RM2k tiñe **ese** dibujable. En la consola el tinte es una

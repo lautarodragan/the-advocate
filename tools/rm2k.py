@@ -248,6 +248,23 @@ def collect_npcs(game_map):
         graficos = [grafico_de_pagina(p, chipset) for p in event.pages]
         if not any(graficos):
             continue
+        # Qué puede llegar a dibujar este evento a lo largo de la partida. No
+        # es sólo el gráfico de cada página: si la **primera** tiene condición,
+        # puede no haber ninguna activa, y entonces no dibuja nada. Ese "nada"
+        # es un estado más, y **no se está contando**.
+        #
+        # Sin contarlo, un evento de una sola página condicionada queda con un
+        # solo gráfico posible, `cambia` da falso, y como al cargar el mapa
+        # tampoco es visible, se lo saltea entero: no hay fila que actualizar
+        # cuando el switch se prenda. taro lo vio el 2026-09-07 con el
+        # `TalDoorBottom` del mapa 8, que se puede usar y corre sus comandos
+        # pero no se dibuja nunca. Son **350 eventos en 68 mapas**.
+        #
+        # Contarlo es una línea —sumarle `None` a `posibles` cuando la primera
+        # página tiene condición— y está **sin hacer a propósito**: destapa más
+        # gráficos de los que entran en las ocho paletas de sprite. El mapa 8
+        # pasa a pedir 13 y el conversor corta, porque hoy fuerza a los CharSets
+        # en vez de elegir. Ver `assets/LIMITACIONES.md`.
         cambia = len(set(graficos)) > 1 and condiciones_soportadas(event)
         page = event.active_page()
         visible = page is not None and grafico_de_pagina(page, chipset) is not None
