@@ -47,7 +47,7 @@ def test_ningun_tile_entra_en_la_paleta_de_un_lider(map_id):
     ren = render_map.Renderer(JUEGO)
     lideres = snes_convert.lideres_posibles(ren, DEMO, GRUPO, True)
     game_map = ren.cargar_mapa(os.path.join(JUEGO, "Map%04d.lmu" % map_id))
-    _npcs, _fuera, (paletas, paleta_de) = snes_convert.npcs_dibujables(
+    _npcs, _fuera, (paletas, paleta_de, _propios) = snes_convert.npcs_dibujables(
         ren, game_map, lideres, snes_convert.OBJ_PALETTES, [])
 
     de_lider = set()
@@ -61,10 +61,16 @@ def test_ningun_tile_entra_en_la_paleta_de_un_lider(map_id):
     for clave, numero in paleta_de.items():
         por_paleta[numero].append(clave)
 
+    claves_lider = {(ren.database.actors[a].charset,
+                     ren.database.actors[a].charset_index) for a in lideres}
     assert de_lider, "este mapa no reparte ninguna paleta a un líder"
     for numero in sorted(de_lider):
-        assert len(por_paleta[numero]) == 1, (
+        # **Los líderes entre sí sí comparten**: comparten una ranura, porque
+        # lidera uno a la vez y la ROM le sube los colores del que toque. Lo que
+        # no puede haber ahí es nadie más, que es lo que estaría en pantalla al
+        # mismo tiempo que el héroe.
+        intrusos = [k for k in por_paleta[numero] if k not in claves_lider]
+        assert not intrusos, (
             "el mapa %d mete %s en la paleta %d, que es de un líder: cuando el "
             "héroe destelle, eso destella con él"
-            % (map_id, ", ".join("%s:%d" % k for k in por_paleta[numero]),
-               numero))
+            % (map_id, ", ".join("%s:%d" % k for k in intrusos), numero))

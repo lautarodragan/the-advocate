@@ -553,14 +553,6 @@ def npcs_dibujables(renderer, game_map, lideres, tope, graficos_de_ruta=()):
             return True
         return False
 
-    vistos = set()
-    for actor in lideres:
-        a = renderer.database.actors[actor]
-        clave = (a.charset, a.charset_index)
-        if clave not in vistos and sprite_colors(
-                renderer.charsets.get(a.charset), a.charset_index):
-            vistos.add(clave)
-            cabe(a.charset, a.charset_index, True, lider=True)
     npcs = collect_npcs(game_map)
 
     def claves(npc):
@@ -570,6 +562,40 @@ def npcs_dibujables(renderer, game_map, lideres, tope, graficos_de_ruta=()):
         if npc["cambia"]:
             salida += [g[:2] for g in npc["graficos"] if g is not None]
         return salida
+
+    # Los líderes posibles, que son los que el héroe puede llegar a dibujar.
+    #
+    # **Comparten una sola ranura de CGRAM**, porque lidera uno a la vez: la ROM
+    # le sube los quince colores del que esté liderando cuando cambia el grupo y
+    # al cargar el mapa. Antes se le reservaba una paleta a cada uno, y eso es
+    # una paleta ocupada por alguien que no está en pantalla: el mapa 8 —la
+    # calle a la que da el pad de Talan— pedía nueve de las ocho por eso, con
+    # Talan y Kersh reservados en una calle donde no aparece ninguno.
+    #
+    # **Salvo el que además está como NPC en este mapa.** Ése se lleva paleta
+    # propia, porque su fila la usa al mismo tiempo que el héroe: compartiendo
+    # la ranura, con Talan liderando, el Kersh parado en el mapa se dibujaría
+    # con los colores de Talan. Pasa en los mapas 1 y 6 con Kersh y en el 3 con
+    # Talan; en los otros seis del PoC no pasa, y ahí es donde se gana.
+    de_npc = {c for npc in npcs for c in claves(npc)}
+    vistos, ranura_lider, propios = set(), None, set()
+    for actor in lideres:
+        a = renderer.database.actors[actor]
+        clave = (a.charset, a.charset_index)
+        if clave in vistos or not sprite_colors(
+                renderer.charsets.get(a.charset), a.charset_index):
+            continue
+        vistos.add(clave)
+        if clave in de_npc or ranura_lider is None:
+            cabe(a.charset, a.charset_index, True, lider=True)
+            if clave not in de_npc:
+                ranura_lider = paleta_de[clave]
+        else:
+            # A la ranura compartida, y con **sus propios** colores: sus poses
+            # se empaquetan con su paleta ordenada, que es la que la ROM sube
+            # cuando le toca liderar.
+            paleta_de[clave] = ranura_lider
+            propios.add(clave)
 
     for npc in npcs:
         for clave in claves(npc):
@@ -618,7 +644,7 @@ def npcs_dibujables(renderer, game_map, lideres, tope, graficos_de_ruta=()):
     # El reparto se devuelve para que `build_characters` lo use tal cual: un
     # segundo primer-lugar-que-entre en otro orden puede dar otra cuenta, y
     # dio: el mapa 8 entraba acá en ocho paletas y allá pedía nueve.
-    return salida, descartados, (paletas, paleta_de)
+    return salida, descartados, (paletas, paleta_de, propios)
 
 
 def build_characters(images, personajes, ranuras, reparto=None):
@@ -646,6 +672,10 @@ def build_characters(images, personajes, ranuras, reparto=None):
         # color adentro de la suya.
         palettes = [list(p) for p in reparto[0]]
         paleta_de = dict(reparto[1])
+        # Los que comparten la ranura del líder: su `lookup` sale de **su**
+        # paleta y no de la de la ranura, porque la ROM va a subir sus colores
+        # ahí cuando le toque liderar. Ver `npcs_dibujables`.
+        propios = set(reparto[2]) if len(reparto) > 2 else set()
     for charset, index in personajes:
         if (charset, index) in colores:
             continue
@@ -653,6 +683,9 @@ def build_characters(images, personajes, ranuras, reparto=None):
         if reparto is not None:
             if (charset, index) not in paleta_de:
                 sys.exit("%s:%d no está en el reparto de paletas" % (charset, index))
+            if (charset, index) in propios:
+                colores[(charset, index)] = (lookup, mapping)
+                continue
             union = palettes[paleta_de[(charset, index)]]
             faltan = [c for c in palette if c not in union]
             if faltan:
@@ -1581,7 +1614,17 @@ PUERTA_BYTES = 16
 # le permite a la ROM elegir la última que cumple sus condiciones en una sola
 # pasada, sin llevar una tabla por evento.
 PAGINA_BYTES = 24
-ACTOR_BYTES = 2 + 3 * 12   # id, paleta y doce punteros de 24 bits a sus poses
+# Un candidato a líder: id, paleta, **sus quince colores** y doce punteros de 24
+# bits a sus poses. Los colores van adentro de la tabla y no en un bloque aparte
+# porque son pocos actores por mapa y así la ROM los sube con un DMA desde donde
+# ya está parada; ver `elegir_grafico_heroe`.
+#
+# Están porque los líderes **comparten una ranura de CGRAM**: lidera uno a la
+# vez, así que reservarle una paleta a cada uno es tenerla ocupada por alguien
+# que no está en pantalla. La ROM sube los del que lidera al cambiar el grupo y
+# al cargar el mapa. Ver `npcs_dibujables`.
+ACTOR_COLORES = 2 * OBJ_COLORS
+ACTOR_BYTES = 2 + ACTOR_COLORES + 3 * 12
 
 # Un bit por switch. El juego consulta hasta el 1003 en las condiciones de
 # página, así que con 1024 alcanza y sobra: son 128 bytes de RAM.
@@ -2047,6 +2090,11 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "GRUPO_MAX      = %d\n"
         "GRUPO_INICIAL_N = %d\n"
         "ACTOR_BYTES    = %d\n"
+        "; Cuántos bytes de esa entrada son los quince colores del\n"
+        "; actor: la ROM los sube a la ranura que los líderes\n"
+        "; comparten. Ver `elegir_grafico_heroe`.\n"
+        "ACTOR_COLORES  = %d\n"
+        "OBJ_COLORS     = %d\n"
         "; La capa del héroe, para ordenarlo contra los NPCs.\n"
         "HERO_LAYER  = %d\n"
         "; Su prioridad de objeto. $10 —debajo de la capa de encima— en\n"
@@ -2112,6 +2160,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            eventos.FUNDIDO_RAMPA, eventos.BRILLO_MAX,
            eventos.LUZ_R, eventos.LUZ_G, eventos.LUZ_B, SWITCH_BYTES,
            eventos.GRUPO_MAX, len(grupo_inicial), ACTOR_BYTES,
+           ACTOR_COLORES, OBJ_COLORS,
            rm2k.LAYER_SAME,
            OBJ_PRIORITY_ABOVE if heroe_encima else OBJ_PRIORITY,
            CGRAM_RESERVADAS,
@@ -2619,8 +2668,13 @@ def actor_table_asm(numero, actores, animados, indice_global):
     """
     out = [".bloque %d" % (ACTOR_BYTES * max(1, len(actores))),
            "actor_table_%d:" % numero]
-    for actor, paleta, k in actores:
+    for actor, paleta, k, colores in actores:
         out.append("    .byte $%02X, $%02X" % (actor & 0xFF, paleta & 0x07))
+        # Sus quince colores, en el orden en que sus poses los indexan. Un actor
+        # sin gráfico los lleva en cero y la ROM no los sube: no se dibuja.
+        palabras = list(colores) + [0] * (OBJ_COLORS - len(colores))
+        out.append("    .byte " + ",".join(
+            "$%02X,$%02X" % (w & 0xFF, w >> 8) for w in palabras))
         for pose in range(SPRITE_POSES):
             if k is None:
                 out.append("    .byte $FF, $FF, $FF")
@@ -3450,10 +3504,17 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
             # Un actor con el gráfico vacío. `DummyHero`, el 10, es así: sus
             # ocho poses no tienen un pixel opaco, y RM2k no dibuja nada. Va con
             # el puntero centinela y la ROM se saltea el objeto.
-            actores.append((actor, 0, None))
+            actores.append((actor, 0, None, []))
             continue
+        # Sus colores, en el mismo orden que el `lookup` con que se empaquetaron
+        # sus poses: `paleta_del_personaje` devuelve la paleta ordenada y
+        # `build_characters` indexa 1..15 sobre ella. Si los dos órdenes se
+        # fueran, el héroe saldría con los colores cambiados de lugar.
+        propia, _, _ = paleta_del_personaje(
+            images[a.charset], a.charset_index)
         actores.append((actor, paleta_de[(a.charset, a.charset_index)],
-                        indice_animado[(a.charset, a.charset_index)]))
+                        indice_animado[(a.charset, a.charset_index)],
+                        [cgram_word(c) for c in propia]))
     sprite = (tiles, palettes, where, table, actores, timer_base, timer_pal,
               animados, bancos, ruta_graficos)
 

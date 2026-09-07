@@ -54,15 +54,19 @@ def test_la_puerta_que_core_rompe_se_dibuja_con_las_ocho():
         "dibuja, así que la puerta no cambia de tile y no se puede pasar"
 
 
-def test_con_siete_paletas_la_puerta_se_cae():
+def test_con_menos_paletas_la_puerta_se_cae():
     """Lo que pasaba, escrito: es lo que hace que la prueba de arriba valga.
 
     Sin esto, la de arriba pasaría también en un mundo donde el cronómetro
     volviera a reservarse una paleta, porque no habría nada que dijera que el
     tope importa.
+
+    Eran siete hasta que los líderes pasaron a compartir una ranura: eso le
+    devolvió una paleta al mapa 2, que con siete ya no descarta la puerta —sólo
+    sus costados, los eventos 31 y 32—. Con seis vuelve a caerse.
     """
-    assert PUERTA in descartados(snes_convert.OBJ_PALETTES - 1), \
-        "con siete paletas la puerta entra igual: este mapa ya no sirve de " \
+    assert PUERTA in descartados(snes_convert.OBJ_PALETTES - 2), \
+        "con seis paletas la puerta entra igual: este mapa ya no sirve de " \
         "banco para esta prueba"
 
 

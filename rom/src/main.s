@@ -425,6 +425,13 @@ grupo:       .res 4
 grupo_n:     .res 2
 hero_poses:  .res 3
 hero_pal:    .res 1
+; Y dónde están sus quince colores, adentro de la tabla de actores del mapa.
+;
+; Los líderes posibles **comparten una ranura de CGRAM**: lidera uno a la vez,
+; así que darle una paleta a cada uno es tenerla ocupada por alguien que no está
+; en pantalla. `aplicar_tinte` sube los del que lidera encima de esa ranura,
+; teñidos como el resto. En cero, no hay líder con gráfico y no se sube nada.
+hero_cgram:  .res 3
 ; La página que se está mirando, ya leída de la tabla. Se copia en vez de
 ; leerse en el lugar porque Y hace de cursor de la tabla, y usarlo además para
 ; indexar el bitmap de switches vuelve el código imposible de seguir.
@@ -4176,6 +4183,33 @@ cabe:
     lda #128
     jsr una_paleta
 
+    ; Encima, los colores del líder en su ranura. Los líderes posibles comparten
+    ; una, así que el bloque que vino del cartucho trae los del que el conversor
+    ; puso primero, y el que está liderando puede ser otro. Va **acá** y no
+    ; aparte para que se tiña con todo lo demás: subirlos después dejaría al
+    ; héroe sin teñir, que es el error inverso del cronómetro.
+    lda hero_cgram + 2
+    beq sin_lider_pal           ; ningún líder con gráfico: nada que subir
+    rep #$20
+.a16
+    lda hero_cgram
+    sta tin_ptr
+    lda #OBJ_COLORS
+    sta tin_count
+    sep #$20
+.a8
+    lda hero_cgram + 2
+    sta tin_ptr + 2
+    lda hero_pal                ; viene corrido un lugar, o sea paleta por dos
+    asl a
+    asl a
+    asl a                       ; y esto lo lleva a paleta por dieciséis
+    clc
+    adc #129                    ; la mitad de sprites, más el índice 0 que no se
+    sta tin_cgadd               ; dibuja
+    jsr tenir_paleta
+sin_lider_pal:
+
     ; El cronómetro va **sin teñir**, encima de lo que acaba de subir. En RM2k
     ; el tinte es una propiedad de los dibujables del mapa —`Priority_Screen`
     ; es 90 y `Priority_Timer` 140—, así que la pantalla se oscurece y los
@@ -4462,6 +4496,10 @@ era_sacar:
 
 listo:
     jsr elegir_grafico_heroe
+    ; El líder nuevo tiene otros colores y comparte la ranura con el anterior,
+    ; así que hay que rearmar las paletas. No toca CGRAM: deja todo en
+    ; `cgram_sombra` y lo sube `subir_tinte` en el vblank.
+    jsr aplicar_tinte
     lda #1
     sta refresco                ; las páginas que piden un actor pueden cambiar
     rts
@@ -4483,9 +4521,11 @@ listo:
     rep #$20
 .a16
     stz hero_poses
+    stz hero_cgram
     sep #$20
 .a8
     stz hero_poses + 2
+    stz hero_cgram + 2
     lda grupo_n
     beq sin_lider               ; grupo vacío: no se dibuja nada
 
@@ -4527,10 +4567,24 @@ lo_encontre:
     asl a
     and #$0E
     sta hero_pal
-    iny                         ; y acá arrancan las doce palabras
+    iny                         ; y acá arrancan sus quince colores
     rep #$20
 .a16
     tya
+    clc
+    adc act_ptr
+    sta hero_cgram
+    sep #$20
+.a8
+    lda act_ptr + 2
+    adc #0
+    sta hero_cgram + 2
+    rep #$20
+.a16
+    tya
+    clc
+    adc #ACTOR_COLORES          ; y detrás, las doce palabras de las poses
+    tay
     clc
     adc act_ptr
     sta hero_poses

@@ -350,6 +350,29 @@ Lo cubre `pruebas/test_puerta_misma.py`, con una tercera ROM compartida que
 lleva el mapa 2 solo —alcanza, porque los teletransportes son internos—.
 
 
+**Los líderes posibles comparten una ranura de CGRAM.** Lidera uno a la vez, así
+que reservarle una paleta de sprite a cada uno es tenerla ocupada por alguien
+que no está en pantalla. Ahora la tabla de actores lleva los quince colores de
+cada líder y la ROM los sube a la ranura al cargar el mapa y al cambiar el
+grupo, **por el camino del tinte** para que se tiñan con todo lo demás.
+
+La excepción es el líder que además está como NPC en ese mapa: ése se lleva
+paleta propia, porque su fila la usa al mismo tiempo que el héroe. Pasa con
+Kersh en los mapas 1 y 6 y con Talan en el 3; ahí no se gana nada, pero tampoco
+se rompe. En los otros seis del PoC se gana una paleta.
+
+Dos cosas que destraba:
+
+* **El mapa 2 deja de descartar los eventos 31 y 32**, que son los costados de
+  la puerta doble que taro veía con "cachos". Era su tercer bug cosmético.
+* **El mapa 8 entra en las ocho paletas**, que era el bloqueo para salir del
+  pad de Talan. Falta una sola cosa: los dos colores del cronómetro. El negro ya
+  está en siete de las ocho paletas y falta el rojo puro, con las ocho llenas a
+  quince. Lo más barato medido es bajar a `BLVehicles:5` de 15 a 14 colores:
+  **105 pixeles de 4648, 2,26%**, con un salto de 4 sobre 31; los otros
+  candidatos cuestan 11% o más.
+
+
 ## Esperando respuesta de taro
 
 * **`rom/build/demo-apertura-jugable/`**: es la copia pre-fundido que taro pidió
