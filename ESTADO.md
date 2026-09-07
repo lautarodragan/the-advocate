@@ -127,24 +127,43 @@ Las páginas automáticas que compilan enteras son **272 de 489**.
    en disco y 759 en ROM, porque el PNG comprime lo que el cartucho no.
 
        Panorama   991 KB   los 19 que los mapas piden, compartiendo tiles
-       Backdrop   951 KB   sin filtrar por uso todavía
+       Picture    604 KB   las 97 referenciadas, de 111 que hay
        Sprites    450 KB   los 1201 fotogramas de todo el juego
-       Picture    309 KB   las 20 que los eventos piden, de 111 que hay
+       Backdrop   257 KB   los 11 que nombran los terrenos, de 45
        Monster    128 KB   sin filtrar
        Battle      44 KB   sin filtrar
        FaceSet     41 KB   sin filtrar
        ------------------
-       arte      2,9 MB
+       arte      2,5 MB
 
-   Filtrar por uso es la reducción más barata y ya pagó: **el 82% de las
-   Pictures no se usa** —111 archivos, 20 referenciados— y eso bajó 761 KB a
-   309. Los panoramas al revés: se usan 11 de 14, pero se parten en dos
-   familias según cómo estén hechos. `woodspan` son 3200 tiles que se
+   **Dónde buscar las referencias importa, y la primera vez se hizo mal.**
+   Mirando sólo los `ShowPicture` de los eventos de mapa daban 20 de 111
+   usadas; agregando los **eventos comunes** —que es donde vive el sistema del
+   poder especial— son **97 de 111**. El ahorro real es 13%, no 82%. Las
+   páginas de tropa no agregan ninguna. Lo pescó taro preguntando si el filtro
+   había mirado ahí.
+
+   Donde sí pagó fue en los backdrops, y por otro camino: los eligen los
+   **terrenos**, no los eventos, y los 30 terrenos nombran **11 de los 45
+   archivos**. De 951 KB a 257.
+
+   Y queda una cosa que ningún análisis estático puede contestar: que un evento
+   común referencie una imagen no quiere decir que se llegue a verla. El
+   sistema del poder lo dispara un item que taro cree que no se consigue
+   jugando. Para eso hace falta jugar y anotar; su idea es poner un centinela
+   visible en lugar del gráfico y ver dónde aparece.
+
+   Tampoco se sostuvo la sospecha de que las más grandes fueran las que sobran:
+   la más pesada del directorio —`gtest4`, 143 KB— está referenciada, y las
+   usadas promedian 6,5 KB contra 9,3 las que sobran.
+
+   Los panoramas se usan 11 de 14, y se parten en dos familias según cómo estén
+   hechos. `woodspan` son 3200 tiles que se
    deduplican a **47** —1 KB— y `starpan` a 90; `weird` no repite ni uno solo y
    cuesta 150 KB. Los armados con tiles son casi gratis, los fotográficos no.
 
    Sumando con lo que ya se sabía —2,7 MB de grillas de mapa, estimado del 21%
-   del desglose, y unos 0,9 MB de música— van **6,5 MB sin contar los
+   del desglose, y unos 0,9 MB de música— van **6,1 MB sin contar los
    ChipSets**, contra 4 MB de techo. La deduplicación sola no alcanza: hace
    falta comprimir además, y la grilla es el candidato obvio.
 
