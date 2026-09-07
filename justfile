@@ -1683,6 +1683,16 @@ snes-hitos:
     eval "just $caso" || fallo=1
   done < <(grep -v '^#' rom/hitos.txt | grep -v '^$')
   exit $fallo
+# Cuánto ocuparía en el cartucho el arte del juego, por rubro. Sin argumento
+# los lista.
+#
+# No es una prueba: no falla nunca. Es la medición de la que sale la estrategia
+# de `assets/README.md`, y está acá para que se pueda repetir cuando el material
+# o el criterio cambien. Tarda minutos: expandir los ChipSets a su atlas y
+# recorrerlos pixel por pixel no es barato.
+assets-medir que="todo":
+  python3 assets/medir.py {{que}}
+
 # Las pruebas de estado: se le pregunta a la ROM en qué mapa está, qué switch
 # tiene prendido, qué evento corre. No miran la pantalla.
 #
