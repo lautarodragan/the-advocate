@@ -105,6 +105,25 @@ conversor cuantiza **por mapa**, así que dos mapas que comparten un chipset
 reciben paletas distintas y el mismo dibujo termina siendo bytes distintos. La
 deduplicación no es un problema de empaquetado: es uno de paletas disfrazado.
 
+**Y esto ya no es una afirmación, es una medición.** El conversor comparte
+bloques idénticos desde el 2026-09-07 —ver `Materiales`—, y sobre los mapas de
+`demo-apertura` eso ahorra **0,1 KB, todo bloques vacíos**. Tomando en cambio
+seis mapas que usan el mismo chipset, el 23:
+
+    mapas 4 y 5    2 tiles iguales byte a byte, de 150 -> 122 iguales como dibujo
+    mapas 2 y 4    2 de 139                            ->  91
+    mapas 2 y 5    2 de 139                            ->  95
+    mapas 3 y 4    1 de 150                            ->  83
+
+O sea que el dibujo se comparte hasta en un 80% y los bytes no se comparten
+nunca. Lo que separa una columna de la otra es exactamente la paleta.
+
+Al medirlo hay una trampa que cobró en el camino: los tiles de la consola son
+**planares**, cuatro pares de planos de bits intercalados por fila. Renumerar
+sus bytes para comparar dibujos sin paleta no compara dibujos —es el mismo
+error que `canonico` documenta— y daba 11 tiles compartidos donde hay 122. Hay
+que decodificar a pixeles primero.
+
 Pero la paleta **global** era la pregunta equivocada. La CGRAM se recarga al
 cambiar de mapa, y los tiles sólo hace falta compartirlos entre mapas del mismo
 chipset. Medido por chipset, sobre los ids que cada uno usa de verdad:
@@ -123,19 +142,42 @@ holgado con 63 colores pasaría a compartir una de 150, y se va a ver **peor que
 hoy**. Ése es el costo real de deduplicar, y es artístico.
 
 
+## Los sprites tienen su propio problema, y es más duro
+
+Todo lo de arriba es de fondos. Las paletas de **sprite** son otras ocho —siete
+con el cronómetro puesto— y ahí no hay margen: cada personaje de RM2k que este
+juego usa ocupa **los 15 colores enteros** después de cuantizar. El mapa 8, que
+es la calle a la que da el pad de Talan, dibuja diez personajes y no existe
+ningún reparto sin pérdida; se probó hasta cinco paletas y no hay.
+
+Y fusionar sale caro. El par más barato de esos diez —`Chara2:0` con
+`People1:0`— mueve **920 de 5276 pixeles, el 17,4%**, con un salto de 18 sobre
+31 en un canal; el peor par llega al 47%. No es que el heurístico sea flojo:
+`merge_least_used` ya fusiona el color menos usado con su vecino más cercano
+por luma, y el salto grande sale de encadenar fusiones.
+
+Lo que sí es barato es no dibujar. Cuatro de esos diez aparecen en **una sola
+página de un solo evento** —`Future1:6`, `People1:0`, `People4:0` y `savept:0`—
+y el último es un punto de guardado, que este port no tiene. Sacar dos entra en
+las ocho sin tocarle un pixel a nadie, y el conversor ya sabe no dibujar un
+evento cuyo gráfico no entra: hoy corta con error en vez de elegir.
+
+
 ## Lo que sigue
 
-1. **La estrategia de paletas.** Qué paletas armar y cómo asignarlas, mirando
+1. **La estrategia de paletas, que ahora se sabe que es todo el ahorro.**
+   Qué paletas armar y cómo asignarlas, mirando
    estáticamente en qué combinaciones aparecen CharSets con ChipSets y CharSets
    entre sí. Un sprite y el fondo sobre el que camina comparten pantalla, así
    que comparten CGRAM. Hipótesis de taro que vale la pena medir primero: toda
    Lashe City comparte estilo y se parece a los sprites principales, así que
    debería simplificarse mucho.
 
-2. **Separar el material de los mapas en el conversor.** Que la compilación de
-   un mapa guarde **referencias** y no material. Es lo que hace realizable todo
-   lo anterior: hoy cada mapa lleva sus propios tiles, y un personaje que
-   aparece en 39 mapas se paga 39 veces.
+2. ~~**Separar el material de los mapas en el conversor.**~~ Hecho el
+   2026-09-07: los bloques pasan por `Materiales`, tienen nombre propio y el
+   mapa guarda a cuál apunta; los idénticos se emiten una vez. Lo que quedó
+   claro haciéndolo es que la separación no ahorra nada por sí sola —0,1 KB— y
+   que el punto 1 es el que tiene todo el ahorro adentro. Ver arriba.
 
 3. **Un spike de análisis estático para descartar mapas enteros.** No
    interpretando todos los estados posibles, que no es practicable, sino al

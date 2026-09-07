@@ -1558,8 +1558,15 @@ def bloque(label, data, per_line=16, alinear=None):
     return "\n".join(out)
 
 
-def tabla_de_paginas(mapa, numero):
+def tabla_de_paginas(mapa, numero, evcodigo):
     """Las páginas de evento del mapa, con el puntero a su código.
+
+    `evcodigo` es la **etiqueta** del bloque de código, que ya no se puede
+    rearmar acá: dos mapas cuyos eventos compilan a los mismos bytes comparten
+    el bloque y la etiqueta no lleva el número de este mapa. Rearmarla era lo
+    que hacía —`"evcodigo_%d" % numero`— y al encender la deduplicación la
+    tanda lo cobró enseguida: `snes-varios` no ensamblaba porque nombraba un
+    `evcodigo_2` que ya no existía.
 
     No pasa por `bloque()` porque sus punteros son simbólicos: apuntan adentro
     del bloque de código, que el enlazador ubica. Pero **sí se declara** con
@@ -1587,7 +1594,7 @@ def tabla_de_paginas(mapa, numero):
                 if p["trigger"] == eventos.TRIGGER_AUTOMATICO and p["codigo"]}
     for pagina in mapa["paginas"]:
         if pagina["codigo"]:
-            destino = "evcodigo_%d + %d" % (numero, pagina["offset"])
+            destino = "%s + %d" % (evcodigo, pagina["offset"])
             puntero = "<(%s), >(%s), ^(%s)" % (destino, destino, destino)
         else:
             puntero = "$00, $00, $00"   # sin código: no hay nada que correr
@@ -1748,7 +1755,7 @@ def datos_del_mapa(mapa, numero, indice_global, materiales):
         "map_celdas", mapa["celdas"], alinear=2)
     if texto:
         out.append(texto)
-    out.append(tabla_de_paginas(mapa, numero))
+    out.append(tabla_de_paginas(mapa, numero, etiquetas["evcodigo"]))
     # Las tres que no se comparten son las que llevan **punteros simbólicos**
     # adentro —a las poses de la ROM, al código de los eventos—: sus bytes los
     # pone el enlazador, así que acá no hay contenido con el cual compararlas.
@@ -1991,7 +1998,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         for g, datos in enumerate(bancos):
             handle.write(bloque("sprite_poses_%d" % g, datos) + "\n")
         handle.write("\n")
-        materiales = Materiales(deduplicar=False)
+        materiales = Materiales(deduplicar=True)
         etiquetas = []
         for numero, mapa in enumerate(mapas):
             handle.write("; --- %d: mapa %d %r ---\n"
@@ -2081,6 +2088,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             for f in range(eventos.RUTA_FRECUENCIA + 1)))
         handle.write(tabla_de_mapas(mapas, etiquetas))
         handle.write("\n")
+    return materiales.informe()
 
 
 def sprite_colors_bytes(sprite):
@@ -2899,10 +2907,14 @@ def main():
                  sum(1 for w in ventana_datos["cram"] if w),
                  len(ventana_datos["fuente"]), len(mensajes.textos),
                  len(ventana_datos["mensajes"])))
-    emit(args.output, mapas, args.inicial, args.heroe_encima, grupo,
-         ventana_datos)
+    informe = emit(args.output, mapas, args.inicial, args.heroe_encima, grupo,
+                   ventana_datos)
     print("%d mapa(s) -> %s, arranca en el %d (mapa %d)"
           % (len(mapas), args.output, args.inicial, mapas[args.inicial]["id"]))
+    if informe:
+        print("material compartido entre mapas:")
+        for linea in informe:
+            print(linea)
 
     # La música sale de acá y no de una receta aparte. `musicdata.inc` era
     # estado global como lo fue `mapdata.inc`, con el agravante de que nadie lo

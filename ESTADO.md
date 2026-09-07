@@ -234,6 +234,32 @@ cubre `pruebas/test_elegir.py`, que aprieta cualquier botón. La tanda cubre la
 otra mitad, que es cómo se ve.
 
 
+**El spike de desacoplar los gráficos: hecho, y lo que midió vale más que lo que
+ahorró.** Los bloques de datos pasan por `Materiales`, tienen nombre propio en
+vez del número del mapa que los pidió, y los idénticos se emiten una sola vez.
+El primer paso salió **byte por byte igual** en seis configuraciones del
+conversor, que es una red más fina que la tanda para un refactor.
+
+Encender la deduplicación ahorra **0,1 KB**, y todo son bloques vacíos. Ése es
+el resultado: separar el material de los mapas no ahorra nada por sí solo. Lo
+que lo explica está medido en `assets/README.md` —seis mapas del mismo chipset
+comparten hasta 122 tiles de 150 **como dibujo** y 2 como bytes—, así que todo
+el ahorro está del otro lado, en las paletas.
+
+Vale igual porque es la infraestructura que la estrategia de paletas necesita:
+sin bloques con identidad propia no hay dónde poner un tile que sea de dos
+mapas. Y porque convirtió la frase "es un problema de paletas disfrazado" en un
+número.
+
+Y dejó una lección sobre las dos redes. El primer paso se verificó comparando
+bytes y las seis configuraciones dieron idéntico; el segundo **rompió**
+`snes-varios`, porque `tabla_de_paginas` seguía rearmando `evcodigo_<mapa>` con
+el número del mapa y dos mapas pasaron a compartir el bloque. Comparar bytes no
+podía verlo —esas seis configuraciones no tenían dos mapas con el mismo código
+de eventos— y la tanda lo cobró en el primer intento. Ninguna de las dos redes
+sobra.
+
+
 ## Esperando respuesta de taro
 
 * **`rom/build/demo-apertura-jugable/`**: es la copia pre-fundido que taro pidió
