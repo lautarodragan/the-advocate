@@ -234,6 +234,10 @@ class Mundo:
 SALTOS_MAX = 8
 
 
+class DemasiadosSaltos(RuntimeError):
+    """Se alcanzó el tope de teletransportes encadenados. Ver `SALTOS_MAX`."""
+
+
 # Cómo se ve la página inventada en la tabla. El número de evento es alto a
 # propósito: tiene que no chocar con ninguno del mapa.
 EVENTO_DE_PRUEBA = {"evento": 0, "pagina": 0,
@@ -577,7 +581,15 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
             return map_id, x, y
         saltos -= 1
         if not saltos:
-            return map_id, x, y     # demasiadas vueltas: se queda en este mapa
+            # No se descarta el salto: se rompe. Es el `entrar_en_panico` de la
+            # ROM, que hace lo mismo del otro lado —parar y avisar— y por la
+            # misma razón: seguir andando en el mapa equivocado convierte un
+            # error acá en un síntoma irreconocible media hora después.
+            raise DemasiadosSaltos(
+                "%d teletransportes encadenados sin devolver el control, y el "
+                "próximo iba al mapa %s. O dos mapas se apuntan entre sí —que "
+                "en RM2k cuelga el juego— o el presupuesto no se está "
+                "reponiendo." % (SALTOS_MAX, salto[0]))
         map_id = mundo.ids[salto[0]]
         entrada = (salto[1], salto[2])
 

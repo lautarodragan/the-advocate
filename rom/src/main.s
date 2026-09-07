@@ -335,6 +335,24 @@ salto_x:     .res 2     ; y a qué celda. salto_hay dice si hay uno pendiente
 salto_y:     .res 2
 salto_hay:   .res 1
 saltos_restantes: .res 1 ; cuántas cadenas de teletransporte quedan permitidas
+; Y cuántas son. Lo que cuenta el tope son los teletransportes **encadenados**,
+; o sea los que ocurren sin que el jugador recupere el control: dos mapas que se
+; apuntan entre sí se colgarían para siempre. No cuenta los de una partida, que
+; son todos los que quieran ser. Ver dónde se repone, en `eventos_tick`.
+SALTOS_MAX = 8
+; Y qué pasa cuando se acaba. **No se descarta el salto**: se para todo y se
+; avisa. Descartarlo en silencio fue lo que escondió el bug de arriba durante
+; semanas —la partida seguía andando, sólo que en el mapa equivocado— y es
+; exactamente la falla que el CLAUDE.md llama "un camino que ninguna prueba
+; ejecuta". Un tope que se alcanza es siempre un error nuestro: la única manera
+; legítima de encadenar nueve teletransportes sin devolver el control es que dos
+; mapas se apunten entre sí, y eso en RM2k cuelga el juego.
+;
+; `panico` es el código de lo que pasó, cero mientras no pase nada. Lo lee la
+; prueba de estado; en la consola lo que se ve es la pantalla parpadeando, que
+; no se confunde con nada del juego.
+panico:      .res 1
+PANICO_SALTOS = 1       ; se acabó el presupuesto de teletransportes
 ; El intérprete corre de a un cuadro, no de una sola pasada. Antes `cargar_mapa`
 ; ejecutaba todas las páginas del tirón con la pantalla apagada y las esperas se
 ; salteaban: eso colapsaba el tiempo, y todo lo que en RM2k pasa *durante* una
@@ -480,6 +498,7 @@ borrar_switches:
     sta tinte_b
     sta tinte_s
     stz salto_hay
+    stz panico                  ; la RAM arranca con basura, y 85 no es un código
     ; El grupo va antes de cargar el primer mapa: `cargar_mapa` elige con
     ; qué se dibuja el héroe, y sin esto leería la basura con la que
     ; arranca la RAM. El grupo con el que arranca la partida la partida, de la base del juego. El gráfico
@@ -1103,7 +1122,7 @@ puesto:
 .a8
 .i16
     pha                         ; el índice del mapa, que lo de abajo pisaría
-    lda #8
+    lda #SALTOS_MAX
     sta saltos_restantes        ; con stx serían dos bytes y pisaría el de al lado
     pla
     jsr cargar_mapa_sin_eventos
@@ -1214,6 +1233,26 @@ sin_mensaje:
     lda esperando_n
     bne hay_esperando
 
+    ; Nada corriendo y nada esperando: el jugador tiene el control, así que la
+    ; cadena de teletransportes terminó y el presupuesto se repone. Es el
+    ; alcance que el tope tiene en la referencia, donde `saltos` es local a
+    ; `entrar_al_mapa` y se reinicia en cada entrada.
+    ;
+    ; Antes lo reponía sólo `cargar_mapa`, y a esa altura el único que la
+    ; llamaba era una **puerta**: un comando `Teleport` carga el mapa por
+    ; `cargar_mapa_sin_eventos`, que no la toca. Así que ocho teletransportes
+    ; gastaban el presupuesto para toda la partida y del noveno en adelante el
+    ; `beq nada` de abajo los descartaba **en silencio**. La apertura entera son
+    ; teletransportes encadenados y casi no tiene puertas: para cuando el
+    ; despachante del mapa 4 quería mandar al pad de Talan ya no quedaba
+    ; ninguno, el salto se perdía, y como su página es automática y su switch
+    ; sigue prendido volvía a arrancar sola para siempre. taro lo vio el
+    ; 2026-09-07 como un mapa vacío del que no se podía salir, con la música
+    ; fundiéndose y volviendo a empezar en ciclo; el volcado de la RAM decía
+    ; `mapa_actual` = 4 con el evento 1 corriendo.
+    lda #SALTOS_MAX
+    sta saltos_restantes
+
     ; La cola está vacía, así que el flanco de A es para hablar. En RM2k es el
     ; mismo botón que cierra un mensaje y que confirma, y el orden importa: con
     ; un mensaje abierto el jugador no se actualiza —arriba se sale por
@@ -1321,7 +1360,10 @@ otro_mapa:
     ; la vuelta a 255 y el tope fallaba **una sola vez** y después dejaba pasar
     ; doscientos cincuenta y cinco más.
     lda saltos_restantes
-    beq nada                    ; demasiadas vueltas: se queda donde está
+    bne hay_presupuesto
+    lda #PANICO_SALTOS
+    jmp entrar_en_panico        ; y de ahí no se vuelve
+hay_presupuesto:
     dec saltos_restantes
     lda #FUNDIDO_SALTO
 pedir_fundido:
@@ -1331,6 +1373,35 @@ pedir_fundido:
     ; encolan recién cuando ésta termine.
 nada:
     rts
+.endproc
+
+; Se acabó: algo que no puede pasar pasó. A trae el código, que queda en
+; `panico` para que una prueba de estado pueda decir cuál fue.
+;
+; No hay `printf` en una SNES y volver de acá no tiene sentido —el estado ya es
+; inconsistente—, así que lo que queda es que se vea: la pantalla parpadea entre
+; negro y pleno para siempre. Es feo a propósito. Lo que se quiere evitar es lo
+; contrario, que el juego siga andando como si nada y el error aparezca media
+; hora después convertido en otra cosa.
+.proc entrar_en_panico
+.a8
+.i16
+    sta panico
+    sei                         ; ni siquiera el vblank: nada más va a pasar
+lazo:
+    ldx #$2000
+espera_prendido:
+    dex
+    bne espera_prendido
+    lda #$0F
+    sta INIDISP
+    ldx #$2000
+espera_apagado:
+    dex
+    bne espera_apagado
+    lda #$80
+    sta INIDISP
+    bra lazo
 .endproc
 
 ; Arranca un fundido de teletransporte. A trae qué hay que hacer cuando la

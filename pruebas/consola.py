@@ -127,6 +127,17 @@ class Partida:
         bajo, alto = self.consola.ram(self.simbolos[nombre], 2)
         return bajo | (alto << 8)
 
+    def poner_byte(self, nombre, valor):
+        """Escribe un byte de la RAM de la ROM, por nombre de símbolo.
+
+        Es para poner a la partida en un estado al que llegar jugando costaría
+        media hora: `saltos_restantes` bajo, por ejemplo, que es lo que deja una
+        partida larga. Lo que se escribe acá **no** es una aserción: se escribe
+        el estado y después se le pregunta a la ROM qué hace con él.
+        """
+        self.consola.escribir_ram(self.simbolos[nombre], [valor])
+        return self
+
     def mapa(self):
         """En qué mapa de RM2k está parada la partida."""
         indice = self.byte("mapa_actual")

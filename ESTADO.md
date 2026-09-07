@@ -11,7 +11,7 @@ volvió inusable; se borra sin culpa lo que ya esté en esos dos lados.
 
 Se escribe **mientras se trabaja**, no al final.
 
-Última vez que se tocó: 2026-09-06.
+Última vez que se tocó: 2026-09-07.
 
 
 ## El objetivo, y dónde estamos
@@ -192,6 +192,25 @@ de cada una está en `README.md`.
   terminó mirando el mapa 6 creyendo que era la demo del hito 12.
 
 
+## Decisiones tomadas el 2026-09-07
+
+**El presupuesto de teletransportes se repone cuando el jugador tiene el
+control, y agotarlo es un error, no un caso.** `saltos_restantes` existe para
+que dos mapas que se apunten entre sí no cuelguen a la consola. Estaba mal de
+las dos maneras posibles: sólo lo reponía `cargar_mapa`, que a esa altura
+llamaba únicamente una **puerta** —un comando `Teleport` carga el mapa por
+`cargar_mapa_sin_eventos`—, así que los ocho se gastaban para toda la partida; y
+al agotarse, el salto se **descartaba en silencio**. Ahora se repone en
+`eventos_tick` cada cuadro en que no hay nada corriendo ni esperando, que es el
+mismo alcance que tiene en la referencia —`saltos` es local a `entrar_al_mapa`—,
+y al agotarse la ROM llama a `entrar_en_panico`: deja el código en `panico` y
+parpadea la pantalla para siempre. La referencia levanta `DemasiadosSaltos`.
+
+Lo pidió taro y tiene razón por encima del caso: un salto descartado sin avisar
+es la forma de falla que el CLAUDE.md nombra, y ésta sobrevivió semanas porque
+la partida seguía andando, sólo que en el mapa equivocado.
+
+
 ## Esperando respuesta de taro
 
 * **`rom/build/demo-apertura-jugable/`**: es la copia pre-fundido que taro pidió
@@ -202,6 +221,19 @@ de cada una está en `README.md`.
 
 
 ## Lo que taro todavía no probó
+
+* **La salida del pad de Talan, con el presupuesto de saltos arreglado.** El
+  2026-09-07 taro quedó encerrado en un mapa vacío del que no se podía salir,
+  sin control y con `hzstream` fundiéndose y empezando de nuevo en ciclo. El
+  volcado de la WRAM que pasó —`/extras/demo-apertura - SnesWorkRam.dmp`— dijo
+  que no estaba en el pad sino en el **mapa 4**, "Blank (Leave START here)", que
+  es vacío a propósito: por eso "no renderizaba" nada más que el héroe, con
+  `brillo` en 15. El mapa 4 es un **despachante** —cinco páginas automáticas,
+  una por switch, cada una teletransportando a otro lado— y la escena del escape
+  del mapa 3 devuelve ahí. Su salto al pad se estaba perdiendo por el
+  presupuesto agotado, y como la página es automática y el switch 21 sigue
+  prendido volvía a arrancar sola para siempre. Hay que rearmar
+  `demo-apertura` y volver a jugar la secuencia entera.
 
 * **`rom/build/demo-apertura/`, rearmada el 2026-09-06** con el disparo de
   páginas rehecho —ver la decisión de abajo— y con el **mapa 6 adentro**, que
