@@ -127,6 +127,23 @@ class Partida:
         bajo, alto = self.consola.ram(self.simbolos[nombre], 2)
         return bajo | (alto << 8)
 
+    def tocar(self, *botones):
+        """Un toque de los botones que se le digan: un cuadro apretados y uno
+        suelto, que es el flanco que la ROM mira.
+
+        `correr(..., apretar_a=...)` sólo sabe de A porque eso es todo lo que la
+        tanda de pixeles sabe apretar. Acá hacen falta las direcciones y B: el
+        cursor de `ShowChoice` se mueve con ellos, y ése es justamente el camino
+        que la tanda no puede ejercitar.
+        """
+        self.consola.apretar(*botones)
+        self.consola.correr(1)
+        self.cuadro += 1
+        self.consola.apretar()
+        self.consola.correr(1)
+        self.cuadro += 1
+        return self
+
     def poner_byte(self, nombre, valor):
         """Escribe un byte de la RAM de la ROM, por nombre de símbolo.
 

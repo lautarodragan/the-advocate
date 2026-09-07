@@ -696,6 +696,23 @@ OP_SI       = 0x12      # switch (word), polaridad (byte), destino (word):
 OP_IR       = 0x13      # destino (word): el salto sin condición que se emite
                         # donde estaba el `else`, para que la rama de arriba se
                         # saltee la de abajo.
+OP_ELEGIR   = 0x14      # cuántas opciones (byte), qué hace cancelar (byte), y
+                        # después una entrada por opción: el cuadro de texto
+                        # (word) y el destino (word). Es `ShowChoice`.
+                        #
+                        # **Un cuadro de texto por opción, no uno solo.** Los
+                        # cuadros llevan las mismas líneas y se diferencian en
+                        # dónde está el cursor, así que mover el cursor es
+                        # recomponer la ventana con otro desplazamiento y no
+                        # dibujar nada nuevo. Cuesta unas decenas de bytes por
+                        # elección y ahorra un tile de sprite, una paleta y todo
+                        # el código de dibujarlo: en la consola no hay dónde
+                        # poner un cursor que no sea un sprite, y los sprites de
+                        # este mapa ya están repartidos entre los personajes.
+                        #
+                        # El destino es absoluto dentro de la página, como el de
+                        # OP_SI, y el cuerpo de cada opción termina en un OP_IR
+                        # al final de la elección.
 OP_PAN      = 0x11      # operación (byte: PAN_CORRER o PAN_VOLVER), cuánto se
                         # corre el destino en x y en y (word con signo cada
                         # uno, en 1/16 de pixel), el paso por cuadro (byte) y
@@ -1113,6 +1130,61 @@ COND_SWITCH = 0
 SWITCH_MAX = 1024
 
 
+# `ShowChoice` y sus dos acompañantes, de `event_codes.py`. El `10` que cierra
+# el cuerpo de cada opción es `END`, y no hace falta mirarlo: el salto al final
+# de la elección se emite en la opción siguiente, que es donde se sabe que la
+# anterior terminó.
+SHOW_CHOICE = 10140
+SHOW_CHOICE_OPTION = 20140
+SHOW_CHOICE_END = 20141
+
+# RM2k muestra cuatro opciones como mucho, y `GetChoices(4)` descarta las de
+# índice mayor. La ventana de esta ROM tiene cuatro renglones, así que el tope
+# es el mismo por los dos lados.
+ELEGIR_MAX = 4
+
+# El cursor, y lo que se le pone adelante a las opciones que no lo tienen para
+# que el texto no se corra de renglón a renglón.
+ELEGIR_CURSOR = ">"
+ELEGIR_SANGRIA = " "
+
+
+def opciones_de_eleccion(comandos, i):
+    """Las opciones de la `ShowChoice` que está en `comandos[i]`.
+
+    Es `Game_Interpreter::GetChoices`: se recorre hacia adelante desde el
+    comando siguiente, se juntan los `ShowChoiceOption` que estén en su misma
+    indentación y se corta en el `ShowChoiceEnd`. Devuelve (índice, texto).
+    """
+    if i + 1 >= len(comandos):
+        return []
+    nivel = comandos[i + 1].indent
+    salida = []
+    for cmd in comandos[i + 1:]:
+        if cmd.indent != nivel:
+            continue
+        if cmd.code == SHOW_CHOICE_END:
+            break
+        if cmd.code == SHOW_CHOICE_OPTION and cmd.parameters \
+                and cmd.parameters[0] < ELEGIR_MAX:
+            salida.append((cmd.parameters[0], cmd.string or ""))
+    return salida
+
+
+def cuadros_de_eleccion(opciones, mensajes):
+    """Un desplazamiento de `mensajes` por opción, con el cursor en su renglón.
+
+    Los cuadros son iguales salvo por el cursor. `Mensajes` deduplica por
+    contenido, así que las líneas comunes no se guardan de más: lo que se paga
+    es un cuadro chico por opción.
+    """
+    textos = [t for _, t in opciones]
+    return [mensajes.agregar(
+                [(ELEGIR_CURSOR if k == n else ELEGIR_SANGRIA) + " " + t
+                 for k, t in enumerate(textos)])
+            for n in range(len(textos))]
+
+
 def bytes_de_rama(cmd):
     """Un `ConditionalBranch` con condición de switch, con el destino en blanco.
 
@@ -1165,8 +1237,67 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
         piezas = []
         largo = 0
         pila = []            # piezas con el destino todavía en blanco
-        for cmd, extra in agrupar(page.commands):
-            if cmd.code == COND_RAMA:
+        # Las opciones de cada `ShowChoice` se juntan mirando hacia adelante,
+        # que es lo que hace `GetChoices`, así que se resuelven antes del lazo:
+        # acá adentro los comandos vienen de a uno y ya agrupados.
+        comandos = list(page.commands)
+        opciones_de = {id(c): opciones_de_eleccion(comandos, i)
+                       for i, c in enumerate(comandos) if c.code == SHOW_CHOICE}
+        eleg = []            # las elecciones abiertas
+        for cmd, extra in agrupar(comandos):
+            if cmd.code == SHOW_CHOICE:
+                if mensajes is None:
+                    raise NoSePuede("una elección sin ventana donde ponerla")
+                opciones = opciones_de[id(cmd)]
+                if not opciones:
+                    raise NoSePuede("una elección sin opciones")
+                if [n for n, _ in opciones] != list(range(len(opciones))):
+                    raise NoSePuede("opciones numeradas fuera de orden")
+                cancelar = cmd.parameters[0] if cmd.parameters else 0
+                if cancelar > len(opciones):
+                    # `cancel_type` 5 con cuatro opciones es la "rama de
+                    # cancelar", una quinta que no está en la lista. Nadie la
+                    # usa en este juego y hacerla a ciegas sería inventar.
+                    raise NoSePuede("elección con rama de cancelar")
+                cuadros = cuadros_de_eleccion(opciones, mensajes)
+                eleg.append({"i": len(piezas), "n": len(opciones),
+                             "cancelar": cancelar, "cuadros": cuadros,
+                             "destinos": [None] * len(opciones),
+                             "vistas": 0, "salidas": []})
+                # El lugar de la tabla, que se llena en el `ShowChoiceEnd`.
+                pieza = bytes(3 + 4 * len(opciones))
+            elif cmd.code == SHOW_CHOICE_OPTION:
+                if not eleg:
+                    raise NoSePuede("una opción sin su elección")
+                actual = eleg[-1]
+                n = cmd.parameters[0] if cmd.parameters else 0
+                if not 0 <= n < actual["n"]:
+                    raise NoSePuede("una opción que no está en la lista")
+                # El cuerpo de la opción anterior termina acá: se lo saca de la
+                # elección con un salto al final, que se parchea al cerrarla.
+                # Emitirlo acá y no en el `END` del cuerpo es lo que hace que
+                # esto no dependa de mirar la indentación.
+                pieza = b"" if not actual["vistas"] else bytes([OP_IR, 0, 0])
+                if pieza:
+                    actual["salidas"].append(len(piezas))
+                actual["vistas"] += 1
+                actual["destinos"][n] = largo + len(pieza)
+            elif cmd.code == SHOW_CHOICE_END:
+                if not eleg:
+                    raise NoSePuede("un fin de elección sin su elección")
+                actual = eleg.pop()
+                if any(d is None for d in actual["destinos"]):
+                    raise NoSePuede("una opción sin cuerpo")
+                tabla = bytes([OP_ELEGIR, actual["n"], actual["cancelar"]])
+                for cuadro, destino in zip(actual["cuadros"],
+                                           actual["destinos"]):
+                    tabla += bytes([cuadro & 0xFF, cuadro >> 8,
+                                    destino & 0xFF, destino >> 8])
+                piezas[actual["i"]] = tabla
+                for salida in actual["salidas"]:
+                    piezas[salida] = con_destino(piezas[salida], largo)
+                pieza = b""
+            elif cmd.code == COND_RAMA:
                 pila.append(len(piezas))
                 pieza = bytes_de_rama(cmd)
             elif cmd.code == COND_SINO:
@@ -1192,6 +1323,8 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
             largo += len(pieza)
         if pila:
             raise NoSePuede("una rama sin cerrar")
+        if eleg:
+            raise NoSePuede("una elección sin cerrar")
         codigo = b"".join(piezas) + bytes([OP_FIN])
         return codigo
     except NoSePuede:
@@ -2001,6 +2134,9 @@ class Estado:
         # mapas. Todo lo que pregunte por esto tiene que preguntar `is not
         # None`.
         self.mensaje = None
+        # La elección abierta, si hay una. Mientras esté puesta, `mensaje`
+        # apunta al cuadro de la opción marcada y la página está bloqueada.
+        self.eleccion = None
         # El cronómetro: cuántos cuadros le quedan, si corre y si se dibuja.
         # Son tres cosas y no una porque RM2k las separa: un cronómetro puede
         # estar corriendo sin verse —`StartTimer(visible=false)`—, que es como
@@ -2485,6 +2621,8 @@ def largo_de_opcode(codigo, i):
     op = codigo[i]
     if op == OP_RUTA:
         return 4 + codigo[i + 3]
+    if op == OP_ELEGIR:
+        return 3 + 4 * codigo[i + 1]
     largo = LARGO_DE_OPCODE.get(op)
     if largo is None:
         raise ValueError("opcode %d que no sé medir" % op)
@@ -3012,6 +3150,21 @@ class Interprete:
             # `jsr correr_codigo` de siempre. Cerrar acá y seguir el cuadro
             # siguiente sería un cuadro de diferencia entre los dos lados.
             self.estado.mensaje = None
+            if self.estado.eleccion is not None:
+                # Si lo que estaba abierto era una elección, A no retoma la
+                # página donde quedó: la manda al cuerpo de la opción marcada.
+                #
+                # **Acá el cursor siempre está en la primera opción**, y no es
+                # una simplificación escondida: la tanda de pixeles sólo sabe
+                # apretar A, así que mover el cursor es un camino que no puede
+                # ejercitar. Modelarlo igual sería escribir de este lado código
+                # que ninguna prueba corre, que es la manera en que este repo ya
+                # se equivocó tres veces. Moverlo lo hace la ROM y lo cubre una
+                # prueba de estado, que sí puede apretar abajo; ver
+                # `pruebas/test_elegir.py` y "Lo que la tanda no cubre".
+                eleccion = self.estado.eleccion
+                self.estado.eleccion = None
+                self.cursor = eleccion["destinos"][eleccion["sel"]]
         if self.esperando == ESPERAR_RUTAS:
             if self.estado.rutas_pendientes():
                 return False
@@ -3257,6 +3410,27 @@ def ejecutar(codigo, estado, desde=0):
                 i += 1
                 continue
             return (i + 1, ESPERAR_RUTAS, False)
+        elif op == OP_ELEGIR:
+            # Abre la ventana con las opciones y corta el cuadro, igual que un
+            # mensaje. La diferencia es que la página no retoma donde quedó: el
+            # cursor se lo pone `Interprete.cuadro` cuando el jugador elige, y
+            # sale del destino de la opción que haya quedado.
+            #
+            # El cursor arranca en cero, que es `Window_Selectable` con su
+            # índice en cero, y la tabla se guarda entera porque de ahí salen
+            # los dos: el cuadro que se dibuja y el destino al que se salta.
+            n = codigo[i + 1]
+            estado.eleccion = {
+                "n": n,
+                "cancelar": codigo[i + 2],
+                "sel": 0,
+                "cuadros": [codigo[i + 3 + 4 * k] | (codigo[i + 4 + 4 * k] << 8)
+                            for k in range(n)],
+                "destinos": [codigo[i + 5 + 4 * k] | (codigo[i + 6 + 4 * k] << 8)
+                             for k in range(n)],
+            }
+            estado.mensaje = estado.eleccion["cuadros"][0]
+            return (i, 0, False)
         elif op == OP_MENSAJE:
             # Abre la ventana y corta el cuadro. El cursor queda en el comando
             # siguiente, pero `Interprete.cuadro` no vuelve a llegar acá hasta

@@ -1541,7 +1541,8 @@ def main():
                  cam_x, cam_y,
                  ("" if estado.tinte == (eventos.TINTE_NEUTRO,) * 4
                   else ", tinte %d/%d/%d y saturación %d" % estado.tinte)
-                 + (", con la ventana de mensaje abierta"
+                 + (", con la ventana de mensaje abierta diciendo %r"
+                    % (mensajes.lineas(estado.mensaje),)
                     if estado.mensaje is not None else "")))
         if pasos:
             print("  camina %d celdas = %d cuadros a %d por celda"

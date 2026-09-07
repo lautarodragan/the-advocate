@@ -211,6 +211,29 @@ es la forma de falla que el CLAUDE.md nombra, y ésta sobrevivió semanas porque
 la partida seguía andando, sólo que en el mapa equivocado.
 
 
+**`ShowChoice`, y el cursor sin un solo tile nuevo.** La ventana con opciones es
+la ventana de mensaje de siempre, y el cursor no se dibuja: el conversor emite
+**un cuadro de texto por opción** —los mismos renglones, el `>` en otro lado— y
+moverlo es recomponer la ventana con otro desplazamiento. Cuesta unas decenas de
+bytes por elección y ahorra un tile de sprite, una paleta y el código de
+dibujarlo; en la consola un cursor tiene que ser un sprite, y los del mapa ya
+están repartidos entre los personajes. Recomponer un renglón de cinco
+caracteres son dos cuadros, así que se ve como un cursor que se mueve.
+
+El bytecode es `OP_ELEGIR`, con la misma forma que `OP_SI`: destinos absolutos
+dentro de la página, resueltos por el conversor, que es el único que ve la
+página entera. El cuerpo de cada opción termina en un `OP_IR` al final de la
+elección, emitido en la opción **siguiente** —ahí se sabe que la anterior
+terminó— y no en el `END` del cuerpo, para no depender de la indentación.
+
+**El movimiento del cursor no lo cubre la tanda de pixeles y no se modela en la
+referencia.** La tanda sólo sabe apretar A, así que arriba, abajo y B son
+caminos que no puede ejercitar; escribir del otro lado código que ninguna prueba
+corre es exactamente cómo sobrevivieron los tres errores del intérprete. Lo
+cubre `pruebas/test_elegir.py`, que aprieta cualquier botón. La tanda cubre la
+otra mitad, que es cómo se ve.
+
+
 ## Esperando respuesta de taro
 
 * **`rom/build/demo-apertura-jugable/`**: es la copia pre-fundido que taro pidió
@@ -236,9 +259,8 @@ problemas distintos.
    justo sobre el punto 1 de `assets/README.md` —la estrategia de paletas— y lo
    convierte en el camino crítico de los diez minutos, no en una tangente.
 
-2. **El insta-shave necesita `ShowChoice`** (código 10140, el "Yes/No"). Es lo
-   único que falta del mapa 7. En todo el juego es el primer bloqueo de 36
-   páginas; lo que de verdad manda a esa escala es `ControlVars`, con 548.
+2. **El insta-shave ya anda**: `ShowChoice` está hecho, con cursor, vuelta al
+   final de la lista y cancelar con B. Ver la decisión de abajo.
 
 3. **El cronómetro ya anda**: era el `--con-timer` que faltaba en el build. Ver
    la receta de abajo.
@@ -343,6 +365,14 @@ problemas distintos.
 
 
 ## Lo que la tanda no cubre
+
+* **El cursor de `ShowChoice`.** La tanda sólo aprieta A, así que arriba, abajo
+  y B no los toca nadie de ese lado; por eso la referencia tampoco los modela.
+  Los cubre `pruebas/test_elegir.py`. Lo que la tanda sí compara es la ventana
+  dibujada, en el caso `elegir`: el cuadro 140 tiene que decir `('> Yes', '  No')`
+  y el 210 la respuesta de la rama que corrió. Que diga qué texto es no es
+  adorno —lo imprime `snes_expect.py`—: cuatro cuadros en cero también sería el
+  resultado si la página no compilara de los dos lados.
 
 `just snes-hitos-foto` son **88 casos, todos en verde**, y el más largo es
 `talan`: mil doscientos cuadros de la escena entera del Emitter Room. Lo que la

@@ -75,6 +75,10 @@ PAD_UP    = $08
 ; A es el bit 7 de JOY1L.
 PAD_A     = $80
 
+; B vive con los otros en JOY1H, y es el de más peso de los dieciséis. Lo usa
+; la elección para cancelar; caminar no lo mira.
+PAD_B     = $80
+
 ; --- DMA, canal 0 ----------------------------------------------------------
 DMAP0    = $4300        ; modo de transferencia
 BBAD0    = $4301        ; registro del PPU al que va
@@ -251,6 +255,27 @@ scroll_y:   .res 2      ; lo mismo menos uno, que es lo que el PPU quiere
 pad:        .res 1      ; lo que el control tenía apretado este cuadro
 pad_a:      .res 1      ; y A, que vive en el otro byte del control
 pad_a_ant:  .res 1      ; cómo estaba el cuadro pasado, para ver el flanco
+; La elección abierta, si hay una: es `ShowChoice`. Mientras `eleg_activo` esté
+; puesto hay una ventana de mensaje en pantalla con las opciones y la página
+; está bloqueada, igual que con un mensaje común.
+;
+; El cursor no es un sprite ni un dibujo: el conversor emitió **un cuadro de
+; texto por opción**, iguales salvo por dónde está el ">", así que moverlo es
+; recomponer la ventana con otro desplazamiento. Por eso acá no hay más estado
+; que cuál está marcada.
+eleg_activo: .res 1
+eleg_n:      .res 1     ; cuántas opciones
+eleg_sel:    .res 1     ; cuál está marcada, desde cero
+eleg_cancel: .res 1     ; qué opción elige el botón B, más uno; 0 es "no se
+                        ; puede cancelar". Es el `choice_cancel_type` de RM2k
+                        ; tal cual, que easyrpg usa como `type - 1`.
+eleg_tabla:  .res 2     ; dónde empieza la tabla de la elección, dentro de la
+                        ; página: por cada opción, el cuadro y el destino
+eleg_flancos: .res 1    ; los botones que se acaban de apretar este cuadro. No
+                        ; usa `temp` porque `eventos_tick` lo tiene ocupado.
+pad_ant:     .res 1     ; JOY1H del cuadro pasado, para mirar flancos de las
+                        ; direcciones y de B como ya se hacía con A
+
 temp:       .res 4      ; cuentas intermedias
 hero_x:     .res 2      ; dónde está el héroe en el mapa, en pixeles
 hero_y:     .res 2
@@ -554,6 +579,7 @@ grupo_listo:
     ; una A que ya no cierra nada. Está medido —sin este `stz`, `snes-cerrar` se
     ; cae en las doce corridas, y en snes9x además de en bsnes—.
     stz msg_abierto
+    stz eleg_activo
     stz msg_estado
     stz msg_subir
     ; Los dos del pad son por las dudas y no por un error visto: `read_pad`
@@ -1208,6 +1234,14 @@ sin_espera:
     ; cámara lo sigue, porque en `game_player.cpp` de easyrpg `UpdateMoveRoute`
     ; corre **antes** del guard de `IsMessageActive`. En este juego hay 186
     ; páginas donde eso pasa, y la primera está en el mapa 1.
+    ; Una elección abierta manda sobre el mensaje: la ventana es la misma pero
+    ; A no la cierra, la resuelve.
+    lda eleg_activo
+    beq sin_eleccion
+    jsr eleccion_tick
+    bne sin_mensaje             ; eligió: la página sigue en este mismo cuadro
+    rts
+sin_eleccion:
     lda msg_abierto
     ora msg_estado              ; también mientras se está componiendo
     beq sin_mensaje
@@ -2885,6 +2919,9 @@ otro:
 :   cmp #OP_IR
     bne :+
     jmp op_ir
+:   cmp #OP_ELEGIR
+    bne :+
+    jmp op_elegir
 :   cmp #OP_TELEPORT
     bne :+
     jmp op_teleport
@@ -2905,6 +2942,7 @@ op_mensaje:
     ; lleva unos cuantos. La ventana se prende sola cuando el compositor
     ; termina; mientras tanto la página ya está bloqueada.
     stz msg_abierto
+    stz eleg_activo
     rep #$20
 .a16
     lda [cod_ptr], y            ; el desplazamiento, que va en A a msg_empezar
@@ -2973,6 +3011,27 @@ op_ir:
     sep #$20
 .a8
     jmp otro
+
+; `ShowChoice`: abre la ventana con las opciones y corta el cuadro, igual que
+; un mensaje. La diferencia es que la página **no retoma donde quedó**: cuando
+; el jugador elige, `eleccion_tick` le pone al cursor el destino de la opción
+; marcada. Por eso acá no se guarda `ev_cur`: lo que se guarda es dónde está la
+; tabla, que es de donde salen los dos, el cuadro que se dibuja y el destino.
+op_elegir:
+    lda [cod_ptr], y            ; cuántas opciones
+    sta eleg_n
+    iny
+    lda [cod_ptr], y            ; qué opción elige cancelar, más uno
+    sta eleg_cancel
+    iny
+    sty eleg_tabla
+    stz eleg_sel                ; `Window_Selectable` arranca con el índice en
+                                ; cero, y la primera opción es la marcada
+    lda #1
+    sta eleg_activo
+    jsr eleg_abrir
+    rts
+
 
 op_switch:
     rep #$20
@@ -3452,6 +3511,123 @@ op_teleport:
     ; después de un teletransporte —está en la lista de ESTADO.md—; la
     ; cinemática de apertura tiene once.
     sty ev_cur
+    rts
+.endproc
+
+; Compone la ventana de la opción marcada. El cuadro sale de la tabla, en
+; `eleg_tabla + eleg_sel * 4`; el destino está dos bytes más allá y lo lee
+; `eleccion_tick`.
+;
+; Volver a llamar a `msg_empezar` con la ventana ya abierta es lo que mueve el
+; cursor: `msg_abierto` no se apaga, así que la ventana no parpadea, y el
+; compositor va pisando renglón por renglón lo que había. Un renglón de una
+; opción son cinco o seis caracteres, o sea un par de cuadros: se ve como un
+; cursor que se mueve, no como una ventana que se rehace.
+.proc eleg_abrir
+.a8
+.i16
+    lda eleg_sel
+    asl
+    asl                         ; cuatro bytes por opción
+    rep #$20
+.a16
+    and #$00FF
+    clc
+    adc eleg_tabla
+    tay
+    lda [cod_ptr], y            ; el desplazamiento del cuadro, de 16 bits
+    jsr msg_empezar             ; que lo espera en A y en modo 16
+    sep #$20
+.a8
+    rts
+.endproc
+
+; Un cuadro de una elección abierta. Devuelve A distinto de cero cuando el
+; jugador eligió, y ahí la página ya tiene el cursor puesto en el cuerpo de la
+; opción y sigue en este mismo cuadro.
+;
+; El movimiento del cursor es `Window_Selectable::Update` con `column_max` en
+; uno: arriba y abajo dan la vuelta, y valen por **flanco** y no por estado, que
+; es el `Input::IsTriggered` de allá. Sostener abajo no baja de a un renglón por
+; cuadro.
+;
+; **Este camino no lo cubre la tanda de pixeles**, que sólo sabe apretar A, y
+; por eso la referencia no lo modela: escribir del otro lado código que ninguna
+; prueba corre es la manera en que este repo ya se equivocó tres veces. Lo cubre
+; `pruebas/test_elegir.py`, que sí puede apretar cualquier botón.
+.proc eleccion_tick
+.a8
+.i16
+    lda msg_abierto
+    bne abierta
+    lda #0                      ; todavía se está componiendo: nadie elige
+    rts
+abierta:
+    lda pad
+    eor pad_ant
+    and pad                     ; lo que se apretó **en este cuadro**
+    sta eleg_flancos
+    and #PAD_UP
+    beq no_arriba
+    lda eleg_sel
+    bne sube_una
+    lda eleg_n                  ; desde la primera, arriba da la vuelta
+sube_una:
+    dec a
+    sta eleg_sel
+    jsr eleg_abrir
+    lda #0
+    rts
+no_arriba:
+    lda eleg_flancos
+    and #PAD_DOWN
+    beq no_abajo
+    lda eleg_sel
+    inc a
+    cmp eleg_n
+    bcc baja_una
+    lda #0                      ; y desde la última, abajo también
+baja_una:
+    sta eleg_sel
+    jsr eleg_abrir
+    lda #0
+    rts
+no_abajo:
+    lda eleg_flancos
+    and #PAD_B
+    beq mira_a
+    lda eleg_cancel
+    beq mira_a                  ; esta elección no se deja cancelar
+    dec a                       ; `choice_result = cancel_type - 1`
+    sta eleg_sel
+    bra elige
+mira_a:
+    lda pad_a
+    beq nada
+    lda pad_a_ant
+    bne nada                    ; ya lo tenía apretado: no es un flanco
+elige:
+    lda eleg_sel
+    asl
+    asl
+    rep #$20
+.a16
+    and #$00FF
+    clc
+    adc eleg_tabla
+    inc a
+    inc a                       ; el destino va después del cuadro
+    tay
+    lda [cod_ptr], y
+    sta ev_cur
+    sep #$20
+.a8
+    stz eleg_activo
+    stz msg_abierto             ; y con eso `flush_video` apaga el HDMA
+    lda #1
+    rts
+nada:
+    lda #0
     rts
 .endproc
 
@@ -11707,6 +11883,8 @@ termina:
     lda HVBJOY
     and #$01
     bne termina                 ; sigue leyendo
+    lda pad
+    sta pad_ant                 ; el de recién, para los flancos de abajo
     lda JOY1H
     sta pad
     ; De A no interesa el estado sino el flanco: RM2k cierra el mensaje con

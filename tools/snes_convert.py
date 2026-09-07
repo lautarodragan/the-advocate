@@ -1742,6 +1742,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "OP_PAN      = $%02X\n"
         "OP_SI       = $%02X\n"
         "OP_IR       = $%02X\n"
+        "OP_ELEGIR   = $%02X\n"
         "; Las dos operaciones de PanScreen que compilan.\n"
         "PAN_CORRER  = %d\n"
         "PAN_VOLVER  = %d\n"
@@ -1850,7 +1851,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            eventos.OP_FLASH, eventos.OP_TIMER, eventos.OP_BGM,
            eventos.OP_LUGAR, eventos.OP_TRUEQUE, eventos.OP_SACUDIR,
            eventos.OP_DESTELLO, eventos.OP_FUNDIR_BGM, eventos.OP_PAN,
-           eventos.OP_SI, eventos.OP_IR,
+           eventos.OP_SI, eventos.OP_IR, eventos.OP_ELEGIR,
            eventos.PAN_CORRER, eventos.PAN_VOLVER,
            eventos.TIMER_PONER, eventos.TIMER_ARRANCAR,
            TIMER_X, TIMER_Y, TIMER_GLIFO_W, TIMER_GLIFOS - 1,
