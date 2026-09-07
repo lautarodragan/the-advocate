@@ -223,7 +223,22 @@ Las páginas automáticas que compilan enteras son **272 de 489**.
 
    Cuatro por id sería no compartir nada. Los autotiles dan 0,65 porque sus
    combinaciones comparten los cuartos, y en la SNES un autotile de 16x16 son
-   cuatro celdas del tilemap apuntando a tiles que ya están. No hay que inventar
+   cuatro celdas del tilemap apuntando a tiles que ya están.
+
+   La zona de **objetos** —los tiles sueltos de las dos capas, que es lo que en
+   la imagen no son autotiles— mirada aparte:
+
+       casillas usadas             3232 de 12096   sobra el 73%
+       tiles de 8x8 brutos                 12928
+       distintos dentro de cada chipset     9904   23% menos
+       distintos compartiendo entre ellos   8098   18% más -> 253 KB
+
+   Las dos cosas que taro sospechaba mirando las imágenes están: sobra el 73% de
+   las casillas, y entre chipsets se duplica un 18%. **Ninguna de las dos mueve
+   el presupuesto**, y por razones distintas: el 73% nunca entró en la cuenta
+   porque sólo se expanden los ids usados, y el 18% ya estaba adentro de los
+   320 KB porque ahí se deduplica globalmente. Sirven para explicar por qué el
+   total dio tan chico, no para bajarlo más. No hay que inventar
    ningún formato: el hardware ya trabaja en la unidad correcta. Es también por
    qué los 6916 ids, que ingenuamente serían 27.664 tiles de 8x8, se quedan en
    10.251.
