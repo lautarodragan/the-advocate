@@ -26,7 +26,8 @@ escena de Talan —los 233 comandos de la página de contacto del evento 5 del
 mapa 3— corre y **está verificada** en mil doscientos cuadros, y
 `demo-apertura` lleva los mapas 4, 1, 2, 3, 5 y 6.
 
-Las páginas automáticas que compilan enteras son **272 de 489**.
+Las páginas automáticas que compilan enteras son **272 de 489**, y del juego
+entero compilan **2329 de 3473**.
 
 ### Lo próximo, si no se decide otra cosa
 
@@ -389,6 +390,32 @@ bloquea; por eso hay que llegar desde arriba.
 El filtro de capa pasó a la ROM y ya no lo resuelve el conversor: la misma
 página vale o no según qué celda la esté mirando, así que rechazarla al compilar
 no alcanzaba.
+
+
+**El oro, y dos clases más de `ConditionalBranch`.** `OP_SI` ganó adelante un
+byte con **la clase de condición, con el número de RM2k tal cual**, y con eso
+entran dos que no piden estado nuevo o casi:
+
+* **"el actor está en el grupo"** —el `grupo` ya estaba—, +9 páginas. Sólo el
+  sub-tipo 0: de los 155 comandos del juego que preguntan por un héroe, 57 son
+  de ése; 78 preguntan por el equipo y 20 por una habilidad, y eso pide
+  estadísticas de actor que no llevamos.
+* **el oro**, +7 páginas, junto con `ChangeGold`, que hasta ahora se aceptaba y
+  no se hacía.
+
+En total **2313 → 2329 páginas**. Dos que se midieron y se descartaron: la
+orientación del héroe y el cronómetro destraban **cero** —esas páginas están
+frenadas por otra cosa igual—.
+
+El oro son tres bytes: el tope de RM2k son 999999 y este juego usa el valor
+entero. Se recorta a [0, 999999] como `Game_Party::GainGold`.
+
+Y un detalle que casi se escapa: **`>=` y `<=` no son una la negación de la
+otra**, porque en la igualdad se cumplen las dos. El primer intento calculaba
+`oro >= x` y le daba vuelta el bit según la polaridad, que está mal exactamente
+en el borde. La ROM las calcula por separado, y el banco de prueba pasa por ahí:
+el `DetourOfficer` del mapa 8 es un peaje que pregunta `oro >= 500` y cobra 500,
+así que con 500 justos tiene que cobrar.
 
 
 ## Esperando respuesta de taro

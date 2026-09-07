@@ -586,7 +586,6 @@ ACEPTADOS_SIN_HACER = {
     WEATHER_EFFECTS,
     PLAY_SOUND,
     SHOW_BATTLE_ANIMATION,
-    CHANGE_GOLD,
     CHANGE_ITEMS,
     SHOW_PICTURE,
     MOVE_PICTURE,
@@ -682,7 +681,8 @@ OP_SACUDIR  = 0x0E      # fuerza (byte), velocidad (byte), cuadros (word):
 OP_DESTELLO = 0x0F      # r, g, b, fuerza (byte cada uno, 0..31) y cuadros
                         # (byte): `FlashOnce`, el destello de la pantalla
                         # entera. Ver `Estado.cuadro_de_destello`.
-OP_SI       = 0x12      # switch (word), polaridad (byte), destino (word):
+OP_SI       = 0x12      # tipo (byte), operando (word), polaridad (byte),
+                        # destino (word):
                         # `ConditionalBranch` con condición de switch. Si no se
                         # cumple, el cursor salta al destino, que es el `else`
                         # o el `end` de esa misma rama. La polaridad es la de
@@ -696,6 +696,15 @@ OP_SI       = 0x12      # switch (word), polaridad (byte), destino (word):
 OP_IR       = 0x13      # destino (word): el salto sin condición que se emite
                         # donde estaba el `else`, para que la rama de arriba se
                         # saltee la de abajo.
+OP_ORO      = 0x15      # signo (byte: 0 suma, 1 resta) y monto de 24 bits. Es
+                        # `ChangeGold`, y va en tres bytes porque el tope de
+                        # RM2k son 999999 y el juego usa el valor entero: hay un
+                        # comando que da exactamente eso.
+                        #
+                        # La ROM recorta a [0, ORO_MAX] como
+                        # `Game_Party::GainGold`. Todavía no hay dónde mostrarlo
+                        # —el menú no existe— pero sí quién lo pregunta: la rama
+                        # de oro de `ConditionalBranch`.
 OP_ELEGIR   = 0x14      # cuántas opciones (byte), qué hace cancelar (byte), y
                         # después una entrada por opción: el cuadro de texto
                         # (word) y el destino (word). Es `ShowChoice`.
@@ -1128,10 +1137,33 @@ COND_RAMA = 12010
 COND_SINO = 22010
 COND_FIN = 22011
 
-# El tipo de condición que sabemos hacer: `parameters[0] == 0` es un switch.
-# Las otras once —variable, oro, objeto, héroe en el grupo— se rechazan, y eso
-# deja afuera tres páginas de las veinticuatro; ver ESTADO.md.
+# Las clases de condición que sabemos hacer. El número es el de RM2k tal cual
+# —`parameters[0]`— y no una numeración nuestra: copiarlo evita la traducción que
+# ya se equivocó una vez con los códigos de comando de las puertas.
+#
+# Medido sobre el juego entero, por cuántas páginas destraba cada una:
+#
+#     variable               332 páginas   pide variables, que no hay
+#     switch                 145           hecho
+#     héroe en el grupo       48           hecho, pero sólo el sub-tipo 0
+#     orientación del héroe   31           destraba **cero**: esas páginas están
+#                                          frenadas por otra cosa igual
+#     objeto                  24           pide inventario, que no hay
+#     oro                     10           hecho
+#     cronómetro               1           destraba cero
 COND_SWITCH = 0
+COND_ORO = 3
+COND_ACTOR = 5
+
+# Y del "héroe" sólo la primera de sus siete preguntas. Las otras —nivel, HP,
+# habilidad, equipo, estado— piden estadísticas de actor que este port no lleva.
+# De los 155 comandos del juego que preguntan por un héroe, 57 son de ésta; 78
+# preguntan por el equipo y 20 por una habilidad.
+COND_ACTOR_EN_GRUPO = 0
+
+# El tope del oro en RM2k: `Game_Party::GainGold` recorta a
+# `MaxGoldValue()`, que por omisión es esto.
+ORO_MAX = 999999
 
 # Cuántos switches entra el bitmap de la ROM: `SWITCH_BYTES` son 128, o sea del
 # 0 al 1023. Una rama sobre uno más alto escribiría fuera, así que no compila.
@@ -1194,22 +1226,44 @@ def cuadros_de_eleccion(opciones, mensajes):
 
 
 def bytes_de_rama(cmd):
-    """Un `ConditionalBranch` con condición de switch, con el destino en blanco.
+    """Un `ConditionalBranch` de las clases que sabemos, con el destino en blanco.
 
-    Las otras once clases de condición —variable, oro, objeto, tiempo, héroe en
-    el grupo— se rechazan. No es que sean difíciles: es que no hay con qué
-    ejercitarlas. Sin variables, sin oro y sin inventario, una rama sobre
-    cualquiera de ésas daría siempre la misma respuesta y la prueba no diría
-    nada. Deja afuera tres páginas de las veinticuatro.
+    Tres de las doce: switch, oro y "el actor está en el grupo". Las otras piden
+    estado que este port no lleva —variables, inventario, estadísticas de
+    actor— y una rama sobre cualquiera de ésas daría siempre la misma respuesta,
+    así que ni siquiera se podría probar.
+
+    La polaridad se copia tal cual de RM2k y quiere decir cosas distintas según
+    la clase: en un switch, 0 es "tiene que estar prendido"; en el oro, 0 es
+    ">=" y 1 es "<=". Es el `com.parameters[2]` de allá, sin traducir.
     """
     p = cmd.parameters
-    if len(p) < 3 or p[0] != COND_SWITCH:
-        raise NoSePuede("rama sobre algo que no es un switch")
-    numero = p[1]
-    if not 0 <= numero < SWITCH_MAX:
-        raise NoSePuede("switch %d fuera del bitmap" % numero)
-    # La polaridad se copia tal cual de RM2k: 0 es "tiene que estar prendido".
-    return bytes([OP_SI, numero & 0xFF, numero >> 8, 1 if p[2] else 0, 0, 0])
+    if len(p) < 3:
+        raise NoSePuede("una rama sin operandos")
+    if p[0] == COND_SWITCH:
+        numero = p[1]
+        if not 0 <= numero < SWITCH_MAX:
+            raise NoSePuede("switch %d fuera del bitmap" % numero)
+    elif p[0] == COND_ORO:
+        numero = p[1]
+        if not 0 <= numero <= 0xFFFF:
+            # El operando viaja en una palabra. En este juego el más grande es
+            # 2000, así que no se pierde nada; si algún día aparece uno mayor,
+            # esto lo dice en vez de compararlo mal.
+            raise NoSePuede("comparación de oro contra %d, que no entra en una "
+                            "palabra" % numero)
+    elif p[0] == COND_ACTOR:
+        if p[2] != COND_ACTOR_EN_GRUPO:
+            raise NoSePuede("del héroe sólo sabemos si está en el grupo")
+        numero = p[1]
+        if not 0 <= numero <= 0xFFFF:
+            raise NoSePuede("actor %d fuera de rango" % numero)
+        # "Está en el grupo" no tiene polaridad: la rama de abajo es el `else`.
+        return bytes([OP_SI, COND_ACTOR, numero & 0xFF, numero >> 8, 0, 0, 0])
+    else:
+        raise NoSePuede("rama sobre una condición que no sabemos hacer")
+    return bytes([OP_SI, p[0], numero & 0xFF, numero >> 8,
+                  1 if p[2] else 0, 0, 0])
 
 
 def con_destino(pieza, destino):
@@ -1347,6 +1401,20 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
 
     if cmd.code == END or cmd.code in IGNORABLES:
         return b""
+
+    if cmd.code == CHANGE_GOLD:
+        # `OperateValue(operación, tipo, valor)`: la operación es 0 sumar y 1
+        # restar, y el tipo 0 constante y 1 "el valor está en una variable".
+        # Sin variables, lo segundo no se puede.
+        if len(p) < 3:
+            raise NoSePuede("ChangeGold sin operandos")
+        if p[1] != 0:
+            raise NoSePuede("ChangeGold con el monto en una variable")
+        monto = p[2]
+        if not 0 <= monto <= 0xFFFFFF:
+            raise NoSePuede("ChangeGold de %d, que no entra en tres bytes" % monto)
+        return bytes([OP_ORO, 1 if p[0] else 0,
+                      monto & 0xFF, (monto >> 8) & 0xFF, (monto >> 16) & 0xFF])
 
     if cmd.code == PLAY_BGM:
         # Sin registro de temas se acepta y no se hace, que es lo que este repo
@@ -2142,6 +2210,9 @@ class Estado:
         # mapas. Todo lo que pregunte por esto tiene que preguntar `is not
         # None`.
         self.mensaje = None
+        # El oro del grupo. No se muestra en ningún lado —el menú no existe—
+        # pero la rama de oro de `ConditionalBranch` lo pregunta.
+        self.oro = 0
         # La elección abierta, si hay una. Mientras esté puesta, `mensaje`
         # apunta al cuadro de la opción marcada y la página está bloqueada.
         self.eleccion = None
@@ -2594,7 +2665,7 @@ LARGO_DE_OPCODE = {
     OP_FIN: 1, OP_SWITCH: 4, OP_TELEPORT: 6, OP_ESPERAR: 3, OP_TINTE: 5,
     OP_GRUPO: 3, OP_MENSAJE: 3, OP_RUTAS: 1, OP_FLASH: 7, OP_TIMER: 5,
     OP_BGM: 2, OP_LUGAR: 6, OP_TRUEQUE: 3, OP_SACUDIR: 5, OP_DESTELLO: 6,
-    OP_FUNDIR_BGM: 3, OP_PAN: 8, OP_SI: 6, OP_IR: 3,
+    OP_FUNDIR_BGM: 3, OP_PAN: 8, OP_SI: 7, OP_IR: 3, OP_ORO: 5,
 }
 
 
@@ -2867,12 +2938,13 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
         # se arma la lista de comandos y la compila `compilar_pagina`.
         cual, adentro, despues = rama
         # El destino es el mismo que pondría `compilar_pagina` al cerrar la
-        # rama: después del `OP_SI` —seis bytes— y del `OP_SWITCH` de adentro
-        # —cuatro—. Acá se calcula a mano porque esta página no sale de comandos
-        # de RM2k, así que no pasa por el parcheo; el bytecode que resulta es el
-        # mismo byte por byte, que es lo que hace que pruebe algo.
-        destino = len(codigo) + 6 + 4
-        codigo += bytes([OP_SI, cual & 0xFF, cual >> 8, 0,
+        # rama: después del `OP_SI` —siete bytes desde que lleva la clase de
+        # condición adelante— y del `OP_SWITCH` de adentro —cuatro—. Acá se
+        # calcula a mano porque esta página no sale de comandos de RM2k, así que
+        # no pasa por el parcheo; el bytecode que resulta es el mismo byte por
+        # byte, que es lo que hace que pruebe algo.
+        destino = len(codigo) + LARGO_DE_OPCODE[OP_SI] + 4
+        codigo += bytes([OP_SI, COND_SWITCH, cual & 0xFF, cual >> 8, 0,
                          destino & 0xFF, destino >> 8])
         codigo += bytes([OP_SWITCH, adentro & 0xFF, adentro >> 8, 1])
         codigo += bytes([OP_SWITCH, despues & 0xFF, despues >> 8, 1])
@@ -3282,15 +3354,36 @@ def ejecutar(codigo, estado, desde=0):
                 estado.refresco = True
             i += 4
         elif op == OP_SI:
-            # `CommandConditionalBranch` con condición de switch: si no se
-            # cumple, el cursor se va al `else` o al `end`. El destino es
-            # absoluto dentro de la página, así que el salto es la asignación.
-            numero = codigo[i + 1] | (codigo[i + 2] << 8)
-            quiere_prendido = not codigo[i + 3]
-            if (numero in estado.switches) == quiere_prendido:
-                i += 6
+            # `CommandConditionalBranch`: si no se cumple, el cursor se va al
+            # `else` o al `end`. El destino es absoluto dentro de la página, así
+            # que el salto es la asignación.
+            #
+            # El tipo es el de RM2k tal cual, y la polaridad quiere decir cosas
+            # distintas según cuál sea: en un switch 0 es "prendido" y en el oro
+            # 0 es ">=".
+            tipo = codigo[i + 1]
+            operando = codigo[i + 2] | (codigo[i + 3] << 8)
+            polaridad = codigo[i + 4]
+            if tipo == COND_SWITCH:
+                vale = (operando in estado.switches) == (not polaridad)
+            elif tipo == COND_ORO:
+                vale = (estado.oro >= operando if not polaridad
+                        else estado.oro <= operando)
+            elif tipo == COND_ACTOR:
+                vale = operando in estado.grupo
             else:
-                i = codigo[i + 4] | (codigo[i + 5] << 8)
+                raise ValueError("condición %d que no conozco" % tipo)
+            if vale:
+                i += 7
+            else:
+                i = codigo[i + 5] | (codigo[i + 6] << 8)
+        elif op == OP_ORO:
+            # `Game_Party::GainGold`: suma y recorta a [0, ORO_MAX].
+            monto = (codigo[i + 2] | (codigo[i + 3] << 8)
+                     | (codigo[i + 4] << 16))
+            estado.oro = max(0, min(ORO_MAX, estado.oro
+                                    + (-monto if codigo[i + 1] else monto)))
+            i += 5
         elif op == OP_IR:
             i = codigo[i + 1] | (codigo[i + 2] << 8)
         elif op == OP_TELEPORT:

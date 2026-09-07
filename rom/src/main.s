@@ -537,6 +537,9 @@ borrar_switches:
     sta tinte_s
     stz salto_hay
     stz panico                  ; la RAM arranca con basura, y 85 no es un código
+    stz oro
+    stz oro + 1
+    stz oro + 2
     ; El grupo va antes de cargar el primer mapa: `cargar_mapa` elige con
     ; qué se dibuja el héroe, y sin esto leería la basura con la que
     ; arranca la RAM. El grupo con el que arranca la partida la partida, de la base del juego. El gráfico
@@ -2935,6 +2938,9 @@ otro:
 :   cmp #OP_ELEGIR
     bne :+
     jmp op_elegir
+:   cmp #OP_ORO
+    bne :+
+    jmp op_oro
 :   cmp #OP_TELEPORT
     bne :+
     jmp op_teleport
@@ -2976,6 +2982,21 @@ op_mensaje:
 ; que le corresponde. Quién es ese destino lo resolvió el conversor, que es el
 ; único que ve la página entera; acá saltar es asignar Y.
 op_si:
+    ; El primer byte dice **qué se pregunta**, con el número de RM2k tal cual: 0
+    ; un switch, 3 el oro, 5 si un actor está en el grupo. Ver `bytes_de_rama`.
+    ;
+    ; Cada rama deja en A si la condición se cumple —cero o distinto de cero— y
+    ; a Y apuntando al byte de polaridad; de ahí en adelante el camino es uno
+    ; solo. El switch es el único que usa la polaridad para decidir: en el oro
+    ; ya está adentro de la comparación y el actor no la tiene.
+    lda [cod_ptr], y
+    iny                         ; Y -> el operando
+    cmp #COND_ORO
+    beq si_oro
+    cmp #COND_ACTOR
+    beq si_actor
+
+    ; --- el switch ---
     rep #$20
 .a16
     phy                         ; el cursor: `switch_encendido` se lleva X e Y
@@ -2999,6 +3020,79 @@ si_tengo:
     sta temp
     lda [cod_ptr], y
     eor temp
+    bra si_decide
+
+    ; --- el actor: `IsActorInParty` ---
+    ; No lleva polaridad: la rama de abajo es el `else`, así que el conversor
+    ; emite cero ahí y acá no se lo mira.
+si_actor:
+    lda [cod_ptr], y            ; el id, que entra en un byte
+    phy
+    jsr en_el_grupo             ; Z=0 si está
+    ply
+    beq si_actor_no
+    lda #$01
+    bra si_actor_listo
+si_actor_no:
+    lda #$00
+si_actor_listo:
+    iny
+    iny                         ; Y -> la polaridad, que vale cero
+    bra si_decide
+
+    ; --- el oro ---
+    ; `CommandConditionalBranch` caso 3: con la polaridad en cero es
+    ; `oro >= operando` y con cualquier otra cosa `oro <= operando`. **No son
+    ; una la negación de la otra**: en la igualdad se cumplen las dos, así que
+    ; se calculan por separado en vez de dar vuelta un bit.
+si_oro:
+    rep #$20
+.a16
+    lda [cod_ptr], y            ; contra cuánto, de 16 bits
+    sta temp + 2
+    sep #$20
+.a8
+    iny
+    iny                         ; Y -> la polaridad
+    lda oro + 2
+    bne si_oro_grande           ; el oro pasa de 65535: mayor que cualquier
+                                ; operando, que entra en una palabra
+    rep #$20
+.a16
+    lda oro
+    cmp temp + 2                ; C=1 si oro >= operando
+    sep #$20
+.a8
+    lda #$01
+    bcs si_oro_ge
+    lda #$00
+si_oro_ge:
+    sta temp
+    rep #$20
+.a16
+    lda temp + 2
+    cmp oro                     ; C=1 si operando >= oro, o sea oro <= operando
+    sep #$20
+.a8
+    lda #$01
+    bcs si_oro_le
+    lda #$00
+si_oro_le:
+    sta temp + 1
+    bra si_oro_elige
+si_oro_grande:
+    lda #$01
+    sta temp                    ; el >= se cumple
+    stz temp + 1                ; y el <= no
+si_oro_elige:
+    lda [cod_ptr], y            ; la polaridad
+    beq si_oro_usa_ge
+    lda temp + 1
+    bra si_decide
+si_oro_usa_ge:
+    lda temp
+
+si_decide:
     beq si_no_cumple
     iny
     iny
@@ -3012,6 +3106,92 @@ si_no_cumple:
     tay
     sep #$20
 .a8
+    jmp otro
+
+; `ChangeGold`: suma o resta y recorta a [0, ORO_MAX], que es lo que hace
+; `Game_Party::GainGold`. El monto va en tres bytes porque el tope de RM2k son
+; 999999 y este juego usa el valor entero.
+;
+; No hay dónde mostrarlo —el menú no existe— pero sí quién lo pregunta: la rama
+; de oro de `ConditionalBranch`.
+op_oro:
+    lda [cod_ptr], y            ; el signo: 0 suma, 1 resta
+    sta temp
+    iny
+    rep #$20
+.a16
+    lda [cod_ptr], y            ; los 16 bits bajos del monto
+    sta temp + 2
+    sep #$20
+.a8
+    iny
+    iny
+    lda [cod_ptr], y            ; y el byte alto
+    sta temp + 1                ; el byte alto del monto
+    iny
+    phy
+
+    lda temp
+    bne oro_resta
+    ; Sumar: 24 bits, y si se pasa de ORO_MAX queda en ORO_MAX.
+    rep #$20
+.a16
+    lda oro
+    clc
+    adc temp + 2
+    sta oro
+    sep #$20
+.a8
+    lda oro + 2
+    adc temp + 1
+    sta oro + 2
+    bra oro_recorta
+oro_resta:
+    rep #$20
+.a16
+    lda oro
+    sec
+    sbc temp + 2
+    sta oro
+    sep #$20
+.a8
+    lda oro + 2
+    sbc temp + 1
+    sta oro + 2
+    bcs oro_recorta
+    ; Se fue abajo de cero: queda en cero.
+    rep #$20
+.a16
+    stz oro
+    sep #$20
+.a8
+    stz oro + 2
+    bra oro_listo
+oro_recorta:
+    ; ¿Se pasó de ORO_MAX? Se compara de 24 bits, el byte alto primero.
+    lda oro + 2
+    cmp #^ORO_MAX
+    bcc oro_listo
+    bne oro_tope
+    rep #$20
+.a16
+    lda oro
+    cmp #.loword(ORO_MAX)
+    sep #$20
+.a8
+    bcc oro_listo
+    beq oro_listo
+oro_tope:
+    rep #$20
+.a16
+    lda #.loword(ORO_MAX)
+    sta oro
+    sep #$20
+.a8
+    lda #^ORO_MAX
+    sta oro + 2
+oro_listo:
+    ply
     jmp otro
 
 ; El salto sin condición que el conversor pone donde estaba el `else`, para que
@@ -12460,6 +12640,10 @@ obj_grande:  .res 1
 ; Un bit por switch de RM2k. El juego consulta hasta el 1003 en las condiciones
 ; de página, así que con 1024 alcanza. Se limpian una sola vez al arrancar: en
 ; RM2k una partida nueva empieza con todos apagados.
+; El oro del grupo, de 24 bits porque el tope de RM2k son 999999. Todavía no se
+; muestra en ningún lado —el menú no existe— pero la rama de oro de
+; `ConditionalBranch` lo pregunta, y `ChangeGold` lo mueve.
+oro:      .res 3
 switches: .res SWITCH_BYTES
 
 ; El tinte de pantalla escala cada canal por el mismo factor para todos los
