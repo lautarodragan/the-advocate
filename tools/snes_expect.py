@@ -412,19 +412,29 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
     base = 0
     apretar_a = set(apretar_a) if apretar_a else set()
     ultimo_a = max(apretar_a) if apretar_a else None
+    anterior = None
     while True:
         game_map, passable, ocupadas, _puertas = mundo.mapa(map_id)
         # Dónde arranca cada evento del mapa, en celdas y por índice de la tabla
         # de la ROM. Se rearma al entrar, como `cargar_mapa` vuelve a copiar la
         # tabla desde el cartucho, y con eso se tiran las rutas que estuvieran
         # corriendo en el mapa que se deja.
-        estado.entrar_a_un_mapa({n: (ev.x, ev.y)
-                                 for n, ev in enumerate(game_map.events)},
-                                mundo.paginas(map_id),
-                                {npc["evento"]: npc["velocidad"]
-                                 for npc in collect_npcs(game_map)},
-                                {npc["evento"]: npc["pose"] // 3
-                                 for npc in collect_npcs(game_map)})
+        #
+        # **Sólo si el mapa cambió.** Es el `map_changed` de
+        # `Game_Player::PerformTeleport`: un salto al mismo mapa no recarga
+        # nada. Rearmarlo igual borra lo que haya movido a los eventos —un
+        # `ChangeEventLocation`, un `TradeEventLocations`— aunque el jugador
+        # nunca haya salido del mapa, y eso se ve: ver la puerta del mapa 2 en
+        # `pruebas/test_puerta_misma.py`.
+        if map_id != anterior:
+            estado.entrar_a_un_mapa({n: (ev.x, ev.y)
+                                     for n, ev in enumerate(game_map.events)},
+                                    mundo.paginas(map_id),
+                                    {npc["evento"]: npc["velocidad"]
+                                     for npc in collect_npcs(game_map)},
+                                    {npc["evento"]: npc["pose"] // 3
+                                     for npc in collect_npcs(game_map)})
+        anterior = map_id
         if entrada is None:
             x, y = snes_convert.inicio_del_mapa(mundo.renderer, map_id,
                                                 passable, game_map.width,
@@ -741,6 +751,13 @@ def hero_position(mundo, estado, map_id, direction_name, inicio=None,
         # caminata se compara cuando ya terminó todo— pero sus cuadros existen
         # y el plan los cuenta.
         estado.fundidos += 1
+        if puerta["mapa"] == map_id:
+            # Una puerta al **mismo** mapa no recarga nada: sólo mueve al héroe,
+            # igual que un `Teleport` al mismo mapa. Los dos cuartos del mapa 2
+            # que parecen dos mapas se cruzan por puertas así, y recargar les
+            # devolvía a los eventos su posición original.
+            x, y = puerta["destino_x"], puerta["destino_y"]
+            continue
         map_id, x, y = entrar_al_mapa(mundo, estado, puerta["mapa"],
                                       (puerta["destino_x"], puerta["destino_y"]))
     if avance is not None:

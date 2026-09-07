@@ -327,6 +327,29 @@ roto de verdad que arregla el trabajo de paletas y no un flag:
 * **`snes-convert`**, que usa `snes-heroe 8`: `PawnDoorTop` del mapa 8.
 
 
+**Una puerta al mismo mapa ya no recarga el mapa.** Un `Teleport` al mismo mapa
+lo distinguía desde antes —`hubo_salto` compara con `mapa_actual`— pero una
+**puerta** —una página de contacto cuyo único comando es un teletransporte, que
+el conversor compila a una tabla aparte— recargaba siempre. Recargar vuelve a
+leer del cartucho las posiciones de los eventos, y con eso se pierde lo que los
+haya movido aunque el jugador nunca haya salido del mapa.
+
+taro lo vio en la puerta de arriba a la izquierda del mapa 2: abrirla manda el
+`LBDoorTop` a (94,97) y truequea el `LBDoorBottom` con el `MovinDoor`, así que
+el hueco queda negro; al volver reaparecían las franjas amarillas. Los dos
+cuartos que jugando parecen dos mapas son el mismo mapa 2.
+
+**La referencia lo tenía peor: recargaba en los dos caminos.** Su lazo llamaba a
+`entrar_a_un_mapa` en cada vuelta, también sin cambio de mapa, así que ni el
+`Teleport` de ida estaba bien modelado. No se veía porque ningún caso de la
+tanda mueve un evento y después salta adentro del mismo mapa. Ahora los dos
+lados comparan contra el mapa anterior, que es el `map_changed` de
+`Game_Player::PerformTeleport`.
+
+Lo cubre `pruebas/test_puerta_misma.py`, con una tercera ROM compartida que
+lleva el mapa 2 solo —alcanza, porque los teletransportes son internos—.
+
+
 ## Esperando respuesta de taro
 
 * **`rom/build/demo-apertura-jugable/`**: es la copia pre-fundido que taro pidió

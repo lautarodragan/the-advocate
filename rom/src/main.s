@@ -10713,7 +10713,26 @@ cruzar:
     ; héroe se queda visible en la celda de la puerta mientras la pantalla baja,
     ; que es lo que se ve en el original.
     sta fundido_mapa
+    ; **Una puerta al mismo mapa no recarga nada**, igual que un `Teleport` al
+    ; mismo mapa: ver `hubo_salto`. Recargar vuelve a leer del cartucho las
+    ; posiciones de los eventos, y con eso se pierde todo lo que los haya movido
+    ; —un `ChangeEventLocation`, un `TradeEventLocations`— aunque el jugador
+    ; nunca haya salido del mapa.
+    ;
+    ; Eso es lo que taro vio el 2026-09-07 con la puerta de arriba a la
+    ; izquierda del mapa 2. Abrirla mueve el `LBDoorTop` a (94,97) y truequea el
+    ; `LBDoorBottom` con el `MovinDoor`, así que el hueco queda negro. Cruzarla
+    ; anda bien —eso va por `OP_TELEPORT`, que sí distingue—; volver, no: el
+    ; evento 20 es una **puerta**, y al recargar el mapa las dos cosas volvían a
+    ; su lugar y reaparecían las franjas amarillas. Los dos cuartos son el mismo
+    ; mapa 2, separados lo suficiente como para que jugando parezcan dos.
+    cmp mapa_actual
+    bne otro_mapa_puerta
+    lda #FUNDIDO_MISMO
+    bra pedir_puerta
+otro_mapa_puerta:
     lda #FUNDIDO_PUERTA
+pedir_puerta:
     jsr empezar_fundido
     lda #1
     rts                         ; cruzó: la celda de llegada no se pisa

@@ -34,6 +34,11 @@ from consola import Partida, armar
 # cien.
 CON_VENTANA = (5, [3, 6, 7, 4])
 SIN_VENTANA = (66, [])
+# Y una tercera, con el mapa 2 solo: el Linkage Block entero. Sus dos cuartos
+# parecen dos mapas jugando pero son el mismo, y se cruzan con teletransportes
+# internos, así que para probarlos no hace falta ningún otro mapa. Ver
+# `test_puerta_misma.py`.
+LINKAGE = (2, [])
 
 
 @pytest.fixture(scope="session")
@@ -50,8 +55,8 @@ def partida(builds):
     `switch` se escribe en la RAM antes del primer cuadro de juego; para
     empezar en otro mapa, `.ir_al_mapa(...)`.
     """
-    def hacer(switch=(), con_ventana=True, rama=()):
-        arranca, resto = CON_VENTANA if con_ventana else SIN_VENTANA
+    def hacer(switch=(), con_ventana=True, rama=(), mapas=None):
+        arranca, resto = mapas or (CON_VENTANA if con_ventana else SIN_VENTANA)
         clave = (arranca, tuple(resto), con_ventana, tuple(rama))
         if clave not in builds:
             destino = os.path.join(
