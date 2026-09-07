@@ -1105,8 +1105,16 @@ def puede_dispararse(page):
     que todavía no se dibuja.
     """
     if page.trigger == TRIGGER_ACCION:
-        if page.layer != LAYER_MISMA:
-            return False
+        # Las dos celdas valen, y cada una pide la capa contraria. La de
+        # adelante es `CheckEventTriggerThere`, que pide `Layers_same`; la
+        # propia es `CheckEventTriggerHere`, que pide `!= Layers_same` —tiene
+        # que ser así: un evento de la capa del héroe le cierra el paso y nunca
+        # llegaría a pararse encima—.
+        #
+        # La propia estuvo sin hacer hasta el 2026-09-07 y taro la encontró
+        # jugando: la puerta que sale del pad de Talan es `TalDoorTop`, de
+        # acción y **capa 2**, y se abre parándose encima. Sin esto no se
+        # disparaba nunca y del pad no se podía salir.
         return not page.character_name or page.animation_type in ANIM_FIJAS
     if page.trigger == TRIGGER_TOCA_HEROE:
         return page.layer != LAYER_MISMA
@@ -3011,19 +3019,27 @@ class Interprete:
         return self.codigo is not None or bool(self.esperando_ev)
 
     def probar_accion(self, x, y, mirando, estado):
-        """La tecla de acción: el evento de la celda de adelante.
+        """La tecla de acción: la celda propia y la de adelante.
 
-        Sólo la de adelante, y no la propia. En `Game_Player::CheckActionEvent`
-        están las dos, pero la propia pide la capa contraria
-        —`CheckEventTriggerHere` con `GetLayer() != Layers_same`— y ésas no
-        compilan: ver `puede_dispararse`. Mirarla igual haría que la ROM
-        disparara algo que RM2k no dispara.
+        Las dos están en `Game_Player::CheckActionEvent`, y **cada una pide la
+        capa contraria**: la propia es `CheckEventTriggerHere`, que pide
+        `GetLayer() != Layers_same`, y la de adelante es
+        `CheckEventTriggerThere`, que pide `== Layers_same`. Tiene sentido: un
+        evento de la capa del héroe le cierra el paso, así que nunca llegaría a
+        pararse encima.
 
-        Lo de "hasta tres mostradores" tampoco está: son las celdas de tipo
-        counter, que dejan hablar del otro lado de un mostrador.
+        El orden es el de allá —primero la propia— y se prueban las dos, que es
+        lo que hace el `result |=`.
+
+        Lo de "hasta tres mostradores" no está: son las celdas de tipo counter,
+        que dejan hablar del otro lado de un mostrador.
         """
+        propia = self.probar_celda(x, y, TRIGGER_ACCION, estado,
+                                   capa_propia=True)
         dx, dy = RUTA_PASOS[mirando]
-        return self.probar_celda(x + dx, y + dy, TRIGGER_ACCION, estado)
+        adelante = self.probar_celda(x + dx, y + dy, TRIGGER_ACCION, estado,
+                                     capa_propia=False)
+        return propia or adelante
 
     def probar_contacto(self, x, y, estado):
         """El contacto: el evento de la celda que el héroe acaba de pisar.
@@ -3033,12 +3049,21 @@ class Interprete:
         """
         return self.probar_celda(x, y, TRIGGER_TOCA_HEROE, estado)
 
-    def probar_celda(self, x, y, trigger, estado):
-        """Encola la página activa del evento de esa celda si la dispara eso."""
+    def probar_celda(self, x, y, trigger, estado, capa_propia=None):
+        """Encola la página activa del evento de esa celda si la dispara eso.
+
+        `capa_propia` dice cuál de las dos reglas de capa se aplica: `True` es
+        la celda del héroe, que pide una capa **distinta** de la suya, y `False`
+        la de adelante, que pide la **suya**. `None` no mira la capa, que es lo
+        que hace el contacto.
+        """
         indice = estado.evento_en((x, y))
         if indice is None:
             return False
         pagina = pagina_activa(self.paginas, indice, estado)
+        if pagina is not None and capa_propia is not None:
+            if (pagina["capa"] == LAYER_MISMA) == capa_propia:
+                return False
         if (pagina is not None and pagina["trigger"] == trigger
                 and pagina["codigo"]):
             self.esperando_ev.add(indice)

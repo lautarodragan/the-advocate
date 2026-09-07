@@ -373,6 +373,24 @@ Dos cosas que destraba:
   candidatos cuestan 11% o más.
 
 
+**La tecla de acción mira las dos celdas.** `Game_Player::CheckActionEvent`
+prueba la del héroe y la de adelante, y **cada una pide la capa contraria**:
+`CheckEventTriggerHere` quiere `GetLayer() != Layers_same` y
+`CheckEventTriggerThere` quiere `== Layers_same`. No es simetría de adorno: un
+evento de la capa del héroe le cierra el paso, así que nunca se podría parar
+encima; uno de otra capa no lo frena y se le camina por arriba.
+
+Sólo estaba la de adelante, y estaba escrito como hueco conocido en
+`puede_dispararse`. taro lo encontró jugando el 2026-09-07: la puerta que sale
+del pad de Talan es `TalDoorTop`, evento 3 del mapa 7, **de acción y capa 2**, y
+se abre parándose encima. Debajo está `TalDoorBottom`, de la capa del héroe, que
+bloquea; por eso hay que llegar desde arriba.
+
+El filtro de capa pasó a la ROM y ya no lo resuelve el conversor: la misma
+página vale o no según qué celda la esté mirando, así que rechazarla al compilar
+no alcanzaba.
+
+
 ## Esperando respuesta de taro
 
 * **`rom/build/demo-apertura-jugable/`**: es la copia pre-fundido que taro pidió

@@ -258,7 +258,8 @@ def huella():
     return h.hexdigest()[:16]
 
 
-def armar(map_id, mapas=(), con_ventana=True, destino=None, rama=()):
+def armar(map_id, mapas=(), con_ventana=True, destino=None, rama=(),
+          descartar=False):
     """Convierte, ensambla y devuelve (ROM, símbolos, ids de mapa en orden).
 
     Los mismos dos comandos que corre el justfile, para que una ROM de prueba
@@ -292,6 +293,12 @@ def armar(map_id, mapas=(), con_ventana=True, destino=None, rama=()):
         convertir += ["--rama-de-prueba"] + [str(n) for n in rama]
     if con_ventana:
         convertir.append("--con-ventana")
+    if descartar:
+        # Esta ROM descarta algún evento que cambia de gráfico y el conversor
+        # corta si no se le dice que siga; ver `aviso_de_descarte`. Se pide por
+        # ROM y no para todas: el corte es la red que avisó del evento 30 del
+        # mapa 2, y apagarla en todas la dejaría sin cubrir nada.
+        convertir.append("--descartar-eventos")
     convertir += ["-o", inc]
     subprocess.run(convertir, check=True, capture_output=True, cwd=RAIZ)
 

@@ -354,6 +354,12 @@ cod_ptr:     .res 3     ; el código de la página que se está ejecutando
 elegida:     .res 3     ; el código de la página que ganó, mientras se decide
 elegida_hay: .res 1     ; si alguna página del evento en curso ganó
 elegida_trigger: .res 1 ; y qué la dispara, para correr sólo las automáticas
+; Y en qué capa está, que es lo que decide cuál de las dos celdas la dispara
+; con la tecla de acción: la de adelante pide la capa del héroe y la propia
+; pide cualquier otra. Ver `probar_accion`.
+elegida_capa: .res 1
+; Cuál de las dos se está mirando: 1 la del héroe, 0 la de adelante.
+accion_propia: .res 1
 ev_actual:   .res 2     ; qué evento se está resolviendo
 salto_mapa:  .res 1     ; un Teleport pedido por un evento: a qué mapa
 salto_x:     .res 2     ; y a qué celda. salto_hay dice si hay uno pendiente
@@ -6384,6 +6390,8 @@ recorrer:
     beq siguiente
     lda pg_trigger
     sta elegida_trigger
+    lda pg_capa
+    sta elegida_capa
     rep #$20
 .a16
     lda pg_cod
@@ -6427,6 +6435,27 @@ sin_paginas:
     lda elegida_trigger
     cmp trigger_buscado
     bne no
+    ; La regla de capa, opuesta según qué celda se mire: la de adelante sólo
+    ; dispara eventos de la capa del héroe —`CheckEventTriggerThere` pide
+    ; `Layers_same`— y la propia sólo los de otra capa —`CheckEventTriggerHere`
+    ; pide `!= Layers_same`—. No es simetría de adorno: un evento de la capa del
+    ; héroe le cierra el paso, así que nunca se podría parar encima.
+    ;
+    ; Sólo para la tecla de acción; el contacto tiene su regla y se resuelve al
+    ; compilar.
+    lda trigger_buscado
+    cmp #TRIGGER_ACCION
+    bne sin_capa
+    lda elegida_capa
+    cmp #HERO_LAYER
+    beq era_del_heroe
+    lda accion_propia
+    beq no                      ; otra capa, pero se está mirando adelante
+    bra sin_capa
+era_del_heroe:
+    lda accion_propia
+    bne no                      ; la del héroe, pero se está mirando la propia
+sin_capa:
     lda elegida
     ora elegida + 1
     ora elegida + 2
@@ -6501,12 +6530,29 @@ no:
 .proc probar_accion
 .a8
 .i16
-    ; Sólo la celda de adelante. La propia también existe en
-    ; `Game_Player::CheckActionEvent`, pero pide la capa contraria
-    ; —`CheckEventTriggerHere` con `GetLayer() != Layers_same`— y ésas no
-    ; compilan: mirarla igual dispararía algo que RM2k no dispara.
+    ; Las dos celdas, en el orden de `Game_Player::CheckActionEvent`: primero la
+    ; propia —`CheckEventTriggerHere`, que pide una capa distinta de la del
+    ; héroe— y después la de adelante —`CheckEventTriggerThere`, que pide la
+    ; suya—. La propia estuvo sin hacer hasta el 2026-09-07 y taro la encontró
+    ; jugando: la puerta que sale del pad de Talan es `TalDoorTop`, de acción y
+    ; capa 2, y se abre parándose encima.
     lda #TRIGGER_ACCION
     sta trigger_buscado
+    lda #1
+    sta accion_propia
+    rep #$20
+.a16
+    lda tile_x
+    sta celda_x
+    lda tile_y
+    sta celda_y
+    sep #$20
+.a8
+    jsr accion_en_celda
+    beq mirar_adelante
+    rts                         ; encoló el de abajo del héroe
+mirar_adelante:
+    stz accion_propia
     rep #$20
 .a16
     lda tile_x

@@ -55,9 +55,10 @@ def partida(builds):
     `switch` se escribe en la RAM antes del primer cuadro de juego; para
     empezar en otro mapa, `.ir_al_mapa(...)`.
     """
-    def hacer(switch=(), con_ventana=True, rama=(), mapas=None):
+    def hacer(switch=(), con_ventana=True, rama=(), mapas=None,
+              descartar=False):
         arranca, resto = mapas or (CON_VENTANA if con_ventana else SIN_VENTANA)
-        clave = (arranca, tuple(resto), con_ventana, tuple(rama))
+        clave = (arranca, tuple(resto), con_ventana, tuple(rama), descartar)
         if clave not in builds:
             destino = os.path.join(
                 os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
@@ -66,7 +67,8 @@ def partida(builds):
                                 "-v" if con_ventana else "",
                                 "-r" + "_".join(str(n) for n in rama)
                                 if rama else ""))
-            builds[clave] = armar(arranca, resto, con_ventana, destino, rama)
+            builds[clave] = armar(arranca, resto, con_ventana, destino, rama,
+                                  descartar)
         sfc, simbolos, tabla = builds[clave]
         return Partida(sfc, simbolos, tabla, switch)
 
