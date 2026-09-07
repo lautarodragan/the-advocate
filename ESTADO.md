@@ -87,11 +87,33 @@ Las páginas automáticas que compilan enteras son **272 de 489**.
    aparece no se puede hasta que la paleta sea global. Y ahí está casi toda la
    ganancia.
 
-   La paleta global tiene con qué: **2319 colores distintos a 15 bits** en todo
-   el material, pero los 64 más usados cubren el 67% de los pixeles, los 256 el
-   85% y los 512 el 93%. Es la firma de gráficos que salieron de juegos de
-   SNES, que es de donde salieron. Es además una decisión artística que taro
-   quiere tomar igual.
+   **La paleta global era la pregunta equivocada, y el primer número que se
+   sacó también.** Contando colores sobre los archivos y pesándolos por pixel
+   daban 2319 colores y "los 256 más usados cubren el 85%". Las dos cosas
+   engañan: se contaban archivos que no se usan, y **el pixel es la métrica
+   equivocada** —a un tile al que le falta un solo color no se le dibuja peor,
+   se le dibuja roto—.
+
+   Medido sobre el material deduplicado y usado, y contando **tiles que quedan
+   enteros**: los 10314 tiles de fondo distintos piden 1252 colores, y con 256
+   sólo el 40% queda entero; con 512, el 67%; con 1024, el 96%.
+
+   Pero la CGRAM se recarga al cambiar de mapa, así que no hace falta una
+   paleta global: los tiles sólo se comparten entre mapas del **mismo
+   chipset**, y son 43. Medido así, con los tiles que cada chipset usa de
+   verdad:
+
+       el más chico   17 colores      entran en los 111 de la capa de fondo:
+       mediana        65 colores          33 de 42 chipsets
+       el más grande 206 colores      entran en 256: los 42
+
+   O sea que **una paleta por chipset alcanza**, y los nueve que no entran
+   necesitan fusionar colores, que es lo que el conversor ya hace por mapa.
+
+   El precio no son bytes: una paleta por chipset es más exigente que una por
+   mapa, porque un mapa usa un subconjunto del chipset. Los mapas que hoy
+   entran holgados con 63 colores pasarían a compartir una de 150, así que
+   algunos se van a ver **peor que hoy**. Ése es el costo real de deduplicar.
 
    **Los sprites ya tienen respuesta, y es buena.** Midiendo por fotograma de
    24x32 en vez de por personaje —idea de taro, que revisando los CharSets a
