@@ -117,11 +117,36 @@ Las páginas automáticas que compilan enteras son **272 de 489**.
    id en dos chipsets es otro dibujo, así que deduplicar pide mirar los pixeles.
    Falta la traducción de id a posición en la imagen, que es el próximo paso.
 
-   **Backdrop, Battle, Monster y Picture quedan afuera del presupuesto por
-   ahora**: son 2,7 MB, pero el port no dibuja ninguno. El juego sí tiene
-   batallas —51 `EnemyEncounter`, 23 `EndBattle`— así que van a hacer falta;
-   cuando pase, la primera medición es cuántos backdrops se usan de verdad,
-   porque 51 encuentros no son 45 fondos distintos.
+   **El arte que no son mapas ni personajes entra en el presupuesto desde
+   ahora.** Lo dijo taro y tiene razón: las batallas no van en la primera
+   prueba de concepto, pero sin ellas el proyecto no tiene sentido, y en un
+   cartucho no hay streaming —todo tiene que entrar a la vez—.
+
+   Medido en tiles de 8x8 a 4 bits, deduplicando por forma y espejado, que es
+   lo que cuesta de verdad. **Los KB del PNG engañan**: `Panorama` son 421 KB
+   en disco y 759 en ROM, porque el PNG comprime lo que el cartucho no.
+
+       Panorama   991 KB   los 19 que los mapas piden, compartiendo tiles
+       Backdrop   951 KB   sin filtrar por uso todavía
+       Sprites    450 KB   los 1201 fotogramas de todo el juego
+       Picture    309 KB   las 20 que los eventos piden, de 111 que hay
+       Monster    128 KB   sin filtrar
+       Battle      44 KB   sin filtrar
+       FaceSet     41 KB   sin filtrar
+       ------------------
+       arte      2,9 MB
+
+   Filtrar por uso es la reducción más barata y ya pagó: **el 82% de las
+   Pictures no se usa** —111 archivos, 20 referenciados— y eso bajó 761 KB a
+   309. Los panoramas al revés: se usan 11 de 14, pero se parten en dos
+   familias según cómo estén hechos. `woodspan` son 3200 tiles que se
+   deduplican a **47** —1 KB— y `starpan` a 90; `weird` no repite ni uno solo y
+   cuesta 150 KB. Los armados con tiles son casi gratis, los fotográficos no.
+
+   Sumando con lo que ya se sabía —2,7 MB de grillas de mapa, estimado del 21%
+   del desglose, y unos 0,9 MB de música— van **6,5 MB sin contar los
+   ChipSets**, contra 4 MB de techo. La deduplicación sola no alcanza: hace
+   falta comprimir además, y la grilla es el candidato obvio.
 
 2. **El mapa 8 no entra en el cartucho.** Es lo que frena la demo hoy: el
    exterior del pad de Talan pesa unos 140 KB y con el resto se pasa —632092
