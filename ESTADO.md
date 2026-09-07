@@ -418,6 +418,21 @@ el `DetourOfficer` del mapa 8 es un peaje que pregunta `oro >= 500` y cobra 500,
 así que con 500 justos tiene que cobrar.
 
 
+**El que atraviesa paredes cae donde sea, también saltando.**
+`Game_Map::CheckOrMakeWayEx` corta con `if (self.GetThrough()) return true;`
+apenas pasa el chequeo de límites, **antes** de mirar la pasabilidad, y el salto
+de una ruta pasa por ahí: `BeginMoveRouteJump` llama a `MakeWay`. Nuestro
+`puede_caer` miraba sólo la pasabilidad.
+
+Lo encontró taro el 2026-09-07 en el recuerdo de Core y Manta: Core se movía
+arriba de su piedra y no saltaba nunca. Las celdas de las piedras están cerradas
+de verdad —(31,18) tiene los cuatro bits en cero—, que es el punto: son piedras
+en el agua. Su ruta arranca con `atravesar_on`, así que tenía permiso.
+
+Lo incómodo del caso: **la caminata sí lo respetaba** y el salto no. La misma
+regla implementada en un camino y olvidada en el otro, y por eso costaba verlo.
+
+
 ## Esperando respuesta de taro
 
 * **`rom/build/demo-apertura-jugable/`**: es la copia pre-fundido que taro pidió

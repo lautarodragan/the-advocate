@@ -2150,7 +2150,13 @@ class Ruta:
         if not hubo_fin:
             self.ordenes = []
             return False
-        if saltar is not None and not saltar(dx, dy):
+        # `CheckOrMakeWayEx` corta con `if (self.GetThrough()) return true;`
+        # justo después de mirar los límites del mapa, así que **el que
+        # atraviesa paredes cae donde sea**. Sin esto, la piedra del recuerdo de
+        # Core es una celda cerrada y el salto se saltea: taro lo vio como que
+        # Core se mueve arriba de su islita y no salta nunca. La ruta que lo
+        # mueve arranca justamente con un `atravesar_on`.
+        if saltar is not None and not self.atraviesa and not saltar(dx, dy):
             if self.saltable:
                 return False        # no se puede caer ahí: el salto se saltea
             self.ordenes = guardadas

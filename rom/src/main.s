@@ -11684,6 +11684,16 @@ sin_fin:
     rts
 
 con_fin:
+    ; `walk_everywhere`: `CheckOrMakeWayEx` corta con `if (self.GetThrough())
+    ; return true;` apenas pasa el chequeo de límites, así que el que atraviesa
+    ; paredes cae donde sea. Sin esto, la piedra del recuerdo de Core es una
+    ; celda cerrada y el salto se saltea; taro lo vio como que Core se mueve
+    ; arriba de su islita y no salta nunca, y la ruta que lo mueve arranca
+    ; justamente con un `atravesar_on`.
+    lda ruta_ev + 12, x
+    and #$01
+    sta atravesando
+    stz atravesando + 1
     phx
     jsr celda_del_evento        ; su celda, que `puede_caer` necesita
     jsr salto_a_celdas
@@ -11701,6 +11711,8 @@ con_fin:
 .a8
     jsr puede_caer
     plx
+    stz atravesando
+    stz atravesando + 1
     cmp #0                      ; `plx` pone Z según lo que saca de la pila
     bne se_puede
     stz ruta_ev + 13, x
@@ -11849,6 +11861,14 @@ no_mueve:
     bcs no_16
     sep #$20
 .a8
+    ; El que atraviesa paredes cae en cualquier celda del mapa: es el
+    ; `if (self.GetThrough()) return true;` de `CheckOrMakeWayEx`, que va
+    ; **después** de mirar los límites y antes de todo lo demás.
+    lda atravesando
+    beq mira_el_paso
+    lda #1
+    rts
+mira_el_paso:
     jsr ptr_de_celda
     rep #$20
 .a16
