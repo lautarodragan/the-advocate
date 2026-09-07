@@ -201,10 +201,44 @@ las ocho sin tocarle un pixel a nadie, y el conversor ya sabe no dibujar un
 evento cuyo gráfico no entra: hoy corta con error en vez de elegir.
 
 
+## Compartir tiles entre mapas: la VRAM no da
+
+Medido el 2026-09-07, después de mudar la ventana a la paleta 0. Con el
+presupuesto nuevo, que dos mapas del mismo chipset compartan paleta de fondo es
+**casi gratis**:
+
+    chipset 1  mapas 4,5   unión 67 colores en 103  -> fusiona 0
+    chipset 9  mapas 7,8   unión 77 en 103          -> fusiona 0
+    chipset 6  mapas 1,2   unión 64 en  55          -> fusiona 9, y son
+                                                       41 pixeles de 5.120.000
+
+Pero compartir **tiles** pide algo más que la paleta: pide un solo pool, porque
+la ROM sube el bloque de tiles de un mapa con un DMA contiguo. Y ese pool se
+sube entero en cada mapa:
+
+    pool compartido de los mapas 1 y 2     437 tiles de fondo
+    el mapa 2 gasta además                 283 tiles de sprite
+
+    reparto con ventana        fondo 384, sprite 448   ->  437 > 384
+    reparto alternativo        fondo 480, sprite 256   ->  283 > 256
+
+No entra en ninguno de los dos. Así que el ahorro de 14 KB del par 1–2 es real
+en el cartucho e **irrealizable en la consola**: lo bloquea la VRAM, no las
+paletas. La ventana de mensaje ya se lleva 8 KB de tiles más 2 de tilemap, y lo
+que queda hay que repartirlo entre fondo y sprites.
+
+Lo que sí quedó del trabajo de paletas es la mitad de calidad, que era la más
+grande: los nueve mapas del PoC pasaron de fusionar 97 colores a fusionar 8, y
+se ve —la sangre de Core en el piso del mapa 2 era marrón y ahora es roja—.
+
+
 ## Lo que sigue
 
-1. **La estrategia de paletas, que ahora se sabe que es todo el ahorro.**
-   Qué paletas armar y cómo asignarlas, mirando
+1. ~~**La estrategia de paletas.**~~ Hecha a medias y con un final inesperado:
+   la mitad de calidad rindió mucho —97 colores fusionados a 8— y la de ahorro
+   de bytes está **bloqueada por la VRAM**, no por las paletas. Ver arriba. Lo
+   que sigue vivo de este punto es sólo si aparece más VRAM: qué paletas armar y
+   cómo asignarlas, mirando
    estáticamente en qué combinaciones aparecen CharSets con ChipSets y CharSets
    entre sí. Un sprite y el fondo sobre el que camina comparten pantalla, así
    que comparten CGRAM. Hipótesis de taro que vale la pena medir primero: toda
