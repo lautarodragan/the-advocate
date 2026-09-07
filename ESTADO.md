@@ -204,6 +204,30 @@ Las páginas automáticas que compilan enteras son **272 de 489**.
    mucho menos de lo que hacía temer el 1,1 MB de PNG en disco, y el motivo es
    que los tiles de 16x16 comparten muchísimos de 8x8.
 
+   **Qué es un "id de tile", porque no todos son lo mismo.** El mapa guarda uno
+   de 16 bits por celda de 16x16, y el rango dice de qué clase es. Un id de
+   tile suelto es 1 a 1 con una celda de la imagen; un id de **autotile** no:
+   nombra una combinación de bordes que el motor compone a partir de un bloque
+   chico, y cada bloque genera hasta 50 combinaciones. Por eso "ids usados" no
+   es "área de la imagen usada". De los 6916 ids que el juego usa, el 52% son
+   combinaciones de autotile —3194 de terreno, 370 de agua que salen de sólo 40
+   bloques— y el 48% restante son tiles sueltos de las dos capas.
+
+   Eso tiene una consecuencia buena, medida: **la composición que RM2k hace en
+   memoria, el tilemap de la consola la hace gratis**.
+
+       clase                                 ids   8x8 distintos   por id
+       autotiles (agua, animados, terreno)  3460       2233         0,65
+       capa baja, tiles sueltos             1620       4045         2,50
+       capa alta, tiles sueltos             1612       4209         2,61
+
+   Cuatro por id sería no compartir nada. Los autotiles dan 0,65 porque sus
+   combinaciones comparten los cuartos, y en la SNES un autotile de 16x16 son
+   cuatro celdas del tilemap apuntando a tiles que ya están. No hay que inventar
+   ningún formato: el hardware ya trabaja en la unidad correcta. Es también por
+   qué los 6916 ids, que ingenuamente serían 27.664 tiles de 8x8, se quedan en
+   10.251.
+
    **Y acá hay que corregir un número publicado ayer.** Las grillas estaban
    estimadas en 2,7 MB, sacadas del "21% del desglose" de un mapa. Ese
    porcentaje no se puede extrapolar: era el 21% de un mapa **que llevaba sus
