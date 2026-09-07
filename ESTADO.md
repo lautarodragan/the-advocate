@@ -162,10 +162,42 @@ Las páginas automáticas que compilan enteras son **272 de 489**.
    deduplican a **47** —1 KB— y `starpan` a 90; `weird` no repite ni uno solo y
    cuesta 150 KB. Los armados con tiles son casi gratis, los fotográficos no.
 
-   Sumando con lo que ya se sabía —2,7 MB de grillas de mapa, estimado del 21%
-   del desglose, y unos 0,9 MB de música— van **6,1 MB sin contar los
-   ChipSets**, contra 4 MB de techo. La deduplicación sola no alcanza: hace
-   falta comprimir además, y la grilla es el candidato obvio.
+   **Los ChipSets: 320 KB para los tiles de fondo de todo el juego.** Se
+   expande cada uno a su atlas —el mismo puerto de EasyRPG que usa el
+   renderizador—, se piden **sólo los ids que los mapas usan**, y cada tile de
+   16x16 se parte en los cuatro de 8x8 que dibuja la consola: 10251 distintos.
+   Cada chipset por su cuenta daría 395 KB; compartiendo entre los 42, 320. Es
+   mucho menos de lo que hacía temer el 1,1 MB de PNG en disco, y el motivo es
+   que los tiles de 16x16 comparten muchísimos de 8x8.
+
+   **Y acá hay que corregir un número publicado ayer.** Las grillas estaban
+   estimadas en 2,7 MB, sacadas del "21% del desglose" de un mapa. Ese
+   porcentaje no se puede extrapolar: era el 21% de un mapa **que llevaba sus
+   propios tiles y sprites duplicados**, así que al deduplicar el resto deja de
+   valer. Calculado directo —2 bytes por celda de RM2k, y son 418.635 celdas—
+   son **818 KB**. Es la segunda vez en el día que una extrapolación engaña
+   donde había una cuenta directa a mano.
+
+   El presupuesto, dejando afuera Backdrop, Picture, Monster, Battle y FaceSet
+   como decidió taro:
+
+       grillas de mapa      818 KB    medido, directo
+       sprites              450 KB    medido
+       colisión             409 KB    medido, 1 byte por celda
+       tiles de fondo       320 KB    medido
+       tablas de bloques   ~152 KB    escalado del mapa 1
+       música              ~860 KB    estimado, 43 temas
+       ------------------
+       total              ~3,0 MB
+
+   **Entra en 4 MB sin comprimir nada.** Lo que queda sin medir —bytecode de
+   eventos y bloque de mensajes— es chico: la página más larga del juego son
+   248 comandos.
+
+   Lo que eso cambia: comprimir deja de ser la condición para que el juego
+   entre y pasa a ser lo que hace lugar para el arte que quedó afuera —2,1 MB
+   entre panoramas, imágenes y batallas—. Y la grilla sigue siendo el mejor
+   candidato: es el rubro más grande y el más repetitivo.
 
 2. **El mapa 8 no entra en el cartucho.** Es lo que frena la demo hoy: el
    exterior del pad de Talan pesa unos 140 KB y con el resto se pasa —632092
