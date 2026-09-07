@@ -562,18 +562,6 @@ SHOW_BATTLE_ANIMATION = 11210
 CHANGE_GOLD = 10310
 CHANGE_ITEMS = 10320
 
-# `ChangePartyMembers` (10330): quién va en el grupo. Se acepta sin hacerlo, y
-# es la deuda más rara de la lista porque **no destraba una sola página**:
-# medido, +0, solo y combinado con todo lo demás. Está acá porque aparece al
-# final de la página del "1 year earlier" —después del teletransporte— y
-# rechazarla ahí costaría la página entera por un comando que no cambia nada
-# de lo que se ve.
-#
-# Lo que se pierde sí importa más adelante: el gráfico del héroe sale del
-# primero del grupo, así que una página que cambie de líder va a dejar al héroe
-# con la cara equivocada. Hoy no hay ninguna que lo haga y compile.
-CHANGE_PARTY_MEMBERS = 10330
-
 # `ShowPicture` (11110), `MovePicture` (11120) y `ErasePicture` (11130): una
 # imagen encima de todo, movida y borrada. Se aceptan sin hacerlas y lo que se
 # pierde es la imagen.
@@ -600,7 +588,6 @@ ACEPTADOS_SIN_HACER = {
     SHOW_BATTLE_ANIMATION,
     CHANGE_GOLD,
     CHANGE_ITEMS,
-    CHANGE_PARTY_MEMBERS,
     SHOW_PICTURE,
     MOVE_PICTURE,
     ERASE_PICTURE,

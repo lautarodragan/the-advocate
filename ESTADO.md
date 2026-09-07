@@ -47,7 +47,16 @@ Las páginas automáticas que compilan enteras son **272 de 489**.
    bytes contra 491520—. Ni siquiera el mínimo que llega ahí, 4-1-2-3-7-8,
    entra: 564928. Así que salir de la casa de Talan pide **agrandar la ROM**,
    que hoy es de 512 KB y cuyo mapeo tampoco se probó en hardware.
-3. **`ChangePartyMembers` de verdad**, si alguna página que compile cambia de
+3. **Los líderes posibles son una aproximación, y se nota.** El conversor
+   simula los `ChangePartyMembers` de las páginas que compilan para saber qué
+   actores pueden ir primeros, porque las poses del héroe no se cargan en
+   caliente. Desde el 2026-09-07 el grupo se reinicia **en cada mapa**, que es
+   lo que corresponde —la tabla de actores es por mapa—, pero sigue sin saberse
+   con qué grupo se llega a cada uno. Si alguna vez un personaje se dibuja sin
+   gráfico, es el primer lugar donde mirar; `pruebas/test_lideres.py` cuida la
+   parte que ya falló.
+
+4. **`ChangePartyMembers` de verdad**, si alguna página que compile cambia de
    líder: el gráfico del héroe sale del primero del grupo, así que hoy quedaría
    con la cara equivocada. Ninguna lo hace todavía.
 

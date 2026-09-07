@@ -2947,11 +2947,26 @@ def lideres_posibles(renderer, map_ids, grupo, con_ventana=False):
     que `Estado.cambiar_grupo`. Es una aproximación —qué página corre y cuándo
     depende de switches que acá no se saben— y por eso el orden importa: si
     alguna vez una ROM dibuja al héroe sin gráfico, empezar mirando acá.
+
+    **El grupo se reinicia en cada mapa**, y ésa es la parte que costó. Antes se
+    arrastraba de un mapa al siguiente en el orden de los archivos, que no es el
+    orden en que se juegan: la página del "1 year earlier" del mapa 4 pone a
+    Talan, y como el 4 va antes que el 1, cuando la simulación llegaba a la
+    apertura el grupo ya tenía a Talan. El `pone Kersh` de la apertura lo metía
+    **detrás**, así que Kersh nunca era líder, no entraba en la tabla de actores
+    y el héroe se dibujaba sin gráfico. taro lo vio jugando: Core y Manta
+    aparecían al final de la escalera y Kersh no.
+
+    Reiniciar por mapa no es más correcto en general —sigue sin saberse con qué
+    grupo se llega a cada uno— pero es la aproximación que corresponde: la tabla
+    de actores es **por mapa**, así que la pregunta es quién puede liderar
+    mientras ese mapa está cargado, y no qué pasó en los mapas anteriores del
+    directorio.
     """
-    estado = eventos.Estado(grupo)
     actores = list(grupo[:1])
     indices = {m: i for i, m in enumerate(map_ids)}
     for map_id in map_ids:
+        estado = eventos.Estado(grupo)
         game_map = lcf.Map(os.path.join(args_game_dir[0],
                                         "Map%04d.lmu" % map_id))
         del_mapa = eventos.Eventos(game_map)
