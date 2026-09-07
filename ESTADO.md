@@ -220,6 +220,30 @@ la partida seguía andando, sólo que en el mapa equivocado.
 * **Si las ocho décimas de arranque molestan.** Ver la decisión de arriba.
 
 
+## Lo que falta para salir del pad de Talan
+
+El 2026-09-07 taro llegó al pad y lo jugó: controla a Talan, corre la cinemática
+y puede hablarle a la cama, la PC y los caños. Quedan tres cosas, y son tres
+problemas distintos.
+
+1. **La puerta no compila porque falta el mapa 8.** `TalDoorTop` teletransporta
+   a `[8, 11, 56]` y el 8 no está en el cartucho; el conversor ya lo avisa por
+   nombre. Con el 8 adentro el mapa 7 pasa de 9 a 10 páginas de 10.
+
+   Y el que bloquea no es el tamaño de la ROM, como se venía suponiendo: **el
+   mapa 8 pide 9 paletas de sprite y la consola tiene 8**, así que el conversor
+   corta con error. Sin el cronómetro son 8 disponibles y sin él 7. Esto cae
+   justo sobre el punto 1 de `assets/README.md` —la estrategia de paletas— y lo
+   convierte en el camino crítico de los diez minutos, no en una tangente.
+
+2. **El insta-shave necesita `ShowChoice`** (código 10140, el "Yes/No"). Es lo
+   único que falta del mapa 7. En todo el juego es el primer bloqueo de 36
+   páginas; lo que de verdad manda a esa escala es `ControlVars`, con 548.
+
+3. **El cronómetro ya anda**: era el `--con-timer` que faltaba en el build. Ver
+   la receta de abajo.
+
+
 ## Lo que taro todavía no probó
 
 * **La salida del pad de Talan, con el presupuesto de saltos arreglado.** El
@@ -245,10 +269,18 @@ la partida seguía andando, sólo que en el mapa equivocado.
   lo encontró jugando el 2026-09-06. Ahora el 5 y el 6 tienen una ejecutable
   cada uno. Se arma así:
 
-      python3 tools/snes_convert.py --grupo 10 --map-id 4 --mapas 1 2 3 5 6 \
-          --con-ventana -o rom/build/demo-apertura/mapdata.inc
+      python3 tools/snes_convert.py --grupo 10 --map-id 4 --mapas 1 2 3 5 6 7 \
+          --con-ventana --con-timer -o rom/build/demo-apertura/mapdata.inc
       python3 tools/w65.py rom/src/main.s -I rom/build/demo-apertura \
-          -o rom/build/demo-apertura/demo-apertura.sfc
+          -o rom/build/demo-apertura/demo-apertura.sfc \
+          --simbolos rom/build/demo-apertura/demo-apertura.sfc.sym
+
+  El `--con-timer` no estaba y por eso el 2026-09-07 taro no veía el
+  cronómetro: la cuenta corría —`timer_activo` en 1— pero `TIMER_BASE` era 0 en
+  los siete mapas, o sea que los dígitos no estaban en VRAM y el dibujo se
+  salteaba entero. El flag cuesta una paleta de sprite, de 8 a 7. Y el
+  `--simbolos` tampoco estaba: sin él las pruebas de estado no pueden mirar
+  esta ROM.
 
   Lleva además la escena de Talan entera, la puerta del Emitter Room, y cuatro
   temas —`escape_newyork`, `TF3_1_awe`, `evilrhys`, `lufsorr`—. El banco de
