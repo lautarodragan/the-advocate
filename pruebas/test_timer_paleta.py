@@ -96,3 +96,30 @@ def test_si_de_verdad_no_entra_lo_dice():
     sys_img = ventana_mod.skin(JUEGO, ren.database.system_name)
     with pytest.raises(SystemExit):
         snes_convert.digitos_del_timer(sys_img, bytes(32 * 64), paletas_de(15))
+
+
+def test_el_cronometro_no_cae_en_la_ranura_de_un_lider():
+    """Esa ranura la pisa la ROM, así que un dígito ahí pierde su color.
+
+    Los líderes posibles comparten una paleta y la ROM le sube los quince
+    colores del que esté liderando cada vez que cambia el grupo o se carga un
+    mapa. Un dígito del cronómetro metido ahí se quedaría sin su rojo en cuanto
+    Talan le pase el liderazgo a Kersh.
+
+    **Va con paletas inventadas y no con un mapa del juego, y eso es a
+    propósito.** Se buscó en los 328 mapas que convierten y en **ninguno** el
+    primer-ajuste del cronómetro cae en una ranura de líder: con datos reales
+    este camino no se puede ejercitar, así que una prueba sobre un mapa pasaría
+    igual con el guard sacado —se probó, y pasaba—. Lo que se prueba acá es el
+    mecanismo: si la primera paleta con lugar es de un líder, hay que saltearla.
+    """
+    import ventana as ventana_mod
+    ren = render_map.Renderer(JUEGO)
+    sys_img = ventana_mod.skin(JUEGO, ren.database.system_name)
+    # Dos paletas con lugar de sobra; la primera es la del líder.
+    palettes = [[(1, 1, k) for k in range(4)], [(2, 2, k) for k in range(4)]]
+    _tiles, _base, cual = snes_convert.digitos_del_timer(
+        sys_img, bytes(32 * 64), palettes, de_lider={0})
+    assert cual == 1, \
+        "el cronómetro se metió en la paleta %d, que es de un líder: la ROM " \
+        "se la pisa al subir los colores del que lidera" % cual

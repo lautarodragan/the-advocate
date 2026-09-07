@@ -644,7 +644,7 @@ def npcs_dibujables(renderer, game_map, lideres, tope, graficos_de_ruta=()):
     # El reparto se devuelve para que `build_characters` lo use tal cual: un
     # segundo primer-lugar-que-entre en otro orden puede dar otra cuenta, y
     # dio: el mapa 8 entraba acá en ocho paletas y allá pedía nueve.
-    return salida, descartados, (paletas, paleta_de, propios)
+    return salida, descartados, (paletas, paleta_de, propios, de_lider)
 
 
 def build_characters(images, personajes, ranuras, reparto=None):
@@ -770,7 +770,7 @@ TIMER_ORIGEN = (32, 32)
 TIMER_X, TIMER_Y = 4, 4
 
 
-def digitos_del_timer(sys_img, tiles, palettes):
+def digitos_del_timer(sys_img, tiles, palettes, de_lider=()):
     """Los once glifos del cronómetro, al final del banco de sprites.
 
     Van como dos tiles de 8x8 apilados cada uno, y los once entran en una fila
@@ -805,7 +805,15 @@ def digitos_del_timer(sys_img, tiles, palettes):
     quiere = sorted(colores)
     # La primera paleta en la que entren sus colores sin fusionar nada. Es el
     # mismo primer-ajuste de `build_characters` y por la misma razón.
+    #
+    # **Menos las ranuras de líder.** Ésas las pisa la ROM con los quince
+    # colores del que esté liderando cada vez que cambia el grupo o se carga un
+    # mapa, así que un dígito metido ahí se quedaría sin su rojo en cuanto Talan
+    # le pase el liderazgo a Kersh. En los siete mapas de `demo-apertura` hoy no
+    # cae en ninguna, que es justo lo que hace que el error fuera invisible.
     for numero, existente in enumerate(palettes):
+        if numero in de_lider:
+            continue
         union = list(existente) + [c for c in quiere if c not in existente]
         if len(union) <= OBJ_COLORS:
             palettes[numero] = union
@@ -3491,8 +3499,8 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
     if args.con_timer:
         import ventana as ventana_mod
         sys_img = ventana_mod.skin(args.game_dir, renderer.database.system_name)
-        tiles, timer_base, timer_pal = digitos_del_timer(sys_img, tiles,
-                                                         palettes)
+        tiles, timer_base, timer_pal = digitos_del_timer(
+            sys_img, tiles, palettes, reparto[3] if len(reparto) > 3 else ())
     table = npc_table(npcs, where, movibles, indice_animado)
     # Por cada candidato a líder, su paleta y en qué banco de poses están las
     # doce suyas. La ROM no calcula nada a partir de la pose: busca el puntero

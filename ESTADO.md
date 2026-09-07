@@ -405,6 +405,31 @@ problemas distintos.
    la receta de abajo.
 
 
+## Lo que taro todavía no jugó: `rom/build/demo-ciudad/`
+
+Armada el 2026-09-07. Es `demo-apertura` **más el mapa 8** —Lashe City, la calle
+a la que da el pad de Talan— y por lo tanto la primera ROM en la que se puede
+salir del pad: con el 8 adentro, la puerta `TalDoorTop` compila.
+
+Va **sin `--con-timer`**, y ésa es la única razón por la que existe aparte: el
+mapa 8 usa las ocho paletas de sprite justas y al cronómetro le falta una
+entrada para su rojo. Se arma así:
+
+    python3 tools/snes_convert.py --grupo 10 --map-id 4 --mapas 1 2 3 5 6 7 8 \
+        --con-ventana --descartar-eventos -o rom/build/demo-ciudad/mapdata.inc
+    python3 tools/w65.py rom/src/main.s -I rom/build/demo-ciudad \
+        -o rom/build/demo-ciudad/demo-ciudad.sfc \
+        --simbolos rom/build/demo-ciudad/demo-ciudad.sfc.sym
+
+Para que el cronómetro entre hay que bajar `BLVehicles:5` de 15 a 14 colores:
+**105 pixeles de 4648, 2,26%**, con un salto de 4 sobre 31. taro lo aceptó; no
+está hecho. El resto de los mapas donde el cronómetro puede aparecer no paga
+nada: de los diez, en ocho entra en una paleta que ya tiene lugar.
+
+Y uno de esos diez tiene un problema aparte y más grande: **el Hover-Tram (mapa
+13) pide once paletas de sprite de las ocho**. No lo arregla nada de lo de hoy.
+
+
 ## Lo que taro probó y anda
 
 El 2026-09-07, sobre `demo-apertura` en mednafen:
