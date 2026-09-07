@@ -93,6 +93,36 @@ Las páginas automáticas que compilan enteras son **272 de 489**.
    SNES, que es de donde salieron. Es además una decisión artística que taro
    quiere tomar igual.
 
+   **Los sprites ya tienen respuesta, y es buena.** Midiendo por fotograma de
+   24x32 en vez de por personaje —idea de taro, que revisando los CharSets a
+   ojo vio que la repetición estaba adentro de cada uno—:
+
+       en los archivos        5472 fotogramas (juego + RTP)
+       el juego pide          1737   (usa 161 personajes de 456)
+       formas distintas       1201   con espejado y con cualquier paleta
+       en la ROM               450 KB  para los sprites de TODO el juego
+
+   Los tres cortes, medidos por separado sobre los 5012 fotogramas con dibujo:
+   por personaje se ahorra 22%, **por fotograma con espejado 47%, y por forma
+   —o sea admitiendo cualquier paleta— 55%**. Los dos últimos son gratis en la
+   consola: el espejado y el número de paleta son bits del OAM, así que dos
+   sprites espejados o recoloreados comparten los mismos tiles.
+
+   Lo que **no** rindió: quitar poses que el juego no usa. Sólo 18 de los 161
+   personajes tienen `animation_type` fijo o sin paso, así que son 10%.
+
+   **Los ChipSets, primera pasada:** los 43 usan 6916 ids de tile distintos
+   entre todos, con una mediana de 146 por chipset —el más chico usa 5—. Eso
+   confirma que sobra mucho, pero no dice cuánto se puede compartir: el mismo
+   id en dos chipsets es otro dibujo, así que deduplicar pide mirar los pixeles.
+   Falta la traducción de id a posición en la imagen, que es el próximo paso.
+
+   **Backdrop, Battle, Monster y Picture quedan afuera del presupuesto por
+   ahora**: son 2,7 MB, pero el port no dibuja ninguno. El juego sí tiene
+   batallas —51 `EnemyEncounter`, 23 `EndBattle`— así que van a hacer falta;
+   cuando pase, la primera medición es cuántos backdrops se usan de verdad,
+   porque 51 encuentros no son 45 fondos distintos.
+
 2. **El mapa 8 no entra en el cartucho.** Es lo que frena la demo hoy: el
    exterior del pad de Talan pesa unos 140 KB y con el resto se pasa —632092
    bytes contra 491520—. Ni siquiera el mínimo que llega ahí, 4-1-2-3-7-8,
