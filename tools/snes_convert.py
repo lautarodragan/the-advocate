@@ -1500,8 +1500,14 @@ def desplazamientos():
     return "\n".join(out)
 
 
-def tabla_de_mapas(mapas):
-    """La tabla que la ROM recorre para saber qué cargar."""
+def tabla_de_mapas(mapas, etiquetas):
+    """La tabla que la ROM recorre para saber qué cargar.
+
+    `etiquetas` dice, por mapa, a qué bloque apunta cada puntero. Antes esto no
+    existía y el nombre se rearmaba acá con `"%s_%d" % (nombre, numero)`, o sea
+    con la misma cuenta que lo había emitido: dos lugares calculando el mismo
+    nombre y ninguna manera de que un bloque fuera de más de un mapa.
+    """
     out = ["; La tabla de mapas: un registro de %d bytes por mapa, con todo lo"
            % MAPA_STRIDE,
            "; que la ROM necesita para cargarlo. Los punteros son de 24 bits",
@@ -1526,7 +1532,7 @@ def tabla_de_mapas(mapas):
                    % (",".join(["$00"] * relleno), usado))
         usado += relleno
         for nombre in MAPA_PUNTEROS:
-            etiqueta = "%s_%d" % (nombre, numero)
+            etiqueta = etiquetas[numero][nombre]
             out.append("    .byte <(%s), >(%s), ^(%s), $00 ; +%d  %s"
                        % (etiqueta, etiqueta, etiqueta, usado, nombre))
             usado += MAPA_PTR_PASO
@@ -1644,7 +1650,64 @@ def tabla_de_paginas(mapa, numero):
     return "\n".join(out)
 
 
-def datos_del_mapa(mapa, numero, indice_global):
+class Materiales:
+    """Los bloques de datos de la ROM, con identidad propia y no del mapa.
+
+    Antes cada mapa emitía sus bloques con su número pegado —`map_tiles_0`,
+    `map_tiles_1`— y el registro del mapa armaba el nombre del puntero con esa
+    misma cuenta. O sea que la identidad de un bloque **era** el mapa que lo
+    pidió, y dos mapas con los mismos tiles se los pagaban dos veces sin que
+    hubiera dónde notarlo.
+
+    Acá el bloque tiene nombre propio y el mapa guarda a cuál apunta, que es lo
+    que hay que tener antes de poder compartir nada. La numeración sigue siendo
+    por clase y en orden de mapa, así que sin deduplicar los nombres son los
+    mismos de siempre y la ROM sale byte por byte igual: es a propósito, para
+    que este paso se pueda verificar sin depender de la tanda.
+
+    `sprite_poses` ya funcionaba así desde antes —`indice_global` en `emit`— y
+    es de donde sale la forma.
+    """
+
+    def __init__(self, deduplicar=False):
+        self.deduplicar = deduplicar
+        self.donde = {}
+        self.cuantos = collections.Counter()
+        self.ahorro = collections.Counter()
+        self.repetidos = collections.Counter()
+
+    def guardar(self, clase, datos, alinear=None):
+        """(etiqueta, el asm a emitir). El asm es vacío si el bloque ya estaba.
+
+        La clave incluye la clase y el acomodo, no sólo el contenido: dos
+        bloques con los mismos bytes pero distinto `.bloque` o `.alinear` no
+        son el mismo bloque para el enlazador.
+        """
+        datos = bytes(datos)
+        clave = (clase, alinear, datos)
+        if clave in self.donde:
+            if self.deduplicar:
+                self.ahorro[clase] += len(datos)
+                self.repetidos[clase] += 1
+                return self.donde[clave], ""
+        etiqueta = "%s_%d" % (clase, self.cuantos[clase])
+        self.cuantos[clase] += 1
+        self.donde.setdefault(clave, etiqueta)
+        return etiqueta, bloque(etiqueta, datos, alinear=alinear)
+
+    def informe(self):
+        """Qué se compartió, para que el ahorro sea un número y no una idea."""
+        if not self.deduplicar or not self.ahorro:
+            return []
+        return ["  %-14s %2d bloque(s) compartido(s), %6.1f KB"
+                % (clase, self.repetidos[clase], self.ahorro[clase] / 1024.0)
+                for clase, _ in self.ahorro.most_common()] + [
+            "  %-14s %2d              %6.1f KB en total"
+            % ("", sum(self.repetidos.values()),
+               sum(self.ahorro.values()) / 1024.0)]
+
+
+def datos_del_mapa(mapa, numero, indice_global, materiales):
     """Los bloques de datos de un mapa, con el número pegado a cada etiqueta.
 
     `indice_global` es el número que lleva en la ROM cada (CharSet, índice)
@@ -1669,7 +1732,11 @@ def datos_del_mapa(mapa, numero, indice_global):
         ("puertas", mapa["puertas"]),
         ("evcodigo", mapa["evcodigo"]),
     ]
-    out = [bloque("%s_%d" % (nombre, numero), datos) for nombre, datos in pares]
+    etiquetas, out = {}, []
+    for nombre, datos in pares:
+        etiquetas[nombre], texto = materiales.guardar(nombre, datos)
+        if texto:
+            out.append(texto)
     # Las dos tablas de punteros a las poses de la ROM: la de los NPCs que
     # caminan y la de los candidatos a líder.
     animados = sprite[7] if sprite else []
@@ -1677,9 +1744,17 @@ def datos_del_mapa(mapa, numero, indice_global):
     out.append(actor_table_asm(numero, sprite[4] if sprite else [],
                                animados, indice_global))
     # La grilla va aparte porque es la única que no se sube por DMA.
-    out.append(bloque("map_celdas_%d" % numero, mapa["celdas"], alinear=2))
+    etiquetas["map_celdas"], texto = materiales.guardar(
+        "map_celdas", mapa["celdas"], alinear=2)
+    if texto:
+        out.append(texto)
     out.append(tabla_de_paginas(mapa, numero))
-    return "\n".join(out)
+    # Las tres que no se comparten son las que llevan **punteros simbólicos**
+    # adentro —a las poses de la ROM, al código de los eventos—: sus bytes los
+    # pone el enlazador, así que acá no hay contenido con el cual compararlas.
+    for nombre in ("npc_poses", "actor_table", "paginas"):
+        etiquetas[nombre] = "%s_%d" % (nombre, numero)
+    return "\n".join(out), etiquetas
 
 
 def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
@@ -1916,10 +1991,15 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         for g, datos in enumerate(bancos):
             handle.write(bloque("sprite_poses_%d" % g, datos) + "\n")
         handle.write("\n")
+        materiales = Materiales(deduplicar=False)
+        etiquetas = []
         for numero, mapa in enumerate(mapas):
             handle.write("; --- %d: mapa %d %r ---\n"
                          % (numero, mapa["id"], mapa["nombre"]))
-            handle.write(datos_del_mapa(mapa, numero, indice_global))
+            texto, suyas = datos_del_mapa(mapa, numero, indice_global,
+                                          materiales)
+            etiquetas.append(suyas)
+            handle.write(texto)
             handle.write("\n")
         # Las etiquetas se emiten siempre, aunque la ROM no lleve ventana: el
         # ensamblador las necesita resueltas y `VENTANA_TILES = 0` es lo que
@@ -1999,7 +2079,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             "%d" % (eventos.espera_tras_giro(f)
                     if f >= eventos.RUTA_FRECUENCIA_MIN else 0)
             for f in range(eventos.RUTA_FRECUENCIA + 1)))
-        handle.write(tabla_de_mapas(mapas))
+        handle.write(tabla_de_mapas(mapas, etiquetas))
         handle.write("\n")
 
 
