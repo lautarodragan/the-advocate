@@ -4151,10 +4151,12 @@ cabe:
 .i16
     jsr tablas_de_tinte
 
-    ; El fondo, desde la entrada 0.
+    ; El fondo, desde donde arranca: debajo de él están el color de fondo de la
+    ; pantalla y la paleta de la ventana, que **no se tiñen**. Que queden afuera
+    ; sale de dónde empieza el rango y no de acordarse de saltearlas.
     ldx #M_PTR_MAP_CGRAM
     ldy #M_MAP_CGRAM
-    lda #0
+    lda #CGRAM_BASE
     jsr una_paleta
 
     ; La capa de encima, en la entrada que le haya tocado a este mapa. Hay que
@@ -4181,10 +4183,11 @@ cabe:
     ; delante todo lo que toca, pero los dígitos tienen una paleta para ellos
     ; solos, así que alcanza con volver a subir la de la ROM.
     ;
-    ; La ventana de mensaje tampoco se tiñe, y sin hacer nada: su paleta no es
-    ; ninguna de las tres que se acaban de subir, así que queda como la dejó
-    ; `load_ventana`. Es lo que hace RM2k —el tono se aplica al mapa, a los
-    ; personajes y al panorama, no a la ventana— y acá decía que no se podía.
+    ; La ventana de mensaje tampoco se tiñe, y sin hacer nada: vive en las
+    ; entradas de abajo de todo y el fondo arranca en `CGRAM_BASE`, así que
+    ; queda fuera del rango. Es lo que hace RM2k —el tono se aplica al mapa, a
+    ; los personajes y al panorama, no a la ventana— y acá decía que no se
+    ; podía.
     ;
     ; Nada de esto tocó CGRAM: las tres paletas quedaron en `cgram_sombra` y
     ; las sube `subir_tinte`, en el vblank.
@@ -4232,8 +4235,8 @@ cabe:
     sta tin_count
     sep #$20
 .a8
-    lda #0
-    jsr dma_sombra
+    lda #CGRAM_BASE             ; el fondo arranca corrido: abajo está la
+    jsr dma_sombra              ; ventana, que no se tiñe ni se vuelve a subir
     ldx mapa_ofs
     rep #$20
 .a16
@@ -4898,7 +4901,32 @@ apagar:
     sta MDMAEN
 
     ; --- los colores ---
+    ;
+    ; Primero lo de abajo, que es de toda la ROM y no de este mapa: el color de
+    ; fondo de la pantalla y la paleta de la ventana de mensaje. Va acá y no en
+    ; `load_ventana` porque `load_ventana` se saltea entera cuando la ROM no
+    ; lleva ventana, y el color de fondo hace falta igual.
     stz CGADD
+    rep #$20
+.a16
+    lda #.loword(ventana_cgram)
+    sta A1T0L
+    lda #(CGRAM_BASE * 2)
+    sta DAS0L
+    sep #$20
+.a8
+    lda #^ventana_cgram
+    sta A1B0
+    lda #$00
+    sta DMAP0                   ; un registro, de a bytes
+    lda #$22
+    sta BBAD0                   ; destino: CGDATA
+    lda #$01
+    sta MDMAEN
+
+    ; Y encima el mapa, que arranca donde termina lo reservado.
+    lda #CGRAM_BASE
+    sta CGADD
     ldy #M_PTR_MAP_CGRAM
     jsr dma_origen
     ldx mapa_ofs
@@ -9074,9 +9102,8 @@ tabla_planos:
 ; al 511 la ventana. Por eso el conversor ya emitió las celdas con ese
 ; corrimiento sumado.
 ;
-; La paleta va en la que queda justo debajo de la de encima. Cuál es depende del
-; mapa, así que sale de `M_ABOVE_FIRST` menos dieciséis entradas; el conversor
-; ya comprobó que el fondo no la esté usando.
+; Su paleta es la **0**, o sea las entradas que están debajo del fondo, y la
+; sube `cargar_mapa_sin_eventos` junto con el color de fondo de la pantalla.
 .proc load_ventana
 .a8
 .i16
@@ -9104,24 +9131,11 @@ tabla_planos:
     lda #$01
     sta MDMAEN
 
-    lda #VENTANA_CGADD          ; la paleta de abajo de la capa de encima
-    sta CGADD
-    rep #$20
-.a16
-    lda #.loword(ventana_cgram)
-    sta A1T0L
-    lda #32                     ; dieciséis entradas de dos bytes
-    sta DAS0L
-    sep #$20
-.a8
-    lda #^ventana_cgram
-    sta A1B0
-    lda #$00
-    sta DMAP0
-    lda #$22
-    sta BBAD0
-    lda #$01
-    sta MDMAEN
+    ; La paleta de la ventana no se sube acá: es la **0**, o sea las entradas
+    ; que `cargar_mapa_sin_eventos` ya subió junto con el color de fondo. Antes
+    ; iba flotando debajo de la capa de encima más baja de la ROM y se subía
+    ; por su cuenta; con eso el fondo de todos los mapas quedaba apretado
+    ; abajo de ella —47 colores— aunque tuvieran media CGRAM libre arriba.
 
     ; El tilemap propio y las tablas del HDMA, que son de este mapa: la ventana
     ; vive en un lugar de la VRAM que depende del reparto.

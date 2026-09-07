@@ -260,6 +260,33 @@ de eventos— y la tanda lo cobró en el primer intento. Ninguna de las dos rede
 sobra.
 
 
+**La ventana de mensaje se muda a la paleta 0, y el fondo recupera media
+CGRAM.** Iba en la paleta más baja de las capas de encima de toda la ROM, y al
+fondo se le daba sólo el bloque que quedaba debajo: 47 colores, mientras las
+paletas 4, 5 y 6 no las usaba nadie. BG1 va a 8 bits y direcciona CGRAM en
+directo, así que no le hacía falta ninguna alineación; le hacía falta que la
+ventana no le partiera el espacio al medio.
+
+Con la ventana abajo de todo —nueve entradas, el color de fondo más sus ocho
+colores— el fondo queda contiguo desde la 9 hasta su propia capa de encima. En
+`demo-apertura` el presupuesto pasa de 47 a 55, 71, 87 o 103 según el mapa, y
+los colores fusionados de **97 a cero**. Ningún mapa pierde un color.
+
+Se cayeron dos cosas que existían sólo por la paleta flotante: la reconversión
+de mapas en `main()` y el rastreo de la paleta en la referencia, que obligaba a
+convertir todos los mapas de la tabla para dibujar uno.
+
+Detalles del arreglo, por si alguno vuelve a morder:
+
+* `subir_paletas` subía la paleta del mapa desde la entrada 0 y le pisaba la
+  ventana. Ahora arranca en `CGRAM_BASE`.
+* Los colores de la ventana se contaban con `sum(1 for w in cram if w)` y son
+  **ocho, no siete**: uno es negro puro y su palabra es cero. Con siete
+  reservadas el texto salía con un color que nadie había subido —79 pixeles—.
+  `convert_ventana` ahora mira el índice más alto que usa y corta si no entra.
+* El tinte no toca la ventana **por dónde arranca el rango** y no por acordarse.
+
+
 ## Esperando respuesta de taro
 
 * **`rom/build/demo-apertura-jugable/`**: es la copia pre-fundido que taro pidió

@@ -139,13 +139,18 @@ def reduce_colors(grid, budget):
             groups, merged, counts)
 
 
-def to_indices(tile, palette):
+def to_indices(tile, palette, base=1):
     """El tile como índices dentro de su paleta.
 
     El 0 es el transparente: en la capa de abajo no se usa nunca —de ahí que
     sirva de canario— y en la de arriba es todo lo que no es el tile.
+
+    `base` es en qué entrada de CGRAM arranca la paleta. Para la capa de encima
+    es 1, que es el índice 1 de su paleta de 16. Para el fondo, que va a 8 bits
+    y direcciona CGRAM en directo, es donde termina lo que está reservado abajo:
+    ver `CGRAM_RESERVADAS` en snes_convert.py.
     """
-    lookup = {color: i + 1 for i, color in enumerate(palette)}
+    lookup = {color: i + base for i, color in enumerate(palette)}
     lookup[None] = 0
     return tuple(tuple(lookup[p] for p in row) for row in tile)
 

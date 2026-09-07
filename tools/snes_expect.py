@@ -1194,9 +1194,6 @@ def main():
     images = {}
     convertidos = {}
     naturales = {}
-    # La paleta de la ventana, cuando se sepa: es una para la ROM entera y
-    # sale de todos sus mapas, no del que se está dibujando.
-    ventana_paleta = []
 
     def charset_image(name):
         # Por el cargador del renderer, que es el que sabe fabricar el CharSet
@@ -1233,19 +1230,12 @@ def main():
     def convertir(map_id):
         if map_id not in convertidos:
             game_map, base, above_img, capas = natural(map_id)
-            if args.con_ventana:
-                # La paleta de la ventana es de la ROM entera, así que hay que
-                # convertir **todos** sus mapas para saberla, aunque acá se
-                # dibuje uno solo: la misma cuenta que hace el conversor, con
-                # la misma función. El mapa que la tenía más arriba se vuelve a
-                # convertir con el fondo apretado debajo de ella.
-                if not ventana_paleta:
-                    ventana_paleta.append(snes_convert.paleta_de_la_ventana(
-                        natural(m)[3][1][3] for m in tabla))
-                if capas[1][3] - 1 != ventana_paleta[0]:
-                    capas = snes_convert.convert_layers(
-                        base, above_img, con_ventana=True,
-                        ventana_paleta=ventana_paleta[0])
+            # Antes acá se volvía a convertir el mapa cuando la paleta de la
+            # ventana —que es de la ROM entera— quedaba más abajo de donde este
+            # mapa la habría puesto, y para saberla había que convertir todos
+            # los mapas de la tabla aunque se dibujara uno solo. Con la ventana
+            # en la paleta 0 no depende de nadie: el fondo arranca en
+            # `CGRAM_RESERVADAS` y llega hasta su propia capa de encima.
             (tile_data, cram, tilemap, _resumen), above_data = capas
             convertidos[map_id] = (
                 game_map,

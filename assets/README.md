@@ -142,6 +142,44 @@ holgado con 63 colores pasaría a compartir una de 150, y se va a ver **peor que
 hoy**. Ése es el costo real de deduplicar, y es artístico.
 
 
+## La ventana de mensaje le estaba cobrando media CGRAM al fondo
+
+El presupuesto del fondo no eran 111 colores: eran **47**, y no por falta de
+lugar. BG1 va a 8 bits por pixel y **direcciona CGRAM en directo**, así que no
+necesita paletas de 16; sólo necesita que nadie le pise las entradas. Pero se le
+daba el bloque que quedaba *debajo* de la paleta de la ventana de mensaje, y esa
+paleta era una para toda la ROM: la más baja de las capas de encima de todos sus
+mapas. En la ROM de la apertura eso la ponía en la 3, y entonces:
+
+    0        color de fondo de la pantalla
+    1..47    BG1  <- lo único que se le daba
+    48..63   la ventana
+    64..111  paletas 4, 5 y 6: **no las usaba nadie**
+    112..127 la capa de encima
+
+En el mapa 7 había **57 entradas tiradas** mientras el fondo fusionaba 13 de sus
+60 colores. Los nueve mapas del PoC fusionaban 97 colores entre todos.
+
+La solución es mover la ventana a la **paleta 0**, abajo de todo. Ocupa nueve
+entradas —el color de fondo más sus ocho colores— y el fondo queda contiguo
+desde la 9 hasta donde arranque su propia capa de encima, sin depender de lo que
+necesiten los otros mapas. Medido sobre `demo-apertura`:
+
+    presupuesto por mapa    47 -> 55, 71, 87 o 103 según el mapa
+    colores fusionados      97 -> 0
+
+Y una propiedad que sale gratis: el tinte de pantalla recorre CGRAM desde donde
+arranca el fondo, así que la ventana queda fuera del rango **sin que nadie tenga
+que acordarse**. En RM2k el tono se aplica al mapa y no a la ventana.
+
+Al hacerlo hubo un error de conteo que la tanda cobró: los colores de la ventana
+se contaban con `sum(1 for w in cram if w)` y daban siete, pero son **ocho**
+—uno es negro puro y su palabra de CGRAM es cero—. Con siete reservadas, el
+texto se dibujaba con un color que nadie había subido: 79 pixeles en los
+renglones de texto. Ahora `convert_ventana` mira el índice más alto que la
+ventana usa de verdad y corta si no entra.
+
+
 ## Los sprites tienen su propio problema, y es más duro
 
 Todo lo de arriba es de fondos. Las paletas de **sprite** son otras ocho —siete

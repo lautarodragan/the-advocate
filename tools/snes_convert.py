@@ -75,12 +75,40 @@ def above_split(palettes):
     return BG_PALETTES - palettes
 
 
+# Las entradas de CGRAM que el fondo **no** puede usar, abajo de todo: la 0, que
+# es el color de fondo de la pantalla, y las siete de la ventana de mensaje.
+#
+# La ventana va en la **paleta 0** y no flotando debajo de la capa de encima, y
+# eso es lo que le devuelve al fondo todo lo que antes se tiraba. BG1 va a 8 bits
+# por pixel y direcciona CGRAM en directo: no necesita paletas de 16, le alcanza
+# con que nadie le pise las entradas. Poniendo la ventana abajo de todo, el fondo
+# queda contiguo desde la 8 hasta donde arranque la capa de encima, sin huecos.
+#
+# Antes la ventana iba en la paleta más baja de toda la ROM —`paleta_de_la
+# ventana`— y al fondo se le daba sólo el bloque de abajo. En la ROM de la
+# apertura eso lo dejaba en 47 colores mientras las paletas 4, 5 y 6 no las usaba
+# **nadie**: 57 entradas tiradas en el mapa 7. Los nueve mapas del PoC fusionaban
+# 97 colores entre todos y ahora fusionan 8.
+#
+# Y hay una propiedad que sale gratis de ponerla abajo: `aplicar_tinte` tiñe
+# desde donde arranca el fondo, así que la ventana queda fuera del rango sin que
+# nadie tenga que acordarse. En RM2k el tono se aplica al mapa y no a la ventana.
+# **Ocho y no siete.** Contarlos con `sum(1 for w in cram if w)` da siete
+# porque uno de los colores de la ventana es negro puro y su palabra de CGRAM
+# es cero. Con siete, la ROM dibujaba el texto con un color que nadie había
+# subido y la tanda cobró 79 pixeles en los renglones de texto. Lo que manda es
+# el índice más alto que la ventana usa, y de eso se asegura `convert_ventana`.
+VENTANA_COLORES = 8
+CGRAM_RESERVADAS = 1 + VENTANA_COLORES
+
+
 def bg_budget(first):
     """Los colores que le quedan al fondo debajo de la capa de encima.
 
-    El 0 no cuenta: es el color de fondo de la pantalla y ningún tile lo usa.
+    No cuentan las de abajo de todo: el color de fondo de la pantalla y los de
+    la ventana de mensaje. Ver `CGRAM_RESERVADAS`.
     """
-    return first * COLORS_PER_PALETTE - 1
+    return first * COLORS_PER_PALETTE - CGRAM_RESERVADAS
 
 
 # El orden de prioridades del modo 3, de adelante hacia atrás, es:
@@ -790,41 +818,42 @@ def convert_layers(base, above_img, con_ventana=False, ventana_paleta=None):
     # +1 es el color de fondo de la pantalla, que ocupa la entrada 0.
     usados = len({p for row in base_grid for tile in row
                   for line in tile for p in line if p is not None})
-    pide = -(-(usados + 1) // COLORS_PER_PALETTE)
+    pide = -(-(usados + CGRAM_RESERVADAS) // COLORS_PER_PALETTE)
     libres = max(1, min(MAX_ABOVE_PALETTES, BG_PALETTES - pide))
 
     above = convert_above(above_img, palettes=libres, grid=above_grid)
-    tope = above[3] - (1 if con_ventana else 0)
-    if ventana_paleta is not None:
-        if ventana_paleta >= above[3]:
-            raise SystemExit(
-                "la ventana de mensaje va en la paleta %d y la capa de encima "
-                "de este mapa arranca en la %d: se pisarían"
-                % (ventana_paleta, above[3]))
-        tope = ventana_paleta
+    # El fondo llega **hasta donde arranca la capa de encima**, sin dejar
+    # paletas en el medio: va a 8 bits y no necesita alineación. La ventana ya
+    # no le cobra una paleta porque vive abajo de todo, adentro de
+    # `CGRAM_RESERVADAS`; `con_ventana` y `ventana_paleta` quedan por
+    # compatibilidad de la firma y no cambian el reparto.
+    tope = above[3]
     if tope < 1:
         # Inalcanzable con los datos del juego —haría falta una capa de encima
-        # que pida las siete paletas— pero si pasa, el fondo se quedaría sin
+        # que pida las ocho paletas— pero si pasa, el fondo se quedaría sin
         # ninguna y `bg_budget` daría un presupuesto negativo.
         raise SystemExit(
-            "no hay paleta libre para la ventana de mensaje: la capa de encima "
-            "arranca en la %d y no queda ninguna para el fondo" % above[3])
+            "la capa de encima se llevó las ocho paletas y no queda ninguna "
+            "para el fondo")
     return convert(base, bg_budget(tope), grid=base_grid), above
 
 
-def paleta_de_la_ventana(primeras):
-    """En qué paleta va la ventana de mensaje en una ROM de varios mapas.
+def paleta_de_la_ventana(primeras=None):
+    """En qué paleta va la ventana de mensaje: la **0**, siempre.
 
-    Las celdas de la ventana se emiten una sola vez con los tres bits de
-    paleta adentro, así que la paleta es una para toda la ROM. Cada mapa la
-    pondría justo debajo de su capa de encima, y eso no coincide: en la ROM del
-    arranque el mapa 4 la arranca en la 7 y los mapas 1 y 2 en la 4. Se toma la
-    más baja de todas, que es la única que no se pisa con ninguna capa de
-    encima, y los mapas que la tenían más arriba se vuelven a convertir con el
-    fondo apretado debajo de ella. Es la misma cuenta acá y en la referencia:
-    `primeras` es el `above[3]` de cada mapa de la ROM.
+    Las celdas de la ventana se emiten una sola vez con los tres bits de paleta
+    adentro, así que la paleta tiene que ser una sola para toda la ROM. Antes se
+    tomaba la más baja de las capas de encima de todos los mapas —`min(primeras)
+    - 1`— y el fondo de **todos** quedaba apretado abajo de ella, aunque el mapa
+    tuviera media CGRAM libre arriba.
+
+    Poniéndola en la 0 el problema desaparece: la ventana ocupa las entradas 1 a
+    7 —la 0 es el color de fondo de la pantalla, que en una paleta de BG2 es el
+    transparente y la ventana no dibuja—, y el fondo queda contiguo desde la 8
+    hasta donde arranque la capa de encima de cada mapa. `primeras` ya no se usa
+    y queda para no romper a quien llame.
     """
-    return min(primeras) - 1
+    return 0
 
 
 def convert(image, bg_colors=None, grid=None):
@@ -852,7 +881,7 @@ def convert(image, bg_colors=None, grid=None):
     for row in grid:
         line = []
         for tile in row:
-            indices = to_indices(tile, palette)
+            indices = to_indices(tile, palette, base=CGRAM_RESERVADAS)
 
             # Si alguna de las cuatro orientaciones ya está en el pool, se
             # reusa: el PPU sabe espejar por su cuenta y sale gratis.
@@ -874,9 +903,10 @@ def convert(image, bg_colors=None, grid=None):
         tile_data[number * BYTES_PER_TILE:(number + 1) * BYTES_PER_TILE] = \
             pack_tile(indices)
 
-    # CGRAM: el 0 es el fondo y los colores del mapa arrancan en el 1, que es
-    # el mismo orden que usa to_indices.
-    cram = [cgram_word(BACKDROP)] + [cgram_word(c) for c in palette]
+    # CGRAM: el bloque del mapa lleva **sólo sus colores** y se sube a partir de
+    # `CGRAM_RESERVADAS`. Lo de abajo —el color de fondo de la pantalla y la
+    # paleta de la ventana— es de toda la ROM y lo sube `cgram_base`.
+    cram = [cgram_word(c) for c in palette]
 
     summary = {
         "colores": before,
@@ -1143,6 +1173,16 @@ def convert_ventana(sys_img, font_id=None):
                      for celda, _ in sorted(tiles.items(), key=lambda kv: kv[1]))
     cram = [0] + [cgram_word(c) for c in colores]
     cram += [0] * (COLORS_PER_PALETTE - len(cram))
+    # El fondo arranca donde termina esto, así que si la ventana creciera se le
+    # metería encima y la ROM dibujaría el texto con un color del mapa. Se mira
+    # el índice más alto que se usa de verdad —el de la sombra o el de alguna
+    # fila del glifo— y no cuántas palabras son distintas de cero: un color
+    # negro tiene palabra cero y no se contaría.
+    alto = max([indice[c] for c in color_fila] + [indice[sombra]])
+    if alto >= CGRAM_RESERVADAS:
+        raise SystemExit(
+            "la ventana de mensaje usa la entrada %d de CGRAM y el fondo "
+            "arranca en la %d: subí CGRAM_RESERVADAS" % (alto, CGRAM_RESERVADAS))
     return {"tiles": datos, "cram": cram, "celdas": celdas,
             "base": base,
             "fondo": b"".join(pack_tile(c, planes=4) for c in fondo),
@@ -1255,7 +1295,7 @@ def _filas_de_celda(cell, data, planes, palette):
     return filas
 
 
-def render_converted(tile_data, cram, tilemap, above=None):
+def render_converted(tile_data, cram, tilemap, above=None, fondo=None):
     """La imagen que la consola va a mostrar, armada desde los datos convertidos.
 
     Comparar contra el render original de Python no alcanza: entre uno y otro
@@ -1272,10 +1312,20 @@ def render_converted(tile_data, cram, tilemap, above=None):
     height, width = len(reference), len(reference[0])
     image = Image.new("RGBA", (width * CELL, height * CELL))
 
-    # CGRAM tal como queda en la consola: el fondo desde el 0 y la capa de
-    # encima en las paletas que se haya llevado, que son las de más arriba de
-    # la mitad baja. Dónde arranca lo dice ella, no una constante.
-    words = list(cram) + [0] * (128 - len(cram))
+    # CGRAM tal como queda en la consola: abajo de todo el color de fondo de la
+    # pantalla y la paleta de la ventana, después el fondo desde
+    # `CGRAM_RESERVADAS`, y la capa de encima en las paletas que se haya
+    # llevado. Dónde arranca ella lo dice ella, no una constante.
+    #
+    # Las reservadas quedan en cero acá y no se dibujan: el fondo no las
+    # referencia nunca —sus índices arrancan en `CGRAM_RESERVADAS`— y la ventana
+    # no la dibuja esta función.
+    words = [0] * CGRAM_RESERVADAS + list(cram)
+    words += [0] * (128 - len(words))
+    if fondo is not None:
+        # El color de fondo de la pantalla, que vive en la entrada 0 y no en el
+        # bloque del mapa. Sólo lo pisa `render_above`, para recortar.
+        words[0] = fondo
     if above:
         colors = above[1]
         first = above[3] * COLORS_PER_PALETTE
@@ -1339,8 +1389,8 @@ def render_above(cram, above):
     # recortarían también, y el 2026-09-05 se recortaron, cuando el fondo pasó
     # de magenta a negro y la sombra de una máquina del mapa 6 se volvió un
     # tramado gris.
-    cram_clave = [cgram_word(CLAVE_RECORTE)] + list(cram[1:])
-    lleno = render_converted(b"", cram_clave, None, above)
+    lleno = render_converted(b"", cram, None, above,
+                             fondo=cgram_word(CLAVE_RECORTE))
     image.paste(lleno, (0, 0))
     # Lo que la capa no toca quedó del color clave; ahí va transparente.
     fondo = (CLAVE_RECORTE[0] << 3, CLAVE_RECORTE[1] << 3,
@@ -1903,6 +1953,11 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "; vienen armadas con ese corrimiento y con la prioridad de la capa\n"
         "; de encima. VENTANA_TILES en 0 quiere decir que esta ROM no lleva\n"
         "; ventana y que el banco no existe.\n"
+"; Y dónde arranca el fondo en CGRAM: abajo de él viven el color de\n"
+        "; fondo de la pantalla y la paleta de la ventana de mensaje, que\n"
+        "; son de toda la ROM. El fondo va a 8 bits y direcciona CGRAM en\n"
+        "; directo, así que le alcanza con arrancar corrido.\n"
+        "CGRAM_BASE     = %d\n"
 "VENTANA_CGADD  = %d\n"
         "VENTANA_TILES  = %d\n"
         "VENTANA_FILAS_ = %d\n"
@@ -1953,8 +2008,8 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            eventos.GRUPO_MAX, len(grupo_inicial), ACTOR_BYTES,
            rm2k.LAYER_SAME,
            OBJ_PRIORITY_ABOVE if heroe_encima else OBJ_PRIORITY,
-           paleta_de_la_ventana(m["above"][3] for m in mapas)
-           * COLORS_PER_PALETTE,
+           CGRAM_RESERVADAS,
+           paleta_de_la_ventana() * COLORS_PER_PALETTE,
            0 if ventana is None else len(ventana["tiles"]) // 32,
            VENTANA_FILAS_INC, VENTANA_COLS_INC,
            0 if ventana is None else ventana["base"],
@@ -2025,26 +2080,28 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             #
             # BG2 va en 4 bits, así que su celda **sí** usa los tres bits de
             # paleta —a diferencia del fondo, que va en 8 y los ignora—. La
-            # ventana se lleva la que queda justo debajo de la capa de encima
-            # más baja de la ROM, y tiene que ser la misma para todos los
-            # mapas: las celdas se emiten una sola vez. Que el fondo de cada
-            # mapa quede debajo lo garantiza main(), que los reconvierte; acá
-            # se controla, porque si un fondo la pisara la ventana saldría
-            # con los colores del mapa y ninguna comparación de un solo mapa
-            # lo vería.
-            paleta = paleta_de_la_ventana(m["above"][3] for m in mapas)
+            # ventana va en la 0 y es la misma para todos los mapas: sus celdas
+            # se emiten una sola vez. Que el fondo no la pise sale del reparto
+            # —arranca en `CGRAM_RESERVADAS`— pero se controla igual: si la
+            # pisara, la ventana saldría con los colores del mapa y ninguna
+            # comparación de un solo mapa lo vería.
+            paleta = paleta_de_la_ventana()
             for m in mapas:
-                if con_ventana and len(m["cram_words"]) > \
-                        paleta * COLORS_PER_PALETTE:
+                if len(m["cram_words"]) + CGRAM_RESERVADAS > \
+                        m["above"][3] * COLORS_PER_PALETTE:
                     raise SystemExit(
-                        "el fondo del mapa %d usa %d entradas de CGRAM y pisa "
-                        "la paleta %d de la ventana: falta reconvertirlo"
-                        % (m["id"], len(m["cram_words"]), paleta))
+                        "el fondo del mapa %d usa %d entradas de CGRAM desde "
+                        "la %d y pisa la capa de encima, que arranca en la %d"
+                        % (m["id"], len(m["cram_words"]), CGRAM_RESERVADAS,
+                           m["above"][3] * COLORS_PER_PALETTE))
             handle.write("\n; --- la ventana de mensaje ---\n")
             handle.write(bloque("ventana_tiles", ventana["tiles"]) + "\n")
+            # Sólo las `CGRAM_RESERVADAS` de abajo: de la 8 para arriba es
+            # del fondo, y subir las dieciséis se lo borraría.
             handle.write(bloque("ventana_cgram",
                                 b"".join(w.to_bytes(2, "little")
-                                         for w in ventana["cram"])) + "\n")
+                                         for w in ventana["cram"]
+                                         [:CGRAM_RESERVADAS])) + "\n")
             plano = bytearray()
             for fila in ventana["celdas"]:
                 for celda in fila:
@@ -2653,22 +2710,11 @@ def main():
     mapas = [convertir(renderer, map_id, args,
                        inicio=args.inicio if map_id == args.map_id else None)
              for map_id in todos]
-    if args.con_ventana:
-        # La paleta de la ventana es de la ROM y no de cada mapa: ver
-        # `paleta_de_la_ventana`. Sólo se reconvierten los mapas que la tenían
-        # más arriba, y son los de pocas paletas encima, que es lo barato: en
-        # la ROM del arranque es el mapa 4 solo, una habitación de un color.
-        paleta = paleta_de_la_ventana(m["above"][3] for m in mapas)
-        for numero, mapa in enumerate(mapas):
-            if mapa["above"][3] - 1 == paleta:
-                continue
-            print("  mapa %d: la ventana de mensaje va en la paleta %d de toda "
-                  "la ROM y no en la %d; el fondo se aprieta debajo"
-                  % (mapa["id"], paleta, mapa["above"][3] - 1))
-            mapas[numero] = convertir(
-                renderer, mapa["id"], args,
-                inicio=args.inicio if mapa["id"] == args.map_id else None,
-                ventana_paleta=paleta)
+    # Antes acá se reconvertían los mapas cuya capa de encima arrancaba más
+    # arriba que la paleta de la ventana, para apretarles el fondo debajo de
+    # ella. Con la ventana en la paleta 0 no hay nada que apretar: el fondo de
+    # cada mapa arranca en `CGRAM_RESERVADAS` y llega hasta su propia capa de
+    # encima, sin depender de lo que necesiten los otros mapas de la ROM.
     # Las puertas se resuelven cuando están todos los mapas: una puede llevar a
     # cualquier otro, así que el índice de destino no se sabe hasta el final.
     indices = {mapa["id"]: numero for numero, mapa in enumerate(mapas)}
