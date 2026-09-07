@@ -110,6 +110,18 @@ Las páginas automáticas que compilan enteras son **272 de 489**.
    O sea que **una paleta por chipset alcanza**, y los nueve que no entran
    necesitan fusionar colores, que es lo que el conversor ya hace por mapa.
 
+   Y esa cuenta es sobre **los pedazos del chipset que los mapas usan**, no
+   sobre el archivo entero. La diferencia es lo que hace que la idea funcione:
+
+       llevando el chipset entero      6157 colores    9 de 42 entran en 111
+       sólo los ids que se usan        3213 colores   33 de 42
+
+   Los casos sueltos son elocuentes: `tower2` tiene 227 colores en el archivo y
+   el juego usa 54; `PS4Chipset` va de 120 a 26; `Ancient(1)` de 120 a 17. Eso
+   son los créditos de autor metidos en la imagen, los auto-tiles que quedaron
+   como plantillas con letras y los cuadrantes vacíos. Los que casi no bajan
+   son los más exprimidos: `shrine1` de 118 a 94, `townQ` de 172 a 152.
+
    El precio no son bytes: una paleta por chipset es más exigente que una por
    mapa, porque un mapa usa un subconjunto del chipset. Los mapas que hoy
    entran holgados con 63 colores pasarían a compartir una de 150, así que
