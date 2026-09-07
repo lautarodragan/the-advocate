@@ -11,6 +11,11 @@ Acá viven las mediciones y la estrategia que sale de ellas.
     medir.py    las mediciones, por rubro
     comun.py    lo que comparten: leer el material y contarlo bien
 
+    LIMITACIONES.md   lo que decidimos que este port **no** hace, con el
+                      número que justificó cada cosa. Varias de esas
+                      decisiones valen porque el ABL es como es, así que es
+                      lo primero a releer si esto se apunta a otro juego.
+
     python3 assets/medir.py sprites     los CharSets, por fotograma
     python3 assets/medir.py fondos      los ChipSets, sólo lo que se usa
     python3 assets/medir.py colores     si alcanza una paleta por chipset

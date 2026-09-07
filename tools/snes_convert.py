@@ -1101,7 +1101,10 @@ LAYOUT_FONDO = {"tiles": (0x0000, 640), "encima": (0x5000, 256),
 #   tilemaps    $7000   8 KB
 #
 # Medido sobre los 318 mapas que convierten: 309 entran en el primero, 6 en el
-# segundo y **3 se quedan sin ventana** —el 8, el 66 y el 250—.
+# segundo y 3 se quedaban sin ventana —el 8, el 66 y el 250—. **El 8 ya no**:
+# el 2026-09-07, con la ventana mudada a la paleta 0, sus tiles de fondo bajaron
+# a 400 y entra en el segundo reparto. El número de arriba es de antes de eso y
+# no se volvió a medir sobre los 318.
 #
 # El número viejo que estaba escrito acá era 2, y estaba mal por una razón que
 # vale la pena dejar dicha: `vram_layout` no comprobaba que los tiles de fondo
