@@ -1945,6 +1945,13 @@ def tabla_de_paginas(mapa, numero, evcodigo):
     # Y cuáles cambian de gráfico con la página: el refresco también mira las
     # de ésos, bit 5, y les copia a la fila lo que la página activa dibuja.
     cambian = mapa.get("cambian", set())
+    # Y cuáles sólo aparecen y desaparecen con ella: los que caminan. Van por
+    # el **mismo** bit 5, porque en +13 no queda ninguno libre —con ruta propia
+    # los cinco de abajo son las banderas de la ruta, y el 4 es "la animación
+    # sigue quieto"—. Quien los distingue es la ROM, que ya sabe si la fila
+    # camina: `npc_buf + 9` vale NPC_QUIETO o el banco de sus doce poses. Ver
+    # `grafico_de_pagina` en main.s.
+    aparecen = mapa.get("aparecen", set())
     # Y cuáles tienen alguna página automática que compiló: bit 7. El refresco
     # de la ROM tiene que saber si la página activa de un evento es automática
     # —de ahí sale qué arranca solo— y con esto se ahorra leer las páginas de
@@ -1978,7 +1985,8 @@ def tabla_de_paginas(mapa, numero, evcodigo):
                         | (4 if propia["saltable"] else 0)
                         | (8 if propia["dir_fija"] else 0)
                         | (16 if propia["anim_continua"] else 0) | 64
-                        | (32 if pagina["evento"] in cambian else 0)
+                        | (32 if pagina["evento"] in cambian
+                                 or pagina["evento"] in aparecen else 0)
                         | (128 if pagina["evento"] in con_auto else 0))
             destino = "evcodigo_%d + %d" % (numero, pagina["ruta_offset"])
             out.append("    .byte %-4d ; +13 las banderas de su ruta propia"
@@ -1994,7 +2002,8 @@ def tabla_de_paginas(mapa, numero, evcodigo):
                        "sigue a la página, el 7 si el evento tiene alguna "
                        "automática"
                        % ((64 if pagina["evento"] in con_ruta else 0)
-                          | (32 if pagina["evento"] in cambian else 0)
+                          | (32 if pagina["evento"] in cambian
+                                   or pagina["evento"] in aparecen else 0)
                           | (128 if pagina["evento"] in con_auto else 0)))
             out.append("    .byte %-4d ; +14 su frecuencia" % pagina["frecuencia"])
             out.append("    .byte %-4d ; +15 y su velocidad, la de una ruta "
@@ -2152,6 +2161,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "MAP_LAYOUT  = %d\n"
         "NPC_STRIDE  = %d\n"
         "NPC_MAX     = %d\n"
+        "NPC_QUIETO  = $%02X\n"
         "; La tabla de posiciones de eventos, y cuántas rutas forzadas\n"
         "; pueden estar corriendo a la vez sobre ellos.\n"
         "EV_STRIDE   = %d\n"
@@ -2300,6 +2310,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         % (", ".join("%d %s" % (m["id"], m["nombre"]) for m in mapas),
            len(mapas), MAPA_STRIDE, inicial,
            VRAM_MAP, VRAM_ABOVE_MAP, MAP_LAYOUT, NPC_STRIDE, NPC_MAX,
+           NPC_QUIETO,
            EV_STRIDE, EV_MAX, RUTA_EV_MAX,
            PUERTA_BYTES, PAGINA_BYTES, RUTA_GRAF_MAX,
            eventos.OP_FIN, eventos.OP_SWITCH, eventos.OP_TELEPORT,
@@ -3181,11 +3192,21 @@ def main():
         # como lo quiere OAM: es lo que la ROM copia a la fila del NPC cuando
         # la página activa cambia. Ver `tabla_de_paginas`, +20.
         for pagina in paginas:
-            if pagina["evento"] not in mapa["cambian"]:
+            sigue = pagina["evento"] in mapa["cambian"]
+            if not sigue and pagina["evento"] not in mapa["aparecen"]:
                 continue
             grafico = pagina.get("grafico")
             if grafico is None \
                     or grafico[:2] in mapa["afuera"].get(pagina["evento"], ()):
+                continue
+            if not sigue:
+                # El que sólo aparece no lleva tile ni atributos: los suyos
+                # apuntan a su ranura de doce poses y la ROM no los toca. Va
+                # la pose —con el bit 7, que es "esta página dibuja algo"— y
+                # lo que su tile le impone a la celda.
+                pagina["oam"] = (0, 0, grafico[2] | 0x80,
+                                 0xFF if pagina.get("tile_pasa") is None
+                                 else pagina["tile_pasa"])
                 continue
             block, slot = mapa["where"][grafico]
             tile = block_tile(block)
@@ -3656,9 +3677,12 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
                 # lo pidiera. Al contar el estado "nada" lo pide el evento 10
                 # del mapa 8, y cortar por eso sería no armar la ROM por un
                 # detalle de un NPC que camina.
-                print("  mapa %d: el evento %d camina y cambia de gráfico con "
-                      "la página; la ROM no sabe las dos, así que camina y el "
-                      "gráfico queda fijo" % (map_id, npc["evento"] + 1))
+                # Lo que **sí** sigue a la página es si la fila se ve: eso es
+                # el bit 4 y no pisa el tile. Sin separarlos, un evento que
+                # camina y aparece con la página no aparecía nunca, porque la
+                # fila nace escondida cuando al cargar el mapa ninguna página
+                # cumple. Ver `grafico_de_pagina` en main.s.
+                npc["aparece"] = True
                 npc["cambia"] = False
             ranuras.append((("ev", npc["evento"]), npc["charset"],
                             npc["index"], npc["pose"]))
@@ -3833,6 +3857,9 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
         # página y qué gráficos suyos quedaron afuera de las paletas.
         "where": where,
         "cambian": {npc["evento"] for npc in npcs if npc["cambia"]},
+        # Y los que sólo aparecen y desaparecen con ella: los que caminan, a
+        # los que el gráfico se les fijó más arriba.
+        "aparecen": {npc["evento"] for npc in npcs if npc.get("aparece")},
         "afuera": {npc["evento"]: npc["afuera"] for npc in npcs},
     }
 

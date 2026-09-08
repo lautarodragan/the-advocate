@@ -483,6 +483,41 @@ dos errores juntos daban cero**, que es exactamente el modo en que la
 comparación falla en silencio. Se destapó al arreglar el presupuesto, no al
 buscarlo.
 
+## Decisiones tomadas el 2026-09-08, tarde
+
+taro jugó `demo-ciudad` y trajo nueve síntomas de Lashe City. Medidos, son
+**cuatro causas**, y la más grande no estaba en su lista:
+
+| causa | tamaño en el juego entero |
+|---|---|
+| páginas de acción frenadas porque el evento tendría que **girar** | 1572 páginas, 1224 eventos, 220 mapas |
+| trigger **Parallel Process** | 353 páginas, 86 mapas |
+| eventos afuera por **condición de ítem** | 45 eventos (14 más por variable, 1 por cronómetro) |
+| un evento que **camina y además aparece** con la página | el `Bum` y el `Mechanic` |
+
+**El giro se declara como deuda y la página corre igual.** De las 1572,
+compilan enteras **1535 en 214 mapas**: es, de lejos, lo más grande que se
+destrabó de una vez. El evento contesta mirando para donde estaba. Lo que falta
+para hacerlo bien —una ranura de VRAM por mapa— está en
+`assets/LIMITACIONES.md`.
+
+**Caminar y aparecer dejaron de ser el mismo bit.** No hacía falta uno nuevo: la
+fila ya dice si camina (`+9`), así que la ROM copia de la página todo menos el
+tile y la paleta. El bit 4 de `+13`, que fue el primer intento, **está ocupado**
+—con ruta propia esos cinco bits son las banderas de la ruta— y usarlo escondió
+al droide del mapa 2 en seis casos de la tanda.
+
+### Lo que sigue faltando en Lashe City
+
+* **Parallel Process**: `Car1`, `Car2`, `Car4`, `EV0004` y `EV0005` no se
+  mueven. El intérprete ya existe; falta la clase de disparo.
+* **Condición de ítem**: `PawnDoorBottom`, `GangMember1`, `EV0039`, `EV0040` y
+  `EV0041` se caen enteros —no se dibujan, no frenan y no disparan—. Pide
+  inventario, que no hay. `EV0041` **no** es el caso de la puerta del pad, como
+  parecía: es esto.
+* **Lashe City Interiors** no está en la ROM, así que `EV0055`, `EV0033` y
+  `EV0057` no compilan. taro lo pidió para la próxima vuelta.
+
 ## Esperando respuesta de taro
 
 * **`rom/build/demo-apertura-jugable/`**: es la copia pre-fundido que taro pidió
@@ -681,7 +716,7 @@ El 2026-09-07, sobre `demo-apertura` en mednafen:
   adorno —lo imprime `snes_expect.py`—: cuatro cuadros en cero también sería el
   resultado si la página no compilara de los dos lados.
 
-`just snes-hitos-foto` son **89 casos, todos en verde**, y el más largo es
+`just snes-hitos-foto` son **91 casos, todos en verde**, y el más largo es
 `talan`: mil doscientos cuadros de la escena entera del Emitter Room. Lo que la
 tanda no mira:
 

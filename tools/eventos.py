@@ -1110,8 +1110,22 @@ def puede_dispararse(page):
       le bloquea el paso y nunca llegaría a pisarlo. De las 983 páginas de
       contacto del juego, 978 son de la capa de abajo.
 
-    Y una de tecla de acción no puede tener que girar hacia el héroe, que es lo
-    que todavía no se dibuja.
+    **El giro hacia el héroe no se hace, y la página corre igual.** En RM2k
+    `ScheduleForegroundExecution` le pone al evento la dirección hacia el
+    jugador si su `animation_type` no la fija —`game_event.cpp:329`—. Acá no:
+    el evento contesta mirando para donde estaba. Es una deuda declarada, del
+    mismo tipo que los cinco bits del destello, y **la referencia hace lo
+    mismo**, así que la comparación sigue midiendo un solo programa.
+
+    Frenar la página por eso costaba **1572 páginas de acción en 1224 eventos
+    de 220 mapas**: la mitad de los NPCs del juego no se podían usar. taro lo
+    encontró el 2026-09-08 con el `Mechanic` de Lashe City, que se ve y no
+    habla. Un NPC que contesta de espaldas se ve raro; uno mudo no se puede
+    jugar.
+
+    Lo que falta para hacerlo bien está medido en `assets/LIMITACIONES.md`: una
+    ranura de VRAM para el que gira, porque los quietos comparten la suya por
+    (CharSet, índice, pose) y pisarla giraría también a los demás.
     """
     if page.trigger == TRIGGER_ACCION:
         # Las dos celdas valen, y cada una pide la capa contraria. La de
@@ -1124,7 +1138,7 @@ def puede_dispararse(page):
         # jugando: la puerta que sale del pad de Talan es `TalDoorTop`, de
         # acción y **capa 2**, y se abre parándose encima. Sin esto no se
         # disparaba nunca y del pad no se podía salir.
-        return not page.character_name or page.animation_type in ANIM_FIJAS
+        return True
     if page.trigger == TRIGGER_TOCA_HEROE:
         return page.layer != LAYER_MISMA
     return True

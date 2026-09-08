@@ -113,6 +113,48 @@ día entero porque destapaba más gráficos de los que entran en ocho paletas; l
 destrabó la sección de acá arriba.
 
 
+## Un evento no gira hacia vos cuando le hablás
+
+En RM2k, al dispararse una página con la tecla de acción el evento se da vuelta
+hacia el jugador: `ScheduleForegroundExecution` hace
+`SetFacing(GetDirectionToCharacter(GetPlayer()))` salvo que su `animation_type`
+fije la dirección —easyrpg, `game_event.cpp:329`—. **Acá no gira: contesta
+mirando para donde estaba.** La referencia hace lo mismo, así que la comparación
+sigue midiendo un solo programa.
+
+**Por qué se declara la deuda en vez de arreglarla.** Hasta el 2026-09-08 la
+página directamente no compilaba, y eso costaba **1572 páginas de acción en 1224
+eventos de 220 mapas**: la mitad de los NPCs del juego eran mudos. taro lo
+encontró con el `Mechanic` de Lashe City, que se ve y no habla. De esas 1572,
+compilan enteras **1535, en 214 mapas**. Un NPC que contesta de espaldas se ve
+raro; uno mudo no se puede jugar.
+
+**Qué falta para hacerlo bien.** Una ranura de VRAM para el que gira. Los NPCs
+quietos comparten ranura por (CharSet, índice, pose), así que subirle otra pose
+al que gira giraría también a los demás que usan la suya. La salida barata es
+**una sola ranura de giro por mapa** —16 tiles— que se reusa: gira el último con
+el que hablaste y el anterior vuelve a su pose. Eso lo puede modelar la
+referencia con un solo campo de estado.
+
+
+## Un evento que camina y además aparece con la página
+
+Un evento puede caminar —tener un banco de doce poses en el cartucho— **y**
+aparecer o desaparecer según qué página esté activa. En la fila de NPC esas dos
+cosas se pelean por los mismos bytes: el tile y la paleta apuntan a la ranura
+del que camina, y copiarlos de la página lo dejaría quieto.
+
+Se resuelve mirando la fila y no la página: `+9` vale `NPC_QUIETO` o el banco de
+sus poses, así que la ROM copia de la página todo menos el tile y la paleta
+cuando la fila camina. Antes el conversor elegía —ganaba caminar— y la fila, que
+nace escondida cuando al cargar el mapa ninguna página cumple, no aparecía nunca:
+el `Bum` y el `Mechanic` de Lashe City, 245 y 191 pixeles contra la referencia.
+
+Lo que queda sin hacer: si el evento camina **y** cambia de gráfico de verdad
+—no sólo de pose—, sigue ganando caminar y el gráfico queda fijo. El conversor
+lo avisa por mapa y evento.
+
+
 ## El destello de un evento tiñe la paleta, no el sprite
 
 `FlashSprite` en RM2k tiñe **ese** dibujable. En la consola el tinte es una

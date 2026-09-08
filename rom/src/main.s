@@ -2133,13 +2133,35 @@ sin_paginas:
 .proc grafico_de_pagina
 .a8
 .i16
+    ; El bit 5 dice que la fila sigue a la página, y quiere decir dos cosas
+    ; según la fila:
+    ;
+    ; * **si no camina**, sale todo de la página activa: el tile, la paleta, la
+    ;   pose y si se ve. Es lo que abre las puertas de este juego.
+    ; * **si camina**, todo eso menos el tile y la paleta, que apuntan a su
+    ;   ranura de doce poses y pisarlos la dejaría quieta.
+    ;
+    ; La distinción existe porque un evento puede caminar **y** aparecer con la
+    ; página, y antes del 2026-09-08 el conversor tenía que elegir: elegía
+    ; caminar, y entonces la fila —que nace escondida cuando al cargar el mapa
+    ; ninguna página cumple— no aparecía nunca. taro lo encontró con el `Bum` y
+    ; el `Mechanic` de Lashe City; la referencia los dibujaba y la ROM no, 245
+    ; y 191 pixeles.
+    ;
+    ; No es un bit nuevo porque en +13 no queda ninguno: con ruta propia los
+    ; cinco de abajo son las banderas de la ruta. Y no hace falta, porque
+    ; **la fila ya lo dice**: +9 vale NPC_QUIETO o el banco de sus poses.
     lda pg_flags
     and #$20
-    beq listo                   ; su gráfico no sigue a la página
+    bne hay_algo
+    rts                         ; su fila no sigue a la página
+hay_algo:
     lda rp_ev
     jsr npc_de_evento
     cpy #$FFFF
-    beq listo                   ; sin fila: nada que dibujar
+    bne hay_fila
+    rts                         ; sin fila: nada que dibujar
+hay_fila:
     sty npc_fila
     lda pg_pose
     bmi con_grafico
@@ -2159,10 +2181,17 @@ con_grafico:
 .a8
     lda dir_de_pose, x
     sta npc_buf + 10, y
+    ; El tile y la paleta sólo si la fila no camina. Si camina, apuntan a su
+    ; ranura de doce poses y pisarlos la dejarían quieta; la pose de arriba sí
+    ; va, que es la que la página declara y la que el refresco sube del banco.
+    lda npc_buf + 9, y
+    cmp #NPC_QUIETO
+    bne sin_tocar_el_tile
     lda pg_tile
     sta npc_buf + 6, y
     lda pg_attr
     sta npc_buf + 7, y
+sin_tocar_el_tile:
     lda #1
     sta npc_buf + 14, y
     lda pg_pasa
