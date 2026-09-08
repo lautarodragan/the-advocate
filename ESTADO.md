@@ -563,9 +563,46 @@ corrida. Los tres casos:
   relámpago del mapa 1, y un destello a pantalla completa convierte un cuadro de
   diferencia en la pantalla entera.
 
-En el mapa 8 la ráfaga no tiene un culpable único: sacando el refresco, los
-intérpretes paralelos o el intérprete de primer plano, cada uno la baja de 2 a
-1. Es el conjunto de la entrada, y es **lo próximo**.
+### La ráfaga de entrada, perfilada
+
+**Lo primero: el fundido ya la absorbe.** Su reloj es `boot_cuadros`, o sea
+cuadros de hardware y no vueltas del lazo —ver `empezar_fundido`—, así que la
+carga del mapa puede tardar seis o siete cuadros adentro del negro sin correr
+nada. Verificado: el salto del mapa 4 al 1 pierde **7 cuadros** y `snes-evento`
+da **cero** igual. O sea que en el juego esto no se ve nunca: a un mapa siempre
+se entra por una puerta o un teletransporte, y eso es un fundido.
+
+**Sólo molesta al arrancar derecho en un mapa pesado**, que es lo que hacen las
+ROMs de un solo mapa de la tanda. Ahí el que tendría que absorber es el arranque
+—`BOOT_CUADROS` más tres— y es fijo.
+
+Medido con una sonda que anota `boot_cuadros` y el contador de barrido al final
+de cada vuelta, arrancando en el mapa 8 (el presupuesto son **262 líneas**):
+
+    vuelta 0    370 líneas
+    vuelta 1    386
+    vuelta 2+   147 a 170       ← el régimen entra cómodo
+
+O sea que las dos primeras se pasan por **1,45x**, y de la tercera en adelante
+sobra la mitad del cuadro. En líneas, quién se las lleva:
+
+                          vuelta 0   régimen
+    paralelos_tick           218        80
+      de eso, correr_codigo  164        30    ← crear las ranuras de ruta
+    build_oam                 46        54
+    el paso interleaveado      3         0    ← el arreglo de los autos es gratis
+
+Lo que **no** es: un refresco por cuadro no pierde ni un cuadro, y encadenar 1,
+2, 4 u 8 páginas automáticas da lo mismo. `capa_activa` y `npc_de_evento`
+tampoco aparecen.
+
+Para bajar de 262 hay que sacar ~110 líneas de la vuelta 0 y ~124 de la 1. La
+mayor parte de la 1 es el primer plano: sin los paralelos igual mide 306.
+
+**Intentado y descartado:** resolver `capa_activa` en O(1) leyendo `eleg_por_ev`
+en vez de recorrer las 73 páginas. Cambia el comportamiento —la vuelta 0 sube a
+541— así que hay algo del camino rápido que no es equivalente, y hay que
+entender qué antes de volver a intentarlo.
 
 ## Esperando respuesta de taro
 
