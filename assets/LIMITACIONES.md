@@ -56,55 +56,61 @@ determinístico. El día que ese algoritmo exista, pasar a 30 columnas deja de s
 un costo técnico y pasa a ser sólo estético.
 
 
-## Un evento que no entra en las paletas de sprite no se dibuja, pero ocupa
+## El que no consigue paleta de sprite usa la de otro, y se ve mal
 
 Un evento dibujado con un tile del chipset es, para la consola, un personaje más
-con su paleta, y las paletas de sprite son ocho. Cuando no entra, el conversor lo
-deja sin dibujar y **el evento sigue ahí**: cierra el paso y dispara igual.
+con su paleta, y las paletas de sprite son ocho. Cuando ya no queda ninguna, el
+gráfico **no se descarta**: se cuelga de la paleta ajena que menos colores le
+falten, y cada color que no está ahí se dibuja con el más cercano por luma.
 
-Desde el 2026-09-07 eso corta la conversión si el evento **cambia de gráfico
-entre sus páginas**, porque ésos son mecanismos —una puerta que se abre— y sin
-dibujarse dejan una pared invisible; ver `aviso_de_descarte`. Los de una sola
-página son adornos y sólo se avisan.
+La decisión es de taro, el 2026-09-08, y su argumento cierra la discusión: *"si
+no podemos incluir todos los eventos, el proyecto entero se cae"*. Un sprite con
+los colores cambiados es un error que se ve; uno que no se dibuja es una pared
+invisible que dispara y cierra el paso, y ya costó una tarde con la puerta que
+Core rompe.
 
-**Cuándo deja de alcanzar.** En este juego cada personaje de CharSet usa los 15
-colores enteros y no comparte ninguno, así que un mapa con nueve personajes pide
-nueve paletas y no hay reparto posible: es el caso del mapa 8, la calle a la que
-da el pad de Talan. Fusionar dos de esas paletas cuesta el **17% de los pixeles**
-de esos sprites, con saltos de 18 sobre 31 en un canal. Para un juego con
-personajes de menos colores el problema no existe; para éste, la salida es no
-dibujar lo prescindible y no fusionar.
+**Lo que cuesta, medido antes de decidirlo.** Por gráfico, el porcentaje de sus
+pixeles que cambia de color y el salto peor en un canal, sobre 31:
+
+    @tile:BLchp1:112     0%
+    Chara2:0            21%, salto 9
+    @tile:BLchp1:53     23%, salto 11
+    Future1:7           38%, salto 15
+    @tile:BLchp1:117    42%, salto 1     ← la puerta del pad de Talan
+    Future3:1           49%, salto 17
+    @tile:BLchp1:111    70%, salto 13
+
+El caso de la puerta es el que muestra por qué el porcentaje solo no alcanza:
+cambia el 42% de sus pixeles pero ninguno se mueve más de 1 sobre 31, así que a
+ojo es la misma puerta.
+
+**Qué destraba.** El mapa 8 —la calle a la que da el pad— pedía trece paletas de
+ocho y no había reparto posible; hoy entra con seis gráficos prestados, y entre
+ellos el save point. El Hover-Tram (mapa 13) pedía once y hoy entra con dos. El
+tope real dejó de ser la cantidad de paletas.
+
+**Lo que sigue costando.** El presupuesto de tiles de sprite en VRAM: dibujar
+todo llevó al mapa 8 de 192 a 347 tiles, y hubo que rebalancear los cuatro
+repartos de VRAM para que entren 400 de fondo y 347 de sprite a la vez. Ver
+`LAYOUT_*` en `tools/snes_convert.py`.
 
 
-## Un evento de una sola página condicionada no se dibuja nunca
+## Un evento de una sola página condicionada no se dibujaba nunca
 
 `collect_npcs` mira qué gráficos puede llegar a dibujar un evento y, si es uno
-solo y al cargar el mapa no está activo, lo saltea: no le arma fila. Pero el
+solo y al cargar el mapa no está activo, lo salteaba: no le armaba fila. Pero el
 conjunto de estados posibles no es sólo el gráfico de cada página — si la
 **primera** tiene condición, puede no haber ninguna activa, y ese "nada" es un
-estado más. Sin contarlo, un evento de una sola página con switch queda invisible
-para siempre.
+estado más.
 
 taro lo vio el 2026-09-07 con el `TalDoorBottom` del mapa 8: se puede usar y
-corre sus comandos, pero no se dibuja. **No son dos bugs**: la tabla de páginas
-—que dispara— y la de NPCs —que dibuja— son distintas, y el evento está en la
-primera.
+corre sus comandos, pero no se dibujaba. **No eran dos bugs**: la tabla de
+páginas —que dispara— y la de NPCs —que dibuja— son distintas, y el evento
+estaba en la primera.
 
-Son **350 eventos en 68 mapas**. Contarlo es una línea y **está sin hacer a
-propósito**: destapa más gráficos de los que entran. El mapa 8 pasa de pedir 8
-paletas de sprite a pedir **13**, y el conversor corta, porque hoy fuerza a los
-CharSets en vez de elegir cuáles dibujar.
-
-Y elegir es una decisión de contenido. Simulado sobre el mapa 8, con
-"mecanismos primero, después por cantidad de eventos": entra la puerta —su tile
-se cuelga de la paleta de otro, trece colores entre los dos— y se caen el save
-point, tres peatones y un vehículo. Con cualquier otro orden se cae otra cosa:
-trece gráficos no entran en ocho paletas.
-
-Lo que destrabaría la familia entera —esto y el Hover-Tram— es que el conversor
-**elija en vez de cortar**, como ya hace con los eventos dibujados con un tile
-del chipset, más una lista de "estos sí o sí" para lo que el orden automático no
-puede saber.
+Son **350 eventos en 68 mapas**, y contarlos es una línea. Estuvo sin hacer un
+día entero porque destapaba más gráficos de los que entran en ocho paletas; lo
+destrabó la sección de acá arriba.
 
 
 ## El destello de un evento tiñe la paleta, no el sprite

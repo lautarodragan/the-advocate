@@ -227,6 +227,19 @@ class Mundo:
         self.npcs(map_id)
         return self.npcs_cache[map_id][2][1]
 
+    def paleta_prestada(self, map_id, clave):
+        """La paleta ajena que le tocó a un gráfico, o None si tiene la suya.
+
+        Desde que se dibujan **todos** los eventos, el que no consigue paleta
+        propia usa la de otro. Acá hace falta el mismo dato que del lado del
+        cartucho para dibujarlo igual de mal."""
+        self.npcs(map_id)
+        paletas, paleta_de, propios = self.npcs_cache[map_id][2][:3]
+        prestadas = self.npcs_cache[map_id][2][5]
+        if clave in propios or clave not in prestadas:
+            return None
+        return paletas[paleta_de[clave]]
+
 
 # El mismo tope que `saltos_restantes` en la ROM: dos mapas que se
 # teletransporten entre sí colgarían a los dos lados, y una prueba colgada no
@@ -869,11 +882,17 @@ def camera_for(x, y, map_w, map_h, pan=(0, 0)):
     return cam_x, cam_y
 
 
-def pose_image(charset, index, pose):
+def pose_image(charset, index, pose, ajena=None):
     """Una pose, con los colores ya fusionados a los 15 que entran en un sprite.
 
     La fusión es la misma que hace el conversor —mismo criterio, mismos datos—
     así que si difiere algo no es esto.
+
+    `ajena` es la paleta que le prestaron al personaje cuando el mapa se quedó
+    sin ninguna libre. Sus colores no están ahí, así que cada uno se dibuja con
+    el más cercano de los que hay: es lo que hace `build_characters`, con la
+    misma cuenta de distancia, y sin esto la referencia dibujaría los colores
+    de verdad contra una consola que dibuja los aproximados.
     """
     counts = snes_convert.sprite_colors(charset, index)
     if len(counts) <= snes_convert.OBJ_COLORS:
@@ -893,6 +912,9 @@ def pose_image(charset, index, pose):
             # Se guarda el color de 15 bits corrido a 8, que es la misma escala
             # en la que después se compara.
             cr, cg, cb = mapping[(r >> 3, g >> 3, b >> 3)]
+            if ajena is not None and (cr, cg, cb) not in ajena:
+                cr, cg, cb = min(ajena, key=lambda p: pixeles.luma_distance(
+                    p, (cr, cg, cb)))
             out.putpixel((x, y), (cr << 3, cg << 3, cb << 3, 255))
     return out
 
@@ -1441,7 +1463,8 @@ def main():
         order = sorted(actors, key=lambda a: a[0], reverse=True)
         sprites = []
         for _key, name, index, pose, px, py, arriba, blanco, altura in order:
-            imagen = pose_image(charset_image(name), index, pose)
+            imagen = pose_image(charset_image(name), index, pose,
+                                mundo.paleta_prestada(map_id, (name, index)))
             # El destello va sobre el personaje ya dibujado, que en la consola
             # es su paleta. El tinte de pantalla va antes —`Cache::SpriteEffect`
             # aplica el tono y después la mezcla— y acá lo aplica `tenir_imagen`

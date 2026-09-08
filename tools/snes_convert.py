@@ -124,7 +124,6 @@ PRIORITY_ABOVE = 1                       # para las celdas de BG2
 # Los tiles de la ventana viven en el banco que sigue al de la capa de encima,
 # y BG2 los alcanza con la misma base porque quedaron pegados: del índice 0 al
 # 255 cae el de encima y del 256 al 511 el de la ventana.
-VENTANA_TILE_BASE = 256
 
 # El tamaño de la ventana en celdas. Es fijo: 256x80 pegada al pie de la
 # pantalla, los mismos números que `tools/ventana.py`.
@@ -526,6 +525,9 @@ def npcs_dibujables(renderer, game_map, lideres, tope, graficos_de_ruta=(),
     """
     paletas = []
     paleta_de = {}
+    # A quiénes hubo que prestarles una paleta ajena. Salen en el informe del
+    # conversor: no rompen nada, pero se ven con colores que no son los suyos.
+    prestadas = set()
     # Las paletas de los líderes posibles. **Nadie más se mete ahí**, y no es
     # por prolijidad: el destello de un evento —`FlashSprite`— en la consola es
     # un tinte de CGRAM, así que tiñe la paleta entera y con ella todo lo que la
@@ -561,7 +563,32 @@ def npcs_dibujables(renderer, game_map, lideres, tope, graficos_de_ruta=(),
             paleta_de[(charset, index)] = len(paletas)
             paletas.append(list(palette))
             return True
-        return False
+        # No hay paleta para él, así que **se le presta una**: cada color va al
+        # más cercano de los que hay. Se ve mal, pero se ve.
+        #
+        # Antes se lo descartaba, y taro cortó esa discusión con el argumento
+        # que la cierra: si no podemos incluir todos los eventos, el proyecto
+        # entero se cae. Y un sprite con colores raros es un error **visible**;
+        # uno invisible es una trampa, y ya nos costó una tarde con la puerta
+        # que Core rompe.
+        #
+        # Cuánto se ve depende del salto de color, no de cuántos pixeles
+        # cambian: la puerta del pad cambia el 42% de los suyos con un salto de
+        # 1 sobre 31 y queda casi igual, mientras que `Future3:1` cambia el 49%
+        # con saltos de 17 y sí se nota.
+        cuenta = sprite_colors(renderer.charsets.get(charset), index)
+        mejor = None
+        for numero, existente in enumerate(paletas):
+            if numero in de_lider:
+                continue        # ésas las pisa la ROM con los colores del líder
+            costo = sum(v for c, v in cuenta.items() if c not in existente)
+            if mejor is None or costo < mejor[0]:
+                mejor = (costo, numero)
+        if mejor is None:
+            return False        # no hay ni una paleta que no sea de líder
+        paleta_de[(charset, index)] = mejor[1]
+        prestadas.add((charset, index))
+        return True
 
     npcs = collect_npcs(game_map)
 
@@ -607,11 +634,19 @@ def npcs_dibujables(renderer, game_map, lideres, tope, graficos_de_ruta=(),
             paleta_de[clave] = ranura_lider
             propios.add(clave)
 
+    # Los CharSets de las páginas **ya no se fuerzan**. Se los forzaba para que
+    # un personaje nunca se quedara sin paleta, y el precio era que un mapa con
+    # más personajes que paletas no convertía: el 8 pedía nueve de las ocho y el
+    # Hover-Tram pide once. Con el préstamo de `cabe` eso ya no hace falta —el
+    # que no entra se dibuja con una ajena— y ningún mapa se cae por esto.
+    #
+    # El único que sigue forzado es el líder: el héroe está en pantalla todo el
+    # tiempo y es a quien más se le notaría.
     for npc in npcs:
         for clave in claves(npc):
             if clave not in vistos and not clave[0].startswith(rm2k.TILE_PREFIX):
                 vistos.add(clave)
-                cabe(clave[0], clave[1], True)
+                cabe(clave[0], clave[1], False)
     # Y los de la orden 34, después de los NPCs y antes de los tiles.
     # **Mientras quepan**, como los tiles y no como los CharSets de una página:
     # forzarlos rompía tres mapas del juego —el 108, el 114 y el 207 pedían
@@ -707,7 +742,8 @@ def npcs_dibujables(renderer, game_map, lideres, tope, graficos_de_ruta=(),
     # El reparto se devuelve para que `build_characters` lo use tal cual: un
     # segundo primer-lugar-que-entre en otro orden puede dar otra cuenta, y
     # dio: el mapa 8 entraba acá en ocho paletas y allá pedía nueve.
-    return salida, descartados, (paletas, paleta_de, propios, de_lider, topes)
+    return salida, descartados, (paletas, paleta_de, propios, de_lider,
+                                 topes, prestadas)
 
 
 def build_characters(images, personajes, ranuras, reparto=None):
@@ -757,11 +793,19 @@ def build_characters(images, personajes, ranuras, reparto=None):
                 colores[(charset, index)] = (lookup, mapping)
                 continue
             union = palettes[paleta_de[(charset, index)]]
-            faltan = [c for c in palette if c not in union]
-            if faltan:
-                sys.exit("%s:%d tiene colores que no están en su paleta del "
-                         "reparto" % (charset, index))
-            lookup = {color: union.index(color) + 1 for color in palette}
+            # Los colores que no estén en la paleta que le tocó van al más
+            # cercano de los que hay. Pasa cuando el mapa se quedó sin paletas y
+            # `npcs_dibujables` le prestó una ajena: se ve mal, pero se ve. La
+            # cuenta de "más cercano" es la misma de allá, así que los dos
+            # lados eligen igual.
+            lookup = {}
+            for color in palette:
+                if color in union:
+                    lookup[color] = union.index(color) + 1
+                else:
+                    cerca = min(union,
+                                key=lambda p, c=color: pixeles.luma_distance(p, c))
+                    lookup[color] = union.index(cerca) + 1
             colores[(charset, index)] = (lookup, mapping)
             continue
         # Si sus colores caben en una paleta ya armada, va ahí: se le suman
@@ -1180,10 +1224,14 @@ BLOCK_BYTES = 16                # cuatro celdas de BG1 y cuatro de BG2
 # mitad de los sprites, y esos tres mapas tienen pocos personajes.
 #
 # Cuál toca lo decide el conversor y viaja en el .inc: la ROM no elige nada.
-LAYOUT_ANCHO = {"tiles": (0x0000, 512), "sprites": (0x4000, 512),
+# Sin ventana sobran 10 KB, así que acá la holgura no es problema; lo que cambió
+# es dónde caen los tilemaps, que ahora son $5800 y $7800 para los cuatro
+# repartos. Los sprites bajan de 512 a 384 para dejarle lugar al de $5800: sobre
+# los 318 mapas que convierten, el que más gasta usa **380**.
+LAYOUT_ANCHO = {"tiles": (0x0000, 512), "sprites": (0x4000, 384),
                 "encima": (0x6000, 256)}
-LAYOUT_FONDO = {"tiles": (0x0000, 640), "encima": (0x5000, 256),
-                "sprites": (0x6000, 256)}
+LAYOUT_FONDO = {"tiles": (0x0000, 640), "encima": (0x6000, 128),
+                "sprites": (0x6800, 256)}
 
 # Y los dos que hacen lugar para la ventana de mensaje. La ventana necesita 8 KB
 # de tiles propios —el texto son 240 tiles y no hay forma de bajarlo, porque un
@@ -1234,14 +1282,37 @@ LAYOUT_FONDO = {"tiles": (0x0000, 640), "encima": (0x5000, 256),
 # del índice del tilemap y no el del banco, así que los mapas 66 y 250 —518 y
 # 620 tiles de fondo— se llevaban el reparto de 512 y se pasaban por arriba de
 # la capa de encima. Nunca se vio porque ninguna receta les pide una ventana.
+# El reparto de arriba daba 384 tiles de fondo, y el que le seguía cambiaba
+# sprites por fondo. Los dos le daban **256 tiles a la capa de encima**, y eso
+# medido es un despilfarro: sobre los 328 mapas que convierten, la mediana de
+# uso es **1 tile** y 326 entran en 128. Bajarla a 128 libera 4 KB, que en 8bpp
+# son 64 tiles de fondo más.
+#
+# Hizo falta el 2026-09-07, cuando dibujar todos los eventos —ver `cabe`— llevó
+# al mapa 8 a 400 tiles de fondo y 347 de sprite, y no había reparto que le
+# diera los dos.
+#
+# El rompecabezas es de alineación y no de espacio: `BG12NBA` fija las bases de
+# BG1 y BG2 en múltiplos de 8 KB, `OBSEL` la de los objetos en múltiplos de
+# 16 KB, y los tilemaps en múltiplos de 1 KB. Los tilemaps se mudaron a $5800 y
+# $7800, que son los únicos dos huecos que quedan alineados en los cuatro
+# repartos.
 LAYOUT_VENTANA = {"sprites": (0x0000, 448), "ventana_map": (0x1C00, 1),
-                  "tiles": (0x2000, 384),
-                  "encima": (0x5000, 256), "ventana": (0x6000, 256)}
+                  "tiles": (0x2000, 448),
+                  "encima": (0x6000, 128), "ventana": (0x6800, 256)}
 LAYOUT_VENTANA_FONDO = {"sprites": (0x0000, 256), "tiles": (0x1000, 480),
                         "ventana_map": (0x4C00, 1),
-                        "encima": (0x5000, 256), "ventana": (0x6000, 256)}
-VRAM_MAP = 0x7000
+                        "encima": (0x6000, 128), "ventana": (0x6800, 256)}
+VRAM_MAP = 0x5800
 VRAM_ABOVE_MAP = 0x7800
+
+# Dónde arranca el banco de la ventana **contado desde la base de BG2**, que es
+# donde empieza la capa de encima. Sale del reparto y no de un número escrito:
+# con la capa de encima en 128 tiles, la ventana arranca en el índice 128 y no
+# en el 256, y escribirlo a mano fue lo primero que se rompió al mover el
+# reparto.
+VENTANA_TILE_BASE = ((LAYOUT_VENTANA["ventana"][0] - LAYOUT_VENTANA["encima"][0])
+                     // 16)
 
 # La tabla de bloques se lee con `lda tabla, x`, o sea que vive en el banco 0
 # junto con el código.
@@ -3487,6 +3558,11 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
                                                  {c for c, n in getattr(
                                                      args, "mapas_por_personaje",
                                                      {}).items() if n == 1})
+    prestadas = reparto[5] if len(reparto) > 5 else set()
+    if prestadas:
+        print("  mapa %d: %d gráfico(s) sin paleta propia, dibujados con una "
+              "ajena: %s" % (map_id, len(prestadas),
+                             ", ".join(sorted("%s:%d" % k for k in prestadas))))
     for evento, tile in descartados:
         aviso_de_descarte(
             args, "mapa %d: el evento %d, dibujado con el tile %s, no entra en "
@@ -3570,12 +3646,20 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
         if npc["evento"] in movibles:
             if npc["cambia"]:
                 # Dos mecanismos sobre la misma fila: las doce poses del
-                # cartucho y el gráfico de la página. Ningún evento de los
-                # mapas que se miran lo pide; el día que uno lo pida, esto
-                # dice cuál.
-                sys.exit("el evento %d del mapa %d camina y cambia de "
-                         "gráfico con la página, y la ROM no sabe las dos "
-                         "cosas a la vez" % (npc["evento"] + 1, map_id))
+                # cartucho y el gráfico de la página. La ROM no sabe las dos a
+                # la vez, así que **gana caminar** y su gráfico deja de seguir a
+                # la página. Es lo mismo que hacía antes de que `collect_npcs`
+                # contara el "nada" como un estado —ver `cambia` allá—, o sea
+                # que no se pierde nada que antes anduviera.
+                #
+                # Esto era un `sys.exit`, y estaba bien mientras ningún evento
+                # lo pidiera. Al contar el estado "nada" lo pide el evento 10
+                # del mapa 8, y cortar por eso sería no armar la ROM por un
+                # detalle de un NPC que camina.
+                print("  mapa %d: el evento %d camina y cambia de gráfico con "
+                      "la página; la ROM no sabe las dos, así que camina y el "
+                      "gráfico queda fijo" % (map_id, npc["evento"] + 1))
+                npc["cambia"] = False
             ranuras.append((("ev", npc["evento"]), npc["charset"],
                             npc["index"], npc["pose"]))
         else:

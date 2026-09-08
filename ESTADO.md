@@ -11,7 +11,7 @@ volvió inusable; se borra sin culpa lo que ya esté en esos dos lados.
 
 Se escribe **mientras se trabaja**, no al final.
 
-Última vez que se tocó: 2026-09-07.
+Última vez que se tocó: 2026-09-08.
 
 
 ## El objetivo, y dónde estamos
@@ -433,6 +433,56 @@ Lo incómodo del caso: **la caminata sí lo respetaba** y el salto no. La misma
 regla implementada en un camino y olvidada en el otro, y por eso costaba verlo.
 
 
+## Decisiones tomadas el 2026-09-08
+
+**Se dibujan todos los eventos, aunque sea con una paleta ajena.** Es de taro:
+*"si no podemos incluir todos los eventos, el proyecto entero se cae"*. El
+gráfico que no consigue paleta propia se cuelga de la que menos colores le
+falte y cada color ausente va al más cercano por luma. Los números y el caso
+que los justifica están en `assets/LIMITACIONES.md`; lo que destraba es el mapa
+8 —que pedía trece paletas de ocho— y el Hover-Tram.
+
+La referencia hace la **misma** aproximación: `pose_image` recibe la paleta
+prestada y elige el color más cercano con la misma cuenta. Sin eso la
+comparación medía dos programas distintos, y lo cobró el caso `talan` con 332
+pixeles.
+
+**El reparto de VRAM se rebalanceó**, porque dibujar todo llevó al mapa 8 de 192
+a 347 tiles de sprite y ningún reparto le daba 400 de fondo y 347 de sprite a la
+vez. La capa de encima bajó de 256 tiles a 128 —la mediana de los 328 mapas es
+**1 tile** y 326 entran en 128—, los tilemaps se mudaron a `VRAM_MAP = $5800` y
+`VRAM_ABOVE_MAP = $7800`, y `VENTANA_TILE_BASE` sale del reparto en vez de estar
+escrito a mano.
+
+### El cuadro del tinte estaba a una línea de barrido de perderse
+
+Y el primer evento de más se lo llevó puesto. Medido con una sonda que engancha
+`OPVCT` al final del lazo principal: una vuelta normal termina en la línea 61 de
+262, y la vuelta en que corre `aplicar_tinte` terminaba en la **224**, con
+vblank arrancando en la 225. Un cuadro perdido, y la pantalla queda sin teñir un
+cuadro contra la referencia.
+
+El gasto era `armar_paleta`: 151 colores por vez —el mapa, la capa de encima,
+las ocho paletas de sprite y el líder— a 205 ciclos cada uno. Con la saturación
+neutra, que es casi siempre, el color no necesita los tres canales juntos ni
+salir de los dieciséis bits: el lazo corto lo baja a ~123 y la vuelta termina en
+la 188. Quedan 37 líneas de margen donde había una.
+
+### El cronómetro iba un cuadro adelante, y un cuadro perdido lo tapaba
+
+`timer_tick` corría **después** de `eventos_tick`, y en `Game_Map::Update`
+—easyrpg, `game_map.cpp:1304`— `UpdateTimers()` corre **antes** de
+`UpdateForegroundEvents`. O sea que la página que arranca el cronómetro no
+debería llevarse un cuadro en el mismo cuadro en que lo arranca, y acá se lo
+llevaba. La ROM quedaba un cuadro adelante para siempre; se ve sólo en los
+cuadros en que parpadean los dos puntos o cambia un dígito.
+
+Nadie lo cobraba porque `snes-timer` tiñe la pantalla, el tinte costaba el
+cuadro perdido de acá arriba, y ese cuadro tapaba justo este uno de más. **Los
+dos errores juntos daban cero**, que es exactamente el modo en que la
+comparación falla en silencio. Se destapó al arreglar el presupuesto, no al
+buscarlo.
+
 ## Esperando respuesta de taro
 
 * **`rom/build/demo-apertura-jugable/`**: es la copia pre-fundido que taro pidió
@@ -442,41 +492,29 @@ regla implementada en un camino y olvidada en el otro, y por eso costaba verlo.
 * **Si las ocho décimas de arranque molestan.** Ver la decisión de arriba.
 
 
-## Lo que falta para salir del pad de Talan
+## Salir del pad de Talan: hecho
 
-El 2026-09-07 taro llegó al pad y lo jugó: controla a Talan, corre la cinemática
-y puede hablarle a la cama, la PC y los caños. Quedan tres cosas, y son tres
-problemas distintos.
-
-1. **La puerta no compila porque falta el mapa 8.** `TalDoorTop` teletransporta
-   a `[8, 11, 56]` y el 8 no está en el cartucho; el conversor ya lo avisa por
-   nombre. Con el 8 adentro el mapa 7 pasa de 9 a 10 páginas de 10.
-
-   Y el que bloquea no es el tamaño de la ROM, como se venía suponiendo: **el
-   mapa 8 pide 9 paletas de sprite y la consola tiene 8**, así que el conversor
-   corta con error. Sin el cronómetro son 8 disponibles y sin él 7. Esto cae
-   justo sobre el punto 1 de `assets/README.md` —la estrategia de paletas— y lo
-   convierte en el camino crítico de los diez minutos, no en una tangente.
-
-2. **El insta-shave ya anda**: `ShowChoice` está hecho, con cursor, vuelta al
-   final de la lista y cancelar con B. Ver la decisión de abajo.
-
-3. **El cronómetro ya anda**: era el `--con-timer` que faltaba en el build. Ver
-   la receta de abajo.
-
+El 2026-09-07 taro llegó al pad, y el 2026-09-08 pudo salir. Los tres puntos que
+faltaban están: el mapa 8 entra en la ROM —ver la decisión de las paletas
+prestadas—, `ShowChoice` anda con cursor, vuelta y cancelar con B, y el
+cronómetro también.
 
 ## Lo que taro todavía no jugó: `rom/build/demo-ciudad/`
 
-Armada el 2026-09-07. Es `demo-apertura` **más el mapa 8** —Lashe City, la calle
-a la que da el pad de Talan— y por lo tanto la primera ROM en la que se puede
-salir del pad: con el 8 adentro, la puerta `TalDoorTop` compila.
+Rearmada el 2026-09-08. Es `demo-apertura` **más el mapa 8** —Lashe City, la
+calle a la que da el pad de Talan— y por lo tanto la primera ROM en la que se
+puede salir del pad: con el 8 adentro, la puerta `TalDoorTop` compila.
 
-Va **con cronómetro** desde el 2026-09-07: el mapa 8 usa las ocho paletas justas
-y para hacerle lugar al rojo de los dígitos, `BLVehicles:5` baja de 15 a 14
-colores —105 pixeles de 4648, el 2,26%—. Se arma así:
+Desde el 2026-09-08 el mapa 8 **dibuja sus 68 eventos**, seis de ellos con una
+paleta ajena: `@tile:BLchp1:111`, `@tile:BLchp1:117` —la puerta del pad—,
+`@tile:BLchp1:53`, `Chara2:0`, `People4:0` y `savept:0`, o sea el save point.
+Se ven con los colores cambiados y se ven; ver `assets/LIMITACIONES.md`.
+
+Va **con cronómetro**: para hacerle lugar al rojo de los dígitos, `Future1:7`
+baja de 15 a 14 colores (14,07% de sus pixeles). Se arma así:
 
     python3 tools/snes_convert.py --grupo 10 --map-id 4 --mapas 1 2 3 5 6 7 8 \
-        --con-ventana --con-timer --descartar-eventos \
+        --con-ventana --con-timer \
         -o rom/build/demo-ciudad/mapdata.inc
     python3 tools/w65.py rom/src/main.s -I rom/build/demo-ciudad \
         -o rom/build/demo-ciudad/demo-ciudad.sfc \
@@ -494,32 +532,15 @@ fea sino un corte al emitir. Pasó con `Future1:4` la primera vez que se escribi
 El resto de los mapas donde el cronómetro puede aparecer no paga nada: de los
 diez, en ocho entra en una paleta que ya tiene lugar.
 
-### El Hover-Tram (mapa 13), analizado
+### El Hover-Tram (mapa 13): entra
 
-Pide **once paletas de sprite de las ocho**, y no lo arregla nada de lo de hoy.
-Son 27 eventos con gráfico dibujados con **diez sprites distintos**, más Talan.
-Dato que cierra puertas: **los 27 tienen una sola página cada uno**, así que no
-son alternativas que se excluyan sino 27 pasajeros que están todos a la vez. El
-truco de la ranura compartida no aplica: no hay cambio de página que recargar.
+Pedía **once paletas de sprite de las ocho** —27 pasajeros de una sola página
+cada uno, dibujados con diez sprites distintos, todos a la vez—. Desde que el
+que no consigue paleta propia se cuelga de una ajena, el mapa convierte con
+**dos** gráficos prestados: `BLPeople:0` y `Future1:2`. No hace falta ni
+descartar pasajeros ni fusionar paletas, que eran las dos salidas caras.
 
-**No dibujar a los tres más raros** es la salida barata. Tres de los diez
-aparecen en un solo evento cada uno —`Chara2:4`, `Future1:2` y `BLPeople:0`—,
-así que se pierden 3 pasajeros de 27 sin tocarle un pixel a nadie.
-
-**Fusionar** cuesta tres fusiones, y el mejor trío mueve el 20,5%, el 25,0% y el
-29,0% de los pixeles, con saltos de hasta 19 sobre 31. Descartada.
-
-Lo que falta para poder hacer la primera: **el conversor no elige, corta**. Los
-NPCs con CharSet se fuerzan y si no entran hay `sys.exit`. Habría que hacer con
-ellos lo que ya se hace con los eventos dibujados con un tile del chipset
-—dibujar los que entran y avisar de los que no— pero eligiendo por costo: los
-que aparecen en más eventos primero. Eso arregla la familia entera, no este
-mapa: hoy el conversor sabe degradar con los tiles y no sabe con los CharSets.
-
-Con un límite anotado: un pasajero que no se dibuja **igual cierra el paso**, así
-que podría dejar un asiento intransitable. Ninguno de los tres candidatos cambia
-de gráfico, así que el guard de `aviso_de_descarte` no lo marcaría.
-
+Sin probar todavía: la ROM con el mapa adentro.
 
 ## Lo que taro probó y anda
 
@@ -660,7 +681,7 @@ El 2026-09-07, sobre `demo-apertura` en mednafen:
   adorno —lo imprime `snes_expect.py`—: cuatro cuadros en cero también sería el
   resultado si la página no compilara de los dos lados.
 
-`just snes-hitos-foto` son **88 casos, todos en verde**, y el más largo es
+`just snes-hitos-foto` son **89 casos, todos en verde**, y el más largo es
 `talan`: mil doscientos cuadros de la escena entera del Emitter Room. Lo que la
 tanda no mira:
 

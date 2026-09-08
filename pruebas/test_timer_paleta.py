@@ -48,26 +48,35 @@ def descartados(paletas):
     return {evento for evento, _tile in fuera}
 
 
-def test_la_puerta_que_core_rompe_se_dibuja_con_las_ocho():
-    assert PUERTA not in descartados(snes_convert.OBJ_PALETTES), \
-        "el evento 30 del mapa 2 —el medio de la puerta que Core rompe— no se " \
-        "dibuja, así que la puerta no cambia de tile y no se puede pasar"
+def test_no_se_descarta_ningun_grafico(partida=None):
+    """El invariante que pidió taro: **todos los eventos se dibujan**.
 
+    Su argumento cierra la discusión: si no podemos incluir todos los eventos,
+    el proyecto entero se cae. Así que el que no consigue paleta propia se
+    dibuja con una ajena —cada color al más cercano de los que hay— y se ve mal
+    en vez de no verse. Un sprite con colores raros es un error visible; uno
+    invisible es una trampa, y ya costó una tarde con la puerta que Core rompe.
 
-def test_con_menos_paletas_la_puerta_se_cae():
-    """Lo que pasaba, escrito: es lo que hace que la prueba de arriba valga.
-
-    Sin esto, la de arriba pasaría también en un mundo donde el cronómetro
-    volviera a reservarse una paleta, porque no habría nada que dijera que el
-    tope importa.
-
-    Eran siete hasta que los líderes pasaron a compartir una ranura: eso le
-    devolvió una paleta al mapa 2, que con siete ya no descarta la puerta —sólo
-    sus costados, los eventos 31 y 32—. Con seis vuelve a caerse.
+    Se mira con **seis** paletas y no con ocho para que el mapa se quede corto
+    de verdad: con ocho entra casi todo y la prueba no diría nada.
     """
-    assert PUERTA in descartados(snes_convert.OBJ_PALETTES - 2), \
-        "con seis paletas la puerta entra igual: este mapa ya no sirve de " \
-        "banco para esta prueba"
+    assert descartados(snes_convert.OBJ_PALETTES - 2) == set(), \
+        "el mapa 2 descarta gráficos en vez de prestarles una paleta"
+
+
+def test_la_puerta_que_core_rompe_tiene_paleta(partida=None):
+    """Y en particular la del evento 30, que es la que taro perdió jugando."""
+    ren = render_map.Renderer(JUEGO)
+    lideres = snes_convert.lideres_posibles(ren, DEMO, GRUPO, True)
+    game_map = ren.cargar_mapa(os.path.join(JUEGO, "Map%04d.lmu" % MAPA))
+    npcs, _fuera, reparto = snes_convert.npcs_dibujables(
+        ren, game_map, lideres, snes_convert.OBJ_PALETTES - 2, [])
+    paleta_de = reparto[1]
+    suyos = [n for n in npcs if n["evento"] == PUERTA]
+    assert suyos, "el evento 30 del mapa 2 no tiene fila de NPC"
+    clave = (suyos[0]["charset"], suyos[0]["index"])
+    assert clave in paleta_de, \
+        "el medio de la puerta que Core rompe se quedó sin paleta"
 
 
 def paletas_de(cuantos_colores, cuantas=snes_convert.OBJ_PALETTES):
