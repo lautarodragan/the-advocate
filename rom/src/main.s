@@ -10548,6 +10548,19 @@ sin_destello:
     lda #2
     sta vq_tope
 sin_tinte:
+    ; Y un renglón de la ventana esperando también les come presupuesto: son
+    ; 1920 bytes de un solo DMA, casi cuatro poses. Con las cinco de siempre el
+    ; vblank se termina en el medio y lo que falta del renglón se escribe con
+    ; la pantalla encendida, o sea que no se escribe: queda una franja de
+    ; basura en la ventana, **fija**, y sólo en un mapa con muchos eventos
+    ; moviéndose. taro la vio en Lashe City el 2026-09-08 hablándole al
+    ; mecánico y al linyera; apareció con los eventos paralelos, que sumaron
+    ; nueve personajes que se mueven y por lo tanto nueve poses por subir.
+    lda msg_subir
+    beq sin_renglon
+    lda #1
+    sta vq_tope
+sin_renglon:
     jsr vram_drenar             ; las poses que esta OAM ya da por subidas
     lda #VQ_POR_CUADRO
     sta vq_tope                 ; el vblank que viene arranca con todo

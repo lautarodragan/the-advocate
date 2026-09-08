@@ -650,13 +650,25 @@ justo lo que da lo mismo.
 
 ### Los 3 rojos que quedan son bugs del mapa 8, no del reloj
 
-* `mecanico` y `bum`: **la ventana de mensaje deja basura en las filas que no
-  escribe**. En el mapa 7 no se ve porque esos tiles de VRAM están en negro; en
-  el mapa 8 tenían mapa debajo. No es desfasaje: da lo mismo mirar el tick 59,
-  60, 61 o 62.
-* `snes-heroe 8`, caminando a la izquierda: un auto queda a una celda de
-  distancia al cabo de 304 ticks. El resto de la pantalla coincide. El reloj no
-  lo movió —516 pixeles antes y después— así que es la ruta.
+* `mecanico` y `bum`: **arreglado**. No era la ventana dejando basura sino el
+  vblank: `subir_linea` son 1920 bytes de un solo DMA —casi cuatro poses— y con
+  las cinco de siempre no entra, así que la cola del renglón se escribía con la
+  pantalla ya encendida y no se escribía. Se ve como una franja fija, y sólo en
+  un mapa con muchos eventos moviéndose. Apareció con los paralelos, que sumaron
+  nueve personajes que se mueven. El arreglo es el mismo recorte que ya hacían
+  el tinte y el destello: con un renglón esperando, `vq_tope` baja a 1.
+* `snes-heroe 8`, caminando a la izquierda: **queda abierto**. Los cuatro autos
+  del mapa 8 van **un tick adelante** en la ROM respecto de la referencia, y a
+  los 304 ticks eso hace caer un `ChangeEventLocation` de un lado y no del otro,
+  o sea una celda de diferencia. Medido a los 100 ticks: la ROM tiene los cuatro
+  en 420/468/404/516 y la referencia en 416/464/400/512, o sea cuatro pixeles,
+  que es un paso.
+
+  Lo raro, y es la pista: en una ROM armada con `--con-ventana --switch 24` los
+  dos lados coinciden **exacto** —medido a los ticks 15, 65 y 185—, y en una
+  armada con `just snes-convert 8`, sin página de prueba, la ROM va un tick
+  adelante. O sea que lo que corre el desfasaje es la página de prueba, que la
+  referencia corre en el asentamiento de `entrar_al_mapa` y la ROM en su tick 1.
 
 ## Esperando respuesta de taro
 
