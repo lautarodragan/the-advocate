@@ -880,6 +880,40 @@ snes-saturar mapa="73" tinte="60 0 0 0 0" antes="30" despues="120" nombre="satur
         --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
   done
 
+# El destello de **pantalla**: FlashScreen, que no es el de abajo.
+#
+# `snes-destello` destella a un personaje —tiñe su paleta de sprite— y esto
+# destella la pantalla entera, o sea las tres paletas del mapa. Son caminos
+# distintos en la ROM —`destellar_fondo` contra `destellar_sprites`— y hasta el
+# 2026-09-08 el de la pantalla **no lo corría ninguna prueba**: ninguna página
+# del juego que compilara lo usaba. Así sobrevivió un `lda #0` donde va
+# `lda #CGRAM_BASE`, que dejaba las últimas nueve entradas del fondo sin
+# destellar.
+#
+# La celda no es cualquiera: (22,56) del mapa 1 es donde más pixeles de esas
+# nueve entradas hay en pantalla, 401 de 57344. Con el bug puesto da 387 de
+# diferencia; en otras partes del mismo mapa da **cero**, que es por lo que un
+# caso mal ubicado no habría probado nada.
+snes-relampago mapa="1" destello="31 31 31 31 12" celda="22 56" cuadros="2 5 9" arranque="115" nombre="relampago":
+  #!/usr/bin/env bash
+  set -euo pipefail
+  mkdir -p {{snes_pngs}} {{snes_inc}}
+  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
+      --inicio {{celda}} --destello-de-prueba {{destello}} \
+      -o {{snes_inc}}/mapdata.inc
+  just snes-build
+  pre={{snes_pngs}}/{{nombre}}
+  python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
+      --hero-tile {{celda}} --destello-de-prueba {{destello}} \
+      --cuadros {{cuadros}} \
+      --saltar $pre-{}.saltar.txt -o $pre-{}.esperado.png
+  for n in {{cuadros}}; do
+    python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre-$n.png \
+        --walk none --cuadros $n --arranque {{arranque}}
+    python3 tools/snes_compare.py $pre-$n.png $pre-$n.esperado.png \
+        --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
+  done
+
 snes-destello mapa="6" flash="1 31 0 0 31 24" celda="2 10" cuadros="2 12 15 23 25" tinte="12 0 0 50" arranque="115" nombre="destello":
   #!/usr/bin/env bash
   set -euo pipefail

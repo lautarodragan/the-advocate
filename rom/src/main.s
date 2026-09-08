@@ -8535,7 +8535,14 @@ producto_sobre_31:
     sta tin_count
     sep #$20
 .a8
-    lda #0
+    ; Desde `CGRAM_BASE`, igual que `aplicar_tinte` y que `subir_paletas`: el
+    ; fondo no arranca en la entrada 0 sino arriba de la ventana de mensaje.
+    ; Acá decía 0, que era lo correcto hasta que la ventana se mudó a la paleta
+    ; 0 y el fondo se corrió nueve entradas —el commit 5015868 arregló los otros
+    ; dos lugares y **se olvidó de éste**—. Con el 0, las últimas nueve entradas
+    ; del fondo se subían con lo que hubiera quedado en `pal_buf`: unos pocos
+    ; tiles no se iluminaban y encima cambiaban de color.
+    lda #CGRAM_BASE
     jsr destellar_rango
     ldx mapa_ofs
     rep #$20

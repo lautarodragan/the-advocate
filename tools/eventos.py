@@ -2880,7 +2880,7 @@ def evento_de_prueba(game_map):
 def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
                     flash=(), switches=(), timer=(), lugar=(),
                     frecuencia=RUTA_FRECUENCIA, sacudida=(), fundir_bgm=0,
-                    pan=(), rama=()):
+                    pan=(), rama=(), destello=()):
     """Una página automática inventada: una ruta forzada, una espera, un tinte.
 
     No sale de ningún dato del juego, y ésa es la idea. El intérprete corre
@@ -2994,6 +2994,14 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
         # demás de esta página: ninguna del juego que compile destella sin
         # depender de un switch.
         codigo += bytes([OP_FLASH]) + bytes(flash)
+    if destello:
+        # (r, g, b, potencia, cuadros): `FlashScreen`, que es **otra cosa** que
+        # el de arriba. Aquél tiñe la paleta de un personaje; éste pasa las tres
+        # paletas del mapa por las tablas del destello. Ninguna página del juego
+        # que compile lo usa sin depender de un switch, así que hasta el
+        # 2026-09-08 este camino no lo corría **ninguna** prueba: por ahí se
+        # coló el `lda #0` de `destellar_fondo`.
+        codigo += bytes([OP_DESTELLO]) + bytes(destello)
     if ruta_ev:
         blanco, ordenes = ruta_ev
         codigo += (bytes([OP_RUTA, blanco, frecuencia, len(ordenes)])

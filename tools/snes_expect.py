@@ -171,7 +171,8 @@ class Mundo:
                                               sacudida=self.prueba[9],
                                               fundir_bgm=self.prueba[10],
                                               pan=self.prueba[11],
-                                              rama=self.prueba[12])),
+                                              rama=self.prueba[12],
+                                              destello=self.prueba[13])),
                                      dict(PAGINA_DE_PRUEBA_APAGADA,
                                           evento=numero)]
             self.paginas_cache[map_id] = paginas
@@ -1095,6 +1096,11 @@ def main():
     parser.add_argument("--rama-de-prueba", nargs=3, type=int, default=None,
                         metavar=("SWITCH", "ADENTRO", "DESPUES"),
                         help="la misma rama que arma el conversor; ver allá")
+    parser.add_argument("--destello-de-prueba", nargs=5, type=int, default=None,
+                        metavar=("R", "G", "B", "POTENCIA", "CUADROS"),
+                        help="destella la pantalla desde la página de prueba: "
+                             "es FlashScreen, y no es lo mismo que "
+                             "--flash-de-prueba, que destella a un personaje")
     parser.add_argument("--flash-de-prueba", nargs=6, type=int, default=None,
                         metavar=("BLANCO", "R", "G", "B", "POTENCIA", "CUADROS"),
                         help="hace destellar a alguien desde la página de "
@@ -1198,6 +1204,7 @@ def main():
                  % (args.inicial, len(tabla)))
     hay_prueba = (args.pagina_de_prueba or args.ruta_de_prueba
                   or args.ruta_de_evento or args.flash_de_prueba or args.switch
+                  or args.destello_de_prueba
                   or args.timer_de_prueba or args.lugar_de_prueba
                   or args.sacudida_de_prueba or args.fundir_bgm
                 or args.pan_de_prueba or args.rama_de_prueba
@@ -1217,7 +1224,8 @@ def main():
                    args.frecuencia,
                    snes_convert.sacudida_de_prueba(args.sacudida_de_prueba),
                    args.fundir_bgm, snes_convert.pan_de_prueba(args.pan_de_prueba),
-                   tuple(args.rama_de_prueba or ()))
+                   tuple(args.rama_de_prueba or ()),
+                   tuple(args.destello_de_prueba or ()))
                   if hay_prueba else None, mensajes,
                   graficos_de_prueba=snes_convert.graficos_de_prueba(
                       args.grafico_de_prueba),

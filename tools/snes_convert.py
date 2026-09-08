@@ -2922,6 +2922,13 @@ def main():
                              "prendido prende ADENTRO, y prenda o no, después "
                              "prende DESPUES. Con --switch se elige qué rama "
                              "se toma; sin él se toma la otra")
+    parser.add_argument("--destello-de-prueba", nargs=5, type=int, default=None,
+                        metavar=("R", "G", "B", "POTENCIA", "CUADROS"),
+                        help="destella la **pantalla** desde la página de "
+                             "prueba: es FlashScreen, que no es lo mismo que "
+                             "--flash-de-prueba, que destella a un personaje. "
+                             "Son dos caminos distintos en la ROM y éste no lo "
+                             "corría ninguna prueba")
     parser.add_argument("--flash-de-prueba", nargs=6, type=int, default=None,
                         metavar=("BLANCO", "R", "G", "B", "POTENCIA", "CUADROS"),
                         help="hace destellar a alguien desde la página de "
@@ -3137,6 +3144,7 @@ def main():
         if (args.pagina_de_prueba or args.ruta_de_prueba
                 or args.rama_de_prueba
                 or args.ruta_de_evento or args.flash_de_prueba or args.switch
+                or args.destello_de_prueba
                 or args.timer_de_prueba or args.lugar_de_prueba
                 or args.sacudida_de_prueba or args.fundir_bgm
                 or args.pan_de_prueba
@@ -3166,7 +3174,8 @@ def main():
                     sacudida=sacudida_de_prueba(args.sacudida_de_prueba),
                     fundir_bgm=args.fundir_bgm,
                     pan=pan_de_prueba(args.pan_de_prueba),
-                    rama=tuple(args.rama_de_prueba or ()))}, {
+                    rama=tuple(args.rama_de_prueba or ()),
+                    destello=tuple(args.destello_de_prueba or ()))}, {
                 # Y la que la apaga: misma idea que en la referencia, ver
                 # `PAGINA_DE_PRUEBA_APAGADA`. Sin código, así que en cuanto
                 # gana, el evento inventado deja de tener una automática que
