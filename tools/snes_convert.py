@@ -1956,8 +1956,16 @@ def tabla_de_paginas(mapa, numero, evcodigo):
     # de la ROM tiene que saber si la página activa de un evento es automática
     # —de ahí sale qué arranca solo— y con esto se ahorra leer las páginas de
     # los eventos que no pueden serlo nunca. Es el mismo truco que el bit 6.
+    #
+    # Las **paralelas** van por este mismo bit, y no por uno propio: en +13 no
+    # queda ninguno libre. El bit quiere decir "mirale las páginas a este
+    # evento en el refresco", que es lo que las dos necesitan; quién es
+    # automática y quién paralela lo dice el trigger de la que gane. Sin esto,
+    # `elegir_paginas` ni siquiera anota cuál es la activa —filtra por $E0— y
+    # `paralelos_tick` no tendría de dónde sacar su código.
     con_auto = {p["evento"] for p in mapa["paginas"]
-                if p["trigger"] == eventos.TRIGGER_AUTOMATICO and p["codigo"]}
+                if p["trigger"] in (eventos.TRIGGER_AUTOMATICO,
+                                    eventos.TRIGGER_PARALELO) and p["codigo"]}
     for pagina in mapa["paginas"]:
         if pagina["codigo"]:
             destino = "%s + %d" % (evcodigo, pagina["offset"])
@@ -2218,9 +2226,12 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "TIMER_DE_MAS   = %d\n"
         "; Cuántos destellos pueden estar corriendo a la vez.\n"
         "FLASH_MAX   = %d\n"
+        "; Cuántos eventos con página paralela puede haber en un mapa.\n"
+        "PARALELO_MAX = %d\n"
         "TRIGGER_AUTOMATICO = %d\n"
         "TRIGGER_ACCION     = %d\n"
         "TRIGGER_TOCA_HEROE = %d\n"
+        "TRIGGER_PARALELO   = %d\n"
         "; Cuántos cuadros dura un paso de una celda. Sale del modelo y no de\n"
         "; una cuenta en la ROM: es lo que los dos lados tienen que contar\n"
         "; igual para que una ruta forzada termine en el mismo cuadro.\n"
@@ -2326,9 +2337,9 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            eventos.TIMER_PONER, eventos.TIMER_ARRANCAR,
            TIMER_X, TIMER_Y, TIMER_GLIFO_W, TIMER_GLIFOS - 1,
            eventos.CUADROS_POR_SEGUNDO, eventos.TIMER_CUADROS_DE_MAS,
-           FLASH_MAX,
+           FLASH_MAX, PARALELO_MAX,
            eventos.TRIGGER_AUTOMATICO, eventos.TRIGGER_ACCION,
-           eventos.TRIGGER_TOCA_HEROE,
+           eventos.TRIGGER_TOCA_HEROE, eventos.TRIGGER_PARALELO,
            eventos.CUADROS_POR_CELDA, eventos.RUTA_FRECUENCIA,
            eventos.CUADROS_DE_ESPERA_DE_RUTA,
            eventos.SALTO_PASO, eventos.SALTO_VELOCIDAD,
@@ -2549,6 +2560,12 @@ RUTA_EV_MAX = 12
 # el conversor no lo puede comprobar porque depende de qué corra cuándo, y una
 # ranura que falte hace que el destello no se vea.
 FLASH_MAX = 4
+# Cuántos eventos con página paralela puede haber a la vez en un mapa. El más
+# cargado de este juego es el 8 —Lashe City— con **ocho**: los cuatro autos y
+# los cuatro que los reubican. Medido sobre los 328 contando sólo las páginas
+# que compilan; el conversor corta si alguno se pasa. Su estado vive en la RAM
+# del banco 1, así que no le cuesta nada a la BSS.
+PARALELO_MAX = 12
 # Un NPC en la RAM de la ROM. Eran ocho bytes; los cuatro de más son para los
 # que caminan: a cuál evento corresponden y dónde está su tabla de poses.
 #
@@ -2926,9 +2943,11 @@ def main():
                         metavar=("R", "G", "B", "POTENCIA", "CUADROS"),
                         help="destella la **pantalla** desde la página de "
                              "prueba: es FlashScreen, que no es lo mismo que "
-                             "--flash-de-prueba, que destella a un personaje. "
-                             "Son dos caminos distintos en la ROM y éste no lo "
-                             "corría ninguna prueba")
+                             "--flash-de-prueba —aquél destella a un personaje—. "
+                             "Ninguna página del juego que compile lo usa sin "
+                             "depender de un switch, y hasta que apareció el "
+                             "relámpago de la apertura este camino no lo corría "
+                             "nadie")
     parser.add_argument("--flash-de-prueba", nargs=6, type=int, default=None,
                         metavar=("BLANCO", "R", "G", "B", "POTENCIA", "CUADROS"),
                         help="hace destellar a alguien desde la página de "
@@ -3130,6 +3149,19 @@ def main():
         graficos = eventos.Graficos()
         paginas = eventos.paginas_del_mapa(mapa["game_map"], indices.get,
                                            mensajes, temas, graficos)
+        # Un intérprete por evento con alguna página paralela que compile. La
+        # ROM los lleva en una lista de tope fijo y **no avisa** si se le pasa
+        # —los que sobran no correrían y nada lo diría—, así que el corte va acá.
+        con_paralela = {p["evento"] for p in paginas
+                        if p["trigger"] == eventos.TRIGGER_PARALELO
+                        and p["codigo"]}
+        if len(con_paralela) > PARALELO_MAX:
+            sys.exit("el mapa %d tiene %d eventos con página paralela y entran "
+                     "%d: ver PARALELO_MAX"
+                     % (mapa["id"], len(con_paralela), PARALELO_MAX))
+        if con_paralela:
+            print("  mapa %d: %d evento(s) con página paralela"
+                  % (mapa["id"], len(con_paralela)))
         if args.grafico_de_prueba and mapa is mapas[args.inicial]:
             for charset, index in graficos_de_prueba(args.grafico_de_prueba):
                 graficos.indice(charset, index)

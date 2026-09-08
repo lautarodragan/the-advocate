@@ -518,6 +518,55 @@ al droide del mapa 2 en seis casos de la tanda.
 * **Lashe City Interiors** no está en la ROM, así que `EV0055`, `EV0033` y
   `EV0057` no compilan. taro lo pidió para la próxima vuelta.
 
+## Parallel Process, y la ráfaga de entrada que dejó a la vista
+
+Hecho el 2026-09-08. Cada evento con página paralela tiene **su propio
+intérprete**: corre todos los cuadros, aparte del de primer plano, con un
+mensaje abierto y con otra página en curso, y cuando su página termina el cuadro
+siguiente la vuelve a empezar —el `Push` que RPG_RT hace antes de cada
+`Update`—. De las 353 páginas paralelas del juego **compilan 36**, en 25 mapas;
+el resto pide variables. El tope simultáneo es el mapa 8, con nueve.
+
+**El paso de cada evento va pegado a su intérprete**, no al final de la vuelta:
+`Game_Event::Update` corre el intérprete paralelo y a continuación llama a
+`Game_Character::Update()` (easyrpg, `game_event.cpp:580`), evento por evento.
+La diferencia se ve cuando una página paralela le fuerza una ruta a **otro**
+evento: en Lashe City el `Car4` le pisa la suya al `Car2` en cada cuadro —los
+dos apuntan al id 3 de RM2k, que ahí es el `Car2`—, y corriendo todos los
+intérpretes antes que todos los pasos el pisotón gana y el `Car2` no camina
+nunca. taro lo vio jugando y lo confirmó contra EasyRPG y contra el RPG Maker
+original: los cuatro autos andan siempre.
+
+**La RAM del banco 1.** El estado de los intérpretes no entraba: la BSS del
+banco 0 estaba en 7680 de 7680 y el ZEROPAGE tenía doce bytes libres. Va a
+`$7E:2000` por la ventana que la WRAM tiene en el bus B —WMADD más `$2180`, la
+misma que ya usaba la fuente—. No se puede indexar, así que sirve para lo que se
+guarda y se recorre de a poco; es lo que van a necesitar las variables de RM2k,
+que son cinco mil.
+
+### Tres casos de la tanda en rojo, y es un solo defecto de antes
+
+`just snes-hitos` queda en **3 rojos de 93**, y los tres son la misma cosa:
+**cuadros que la ROM pierde al entrar a un mapa**. Medido en HEAD, sin nada de
+esto:
+
+* el mapa 8 pierde **1** cuadro al entrar —2 con los paralelos—,
+* el salto del mapa 4 al 1 pierde **7**.
+
+Estaban desde antes y no molestaban porque durante esos cuadros no se movía
+nada. Los eventos paralelos sí se mueven, así que ahora la comparación arranca
+corrida. Los tres casos:
+
+* `snes-heroe 8` y `snes-hablar 8 ... bum`: los dos cuadros del mapa 8.
+* `snes-mednafen`: bajo snes9x el mismo caso (`snes-evento`) da **cero**; con
+  siete cuadros perdidos los dos emuladores caen en distinto punto del ciclo del
+  relámpago del mapa 1, y un destello a pantalla completa convierte un cuadro de
+  diferencia en la pantalla entera.
+
+En el mapa 8 la ráfaga no tiene un culpable único: sacando el refresco, los
+intérpretes paralelos o el intérprete de primer plano, cada uno la baja de 2 a
+1. Es el conjunto de la entrada, y es **lo próximo**.
+
 ## Esperando respuesta de taro
 
 * **`rom/build/demo-apertura-jugable/`**: es la copia pre-fundido que taro pidió
@@ -716,7 +765,8 @@ El 2026-09-07, sobre `demo-apertura` en mednafen:
   adorno —lo imprime `snes_expect.py`—: cuatro cuadros en cero también sería el
   resultado si la página no compilara de los dos lados.
 
-`just snes-hitos-foto` son **91 casos, todos en verde**, y el más largo es
+`just snes-hitos-foto` son **93 casos**, con los 3 rojos de la ráfaga de
+entrada que se explican más arriba, y el más largo es
 `talan`: mil doscientos cuadros de la escena entera del Emitter Room. Lo que la
 tanda no mira:
 

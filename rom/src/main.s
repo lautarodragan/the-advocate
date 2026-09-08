@@ -122,6 +122,20 @@ TMW      = $212E        ; a qué capas de la pantalla principal se les aplica
 ; escribir y mandando a $2180 se copia ROM -> RAM a la misma velocidad que
 ; cualquier otro DMA.
 WMDATA   = $2180
+; --- la RAM del banco 1 ------------------------------------------------------
+; La BSS del banco 0 está llena —7680 de 7680— y el ZEROPAGE tiene doce bytes
+; libres. La consola tiene 128 KB de WRAM y la ROM usa ocho: al resto se llega
+; por esta misma ventana, apuntando WMADD y leyendo o escribiendo $2180 con
+; auto-incremento. No es direccionamiento normal —no se puede indexar— así que
+; sirve para lo que se guarda y se recorre de a poco, no para lo que se dibuja.
+;
+; Hoy lo usa el estado de los intérpretes paralelos: 840 bytes que en el banco 0
+; no entraban. El día que haya variables de RM2k —cinco mil, diez kilobytes— van
+; acá también.
+FAR_PAR_ESTADO = $2000      ; EV_MAX entradas de PAR_BYTES
+FAR_PAR_LISTA  = $2400      ; PARALELO_MAX índices de evento
+; Cursor (2), espera (2), si está corriendo (1) y de qué página (2).
+PAR_BYTES = 7
 WMADDL   = $2181
 WMADDM   = $2182
 WMADDH   = $2183
@@ -401,6 +415,12 @@ ARRANQUES_MAX = 8
 FLAG_ESPERA = $01
 FLAG_AUTO   = $02
 ev_cur:      .res 2     ; el cursor dentro de la página que corre
+; Los intérpretes paralelos. La lista de eventos y el estado de cada uno viven
+; en la RAM del banco 1; acá queda sólo lo que el lazo necesita en la mano.
+par_n:       .res 1     ; cuántos eventos con página paralela tiene el mapa
+par_i:       .res 1     ; por cuál va el lazo
+par_dir:     .res 2     ; dónde cae su estado, que hay que apuntar dos veces
+par_ev:      .res 1     ; de qué evento es, para moverlo detrás del intérprete
 ev_activo:   .res 1     ; si hay una página a medio correr
 ev_esperando: .res 2    ; cuántos cuadros faltan de la espera en curso
 ; La ruta forzada del héroe. En RM2k `ForceMoveRoute` es asincrónico: la página
@@ -1140,6 +1160,7 @@ puesto:
     ; nada acá —sus índices de evento apuntarían a otros eventos— y el refresco
     ; es el que vuelve a prender el `FLAG_AUTO` de los que corresponda.
     jsr limpiar_esperas
+    jsr limpiar_paralelos
     jsr rutas_de_pagina         ; y las rutas propias de las páginas activas
     ; La tabla de actores es de este mapa, así que dónde caen las poses del
     ; líder cambia al cambiar de mapa aunque el grupo sea el mismo.
@@ -1239,6 +1260,13 @@ sin_refresco:
     beq sin_automaticas
     jsr esperar_automaticas
 sin_automaticas:
+    ; Los paralelos, **antes** del mensaje y antes de la espera del primer
+    ; plano: en `Game_Map::Update` el orden es refresco, `UpdateMapEvents`,
+    ; `game_player->Update()`, `UpdateMessage` y recién ahí
+    ; `UpdateForegroundEvents`. O sea que un evento paralelo sigue corriendo
+    ; con un cuadro de texto abierto y con otra página en curso, que es justo
+    ; para lo que existe.
+    jsr paralelos_tick
     rep #$20
 .a16
     lda ev_esperando
@@ -2006,6 +2034,7 @@ sin_paginas:
 .a8
     lda mapa_tabla + M_PTR_PAGINAS + 2, x
     sta pag_ptr + 2
+    stz par_n                   ; la lista de paralelos se rehace entera
     stz rp_ev
     stz rp_ev + 1
 cada_evento:
@@ -2035,6 +2064,19 @@ cada_evento:
     sep #$20
 .a8
     jsr leer_pagina
+    ; Si la que ganó es paralela, el evento entra en la lista de los que
+    ; `paralelos_tick` corre. Se arma acá y no en cada cuadro porque cuál es la
+    ; página activa sólo cambia en un refresco, y recorrer los ciento veinte
+    ; eventos por cuadro es justo lo que este refresco existe para no hacer.
+    lda pg_trigger
+    cmp #TRIGGER_PARALELO
+    bne no_es_paralela
+    lda pg_cod
+    ora pg_cod + 1
+    ora pg_cod + 2
+    beq no_es_paralela          ; no compiló: no hay nada que correr
+    jsr anotar_paralelo
+no_es_paralela:
     lda pg_flags
     and #$60
     bne con_ruta_o_grafico
@@ -2117,6 +2159,302 @@ fin16:
 sin_paginas:
     sep #$20
 .a8
+    rts
+.endproc
+
+; --- los intérpretes paralelos ----------------------------------------------
+; `Game_Map::UpdateMapEvents`: cada evento con una página paralela tiene **su
+; propio intérprete** y corre todos los cuadros, aparte del de primer plano, con
+; un mensaje abierto y con otra página en curso. Cuando su página termina, el
+; cuadro siguiente la vuelve a empezar: RPG_RT hace el `Push` antes de cada
+; `Update` si el intérprete no está corriendo, así que una página que se agota
+; en un cuadro se reinicia para siempre. Es lo que hace andar a los cuatro autos
+; de Lashe City, cuya página entera es un `MoveEvent`.
+;
+; Corren con los **mismos** globales que el primer plano —`cod_ptr`, `ev_cur`,
+; `ev_esperando`, `ev_activo`, `ev_corriendo`— así que ese contexto se guarda en
+; la pila y se devuelve al final. Doce bytes, contra los 24 que es lo más hondo
+; que la pila llegó a bajar en toda la tanda.
+;
+; El estado de cada uno va en la RAM del banco 1 e **indexado por evento**, no
+; por ranura, y lleva de qué página es: si la página activa cambia, RM2k rehace
+; el intérprete (`Game_Event::Setup`), así que se arranca de cero. Sin eso, un
+; refresco en medio de una espera la dejaba a mitad de camino corriendo el
+; código de otra página.
+.proc limpiar_paralelos
+.a8
+.i16
+    stz par_n
+    rep #$20
+.a16
+    lda #FAR_PAR_ESTADO
+    sta WMADDL                  ; los dos bytes bajos de la dirección
+    sep #$20
+.a8
+    stz WMADDH
+    ldx #(EV_MAX * PAR_BYTES)
+borrar:
+    stz WMDATA                  ; el puerto auto-incrementa
+    dex
+    bne borrar
+    rts
+.endproc
+
+; Anota al evento `rp_ev` en la lista de paralelos del mapa.
+.proc anotar_paralelo
+.a8
+.i16
+    lda par_n
+    cmp #PARALELO_MAX
+    bcc hay_lugar
+    rts                         ; el conversor corta antes de que esto pase
+hay_lugar:
+    rep #$20
+.a16
+    and #$00FF
+    clc
+    adc #FAR_PAR_LISTA
+    sta WMADDL
+    sep #$20
+.a8
+    stz WMADDH
+    lda rp_ev
+    sta WMDATA
+    inc par_n
+    rts
+.endproc
+
+; Un cuadro de cada evento con página paralela.
+.proc paralelos_tick
+.a8
+.i16
+    lda par_n
+    bne hay
+    rts
+hay:
+    rep #$20
+.a16
+    lda ev_cur
+    pha
+    lda ev_esperando
+    pha
+    lda ev_corriendo
+    pha
+    lda cod_ptr
+    pha
+    sep #$20
+.a8
+    lda cod_ptr + 2
+    pha
+    lda ev_activo
+    pha
+
+    stz par_i
+lazo:
+    lda par_i
+    rep #$20
+.a16
+    and #$00FF
+    clc
+    adc #FAR_PAR_LISTA
+    sta WMADDL
+    sep #$20
+.a8
+    stz WMADDH
+    lda WMDATA                  ; de qué evento es esta ranura
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    jsr un_paralelo
+    inc par_i
+    lda par_i
+    cmp par_n
+    bcc lazo
+
+    pla
+    sta ev_activo
+    pla
+    sta cod_ptr + 2
+    rep #$20
+.a16
+    pla
+    sta cod_ptr
+    pla
+    sta ev_corriendo
+    pla
+    sta ev_esperando
+    pla
+    sta ev_cur
+    sep #$20
+.a8
+    rts
+.endproc
+
+; Un cuadro del evento cuyo índice trae X.
+.proc un_paralelo
+.a8
+.i16
+    txa
+    sta par_ev                  ; se necesita después, y `correr_codigo` usa X
+    phx
+    jsr pagina_desde_eleg
+    plx
+    lda elegida_hay
+    beq nada_cerca
+    lda elegida_trigger
+    cmp #TRIGGER_PARALELO
+    beq con_paralela            ; si no, su página activa ya no es la paralela
+nada_cerca:
+    rts
+con_paralela:
+    lda elegida
+    ora elegida + 1
+    ora elegida + 2
+    beq nada_cerca
+
+    ; Dónde cae su estado: el evento por siete.
+    rep #$20
+.a16
+    txa
+    sta temp
+    asl a
+    asl a
+    asl a                       ; por ocho
+    sec
+    sbc temp                    ; menos uno, o sea por siete
+    clc
+    adc #FAR_PAR_ESTADO
+    sta par_dir
+    sta WMADDL
+    sep #$20
+.a8
+    stz WMADDH
+    lda WMDATA
+    sta ev_cur
+    lda WMDATA
+    sta ev_cur + 1
+    lda WMDATA
+    sta ev_esperando
+    lda WMDATA
+    sta ev_esperando + 1
+    lda WMDATA
+    sta ev_activo
+    lda WMDATA
+    sta temp + 2                ; de qué página era este estado
+    lda WMDATA
+    sta temp + 3
+
+    rep #$20
+.a16
+    lda temp + 2
+    cmp pag_ofs
+    beq misma_pagina
+    ; Otra página: otro intérprete, y su número queda anotado. Se escribe
+    ; **antes** de correr porque `correr_codigo` se lleva puesto a `temp`.
+    stz ev_cur
+    stz ev_esperando
+    lda par_dir
+    clc
+    adc #5
+    sta WMADDL
+    sep #$20
+.a8
+    stz WMADDH
+    stz ev_activo
+    rep #$20
+.a16
+    lda pag_ofs
+    sta temp + 2
+    sep #$20
+.a8
+    lda temp + 2
+    sta WMDATA
+    lda temp + 3
+    sta WMDATA
+    rep #$20
+.a16
+misma_pagina:
+    ; La espera, igual que la del primer plano.
+    lda ev_esperando
+    beq sin_espera
+    dec a
+    sta ev_esperando
+    sep #$20
+.a8
+    jmp guardar                 ; este cuadro se le va esperando
+.a16
+sin_espera:
+    lda elegida
+    sta cod_ptr
+    txa
+    sta ev_corriendo            ; de quién es la página, para un MoveEvent suyo
+    sep #$20
+.a8
+    lda elegida + 2
+    sta cod_ptr + 2
+    lda ev_activo
+    bne corriendo
+    ; No venía corriendo: la página vuelve a empezar. Es el `Push` que RPG_RT
+    ; hace antes de cada `Update`, y por eso no se reinicia al terminar sino al
+    ; cuadro siguiente.
+    rep #$20
+.a16
+    stz ev_cur
+    sep #$20
+.a8
+    lda #1
+    sta ev_activo
+corriendo:
+    jsr correr_codigo
+guardar:
+    rep #$20
+.a16
+    lda par_dir
+    sta WMADDL
+    sep #$20
+.a8
+    stz WMADDH
+    lda ev_cur
+    sta WMDATA
+    lda ev_cur + 1
+    sta WMDATA
+    lda ev_esperando
+    sta WMDATA
+    lda ev_esperando + 1
+    sta WMDATA
+    lda ev_activo
+    sta WMDATA
+
+    ; Y el paso de **este** evento, acá mismo y no al final de la vuelta.
+    ; `Game_Event::Update` corre el intérprete paralelo y a continuación llama a
+    ; `Game_Character::Update()` —easyrpg, `game_event.cpp:580`—, y
+    ; `UpdateMapEvents` hace eso evento por evento. No es lo mismo que correr
+    ; todos los intérpretes y después mover a todos: se ve cuando una página
+    ; paralela le fuerza una ruta a **otro** evento. En Lashe City el `Car4` le
+    ; pisa la suya al `Car2` en cada cuadro —los dos apuntan al id 3 de RM2k, que
+    ; ahí es el `Car2`— y con los pasos todos al final el pisotón gana y el
+    ; `Car2` no camina nunca. taro lo vio, y en EasyRPG y en el RPG Maker
+    ; original los cuatro autos andan.
+    lda par_ev
+    jsr ranura_del_evento
+    cpx #$FFFF
+    beq sin_ranura
+    phx
+    jsr cuadro_de_ruta_ev
+    plx
+    phx
+    jsr animar_ruta_ev
+    plx
+    phx
+    jsr refrescar_npc
+    plx
+    lda ruta_ev + 18, x
+    ora #$40                    ; ya dio su paso: `mover_eventos` lo saltea
+    sta ruta_ev + 18, x
+sin_ranura:
     rts
 .endproc
 
@@ -6010,6 +6348,16 @@ otra:
     lda ruta_ev, x
     cmp #RUTA_EV_LIBRE
     beq siguiente
+    ; El que ya dio su paso pegado a su intérprete paralelo no lo da otra vez:
+    ; la marca se consume acá, así que dura un cuadro. Ver `un_paralelo`.
+    lda ruta_ev + 18, x
+    and #$40
+    beq no_movido
+    lda ruta_ev + 18, x
+    and #$BF
+    sta ruta_ev + 18, x
+    bra siguiente
+no_movido:
     phx
     jsr cuadro_de_ruta_ev
     plx
@@ -8538,10 +8886,15 @@ producto_sobre_31:
     ; Desde `CGRAM_BASE`, igual que `aplicar_tinte` y que `subir_paletas`: el
     ; fondo no arranca en la entrada 0 sino arriba de la ventana de mensaje.
     ; Acá decía 0, que era lo correcto hasta que la ventana se mudó a la paleta
-    ; 0 y el fondo se corrió nueve entradas —el commit 5015868 arregló los otros
-    ; dos lugares y **se olvidó de éste**—. Con el 0, las últimas nueve entradas
-    ; del fondo se subían con lo que hubiera quedado en `pal_buf`: unos pocos
-    ; tiles no se iluminaban y encima cambiaban de color.
+    ; 0 y el fondo se corrió nueve entradas —ver el commit 5015868, que arregló
+    ; los otros dos lugares y **se olvidó de éste**—. Con el 0, las últimas
+    ; nueve entradas del fondo no se destellaban: se subían con lo que hubiera
+    ; quedado en `pal_buf`, así que unos pocos tiles no se iluminaban y encima
+    ; cambiaban de color. taro lo vio el 2026-09-08 en los relámpagos de la
+    ; apertura —las vallas amarillas y negras, y los bordes del autotile 17 del
+    ; ChipSet3—, que son el **primer** `FlashScreen` que corrió este port.
+    ; Ninguna prueba lo cubría: `--flash-de-prueba` destella un sprite, nunca la
+    ; pantalla, así que este camino no lo ejecutaba nadie.
     lda #CGRAM_BASE
     jsr destellar_rango
     ldx mapa_ofs

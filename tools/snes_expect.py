@@ -338,8 +338,17 @@ def paso_de_ruta(estado, passable, game_map, x, y, paginas=()):
     return x, y, llego
 
 
-def cuadro_de_eventos(estado, passable, game_map, heroe, paginas=(),
+def paso_del_paralelo(estado, passable, game_map, heroe, paginas=(),
                       congelada=False):
+    """Cómo `Interprete.cuadro` mueve al evento cuyo intérprete paralelo acaba
+    de correr. Ver `eventos.Interprete.cuadro_de_paralelos`: en RM2k el paso de
+    un evento va pegado a su intérprete y no al final de la vuelta."""
+    return lambda indice: cuadro_de_eventos(estado, passable, game_map, heroe,
+                                            paginas, congelada, solo=(indice,))
+
+
+def cuadro_de_eventos(estado, passable, game_map, heroe, paginas=(),
+                      congelada=False, solo=None):
     """Un cuadro de lo que corre solo: las rutas de los eventos y los destellos.
 
     `heroe` es la celda del héroe: `face_hero` la necesita, y en RM2k es la
@@ -380,7 +389,12 @@ def cuadro_de_eventos(estado, passable, game_map, heroe, paginas=(),
         puede,
         lambda cx, cy, indice: (puede_caer(passable, game_map, cx, cy)
                                 and libre(indice, cx, cy)),
-        heroe=heroe, congelada=congelada)
+        heroe=heroe, congelada=congelada, solo=solo)
+    if solo is not None:
+        # La vuelta de un evento suelto, la que va pegada a su intérprete
+        # paralelo: sólo su paso. Lo demás —los destellos, el cronómetro, la
+        # sacudida— es de la pantalla y va una vez por cuadro, más abajo.
+        return
     estado.cuadro_de_flashes()
     estado.cuadro_de_timer()
     estado.cuadro_de_sacudida()
@@ -557,7 +571,11 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
                     # flanco no hace las dos cosas.
                     if interprete.probar_accion(x, y, mirando, estado):
                         apreta = False
-                if interprete.cuadro(apreto_a=apreta):
+                if interprete.cuadro(
+                        apreto_a=apreta,
+                        mover_evento=paso_del_paralelo(
+                            estado, passable, game_map, (x, y),
+                            interprete.paginas)):
                     # El salto queda pedido y nada más: lo que arranca es el
                     # fundido, y el mapa cambia adentro. `estado.salto` lo
                     # guarda mientras tanto.
@@ -647,7 +665,8 @@ def contacto_al_pisar(mundo, estado, map_id, x, y, passable, game_map):
         # cuadro le abría el paso al héroe en este mismo cuadro y en la ROM no.
         # Ver "El refresco va antes del intérprete" en el README.
         estado.refrescar()
-        if interprete.cuadro():
+        if interprete.cuadro(mover_evento=paso_del_paralelo(
+                estado, passable, game_map, (x, y), interprete.paginas)):
             salto = estado.salto
             estado.salto = None
             if mundo.ids[salto[0]] == map_id:

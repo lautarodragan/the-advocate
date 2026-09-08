@@ -891,12 +891,14 @@ TRIGGER_PARALELO = 4
 
 # Los que la ROM sabe disparar. El resto de las páginas de un evento se emiten
 # igual —hacen falta para saber cuál está activa— pero sin código.
-TRIGGERS = (TRIGGER_ACCION, TRIGGER_TOCA_HEROE, TRIGGER_AUTOMATICO)
+TRIGGERS = (TRIGGER_ACCION, TRIGGER_TOCA_HEROE, TRIGGER_AUTOMATICO,
+            TRIGGER_PARALELO)
 
 # Un evento con gráfico **gira hacia el héroe** cuando le hablás, salvo que
 # tenga la dirección fija: es el `SetFacing(GetDirectionToCharacter(GetPlayer()))`
-# de `Game_Event::ScheduleForegroundExecution`. Eso se ve, y pide sus cuatro
-# poses paradas en la VRAM, así que por ahora esas páginas no compilan.
+# de `Game_Event::ScheduleForegroundExecution`. Eso pide sus cuatro poses paradas
+# en la VRAM y no se hace; desde el 2026-09-08 la página corre igual y el evento
+# contesta mirando para donde estaba, de los dos lados. Ver `puede_dispararse`.
 #
 # No es un recorte grande, y está medido: de las 1006 páginas de tecla de acción
 # que compilarían, 474 son sobre eventos sin gráfico y 394 más sobre eventos con
@@ -2240,6 +2242,9 @@ class Estado:
         # Son tres cosas y no una porque RM2k las separa: un cronómetro puede
         # estar corriendo sin verse —`StartTimer(visible=false)`—, que es como
         # el juego mide cuánto tardó el jugador sin decírselo.
+        # Qué eventos ya dieron su paso en este cuadro, movidos pegados a su
+        # intérprete paralelo. Lo vacía la pasada de todos, al final.
+        self.rutas_ev_movidas = set()
         self.timer_cuadros = 0
         self.timer_activo = False
         self.timer_dibujado = 0
@@ -2467,7 +2472,7 @@ class Estado:
                 or any(r.pendiente for r in self.rutas_ev.values()))
 
     def cuadro_de_rutas_ev(self, puede_pasar, puede_caer=None, heroe=None,
-                           congelada=False):
+                           congelada=False, solo=None):
         """Un cuadro de todas las rutas de eventos. `puede_pasar(indice, x, y,
         direccion)` dice si ese evento puede dar ese paso, `puede_caer(x, y,
         indice)` si ese evento puede aterrizar en esa celda, y `heroe` es la
@@ -2478,7 +2483,16 @@ class Estado:
         lados contando los cuadros de otra manera. Un salto la mueve igual, sólo
         que de una y no de a una celda.
         """
-        for indice, ruta in self.rutas_ev.items():
+        # `solo` es la vuelta de un evento suelto, la que corre pegada a su
+        # intérprete paralelo; los que se movieron así quedan anotados para que
+        # la pasada de todos no los mueva dos veces. Ver `cuadro_de_paralelos`.
+        for indice, ruta in list(self.rutas_ev.items()):
+            if solo is not None:
+                if indice not in solo:
+                    continue
+                self.rutas_ev_movidas.add(indice)
+            elif indice in self.rutas_ev_movidas:
+                continue
             x, y = self.pos_ev.get(indice, (0, 0))
             empezaba = ruta.paso_cuadros == 0
             direccion = ruta.cuadro(
@@ -2496,6 +2510,8 @@ class Estado:
             elif direccion is not None and empezaba:
                 dx, dy = RUTA_PASOS[direccion]
                 self.pos_ev[indice] = (x + dx, y + dy)
+        if solo is None:
+            self.rutas_ev_movidas.clear()
 
     def algo_corriendo(self):
         """Si queda algo andando solo: una ruta forzada, un destello, la
@@ -2998,9 +3014,9 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
         # (r, g, b, potencia, cuadros): `FlashScreen`, que es **otra cosa** que
         # el de arriba. Aquél tiñe la paleta de un personaje; éste pasa las tres
         # paletas del mapa por las tablas del destello. Ninguna página del juego
-        # que compile lo usa sin depender de un switch, así que hasta el
-        # 2026-09-08 este camino no lo corría **ninguna** prueba: por ahí se
-        # coló el `lda #0` de `destellar_fondo`.
+        # que compile lo usa sin depender de un switch, y hasta que apareció el
+        # relámpago de la apertura —una paralela— este camino no lo corría nadie:
+        # así sobrevivió el `lda #0` de `destellar_fondo`.
         codigo += bytes([OP_DESTELLO]) + bytes(destello)
     if ruta_ev:
         blanco, ordenes = ruta_ev
@@ -3095,6 +3111,15 @@ class Interprete:
         self.eventos_auto = {p["evento"] for p in paginas
                              if p["trigger"] == TRIGGER_AUTOMATICO
                              and p["codigo"]}
+        # Y los que tienen alguna paralela que compiló, con un intérprete cada
+        # uno. Van por el **mismo** bit 7 que las automáticas: en la ROM ese
+        # bit quiere decir "mirale las páginas a este evento en el refresco", y
+        # quién es automática y quién paralela lo dice el trigger de la página
+        # que gane. Ver `tabla_de_paginas` en snes_convert.py.
+        self.paralelos = [Paralelo(evento) for evento in
+                          sorted({p["evento"] for p in paginas
+                                  if p["trigger"] == TRIGGER_PARALELO
+                                  and p["codigo"]})]
         self.codigo = None
         self.cursor = 0
         self.esperando = 0
@@ -3208,6 +3233,29 @@ class Interprete:
                 salida.append(evento)
         return salida
 
+    def cuadro_de_paralelos(self, mover_evento=None):
+        """Un cuadro de cada evento con página paralela, **y su paso detrás**.
+
+        `Game_Event::Update` corre el intérprete paralelo del evento y a
+        continuación llama a `Game_Character::Update()`, o sea que lo mueve
+        —easyrpg, `game_event.cpp:580`—, y `UpdateMapEvents` hace eso evento por
+        evento. No es lo mismo que correr todos los intérpretes y después mover
+        a todos, y la diferencia se ve cuando una página paralela le fuerza una
+        ruta a **otro** evento: en Lashe City el `Car4` le pisa la suya al
+        `Car2` en cada cuadro, y con los pasos todos al final el pisotón gana y
+        el `Car2` no camina nunca. En EasyRPG y en el RPG Maker original los
+        cuatro autos andan.
+
+        `mover_evento` es quien sabe dar ese paso: lo pone el que arma el cuadro,
+        que es el único que tiene la pasabilidad del mapa. Sin él —los lazos que
+        no dibujan— se corre como antes y los pasos van todos al final.
+        """
+        for paralelo in self.paralelos:
+            paralelo.cuadro(pagina_activa(self.paginas, paralelo.evento,
+                                          self.estado), self.estado)
+            if mover_evento is not None:
+                mover_evento(paralelo.evento)
+
     def _arrancar(self):
         """La página del primer evento que espere. False si no hay ninguna.
 
@@ -3240,7 +3288,7 @@ class Interprete:
         return (self.codigo is None and not self.esperando_ev
                 and not self.estado.refresco and not self.automaticos())
 
-    def cuadro(self, apreto_a=False):
+    def cuadro(self, apreto_a=False, mover_evento=None):
         """Avanza un cuadro. Devuelve True si en éste se pidió un salto.
 
         `apreto_a` es que el jugador **acaba de** apretar A en este cuadro, no
@@ -3267,6 +3315,13 @@ class Interprete:
         # automática activa —lleva la cuenta en `auto_n`—; acá el lazo no
         # cuesta nada y se deja el que se lee igual que la fuente.
         self.esperando_ev.update(self.automaticos())
+        # Los paralelos, **antes** del héroe y antes del mensaje: en
+        # `Game_Map::Update` el orden es refresco, `UpdateMapEvents`,
+        # `game_player->Update()`, `UpdateMessage` y recién ahí
+        # `UpdateForegroundEvents`. O sea que un evento paralelo sigue
+        # corriendo con un cuadro de texto abierto y con otra página en curso,
+        # que es justo para lo que existe.
+        self.cuadro_de_paralelos(mover_evento)
         if self.estado.mensaje is not None:
             if not apreto_a:
                 return False
@@ -3321,6 +3376,59 @@ class Interprete:
                 continue
             self.cursor, self.esperando, salto = corte
             return salto
+
+
+class Paralelo:
+    """El intérprete de un evento con página paralela.
+
+    Es `Game_Event::Update`: corre **todos los cuadros**, aparte del de primer
+    plano y sin que le importe si hay un mensaje abierto o una página corriendo.
+    Y cuando su página termina, la vuelve a empezar: RPG_RT hace el `Push` justo
+    antes de cada `Update` si el intérprete no está corriendo, así que una
+    página que se agota en un cuadro se reinicia al siguiente para siempre.
+
+    Su estado —dónde va y cuánto le falta esperar— es del **evento**, no de una
+    ranura: si la página activa cambia, RM2k rehace el intérprete, así que acá
+    se compara contra la que estaba y se arranca de cero.
+    """
+
+    def __init__(self, evento):
+        self.evento = evento
+        self.pagina = None          # la que estaba, para notar el cambio
+        self.cursor = 0
+        self.esperando = 0
+        self.corriendo = False
+
+    def cuadro(self, pagina, estado):
+        """Un cuadro de este evento. `pagina` es su página activa, o None."""
+        if pagina is None or not pagina["codigo"]:
+            self.pagina = pagina
+            self.corriendo = False
+            self.cursor = self.esperando = 0
+            return
+        if pagina is not self.pagina:
+            # `Game_Event::Setup`: otra página, otro intérprete.
+            self.pagina = pagina
+            self.corriendo = False
+            self.cursor = self.esperando = 0
+        if self.esperando == ESPERAR_RUTAS:
+            if estado.rutas_pendientes():
+                return
+            self.esperando = 0
+        elif self.esperando:
+            self.esperando -= 1
+            return
+        if not self.corriendo:
+            self.cursor = 0
+            self.corriendo = True
+        corte = ejecutar(pagina["codigo"], estado, self.cursor)
+        if corte is None:
+            # Terminó. No se reinicia en este mismo cuadro: el `Push` de RPG_RT
+            # corre una vez por `Update`, así que le toca al que viene.
+            self.corriendo = False
+            self.cursor = self.esperando = 0
+            return
+        self.cursor, self.esperando, _salto = corte
 
 
 def correr_automaticos(paginas, estado, cuadros=100000, avanzar=None):

@@ -100,6 +100,12 @@ snes-relampago
 # El `Mechanic` habla porque su página ya no se frena por el giro.
 snes-hablar 8 "18 21" 24 25 "20 60" 115 mecanico
 snes-hablar 8 "38 54" 24 25 "20 60" 115 bum
+# Parallel Process: los dos autos y los dos que los reubican del mapa 9,
+# mirados a lo largo de cuatro segundos. Verificado que da rojo sin
+# `paralelos_tick`: 232 pixeles en el cuadro 2. El mapa 8 tiene nueve y no
+# se puede mirar todavía: pierde dos cuadros al entrar —uno ya los perdía
+# antes de esto— y la comparación arranca corrida.
+snes-hablar 9 "8 14" 24 900 "2 20 60 120 240" 115 autos9
 snes-cerrar
 snes-cerrar 7 200 cerrar-right right
 snes-ventana 1 ventana-1
