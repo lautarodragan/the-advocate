@@ -698,6 +698,16 @@ loop:
     ; como RM2k: lo único que sigue corriendo es la música. Ver `fundido_tick`.
     jsr fundido_tick
     bne congelado
+    ; El cronómetro va **antes** del intérprete, que es donde lo pone
+    ; `Game_Map::Update`: `UpdateTimers()` corre y recién después
+    ; `UpdateForegroundEvents`. O sea que la página que lo arranca no se lleva
+    ; un cuadro en el mismo cuadro en que lo arranca. Acá estaba después, y por
+    ; eso la ROM iba un cuadro adelante de la referencia para siempre: se veía
+    ; sólo en los cuadros en que los dos puntos parpadean o cambia un dígito.
+    ; No lo cobraba nadie porque `snes-timer` tiñe la pantalla, el tinte
+    ; costaba un cuadro perdido, y el cuadro perdido tapaba justo este uno de
+    ; más. Los dos errores juntos daban cero.
+    jsr timer_tick
     jsr eventos_tick
     jsr tinte_de_evento
     jsr move_hero
@@ -705,7 +715,6 @@ loop:
                                 ; del héroe y después del intérprete: el orden
                                 ; es el mismo que el de la referencia
     jsr flashes_tick            ; y los destellos, en el mismo lugar
-    jsr timer_tick              ; y un cuadro del cronómetro
     jsr sacudida_tick           ; y uno de la sacudida de pantalla
     jsr pan_tick                ; y uno de la cámara corrida sin el héroe
     jsr destello_tick           ; y uno del destello de pantalla
@@ -3999,9 +4008,28 @@ listo:
     rts
 hay_colores:
     ldy #$0000
+    ; Con la saturación neutra —que es casi siempre— el color no necesita ni
+    ; los tres canales juntos ni salir de los dieciséis bits, y ahí el lazo
+    ; corto se paga solo. La cuenta: `aplicar_tinte` recorre los colores del
+    ; mapa, los de la capa de encima, los de las ocho paletas de sprite y los
+    ; del líder —en CoreRetro II son 151— y el lazo largo salía 205 ciclos cada
+    ; uno. Con eso la vuelta del cuadro en que corre el tinte terminaba en la
+    ; línea 224 de 262: **una** de margen. El primer evento de más que pidió
+    ; una paleta la voló, y la pantalla quedó un cuadro sin teñir contra la
+    ; referencia. Medido con la sonda de `contar_perdidos`.
+    lda tinte_s
+    cmp #TINTE_NEUTRO
+    bne cada_color
+    rep #$20
+.a16
+    jmp cada_color_neutro
+
 cada_color:
+.a8
     cpy tin_fin
-    beq subir
+    bne sigue_color
+    rts
+sigue_color:
     rep #$20
 .a16
     lda [tin_ptr], y
@@ -4080,6 +4108,55 @@ sin_saturar:
 .a8
     bra cada_color
 
+    ; El mismo color, sin saturación y sin salir de los dieciséis bits. Los
+    ; `lda tabla_x, x` leen de paso el byte de al lado —las tres tablas están
+    ; pegadas y después viene `puro`—; el `and` lo tira.
+cada_color_neutro:
+.a16
+    cpy tin_fin
+    beq subir_neutro
+    lda [tin_ptr], y
+    sta temp
+    and #$001F                  ; el rojo
+    tax
+    lda tabla_r, x
+    and #$001F
+    sta temp + 2
+    lda temp
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    and #$001F                  ; el verde
+    tax
+    lda tabla_g, x
+    and #$001F
+    xba                         ; por ocho
+    lsr a
+    lsr a
+    lsr a                       ; menos tres: a los bits 5 a 9
+    ora temp + 2
+    sta temp + 2
+    lda temp
+    xba                         ; el byte de arriba abajo
+    lsr a
+    lsr a
+    and #$001F                  ; el azul, que estaba en los bits 10 a 14
+    tax
+    lda tabla_b, x
+    and #$001F
+    xba                         ; por ocho
+    asl a
+    asl a                       ; y dos más: a los bits 10 a 14
+    ora temp + 2
+    sta pal_buf, y
+    iny
+    iny
+    bra cada_color_neutro
+subir_neutro:
+    sep #$20
+.a8
 subir:
     rts
 .endproc
@@ -12772,6 +12849,7 @@ vq_tope:      .res 1
 boot_cuadros: .res 1
 nmi_visto:        .res 1  ; lo que valía al final de la vuelta anterior
 cuadros_perdidos: .res 1  ; los que el lazo principal dejó pasar, saturado
+
 sacudida_pos:    .res 2
 sacudida_resta:  .res 2
 sacudida_fuerza: .res 1
