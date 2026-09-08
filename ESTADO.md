@@ -657,18 +657,29 @@ justo lo que da lo mismo.
   un mapa con muchos eventos moviéndose. Apareció con los paralelos, que sumaron
   nueve personajes que se mueven. El arreglo es el mismo recorte que ya hacían
   el tinte y el destello: con un renglón esperando, `vq_tope` baja a 1.
-* `snes-heroe 8`, caminando a la izquierda: **queda abierto**. Los cuatro autos
-  del mapa 8 van **un tick adelante** en la ROM respecto de la referencia, y a
-  los 304 ticks eso hace caer un `ChangeEventLocation` de un lado y no del otro,
-  o sea una celda de diferencia. Medido a los 100 ticks: la ROM tiene los cuatro
-  en 420/468/404/516 y la referencia en 416/464/400/512, o sea cuatro pixeles,
-  que es un paso.
+* `snes-heroe 8`, caminando a la izquierda: **queda abierto, y ya está
+  diagnosticado**. No es el reloj de ticks: es que ese caso compara dos momentos
+  distintos a propósito, y eso dejó de dar lo mismo cuando algo se mueve solo.
 
-  Lo raro, y es la pista: en una ROM armada con `--con-ventana --switch 24` los
-  dos lados coinciden **exacto** —medido a los ticks 15, 65 y 185—, y en una
-  armada con `just snes-convert 8`, sin página de prueba, la ROM va un tick
-  adelante. O sea que lo que corre el desfasaje es la página de prueba, que la
-  referencia corre en el asentamiento de `entrar_al_mapa` y la ROM en su tick 1.
+  Son dos cosas, las dos medidas:
+
+  1. **La referencia tiene dos maneras de contar.** Con `--cuadros` cuenta cada
+     tick; sin él —que es como `snes-heroe` la llama— `entrar_al_mapa` corre las
+     páginas automáticas y el lazo de asentamiento **sin contarlos**. En el mapa
+     8 son 4 ticks.
+  2. **`snes_correr` corre `plan + margen`, y la referencia dibuja en `plan`.**
+     Con `MARGEN = 8`, la ROM queda ocho ticks más adelante que el momento que
+     la referencia dibujó. Mientras no se moviera nada daba igual; con los autos
+     son 32 pixeles de auto.
+
+  Lo probado y descartado, para no repetirlo: sumarle al plan los ticks de la
+  entrada baja la diferencia de 516 a 509 pero no la cierra, porque el margen
+  sigue mandando; y `--margen 0` pone en rojo las **otras cuatro** direcciones
+  con 337 pixeles **constantes en todos los ticks**, o sea una diferencia de
+  contenido y no de tiempo, que hay que entender antes de tocar nada más.
+
+  El arreglo de fondo es que los dos lados dibujen el **mismo** tick: o el
+  margen se va y el plan es exacto, o la referencia corre el margen también.
 
 ## Esperando respuesta de taro
 
