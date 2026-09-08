@@ -62,6 +62,117 @@ QUIETO = 4
 RETRASO_DE_PANTALLA = 1
 
 
+def simbolos(rom):
+    """La tabla que `w65.py` deja al lado de la ROM. Sin ella no hay reloj de
+    ticks: una ROM armada a mano no tiene por qué tenerla."""
+    try:
+        with open(rom + ".sym") as handle:
+            return dict(linea.split() for linea in handle if linea.strip())
+    except OSError:
+        return {}
+
+
+class Reloj:
+    """El tiempo del juego, contado en **ticks** y no en cuadros de hardware.
+
+    Un tick es una vuelta del lazo principal de la ROM, o sea un paso de lógica
+    de RM2k: el `while (Game_Clock::NextGameTimeStep())` de easyrpg, donde la
+    lógica va a DEFAULT_FPS y el dibujo a lo que la máquina aguante. La
+    referencia cuenta ticks —una llamada a `Interprete.cuadro()` cada uno— así
+    que la comparación tiene que mirar el mismo reloj.
+
+    Antes esto contaba cuadros de hardware y daba lo mismo, porque una vuelta
+    entraba siempre en un cuadro. Dejó de dar lo mismo cuando aparecieron los
+    eventos paralelos: al entrar a Lashe City las dos primeras vueltas miden 370
+    y 386 líneas de las 262 que hay, así que la ROM se atrasa dos cuadros y la
+    captura mostraba dos ticks antes de lo que se le pedía. **El atraso no es un
+    error de cuentas**: la ROM computa la misma secuencia de estados, sólo que
+    más tarde, igual que RPG_RT en una máquina lenta. Lo que hay que separar es
+    el reloj del juego del reloj de pared, y eso es esto; cuánto se atrasó lo
+    dice `cuadros_perdidos`, que es la otra pregunta.
+
+    `retro_run()` no sabe de ticks —avanza un cuadro y no recibe nada— así que
+    se avanza de a un cuadro preguntándole a la ROM en cuál va. Leerlo es
+    barato: `ram()` devuelve un puntero a la memoria del core, no una copia.
+    """
+
+    # Si una vuelta no termina nunca, avanzar por ticks colgaría el arnés.
+    CUADROS_POR_TICK = 60
+
+    # El cuadro N de la referencia es el tick **N+1** de la ROM, y el número no
+    # se muestrea: se fija. Medido en los mapas 6 y 7, que no pierden ningún
+    # cuadro, `vueltas` vale 1 justo cuando termina el arranque, que es donde la
+    # referencia pone su cuadro 0. Muestrearlo era el error de la primera
+    # versión: en el mapa 8 los cuadros que se pierden caen **adentro** de la
+    # ventana del arranque, así que la muestra daba 0 y todo quedaba corrido uno.
+    TICK_DEL_CUADRO_CERO = 1
+
+    def __init__(self, consola, rom):
+        self.consola = consola
+        if consola.cuadro is None:
+            # Todavía no corrió ni un cuadro, así que el reset tampoco: la RAM
+            # es la basura con que arranca el emulador —snes9x la llena de
+            # $55— y el contador leería 21845. Pasa con `--arranque 0`, que es
+            # como corre `snes-espera`.
+            consola.correr(1)
+        self.direccion = None
+        # Los cuadros corridos, para el respaldo: **bsnes no expone la WRAM**
+        # —`retro_get_memory_data` devuelve nulo— así que ahí no hay contador
+        # que leer y se cuentan cuadros, que es lo que se hacía antes y sigue
+        # valiendo mientras la ROM no se atrase. Los casos que cruzan
+        # emuladores corren mapas livianos justamente por eso.
+        self.corridos = 0
+        direccion = simbolos(rom).get("vueltas")
+        if direccion is not None:
+            try:
+                self.direccion = int(direccion)
+                self.tick()
+            except (ValueError, RuntimeError):
+                self.direccion = None
+
+    def hay(self):
+        """Si esta ROM lleva el contador."""
+        return self.direccion is not None
+
+    def tick(self):
+        """Cuántas vueltas dio el lazo principal."""
+        if self.direccion is None:
+            return 0
+        b = self.consola.ram(self.direccion, 2)
+        return b[0] | (b[1] << 8)
+
+    def cuadro(self):
+        """En qué cuadro **de la referencia** está la ROM."""
+        if self.direccion is None:
+            return self.corridos
+        return self.tick() - self.TICK_DEL_CUADRO_CERO
+
+    def paso(self):
+        """Un cuadro de hardware."""
+        self.consola.correr(1)
+        self.corridos += 1
+
+    def avanzar(self, hasta, antes=None):
+        """Corre hasta que el juego llegue al cuadro `hasta` de la referencia.
+
+        `antes(n)` se llama antes de cada cuadro de hardware con el número de
+        cuadro de la referencia que la ROM está por correr, y es donde se
+        aprieta el pad: la ROM lo lee una vez por vuelta, así que si la vuelta
+        se estira el botón se sostiene los cuadros que haga falta y el flanco
+        sigue siendo uno solo.
+        """
+        tope = (hasta + 2) * self.CUADROS_POR_TICK
+        while self.cuadro() < hasta:
+            if antes is not None:
+                antes(self.cuadro() + 1)
+            self.paso()
+            tope -= 1
+            if tope <= 0:
+                raise RuntimeError(
+                    "la ROM no llegó al cuadro %d: se colgó o va lentísima"
+                    % hasta)
+
+
 def cuadros_perdidos(consola, rom):
     """Cuántos cuadros perdió el lazo principal de la ROM, leído de su WRAM.
 
@@ -135,9 +246,10 @@ def main():
     if args.teclas is not None:
         consola = Consola(args.rom, core=args.core)
         consola.correr(args.arranque)
+        reloj = Reloj(consola, args.rom)
         if args.teclas:
             consola.apretar(*args.teclas)
-        consola.correr(args.cuadros)
+        reloj.avanzar(args.cuadros)
         consola.imagen().save(args.output)
         print("captura -> %s: %s, %d cuadros (%d de arranque)"
               % (args.output, " ".join(args.teclas) or "sin apretar nada",
@@ -153,27 +265,37 @@ def main():
     # caminando después del cuarto mensaje un cuadro atrás de la referencia.
     presiones = {n - RETRASO_DE_PANTALLA for n in args.apretar_a or ()}
 
-    def correr_con_a(consola, cuadros, apretados):
-        """Corre `cuadros` cuadros apretando A en los que diga --apretar-a.
+    def correr_con_a(consola, reloj, ticks, apretados):
+        """Corre hasta el tick `ticks`, apretando A en los que diga --apretar-a.
 
-        Cada uno es un toque: se aprieta en ese cuadro y se suelta en el
+        Cada uno es un toque: se aprieta en ese tick y se suelta en el
         siguiente. La ROM cierra el mensaje con el flanco —`pad_a` contra
         `pad_a_ant`, que es el `IsTriggered` de RM2k— así que sostenerlo no
         dispararía nada más, pero tampoco dejaría que el toque siguiente fuera
         un flanco; la referencia modela esos mismos flancos, uno por número.
-        Devuelve desde qué cuadro la pantalla dejó de cambiar.
+
+        Los números son **ticks** y no cuadros: si una vuelta de la ROM se pasa
+        del cuadro, el botón se sostiene los cuadros que dure esa vuelta y la
+        ROM lo lee una sola vez igual. Mientras nada se atrase los dos números
+        son el mismo, que es por lo que esto no mueve ningún caso verde.
+
+        Devuelve desde qué tick la pantalla dejó de cambiar.
         """
-        quieto_desde, anterior = None, None
-        for n in range(1, cuadros + 1):
+        quieto_desde, anterior = None, [None]
+
+        def antes(n):
             if n in presiones:
                 consola.apretar(*(apretados + ("a",)))
-            elif n - 1 in presiones:
+            else:
                 consola.apretar(*apretados)
-            consola.correr(1)
+
+        while reloj.cuadro() < ticks:
+            antes(reloj.cuadro() + 1)
+            reloj.paso()
             actual = consola.cuadro[0]
-            if actual != anterior:
-                quieto_desde = n
-            anterior = actual
+            if actual != anterior[0]:
+                quieto_desde = reloj.cuadro()
+            anterior[0] = actual
         return quieto_desde
 
     # El plan dice, por dirección, cuántos cuadros dura la caminata. Sale de la
@@ -204,6 +326,7 @@ def main():
         else:
             cuadros = args.cuadros
         consola.correr(args.arranque)
+        reloj = Reloj(consola, args.rom)
         if walk != "none":
             consola.apretar(walk)
 
@@ -219,7 +342,7 @@ def main():
         # camino; ese mapa es de 1000x80 y no entra en la ventana del PPU, así
         # que va redibujando mientras se scrollea. Quedarse con el primer tramo
         # informaba "quieta en el 97" cuando la caminata dura 160.
-        quieto_desde = correr_con_a(consola, cuadros,
+        quieto_desde = correr_con_a(consola, reloj, cuadros,
                                     () if walk == "none" else (walk,))
 
         consola.imagen().save(destino)

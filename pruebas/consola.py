@@ -69,10 +69,17 @@ class Simbolos:
 class Partida:
     """La ROM corriendo, con el arranque ya pasado.
 
-    `correr` avanza cuadros apretando A donde se le diga, con la misma
-    convención que `snes_correr.py` —un toque por número, apretado un cuadro
+    `correr` avanza **ticks** apretando A donde se le diga, con la misma
+    convención que `snes_correr.py` —un toque por número, apretado un tick
     antes por `RETRASO_DE_PANTALLA`— para que una lista de toques sirva igual
     en un caso de pixeles y en una prueba de estado.
+
+    Un tick es una vuelta del lazo principal, o sea un paso de lógica de RM2k.
+    Normalmente es un cuadro de hardware, y se separan cuando una vuelta se
+    pasa del cuadro: al entrar a Lashe City las dos primeras miden 370 y 386
+    líneas de las 262 que hay. La ROM lleva la cuenta en `vueltas` y acá se la
+    pregunta, en vez de suponer que un cuadro es un tick. Ver `Reloj` en
+    `tools/snes_correr.py`.
     """
 
     def __init__(self, sfc, simbolos, mapas, switches=()):
@@ -103,16 +110,39 @@ class Partida:
         self.consola.correr(3)
 
     def correr(self, cuadros, apretar_a=()):
-        """Avanza `cuadros` cuadros. `apretar_a` son toques de A, por número."""
+        """Avanza `cuadros` **ticks**. `apretar_a` son toques de A, por número.
+
+        El botón se sostiene mientras dure el tick: la ROM lee el pad una vez
+        por vuelta, así que si la vuelta se estira sigue siendo un solo flanco.
+        """
         presiones = {n - RETRASO_DE_PANTALLA for n in apretar_a}
-        for _ in range(cuadros):
-            self.cuadro += 1
-            if self.cuadro in presiones:
+        objetivo = self.cuadro + cuadros
+        tope = (cuadros + 1) * 60
+        while self.cuadro < objetivo:
+            if self.cuadro + 1 in presiones:
                 self.consola.apretar("a")
-            elif self.cuadro - 1 in presiones:
+            else:
                 self.consola.apretar()
-            self.consola.correr(1)
+            self._un_cuadro()
+            tope -= 1
+            if tope <= 0:
+                raise RuntimeError("la ROM no llegó al tick %d" % objetivo)
         return self
+
+    def _un_cuadro(self):
+        """Un cuadro de hardware, y el reloj del juego al día."""
+        self.consola.correr(1)
+        # El cuadro 0 es el tick 1: ver `TICK_DEL_CUADRO_CERO` en snes_correr.
+        self.cuadro = self.palabra("vueltas") - 1
+
+    def _un_tick(self):
+        """Cuadros hasta que el juego avance una vuelta."""
+        antes = self.cuadro
+        for _ in range(60):
+            self._un_cuadro()
+            if self.cuadro > antes:
+                return
+        raise RuntimeError("la ROM no avanzó ningún tick en 60 cuadros")
 
     # --- las preguntas -----------------------------------------------------
     #
@@ -137,11 +167,9 @@ class Partida:
         que la tanda no puede ejercitar.
         """
         self.consola.apretar(*botones)
-        self.consola.correr(1)
-        self.cuadro += 1
+        self._un_tick()
         self.consola.apretar()
-        self.consola.correr(1)
-        self.cuadro += 1
+        self._un_tick()
         return self
 
     def poner_byte(self, nombre, valor):
@@ -219,12 +247,15 @@ class Partida:
             self.consola.escribir_ram(self.simbolos[nombre],
                                       [valor & 0xFF, valor >> 8])
         # `empezar_fundido`, desde afuera: qué fundido es, que hay uno, y el
-        # reloj, que son cuadros de hardware y no vueltas del lazo.
+        # reloj, que son **vueltas del lazo** —ticks— desde el 2026-09-08. Con
+        # `boot_cuadros`, que es lo que decía antes, la resta daba cualquier
+        # cosa y el fundido no terminaba nunca: la partida se quedaba en el
+        # mapa de arranque y catorce pruebas fallaban sin decir por qué.
         self.consola.escribir_ram(self.simbolos["fundido_que"],
                                   [self.simbolos["FUNDIDO_PUERTA"]])
         self.consola.escribir_ram(self.simbolos["fundido"], [1])
         self.consola.escribir_ram(self.simbolos["fundido_base"],
-                                  [self.byte("boot_cuadros")])
+                                  [self.palabra("vueltas") & 0xFF])
         self.correr(cuadros)
         return self
 

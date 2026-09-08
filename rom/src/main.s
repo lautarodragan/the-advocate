@@ -421,6 +421,17 @@ par_n:       .res 1     ; cuántos eventos con página paralela tiene el mapa
 par_i:       .res 1     ; por cuál va el lazo
 par_dir:     .res 2     ; dónde cae su estado, que hay que apuntar dos veces
 par_ev:      .res 1     ; de qué evento es, para moverlo detrás del intérprete
+; Cuántas vueltas dio el lazo principal, o sea **el tiempo del juego**. Un tick
+; es un paso de lógica de RM2k —el `while (Game_Clock::NextGameTimeStep())` de
+; easyrpg, `player.cpp:245`—, que allá también está separado del cuadro que se
+; dibuja: la lógica va a DEFAULT_FPS y el dibujo a lo que la máquina aguante.
+; Acá normalmente coinciden, y se separan cuando una vuelta se pasa del cuadro.
+;
+; Lo lee `snes_correr.py` por la WRAM para saber **qué tick** está mirando: la
+; comparación es contra la referencia, que cuenta ticks, así que con esto deja
+; de importar si la ROM llegó tarde. Lo tarde que llega lo dice
+; `cuadros_perdidos`, que es otra pregunta.
+vueltas:     .res 2
 ev_activo:   .res 1     ; si hay una página a medio correr
 ev_esperando: .res 2    ; cuántos cuadros faltan de la espera en curso
 ; La ruta forzada del héroe. En RM2k `ForceMoveRoute` es asincrónico: la página
@@ -529,6 +540,8 @@ comp_or23:   .res 4
     lda #$01
     sta NMITIMEN                ; que la consola lea los controles sola
     stz boot_cuadros
+    stz vueltas                 ; la RAM arranca con basura y el arnés lo
+    stz vueltas + 1             ; lee desde el cuadro cero
     lda #$81
     sta NMITIMEN                ; y la NMI, que cuenta los cuadros del arranque
 
@@ -746,6 +759,11 @@ loop:
     jsr build_oam               ; y se arma el siguiente, ya fuera del vblank
 congelado:
     jsr music_tick
+    rep #$20
+.a16
+    inc vueltas
+    sep #$20
+.a8
     jsr contar_perdidos
     bra loop
 .endproc
@@ -1499,13 +1517,18 @@ espera_apagado:
     sta fundido_que
     lda #1
     sta fundido
-    ; El reloj del fundido es `boot_cuadros`, o sea **cuadros de hardware**, y
-    ; no las vueltas del lazo. Es lo que hace que la carga del mapa no corra el
-    ; reloj: tarda seis o siete cuadros adentro de una sola vuelta, y contando
-    ; vueltas el fundido duraría eso de más y la referencia quedaría atrás para
-    ; siempre. Contando cuadros, el fundido mide FUNDIDO_TOTAL pase lo que pase
-    ; adentro del negro.
-    lda boot_cuadros
+    ; El reloj del fundido son **vueltas del lazo**, o sea ticks, que es lo que
+    ; cuenta la referencia: `estado.fundido` sube una vez por `cuadro()`. Así el
+    ; fundido dura FUNDIDO_TOTAL ticks de los dos lados, tarde lo que tarde la
+    ; carga del mapa adentro del negro.
+    ;
+    ; Estuvo contando `boot_cuadros` —cuadros de hardware— desde que la carga
+    ; empezó a tardar seis o siete cuadros adentro de una sola vuelta: contando
+    ; vueltas el fundido duraba eso de más **en cuadros**, y el arnés, que
+    ; contaba cuadros, quedaba corrido. Desde el 2026-09-08 el arnés cuenta
+    ; ticks —ver `vueltas`— así que el reloj vuelve a ser el mismo de los dos
+    ; lados y el que absorbe el atraso es el reloj de pared.
+    lda vueltas
     sta fundido_base
     rts
 .endproc
@@ -1523,9 +1546,9 @@ espera_apagado:
 .i16
     lda fundido
     beq no_hay
-    lda boot_cuadros
+    lda vueltas                 ; el byte bajo alcanza: el fundido dura 70
     sec
-    sbc fundido_base            ; en ocho bits, y el fundido dura 70
+    sbc fundido_base
     cmp #FUNDIDO_TOTAL
     bcs terminar
     cmp #FUNDIDO_CARGA
@@ -12868,7 +12891,7 @@ pan_py:     .res 2
 
 ; El fundido de un teletransporte. Ver `fundido_tick`.
 fundido:      .res 1    ; si hay uno corriendo
-fundido_base: .res 1    ; el valor de `boot_cuadros` cuando arrancó
+fundido_base: .res 1    ; el byte bajo de `vueltas` cuando arrancó
 fundido_que:  .res 1    ; qué hay que hacer en el cuadro negro, y ya no
 fundido_mapa: .res 1    ; a qué mapa, para los dos casos que cargan
 FUNDIDO_NADA   = 0      ; ya se hizo

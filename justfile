@@ -297,7 +297,13 @@ snes-mednafen:
   python3 tools/snes_expect.py --grupo {{grupo}} --map-id 4 --mapas 1 \
       --saltar {{snes_pngs}}/saltar-med-evento.txt \
       -o {{snes_pngs}}/esperado-med-evento.png
-  rom/mednafen.sh {{snes_rom}} {{snes_pngs}}/med-evento.png 5 ""
+  # Seis segundos y no cinco: el fundido de un teletransporte mide 70 **ticks**
+  # desde el 2026-09-08, así que en un mapa donde la ROM pierde cuadros dura
+  # unos cuadros más de reloj de pared, y a los cinco segundos todavía estaba
+  # en negro. Seis lo deja bien adentro, y lejos del relámpago del mapa 1, que
+  # cae recién a los 7,1 segundos: esta captura es por reloj de pared —mednafen
+  # de verdad, no un core— así que no se puede alinear por tick.
+  rom/mednafen.sh {{snes_rom}} {{snes_pngs}}/med-evento.png 6 ""
   python3 tools/snes_compare.py {{snes_pngs}}/med-evento.png \
       {{snes_pngs}}/esperado-med-evento.png \
       --saltar {{snes_pngs}}/saltar-med-evento.txt \
@@ -1591,7 +1597,7 @@ snes-espera mapa="73" espera="120" antes="60" despues="400" nombre="espera":
         --saltar {{snes_pngs}}/saltar-{{nombre}}-$n.txt \
         -o {{snes_pngs}}/esperado-{{nombre}}-$n.png
     python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o {{snes_pngs}}/{{nombre}}-$n.png \
-        --walk none --cuadros $n --arranque 0
+        --walk none --cuadros $n
     python3 tools/snes_compare.py {{snes_pngs}}/{{nombre}}-$n.png \
         {{snes_pngs}}/esperado-{{nombre}}-$n.png \
         --saltar {{snes_pngs}}/saltar-{{nombre}}-$n.txt \

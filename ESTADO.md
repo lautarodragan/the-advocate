@@ -604,6 +604,60 @@ en vez de recorrer las 73 páginas. Cambia el comportamiento —la vuelta 0 sube
 541— así que hay algo del camino rápido que no es equivalente, y hay que
 entender qué antes de volver a intentarlo.
 
+## La tanda dejó de ser sensible al rendimiento
+
+Hecho el 2026-09-08, y es la respuesta a una pregunta de taro: *¿tenemos un bug
+que depende de que algo esté optimizado?* No. La ROM computa la misma secuencia
+de estados vaya rápido o lento; lo que cambia con una vuelta que se pasa del
+cuadro es **cuándo** se ve cada uno, que es lag y es lo que le pasa a RPG_RT en
+una máquina lenta. Lo que estaba mal era **el instrumento**: la comparación
+suponía "cuadro N de la captura = tick N de la referencia".
+
+**Qué es un tick.** El paso lógico de RM2k. En easyrpg el lazo es
+`while (Game_Clock::NextGameTimeStep())` (`player.cpp:245`): corre N pasos de
+lógica y después **un** `Player::Draw()`, en un solo hilo. La lógica va a
+DEFAULT_FPS y el dibujo a lo que la máquina aguante. Acá un tick es una vuelta
+del lazo principal, y un cuadro de hardware avanza **cero o un tick, nunca dos**:
+el lazo empieza con `wait_vblank`. EasyRPG se pone al día corriendo más lógica;
+nosotros no podemos, así que nos atrasamos. Las dos computan lo mismo.
+
+**Cómo se cuenta.** La ROM lleva `vueltas`, y `snes_correr.py` avanza de a un
+cuadro leyéndolo hasta llegar al tick que quiere: `retro_run()` no sabe de
+ticks. El cuadro N de la referencia es el tick **N+1**, medido en los mapas 6 y
+7 —que no pierden ningún cuadro— y **fijo, no muestreado**: muestrearlo fue el
+primer intento y falla justo donde importa, porque en el mapa 8 los cuadros que
+se pierden caen adentro de la ventana del arranque.
+
+**El fundido pasó a contar ticks.** Va junto y no es opcional: la referencia lo
+cuenta así (`estado.fundido` sube una vez por `cuadro()`), y si la ROM lo
+contara en cuadros de hardware los dos relojes se irían. Cuesta que un fundido
+dure unos cuadros más de reloj de pared cuando la carga del mapa se pasa, que es
+justo lo que da lo mismo.
+
+**Lo que destapó**, todo pre-existente:
+
+* `snes-espera` corría con `--arranque 0` y comparaba el cuadro 60 **de reset**
+  contra el tick 60 de la referencia. Daba verde porque en los dos lados no
+  pasaba nada todavía. Con el arranque normal da cero de verdad.
+* **bsnes no expone la WRAM**: `retro_get_memory_data` devuelve nulo, y el
+  comentario de `retro.py` decía que los tres cores la implementaban. Ahí el
+  reloj cae al camino viejo —contar cuadros—, que sirve porque esos casos corren
+  mapas livianos.
+* `snes-mednafen` captura por **reloj de pared** —mednafen de verdad, no un
+  core— así que no se puede alinear por tick. Pasó a los 6 segundos: a los 5 el
+  fundido todavía no había terminado, y a los 7 se le viene encima el relámpago
+  del mapa 1, que cae a los 7,1.
+
+### Los 3 rojos que quedan son bugs del mapa 8, no del reloj
+
+* `mecanico` y `bum`: **la ventana de mensaje deja basura en las filas que no
+  escribe**. En el mapa 7 no se ve porque esos tiles de VRAM están en negro; en
+  el mapa 8 tenían mapa debajo. No es desfasaje: da lo mismo mirar el tick 59,
+  60, 61 o 62.
+* `snes-heroe 8`, caminando a la izquierda: un auto queda a una celda de
+  distancia al cabo de 304 ticks. El resto de la pantalla coincide. El reloj no
+  lo movió —516 pixeles antes y después— así que es la ruta.
+
 ## Esperando respuesta de taro
 
 * **`rom/build/demo-apertura-jugable/`**: es la copia pre-fundido que taro pidió

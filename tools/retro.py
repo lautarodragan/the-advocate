@@ -262,6 +262,10 @@ class Consola:
     #
     # No es parte de ninguna prueba: sirve para depurar, y apareció haciendo el
     # compositor de texto, cuando la pantalla decía "algo está mal" y no dónde.
+    #
+    # **bsnes no la expone**: devuelve nulo, aunque el resto de la interfaz
+    # ande. Decía acá que los tres cores la implementaban y no es cierto; lo
+    # destapó el reloj de ticks, que la lee para saber en qué vuelta va la ROM.
     MEMORIA_SISTEMA = 2
 
     def ram(self, direccion=0, largo=None):
