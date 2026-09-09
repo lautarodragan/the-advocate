@@ -657,29 +657,36 @@ justo lo que da lo mismo.
   un mapa con muchos eventos moviéndose. Apareció con los paralelos, que sumaron
   nueve personajes que se mueven. El arreglo es el mismo recorte que ya hacían
   el tinte y el destello: con un renglón esperando, `vq_tope` baja a 1.
-* `snes-heroe 8`, caminando a la izquierda: **queda abierto, y ya está
-  diagnosticado**. No es el reloj de ticks: es que ese caso compara dos momentos
-  distintos a propósito, y eso dejó de dar lo mismo cuando algo se mueve solo.
+* `snes-heroe 8`, caminando a la izquierda: **queda abierto, y el diagnóstico
+  está cerrado**. El caso es 516 pixeles y son un auto: la ROM tiene el `Car3`
+  en pantalla (12,168) y la referencia en (16,152). El héroe, la cámara y el
+  mapa coinciden exacto.
 
-  Son dos cosas, las dos medidas:
+  La causa no es el reloj de ticks: **la referencia colapsa el tiempo en dos
+  lugares**, y eso dejó de dar lo mismo cuando en el mapa hay algo que se mueve
+  solo.
 
-  1. **La referencia tiene dos maneras de contar.** Con `--cuadros` cuenta cada
-     tick; sin él —que es como `snes-heroe` la llama— `entrar_al_mapa` corre las
-     páginas automáticas y el lazo de asentamiento **sin contarlos**. En el mapa
-     8 son 4 ticks.
-  2. **`snes_correr` corre `plan + margen`, y la referencia dibuja en `plan`.**
-     Con `MARGEN = 8`, la ROM queda ocho ticks más adelante que el momento que
-     la referencia dibujó. Mientras no se moviera nada daba igual; con los autos
-     son 32 pixeles de auto.
+  1. **La caminata.** `hero_position` camina celda por celda mirando la
+     pasabilidad, y el tiempo se **calcula al final** —`pasos * 8`—: nadie vive
+     esos cuadros. Medido: para una caminata de 296 cuadros la referencia corre
+     **4 ticks en total**.
+  2. **La entrada.** `entrar_al_mapa` corre las páginas automáticas y el
+     asentamiento hasta que terminan, no por ticks contados. La ROM las corre
+     en ticks, y tarda más: con `--margen 0` y sin caminata, los dos lados
+     "corren 4 ticks" y aun así difieren 337 pixeles.
 
-  Lo probado y descartado, para no repetirlo: sumarle al plan los ticks de la
-  entrada baja la diferencia de 516 a 509 pero no la cierra, porque el margen
-  sigue mandando; y `--margen 0` pone en rojo las **otras cuatro** direcciones
-  con 337 pixeles **constantes en todos los ticks**, o sea una diferencia de
-  contenido y no de tiempo, que hay que entender antes de tocar nada más.
+  Y `MARGEN = 8` es lo que venía absorbiendo las dos cosas. Por eso sacarlo
+  pone en rojo las **cinco** direcciones y no arregla ninguna.
 
-  El arreglo de fondo es que los dos lados dibujen el **mismo** tick: o el
-  margen se va y el plan es exacto, o la referencia corre el margen también.
+  Probado y descartado, para no repetirlo: sumarle al plan los ticks de la
+  entrada (516 → 509, no cierra); hacer que la caminata corra los ocho ticks de
+  cada paso (no mueve el número, porque queda la entrada); y las dos juntas con
+  `--margen 0` (337/292/549/338/337, o sea las cinco en rojo).
+
+  El arreglo de fondo es que la entrada de la referencia corra por ticks
+  contados, como ya corre el lazo con `--cuadros`. Es tocar `entrar_al_mapa`,
+  que es el camino de casi todos los casos, así que va con la tanda al lado y
+  con tiempo, no al final de una sesión.
 
 ## bsnes: la WRAM, arreglada y compilada acá
 
