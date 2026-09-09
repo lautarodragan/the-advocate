@@ -271,6 +271,36 @@ class Consola:
     # propio con eso arreglado; ver `/extras/bsnes-wram/`. Sin ese arreglo el
     # reloj cae al camino de contar cuadros, que sigue funcionando.
     MEMORIA_SISTEMA = 2
+    # Y la SRAM del cartucho, que es la que un frontend guarda a disco y la que
+    # el EverDrive tiene con batería. `RETRO_MEMORY_SAVE_RAM` es 0, y a ésta
+    # bsnes también la devuelve nula: la lee snes9x, que es el core de la tanda.
+    MEMORIA_SRAM = 0
+
+    def sram(self, direccion=0, largo=None):
+        """Bytes de la SRAM del cartucho.
+
+        Es lo que hace que "persistir a disco" se pueda probar sin disco: el
+        frontend vuelca esto mismo a un `.srm`, así que lo que hay acá es lo que
+        sobrevive a apagar la consola.
+        """
+        self.lib.retro_get_memory_data.restype = ctypes.c_void_p
+        self.lib.retro_get_memory_size.restype = ctypes.c_size_t
+        base = self.lib.retro_get_memory_data(self.MEMORIA_SRAM)
+        total = self.lib.retro_get_memory_size(self.MEMORIA_SRAM)
+        if not base or not total:
+            raise RuntimeError("este core no expone la SRAM del cartucho")
+        if largo is None:
+            largo = total - direccion
+        return ctypes.string_at(base + direccion, largo)
+
+    def reset(self):
+        """El botón de reset de la consola: la SRAM sobrevive y la WRAM no.
+
+        Es como se prueba que una partida guardada se carga de verdad: guardar,
+        resetear, y mirar dónde arranca el héroe.
+        """
+        self.lib.retro_reset()
+        self.cuadro = None
 
     def ram(self, direccion=0, largo=None):
         """Bytes de la WRAM desde `direccion`, que es la del banco $7E."""

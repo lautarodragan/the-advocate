@@ -31,6 +31,9 @@ TELEPORT = 10810
 TINT_SCREEN = 11030
 WAIT = 11410
 CHANGE_SAVE_ACCESS = 11930
+# Abrir el menú de guardar. Acá no hay menú: guarda en la única ranura que hay
+# y sigue, sin costar un cuadro. Ver `OP_GUARDAR`.
+OPEN_SAVE_MENU = 11910
 CHANGE_PARTY_MEMBERS = 10330
 PLAY_BGM = 11510
 # Apagar el tema que esté sonando, en tantos milisegundos.
@@ -257,6 +260,24 @@ SALTO_VELOCIDADES = (8, 12, 16, 24, 32, 64)
 # quieto con la animación continua. Es `Game_Character::UpdateAnimation`.
 ANIM_PARADO = (12, 10, 8, 6, 5, 4)
 ANIM_CONTINUA = (16, 12, 10, 8, 7, 6)
+
+
+def columna_animada(tick, velocidad):
+    """La columna del ciclo de un evento **quieto** con animación continua.
+
+    Los que caminan llevan su propio contador adentro de la ranura de ruta y
+    esto no los toca; los quietos no tienen ranura ni dónde guardar un contador
+    —ver `animar_quietos` en main.s— así que la columna sale del reloj del
+    juego: cada `ANIM_CONTINUA` ticks avanza un paso del ciclo de cuatro.
+
+    **La fase no es la de RM2k**, que arranca el contador de cada personaje
+    cuando el mapa lo crea. Acá es global, así que un evento que aparece a mitad
+    de la partida entra con el ciclo empezado. Es una elección, está declarada
+    en `assets/LIMITACIONES.md`, y lo que la hace válida es que los dos lados la
+    calculan con la misma fórmula y el mismo reloj.
+    """
+    paso = (tick & rm2k.TICK_MASCARA) // ANIM_CONTINUA[velocidad - 1]
+    return rm2k.CICLO_TRES[paso % len(rm2k.CICLO_TRES)]
 
 # El sonido va adentro de la ruta y se acepta sin hacerlo, igual que PlaySound:
 # no se ve. Se tira al compilar, así que el bytecode sigue siendo un byte por
@@ -696,6 +717,12 @@ OP_SI       = 0x12      # tipo (byte), operando (word), polaridad (byte),
 OP_IR       = 0x13      # destino (word): el salto sin condición que se emite
                         # donde estaba el `else`, para que la rama de arriba se
                         # saltee la de abajo.
+OP_GUARDAR  = 0x16      # sin operandos: la partida a la SRAM del cartucho.
+                        # Es `OpenSaveMenu`, pero sin menú: hay una sola ranura
+                        # y el evento la pisa. Lo que se guarda lo dice
+                        # `partida_tabla` en main.s, que es el único lugar donde
+                        # está escrito. No cuesta un cuadro: en RM2k el menú
+                        # bloquea, y acá no hay nada que mirar.
 OP_ORO      = 0x15      # signo (byte: 0 suma, 1 resta) y monto de 24 bits. Es
                         # `ChangeGold`, y va en tres bytes porque el tope de
                         # RM2k son 999999 y el juego usa el valor entero: hay un
@@ -1460,6 +1487,9 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
             raise NoSePuede()
         paso = paso_de_fundido(p[0])
         return bytes([OP_FUNDIR_BGM, paso & 0xFF, paso >> 8])
+
+    if cmd.code == OPEN_SAVE_MENU:
+        return bytes([OP_GUARDAR])
 
     if cmd.code in ACEPTADOS_SIN_HACER:
         return b""     # se acepta con la deuda declarada arriba
@@ -2785,6 +2815,7 @@ LARGO_DE_OPCODE = {
     OP_GRUPO: 3, OP_MENSAJE: 3, OP_RUTAS: 1, OP_FLASH: 7, OP_TIMER: 5,
     OP_BGM: 2, OP_LUGAR: 6, OP_TRUEQUE: 3, OP_SACUDIR: 5, OP_DESTELLO: 6,
     OP_FUNDIR_BGM: 3, OP_PAN: 8, OP_SI: 7, OP_IR: 3, OP_ORO: 5,
+    OP_GUARDAR: 1,
 }
 
 
@@ -2979,7 +3010,7 @@ def evento_de_prueba(game_map):
 def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
                     flash=(), switches=(), timer=(), lugar=(),
                     frecuencia=RUTA_FRECUENCIA, sacudida=(), fundir_bgm=0,
-                    pan=(), rama=(), destello=()):
+                    pan=(), rama=(), destello=(), guardar=False):
     """Una página automática inventada: una ruta forzada, una espera, un tinte.
 
     No sale de ningún dato del juego, y ésa es la idea. El intérprete corre
@@ -3139,6 +3170,17 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
         codigo += bytes([OP_MENSAJE, mensaje & 0xFF, mensaje >> 8])
     if espera:
         codigo += bytes([OP_ESPERAR, espera & 0xFF, espera >> 8])
+    if guardar:
+        # Guardar la partida. El save point del mapa 8 es el único evento del
+        # juego que lo pide, y está en un mapa que las pruebas no llevan; sin
+        # esto `OP_GUARDAR` sería un camino que no ejercita nada, que es
+        # exactamente cómo sobrevivieron los tres errores del intérprete.
+        #
+        # Va **después de la espera** a propósito: así la prueba puede mover la
+        # partida —irse a otro mapa, caminar— mientras la página espera, y lo
+        # que se guarda no es el estado del arranque. Guardando el del arranque,
+        # cargar y no cargar dan lo mismo y la prueba no prueba nada.
+        codigo += bytes([OP_GUARDAR])
     if tinte:
         # (r, g, b) y, si viene, la saturación; si no, la neutra.
         codigo += bytes([OP_TINTE]) + bytes(tinte[:3])
@@ -3684,6 +3726,15 @@ def ejecutar(codigo, estado, desde=0):
             if espera:
                 return (i + 8, espera, False)
             i += 8
+        elif op == OP_GUARDAR:
+            # Guardar la partida en la SRAM del cartucho. De este lado no hay
+            # nada que guardar —la referencia es un modelo, no una partida— y
+            # tampoco nada que dibujar: lo que importa es que el opcode ocupe
+            # el mismo byte y no cueste un cuadro, para que los dos intérpretes
+            # sigan leyendo el mismo stream y en el mismo cuadro. Lo que la ROM
+            # escribe lo cubre `pruebas/test_guardar.py`, no la comparación de
+            # pixeles.
+            i += 1
         elif op == OP_FUNDIR_BGM:
             # Lo mismo que OP_BGM: no se modela el audio, pero el opcode ocupa
             # tres bytes y el stream tiene que ser el mismo de los dos lados.

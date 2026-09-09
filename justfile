@@ -1029,6 +1029,10 @@ snes-hablar mapa="7" celda="3 7" switch="24" apretar="25" cuadros="20 60" arranq
 # es sólo hacia dónde mira el héroe **al arrancar**: si la página lo gira con
 # un `face_*`, gana la página, como en la ROM. Antes `--dir` pisaba el giro al
 # dibujar y el cuadro 230 de `puerta-izq` daba 117 pixeles, todos en el héroe.
+# Y con esta misma receta entra el **save point animado** del mapa 8: la celda
+# (9,55) lo deja en pantalla, la ruta 0 no mueve a nadie, y los cuadros 20, 30,
+# 40 y 50 caen en tres columnas distintas del ciclo —a velocidad 3 cambia cada
+# diez—. Sin el `inc` de la fase en `animar_quietos` son 76 pixeles.
 snes-escena mapa="2" celda="4 54" ruta="12" dir="up" cuadros="60" arranque="115" nombre="escena" apretar="" switch="" mapas="":
   #!/usr/bin/env bash
   set -euo pipefail

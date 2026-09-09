@@ -981,7 +981,7 @@ def digitos_del_timer(sys_img, tiles, palettes, de_lider=()):
     return bytes(tiles), base, cual
 
 
-def npc_table(npcs, where, movibles=(), indice_animado=None):
+def npc_table(npcs, where, movibles=(), indice_animado=None, anima_quieto=()):
     """Los NPCs listos para la ROM, ya ordenados como los dibuja RM2k.
 
     El orden de dibujado es primero por capa y recién después por Y: uno "below"
@@ -1013,6 +1013,10 @@ def npc_table(npcs, where, movibles=(), indice_animado=None):
             "poses": (indice_animado[(npc["charset"], npc["index"])]
                       if camina else None),
             "velocidad": npc.get("velocidad", 3),
+            # Los quietos con animación continua: su columna sale del reloj del
+            # juego. Los que caminan la llevan en su ranura de ruta, así que el
+            # flag no vale para ellos aunque su página también la pida.
+            "anima": npc["evento"] in anima_quieto,
             "visible": npc.get("visible", True),
             "tile_pasa": npc.get("tile_pasa"),
         })
@@ -2051,6 +2055,12 @@ def anim_tabla(mapas):
     La dirección de VRAM sale de acá y no de una cuenta en la consola porque
     acá están las dos mitades: el reparto de la VRAM del mapa y en qué tile de
     su banco arranca la corrida.
+
+    El relleno de la segunda familia —el byte +15 de la entrada— lleva **si el
+    mapa tiene algún evento quieto con animación continua**. Va acá porque es
+    lo mismo que el resto: algo por mapa que la ROM mira una vez por cuadro y
+    que en el registro del mapa ya no entraba. Sin él, `animar_quietos` tendría
+    que recorrer las cuarenta filas de NPC en todos los mapas.
     """
     out = ["; La animación del ChipSet, una entrada de %d bytes por mapa."
            % ANIM_STRIDE,
@@ -2070,7 +2080,15 @@ def anim_tabla(mapas):
                        % desplazamiento)
             out.append("    .word %-6d ; bytes por dibujo"
                        % (tiles * BYTES_PER_TILE))
-            out.append("    .byte %d, 0   ; %d tile(s)" % (tiles, tiles))
+            relleno = 0
+            if familia == FAMILIAS[-1][0]:
+                relleno = 1 if any(n.get("anima")
+                                   for n in (mapa["sprite"][3]
+                                             if mapa["sprite"] else ())) else 0
+            out.append("    .byte %d, %d   ; %d tile(s)%s"
+                       % (tiles, relleno, tiles,
+                          ", y el mapa tiene quietos que animan"
+                          if relleno else ""))
             desplazamiento += tiles * BYTES_PER_TILE * cuantos
     return "\n".join(out)
 
@@ -2400,6 +2418,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "OP_IR       = $%02X\n"
         "OP_ELEGIR   = $%02X\n"
         "OP_ORO      = $%02X\n"
+        "OP_GUARDAR  = $%02X\n"
         "; Las clases de condición de ConditionalBranch que sabemos,\n"
         "; con el número de RM2k tal cual.\n"
         "COND_ORO    = %d\n"
@@ -2542,7 +2561,8 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            eventos.OP_LUGAR, eventos.OP_TRUEQUE, eventos.OP_SACUDIR,
            eventos.OP_DESTELLO, eventos.OP_FUNDIR_BGM, eventos.OP_PAN,
            eventos.OP_SI, eventos.OP_IR, eventos.OP_ELEGIR,
-           eventos.OP_ORO, eventos.COND_ORO, eventos.COND_ACTOR,
+           eventos.OP_ORO, eventos.OP_GUARDAR,
+           eventos.COND_ORO, eventos.COND_ACTOR,
            eventos.ORO_MAX,
            eventos.PAN_CORRER, eventos.PAN_VOLVER,
            eventos.TIMER_PONER, eventos.TIMER_ARRANCAR,
@@ -2858,6 +2878,11 @@ def orden_de_mapas(args):
     return [args.map_id] + [m for m in (args.mapas or []) if m != args.map_id]
 
 
+# Cuántos eventos quietos con animación continua anima un mapa. Ver el porqué
+# —y el número medido— adentro de `eventos_movibles`.
+ANIMA_QUIETO_MAX = 4
+
+
 def eventos_movibles(game_map, indice_de_mapa, con_ventana=False):
     """Los eventos con gráfico a los que alguna página compilable manda a
     caminar, y los gráficos a los que alguna ruta cambia con la orden 34.
@@ -2893,12 +2918,31 @@ def eventos_movibles(game_map, indice_de_mapa, con_ventana=False):
     paginas = eventos.paginas_del_mapa(
         game_map, indice_de_mapa,
         eventos.Mensajes() if con_ventana else None, graficos=graficos)
-    visibles = {npc["evento"] for npc in rm2k.collect_npcs(game_map)}
+    npcs = rm2k.collect_npcs(game_map)
+    visibles = {npc["evento"] for npc in npcs}
     # Y los que caminan solos con la ruta propia de alguna página, que
     # necesitan las doce poses igual que los que manda a caminar un MoveEvent.
     propios = {p["evento"] for p in paginas if p.get("ruta_propia")}
-    return ((eventos.blancos_de_ruta(paginas) | propios) & visibles,
-            list(graficos.pares))
+    # Y los quietos con animación continua —el save point de Lashe City—, que
+    # no caminan pero **cambian de columna igual**. Sin las doce poses su ranura
+    # de VRAM llevaría una sola y no habría con qué animarlos: los quietos
+    # comparten ranura por (CharSet, índice, pose) y no tienen una propia.
+    con_ruta = (eventos.blancos_de_ruta(paginas) | propios) & visibles
+    animados = {npc["evento"] for npc in npcs
+                if npc.get("anima")} & visibles - con_ruta
+    # Y el tope: un evento quieto que anima **cuesta una ranura entera de VRAM**
+    # —doce tiles— porque deja de compartir la de su (CharSet, índice, pose) y
+    # pasa a tener las doce poses suyas, como los que caminan. Un mapa con
+    # treinta —el 52 tiene treinta— pide 572 tiles de sprite y entran 384.
+    #
+    # Así que un mapa con más de `ANIMA_QUIETO_MAX` no anima **ninguno**, y no
+    # unos sí y otros no: dos fuentes iguales, una moviéndose y la otra
+    # congelada, se ve peor que las dos quietas. Medido sobre los 328 mapas del
+    # juego: 312 tienen cuatro o menos, y de los mapas que hoy llevan las ROMs
+    # el único que se pasa es el 52.
+    if len(animados) > ANIMA_QUIETO_MAX:
+        animados = set()
+    return con_ruta | animados, list(graficos.pares), animados
 
 
 def graficos_de_prueba(argumento):
@@ -3042,8 +3086,12 @@ def npc_bytes(table):
         # +12: la pose que hay en VRAM, que al cargar es la de su página. La
         # ROM la compara con la que quiere dibujar y sube la nueva si difiere.
         out.append(npc["pose"])
-        # +13: la velocidad de su página, para una ruta forzada sobre él.
-        out.append(npc["velocidad"])
+        # +13: la velocidad de su página, para una ruta forzada sobre él, y en
+        # el bit 7 si es un quieto con animación continua. Van juntos porque la
+        # fila no tiene un byte libre —el +11 lo usa el salto— y porque los dos
+        # los lee la misma cuenta: cada cuántos cuadros cambia de columna sale
+        # de la velocidad. Ver `animar_quietos` en main.s.
+        out.append(npc["velocidad"] | (0x80 if npc.get("anima") else 0))
         # +14: si se dibuja. Un evento cuya página activa no tiene gráfico
         # está en la tabla escondido, para aparecer cuando otra página gane.
         out.append(1 if npc["visible"] else 0)
@@ -3129,6 +3177,12 @@ def main():
                              "que los ShowMessage del juego compilen, y lo "
                              "que se lo cobra a los tiles del mapa —tres "
                              "mapas del juego no pueden llevarla—")
+    parser.add_argument("--guardar-de-prueba", action="store_true",
+                        help="la página de prueba guarda la partida en la "
+                             "SRAM. El save point del juego está en el mapa 8 "
+                             "y hay que caminar hasta él; esto deja probar "
+                             "`OP_GUARDAR` desde cualquier mapa. El otro lado "
+                             "del mismo flag de snes_expect.py")
     parser.add_argument("--timer-de-prueba", nargs=2, type=int, default=None,
                         metavar=("SEGUNDOS", "VISIBLE"),
                         help="arranca el cronómetro desde la página de prueba. "
@@ -3392,7 +3446,7 @@ def main():
                      "de ruta: %s contra %s"
                      % (mapa["id"], graficos.pares, mapa["graficos_de_ruta"]))
         if (args.pagina_de_prueba or args.ruta_de_prueba
-                or args.rama_de_prueba
+                or args.rama_de_prueba or args.guardar_de_prueba
                 or args.ruta_de_evento or args.flash_de_prueba or args.switch
                 or args.destello_de_prueba
                 or args.timer_de_prueba or args.lugar_de_prueba
@@ -3425,7 +3479,8 @@ def main():
                     fundir_bgm=args.fundir_bgm,
                     pan=pan_de_prueba(args.pan_de_prueba),
                     rama=tuple(args.rama_de_prueba or ()),
-                    destello=tuple(args.destello_de_prueba or ()))}, {
+                    destello=tuple(args.destello_de_prueba or ()),
+                    guardar=args.guardar_de_prueba)}, {
                 # Y la que la apaga: misma idea que en la referencia, ver
                 # `PAGINA_DE_PRUEBA_APAGADA`. Sin código, así que en cuanto
                 # gana, el evento inventado deja de tener una automática que
@@ -3807,7 +3862,7 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
     # más y pide paleta como cualquiera: repartiendo sin contarlo, entraría
     # después y podía no haber lugar.
     orden = orden_de_mapas(args)
-    movibles, graficos_de_ruta = eventos_movibles(
+    movibles, graficos_de_ruta, anima_quieto = eventos_movibles(
         game_map, {m: i for i, m in enumerate(orden)}.get,
         con_ventana=args.con_ventana)
     # Y los de `--grafico-de-prueba`, que van sólo en el mapa donde arranca la
@@ -3994,7 +4049,7 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
         sys_img = ventana_mod.skin(args.game_dir, renderer.database.system_name)
         tiles, timer_base, timer_pal = digitos_del_timer(
             sys_img, tiles, palettes, reparto[3] if len(reparto) > 3 else ())
-    table = npc_table(npcs, where, movibles, indice_animado)
+    table = npc_table(npcs, where, movibles, indice_animado, anima_quieto)
     # Por cada candidato a líder, su paleta y en qué banco de poses están las
     # doce suyas. La ROM no calcula nada a partir de la pose: busca el puntero
     # acá y lo encola.

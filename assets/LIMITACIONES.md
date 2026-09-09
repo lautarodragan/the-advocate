@@ -224,3 +224,66 @@ No pasa en ningún mapa de *A Blurred Line*: cero celdas en los 328 `.lmu` que e
 juego trae. Si aparece, el
 conversor **corta** con la celda en el mensaje en vez de emitir un dibujo que
 acierta la mitad del tiempo.
+
+
+## Un evento quieto que anima no arranca su ciclo cuando lo ves
+
+`animation_type` 1 y 3 de RM2k —"Continuous" y "Fixed Dir/Continuous"— hacen que
+el evento recorra el ciclo de caminata sin moverse; el save point de Lashe City
+es del segundo tipo. En RM2k cada personaje lleva su propio contador y arranca
+en cero cuando el mapa lo crea.
+
+Acá el contador es **global**: la columna sale de dividir el tick del juego por
+`ANIM_CONTINUA[velocidad]`. Un evento que aparece a mitad de la partida entra con
+el ciclo empezado en cualquier punto.
+
+**Por qué.** Los que caminan llevan el contador adentro de su ranura de ruta, y
+los quietos no tienen ranura. Guardarles uno pedía un byte por evento y no hay:
+la fila del NPC son 16 bytes con el +11 ocupado por el alto del salto, y la BSS
+está en 7680 de 7680. Con el reloj global no cuesta nada, y los dos lados usan la
+misma fórmula —`columna_animada` en `tools/eventos.py` y `animar_quietos` en
+`main.s`— así que la comparación sigue midiendo algo.
+
+**Qué se pierde.** Nada que se pueda ver en una pantalla: el ciclo es de cuatro
+pasos y lo único que cambia es en cuál empieza.
+
+
+## Un mapa con más de cuatro eventos que animan quietos no anima ninguno
+
+Un evento quieto con animación continua deja de compartir la ranura de VRAM de
+su (CharSet, índice, pose) y necesita **las doce poses suyas**, como los que
+caminan: doce tiles de sprite por evento. El mapa 52 tiene treinta y pedía 572
+tiles contra los 384 que entran.
+
+El tope es `ANIMA_QUIETO_MAX = 4` y es **por mapa y todo o nada**: con más de
+cuatro no anima ninguno. Animar unos sí y otros no se ve peor que no animar
+—dos fuentes iguales, una moviéndose y la otra congelada— y además haría falta
+una regla para elegir cuáles, que es una regla más que puede desincronizarse
+entre la ROM y la referencia.
+
+Medido sobre los 328 mapas del juego: **312 tienen cuatro o menos**. De los que
+hoy llevan las ROMs, el único que se pasa es el 52, que no es de los primeros
+diez minutos.
+
+**Cuándo deja de alcanzar.** Un mapa con cinco de éstos que sí importe. Ahí hay
+que mirar el presupuesto de sprites de ese mapa y subir el tope, no cambiar la
+regla: el conversor corta con el número en el mensaje si no entran.
+
+
+## La partida guardada es una sola y no lleva dónde quedaron los eventos
+
+RM2k guarda quince ranuras y, en cada una, el estado de todos los mapas que
+visitaste: dónde quedó cada evento, qué página tenía activa. Acá hay **una
+ranura** —el save point la pisa, sin menú— y lo que guarda lo dice
+`partida_tabla` en `main.s`: el héroe, el mapa, el grupo, el tinte, el
+cronómetro, el oro y los switches. Son 154 bytes.
+
+**Qué se pierde.** Dónde quedaron los eventos que algo movió. Al cargar, cada
+mapa vuelve a poner sus eventos donde dice el cartucho, igual que al entrar por
+una puerta. Los switches sí vuelven, así que las páginas activas son las
+correctas: una puerta abierta sigue abierta si lo que la abre es un switch, y
+vuelve a su lugar si lo que la movió fue un `MoveEvent`.
+
+**Cuándo deja de alcanzar.** Cuando haya que guardar en medio de una escena que
+movió eventos y no prendió switches. Guardar eso son `EV_MAX * 8` bytes por
+mapa visitado, o sea otra clase de savefile.

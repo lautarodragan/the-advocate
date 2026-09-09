@@ -520,6 +520,74 @@ cobra 18349 pixeles y `snes-caminando 3 down "54 56 58 60"` cobra 211. Hacen
 falta los dos: el mapa 5 no tiene tiles animados y la corrida de agua del 3 sale
 vacía.
 
+### El save point: anima quieto y guarda a disco
+
+`SaveByTalansPad0`, el evento 67 del mapa 8, son tres comandos —`PlaySound`,
+`OpenSaveMenu`, `ChangeSaveAccess`— y una página con `animation_type` 3, que en
+RM2k es "Fixed Dir/Continuous": recorre el ciclo de caminata **sin moverse**.
+taro pidió las dos cosas.
+
+**La animación de un evento quieto no tiene dónde guardar su contador.** Los que
+caminan lo llevan adentro de su ranura de ruta; los quietos no tienen ranura, la
+fila del NPC no tiene un byte libre —el +11 es el alto del salto— y la BSS está
+en 7680 de 7680. Así que la columna sale del reloj del juego, igual que el agua:
+`vueltas` dividido por `ANIM_CONTINUA[velocidad]`, y el mismo ciclo de cuatro
+pasos con el tercero repitiendo el primero. Lo que se pierde es la fase —en RM2k
+cada personaje arranca su contador cuando el mapa lo crea— y está declarado en
+`assets/LIMITACIONES.md`.
+
+Lo que **sí** cuesta VRAM es que deje de compartir tiles: un evento quieto usa la
+ranura de su (CharSet, índice, pose), y para animarse necesita las doce poses
+suyas, como los que caminan. Son doce tiles de sprite por evento. El mapa 52
+tiene **treinta** eventos así y pedía 572 tiles de sprite contra los 384 que
+entran, así que hay un tope: **un mapa con más de cuatro no anima ninguno**, y no
+unos sí y otros no —dos fuentes iguales, una moviéndose y la otra congelada, se
+ve peor que las dos quietas—. Medido sobre los 328 mapas del juego: 312 tienen
+cuatro o menos.
+
+La fase se midió como la del agua: sin el `inc` que la corrige, el save point del
+mapa 8 se queda una columna atrás y son 76 pixeles. Lo cobra
+`snes-escena 8 "9 55" 0 down "20 30 40 50"`, que es un caso nuevo de la tanda:
+la celda (9,55) lo deja en pantalla y los cuatro cuadros caen en tres columnas
+distintas del ciclo.
+
+**Guardar es una sola ranura y no hay menú.** Es el alcance que acordamos: el
+evento guarda y la página sigue de largo, y al encender la consola la partida
+vuelve si hay una. El cartucho pasó a declarar SRAM con batería en la cabecera
+—`$02` y 8 KB— y en el EverDrive eso es una pila de verdad.
+
+Qué se guarda lo dice **una tabla y nada más**, `partida_tabla` en `main.s`:
+pares de (dirección en la WRAM, cuántos bytes). Guardar y cargar la recorren los
+dos, así que no se pueden ir uno del otro, y agregar un campo es una línea. Hoy
+son 154 bytes: dónde está el héroe, en qué mapa, el grupo, el tinte, el
+cronómetro, el oro y los 128 bytes de switches.
+
+La copia va **por DMA en las dos direcciones**, y lo que lo hace posible es la
+ventana de la WRAM: el bus B no llega a la SRAM, pero sí a `WMDATA`, así que la
+SRAM va del lado del bus A y la WRAM del otro. Guardar es un DMA de B a A —el
+bit 7 de DMAP— y cargar el mismo al revés.
+
+Dos detalles que costaron su rato:
+
+* **La partida vive en $0100 y no en $0000.** `w65.py` elige página directa
+  cuando la dirección entra en un byte, igual que ca65, así que con la partida
+  al principio del banco un `lda SRAM_MAGIA, x` leería la página directa en vez
+  de la SRAM. Los 256 bytes de abajo no los usa nadie.
+* **La magia se compara contra inmediatos**, no contra una tabla de la ROM: con
+  el banco de datos apuntando a la SRAM no hay cómo leer el cartucho —el
+  ensamblador no tiene direccionamiento largo y la página directa está llena—.
+
+Una ranura vale si tiene la magia `ABLS` y la suma de sus bytes cuadra. Las dos
+cosas hacen falta: la SRAM sin escribir trae basura —snes9x la llena de $60— y
+una ROM de prueba que la tomara por buena cargaría una partida inventada.
+
+**Esto no lo puede cubrir la tanda de pixeles**, porque guardar no cambia un
+pixel. Lo cubre `pruebas/test_guardar.py`, que hace lo único que prueba algo:
+va a otro mapa, prende un switch, guarda, **resetea la consola de verdad** y
+mira dónde arranca. La SRAM sobrevive al reset y la WRAM no, así que si la
+partida vuelve es porque salió del cartucho. Con `guardar_partida` cortado a
+propósito, tres de sus cuatro pruebas dan rojo.
+
 ### Varios mapas en la ROM
 
 Un mapa solo no es un juego. Todo lo que antes era una constante del `.inc` —el

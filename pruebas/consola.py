@@ -109,6 +109,23 @@ class Partida:
             self.prender(*switches)
         self.consola.correr(3)
 
+    def reiniciar(self):
+        """El botón de reset: la SRAM del cartucho sobrevive y la WRAM no.
+
+        Es la única forma honesta de probar que una partida guardada se carga:
+        volver a arrancar la consola de verdad, con el mismo cartucho, y mirar
+        dónde queda parada. Escribirle la RAM a mano probaría otra cosa.
+        """
+        self.consola.reset()
+        self.cuadro = 0
+        self.consola.correr(self.simbolos["BOOT_CUADROS"])
+        self.consola.correr(3)
+        return self
+
+    def sram(self, direccion=0, largo=None):
+        """La SRAM del cartucho, que es lo que un frontend vuelca a un `.srm`."""
+        return self.consola.sram(direccion, largo)
+
     def correr(self, cuadros, apretar_a=()):
         """Avanza `cuadros` **ticks**. `apretar_a` son toques de A, por número.
 
@@ -290,7 +307,7 @@ def huella():
 
 
 def armar(map_id, mapas=(), con_ventana=True, destino=None, rama=(),
-          descartar=False):
+          descartar=False, guardar=0):
     """Convierte, ensambla y devuelve (ROM, símbolos, ids de mapa en orden).
 
     Los mismos dos comandos que corre el justfile, para que una ROM de prueba
@@ -322,6 +339,12 @@ def armar(map_id, mapas=(), con_ventana=True, destino=None, rama=(),
         convertir += ["--mapas"] + [str(m) for m in mapas]
     if rama:
         convertir += ["--rama-de-prueba"] + [str(n) for n in rama]
+    if guardar:
+        # La página de prueba espera `guardar` ticks y recién ahí guarda la
+        # partida. La espera es lo que le deja a la prueba mover el mundo antes
+        # —irse a otro mapa, por ejemplo— para que lo guardado no sea el estado
+        # del arranque; ver `pagina_de_prueba`.
+        convertir += ["--guardar-de-prueba", "--pagina-de-prueba", str(guardar)]
     if con_ventana:
         convertir.append("--con-ventana")
     if descartar:

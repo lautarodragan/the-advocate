@@ -168,7 +168,12 @@ FAMILIAS_ANIMADAS = (("agua", 3), ("animado", 4))
 # assets/LIMITACIONES.md.
 TICK_MASCARA = 0xFFFF
 AGUA_CUADROS_LENTO, AGUA_CUADROS_RAPIDO = 24, 12
-AGUA_CICLO = (0, 1, 2, 1)
+# Tres dibujos recorridos en cuatro pasos, con el cuarto repitiendo el segundo.
+# Es la misma forma en los dos lados de RM2k donde aparece: el agua del ChipSet
+# —`animation_step_ab`— y el ciclo de caminata de un personaje, que tiene tres
+# columnas y `Game_Character::columna` dibuja la 1 cuando el paso es el 3.
+CICLO_TRES = (0, 1, 2, 1)
+AGUA_CICLO = CICLO_TRES
 ANIMADO_CUADROS = 6
 ANIMADO_PASOS = 4
 
@@ -340,6 +345,11 @@ def collect_npcs(game_map):
             # sobre él: RM2k la pone en `SetupFromPage` y `ForceMoveRoute` no
             # la toca. Por defecto es 3, dieciséis cuadros por celda.
             "velocidad": page.move_speed,
+            # Si su página pide animación continua —`animation_type` 1 y 3, o
+            # sea "Continuous" y "Fixed Dir/Continuous"—: el save point de
+            # Lashe City es del segundo tipo. Los que además caminan la llevan
+            # adentro de su ranura de ruta; esto es para los quietos.
+            "anima": page.animation_type in (1, 3),
             "visible": visible,
             "cambia": cambia,
             "graficos": graficos,

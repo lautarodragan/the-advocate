@@ -696,7 +696,26 @@ grupo_listo:
     sta brillo
     stz bgm_fundido             ; y lo mismo con el del tema
 
+    ; Si el cartucho tiene una partida guardada, se carga acá: los switches que
+    ; trae deciden qué página está activa en cada evento, así que tienen que
+    ; estar puestos **antes** de cargar el mapa. Y la entrada se arma con la
+    ; celda guardada, que es como una puerta le dice a `cargar_mapa` dónde
+    ; plantar al héroe.
+    jsr cargar_partida
+    beq nueva
+    rep #$20
+.a16
+    lda tile_x
+    sta entrada_x
+    lda tile_y
+    sta entrada_y
+    sep #$20
+.a8
+    lda mapa_actual
+    bra cargar
+nueva:
     lda #MAPA_INICIAL
+cargar:
     jsr cargar_mapa
     jsr clear_oam
 
@@ -755,6 +774,8 @@ loop:
     jsr eventos_tick
     jsr tinte_de_evento
     jsr move_hero
+    jsr animar_quietos          ; los que animan sin moverse, antes que las
+                                ; rutas: si una agarra a uno, gana la ranura
     jsr mover_eventos           ; y las rutas forzadas de los eventos, después
                                 ; del héroe y después del intérprete: el orden
                                 ; es el mismo que el de la referencia
@@ -3353,6 +3374,9 @@ otro:
 :   cmp #OP_ORO
     bne :+
     jmp op_oro
+:   cmp #OP_GUARDAR
+    bne :+
+    jmp op_guardar
 :   cmp #OP_TELEPORT
     bne :+
     jmp op_teleport
@@ -3964,6 +3988,16 @@ op_fundir_bgm:
 fundir_nada:
     iny
     iny
+    jmp otro
+
+; Guardar la partida: sin operandos y sin cortar el cuadro. En RM2k abre el
+; menú de guardar y bloquea; acá hay una sola ranura y no hay nada que mirar,
+; así que la página sigue de largo. La referencia hace lo mismo con el mismo
+; opcode: ver `OP_GUARDAR` en tools/eventos.py.
+op_guardar:
+    phy
+    jsr guardar_partida
+    ply
     jmp otro
 
 op_rutas:
@@ -7862,6 +7896,405 @@ listo:
     rts
 .endproc
 
+; --- guardar y cargar la partida -------------------------------------------
+;
+; El cartucho lleva SRAM con batería y **una sola ranura**. RM2k abre un menú de
+; quince; acá el save point guarda y sigue, que es el alcance que acordamos con
+; taro el 2026-09-09: lo mínimo que se puede jugar y probar de verdad.
+;
+; Qué se guarda lo dice `partida_tabla` y nada más: pares de (dirección en la
+; WRAM del banco 0, cuántos bytes), terminados en un largo cero. Tenerlo en una
+; tabla y no en código es lo que hace que guardar y cargar no se puedan ir uno
+; del otro —los dos la recorren— y que agregar un campo sea una línea.
+;
+; La copia va por DMA en las dos direcciones, y la ventana de la WRAM es la que
+; lo hace posible: el bus B no llega a la SRAM, pero sí a `WMDATA`, así que la
+; SRAM va del lado del bus A y la WRAM del otro. Guardar es un DMA de B a A —el
+; bit 7 de DMAP— y cargar el mismo al revés.
+;
+; La partida arranca en $0100 y no en $0000 por el ensamblador: `w65.py` elige
+; página directa cuando la dirección entra en un byte, igual que ca65, así que
+; con la partida en $0000 un `lda SRAM_MAGIA, x` leería la página directa en vez
+; de la SRAM. Los 256 bytes que quedan abajo no los usa nadie.
+SRAM_BANCO = $70            ; en LoROM la SRAM se ve desde $70:0000
+SRAM_MAGIA = $0100          ; cuatro bytes: "ABLS", $41 $42 $4C $53
+SRAM_SUMA  = $0104          ; la suma de los bytes de la partida
+SRAM_DATOS = $0106
+
+partida_tabla:
+    .word hero_x, 2
+    .word hero_y, 2
+    .word hero_dir, 1
+    .word tile_x, 2
+    .word tile_y, 2
+    .word mapa_actual, 1
+    .word grupo, 6              ; el grupo y cuántos son, que van seguidos
+    .word tinte_r, 3            ; el tinte, menos la saturación, que vive lejos
+    .word tinte_s, 1
+    .word timer_seg, 5          ; segundos, sub, si corre y si se ve
+    .word oro, 3
+    .word switches, SWITCH_BYTES
+    .word 0, 0
+; Los mismos largos, sumados, para poder recorrer la partida en la SRAM sin
+; volver a mirar la tabla. Está duplicado a propósito y **la ROM lo comprueba**:
+; `guardar_partida` compara con lo que le quedó a `partida_copiar` y si no dan
+; iguales entra en pánico. Duplicar un número que nadie verifica es la forma de
+; error que este repo ya pagó tres veces.
+PARTIDA_BYTES = 2 + 2 + 1 + 2 + 2 + 1 + 6 + 3 + 1 + 5 + 3 + SWITCH_BYTES
+
+; Recorre `partida_tabla` copiando cada tramo. A trae el DMAP: $80 guarda —de la
+; ventana de la WRAM a la SRAM— y $00 carga. Deja en `temp` dónde terminó la
+; partida adentro de la SRAM.
+.proc partida_copiar
+.a8
+.i16
+    sta DMAP0
+    lda #$80
+    sta BBAD0                   ; el otro lado es siempre WMDATA
+    lda #SRAM_BANCO
+    sta A1B0
+    ldx #$0000                  ; por dónde va la tabla
+    rep #$20
+.a16
+    lda #SRAM_DATOS
+    sta temp                    ; y por dónde va la SRAM
+    sep #$20
+.a8
+otra:
+    rep #$20
+.a16
+    lda partida_tabla + 2, x
+    beq listo                   ; largo cero: se terminó la tabla
+    sta DAS0L
+    lda temp
+    sta A1T0L
+    clc
+    adc DAS0L
+    sta temp
+    lda partida_tabla, x
+    sta WMADDL                  ; la WRAM, que va siempre en el banco 0
+    sep #$20
+.a8
+    stz WMADDH
+    lda #$01
+    sta MDMAEN
+    rep #$20
+.a16
+    txa
+    clc
+    adc #4
+    tax
+    sep #$20
+.a8
+    bra otra
+listo:
+.a16
+    sep #$20
+.a8
+    rts
+.endproc
+
+; La suma de los bytes de la partida que hay en la SRAM, en `temp + 2`. Pide el
+; banco de datos ya puesto en la SRAM.
+.proc partida_suma
+.a8
+.i16
+    rep #$20
+.a16
+    lda #$0000
+    sta temp + 2
+    sep #$20
+.a8
+    ldx #SRAM_DATOS
+suma:
+    lda $0000, x                ; X ya trae la dirección; el banco es la SRAM
+    rep #$20
+.a16
+    and #$00FF
+    clc
+    adc temp + 2
+    sta temp + 2
+    sep #$20
+.a8
+    inx
+    cpx #(SRAM_DATOS + PARTIDA_BYTES)
+    bne suma
+    rts
+.endproc
+
+; Guarda la partida. Es lo que hace `OP_GUARDAR`, o sea el `OpenSaveMenu` del
+; save point de Lashe City.
+.proc guardar_partida
+.a8
+.i16
+    lda #$80                    ; de la ventana de la WRAM a la SRAM
+    jsr partida_copiar
+    ; Lo que se copió tiene que ser lo que `PARTIDA_BYTES` dice. Si no, la suma
+    ; miraría otro tramo y la ranura quedaría inválida para siempre sin decir
+    ; por qué.
+    rep #$20
+.a16
+    lda temp
+    cmp #(SRAM_DATOS + PARTIDA_BYTES)
+    sep #$20
+.a8
+    beq cuadra
+    jmp entrar_en_panico
+cuadra:
+    ; La magia y la suma son lo que dice que la ranura vale. El banco de datos
+    ; se muda a la SRAM: es la única forma de direccionarla sin un puntero en la
+    ; página directa, que está llena.
+    phb
+    lda #SRAM_BANCO
+    pha
+    plb
+    jsr partida_suma
+    rep #$20
+.a16
+    lda temp + 2
+    sta SRAM_SUMA
+    sep #$20
+.a8
+    lda #$41
+    sta SRAM_MAGIA
+    lda #$42
+    sta SRAM_MAGIA + 1
+    lda #$4C
+    sta SRAM_MAGIA + 2
+    lda #$53
+    sta SRAM_MAGIA + 3
+    plb
+    rts
+.endproc
+
+; Si la SRAM tiene una partida, la carga y devuelve A distinto de cero. Corre en
+; el arranque, antes de cargar el mapa: los switches deciden qué página está
+; activa en cada evento, así que tienen que estar puestos antes.
+;
+; La magia se compara contra inmediatos y no contra una tabla de la ROM porque
+; con el banco de datos en la SRAM no hay cómo leer la ROM: el ensamblador no
+; tiene direccionamiento largo y la página directa está llena.
+.proc cargar_partida
+.a8
+.i16
+    phb
+    lda #SRAM_BANCO
+    pha
+    plb
+    lda SRAM_MAGIA
+    cmp #$41
+    bne no_hay
+    lda SRAM_MAGIA + 1
+    cmp #$42
+    bne no_hay
+    lda SRAM_MAGIA + 2
+    cmp #$4C
+    bne no_hay
+    lda SRAM_MAGIA + 3
+    cmp #$53
+    bne no_hay
+    jsr partida_suma
+    rep #$20
+.a16
+    lda temp + 2
+    cmp SRAM_SUMA
+    sep #$20
+.a8
+    bne no_hay
+    plb
+    lda #$00                    ; de la SRAM a la ventana de la WRAM
+    jsr partida_copiar
+    lda #$01
+    rts
+no_hay:
+    plb
+    lda #$00
+    rts
+.endproc
+
+; --- los eventos quietos que animan igual ---------------------------------
+;
+; `animation_type` 1 y 3 de RM2k —"Continuous" y "Fixed Dir/Continuous"— hacen
+; que el evento recorra el ciclo de caminata **sin moverse**. El save point de
+; Lashe City es del segundo tipo, y taro lo pidió el 2026-09-07.
+;
+; Los que caminan ya lo hacen: su ranura de ruta lleva el contador y `.proc
+; animar_ruta_ev` lo avanza. Los quietos no tienen ranura, y no hay dónde
+; guardarles un contador: la fila del NPC no tiene un byte libre —el +11 es el
+; alto del salto— y la BSS está llena. Así que la columna sale del reloj del
+; juego, igual que la animación del ChipSet: `vueltas` dividido por cada cuántos
+; cuadros cambia, que es `anim_continua` por velocidad, y el ciclo de cuatro
+; pasos con el tercero repitiendo el primero.
+;
+; **La fase no es la de RM2k**, que arranca el contador de cada personaje cuando
+; el mapa lo crea; acá es global. Está declarado en assets/LIMITACIONES.md, y lo
+; que lo hace válido es que la referencia usa la misma fórmula y el mismo reloj:
+; `columna_animada` en tools/eventos.py.
+;
+; Va antes de `mover_eventos` a propósito: si una ruta forzada agarra a uno de
+; éstos, la ranura le pisa la pose después y gana ella, que es la que lleva el
+; contador de verdad.
+.proc animar_quietos
+.a8
+.i16
+    ; ¿Este mapa tiene alguno? Lo dice el relleno de la última familia de
+    ; `anim_tabla`; sin esto habría que recorrer las cuarenta filas siempre.
+    ldy #(ANIM_FAMILIAS - 1)
+    jsr anim_donde
+    lda anim_tabla + 7, x
+    bne hay
+    rts
+hay:
+    ldy #$0000
+otra:
+    cpy npc_total
+    beq listo
+    lda npc_buf + 14, y
+    beq siguiente               ; escondido: no se dibuja
+    lda npc_buf + 13, y
+    bpl siguiente               ; el bit 7 es "quieto y animando"
+    and #$7F
+    dec a                       ; la velocidad, de 0 a 5
+    phy
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    ; El tick que dibuja la referencia es `vueltas + 1` visto desde acá, que es
+    ; el mismo número que mira la animación del ChipSet —ella lo lee después
+    ; del `inc vueltas`—. Medido: sin el `inc`, el save point del mapa 8 se
+    ; queda una columna atrás y son 76 pixeles.
+    lda vueltas
+    inc a
+    sta WRDIVL                  ; el dividendo, en una sola escritura de 16
+    sep #$20
+.a8
+    lda anim_continua, x        ; cada cuántos cuadros cambia de columna
+    sta WRDIVB                  ; arranca: el cociente tarda dieciséis ciclos
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    lda RDDIVL
+    and #(AGUA_CICLO_N - 1)
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda ciclo_tres, x           ; la columna: 0, 1, 2 o de vuelta la 1
+    ply
+    sta temp + 3
+    ; La pose: hacia dónde mira su página por tres, más la columna. Con la
+    ; mirada fija —que es lo que pide `animation_type` 3— nadie la gira.
+    lda npc_buf + 10, y
+    sta temp + 2
+    asl a
+    clc
+    adc temp + 2
+    clc
+    adc temp + 3
+    sty npc_fila
+    jsr subir_pose_npc
+    ldy npc_fila
+siguiente:
+    rep #$20
+.a16
+    tya
+    clc
+    adc #NPC_STRIDE
+    tay
+    sep #$20
+.a8
+    bra otra
+listo:
+    rts
+.endproc
+
+; Sube la pose A del NPC de la fila Y, si no es la que ya está en la VRAM.
+;
+; Salió de adentro de `refrescar_npc`, que era el único que la necesitaba, el
+; día que hubo un segundo: `animar_quietos`. `npc_fila` tiene que traer la misma
+; fila que Y, que es como venía.
+.proc subir_pose_npc
+.a8
+.i16
+    ; El tile de la fila es fijo —es su ranura— y lo que cambia son los tiles de
+    ; la ranura, que se encolan acá y suben en el vblank que viene con la OAM.
+    cmp npc_buf + 12, y
+    bne cambia
+    rts
+cambia:
+    sta npc_buf + 12, y
+    sta temp                    ; la pose
+
+    ; El puntero a la pose, de `npc_poses`: doce punteros de tres bytes por
+    ; personaje animado, o sea (k * 12 + pose) * 3.
+    lda npc_buf + 9, y
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    asl a                       ; por cuatro
+    sta temp + 2
+    asl a
+    asl a
+    asl a                       ; por treinta y dos
+    clc
+    adc temp + 2                ; treinta y seis por personaje
+    sta temp + 2
+    lda temp
+    and #$00FF
+    sta temp
+    asl a
+    clc
+    adc temp                    ; la pose por tres
+    clc
+    adc temp + 2
+    tay
+    lda [poses_ptr], y
+    sta vq_src
+    sep #$20
+.a8
+    iny
+    iny
+    lda [poses_ptr], y
+    sta vq_src + 2
+
+    ; El destino: su ranura, que es el tile de la fila por dieciséis palabras
+    ; desde donde arranca el banco de sprites.
+    ldy npc_fila
+    lda npc_buf + 7, y
+    and #$01                    ; el bit 8 del tile vive en los atributos
+    xba
+    lda npc_buf + 6, y
+    rep #$20
+.a16
+    asl a
+    asl a
+    asl a
+    asl a                       ; dieciséis palabras por tile
+    ldx mapa_ofs
+    clc
+    adc mapa_tabla + M_VRAM_SPRITE, x
+    sta vq_dest
+    sep #$20
+.a8
+    jsr vram_encolar
+    bne listo
+    ; La cola estaba llena: se vuelve a pedir el cuadro que viene.
+    ldy npc_fila
+    lda #$FF
+    sta npc_buf + 12, y
+listo:
+    rts
+.endproc
+
 ; Deja la fila del NPC de la ranura X donde el evento está ahora: la posición en
 ; pixeles, la clave con la que se ordena, y el tile de la pose que le toca.
 ;
@@ -8015,72 +8448,7 @@ tiene_dir:
 sin_ajuste:
     clc
     adc temp                    ; la pose, de 0 a 11
-    ; ¿Es la que está en VRAM? Entonces no hay nada que subir. El tile de la
-    ; fila es fijo —es su ranura— y lo que cambia son los tiles de la ranura,
-    ; que se encolan acá y suben en el vblank que viene con la OAM.
-    cmp npc_buf + 12, y
-    beq acomodar
-    sta npc_buf + 12, y
-    sta temp                    ; la pose
-
-    ; El puntero a la pose, de `npc_poses`: doce punteros de tres bytes por
-    ; personaje animado, o sea (k * 12 + pose) * 3.
-    lda npc_buf + 9, y
-    rep #$20
-.a16
-    and #$00FF
-    asl a
-    asl a                       ; por cuatro
-    sta temp + 2
-    asl a
-    asl a
-    asl a                       ; por treinta y dos
-    clc
-    adc temp + 2                ; treinta y seis por personaje
-    sta temp + 2
-    lda temp
-    and #$00FF
-    sta temp
-    asl a
-    clc
-    adc temp                    ; la pose por tres
-    clc
-    adc temp + 2
-    tay
-    lda [poses_ptr], y
-    sta vq_src
-    sep #$20
-.a8
-    iny
-    iny
-    lda [poses_ptr], y
-    sta vq_src + 2
-
-    ; El destino: su ranura, que es el tile de la fila por dieciséis palabras
-    ; desde donde arranca el banco de sprites.
-    ldy npc_fila
-    lda npc_buf + 7, y
-    and #$01                    ; el bit 8 del tile vive en los atributos
-    xba
-    lda npc_buf + 6, y
-    rep #$20
-.a16
-    asl a
-    asl a
-    asl a
-    asl a                       ; dieciséis palabras por tile
-    ldx mapa_ofs
-    clc
-    adc mapa_tabla + M_VRAM_SPRITE, x
-    sta vq_dest
-    sep #$20
-.a8
-    jsr vram_encolar
-    bne acomodar
-    ; La cola estaba llena: se vuelve a pedir el cuadro que viene.
-    ldy npc_fila
-    lda #$FF
-    sta npc_buf + 12, y
+    jsr subir_pose_npc
 acomodar:
     jmp acomodar_npc            ; y la fila, a donde le toque ahora
 .endproc
@@ -10842,7 +11210,11 @@ sin_fila:
 ; El ciclo del agua: cuatro pasos, y el cuarto vuelve a dibujar el segundo. Es
 ; `animation_step_ab` de easyrpg, tilemap_layer.cpp:289, con `animation_type` en
 ; 0, que es el default y lo que tienen todos los ChipSets de este juego.
-agua_ciclo:
+; Tres dibujos en cuatro pasos, con el cuarto repitiendo el segundo. Lo usan
+; las dos animaciones que hay: el agua del ChipSet —`animation_step_ab` de
+; easyrpg— y el ciclo de caminata de un personaje, que tiene tres columnas y
+; dibuja la 1 cuando el paso es el 3. Es `CICLO_TRES` en tools/rm2k.py.
+ciclo_tres:
     .byte 0, 1, 2, 1
 
 ; Deja en X la entrada de la familia Y adentro de `anim_tabla`. Cuál es el mapa
@@ -10923,7 +11295,7 @@ no_cambia:
     tax
     sep #$20
 .a8
-    lda agua_ciclo, x
+    lda ciclo_tres, x
     plx
 listo:
     rts
@@ -13973,9 +14345,9 @@ done:
 .segment "HEADER"
     .byte "ABL SNES MUSIC POC   "  ; 21 caracteres
     .byte $20                      ; LoROM, velocidad lenta
-    .byte $00                      ; sólo ROM, sin RAM ni chips extra
+    .byte $02                      ; ROM y RAM con batería: la partida guardada
     .byte $0A                      ; tamaño: 1 MB (el byte es log2 de los KB)
-    .byte $00                      ; sin SRAM
+    .byte $03                      ; SRAM: 8 KB, y se usan 260 bytes
     .byte $01                      ; región
     .byte $00                      ; desarrollador
     .byte $00                      ; versión

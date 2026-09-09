@@ -53,14 +53,22 @@ archivos donde un merge mal hecho no se ve, y el cuello de botella es verificar
    se mueve son 9 tiles del grupo "animados", 400 pixeles. Falta que taro lo
    mire jugando: acá adentro se captura con Xvfb.
 
-2. **El save point animado y guardando a disco.** Sin empezar; es lo que sigue. Alcance acordado
-   con taro: **una sola ranura y sin menú** —guarda y listo, y al encender se
-   carga si hay partida—. Son dos features de tamaños muy distintos: la
-   animación es chica y acotada —hoy sólo animan los eventos con ruta, porque el
-   ciclo vive en `ruta_ev`; en los mapas del PoC hay 4 páginas quietas con
-   `animation_type` 1 o 3— y la persistencia es cabecera, mapeo de SRAM,
-   serializar el estado, y decidir si la tanda de pixeles la cubre o si va a
-   `pruebas/` como `ShowChoice`.
+2. **El save point animado y guardando a disco: hecho.** Alcance acordado con
+   taro: **una sola ranura y sin menú** —guarda y listo, y al encender se carga
+   si hay partida—. El porqué largo está en `README.md`, "El save point".
+
+   La animación de un evento quieto sale del reloj del juego, porque no hay
+   dónde guardarle un contador; y cuesta **doce tiles de sprite por evento**,
+   así que un mapa con más de cuatro no anima ninguno. Los dos límites están en
+   `assets/LIMITACIONES.md`.
+
+   Lo cubre `pruebas/test_guardar.py` —cuatro pruebas, tres dan rojo con
+   `guardar_partida` cortado a propósito— y un caso nuevo de la tanda para la
+   animación. **La tanda de pixeles no cubre guardar y no puede**: guardar no
+   cambia un pixel.
+
+   Falta que taro lo pruebe en el EverDrive: la SRAM con batería es lo único de
+   esto que no se puede verificar acá adentro.
 
 ### Lo próximo, si no se decide otra cosa
 

@@ -135,6 +135,10 @@ class Mundo:
         # porque el dibujo los necesita: la ruta lleva el índice, y de acá sale
         # el CharSet.
         self.graficos_cache = {}
+        # Qué eventos animan quietos en cada mapa. Sale de la misma función que
+        # se lo dice al conversor: los que además caminan llevan el contador en
+        # su ranura de ruta y no entran acá.
+        self.anima_cache = {}
         self.mensajes = mensajes
         # Los temas se numeran igual que en el conversor, en el orden en que los
         # PlayBGM los piden. Acá no suena nada —la comparación es de pixeles—
@@ -185,11 +189,27 @@ class Mundo:
                                               fundir_bgm=self.prueba[10],
                                               pan=self.prueba[11],
                                               rama=self.prueba[12],
-                                              destello=self.prueba[13])),
+                                              destello=self.prueba[13],
+                                              guardar=self.prueba[14])),
                                      dict(PAGINA_DE_PRUEBA_APAGADA,
                                           evento=numero)]
             self.paginas_cache[map_id] = paginas
         return self.paginas_cache[map_id]
+
+    def anima_quieto(self, map_id):
+        """Los eventos del mapa que recorren el ciclo de caminata sin moverse.
+
+        `animation_type` 1 y 3 de RM2k. Sale de `eventos_movibles`, que es
+        quien se lo dice al conversor: los dos lados tienen que animar a los
+        mismos, y quién queda afuera —el que además tiene ruta— lo decide una
+        sola función.
+        """
+        if map_id not in self.anima_cache:
+            _, _, animados = snes_convert.eventos_movibles(
+                self.mapa(map_id)[0], self.indices.get,
+                con_ventana=self.mensajes is not None)
+            self.anima_cache[map_id] = animados
+        return self.anima_cache[map_id]
 
     def graficos(self, map_id):
         """Los gráficos que las rutas de este mapa piden, en el mismo orden en
@@ -1185,6 +1205,13 @@ def main():
                              "que cierra un mensaje. Se cuentan desde el "
                              "arranque y a través de los teletransportes. El "
                              "otro lado del mismo flag de snes_correr.py")
+    parser.add_argument("--guardar-de-prueba", action="store_true",
+                        help="la página de prueba guarda la partida en la "
+                             "SRAM. El otro lado del mismo flag de "
+                             "snes_convert.py: acá no guarda nada —la "
+                             "referencia es un modelo— pero el opcode ocupa su "
+                             "byte y los dos intérpretes tienen que leer el "
+                             "mismo stream")
     parser.add_argument("--timer-de-prueba", nargs=2, type=int, default=None,
                         metavar=("SEGUNDOS", "VISIBLE"),
                         help="arranca el cronómetro desde la página de prueba. "
@@ -1343,7 +1370,8 @@ def main():
                    snes_convert.sacudida_de_prueba(args.sacudida_de_prueba),
                    args.fundir_bgm, snes_convert.pan_de_prueba(args.pan_de_prueba),
                    tuple(args.rama_de_prueba or ()),
-                   tuple(args.destello_de_prueba or ()))
+                   tuple(args.destello_de_prueba or ()),
+                   args.guardar_de_prueba)
                   if hay_prueba else None, mensajes,
                   graficos_de_prueba=snes_convert.graficos_de_prueba(
                       args.grafico_de_prueba),
@@ -1572,6 +1600,12 @@ def main():
                     continue
             if ruta is None:
                 px, py, pose = cx * TILE, cy * TILE, pose_pagina
+                if npc["evento"] in mundo.anima_quieto(map_id):
+                    # Quieto pero animando: la columna sale del reloj del juego
+                    # y no de un contador suyo. Ver `columna_animada` en
+                    # tools/eventos.py y `animar_quietos` en main.s.
+                    pose = (pose_pagina // 3) * 3 + eventos.columna_animada(
+                        tick, npc["velocidad"])
             else:
                 altura = eventos.altura_del_salto(ruta)
                 px, py = eventos.pixeles_del_paso(cx, cy, ruta)
