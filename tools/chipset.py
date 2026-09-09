@@ -290,8 +290,17 @@ class ChipsetAtlas:
 
     # --- uso ---------------------------------------------------------------
 
-    def render_tile(self, dst, tile_x, tile_y, tile, frame=0):
-        """Dibuja el tile con el ID que trae la capa del mapa en (tile_x, tile_y)."""
+    def render_tile(self, dst, tile_x, tile_y, tile, paso_agua=0,
+                    paso_animado=0):
+        """Dibuja el tile con el ID que trae la capa del mapa en (tile_x, tile_y).
+
+        Los dos pasos son las dos animaciones del ChipSet, que corren a
+        cadencias distintas y sobre familias de tiles distintas: `paso_agua`
+        —0, 1 o 2— elige el dibujo de los autotiles de agua y `paso_animado`
+        —0 a 3— el de los "tiles animados". Cuál toca en cada tick lo dicen
+        `paso_de_agua` y `paso_animado` de rm2k.py; acá sólo se elige la celda
+        del atlas.
+        """
         if tile >= UPPER:
             index = tile - UPPER + 0x04FB
         elif tile >= LOWER:
@@ -299,9 +308,11 @@ class ChipsetAtlas:
         elif tile >= TERRAIN:
             index = tile - TERRAIN + 0x0213
         elif tile >= ANIMATED:
-            index = 0x0207 + (((tile - ANIMATED) // 50) << 2) + frame % 4
+            index = (0x0207 + (((tile - ANIMATED) // 50) << 2)
+                     + paso_animado % 4)
         else:
-            index = (tile // 50 // 20) * 141 + tile % 50 + (frame % 3) * 47
+            index = ((tile // 50 // 20) * 141 + tile % 50
+                     + (paso_agua % 3) * 47)
 
         blit(dst, tile_x * TILE, tile_y * TILE, self.atlas,
               (index & 0x1F) * TILE, (index >> 5) * TILE, TILE, TILE)

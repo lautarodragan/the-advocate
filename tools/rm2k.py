@@ -134,6 +134,60 @@ def walk(passable, width, height, start, dx, dy, blocked=()):
     return x, y
 
 
+# --- la animación del ChipSet -----------------------------------------------
+#
+# Dos animaciones que no tienen nada que ver entre sí y corren a la vez, las dos
+# en `TilemapLayer::Draw` de easyrpg (tilemap_layer.cpp:289):
+#
+#   los autotiles de agua A/B/C   3 dibujos, uno cada `AGUA_CUADROS` cuadros
+#   los "tiles animados"          4 dibujos, uno cada `ANIMADO_CUADROS`
+#
+# El agua no recorre sus tres dibujos en círculo: el paso va de 0 a 3 y el 3
+# **vuelve a dibujar el 1**, así que el ciclo es 0,1,2,1 y dura cuatro pasos.
+# Eso es con `animation_type` en 0, que es el default y lo que tienen todos los
+# chipsets de este juego salvo dos que no usa ninguno de los mapas del port;
+# con el otro tipo son tres pasos en círculo.
+#
+# `animation_speed` elige entre 24 y 12 cuadros por paso —`Game_Map::
+# GetAnimationSpeed`— y también está en el default en todo el juego.
+#
+# El reloj es el contador de cuadros del sistema, que no se reinicia al cambiar
+# de mapa. Acá ese reloj es el tick: `estado.ticks` en la referencia y `vueltas`
+# en la ROM, que es el mismo número —ver `Reloj` en tools/snes_correr.py—. La
+# fase absoluta contra el juego original no significa nada, porque nuestro
+# arranque no dura lo mismo; lo que tiene que coincidir es la cadencia y que los
+# dos lados miren el mismo tick.
+# Las dos familias, con cuántos dibujos tiene cada una. El orden es el de las
+# corridas de tiles en la VRAM; ver `convert` en snes_convert.py.
+FAMILIAS_ANIMADAS = (("agua", 3), ("animado", 4))
+# El reloj de la ROM es `vueltas`, de dieciséis bits, así que da la vuelta cada
+# 65536 ticks —dieciocho minutos— y ahí el ciclo se saltea un dibujo; el de RM2k
+# es de treinta y dos. La referencia da la misma vuelta a propósito: lo que
+# tiene que coincidir es lo que dibujan los dos lados, y perder un paso de agua
+# una vez cada dieciocho minutos no lo ve nadie. Está declarado en
+# assets/LIMITACIONES.md.
+TICK_MASCARA = 0xFFFF
+AGUA_CUADROS_LENTO, AGUA_CUADROS_RAPIDO = 24, 12
+AGUA_CICLO = (0, 1, 2, 1)
+ANIMADO_CUADROS = 6
+ANIMADO_PASOS = 4
+
+
+def paso_de_agua(tick, animation_type=0, animation_speed=0):
+    """Cuál de los tres dibujos del agua toca en ese tick."""
+    cuadros = (AGUA_CUADROS_RAPIDO if animation_speed
+               else AGUA_CUADROS_LENTO)
+    paso = (tick & TICK_MASCARA) // cuadros
+    if animation_type:
+        return paso % 3
+    return AGUA_CICLO[paso % len(AGUA_CICLO)]
+
+
+def paso_animado(tick):
+    """Cuál de los cuatro dibujos de los tiles animados toca en ese tick."""
+    return ((tick & TICK_MASCARA) // ANIMADO_CUADROS) % ANIMADO_PASOS
+
+
 # --- el sprite del personaje ----------------------------------------------
 #
 # Un CharSet de RM2k son 4 personajes de ancho por 2 de alto; cada uno ocupa

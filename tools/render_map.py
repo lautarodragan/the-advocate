@@ -23,7 +23,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import charset
 import lcf
 import rm2k
-from chipset import ChipsetAtlas, TILE, UPPER
+from chipset import ANIMATED, ChipsetAtlas, TERRAIN, TILE, UPPER
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # El proyecto RM2k original. Es una copia dentro del contenedor, no un montaje
@@ -92,23 +92,26 @@ def build_passability(chipset):
     return flags
 
 
-def draw_tiles(image, atlas, game_map, flags, pass_upper):
+def draw_tiles(image, atlas, game_map, flags, pass_upper, pasos=(0, 0)):
     """Dibuja los tiles de ambas capas que caen en la pasada pedida.
 
     Un tile de la capa baja con flags 0x30 y uno de la alta con 0x10 se dibujan
     por encima del jugador; el resto, por debajo. Es lo que decide si un evento
     queda tapado por el techo o parado sobre él.
+
+    `pasos` son los dos de la animación del ChipSet —agua y tiles animados—,
+    que eligen qué dibujo de cada familia se pinta. Ver `render_tile`.
     """
     for y in range(game_map.height):
         row = y * game_map.width
         for x in range(game_map.width):
             lower_tile = game_map.lower_layer[row + x]
             if bool(flags[lower_tile] & 0x30) == pass_upper:
-                atlas.render_tile(image, x, y, lower_tile)
+                atlas.render_tile(image, x, y, lower_tile, *pasos)
 
             upper_tile = game_map.upper_layer[row + x]
             if bool(flags[upper_tile] & 0x10) == pass_upper:
-                atlas.render_tile(image, x, y, upper_tile)
+                atlas.render_tile(image, x, y, upper_tile, *pasos)
 
 
 class Charsets:
@@ -206,7 +209,7 @@ class Renderer:
         game_map.pasabilidad_tiles = build_passability(chipset)
         return game_map
 
-    def render_layers(self, game_map):
+    def render_layers(self, game_map, pasos=(0, 0)):
         """El mapa en dos capas separadas, como las ordena RM2k.
 
         La de abajo es opaca y va detrás del héroe; la de arriba lleva sólo los
@@ -223,10 +226,47 @@ class Renderer:
         size = (game_map.width * TILE, game_map.height * TILE)
 
         base = Image.new("RGBA", size, (0, 0, 0, 255))
-        draw_tiles(base, atlas, game_map, flags, pass_upper=False)
+        draw_tiles(base, atlas, game_map, flags, pass_upper=False, pasos=pasos)
         above = Image.new("RGBA", size, (0, 0, 0, 0))
-        draw_tiles(above, atlas, game_map, flags, pass_upper=True)
+        draw_tiles(above, atlas, game_map, flags, pass_upper=True, pasos=pasos)
         return base, above
+
+    def capas_animadas(self, game_map):
+        """Las capas del mapa y los otros dibujos de la animación del ChipSet.
+
+        Devuelve `(base, encima, variantes)`, con `variantes` en la forma que
+        pide `snes_convert.convert_layers`: por familia, los dibujos que **no**
+        son el 0, que es `base`.
+
+        Es el único lugar donde se decide qué dibujos hay, y lo usan las dos
+        puntas —el conversor y la referencia—: si cada una los armara por su
+        cuenta, la ROM y la referencia podrían estar animando cosas distintas.
+
+        Sólo se renderiza lo que el mapa puede llegar a mover: un mapa sin agua
+        ni tiles animados no paga nada. Que los dibujos de una familia salgan
+        todos iguales —el agua del mapa 3 lo hace, porque el ChipSet la tiene
+        dibujada tres veces igual— no hace falta detectarlo acá: `convert` no
+        va a encontrar ninguna celda que cambie y la corrida sale vacía.
+        """
+        base, above = self.render_layers(game_map)
+        if base is None:
+            return None, None, {}
+        tiene = {"agua": False, "animado": False}
+        for tile in list(game_map.lower_layer) + list(game_map.upper_layer):
+            if tile < ANIMATED:
+                tiene["agua"] = True
+            elif tile < TERRAIN:
+                tiene["animado"] = True
+        variantes = {}
+        for familia, dibujos in rm2k.FAMILIAS_ANIMADAS:
+            if not tiene[familia]:
+                continue
+            variantes[familia] = [
+                self.render_layers(
+                    game_map,
+                    (d, 0) if familia == "agua" else (0, d))[0]
+                for d in range(1, dibujos)]
+        return base, above, variantes
 
     def render(self, game_map, draw_events_too=True, first_page=False):
         """El orden del motor: tiles bajos, los eventos que van debajo del héroe

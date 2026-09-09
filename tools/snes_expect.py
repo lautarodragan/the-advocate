@@ -1372,7 +1372,7 @@ def main():
         """Las capas del mapa convertidas como si estuviera solo en la ROM."""
         if map_id not in naturales:
             game_map = mundo.mapa(map_id)[0]
-            base, above_img = renderer.render_layers(game_map)
+            base, above_img, variantes = renderer.capas_animadas(game_map)
             if base is None:
                 sys.exit("no encuentro el chipset del mapa %d" % map_id)
             # La referencia se arma desde los datos convertidos, no desde el
@@ -1389,11 +1389,19 @@ def main():
             naturales[map_id] = (game_map, base, above_img,
                                  snes_convert.convert_layers(
                                      base, above_img,
-                                     con_ventana=args.con_ventana))
+                                     con_ventana=args.con_ventana,
+                                     variantes=variantes))
         return naturales[map_id]
 
-    def convertir(map_id):
-        if map_id not in convertidos:
+    def convertir(map_id, pasos=(0, 0)):
+        """El mapa como lo va a mostrar la consola, en ese paso de la animación.
+
+        `pasos` son los dos de la animación del ChipSet, y entran en la clave
+        del caché: el mapa se convierte una sola vez, pero los tiles de las
+        corridas animadas se pisan con el dibujo que toque —lo mismo que la ROM
+        sube por DMA— antes de dibujar.
+        """
+        if (map_id, pasos) not in convertidos:
             game_map, base, above_img, capas = natural(map_id)
             # Antes acá se volvía a convertir el mapa cuando la paleta de la
             # ventana —que es de la ROM entera— quedaba más abajo de donde este
@@ -1401,12 +1409,15 @@ def main():
             # los mapas de la tabla aunque se dibujara uno solo. Con la ventana
             # en la paleta 0 no depende de nadie: el fondo arranca en
             # `CGRAM_RESERVADAS` y llega hasta su propia capa de encima.
-            (tile_data, cram, tilemap, _resumen), above_data = capas
-            convertidos[map_id] = (
+            (tile_data, cram, tilemap, resumen), above_data = capas
+            convertidos[(map_id, pasos)] = (
                 game_map,
-                snes_convert.render_converted(tile_data, cram, tilemap),
+                snes_convert.render_converted(
+                    snes_convert.anim_dibujo(tile_data, resumen["animacion"],
+                                             pasos),
+                    cram, tilemap),
                 snes_convert.render_above(cram, above_data))
-        return convertidos[map_id]
+        return convertidos[(map_id, pasos)]
 
     def salida(patron, etiqueta):
         """El nombre de archivo de esta vuelta.
@@ -1487,7 +1498,21 @@ def main():
         else:
             charset, charset_index = renderer.database.lider(estado.grupo)
 
-        game_map, mapa, encima_todo = convertir(map_id)
+        # En qué paso de la animación del ChipSet está el mapa. El reloj es
+        # `vueltas`, el de la ROM, y ése **no es `estado.ticks`**: adentro del
+        # negro de un teletransporte el mundo está congelado y `cuadro_de_eventos`
+        # no corre, pero la consola sigue dando vueltas al lazo. Es la misma
+        # cuenta que el plan de la caminata le pasa al emulador —ver el `plan`
+        # de más abajo— y sin ella la escena de Core y Manta se iba 70 ticks
+        # por cada fundido: el agua quedaba en otro dibujo desde el primer
+        # teletransporte.
+        chipset = renderer.database.chipsets[
+            mundo.mapa(map_id)[0].chipset_id]
+        tick = estado.ticks + estado.fundidos * eventos.FUNDIDO_TOTAL
+        pasos_anim = (rm2k.paso_de_agua(tick, chipset.animation_type,
+                                        chipset.animation_speed),
+                      rm2k.paso_animado(tick))
+        game_map, mapa, encima_todo = convertir(map_id, pasos_anim)
         cam_x, cam_y = camera_for(x, y, game_map.width * 2,
                                   game_map.height * 2,
                                   (estado.pan_x, estado.pan_y))

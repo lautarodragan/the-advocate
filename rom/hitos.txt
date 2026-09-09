@@ -32,6 +32,8 @@ snes-evento
 snes-evento 4 "7 19 1" tabla
 snes-caminando 73 right "40 60 80"
 snes-caminando 6 down "40 60 80"
+snes-caminando 5 left "40 46 48 50"
+snes-caminando 3 down "54 56 58 60"
 snes-ruta
 snes-ruta 6 "1 1 24 1 1 25 2 2" "10 14 20 26 60" 115 salto
 snes-ruta 6 "36 0 0 0 0 0 0" "20 40 60" 115 through "10 8"

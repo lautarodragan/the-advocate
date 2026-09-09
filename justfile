@@ -1617,6 +1617,22 @@ snes-espera mapa="73" espera="120" antes="60" despues="400" nombre="espera":
 # Los avances por defecto caen en columnas distintas del ciclo: 40 px son 20
 # cuadros moviéndose y da la columna 0, 60 da la 2 y 80 da la 1. Errarle por un
 # solo cuadro mueve unos 25000 pixeles, así que la prueba es de las filosas.
+#
+# Y por lo mismo es donde entra **la animación del ChipSet**: un avance de N px
+# es el tick N/2 + 1, así que se puede pedir el cuadro exacto en que el agua o
+# los tiles animados cambian de dibujo. La tanda lleva dos casos así, y los dos
+# están medidos con la fase rota a propósito, que es lo único que prueba que
+# miran algo:
+#
+#   snes-caminando 5 left "40 46 48 50"   el agua, que cambia en el tick 24 (46
+#                                         px): 18349 pixeles, 32% de la pantalla
+#   snes-caminando 3 down "54 56 58 60"   los tiles animados, que cambian en el
+#                                         tick 30 (58 px): 211 pixeles
+#
+# El mapa 3 no aporta agua aunque tenga 4899 celdas de autotile de agua: en
+# `Future1` los tres dibujos de esa zona son iguales, así que su corrida sale
+# vacía. Y el mapa 5 no aporta tiles animados porque no tiene ninguno. Hacen
+# falta los dos casos.
 snes-caminando mapa="73" direccion="right" avances="40 60 80" nombre=(mapa + "-" + direccion):
   #!/usr/bin/env bash
   set -euo pipefail

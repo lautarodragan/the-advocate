@@ -34,11 +34,38 @@ mapa 3— corre y **está verificada** en mil doscientos cuadros, y
 Las páginas automáticas que compilan enteras son **272 de 489**, y del juego
 entero compilan **2329 de 3473**.
 
+### En qué estamos ahora (2026-09-09)
+
+taro pidió dos cosas y elegimos hacerlas **en serie y no con sub-agentes**: las
+dos tocan `snes_convert.py`, `main.s` y `snes_expect.py`, que son justo los
+archivos donde un merge mal hecho no se ve, y el cuello de botella es verificar
+—dos tandas a la vez se pelean por CPU—.
+
+1. **La animación de los tiles del ChipSet: hecha y verificada.** `just
+   snes-hitos-foto` son **95 casos, todos en verde** —dos son nuevos y miran
+   justo esto— y `just pruebas` 35 en verde. El porqué largo está en
+   `README.md`, "El agua se mueve".
+
+   Lo medido antes de escribir una línea: en el **mapa 5** —el recuerdo de Core
+   y Manta— cambia el **52% de la pantalla**, y ahí es donde se ve. En el
+   **Emitter Room, que es lo que taro pidió, casi nada**: sus 4899 celdas de
+   agua están dibujadas iguales en los tres dibujos del ChipSet y lo único que
+   se mueve son 9 tiles del grupo "animados", 400 pixeles. Falta que taro lo
+   mire jugando: acá adentro se captura con Xvfb.
+
+2. **El save point animado y guardando a disco.** Sin empezar; es lo que sigue. Alcance acordado
+   con taro: **una sola ranura y sin menú** —guarda y listo, y al encender se
+   carga si hay partida—. Son dos features de tamaños muy distintos: la
+   animación es chica y acotada —hoy sólo animan los eventos con ruta, porque el
+   ciclo vive en `ruta_ev`; en los mapas del PoC hay 4 páginas quietas con
+   `animation_type` 1 o 3— y la persistencia es cabecera, mapeo de SRAM,
+   serializar el estado, y decidir si la tanda de pixeles la cubre o si va a
+   `pruebas/` como `ShowChoice`.
+
 ### Lo próximo, si no se decide otra cosa
 
-1. **La tanda está toda en verde**, así que lo próximo lo elige taro. De la
-   lista de abajo, lo que sigue por tamaño es la condición de **ítem** de Lashe
-   City —45 eventos, pide inventario— y las **variables** de RM2k.
+1. De la lista de abajo, lo que sigue por tamaño es la condición de **ítem** de
+   Lashe City —45 eventos, pide inventario— y las **variables** de RM2k.
 
 2. **Lo que sigue faltando de Lashe City**, por tamaño: la condición de **ítem**
    —45 eventos, pide inventario—, las **variables** de RM2k —5000, y no entran
@@ -47,7 +74,7 @@ entero compilan **2329 de 3473**.
    que taro pidió.
 
 3. **La animación del save point** (`animation_type` 3, "Fixed Dir/Continuous"),
-   que taro pidió el 2026-09-07 y sigue sin hacerse.
+   que taro pidió el 2026-09-07: es el punto 2 de arriba y está en curso.
 
 4. **El giro de los eventos al hablarles.** Hoy contestan mirando para donde
    estaban; es una deuda declarada en `assets/LIMITACIONES.md`, con el diseño de

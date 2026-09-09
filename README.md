@@ -404,6 +404,122 @@ donde está escrito. Antes cada llamador convertía una y después la otra, y qu
 las tres copias del orden coincidieran era cuestión de suerte —justo la forma de
 error que ya nos había aflojado la comparación una vez.
 
+### El agua se mueve, y cuesta un DMA de 1664 bytes
+
+RM2k anima dos familias de tiles del ChipSet, con relojes distintos y sin que
+el mapa tenga nada que decir al respecto: los autotiles de agua A/B/C, que
+recorren tres dibujos cada 24 cuadros en el ciclo 0,1,2,1, y los "tiles
+animados", cuatro dibujos cada 6. Las dos cuentas son `TilemapLayer::Draw` de
+easyrpg, `tilemap_layer.cpp:289`, y las dos cadencias por defecto —el
+`animation_type` y el `animation_speed` del ChipSet— son las que tiene este
+juego entero: de sus 52 ChipSets sólo dos las pisan, y ninguno de los dos lo usa
+un mapa del port.
+
+**Dónde se ve, medido antes de escribir una línea.** Renderizando cada mapa en
+sus tres o cuatro dibujos y contando pixeles distintos:
+
+    mapa 5  Core Retrospective   1.002.474 px de 1.920.000   52%
+    mapa 2  Linkage Block            6.872 px de 2.560.000  0,3%
+    mapa 3  Emitter Room               400 px de 1.440.000  0,0%
+    mapa 6  CoreRetro II                53 px de 2.560.000  0,0%
+
+El recuerdo de Core y Manta es el mapa donde esto se nota; el Emitter Room, casi
+nada, y eso que tiene 4899 celdas de autotile de agua: en `Future1` los tres
+dibujos de esa zona están pintados iguales, así que lo único que se mueve son
+nueve tiles del grupo "animados".
+
+**Cómo se hace: pisando el dato del tile, no el tilemap.** Un mapa de 100x75
+celdas tiene 30000 entradas de tilemap y sólo unos pocos tiles distintos que se
+mueven: en el mapa 5 son **26 tiles de 8x8** de los 157 del banco, en el 2 son
+7 de agua más 12 animados, en el 3 son 8 y en el 6 son 2. Así que animar es
+volver a subir esos tiles y no tocar nada más — y el conversor los deja **en una
+corrida contigua al final del banco**, para que un paso sea un DMA solo: 1664
+bytes en el mapa 5, 128 en el 6.
+
+Para que eso sea correcto hacen falta dos cosas más, y las dos las decide
+`convert()`:
+
+* **Un tile que se anima no se comparte con una celda quieta.** Si se
+  compartiera, pisarlo haría parpadear también a la quieta. Medido: en los
+  cuatro mapas no hay una sola colisión, así que separarlos no cuesta tiles.
+* **El espejado se prueba sobre los dibujos juntos.** El PPU espeja el tile, no
+  cada dibujo por su cuenta, así que dos celdas comparten tile sólo si las
+  cuatro orientaciones coinciden en *todos* los dibujos.
+
+Y la paleta se reparte contando los colores de todos los dibujos: el agua del
+mapa 5 trae tres colores que no están en el dibujo que se ve al entrar, y sin
+ellos el paso 1 no se podría escribir.
+
+**En la consola no gasta un byte de RAM.** No por elegancia: la BSS estaba en
+7680 de 7680 y la página directa en 255 de 256, así que no había dónde poner ni
+un contador ni un puntero para `lda [puntero], y`. En qué punto del ciclo va
+cada familia sale de **dividir `vueltas` por su cadencia con el divisor del
+hardware**, y el resto de esa misma división dice si este tick es el del cambio,
+que es lo único que hay que preguntar para saber si hace falta el DMA. Dónde
+están los tiles y los dibujos lo trae `anim_tabla`, que arma el conversor con
+la dirección de VRAM ya resuelta.
+
+Lo que se paga es que `vueltas` es de dieciséis bits: cada dieciocho minutos la
+cuenta da la vuelta y el ciclo se saltea un dibujo. Está declarado en
+`assets/LIMITACIONES.md` y la referencia da la misma vuelta, así que los dos
+lados siguen dibujando lo mismo.
+
+**La decisión no entra en el vblank, y eso no es gusto.** El vblank del mapa 8
+—el más cargado de sprites del port— no tiene un ciclo de sobra: **veinte `nop`
+puestos ahí a propósito le cuestan 61 pixeles**, porque la cola de poses se le
+va del vblank y las últimas escrituras caen con la pantalla ya encendida. Las
+dos divisiones iban ahí en la primera versión y le costaban 313. Así que quien
+decide es `anim_tick`, en el cuerpo del lazo, y deja **un byte** —el último
+libre de la página directa— con tres bits por familia: cero es "nada", y si no
+el dibujo más uno. En el vblank queda un `lda` y un `beq`.
+
+**La fase se midió, no se razonó.** Como el DMA sale en el vblank siguiente,
+igual que OAM, la primera versión miraba el tick anterior "por el cuadro que el
+video va atrasado". Con eso la tanda da rojo en **un tick de cada 24** —el del
+cambio, y nada más— que en el mapa 5 son 18349 pixeles, el 32% de la pantalla.
+Con el tick tal cual, cero. El caso que lo cobra es `snes-caminando 5 left` con
+el avance 46, que es el tick 24 justo: un avance de N pixeles es el tick N/2 + 1,
+así que se le puede pedir a la tanda el cuadro exacto en que el agua cambia.
+
+**Y el reloj de la ROM no es `estado.ticks`.** Adentro del negro de un
+teletransporte el mundo está congelado y la referencia no cuenta el cuadro, pero
+la consola sigue dando vueltas al lazo: son 70 por fundido. La referencia ya
+tenía esa cuenta hecha para el plan de la caminata —`estado.ticks + fundidos *
+FUNDIDO_TOTAL`— y le faltaba usarla acá. Sin eso, la escena de Core y Manta se
+iba un dibujo desde el primer teletransporte: 7284 pixeles en el cuadro 1200, y
+verde en el 300 y el 600, que son los de antes del salto.
+
+Los dos errores tienen la misma forma y por eso vale escribirlos juntos: **los
+dos lados contando ticks distintos**. El primero se veía en un cuadro de cada
+24 y el segundo sólo después de un fundido.
+
+**Y tres del 65816, todos el mismo.** Un `ldx` o un `ldy` con los índices anchos
+se lleva **el byte de al lado**, y un `sta` con el acumulador ancho **lo pisa**.
+Las tres veces fue sobre `temp`, que son cuatro bytes:
+
+* `ldx temp + 3` para preguntar "¿este tick es el del cambio?" se llevaba
+  `temp + 4`, que es el byte bajo de `hero_x`. Todos los ticks parecían el del
+  cambio. **No se ve en la pantalla** —subir el dibujo que ya está subido no
+  cambia nada— así que la comparación de pixeles daba cero; lo que se veía era
+  el presupuesto de poses bajando en todos los cuadros.
+* `ldy temp + 2` para pasar el dibujo se llevaba `temp + 3`, y con eso el DMA
+  leía de cualquier lado.
+* `sta temp + 2` adentro de `anim_subir`, con el acumulador ancho, pisaba
+  `temp + 3`, donde el vblank guardaba lo que le quedaba pendiente a la segunda
+  familia. Se perdía **sólo cuando las dos cambiaban en el mismo tick** —cada
+  24, que es múltiplo de 6— y el tile animado se quedaba con el dibujo viejo
+  hasta el cambio siguiente: **8 pixeles** en el mapa 2, en la celda (5,53).
+
+El tercero es el que mejor muestra para qué sirve la tanda: ocho pixeles, en un
+caso que no tiene nada que ver con la animación —una puerta del mapa 2— y en
+cuatro cuadros elegidos hace semanas.
+
+Los dos casos nuevos de la tanda están medidos con la fase rota a propósito, que
+es lo único que prueba que miran algo: `snes-caminando 5 left "40 46 48 50"`
+cobra 18349 pixeles y `snes-caminando 3 down "54 56 58 60"` cobra 211. Hacen
+falta los dos: el mapa 5 no tiene tiles animados y la corrida de agua del 3 sale
+vacía.
+
 ### Varios mapas en la ROM
 
 Un mapa solo no es un juego. Todo lo que antes era una constante del `.inc` —el

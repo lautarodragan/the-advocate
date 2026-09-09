@@ -190,3 +190,37 @@ que sale del pad de Talan, que lleva al mapa 8.
 
 **Cuándo deja de alcanzar.** Nunca, mientras el juego entero entre en el
 cartucho. Es una limitación de las ROMs de prueba, no del port.
+
+
+## La animación del ChipSet se saltea un dibujo cada dieciocho minutos
+
+Los dos relojes de la animación —el agua cada 24 cuadros, los tiles animados
+cada 6— no llevan un contador propio: salen de dividir `vueltas`, el tick del
+juego, con el divisor del hardware. Es lo que hace que la animación no gaste ni
+un byte de RAM, que hacía falta porque la BSS estaba en 7680 de 7680 y la página
+directa en 255 de 256.
+
+`vueltas` es de dieciséis bits y ni 24 ni 6 dividen a 65536, así que cada 65536
+ticks —dieciocho minutos de juego— la cuenta da la vuelta y el ciclo se saltea un
+dibujo. En RM2k el contador es de treinta y dos bits y eso no pasa.
+
+**Qué se pierde.** Un salto de un dibujo del agua, una vez cada dieciocho
+minutos. La referencia hace la misma vuelta a propósito —`TICK_MASCARA` en
+`tools/rm2k.py`— así que los dos lados siguen dibujando lo mismo y la
+comparación no se vuelve ciega.
+
+**Cuándo deja de alcanzar.** Si algún día `vueltas` pasa a treinta y dos bits
+—porque el reloj del juego lo pida por otra cosa— esto se cae solo.
+
+
+## Una celda no puede tener las dos animaciones a la vez
+
+El conversor le da tiles propios a las celdas que cambian, en una corrida por
+familia: una para el agua y otra para los tiles animados. Una celda que cambiara
+con las dos —agua en la capa baja y un tile animado en la alta— pediría los doce
+cruces de dibujos y no dos corridas de tres y cuatro.
+
+No pasa en ningún mapa de *A Blurred Line*: cero celdas en los 328 `.lmu` que el
+juego trae. Si aparece, el
+conversor **corta** con la celda en el mensaje en vez de emitir un dibujo que
+acierta la mitad del tiempo.

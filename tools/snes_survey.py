@@ -56,12 +56,13 @@ def main():
 
         name = renderer.tree.map_names.get(map_id, "")
         try:
-            base, above_img = renderer.render_layers(game_map)
+            base, above_img, variantes = renderer.capas_animadas(game_map)
             if base is None:
                 print("  %3d  %-24s  sin chipset" % (map_id, name[:24]))
                 continue
             (tile_data, cram, tilemap, resumen), above = \
-                snes_convert.convert_layers(base, above_img)
+                snes_convert.convert_layers(base, above_img,
+                                            variantes=variantes)
         except SystemExit as error:
             print("  %3d  %-24s  %4dx%-4d  %s" % (map_id, name[:24], width,
                                                   height, error))

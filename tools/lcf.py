@@ -207,6 +207,12 @@ CHIPSET_FILENAME = 0x02
 CHIPSET_TERRAIN = 0x03
 CHIPSET_PASSABLE_LOWER = 0x04
 CHIPSET_PASSABLE_UPPER = 0x05
+# Los dos que gobiernan la animación del agua: el tipo elige entre el ciclo de
+# cuatro pasos —0,1,2,1— y el de tres, y la velocidad entre 24 y 12 cuadros por
+# paso. Los dos faltan en casi todos los chipsets, y faltar es el default: ver
+# `paso_de_agua` en rm2k.py.
+CHIPSET_ANIMATION_TYPE = 0x0B
+CHIPSET_ANIMATION_SPEED = 0x0C
 
 START_PARTY_MAP_ID = 0x01
 START_PARTY_X = 0x02
@@ -526,6 +532,10 @@ class Chipset:
         self.passable_upper = _passability(
             fields.get(CHIPSET_PASSABLE_UPPER, b""), PASSABLE_UPPER_DEFAULT)
         self.terrain = to_i16_array(fields.get(CHIPSET_TERRAIN, b""))
+        self.animation_type = to_int(
+            fields.get(CHIPSET_ANIMATION_TYPE, b"\x00"))
+        self.animation_speed = to_int(
+            fields.get(CHIPSET_ANIMATION_SPEED, b"\x00"))
 
 
 class Actor:
