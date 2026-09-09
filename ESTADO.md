@@ -36,12 +36,13 @@ entero compilan **2329 de 3473**.
 
 ### Lo próximo, si no se decide otra cosa
 
-1. **La fase de la animación de los eventos que caminan.** Es lo único que
-   queda de `snes-heroe 8` —175 pixeles, contra los 516 del 2026-09-08— y está
-   aislado más abajo: el auto está en el mismo lugar de los dos lados y
-   dibujado con otro frame del ciclo. El patrón es dos ticks rojos de cada
-   cinco, que es `ANIM_PARADO[4]`. Los paralelos en el camino colapsado, que
-   era el defecto de fondo, ya están hechos.
+1. **El hueco entre una ruta forzada y la siguiente.** Es lo único que queda
+   de `snes-heroe 8` —175 pixeles, contra los 516 del 2026-09-08— y está
+   aislado más abajo: cuando a un auto se le agota la ruta, la ROM tarda seis
+   ticks en que su página paralela se la reponga y la referencia no tarda
+   ninguno. Falta mirar en `easyrpg-player` cuál de los dos tiene razón. Los
+   paralelos en el camino colapsado, que era el defecto de fondo, ya están
+   hechos.
 
 2. **Lo que sigue faltando de Lashe City**, por tamaño: la condición de **ítem**
    —45 eventos, pide inventario—, las **variables** de RM2k —5000, y no entran
@@ -703,13 +704,26 @@ justo lo que da lo mismo.
   contra `--cuadros 305 --hero-tile 0 33 --dir left`—, que es la comparación
   que dice que ya no colapsa nada.
 
-  **Lo que queda son 175 pixeles y es la pose, no la posición.** Comparados el
-  mismo mapa y el mismo tick, el auto está en el mismo lugar de los dos lados y
-  dibujado con **otro frame del ciclo de caminata**. Barriendo los ticks 297 a
-  320, el patrón es exacto: dos rojos de cada cinco. Cinco es
-  `ANIM_PARADO[4]`, o sea cada cuántos cuadros cambia el frame de un evento a
-  velocidad 5, así que la fase de la animación de los eventos que caminan está
-  corrida entre la ROM y la referencia. Es el próximo paso y es chico.
+  **Lo que queda son 175 pixeles y es un hueco entre ruta y ruta.** Comparados
+  el mismo mapa y el mismo tick, el auto está en el mismo lugar de los dos
+  lados y dibujado con **otro frame del ciclo de caminata**. Barriendo los
+  ticks 297 a 320 el patrón es exacto —dos rojos de cada cinco, y cinco es
+  `ANIM_PARADO[4]`, la velocidad 5 de los autos— pero la animación no es la
+  causa: la fórmula de `animar_ruta_ev` y la de `Ruta._animar` son la misma,
+  letra por letra.
+
+  Lo que difiere es **cuándo la página paralela le vuelve a forzar la ruta**.
+  Leído de `ruta_ev` en la WRAM, el auto que se ve es el evento 19, su ruta
+  forzada son dos órdenes, y en la ROM se le agota en el tick 296 y no se la
+  reponen hasta el 302: seis ticks con `movio` en cero. Ahí el contador de
+  animación sube hasta `ANIM_CONTINUA` —7— en vez de dar vuelta el frame en
+  `ANIM_PARADO` —5—, y de ahí sale la pose distinta. En la referencia ese hueco
+  no existe: la ruta se repone sin perder un cuadro. Al evento 1 le pasa lo
+  mismo y más largo: se le agota en el 292 y vuelve en el 302.
+
+  Lo que falta saber es de qué lado está el error, y eso se contesta en
+  `easyrpg-player`: cuántos cuadros pasan entre que una ruta forzada termina y
+  que la página paralela que la puso vuelva a ponerla. Es el próximo paso.
 
 ## bsnes: la WRAM, arreglada y compilada acá
 
