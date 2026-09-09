@@ -40,9 +40,10 @@ entero compilan **2329 de 3473**.
    de `snes-heroe 8` —175 pixeles, contra los 516 del 2026-09-08— y está
    aislado más abajo: cuando a un auto se le agota la ruta, la ROM tarda seis
    ticks en que su página paralela se la reponga y la referencia no tarda
-   ninguno. Falta mirar en `easyrpg-player` cuál de los dos tiene razón. Los
-   paralelos en el camino colapsado, que era el defecto de fondo, ya están
-   hechos.
+   ninguno. **El error es de la ROM**, comprobado contra easyrpg: hay que ver
+   por qué su intérprete paralelo no reinicia una página de un solo comando al
+   cuadro siguiente. Los paralelos en el camino colapsado, que era el defecto
+   de fondo, ya están hechos.
 
 2. **Lo que sigue faltando de Lashe City**, por tamaño: la condición de **ítem**
    —45 eventos, pide inventario—, las **variables** de RM2k —5000, y no entran
@@ -721,9 +722,29 @@ justo lo que da lo mismo.
   no existe: la ruta se repone sin perder un cuadro. Al evento 1 le pasa lo
   mismo y más largo: se le agota en el 292 y vuelve en el 302.
 
-  Lo que falta saber es de qué lado está el error, y eso se contesta en
-  `easyrpg-player`: cuántos cuadros pasan entre que una ruta forzada termina y
-  que la página paralela que la puso vuelva a ponerla. Es el próximo paso.
+  **El error es de la ROM**, y easyrpg lo contesta sin ambigüedad. La página
+  paralela del `Car3` es un solo comando —`MoveEvent [10005, 8, 1, 0, 36, 1]`,
+  o sea "a mí mismo, frecuencia 8, repite, no saltea, atravesar-paredes y
+  derecha"— y `Game_Interpreter::CommandMoveEvent` no tiene guarda ninguna:
+  arma la `MoveRoute` y llama a `ForceMoveRoute` **cada vez que la página
+  corre**, que con una página paralela de un comando es todos los cuadros. Así
+  el auto nunca se queda sin órdenes, y el `repeat` de la ruta ni siquiera
+  llega a usarse.
+
+  La referencia hace eso mismo —la ruta se repone cada cuadro y `repite` queda
+  en False— y la ROM no: su intérprete paralelo tarda seis cuadros en volver a
+  correr la página. `poner_ruta` sí reinicia el índice cuando reusa la ranura
+  —el `stz ruta_ev + 5, x` de "recién empieza"— así que si la página corriera
+  todos los cuadros el índice estaría siempre en cero, y se lo ve clavado en 2.
+  O sea que **lo que hay que mirar es por qué el paralelo de la ROM no reinicia
+  su página al cuadro siguiente**, no la ruta ni la animación.
+
+  Y de paso, algo que se vio buscando esto y que puede ser el mismo defecto o
+  no: el `and #$23 / cmp #$03` de `otra_orden` sólo le da la vuelta a una ruta
+  que se repite **si es la de la página** —el bit 0—, y en
+  `Game_Character::UpdateMoveRoute` el `repeat` vale igual para una forzada. No
+  lo ejercita nada hoy, justamente porque ninguna llega a agotarse cuando la
+  página se repone bien.
 
 ## bsnes: la WRAM, arreglada y compilada acá
 
