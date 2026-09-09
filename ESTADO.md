@@ -19,8 +19,10 @@ Se escribe **mientras se trabaja**, no al final.
 **Los primeros diez minutos jugables**, que es lo que taro viene probando vuelta
 a vuelta en el emulador.
 
-Al 2026-09-09: `just snes-hitos-foto` son **96 casos, todos en verde** y `just
-pruebas` son **39 en verde**. `demo-ciudad` se juega desde la apertura hasta la
+Al 2026-09-09, corridas de nuevo sobre `fae54fb` sin nada encima: `just
+snes-hitos-foto` son **96 casos, todos en verde** y `just pruebas` son **39 en
+verde**. Ese mismo día la ROM corrió por primera vez en la **SNES de verdad**
+con el FX Pak, con el cartucho ya expandido a 1 MB, y anduvo. `demo-ciudad` se juega desde la apertura hasta la
 calle de Lashe City, con los relámpagos, los autos y los NPCs andando, **el agua
 moviéndose** y el save point animado y guardando.
 
@@ -802,9 +804,12 @@ faltaban están: el mapa 8 entra en la ROM —ver la decisión de las paletas
 prestadas—, `ShowChoice` anda con cursor, vuelta y cancelar con B, y el
 cronómetro también.
 
-## Lo que taro todavía no jugó: `rom/build/demo-ciudad/`
+## `rom/build/demo-ciudad/`: jugada el 2026-09-09, y en hardware
 
-Rearmada el 2026-09-08. Es `demo-apertura` **más el mapa 8** —Lashe City, la
+Rearmada el 2026-09-08 y **jugada** el 2026-09-09 —el agua, el save point y
+el peaje del `DetourOfficer`, más arriba— y corrida en la SNES de verdad con
+el FX Pak. Es la ROM viva del proyecto: cualquier cosa que se quiera ver
+jugando sale de acá. Es `demo-apertura` **más el mapa 8** —Lashe City, la
 calle a la que da el pad de Talan— y por lo tanto la primera ROM en la que se
 puede salir del pad: con el 8 adentro, la puerta `TalDoorTop` compila.
 
@@ -866,8 +871,9 @@ El 2026-09-07, sobre `demo-apertura` en mednafen:
 
 ## Lo que taro todavía no probó
 
-* **La salida del pad de Talan, con el presupuesto de saltos arreglado.** El
-  2026-09-07 taro quedó encerrado en un mapa vacío del que no se podía salir,
+* **~~La salida del pad de Talan~~: probada y anda** —ver "Salir del pad de
+  Talan: hecho", arriba—. Se deja el diagnóstico porque el mecanismo se repite:
+  el 2026-09-07 taro quedó encerrado en un mapa vacío del que no se podía salir,
   sin control y con `hzstream` fundiéndose y empezando de nuevo en ciclo. El
   volcado de la WRAM que pasó —`/extras/demo-apertura - SnesWorkRam.dmp`— dijo
   que no estaba en el pad sino en el **mapa 4**, "Blank (Leave START here)", que
@@ -911,10 +917,35 @@ El 2026-09-07, sobre `demo-apertura` en mednafen:
   Las otras ROMs con nombre —`demo-musica`, `demo-cinematica` y el resto— son
   viejas y no se rearmaron.
 
-* **La SNES de verdad, con el FX Pak.** Nada de esto se corrió en hardware, y
-  **queda parado por un tiempo**: el CRT de taro dejó de andar el 2026-09-06.
-  Dos cosas para mirar cuando vuelva: el mapeo del cartucho de 512 KB y el
-  redondeo del brillo de `INIDISP`, que es lo de abajo.
+* **La SNES de verdad, con el FX Pak: corrió, y anda.** taro lo probó el
+  2026-09-09 y su veredicto fue *"anda todo bien, igual que en el emulador, al
+  menos"*. Es la primera vez que se corre en hardware desde que el CRT volvió, y
+  cae después de los cambios fuertes —entre ellos que el cartucho pasó de 512 KB
+  a 1 MB—, así que lo que queda cerrado es lo que más pesaba: **el mapeo del
+  cartucho expandido**. El header lo respalda, verificado sobre
+  `rom/build/demo-ciudad/demo-ciudad.sfc`: mapmode `$20` (LoROM), tipo `$02`
+  —ROM + RAM + batería—, tamaño declarado `$0A` = 1024 KB, que es exactamente lo
+  que mide el archivo, SRAM `$03` = 8 KB, y el checksum del header coincide al
+  byte con la suma real de la ROM (`$03DB`). Nada de eso quedó a medias tirando
+  del tamaño para arriba.
+
+  **Lo que el hardware todavía no desempató**, porque taro miró y no midió:
+
+  - **El redondeo del brillo de `INIDISP`** —mesen-s contra los otros dos, acá
+    abajo—. "Igual que en el emulador" es una señal a favor de snes9x y bsnes,
+    que es donde corre la tanda, pero el fundido dura una fracción de segundo y
+    la diferencia es un paso de quince: a ojo no se ve. Desempatarlo de verdad
+    pide una captura del hardware, no una impresión.
+  - **Guardar en el FX Pak.** En mednafen la partida llegó al disco —8 KB de
+    `.srm`—, y en el flashcart es justo lo que puede portarse distinto: el
+    cartucho tiene que escribir la SRAM a su tarjeta al apagar. La prueba es
+    guardar, **apagar la consola**, y volver a encender esperando que arranque
+    donde se guardó. No consta que se haya hecho.
+
+* **El título del cartucho sigue diciendo `ABL SNES MUSIC POC`.** Es lo que el
+  menú del FX Pak muestra y lo que lee cualquier base de datos de ROMs; quedó de
+  la etapa en que la ROM era una prueba de audio. Es cosmético y de una línea del
+  header, pero se ve en hardware, que es donde ahora estamos mirando.
 
 * **El brillo de `INIDISP`: mesen-s contra los otros dos, medido.** El
   2026-09-06 se compararon los tres cores cuadro por cuadro sobre el fundido de
