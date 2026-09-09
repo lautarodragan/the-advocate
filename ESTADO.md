@@ -19,9 +19,9 @@ Se escribe **mientras se trabaja**, no al final.
 **Los primeros diez minutos jugables**, que es lo que taro viene probando vuelta
 a vuelta en el emulador.
 
-Al 2026-09-09: `just snes-hitos-foto` son **93 casos con 1 en rojo**
-—`snes-heroe 8`, diagnosticado y explicado abajo— y `just pruebas` son **35 en
-verde**. `demo-ciudad` se juega desde la apertura hasta la calle de Lashe City,
+Al 2026-09-09: `just snes-hitos-foto` son **93 casos, todos en verde** —el
+último rojo, `snes-heroe 8`, se cerró ese día y está explicado abajo— y `just
+pruebas` son **35 en verde**. `demo-ciudad` se juega desde la apertura hasta la calle de Lashe City,
 con los relámpagos, los autos y los NPCs andando.
 
 Los seis puntos que acordamos el 2026-09-05 —`FadeOutBGM`, las órdenes de ruta
@@ -36,14 +36,9 @@ entero compilan **2329 de 3473**.
 
 ### Lo próximo, si no se decide otra cosa
 
-1. **El hueco entre una ruta forzada y la siguiente.** Es lo único que queda
-   de `snes-heroe 8` —175 pixeles, contra los 516 del 2026-09-08— y está
-   aislado más abajo: cuando a un auto se le agota la ruta, la ROM tarda seis
-   ticks en que su página paralela se la reponga y la referencia no tarda
-   ninguno. **El error es de la ROM**, comprobado contra easyrpg: hay que ver
-   por qué su intérprete paralelo no reinicia una página de un solo comando al
-   cuadro siguiente. Los paralelos en el camino colapsado, que era el defecto
-   de fondo, ya están hechos.
+1. **La tanda está toda en verde**, así que lo próximo lo elige taro. De la
+   lista de abajo, lo que sigue por tamaño es la condición de **ítem** de Lashe
+   City —45 eventos, pide inventario— y las **variables** de RM2k.
 
 2. **Lo que sigue faltando de Lashe City**, por tamaño: la condición de **ítem**
    —45 eventos, pide inventario—, las **variables** de RM2k —5000, y no entran
@@ -658,7 +653,7 @@ justo lo que da lo mismo.
   fundido todavía no había terminado, y a los 7 se le viene encima el relámpago
   del mapa 1, que cae a los 7,1.
 
-### Los 3 rojos que quedan son bugs del mapa 8, no del reloj
+### Los 3 rojos del mapa 8: cerrados
 
 * `mecanico` y `bum`: **arreglado**. No era la ventana dejando basura sino el
   vblank: `subir_linea` son 1920 bytes de un solo DMA —casi cuatro poses— y con
@@ -667,84 +662,38 @@ justo lo que da lo mismo.
   un mapa con muchos eventos moviéndose. Apareció con los paralelos, que sumaron
   nueve personajes que se mueven. El arreglo es el mismo recorte que ya hacían
   el tinte y el destello: con un renglón esperando, `vq_tope` baja a 1.
-* `snes-heroe 8`, caminando a la izquierda: **de 516 pixeles a 175, y lo que
-  queda es otra cosa**. El 2026-09-09 se midió, se arregló el defecto de fondo
-  y se aisló el resto. Lo de fondo era que **los intérpretes paralelos no
-  corrían en el camino colapsado**: un evento que camina desde su propia página
-  paralela se quedaba clavado donde arrancó, así que el `Car3` de la referencia
-  seguía en su celda de origen mientras el de la ROM ya se había ido de cámara.
+* `snes-heroe 8`, caminando a la izquierda: **cerrado el 2026-09-09**, y eran
+  dos defectos encadenados, los dos de la referencia.
 
-  Qué cambió, que es todo del lado de la referencia:
+  El de fondo: **los intérpretes paralelos no corrían en el camino colapsado**,
+  así que un evento que camina desde su propia página paralela se quedaba
+  clavado donde arrancó. Los paralelos pasaron a ser del mapa y no del
+  `Interprete` de turno —viven en `Estado`, como `FAR_PAR_ESTADO` en la
+  consola—, la entrada les da su paso y la caminata vive sus ocho cuadros por
+  celda. De ahí salió además que el plan ya no diga "cuánto dura la caminata"
+  sino **cuántos ticks vivió la referencia**, margen incluido.
 
-  * Los paralelos son **del mapa y no del `Interprete` de turno**: viven en
-    `Estado`, los arma `entrar_a_un_mapa` y los corre
-    `Estado.cuadro_de_paralelos`. Antes cada `Interprete` nuevo —la tecla de
-    acción, un contacto, la caminata— los reiniciaba, que es un auto volviendo
-    a empezar su página en la mitad.
-  * La entrada les da su paso: `correr_automaticos` recibe `mover_evento`, y el
-    asentamiento los corre también, porque un paralelo no termina nunca.
-  * **La caminata vive sus ocho cuadros por celda.** El héroe sigue moviéndose
-    de un saque —dónde queda es lo único que se compara de él— pero los
-    paralelos y las rutas forzadas avanzan un cuadro cada uno, con el héroe ya
-    en la celda de destino.
-  * Y el asentamiento corta con `Estado.asentado`, que es `algo_corriendo` sin
-    lo que mueven los paralelos: con ellos adentro se comía las diez mil
-    vueltas del tope, porque un auto no se aquieta nunca.
+  Y el que quedaba, 175 pixeles: **atravesar paredes no es salirse del mapa**.
+  El `Car3` camina a la derecha con `walk_everywhere` puesto, llega a la última
+  columna —la 74 de 75— y ahí la consola lo deja clavado hasta que otro evento
+  lo reubica; la referencia lo sacaba del mapa. En
+  `Game_Map::CheckOrMakeWayEx` el `IsValid` va **antes** que el
+  `if (self.GetThrough()) return true;`, y la ROM ya lo modelaba así en
+  `puede_celda`: era la referencia la que estaba de más.
 
-  De ahí sale un cambio en qué es el plan: ya no dice "cuánto dura la
-  caminata" sino **cuántos ticks vivió la referencia** —la entrada, la
-  caminata, los fundidos y el margen—, contados en `estado.ticks`. Y el margen
-  dejó de ser holgura: `snes_expect.py --margen` los **vive** y los anota, y
-  las recetas le pasan `--margen 0` a `snes_correr.py`. Con eventos que se
-  mueven solos, ocho cuadros que corre un lado y no el otro son ocho cuadros de
-  auto.
+  Cómo se llegó, que es lo que no conviene volver a caminar: la entrada de la
+  referencia son 4 ticks y la de la ROM 0, y **eso no era la causa** —darle
+  entre 0 y 6 ticks mueve el número de 475 a 518, nunca cerca de cero—; barrer
+  la captura entre los ticks 292 y 320 no baja de 257, así que tampoco era un
+  desfasaje de tiempo; y el patrón final de dos ticks rojos de cada cinco
+  apuntaba a `ANIM_PARADO[4]` pero la animación no tenía nada que ver: el
+  contador subía hasta `ANIM_CONTINUA` porque el evento estaba **quieto**.
+  Leyendo `ruta_ev` y `ev_pos_buf` en la WRAM se vio quieto en la columna 74, y
+  con una sonda de una línea en `poner_ruta` —revertida— se descartó al
+  intérprete paralelo: repone la ruta todos los cuadros.
 
-  Verificado: `just pruebas` en 35 verdes y `just snes-hitos-foto` en 93 casos
-  con el mismo único rojo, o sea sin regresiones. Y el camino colapsado da
-  **cero pixeles** contra el contado a igual cantidad de ticks —`--walk left`
-  contra `--cuadros 305 --hero-tile 0 33 --dir left`—, que es la comparación
-  que dice que ya no colapsa nada.
-
-  **Lo que queda son 175 pixeles y es un hueco entre ruta y ruta.** Comparados
-  el mismo mapa y el mismo tick, el auto está en el mismo lugar de los dos
-  lados y dibujado con **otro frame del ciclo de caminata**. Barriendo los
-  ticks 297 a 320 el patrón es exacto —dos rojos de cada cinco, y cinco es
-  `ANIM_PARADO[4]`, la velocidad 5 de los autos— pero la animación no es la
-  causa: la fórmula de `animar_ruta_ev` y la de `Ruta._animar` son la misma,
-  letra por letra.
-
-  Lo que difiere es **cuándo la página paralela le vuelve a forzar la ruta**.
-  Leído de `ruta_ev` en la WRAM, el auto que se ve es el evento 19, su ruta
-  forzada son dos órdenes, y en la ROM se le agota en el tick 296 y no se la
-  reponen hasta el 302: seis ticks con `movio` en cero. Ahí el contador de
-  animación sube hasta `ANIM_CONTINUA` —7— en vez de dar vuelta el frame en
-  `ANIM_PARADO` —5—, y de ahí sale la pose distinta. En la referencia ese hueco
-  no existe: la ruta se repone sin perder un cuadro. Al evento 1 le pasa lo
-  mismo y más largo: se le agota en el 292 y vuelve en el 302.
-
-  **El error es de la ROM**, y easyrpg lo contesta sin ambigüedad. La página
-  paralela del `Car3` es un solo comando —`MoveEvent [10005, 8, 1, 0, 36, 1]`,
-  o sea "a mí mismo, frecuencia 8, repite, no saltea, atravesar-paredes y
-  derecha"— y `Game_Interpreter::CommandMoveEvent` no tiene guarda ninguna:
-  arma la `MoveRoute` y llama a `ForceMoveRoute` **cada vez que la página
-  corre**, que con una página paralela de un comando es todos los cuadros. Así
-  el auto nunca se queda sin órdenes, y el `repeat` de la ruta ni siquiera
-  llega a usarse.
-
-  La referencia hace eso mismo —la ruta se repone cada cuadro y `repite` queda
-  en False— y la ROM no: su intérprete paralelo tarda seis cuadros en volver a
-  correr la página. `poner_ruta` sí reinicia el índice cuando reusa la ranura
-  —el `stz ruta_ev + 5, x` de "recién empieza"— así que si la página corriera
-  todos los cuadros el índice estaría siempre en cero, y se lo ve clavado en 2.
-  O sea que **lo que hay que mirar es por qué el paralelo de la ROM no reinicia
-  su página al cuadro siguiente**, no la ruta ni la animación.
-
-  Y de paso, algo que se vio buscando esto y que puede ser el mismo defecto o
-  no: el `and #$23 / cmp #$03` de `otra_orden` sólo le da la vuelta a una ruta
-  que se repite **si es la de la página** —el bit 0—, y en
-  `Game_Character::UpdateMoveRoute` el `repeat` vale igual para una forzada. No
-  lo ejercita nada hoy, justamente porque ninguna llega a agotarse cuando la
-  página se repone bien.
+  Verificado: `just pruebas` en 35 verdes y `just snes-hitos-foto` en **93
+  casos, todos en verde**.
 
 ## bsnes: la WRAM, arreglada y compilada acá
 

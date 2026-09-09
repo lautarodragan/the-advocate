@@ -1919,7 +1919,8 @@ class Ruta:
             self.anim_cuadro = (self.anim_cuadro + 1) % 4
             self.anim_cuenta = 0
 
-    def cuadro(self, puede, saltar=None, hacia_heroe=None, congelada=False):
+    def cuadro(self, puede, saltar=None, hacia_heroe=None, congelada=False,
+               existe=None):
         """Un cuadro de la ruta.
 
         `puede(direccion, desde)` dice si se puede dar el paso, con `desde`
@@ -2085,7 +2086,17 @@ class Ruta:
                     if diagonal else direccion)
             libre = (puede_en_diagonal(orden, puede) if diagonal
                      else puede(direccion))
-            if not (self.atraviesa or libre):
+            if self.atraviesa:
+                # **Atravesar paredes no es salirse del mapa.** En
+                # `Game_Map::CheckOrMakeWayEx` el `IsValid` va **antes** que el
+                # `if (self.GetThrough()) return true;`, y la ROM lo modela así
+                # desde siempre —ver `puede_celda`—. Acá no, y se veía: el
+                # `Car3` de Lashe City, que camina a la derecha atravesando
+                # paredes, llega a la última columna del mapa y la consola lo
+                # deja clavado ahí unos cuadros hasta que otro evento lo
+                # reubica; la referencia lo sacaba del mapa.
+                libre = existe is None or existe(direccion)
+            if not libre:
                 if self.saltable:
                     continue        # bloqueado: se saltea
                 # Sin `skippable` la orden se reintenta el cuadro que viene,
@@ -2310,9 +2321,9 @@ class Estado:
     def cuadros_moviendose(self):
         return self.ruta_heroe.cuadros_moviendose
 
-    def cuadro_de_ruta(self, puede, saltar=None):
+    def cuadro_de_ruta(self, puede, saltar=None, existe=None):
         """Un cuadro de la ruta forzada del héroe."""
-        return self.ruta_heroe.cuadro(puede, saltar)
+        return self.ruta_heroe.cuadro(puede, saltar, existe=existe)
 
     def entrar_a_un_mapa(self, posiciones, paginas=(), velocidades=None,
                          miradas=None):
@@ -2542,7 +2553,7 @@ class Estado:
                            if indice not in paralelos))
 
     def cuadro_de_rutas_ev(self, puede_pasar, puede_caer=None, heroe=None,
-                           congelada=False, solo=None):
+                           congelada=False, solo=None, existe=None):
         """Un cuadro de todas las rutas de eventos. `puede_pasar(indice, x, y,
         direccion)` dice si ese evento puede dar ese paso, `puede_caer(x, y,
         indice)` si ese evento puede aterrizar en esa celda, y `heroe` es la
@@ -2573,7 +2584,9 @@ class Estado:
                 hacia_heroe=(None if heroe is None else
                              lambda px=x, py=y: direccion_hacia((px, py),
                                                                 heroe)),
-                congelada=congelada)
+                congelada=congelada,
+                existe=(None if existe is None else
+                        lambda d, px=x, py=y: existe(px, py, d)))
             if ruta.arranco_salto is not None:
                 dx, dy = ruta.arranco_salto
                 self.pos_ev[indice] = (x + dx, y + dy)

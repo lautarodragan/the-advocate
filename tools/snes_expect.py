@@ -338,7 +338,9 @@ def paso_de_ruta(estado, passable, game_map, x, y, paginas=()):
     direccion = estado.cuadro_de_ruta(
         puede,
         saltar=lambda dx, dy: (puede_caer(passable, game_map, x + dx, y + dy)
-                               and libre(x + dx, y + dy)))
+                               and libre(x + dx, y + dy)),
+        existe=lambda d: (0 <= x + PASOS[d][0] < game_map.width
+                          and 0 <= y + PASOS[d][1] < game_map.height))
     salto = estado.ruta_heroe.arranco_salto
     if salto is not None:
         return x + salto[0], y + salto[1], False
@@ -398,11 +400,21 @@ def cuadro_de_eventos(estado, passable, game_map, heroe, paginas=(),
                                 x, y, dx, dy, pasa_evento=pasa) \
             and libre(indice, x + dx, y + dy)
 
+    def existe(x, y, direccion):
+        """Si la celda de destino está adentro del mapa.
+
+        Es lo único que frena a quien atraviesa paredes: en
+        `Game_Map::CheckOrMakeWayEx` el `IsValid` va antes que el
+        `if (self.GetThrough()) return true;`. Ver `puede_celda` en main.s.
+        """
+        dx, dy = PASOS[direccion]
+        return 0 <= x + dx < game_map.width and 0 <= y + dy < game_map.height
+
     estado.cuadro_de_rutas_ev(
         puede,
         lambda cx, cy, indice: (puede_caer(passable, game_map, cx, cy)
                                 and libre(indice, cx, cy)),
-        heroe=heroe, congelada=congelada, solo=solo)
+        heroe=heroe, congelada=congelada, solo=solo, existe=existe)
     if solo is not None:
         # La vuelta de un evento suelto, la que va pegada a su intérprete
         # paralelo: sólo su paso. Lo demás —los destellos, el cronómetro, la
