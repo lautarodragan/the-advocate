@@ -19,10 +19,10 @@ Se escribe **mientras se trabaja**, no al final.
 **Los primeros diez minutos jugables**, que es lo que taro viene probando vuelta
 a vuelta en el emulador.
 
-Al 2026-09-09: `just snes-hitos-foto` son **93 casos, todos en verde** —el
-último rojo, `snes-heroe 8`, se cerró ese día y está explicado abajo— y `just
-pruebas` son **35 en verde**. `demo-ciudad` se juega desde la apertura hasta la calle de Lashe City,
-con los relámpagos, los autos y los NPCs andando.
+Al 2026-09-09: `just snes-hitos-foto` son **96 casos, todos en verde** y `just
+pruebas` son **39 en verde**. `demo-ciudad` se juega desde la apertura hasta la
+calle de Lashe City, con los relámpagos, los autos y los NPCs andando, **el agua
+moviéndose** y el save point animado y guardando.
 
 Los seis puntos que acordamos el 2026-09-05 —`FadeOutBGM`, las órdenes de ruta
 30 y 31, `PanScreen`, las diagonales, `PlayBGM` con varios temas y la orden 34—
@@ -41,17 +41,16 @@ dos tocan `snes_convert.py`, `main.s` y `snes_expect.py`, que son justo los
 archivos donde un merge mal hecho no se ve, y el cuello de botella es verificar
 —dos tandas a la vez se pelean por CPU—.
 
-1. **La animación de los tiles del ChipSet: hecha y verificada.** `just
-   snes-hitos-foto` son **95 casos, todos en verde** —dos son nuevos y miran
-   justo esto— y `just pruebas` 35 en verde. El porqué largo está en
-   `README.md`, "El agua se mueve".
+1. **La animación de los tiles del ChipSet: hecha, verificada y jugada.** El
+   porqué largo está en `README.md`, "El agua se mueve". taro la jugó el
+   2026-09-09: *"esas animaciones cambian mucho esos mapas, se ven mucho más
+   vivos"*.
 
    Lo medido antes de escribir una línea: en el **mapa 5** —el recuerdo de Core
    y Manta— cambia el **52% de la pantalla**, y ahí es donde se ve. En el
    **Emitter Room, que es lo que taro pidió, casi nada**: sus 4899 celdas de
    agua están dibujadas iguales en los tres dibujos del ChipSet y lo único que
-   se mueve son 9 tiles del grupo "animados", 400 pixeles. Falta que taro lo
-   mire jugando: acá adentro se captura con Xvfb.
+   se mueve son 9 tiles del grupo "animados", 400 pixeles.
 
 2. **El save point animado y guardando a disco: hecho.** Alcance acordado con
    taro: **una sola ranura y sin menú** —guarda y listo, y al encender se carga
@@ -67,8 +66,10 @@ archivos donde un merge mal hecho no se ve, y el cuello de botella es verificar
    animación. **La tanda de pixeles no cubre guardar y no puede**: guardar no
    cambia un pixel.
 
-   Falta que taro lo pruebe en el EverDrive: la SRAM con batería es lo único de
-   esto que no se puede verificar acá adentro.
+   **Jugado el 2026-09-09**, y guardar quedó verificado del otro lado del
+   emulador: mednafen escribió `demo-ciudad.<hash>.srm`, 8 KB, en
+   `~/.mednafen/sav`. Falta el EverDrive, que es la única parte que no se puede
+   ver acá adentro.
 
 ### Lo próximo, si no se decide otra cosa
 
@@ -762,7 +763,30 @@ tenía porque el port es Python puro. El clon está en
 `/extras/ref/bsnes-libretro`, **con el parche aplicado**: ya no es una copia
 limpia del upstream.
 
+## Lo que taro trajo de jugar el 2026-09-09
+
+* **El peaje del `DetourOfficer` anda, y la mitad que él no pudo probar no se
+  puede probar jugando.** Preguntó si con 500 creds o más lo dejaría pasar.
+  Medido sobre los ocho mapas de `demo-ciudad`: el único `ChangeGold` que
+  **suma** es el +100 de la escena del despertar en el pad —evento 4 del mapa
+  7— así que por el camino jugable no se llega nunca a 500, y el peaje siempre
+  rechaza. La rama que sí se cumple la cubre
+  `pruebas/test_oro.py::test_el_peaje_cobra_si_alcanza_y_no_da_la_vuelta_si_no`,
+  con 500 justos, 700, 499 y 0. No hay nada que arreglar; lo que hay es un
+  camino del juego que no se puede caminar todavía.
+
+* **Apretar A sobre el save point no muestra nada, y es por diseño**: una sola
+  ranura y sin menú. Está abajo, en lo que espera respuesta.
+
+
 ## Esperando respuesta de taro
+
+* **Si el save point tiene que avisar que guardó.** Hoy no dice nada: la
+  ranura es una sola y no hay menú, así que no hay nada que elegir ni que
+  mostrar. RM2k abre su menú de quince y por eso allá se ve algo. Un
+  *"Partida guardada"* sale barato —la ventana de mensaje ya existe y el
+  conversor sabe emitir un `OP_MENSAJE`— pero es un texto que el juego no
+  tiene, así que lo inventaríamos nosotros. taro lo preguntó el 2026-09-09.
 
 * **`rom/build/demo-apertura-jugable/`**: es la copia pre-fundido que taro pidió
   el 2026-09-05 para que un test no se la pisara. Nunca dijo si la refresca o
@@ -960,8 +984,7 @@ El 2026-09-07, sobre `demo-apertura` en mednafen:
   adorno —lo imprime `snes_expect.py`—: cuatro cuadros en cero también sería el
   resultado si la página no compilara de los dos lados.
 
-`just snes-hitos-foto` son **93 casos**, con los 3 rojos de la ráfaga de
-entrada que se explican más arriba, y el más largo es
+`just snes-hitos-foto` son **96 casos, todos en verde**, y el más largo es
 `talan`: mil doscientos cuadros de la escena entera del Emitter Room. Lo que la
 tanda no mira:
 
