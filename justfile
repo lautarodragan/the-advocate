@@ -106,7 +106,7 @@ snes-walk mapa="7" direccion="none" mapas="" inicial="0" nombre=(mapa + "-" + di
       --plan {{snes_pngs}}/plan-{{nombre}}.txt \
       -o {{snes_pngs}}/esperado-{{nombre}}.png
   python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o {{snes_pngs}}/{{nombre}}.png \
-      --walk {{direccion}} --plan {{snes_pngs}}/plan-{{nombre}}.txt
+      --walk {{direccion}} --plan {{snes_pngs}}/plan-{{nombre}}.txt --margen 0
   python3 tools/snes_compare.py {{snes_pngs}}/{{nombre}}.png \
       {{snes_pngs}}/esperado-{{nombre}}.png \
       --saltar {{snes_pngs}}/saltar-{{nombre}}.txt \
@@ -134,11 +134,11 @@ snes-puerta origen="30" destino="28" direccion="down" nombre=("puerta-" + origen
   just snes-build
   python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{origen}} --mapas {{destino}} \
       --walk {{direccion}} --saltar {{snes_pngs}}/saltar-{{nombre}}.txt \
-      --plan {{snes_pngs}}/plan-{{nombre}}.txt \
+      --plan {{snes_pngs}}/plan-{{nombre}}.txt --margen 16 \
       -o {{snes_pngs}}/esperado-{{nombre}}.png
   python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o {{snes_pngs}}/{{nombre}}.png \
       --walk {{direccion}} --plan {{snes_pngs}}/plan-{{nombre}}.txt \
-      --margen 16
+      --margen 0
   python3 tools/snes_compare.py {{snes_pngs}}/{{nombre}}.png \
       {{snes_pngs}}/esperado-{{nombre}}.png \
       --saltar {{snes_pngs}}/saltar-{{nombre}}.txt \
@@ -1859,7 +1859,7 @@ snes-heroe mapa="7":
       -o {{snes_pngs}}/esperado-{{mapa}}-{}.png
   python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} \
       -o {{snes_pngs}}/{{mapa}}-{}.png --walk none right left up down \
-      --plan {{snes_pngs}}/plan-{{mapa}}.txt
+      --plan {{snes_pngs}}/plan-{{mapa}}.txt --margen 0
   for d in none right left up down; do
     python3 tools/snes_compare.py {{snes_pngs}}/{{mapa}}-$d.png \
         {{snes_pngs}}/esperado-{{mapa}}-$d.png \

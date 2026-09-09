@@ -48,6 +48,19 @@ from render_map import (GAME_DIR, REPO, RTP_DIR, Renderer, build_passability,
 # separarlos es el error que este repo ya cometió cinco veces.
 CUADROS_POR_CELDA = 8
 
+# Cuántos ticks se corren de más después de la caminata. La ROM llega uno o dos
+# cuadros después de `pasos x 8` —el pad se lee una vez por cuadro y el primero
+# se pierde, y según la dirección la cámara termina de acomodarse un cuadro más
+# tarde—, así que sin esto el héroe todavía no llegó. Ocho es una celda entera:
+# alcanza de sobra y sigue siendo un número exacto de cuadros.
+#
+# Hasta el 2026-09-09 esto vivía sólo en snes_correr.py y era holgura: la ROM
+# corría ocho cuadros que de este lado no los vivía nadie. Con eventos que se
+# mueven solos eso dejó de dar lo mismo —los autos de Lashe City corrían ocho
+# cuadros de un solo lado—, así que ahora los vive la referencia y los anota en
+# el plan. El de snes_correr.py pasa a ir en cero cuando hay plan.
+MARGEN = 8
+
 # El ciclo de caminata de la ROM, de `animate_hero` en main.s: cuatro pasos
 # sobre tres columnas del CharSet —0, 1, 2, 1—, uno cada ANIM_FRAMES cuadros, y
 # quieto vuelve al del medio. Se arranca en el 1 con el contador lleno.
@@ -395,6 +408,11 @@ def cuadro_de_eventos(estado, passable, game_map, heroe, paginas=(),
         # paralelo: sólo su paso. Lo demás —los destellos, el cronómetro, la
         # sacudida— es de la pantalla y va una vez por cuadro, más abajo.
         return
+    # Un cuadro entero del mundo, y por acá pasan todos: el lazo con
+    # presupuesto, la entrada, el asentamiento y la caminata. Contarlos acá es
+    # lo que le deja al plan decir cuántos ticks correr. La vuelta de un evento
+    # suelto no cuenta: ya salió más arriba.
+    estado.ticks += 1
     estado.cuadro_de_flashes()
     estado.cuadro_de_timer()
     estado.cuadro_de_sacudida()
@@ -479,7 +497,9 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
                 mundo.paginas(map_id), estado,
                 avanzar=lambda: cuadro_de_eventos(estado, passable, game_map,
                                                   (x, y), mundo.paginas(map_id),
-                                                  congelada=True))
+                                                  congelada=True),
+                mover_evento=paso_del_paralelo(estado, passable, game_map,
+                                               (x, y), mundo.paginas(map_id)))
             # Sin presupuesto de cuadros la ruta forzada igual tiene que
             # caminarse entera: lo que se compara es dónde queda todo. Antes el
             # giro lo aplicaba el intérprete y esto no hacía falta; ahora la
@@ -489,9 +509,17 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
                 if not estado.ruta and not estado.paso_cuadros \
                         and not estado.cuadros_moviendose \
                         and not estado.refresco \
-                        and not estado.algo_corriendo():
+                        and estado.asentado(mundo.paginas(map_id)):
                     break
                 estado.refrescar()
+                # Los paralelos no terminan nunca: siguen corriendo mientras el
+                # mapa esté cargado, así que también durante el asentamiento.
+                # Antes acá no corrían y el mapa se asentaba con los autos
+                # quietos.
+                estado.cuadro_de_paralelos(
+                    mundo.paginas(map_id),
+                    paso_del_paralelo(estado, passable, game_map, (x, y),
+                                      mundo.paginas(map_id)))
                 x, y, llego = paso_de_ruta(estado, passable, game_map, x, y,
                                            mundo.paginas(map_id))
                 cuadro_de_eventos(estado, passable, game_map, (x, y),
@@ -698,7 +726,8 @@ def contacto_al_pisar(mundo, estado, map_id, x, y, passable, game_map):
 
 
 def hero_position(mundo, estado, map_id, direction_name, inicio=None,
-                  avance=None, cuadros=None, apretar_a=None, mirando=None):
+                  avance=None, cuadros=None, apretar_a=None, mirando=None,
+                  margen=0):
     """En qué mapa y en qué celda termina el héroe, y hacia dónde mira.
 
     No se estima: se entra al mapa como entra la ROM —corriéndole los eventos—
@@ -711,6 +740,27 @@ def hero_position(mundo, estado, map_id, direction_name, inicio=None,
     """
     map_id, x, y = entrar_al_mapa(mundo, estado, map_id, inicio, cuadros,
                                   apretar_a, mirando)
+
+    def correr(n, en_x, en_y):
+        """`n` ticks del mundo con el héroe quieto en esa celda.
+
+        Es el margen: los cuadros que el emulador corre de más sobre lo que
+        dura la caminata. Existen porque la ROM llega uno o dos cuadros después
+        de `pasos x 8` —el pad se lee una vez por cuadro y el primero se
+        pierde—, y hasta ahora eran holgura: nadie los vivía de este lado. Con
+        eventos que se mueven solos la holgura dejó de ser gratis, así que se
+        viven acá y se cuentan en el plan.
+        """
+        game_map, passable, _ocupadas, _puertas = mundo.mapa(map_id)
+        for _ in range(n):
+            estado.refrescar()
+            estado.cuadro_de_paralelos(
+                mundo.paginas(map_id),
+                paso_del_paralelo(estado, passable, game_map, (en_x, en_y),
+                                  mundo.paginas(map_id)))
+            cuadro_de_eventos(estado, passable, game_map, (en_x, en_y),
+                              mundo.paginas(map_id))
+
     step = WALK[direction_name]
     direction = DIRECTIONS.get(direction_name, DIRECTIONS["down"])
     if estado.mensaje is not None:
@@ -729,6 +779,7 @@ def hero_position(mundo, estado, map_id, direction_name, inicio=None,
         # destino. La cuenta es la misma que la de un evento caminando, y por eso
         # vive en `eventos.pixeles_del_paso` y no acá.
         px, py = eventos.pixeles_del_paso(x, y, estado.ruta_heroe)
+        correr(margen, x, y)
         return map_id, px, py, quieto, 0
     desde = (x, y)
 
@@ -738,6 +789,8 @@ def hero_position(mundo, estado, map_id, direction_name, inicio=None,
     # celda. Antes la prueba pedía "45 segundos, seguro alcanza"; con esto pide
     # un número que sale de la misma referencia contra la que se compara.
     pasos = 0
+    # Los ticks de caminata ya vividos, para que `--avance` corte donde pide.
+    vividos = 0
 
     # El tope es por si dos puertas se apuntan entre sí: la ROM se quedaría
     # rebotando y la referencia también, y colgar una prueba no ayuda a nadie.
@@ -763,6 +816,29 @@ def hero_position(mundo, estado, map_id, direction_name, inicio=None,
             break
         x, y = x + step[0], y + step[1]
         pasos += 1
+        # Los ocho cuadros que cuesta la celda **se viven**, no se cuentan al
+        # final. El héroe sí se mueve de un saque —dónde queda es lo único que
+        # se compara de él— pero lo que corre solo no puede colapsarse: los
+        # intérpretes paralelos y las rutas forzadas de los eventos avanzan un
+        # cuadro cada uno, con el héroe ya en la celda de destino, que es el
+        # `GetX()`/`GetY()` de RM2k mientras dura el paso.
+        #
+        # Sin esto una caminata de 37 celdas le regalaba 296 cuadros a los
+        # autos de Lashe City, y era el último rojo de la tanda. El intérprete
+        # de primer plano **no** corre acá: mientras el jugador camina no hay
+        # ninguna página en curso, y la que arranque la pone `contacto_al_pisar`
+        # unas líneas más abajo.
+        #
+        # Con `--avance` se viven sólo los que van hasta el pixel que se pide:
+        # el cuadro que se compara es uno de **adentro** de la caminata, así
+        # que los eventos tienen que estar donde estaban ahí y no donde
+        # terminan. La caminata sigue igual, para saber cuántas celdas son.
+        vivir = CUADROS_POR_CELDA
+        if avance is not None:
+            vivir = max(0, min(CUADROS_POR_CELDA,
+                               avance // eventos.WALK_SPEED - vividos))
+        vividos += vivir
+        correr(vivir, x, y)
         puerta = puertas.get((x, y))
         if puerta is None:
             # Sin puerta, puede haber un evento de contacto.
@@ -801,6 +877,7 @@ def hero_position(mundo, estado, map_id, direction_name, inicio=None,
                 desde[0] * TILE + step[0] * avance,
                 desde[1] * TILE + step[1] * avance,
                 direction, pasos)
+    correr(margen, x, y)
     return map_id, x * TILE, y * TILE, direction, pasos
 
 
@@ -1178,9 +1255,19 @@ def main():
                              "intérprete cuadro a cuadro no lo prueba nada. La "
                              "saturación es opcional y por defecto es la neutra")
     parser.add_argument("--plan", help="archivo donde anotar, por dirección, "
-                        "cuántas celdas camina el héroe y cuántos cuadros le "
-                        "lleva. Es lo que le dice al emulador cuánto correr, "
-                        "en vez de un número de segundos elegido a ojo")
+                        "cuántas celdas camina el héroe y **cuántos ticks vive "
+                        "la referencia**: la entrada, la caminata, los fundidos "
+                        "y el margen. Es lo que le dice al emulador cuánto "
+                        "correr, en vez de un número de segundos elegido a ojo")
+    parser.add_argument("--margen", type=int, default=MARGEN, metavar="N",
+                        help="cuántos ticks correr de más después de la "
+                             "caminata. La ROM llega uno o dos cuadros después "
+                             "de `pasos x 8`, así que sin margen el héroe "
+                             "todavía no llegó. Acá **se viven** y entran en el "
+                             "plan, que es lo que hace que el emulador corra "
+                             "exactamente los mismos: es el otro lado de "
+                             "--margen de snes_correr.py, que con un plan tiene "
+                             "que ir en cero")
     parser.add_argument("--mapas", nargs="*", type=int, default=[], metavar="ID",
                         help="los otros mapas que entraron en la ROM, en el "
                              "mismo orden que le pasaste al conversor. Sin esto "
@@ -1366,7 +1453,16 @@ def main():
                                                        avance, cuadros,
                                                        args.apretar_a,
                                                        DIRECTIONS[args.dir]
-                                                       if args.dir else None)
+                                                       if args.dir else None,
+                                                       # Un avance a mitad de
+                                                       # camino no lleva
+                                                       # margen: el cuadro que
+                                                       # se compara es uno de
+                                                       # adentro de la
+                                                       # caminata.
+                                                       0 if avance is not None
+                                                       or cuadros is not None
+                                                       else args.margen)
 
         # Con qué se dibuja al héroe se decide *después* de correr los eventos,
         # no antes: `ChangePartyMembers` puede cambiar el líder del grupo, y en
@@ -1582,8 +1678,13 @@ def main():
         # El plan cuenta los cuadros del fundido: cada teletransporte que la
         # caminata cruce son FUNDIDO_TOTAL cuadros más en los que el emulador
         # no tiene que hacer nada, pero que igual pasan.
+        # Los ticks que esta corrida vivió, no los que dura la caminata: la
+        # entrada corre eventos, el margen también, y los dos mueven a los
+        # eventos que caminan solos. Los cuadros del fundido se suman aparte
+        # porque adentro del negro el mundo está congelado y `cuadro_de_eventos`
+        # no corre, pero el reloj de la consola sí avanza.
         plan.append((walk, pasos,
-                     pasos * CUADROS_POR_CELDA
+                     estado.ticks
                      + estado.fundidos * eventos.FUNDIDO_TOTAL))
         destino = salida(args.output, etiqueta)
         view.convert("RGB").save(destino)

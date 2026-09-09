@@ -2201,6 +2201,12 @@ class Estado:
         # que cambia es el brillo de la pantalla. Ver `brillo_de_fundido`.
         self.fundido = None
         self.fundidos = 0       # cuántos hubo, para el plan de la caminata
+        # Cuántos ticks vivió la referencia. Lo cuenta `cuadro_de_eventos`, que
+        # es por donde pasa un cuadro entero del mundo, y es lo que el plan le
+        # dice al emulador: no "cuánto dura la caminata" sino **cuántos ticks
+        # correr**, que es lo único que hace que los dos lados miren el mismo
+        # momento cuando el mapa tiene algo que se mueve solo.
+        self.ticks = 0
         # El grupo, en orden. El gráfico del héroe es el del primero, así que
         # esto no es contabilidad: se ve en la pantalla que se compara.
         self.grupo = list(grupo)
@@ -2221,6 +2227,9 @@ class Estado:
         # página de este juego que manda a caminar nueve veces al mismo evento.
         # Se rearma al entrar a cada mapa, igual que `load_npcs` en la ROM.
         self.pos_ev = {}
+        # Los intérpretes paralelos del mapa cargado. Los arma
+        # `entrar_a_un_mapa`; antes de entrar a ninguno no hay ninguno.
+        self.paralelos = []
         # El desplazamiento del cuadro de texto que está en pantalla, o None
         # si no hay ninguno. Mientras esté abierto la página no avanza —es lo
         # que hace `Game_Message`— pero todo lo demás sí: la ruta forzada del
@@ -2322,6 +2331,14 @@ class Estado:
         self.pan_x = self.pan_y = 0
         self.pan_dest_x = self.pan_dest_y = 0
         self.pos_ev = dict(posiciones)
+        # Los intérpretes paralelos, uno por evento con página paralela que
+        # compiló. **Son del mapa y no del `Interprete` de turno**: en la ROM
+        # viven en `FAR_PAR_ESTADO`, que `cargar_mapa` pone a cero y nadie más
+        # toca. Armarlos en `Interprete.__init__` los reiniciaba cada vez que
+        # alguien hacía uno —la tecla de acción, un contacto, la caminata— y
+        # entonces un auto que va por la mitad de su página volvía a empezar.
+        # Ver `paralelos_del_mapa`.
+        self.paralelos = paralelos_del_mapa(paginas)
         # Y las rutas propias de las páginas activas, que arrancan solas al
         # entrar, como `Game_Event::SetupFromPage`. Se vuelven a mirar cuando
         # cambia un switch o el grupo: `refrescar`.
@@ -2461,6 +2478,36 @@ class Estado:
         if indice in self.rutas_ev:
             self.rutas_ev[indice].cortar_paso()
 
+    def cuadro_de_paralelos(self, paginas, mover_evento=None):
+        """Un cuadro de cada evento con página paralela, **y su paso detrás**.
+
+        `Game_Event::Update` corre el intérprete paralelo del evento y a
+        continuación llama a `Game_Character::Update()`, o sea que lo mueve
+        —easyrpg, `game_event.cpp:580`—, y `UpdateMapEvents` hace eso evento por
+        evento. No es lo mismo que correr todos los intérpretes y después mover
+        a todos, y la diferencia se ve cuando una página paralela le fuerza una
+        ruta a **otro** evento: en Lashe City el `Car4` le pisa la suya al
+        `Car2` en cada cuadro, y con los pasos todos al final el pisotón gana y
+        el `Car2` no camina nunca. En EasyRPG y en el RPG Maker original los
+        cuatro autos andan.
+
+        `mover_evento` es quien sabe dar ese paso: lo pone el que arma el
+        cuadro, que es el único que tiene la pasabilidad del mapa. **Sin él el
+        evento no camina**, y ése era el último rojo de la tanda: el camino
+        colapsado —la entrada y la caminata de `hero_position`— llamaba acá sin
+        pasarlo, o directamente no llamaba, así que el `Car3` del mapa 8 se
+        quedaba clavado en su celda de arranque mientras el de la ROM se iba de
+        cámara.
+
+        Vive en el estado y no en `Interprete` porque es del **mapa**: en la
+        ROM son `FAR_PAR_ESTADO`, que sólo pone a cero `cargar_mapa`.
+        """
+        for paralelo in self.paralelos:
+            paralelo.cuadro(pagina_activa(paginas, paralelo.evento, self),
+                            self)
+            if mover_evento is not None:
+                mover_evento(paralelo.evento)
+
     def rutas_pendientes(self):
         """Si queda alguna ruta forzada sin terminar, la del héroe incluida.
 
@@ -2470,6 +2517,29 @@ class Estado:
         """
         return (self.ruta_heroe.pendiente
                 or any(r.pendiente for r in self.rutas_ev.values()))
+
+    def asentado(self, paginas):
+        """Si el mapa terminó de asentarse, o sea `algo_corriendo` al revés y
+        **sin contar lo que mueven los intérpretes paralelos**.
+
+        Lo mira el único lazo que corre "hasta que todo se aquiete", que es la
+        entrada sin presupuesto de cuadros. Un evento con página paralela no se
+        aquieta nunca —para eso existe: los cuatro autos de Lashe City dan
+        vueltas mientras el mapa esté cargado— así que mirarlo con
+        `algo_corriendo` a secas se comía las diez mil vueltas del tope. Es el
+        mismo motivo por el que el cronómetro tampoco entra en `algo_corriendo`.
+
+        `rutas_pendientes` no se toca: eso es `Game_Map::IsAnyMovePending` y es
+        global a propósito, porque una página que espera a las rutas espera
+        también a las de los autos, allá y en la consola.
+        """
+        paralelos = {p.evento for p in self.paralelos}
+        return not (self.sacudida_resta > 0 or self.destello_nivel > 0
+                    or bool(self.flashes) or self.pan_falta() > 0
+                    or self.ruta_heroe.pendiente
+                    or any(ruta.pendiente
+                           for indice, ruta in self.rutas_ev.items()
+                           if indice not in paralelos))
 
     def cuadro_de_rutas_ev(self, puede_pasar, puede_caer=None, heroe=None,
                            congelada=False, solo=None):
@@ -3111,15 +3181,8 @@ class Interprete:
         self.eventos_auto = {p["evento"] for p in paginas
                              if p["trigger"] == TRIGGER_AUTOMATICO
                              and p["codigo"]}
-        # Y los que tienen alguna paralela que compiló, con un intérprete cada
-        # uno. Van por el **mismo** bit 7 que las automáticas: en la ROM ese
-        # bit quiere decir "mirale las páginas a este evento en el refresco", y
-        # quién es automática y quién paralela lo dice el trigger de la página
-        # que gane. Ver `tabla_de_paginas` en snes_convert.py.
-        self.paralelos = [Paralelo(evento) for evento in
-                          sorted({p["evento"] for p in paginas
-                                  if p["trigger"] == TRIGGER_PARALELO
-                                  and p["codigo"]})]
+        # Los paralelos **no** se arman acá: son del mapa y viven en el estado,
+        # que sobrevive a los intérpretes. Ver `Estado.entrar_a_un_mapa`.
         self.codigo = None
         self.cursor = 0
         self.esperando = 0
@@ -3250,11 +3313,7 @@ class Interprete:
         que es el único que tiene la pasabilidad del mapa. Sin él —los lazos que
         no dibujan— se corre como antes y los pasos van todos al final.
         """
-        for paralelo in self.paralelos:
-            paralelo.cuadro(pagina_activa(self.paginas, paralelo.evento,
-                                          self.estado), self.estado)
-            if mover_evento is not None:
-                mover_evento(paralelo.evento)
+        self.estado.cuadro_de_paralelos(self.paginas, mover_evento)
 
     def _arrancar(self):
         """La página del primer evento que espere. False si no hay ninguna.
@@ -3378,6 +3437,19 @@ class Interprete:
             return salto
 
 
+def paralelos_del_mapa(paginas):
+    """Un intérprete paralelo por evento con página paralela que compiló.
+
+    Van por el **mismo** bit 7 que las automáticas: en la ROM ese bit quiere
+    decir "mirale las páginas a este evento en el refresco", y quién es
+    automática y quién paralela lo dice el trigger de la página que gane. Ver
+    `tabla_de_paginas` en snes_convert.py.
+    """
+    return [Paralelo(evento) for evento in
+            sorted({p["evento"] for p in paginas
+                    if p["trigger"] == TRIGGER_PARALELO and p["codigo"]})]
+
+
 class Paralelo:
     """El intérprete de un evento con página paralela.
 
@@ -3431,7 +3503,8 @@ class Paralelo:
         self.cursor, self.esperando, _salto = corte
 
 
-def correr_automaticos(paginas, estado, cuadros=100000, avanzar=None):
+def correr_automaticos(paginas, estado, cuadros=100000, avanzar=None,
+                       mover_evento=None):
     """Corre las páginas automáticas del mapa hasta que pidan un salto.
 
     Atajo para quien no necesita mirar el tiempo: adelanta cuadros hasta que el
@@ -3446,7 +3519,10 @@ def correr_automaticos(paginas, estado, cuadros=100000, avanzar=None):
     estado.salto = None
     interprete = Interprete(paginas, estado)
     for _ in range(cuadros):
-        if interprete.cuadro():
+        # `mover_evento` va sí o sí cuando el mapa tiene eventos que caminan
+        # desde una página paralela: sin él sus intérpretes corren pero nadie
+        # les da el paso. Ver `Estado.cuadro_de_paralelos`.
+        if interprete.cuadro(mover_evento=mover_evento):
             return estado.salto
         # Las rutas de los eventos avanzan acá porque este lazo es el dueño del
         # tiempo. Sin esto, una página que espere a que terminen —OP_RUTAS— no

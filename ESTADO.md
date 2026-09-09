@@ -36,14 +36,12 @@ entero compilan **2329 de 3473**.
 
 ### Lo próximo, si no se decide otra cosa
 
-1. **Los intérpretes paralelos tienen que correr en el camino colapsado.** Es
-   el último rojo de la tanda —`snes-heroe 8`— y el diagnóstico está cerrado
-   más abajo, con el número medido el 2026-09-09: la entrada de la referencia
-   son 4 ticks y la de la ROM 0, pero **ésa no era la causa**. Un evento que
-   camina desde su página paralela se queda clavado, porque los paralelos sólo
-   corren adentro de `Interprete.cuadro` y ni la entrada ni la caminata lo
-   llaman. Va con `just snes-hitos-foto` al lado, porque `entrar_al_mapa` es el
-   camino de casi todos los casos.
+1. **La fase de la animación de los eventos que caminan.** Es lo único que
+   queda de `snes-heroe 8` —175 pixeles, contra los 516 del 2026-09-08— y está
+   aislado más abajo: el auto está en el mismo lugar de los dos lados y
+   dibujado con otro frame del ciclo. El patrón es dos ticks rojos de cada
+   cinco, que es `ANIM_PARADO[4]`. Los paralelos en el camino colapsado, que
+   era el defecto de fondo, ya están hechos.
 
 2. **Lo que sigue faltando de Lashe City**, por tamaño: la condición de **ítem**
    —45 eventos, pide inventario—, las **variables** de RM2k —5000, y no entran
@@ -667,50 +665,51 @@ justo lo que da lo mismo.
   un mapa con muchos eventos moviéndose. Apareció con los paralelos, que sumaron
   nueve personajes que se mueven. El arreglo es el mismo recorte que ya hacían
   el tinte y el destello: con un renglón esperando, `vq_tope` baja a 1.
-* `snes-heroe 8`, caminando a la izquierda: **queda abierto, y el diagnóstico
-  está cerrado**. El caso es 516 pixeles y son un auto: la ROM tiene el `Car3`
-  en pantalla (12,168) y la referencia en (16,152). El héroe, la cámara y el
-  mapa coinciden exacto.
+* `snes-heroe 8`, caminando a la izquierda: **de 516 pixeles a 175, y lo que
+  queda es otra cosa**. El 2026-09-09 se midió, se arregló el defecto de fondo
+  y se aisló el resto. Lo de fondo era que **los intérpretes paralelos no
+  corrían en el camino colapsado**: un evento que camina desde su propia página
+  paralela se quedaba clavado donde arrancó, así que el `Car3` de la referencia
+  seguía en su celda de origen mientras el de la ROM ya se había ido de cámara.
 
-  La causa no es el reloj de ticks, y **tampoco es la que decía acá hasta el
-  2026-09-09**: no alcanza con contar los ticks de la entrada. Lo que falta es
-  más simple y más grande —**los intérpretes paralelos no corren en el camino
-  colapsado**— y por eso un evento que camina desde su propia página paralela
-  se queda clavado donde arrancó.
+  Qué cambió, que es todo del lado de la referencia:
 
-  Cómo se midió, para no volver a medirlo:
+  * Los paralelos son **del mapa y no del `Interprete` de turno**: viven en
+    `Estado`, los arma `entrar_a_un_mapa` y los corre
+    `Estado.cuadro_de_paralelos`. Antes cada `Interprete` nuevo —la tecla de
+    acción, un contacto, la caminata— los reiniciaba, que es un auto volviendo
+    a empezar su página en la mitad.
+  * La entrada les da su paso: `correr_automaticos` recibe `mover_evento`, y el
+    asentamiento los corre también, porque un paralelo no termina nunca.
+  * **La caminata vive sus ocho cuadros por celda.** El héroe sigue moviéndose
+    de un saque —dónde queda es lo único que se compara de él— pero los
+    paralelos y las rutas forzadas avanzan un cuadro cada uno, con el héroe ya
+    en la celda de destino.
+  * Y el asentamiento corta con `Estado.asentado`, que es `algo_corriendo` sin
+    lo que mueven los paralelos: con ellos adentro se comía las diez mil
+    vueltas del tope, porque un auto no se aquieta nunca.
 
-  * La entrada de la referencia al mapa 8 corre **4 ticks**: uno adentro de
-    `correr_automaticos` y tres del asentamiento. La ROM no tiene entrada
-    contra qué compararla: al mapa 8 no le queda ninguna página automática
-    activa —`auto_n`, `esperando_n` y `ev_activo` valen cero desde el tick 1— y
-    `vueltas` sube de a uno por cuadro desde el 115. O sea que la entrada de la
-    ROM son **0 ticks** de lógica, contra los 4 de la referencia.
-  * Y esos 4 ticks **no son el problema**: dándole a la entrada de la
-    referencia entre 0 y 6 ticks de eventos, el caso `left` va de 475 a 518
-    pixeles y nunca cerca de cero.
-  * La caminata tampoco: correrle los ocho ticks de cada paso no mueve el
-    número, y ahora se sabe por qué. `cuadro_de_eventos` camina **rutas
-    forzadas**, no páginas paralelas; los paralelos sólo corren adentro de
-    `Interprete.cuadro`, y ni el lazo de `correr_automaticos` —que lo llama sin
-    `mover_evento`— ni el asentamiento ni la caminata le dan su paso al evento.
-  * Barrer la captura de la ROM entre los ticks 292 y 320 nunca baja de 257
-    pixeles: no es un desfasaje de tiempo. Mirada la imagen, la referencia
-    **dibuja un auto que la ROM no dibuja**: el `Car3` de la referencia sigue
-    en su celda de arranque y el de la ROM ya se fue de cámara.
+  De ahí sale un cambio en qué es el plan: ya no dice "cuánto dura la
+  caminata" sino **cuántos ticks vivió la referencia** —la entrada, la
+  caminata, los fundidos y el margen—, contados en `estado.ticks`. Y el margen
+  dejó de ser holgura: `snes_expect.py --margen` los **vive** y los anota, y
+  las recetas le pasan `--margen 0` a `snes_correr.py`. Con eventos que se
+  mueven solos, ocho cuadros que corre un lado y no el otro son ocho cuadros de
+  auto.
 
-  Y la prueba de que ése es todo el defecto: la misma referencia por el camino
-  de ticks contados —`--cuadros 300 --hero-tile 0 33 --dir left`, que sí corre
-  los paralelos— da **cero pixeles** contra la ROM en los ticks 298 a 302.
+  Verificado: `just pruebas` en 35 verdes y `just snes-hitos-foto` en 93 casos
+  con el mismo único rojo, o sea sin regresiones. Y el camino colapsado da
+  **cero pixeles** contra el contado a igual cantidad de ticks —`--walk left`
+  contra `--cuadros 305 --hero-tile 0 33 --dir left`—, que es la comparación
+  que dice que ya no colapsa nada.
 
-  El arreglo, entonces, es que el camino colapsado corra el mismo cuerpo de
-  cuadro que el contado: la entrada —`correr_automaticos` y el asentamiento— y
-  la caminata de `hero_position` tienen que darle su tick al intérprete y su
-  paso al evento paralelo. Es tocar `entrar_al_mapa`, que es el camino de casi
-  todos los casos, así que va con la tanda al lado.
-
-  `MARGEN = 8` es lo que venía absorbiendo todo esto. Por eso sacarlo pone en
-  rojo las **cinco** direcciones y no arregla ninguna.
+  **Lo que queda son 175 pixeles y es la pose, no la posición.** Comparados el
+  mismo mapa y el mismo tick, el auto está en el mismo lugar de los dos lados y
+  dibujado con **otro frame del ciclo de caminata**. Barriendo los ticks 297 a
+  320, el patrón es exacto: dos rojos de cada cinco. Cinco es
+  `ANIM_PARADO[4]`, o sea cada cuántos cuadros cambia el frame de un evento a
+  velocidad 5, así que la fase de la animación de los eventos que caminan está
+  corrida entre la ROM y la referencia. Es el próximo paso y es chico.
 
 ## bsnes: la WRAM, arreglada y compilada acá
 
