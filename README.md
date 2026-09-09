@@ -70,6 +70,7 @@ se llegó, que está en `git log`.
     * [Toolchain](#toolchain)
     * [Cómo se verifica el ensamblador](#cómo-se-verifica-el-ensamblador)
     * [Cómo se verifica la ROM](#cómo-se-verifica-la-rom)
+    * [El parche de bsnes](#el-parche-de-bsnes)
     * [Trampas del hardware](#trampas-del-hardware)
     * [Lo que falta](#lo-que-falta)
 * [Referencias](#referencias)
@@ -2680,6 +2681,35 @@ aplica el volumen general, sin limitar en el medio: la primera versión saturaba
 (pico 32768 clavado) y hubo que bajar el techo por voz. Los números de `sdsp.py`
 salen de medir, no de la teoría, porque la teoría supone que todas las voces
 pican juntas y en fase y eso no pasa nunca.
+
+### El parche de bsnes
+
+`tools/bsnes-wram.patch` es un parche para **bsnes-libretro**, no para este
+repo. Existe porque el reloj de la tanda le pregunta a la ROM en qué vuelta del
+lazo va —lo lleva en `vueltas`, en la WRAM— y bsnes no expone la WRAM:
+`retro_get_memory_data` devuelve nulo para **todos** los ids. Sin el parche, los
+casos que corren bajo bsnes caen al camino viejo de contar cuadros de hardware,
+que sirve mientras la ROM no se atrase.
+
+El comentario que hay arriba de esa función en bsnes dice por qué está así, y es
+razonable: la interfaz de memoria de libretro se usa para cargar y guardar la
+**SRAM**, y bsnes prefiere hacerlo él. Pero `RETRO_MEMORY_SYSTEM_RAM` es otra
+cosa —la RAM de trabajo, la que los frontends leen para cheats, logros y
+depuración— y no participa de nada de eso. El parche expone sólo ésa y deja el
+resto igual, que es lo que lo hace defendible río arriba.
+
+Para armarlo hace falta `gcc` y `make`, y nada más: el target unix de libretro
+tiene `LIBS =` vacío.
+
+    git clone https://github.com/libretro/bsnes-libretro
+    cd bsnes-libretro
+    git am < .../tools/bsnes-wram.patch
+    make -j$(nproc)
+    cp bsnes_libretro.so /usr/lib/libretro/
+
+Probado leyendo `vueltas` con el core parcheado: bsnes declara 131072 bytes y
+da los mismos números que snes9x, cuadro por cuadro. `just snes-bsnes` pasa sus
+cuatro comparaciones.
 
 ### Trampas del hardware
 

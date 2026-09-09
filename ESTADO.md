@@ -11,13 +11,18 @@ volvió inusable; se borra sin culpa lo que ya esté en esos dos lados.
 
 Se escribe **mientras se trabaja**, no al final.
 
-Última vez que se tocó: 2026-09-08.
+Última vez que se tocó: 2026-09-09.
 
 
 ## El objetivo, y dónde estamos
 
 **Los primeros diez minutos jugables**, que es lo que taro viene probando vuelta
 a vuelta en el emulador.
+
+Al 2026-09-09: `just snes-hitos-foto` son **93 casos con 1 en rojo**
+—`snes-heroe 8`, diagnosticado y explicado abajo— y `just pruebas` son **35 en
+verde**. `demo-ciudad` se juega desde la apertura hasta la calle de Lashe City,
+con los relámpagos, los autos y los NPCs andando.
 
 Los seis puntos que acordamos el 2026-09-05 —`FadeOutBGM`, las órdenes de ruta
 30 y 31, `PanScreen`, las diagonales, `PlayBGM` con varios temas y la orden 34—
@@ -31,36 +36,40 @@ entero compilan **2329 de 3473**.
 
 ### Lo próximo, si no se decide otra cosa
 
-1. **Los gráficos: está todo medido y vive en `assets/`.** El sub-proyecto de
-   convertir el arte de RM2k a la consola se fue de acá porque es de otra
-   naturaleza —hay que elegir qué se lleva y con qué paleta, no traducir un
-   formato—. En `assets/README.md` están las mediciones y la estrategia, y en
-   `assets/medir.py` los scripts que las sacan, así que se pueden repetir.
+1. **La entrada de la referencia tiene que correr por ticks contados.** Es el
+   último rojo de la tanda —`snes-heroe 8`— y el diagnóstico está cerrado más
+   abajo: `entrar_al_mapa` colapsa el tiempo, y con eventos que se mueven solos
+   eso deja de ser gratis. Antes de tocar nada falta **un número**: cuántos
+   ticks tarda la ROM en la entrada al mapa 8, contra los 4 de la referencia.
+   Y va con `just snes-hitos-foto` al lado, porque `entrar_al_mapa` es el camino
+   de casi todos los casos.
 
-   El titular, para no tener que abrirlo: **el juego entra en 4 MB**. Son unos
-   2,9 MB entre mapas, sprites, tiles y música, más 2,7 de arte que todavía no
-   dibuja nadie. Deduplicar es viable con **una paleta por chipset** —33 de 42
-   entran tal cual—, y el costo de esa decisión es artístico y no de espacio:
-   algunos mapas van a compartir una paleta más ancha de la que necesitan.
+2. **Lo que sigue faltando de Lashe City**, por tamaño: la condición de **ítem**
+   —45 eventos, pide inventario—, las **variables** de RM2k —5000, y no entran
+   en el banco 0: van a la RAM del banco 1, que ya se usa para los intérpretes
+   paralelos— y el mapa **Lashe City Interiors** con sus tres teletransportes,
+   que taro pidió.
 
-2. **El mapa 8 no entra en el cartucho.** Es lo que frena la demo hoy: el
-   exterior del pad de Talan pesa unos 140 KB y con el resto se pasa —632092
-   bytes contra 491520—. Ni siquiera el mínimo que llega ahí, 4-1-2-3-7-8,
-   entra: 564928. Así que salir de la casa de Talan pide **agrandar la ROM**,
-   que hoy es de 512 KB y cuyo mapeo tampoco se probó en hardware.
-3. **Los líderes posibles son una aproximación, y se nota.** El conversor
-   simula los `ChangePartyMembers` de las páginas que compilan para saber qué
-   actores pueden ir primeros, porque las poses del héroe no se cargan en
-   caliente. Desde el 2026-09-07 el grupo se reinicia **en cada mapa**, que es
-   lo que corresponde —la tabla de actores es por mapa—, pero sigue sin saberse
-   con qué grupo se llega a cada uno. Si alguna vez un personaje se dibuja sin
-   gráfico, es el primer lugar donde mirar; `pruebas/test_lideres.py` cuida la
-   parte que ya falló.
+3. **La animación del save point** (`animation_type` 3, "Fixed Dir/Continuous"),
+   que taro pidió el 2026-09-07 y sigue sin hacerse.
 
-4. **`ChangePartyMembers` de verdad**, si alguna página que compile cambia de
-   líder: el gráfico del héroe sale del primero del grupo, así que hoy quedaría
-   con la cara equivocada. Ninguna lo hace todavía.
+4. **El giro de los eventos al hablarles.** Hoy contestan mirando para donde
+   estaban; es una deuda declarada en `assets/LIMITACIONES.md`, con el diseño de
+   la ranura de VRAM que haría falta ya escrito.
 
+5. **La ráfaga de entrada del mapa 8**, ahora que la tanda no la cobra: son dos
+   cuadros perdidos al entrar, invisibles jugando porque el fundido los absorbe.
+   Está perfilada más abajo. Es optimización, no corrección.
+
+6. **Los gráficos: está todo medido y vive en `assets/`.** El titular, para no
+   tener que abrirlo: **el juego entra en 4 MB**. Son unos 2,9 MB entre mapas,
+   sprites, tiles y música, más 2,7 de arte que todavía no dibuja nadie.
+
+7. **Los líderes posibles son una aproximación.** El conversor simula los
+   `ChangePartyMembers` de las páginas que compilan para saber qué actores
+   pueden ir primeros. Si alguna vez un personaje se dibuja sin gráfico, es el
+   primer lugar donde mirar; `pruebas/test_lideres.py` cuida la parte que ya
+   falló.
 
 ## Decisiones tomadas que siguen valiendo
 
