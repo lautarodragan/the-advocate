@@ -263,9 +263,13 @@ class Consola:
     # No es parte de ninguna prueba: sirve para depurar, y apareció haciendo el
     # compositor de texto, cuando la pantalla decía "algo está mal" y no dónde.
     #
-    # **bsnes no la expone**: devuelve nulo, aunque el resto de la interfaz
-    # ande. Decía acá que los tres cores la implementaban y no es cierto; lo
-    # destapó el reloj de ticks, que la lee para saber en qué vuelta va la ROM.
+    # **bsnes upstream no la expone**: `retro_get_memory_data` devuelve nulo
+    # para todos los ids —`bsnes/target-libretro/libretro.cpp:1039`— aunque el
+    # resto de la interfaz ande. Decía acá que los tres cores la implementaban y
+    # no es cierto; lo destapó el reloj de ticks, que la lee para saber en qué
+    # vuelta va la ROM. El core que hay instalado en este contenedor es un build
+    # propio con eso arreglado; ver `/extras/bsnes-wram/`. Sin ese arreglo el
+    # reloj cae al camino de contar cuadros, que sigue funcionando.
     MEMORIA_SISTEMA = 2
 
     def ram(self, direccion=0, largo=None):

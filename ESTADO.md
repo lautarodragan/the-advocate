@@ -681,6 +681,38 @@ justo lo que da lo mismo.
   El arreglo de fondo es que los dos lados dibujen el **mismo** tick: o el
   margen se va y el plan es exacto, o la referencia corre el margen también.
 
+## bsnes: la WRAM, arreglada y compilada acá
+
+bsnes upstream devuelve nulo en `retro_get_memory_data` para **todos** los ids
+—`bsnes/target-libretro/libretro.cpp:1039`— así que el reloj de ticks no lo
+podía usar. El comentario del propio archivo dice por qué: *"there is no
+safe/sensible way to use the memory interface without severe hackery. Rely on
+higan to load and save SRAM"*. O sea que la razón es la **SRAM**, que es lo que
+un frontend guarda y carga.
+
+`RETRO_MEMORY_SYSTEM_RAM` es otra cosa: es la RAM de trabajo, la que los
+frontends leen para cheats, RetroAchievements y depuración, y no participa de
+cómo se guarda la SRAM. Así que exponerla **sólo a ella** respeta el motivo que
+ellos dan, y ése es el argumento del PR.
+
+El parche son dos hunks —incluir `sfc/sfc.hpp` en vez de sólo
+`sfc/interface/interface.hpp`, que igual lo incluye al final, y devolver
+`SuperFamicom::cpu.wram` con su `sizeof`— y está en `/extras/bsnes-wram/`:
+
+    wram.patch                    el diff
+    bsnes_libretro.parcheado.so   el build con el arreglo
+    bsnes_libretro.original.so    el de pacman, por si hay que volver
+
+**El core instalado en `/usr/lib/libretro/` es el parcheado.** Con él, `bsnes`
+declara 131072 bytes de WRAM y el reloj de ticks lee `vueltas` igual que en
+snes9x: mismos números, `vueltas = tick + 1`. `just snes-bsnes` pasa sus cuatro
+comparaciones en cero.
+
+Para compilarlo hicieron falta `gcc` y `make` de pacman, que el contenedor no
+tenía porque el port es Python puro. El clon está en
+`/extras/ref/bsnes-libretro`, **con el parche aplicado**: ya no es una copia
+limpia del upstream.
+
 ## Esperando respuesta de taro
 
 * **`rom/build/demo-apertura-jugable/`**: es la copia pre-fundido que taro pidió
