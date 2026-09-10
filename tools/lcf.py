@@ -185,6 +185,7 @@ def enum_name(names, value):
     return names[value] if 0 <= value < len(names) and names[value] else value
 
 DB_ACTORS = 0x0B
+DB_ITEMS = 0x0D
 DB_CHIPSETS = 0x14
 DB_SYSTEM = 0x16
 # Los términos del juego: los textos que el motor pone y no un evento. La
@@ -588,6 +589,10 @@ class Database:
             self.fields.get(DB_CHIPSETS, b"\x00")).read_struct_array().items()}
         self.actors = {i: Actor(f) for i, f in Reader(
             self.fields.get(DB_ACTORS, b"\x00")).read_struct_array().items()}
+        # El número más alto de ítem: `ITEMS_N` en eventos.py es éste más
+        # uno, y test_items.py lo comprueba.
+        self.items_max = max(Reader(
+            self.fields.get(DB_ITEMS, b"\x00")).read_struct_array(), default=0)
 
         # El grupo con el que empieza la partida. En RM2k el gráfico del héroe
         # es el del primero de la lista, así que este dato es el que decide con

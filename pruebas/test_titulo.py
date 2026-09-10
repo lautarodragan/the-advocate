@@ -177,10 +177,10 @@ def test_la_musica_viaja_en_la_partida(partida):
     # Las dos entradas de la música en `partida_tabla`, en su orden:
     # `music_apagada` y después `tema_actual`, que es de dos bytes con el alto
     # en cero. Están al final de la partida, **antes de las variables**, que
-    # desde el 2026-09-10 siguen con VARIABLES_N palabras, y de la velocidad
-    # del héroe, un byte, que cierra la tabla.
+    # desde el 2026-09-10 siguen con VARIABLES_N palabras, de la velocidad
+    # del héroe, un byte, y del inventario, ITEMS_N bytes, que cierra la tabla.
     largo = (una.simbolos["PARTIDA_BYTES"] - 2 * una.simbolos["VARIABLES_N"]
-             - 1)
+             - 1 - una.simbolos["ITEMS_N"])
     cola = una.sram(0x106 + largo - 3, 3)
     assert cola[0] == una.byte("music_apagada"), (
         "la SRAM guardó music_apagada = %d y la consola lo tenía en %d"

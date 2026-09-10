@@ -848,17 +848,20 @@ snes-timer mapa="6" timer="600 1" celda="2 10" cuadros="2 31 61 90" tinte="12 0 
 # `vars` van de a cinco con los números de RM2k —variable, operación, clase,
 # a, b— y la operación 9 es la inventada de la página de prueba: el cronómetro
 # desde la variable, que en RM2k es un TimerOperation.
-snes-vars mapa="6" timer="60 1" vars="17 0 7 1 0 17 2 0 25 0 17 9 0 0 0" celda="2 10" cuadros="2 31 61 90" tinte="12 0 0 50" arranque="115" nombre="vars":
+snes-vars mapa="6" timer="60 1" vars="17 0 7 1 0 17 2 0 25 0 17 9 0 0 0" celda="2 10" cuadros="2 31 61 90" tinte="12 0 0 50" arranque="115" nombre="vars" items="":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
+  items="{{items}}"
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
       --inicio {{celda}} --timer-de-prueba {{timer}} --vars-de-prueba {{vars}} \
+      ${items:+--items-de-prueba $items} \
       --pagina-de-prueba {{tinte}} -o {{snes_inc}}/mapdata.inc
   just snes-build
   pre={{snes_pngs}}/{{nombre}}
   python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
       --hero-tile {{celda}} --timer-de-prueba {{timer}} --vars-de-prueba {{vars}} \
+      ${items:+--items-de-prueba $items} \
       --pagina-de-prueba {{tinte}} --cuadros {{cuadros}} \
       --saltar $pre-{}.saltar.txt -o $pre-{}.esperado.png
   for n in {{cuadros}}; do

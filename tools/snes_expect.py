@@ -211,7 +211,8 @@ class Mundo:
                                               destello=self.prueba[13],
                                               guardar=self.prueba[14],
                                               variables=self.prueba[15],
-                                              rama_var=self.prueba[16])),
+                                              rama_var=self.prueba[16],
+                                              items=self.prueba[17])),
                                      dict(PAGINA_DE_PRUEBA_APAGADA,
                                           evento=numero)]
             self.paginas_cache[map_id] = paginas
@@ -311,7 +312,7 @@ class DemasiadosSaltos(RuntimeError):
 EVENTO_DE_PRUEBA = {"evento": 0, "pagina": 0,
                     "trigger": eventos.TRIGGER_AUTOMATICO,
                     "switch_a": 0, "switch_b": 0, "actor": 0, "variable": None,
-                    "capa": 0,
+                    "item": 0, "capa": 0,
                     "frecuencia": eventos.RUTA_FRECUENCIA, "velocidad": 4,
                     "codigo": b""}
 
@@ -1255,6 +1256,9 @@ def main():
     parser.add_argument("--rama-var-de-prueba", nargs=5, type=int,
                         default=None,
                         help="el otro lado del mismo flag de snes_convert.py")
+    parser.add_argument("--items-de-prueba", nargs="+", type=int, default=None,
+                        help="ITEM CUANTO, repetible de a dos: el mismo flag "
+                             "del conversor")
     parser.add_argument("--rama-de-prueba", nargs=3, type=int, default=None,
                         metavar=("SWITCH", "ADENTRO", "DESPUES"),
                         help="la misma rama que arma el conversor; ver allá")
@@ -1381,6 +1385,7 @@ def main():
                   or args.sacudida_de_prueba or args.fundir_bgm
                 or args.pan_de_prueba or args.rama_de_prueba
                   or args.vars_de_prueba or args.rama_var_de_prueba
+                  or args.items_de_prueba
                   or args.mensaje_de_prueba is not None)
     # El bloque de textos, armado igual que en el conversor y en el mismo orden:
     # el mensaje de prueba primero —desplazamiento 0— y después los mapas de la
@@ -1401,7 +1406,8 @@ def main():
                    tuple(args.destello_de_prueba or ()),
                    args.guardar_de_prueba,
                    tuple(args.vars_de_prueba or ()),
-                   tuple(args.rama_var_de_prueba or ()))
+                   tuple(args.rama_var_de_prueba or ()),
+                   tuple(args.items_de_prueba or ()))
                   if hay_prueba else None, mensajes,
                   graficos_de_prueba=snes_convert.graficos_de_prueba(
                       args.grafico_de_prueba),

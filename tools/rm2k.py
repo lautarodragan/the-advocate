@@ -243,15 +243,15 @@ def nombre_de_tile(chipset, indice):
 # "variable" desde el 2026-09-10 a la noche: la página lleva la ranura, la
 # comparación y el valor, y la ROM los mira en `condiciones_ok`. Falta el
 # cronómetro, que pide una sola página del juego, la 81 del mapa 312.
-CONDICIONES_SOPORTADAS = ("switch_a", "switch_b", "actor", "variable")
-# Y las que el port **no puede cumplir nunca**: no hay inventario, y
-# `ChangeItems` se acepta sin hacer nada, así que el grupo no tiene ningún
-# ítem jamás. Una página con esta condición se emite como una que no está
+CONDICIONES_SOPORTADAS = ("switch_a", "switch_b", "actor", "variable", "item")
+# Y las que el port **no puede cumplir nunca**. Fue la de ítem durante un
+# día: sin inventario, `ChangeItems` se aceptaba sin hacer nada y el grupo no
+# tenía ningún ítem jamás, así que la página se emitía como una que no está
 # activa nunca —ver `SWITCH_IMPOSIBLE` en eventos.py— y las demás páginas del
-# evento corren como corresponde. Antes el evento entero quedaba afuera: no
-# se dibujaba, no frenaba y no disparaba. Son 45 eventos, EV0041 entre ellos,
-# que taro pidió el 2026-09-10.
-CONDICIONES_IMPOSIBLES = ("item",)
+# evento corrían como corresponde. Desde el 2026-09-10 a la noche hay
+# inventario y la condición de ítem se evalúa; la máquina queda por si
+# aparece otra condición así.
+CONDICIONES_IMPOSIBLES = ()
 
 
 def pagina_imposible(page):

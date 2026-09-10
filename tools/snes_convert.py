@@ -1994,7 +1994,7 @@ PUERTA_BYTES = 16
 # código. Las páginas de un mismo evento van seguidas y en orden, que es lo que
 # le permite a la ROM elegir la última que cumple sus condiciones en una sola
 # pasada, sin llevar una tabla por evento.
-PAGINA_BYTES = 28
+PAGINA_BYTES = 30
 # Un candidato a líder: id, paleta, **sus quince colores** y doce punteros de 24
 # bits a sus poses. Los colores van adentro de la tabla y no en un bloque aparte
 # porque son pocos actores por mapa y así la ROM los sube con un DMA desde donde
@@ -2357,7 +2357,10 @@ def tabla_de_paginas(mapa, numero, evcodigo):
             out.append("    .byte %d, %d ; +24 la variable que pide y la "
                        "comparación" % (ranura, comparacion))
             out.append("    .word %d ; +26 contra qué" % (contra & 0xFFFF))
-        assert PAGINA_BYTES == 28
+        # +28: el ítem que pide tener, o 0: `condiciones_ok` mira su cuenta
+        # en `FAR_ITEMS`.
+        out.append("    .word %-4d ; +28 el ítem que pide, o 0" % pagina["item"])
+        assert PAGINA_BYTES == 30
     if not mapa["paginas"]:
         out.append("    .byte $00")     # una etiqueta no puede quedar vacía
     return "\n".join(out)
@@ -2544,6 +2547,11 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "OP_GUARDAR  = $%02X\n"
         "OP_VAR      = $%02X\n"
         "OP_SI_VAR   = $%02X\n"
+        "OP_ITEM     = $%02X\n"
+        "; El inventario: un byte por ítem del LDB y el tope de RM2k. Ver\n"
+        "; OP_ITEM en eventos.py.\n"
+        "ITEMS_N       = %d\n"
+        "ITEM_MAX      = %d\n"
         "; Las variables: cuántas ranuras lleva esta ROM —al menos una, porque\n"
         "; un largo cero cerraría la tabla de la partida—, las clases de\n"
         "; operando de ControlVars que la ROM distingue, la suma, y la\n"
@@ -2776,7 +2784,8 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            eventos.OP_SI, eventos.OP_IR, eventos.OP_ELEGIR,
            eventos.OP_ORO, eventos.OP_GUARDAR,
            eventos.OP_VAR, eventos.OP_SI_VAR,
-           max(1, len(eventos.VARIABLE_SLOT)),
+           eventos.OP_ITEM, eventos.ITEMS_N, eventos.ITEM_MAX,
+           variables_n(),
            eventos.VAR_SUMAR, eventos.VAR_VARIABLE, eventos.VAR_AZAR,
            eventos.VAR_OTRO, eventos.AZAR_SEMILLA, eventos.TIMER_PONER_VAR,
            eventos.COND_ORO, eventos.COND_ACTOR,
@@ -3390,6 +3399,17 @@ def ruta_de_evento(argumento):
     return argumento[0], list(argumento[1:])
 
 
+def variables_n():
+    """Cuántas ranuras de variables lleva la ROM: al menos una —un largo cero
+    cerraría la tabla de la partida— y hasta 256, que es lo que entra entre
+    `FAR_VARIABLES` y `FAR_ITEMS`."""
+    n = max(1, len(eventos.VARIABLE_SLOT))
+    if n > 256:
+        sys.exit("%d variables no entran en la RAM lejana: FAR_ITEMS está a "
+                 "512 bytes de FAR_VARIABLES" % n)
+    return n
+
+
 def variables_de_prueba(vars_de_prueba, rama_var_de_prueba):
     """Las variables que nombra la página de prueba, para darles ranura."""
     ids = set()
@@ -3664,6 +3684,11 @@ def main():
                              "como --rama-de-prueba: prende ADENTRO si la "
                              "variable cumple la comparación con VALOR, y "
                              "DESPUES siempre")
+    parser.add_argument("--items-de-prueba", nargs="+", type=int, default=None,
+                        metavar="N",
+                        help="ITEM CUANTO, repetible de a dos: la página de "
+                             "prueba da (o quita, con CUANTO negativo) ese "
+                             "ítem con un ChangeItems")
     parser.add_argument("--rama-de-prueba", nargs=3, type=int, default=None,
                         metavar=("SWITCH", "ADENTRO", "DESPUES"),
                         help="una rama en la página de prueba: si SWITCH está "
@@ -3912,6 +3937,7 @@ def main():
         if (args.pagina_de_prueba or args.ruta_de_prueba
                 or args.rama_de_prueba or args.guardar_de_prueba
                 or args.vars_de_prueba or args.rama_var_de_prueba
+                or args.items_de_prueba
                 or args.ruta_de_evento or args.flash_de_prueba or args.switch
                 or args.destello_de_prueba
                 or args.timer_de_prueba or args.lugar_de_prueba
@@ -3932,7 +3958,7 @@ def main():
                 "evento": mapa["EV_COUNT_PRUEBA"], "pagina": 0,
                 "trigger": eventos.TRIGGER_AUTOMATICO,
                 "switch_a": 0, "switch_b": 0, "actor": 0, "variable": None,
-                "capa": 0,
+                "item": 0, "capa": 0,
                 "frecuencia": eventos.RUTA_FRECUENCIA, "velocidad": 4,
                 "codigo": eventos.pagina_de_prueba(
                     espera, tinte, args.ruta_de_prueba or (), prueba,
@@ -3948,7 +3974,8 @@ def main():
                     destello=tuple(args.destello_de_prueba or ()),
                     guardar=args.guardar_de_prueba,
                     variables=tuple(args.vars_de_prueba or ()),
-                    rama_var=tuple(args.rama_var_de_prueba or ()))}, {
+                    rama_var=tuple(args.rama_var_de_prueba or ()),
+                    items=tuple(args.items_de_prueba or ()))}, {
                 # Y la que la apaga: misma idea que en la referencia, ver
                 # `PAGINA_DE_PRUEBA_APAGADA`. Sin código, así que en cuanto
                 # gana, el evento inventado deja de tener una automática que
@@ -3956,7 +3983,7 @@ def main():
                 "evento": mapa["EV_COUNT_PRUEBA"], "pagina": 1,
                 "trigger": eventos.TRIGGER_AUTOMATICO,
                 "switch_a": eventos.SWITCH_DE_PRUEBA, "switch_b": 0,
-                "actor": 0, "variable": None, "capa": 0,
+                "actor": 0, "variable": None, "item": 0, "capa": 0,
                 "frecuencia": eventos.RUTA_FRECUENCIA, "velocidad": 4,
                 "codigo": b""}]
         codigo = bytearray()

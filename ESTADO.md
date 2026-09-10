@@ -417,15 +417,33 @@ Dos cosas que costaron:
 ### EV0041, y lo que había debajo (2026-09-10, a la noche)
 
 EV0041, EV0042 y EV0052 del mapa 8 son el mismo evento tres veces: tres
-páginas por switch, y la tercera además por **ítem**, que este port no tiene.
-Hasta hoy una condición de ítem tiraba el evento entero. Ahora esa página se
-emite como **nunca activa** —`switch_a = SWITCH_IMPOSIBLE`, sin código ni
-gráfico; ver `rm2k.CONDICIONES_IMPOSIBLES`— y las otras corren. Es honesto
-porque `ChangeItems` se acepta sin hacer nada: el grupo no tiene ítems jamás.
-Los dos lados leen la misma tabla; `test_paginas.py` mira que diga eso. Son
-45 eventos que vuelven a existir en todo el juego. Lo cobra `snes-escena ...
-ev41`: hablarle parado encima —es de la capa de abajo—, cerrar el mensaje y
-mirar la ruta.
+páginas por switch, y la tercera además por **ítem**. Hasta hoy una condición
+de ítem tiraba el evento entero; durante un día esa página se emitió como
+**nunca activa** —`switch_a = SWITCH_IMPOSIBLE`, porque `ChangeItems` se
+aceptaba sin hacer nada y el grupo no tenía ítems jamás— y desde la noche
+**hay inventario y la condición se evalúa**: ver "El inventario" más abajo.
+Son 45 eventos que vuelven a existir en todo el juego. Lo cobra `snes-escena
+... ev41`: hablarle parado encima —es de la capa de abajo—, cerrar el mensaje
+y mirar la ruta.
+
+### El inventario (2026-09-10, a la noche)
+
+El primer paso del sistema de ítems, el (1) del plan de "Lo próximo". La ROM
+lleva la cuenta de cada ítem del LDB: un byte por número de RM2k en la RAM
+lejana, `FAR_ITEMS` en `$2800` —después de las variables, que son hasta
+256—, topado en 99 como `Game_Party::AddItem`, en cero en el reset y en la
+partida, que mide 773 bytes: `SRAM_STRIDE` pasó a 1024 y las cuatro ranuras
+son la mitad de los 8 KB. `ChangeItems` compila a `OP_ITEM` —ítem y cuánto,
+con signo; el juego lo usa 509 veces y siempre con constantes— y pide el
+refresco de páginas, como `CommandChangeItems`. La condición de página por
+ítem va en +28 de la tabla (`PAGINA_BYTES` 30) y `condiciones_ok` mira la
+cuenta; `CONDICIONES_IMPOSIBLES` quedó vacía. La referencia lleva
+`Estado.items`. Lo cobran `cofre-llave` en rom/hitos.txt —el KeyChest del
+mapa 133 con la variable en 8 **y** la llave 151: gana la tercera página y
+el cofre no se dibuja, 252 pixeles contra `cofre`— y `test_items.py`: sumar,
+quitar, los dos topes, la partida, y que `ITEMS_N` sea el del LDB. Lo que
+falta del sistema: mostrar el inventario, usar medicinas, el equipo y la
+tienda.
 
 Y la ruta destapó **dos errores de la ROM que no eran del evento**:
 
@@ -1094,9 +1112,9 @@ al droide del mapa 2 en seis casos de la tanda.
 * **Parallel Process**: `Car1`, `Car2`, `Car4`, `EV0004` y `EV0005` no se
   mueven. El intérprete ya existe; falta la clase de disparo.
 * **Condición de ítem**: `PawnDoorBottom`, `GangMember1`, `EV0039`, `EV0040` y
-  `EV0041` se caen enteros —no se dibujan, no frenan y no disparan—. Pide
-  inventario, que no hay. `EV0041` **no** es el caso de la puerta del pad, como
-  parecía: es esto.
+  `EV0041` se caían enteros —no se dibujaban, no frenaban y no disparaban—.
+  Resuelto el 2026-09-10: hay inventario y la condición se evalúa. `EV0041`
+  **no** es el caso de la puerta del pad, como parecía: era esto.
 * **Lashe City Interiors** no está en la ROM, así que `EV0055`, `EV0033` y
   `EV0057` no compilan. taro lo pidió para la próxima vuelta.
 

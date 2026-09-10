@@ -628,7 +628,6 @@ ACEPTADOS_SIN_HACER = {
     OPEN_SHOP,
     PLAY_SOUND,
     SHOW_BATTLE_ANIMATION,
-    CHANGE_ITEMS,
     SHOW_PICTURE,
     MOVE_PICTURE,
     ERASE_PICTURE,
@@ -1251,6 +1250,18 @@ COND_VARIABLE = 1
 OP_VAR = 0x17       # ranura (byte), operación (byte), clase (byte), a (word), b (word)
 OP_SI_VAR = 0x18    # ranura (byte), clase (byte), comparación (byte), valor (word),
                     # destino (word): como OP_SI, el destino va último para el parcheo
+# El inventario, desde el 2026-09-10 a la noche: un byte por ítem del LDB en la
+# RAM lejana —`FAR_ITEMS`, pegado a las variables—, indexado por el número de
+# RM2k, y `ChangeItems` compila a OP_ITEM con el ítem y cuánto se suma, con
+# signo. La cuenta queda en [0, ITEM_MAX], que es `Game_Party::AddItem` con el
+# tope de RM2k. El juego lo usa 509 veces, siempre con ítem y cantidad
+# constantes: el ítem por variable no compila. Con esto la condición de página
+# por ítem se evalúa de verdad —`GetItemCount(id) > 0`, sin equipo todavía— y
+# deja de ser "nunca activa". Cambiar un ítem pide el refresco de páginas.
+OP_ITEM = 0x19      # ítem (word), delta (byte con signo)
+ITEMS_N = 451       # los 450 ítems del LDB más el 0, que no se usa; lo cobra
+                    # test_items.py contra RPG_RT.ldb
+ITEM_MAX = 99
 # Las operaciones de ControlVars que compilan: poner, sumar, restar. Multiplicar,
 # dividir y el resto no las usa ninguna página del juego.
 VAR_PONER, VAR_SUMAR, VAR_RESTAR = 0, 1, 2
@@ -1328,6 +1339,10 @@ def indexar_variables(game_dir, extra=()):
     VARIABLE_SLOT.clear()
     VARIABLE_SLOT.update(variables_de(game_dir, None, extra))
     return dict(VARIABLE_SLOT)
+
+
+def con_signo_byte(valor):
+    return valor - 256 if valor & 0x80 else valor
 
 
 def cumple_comparacion(valor, comparacion, contra):
@@ -1608,6 +1623,22 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
 
     if cmd.code == END or cmd.code in IGNORABLES:
         return b""
+
+    if cmd.code == CHANGE_ITEMS:
+        # [sumar o quitar, ítem por constante o variable, ítem, cantidad por
+        # constante o variable, cantidad]. Ver OP_ITEM.
+        if len(p) < 5:
+            raise NoSePuede("ChangeItems sin operandos")
+        if p[1] != 0 or p[3] != 0:
+            raise NoSePuede("ChangeItems con el ítem o la cantidad en una "
+                            "variable")
+        if not 1 <= p[2] < ITEMS_N:
+            raise NoSePuede("ChangeItems del ítem %d, que no está en el LDB"
+                            % p[2])
+        delta = -p[4] if p[0] else p[4]
+        if not -128 <= delta <= 127:
+            raise NoSePuede("ChangeItems de %d, que no entra en un byte" % p[4])
+        return bytes([OP_ITEM, p[2] & 0xFF, p[2] >> 8, delta & 0xFF])
 
     if cmd.code == CHANGE_GOLD:
         # `OperateValue(operación, tipo, valor)`: la operación es 0 sumar y 1
@@ -2508,6 +2539,9 @@ class Estado:
         # El oro del grupo. No se muestra en ningún lado —el menú no existe—
         # pero la rama de oro de `ConditionalBranch` lo pregunta.
         self.oro = 0
+        # Y el inventario: cuántos hay de cada ítem, por número de RM2k. Lo
+        # que no está es cero. Ver OP_ITEM.
+        self.items = {}
         # La elección abierta, si hay una. Mientras esté puesta, `mensaje`
         # apunta al cuadro de la opción marcada y la página está bloqueada.
         self.eleccion = None
@@ -2549,6 +2583,9 @@ class Estado:
 
     def variable(self, ranura):
         return self.variables.get(ranura, 0)
+
+    def item(self, numero):
+        return self.items.get(numero, 0)
 
     def poner_variable(self, ranura, valor):
         """Dieciséis bits con signo, dando la vuelta como la ROM."""
@@ -3054,7 +3091,7 @@ LARGO_DE_OPCODE = {
     OP_GRUPO: 3, OP_MENSAJE: 3, OP_RUTAS: 1, OP_FLASH: 7, OP_TIMER: 5,
     OP_BGM: 2, OP_LUGAR: 6, OP_TRUEQUE: 3, OP_SACUDIR: 5, OP_DESTELLO: 6,
     OP_FUNDIR_BGM: 3, OP_PAN: 8, OP_SI: 7, OP_IR: 3, OP_ORO: 5,
-    OP_GUARDAR: 1, OP_VAR: 8, OP_SI_VAR: 8,
+    OP_GUARDAR: 1, OP_VAR: 8, OP_SI_VAR: 8, OP_ITEM: 4,
 }
 
 
@@ -3213,6 +3250,11 @@ def pagina_activa_viva(paginas, evento, estado):
             continue
         if pagina["actor"] and pagina["actor"] not in estado.grupo:
             continue
+        # Y la de ítem, desde la misma noche: que haya al menos uno. Es
+        # `GetItemCount(id) + GetEquippedItemCount(id)`, sin equipo. Antes
+        # estas páginas se emitían como "nunca activas".
+        if pagina.get("item") and not estado.item(pagina["item"]):
+            continue
         # Y la condición por variable, desde el 2026-09-10 a la noche: la
         # ranura, la comparación y el valor, como `AreConditionsMet` con
         # `CheckOperator`. Catorce páginas del juego la usan, todas con >=.
@@ -3265,7 +3307,7 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
                     flash=(), switches=(), timer=(), lugar=(),
                     frecuencia=RUTA_FRECUENCIA, sacudida=(), fundir_bgm=0,
                     pan=(), rama=(), destello=(), guardar=False,
-                    variables=(), rama_var=()):
+                    variables=(), rama_var=(), items=()):
     """Una página automática inventada: una ruta forzada, una espera, un tinte.
 
     No sale de ningún dato del juego, y ésa es la idea. El intérprete corre
@@ -3442,6 +3484,15 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
                 continue
             codigo += _compilar(lcf.EventCommand(
                 CONTROL_VARS, 0, "", [0, v, v, operacion, clase, a, b]), None)
+    if items:
+        # ChangeItems, de a dos números —ítem y cuánto, con signo— por el
+        # mismo `_compilar` que el juego.
+        import lcf
+        for k in range(0, len(items), 2):
+            numero, cuanto = items[k:k + 2]
+            codigo += _compilar(lcf.EventCommand(
+                CHANGE_ITEMS, 0, "", [1 if cuanto < 0 else 0, 0, numero, 0,
+                                      abs(cuanto)]), None)
     if rama_var:
         # (variable, comparación, valor, adentro, después): la rama por
         # variable, como `rama` pero con OP_SI_VAR. Existe porque en los mapas
@@ -3929,6 +3980,16 @@ def ejecutar(codigo, estado, desde=0):
                 i += 7
             else:
                 i = codigo[i + 5] | (codigo[i + 6] << 8)
+        elif op == OP_ITEM:
+            # `Game_Party::AddItem`: suma y recorta a [0, ITEM_MAX], y pide el
+            # refresco, como `CommandChangeItems`. La ROM hace lo mismo en
+            # `op_item`.
+            numero = codigo[i + 1] | (codigo[i + 2] << 8)
+            delta = con_signo_byte(codigo[i + 3])
+            estado.items[numero] = max(0, min(ITEM_MAX,
+                                              estado.item(numero) + delta))
+            estado.refresco = True
+            i += 4
         elif op == OP_ORO:
             # `Game_Party::GainGold`: suma y recorta a [0, ORO_MAX].
             monto = (codigo[i + 2] | (codigo[i + 3] << 8)
@@ -4371,7 +4432,7 @@ def paginas_del_mapa(game_map, indice_de_mapa, mensajes=None, temas=None,
                     "evento": numero_evento, "pagina": numero_pagina,
                     "trigger": page.trigger,
                     "switch_a": SWITCH_IMPOSIBLE, "switch_b": 0, "actor": 0,
-                    "variable": None,
+                    "variable": None, "item": 0,
                     "capa": page.layer, "frecuencia": page.move_frequency,
                     "velocidad": page.move_speed, "codigo": None,
                     "ruta_propia": None, "grafico": None, "tile_pasa": None,
@@ -4392,6 +4453,7 @@ def paginas_del_mapa(game_map, indice_de_mapa, mensajes=None, temas=None,
                 "variable": ((ranura_de_variable(cond.ids["variable"]),
                               cond.operator, cond.variable_value)
                              if "variable" in cond.active else None),
+                "item": cond.ids["item"] if "item" in cond.active else 0,
                 "capa": page.layer,
                 "frecuencia": page.move_frequency,
                 "velocidad": page.move_speed,

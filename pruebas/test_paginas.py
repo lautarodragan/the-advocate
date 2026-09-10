@@ -26,34 +26,31 @@ def paginas_de(map_id, evento_id):
             if p["evento"] == numero]
 
 
-def test_la_pagina_con_item_nunca_esta_activa_y_las_otras_si():
+def test_la_pagina_con_item_lleva_el_item():
     """EV0041 del mapa 8: tres páginas, la tercera por switches **y por un
-    ítem**. El port no tiene inventario, así que esa página no puede estar
-    activa nunca; antes eso tiraba el evento entero y el jugador no podía
-    hablarle.
-
-    Lo que se mira: la tercera lleva el switch que no se prende y ningún
-    código, y las dos primeras llevan su switch y su código. La ROM y la
-    referencia leen esta misma tabla, así que con esto alcanza para que las
-    dos elijan igual; que la elección se vea la cobra `snes-escena ... ev41`.
+    ítem**, el 90. Durante un día el port no tenía inventario y esa página se
+    emitía como "nunca activa"; desde el 2026-09-10 a la noche lleva el ítem y
+    la ROM mira su cuenta en `FAR_ITEMS`. Que la elección se vea la cobra
+    `cofre-llave` en rom/hitos.txt.
     """
     paginas = paginas_de(8, 41)
     assert len(paginas) == 3, "EV0041 tiene tres páginas y la tabla trae %d" \
         % len(paginas)
     primera, segunda, tercera = paginas
-    assert primera["switch_a"] == 24 and primera["codigo"]
-    assert segunda["switch_a"] == 38 and segunda["codigo"]
-    assert tercera["switch_a"] == eventos.SWITCH_IMPOSIBLE
-    assert tercera["switch_b"] == 0 and tercera["actor"] == 0
-    assert tercera["codigo"] is None and tercera["grafico"] is None
+    assert primera["switch_a"] == 24 and primera["codigo"] and not primera["item"]
+    assert segunda["switch_a"] == 38 and segunda["codigo"] and not segunda["item"]
+    assert tercera["switch_a"] == 53 and tercera["switch_b"] == 37
+    assert tercera["item"] == 90
+    assert tercera["codigo"], "la tercera compila: un mensaje y un MoveEvent"
+    assert eventos.Estado().item(90) == 0
 
 
 def test_la_condicion_por_variable_va_en_la_pagina():
     """El KeyChest del mapa 133: la primera página pide la variable 123 >= 8,
     la segunda un switch y la tercera un ítem. La tabla lleva la ranura, la
-    comparación y el valor de la primera, nada en la segunda, y la tercera
-    sigue siendo la que no se activa nunca. Que la ROM elija con eso lo cobra
-    `snes-vars 133 ... cofre` en rom/hitos.txt."""
+    comparación y el valor de la primera, nada en la segunda, y el ítem en la
+    tercera. Que la ROM elija con eso lo cobra `snes-vars 133 ... cofre` en
+    rom/hitos.txt."""
     eventos.indexar_variables(GAME_DIR)
     paginas = paginas_de(133, 2)
     assert len(paginas) == 3
@@ -61,8 +58,8 @@ def test_la_condicion_por_variable_va_en_la_pagina():
     assert primera["variable"] == (eventos.ranura_de_variable(123),
                                    eventos.CMP_MAYOR_IGUAL, 8)
     assert segunda["variable"] is None and segunda["switch_a"] == 411
-    assert tercera["switch_a"] == eventos.SWITCH_IMPOSIBLE \
-        and tercera["variable"] is None
+    assert tercera["item"] == 151 and tercera["variable"] is None \
+        and tercera["switch_a"] == 0
     assert eventos.SWITCH_IMPOSIBLE not in range(1, 1004), (
         "el juego consulta switches hasta el 1003")
 

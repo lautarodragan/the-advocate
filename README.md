@@ -3176,17 +3176,27 @@ aporta cuatro, así que a partir de nueve personajes juntos se pierden los
 últimos. No tiene arreglo; se declara y se excluyen esas líneas de la
 comparación.
 
-### Lo que una condición de ítem hace, y lo que no
+### El inventario, y lo que una condición de ítem hace
 
 RM2k elige la página de número más alto cuyas condiciones se cumplen. Las de
-switch y de actor en el grupo la ROM las evalúa; las de **ítem** no puede,
-porque no hay inventario. Pero sí sabe una cosa: `ChangeItems` se acepta sin
-hacer nada, así que el grupo **no tiene ningún ítem nunca**, y una página que
-pida uno no está activa jamás. Desde el 2026-09-10 esa página se emite con
-`switch_a = SWITCH_IMPOSIBLE` —un switch que nadie prende— sin código ni
-gráfico, y las demás páginas del evento corren como corresponde. Antes el
-evento entero quedaba afuera: no se dibujaba, no frenaba y no disparaba. Son
-45 eventos; EV0041 del mapa 8 es uno.
+switch y de actor en el grupo la ROM las evalúa desde siempre; las de **ítem**
+desde el 2026-09-10 a la noche, cuando apareció el inventario. Un byte por
+ítem del LDB —450, `ITEMS_N` los cuenta con el 0 que no se usa— en la RAM
+lejana, `FAR_ITEMS`, indexado por el número de RM2k; `ChangeItems` compila a
+`OP_ITEM` con el ítem y cuánto se suma, con signo, y la cuenta queda en
+[0, 99] como `Game_Party::AddItem`. El juego lo usa 509 veces, siempre con
+ítem y cantidad constantes. Cambiar un ítem pide el refresco de páginas, como
+`CommandChangeItems`. La página lleva el ítem que pide en +28 y
+`condiciones_ok` mira que la cuenta no sea cero —`GetItemCount`, sin equipo
+todavía—. El inventario viaja en la partida, que por eso mide 773 bytes y las
+ranuras de SRAM van cada 1024.
+
+Durante un día, antes de eso, la página con ítem se emitía con `switch_a =
+SWITCH_IMPOSIBLE` —un switch que nadie prende— porque `ChangeItems` se
+aceptaba sin hacer nada y el grupo no tenía ítems jamás; la máquina quedó en
+`rm2k.CONDICIONES_IMPOSIBLES`, vacía. Y antes de eso el evento entero quedaba
+afuera: no se dibujaba, no frenaba y no disparaba. Son 45 eventos; EV0041 del
+mapa 8 es uno.
 
 **La condición por variable se evalúa** desde el 2026-09-10 a la noche: la
 página lleva la ranura, la comparación y el valor (+24 a +27, `PAGINA_BYTES`

@@ -144,6 +144,11 @@ FAR_PAR_LISTA  = $2400      ; PARALELO_MAX índices de evento
 ; partida: `partida_tabla` las copia desde acá, que el DMA alcanza igual que
 ; el banco 0 porque WMADD es una dirección de diecisiete bits.
 FAR_VARIABLES  = $2600
+; Y el inventario, después de las variables —que son hasta 256, el conversor
+; lo garantiza—: un byte por ítem del LDB, indexado por el número de RM2k —el
+; 0 no se usa— y topado en ITEM_MAX, como `Game_Party::AddItem`. Viaja en la
+; partida y se limpia con las variables.
+FAR_ITEMS      = $2800
 ; Y el estado del azar, dos bytes antes: un xorshift de dieciséis bits, el
 ; mismo que `azar_siguiente` en eventos.py, sembrado en el reset. Va acá y no
 ; en la página directa porque la página directa quedó en 258 de 256 al
@@ -3100,9 +3105,10 @@ cumple:
     jsr en_el_grupo
     beq falla8
 mirar_var:
-    ; Y la variable, que se lee de la tabla y no de una copia —la BSS está
-    ; llena—: +24 la ranura o $FF por "no pide ninguna", +25 cómo se compara y
-    ; +26 contra qué. Es la misma comparación con signo de
+    ; Y el ítem y la variable, que se leen de la tabla y no de una copia —la
+    ; BSS está llena—: +28 el ítem o 0, y +24 la ranura o $FF por "no pide
+    ; ninguna", +25 cómo se compara y +26 contra qué. Es la misma comparación
+    ; con signo de
     ; `ConditionalBranch`, `comparar_var`, con los mismos seis códigos: RM2k
     ; usa `CheckOperator` para las dos. Pisa X e Y, como ya lo hacía
     ; `switch_encendido`.
@@ -3111,8 +3117,27 @@ mirar_var:
 .a16
     tya
     clc
-    adc #24
+    adc #28
     tay
+    lda [pag_ptr], y            ; +28 el ítem que pide, o 0
+    beq sin_item
+    ; Con el inventario en la RAM lejana: la cuenta del ítem, y con cero no
+    ; está. Es `GetItemCount(id) + GetEquippedItemCount(id)` sin equipo.
+    clc
+    adc #FAR_ITEMS
+    sta WMADDL
+    sep #$20
+.a8
+    stz WMADDH
+    lda WMDATA
+    beq falla8
+    rep #$20
+.a16
+sin_item:
+    tya
+    sec
+    sbc #4
+    tay                         ; +24
     sep #$20
 .a8
     lda [pag_ptr], y            ; +24 la ranura
@@ -3475,6 +3500,9 @@ otro:
 :   cmp #OP_ORO
     bne :+
     jmp op_oro
+:   cmp #OP_ITEM
+    bne :+
+    jmp op_item
 :   cmp #OP_GUARDAR
     bne :+
     jmp op_guardar
@@ -3735,6 +3763,58 @@ oro_tope:
     sta oro + 2
 oro_listo:
     ply
+    jmp otro
+
+; `ChangeItems`: el ítem de dieciséis bits y cuánto se suma, con signo. Es
+; `Game_Party::AddItem`: la cuenta queda en [0, ITEM_MAX]. Y como cambiar
+; un ítem puede cambiar qué página está activa, pide el refresco: RM2k hace
+; `SetNeedRefresh(true)` tras cada ChangeItems.
+op_item:
+.a8
+.i16
+    rep #$20
+.a16
+    lda [cod_ptr], y            ; el ítem
+    clc
+    adc #FAR_ITEMS
+    sta WMADDL
+    sta temp + 2                ; el puerto avanza al leer y no se puede leer
+    iny                         ; de vuelta: se guarda la dirección
+    iny
+    sep #$20
+.a8
+    stz WMADDH
+    lda [cod_ptr], y            ; cuánto, con signo
+    iny
+    sta temp
+    lda WMDATA                  ; la cuenta que había
+    clc
+    adc temp
+    bit temp
+    bmi item_resto
+    ; Sumó: si se pasó de ITEM_MAX —o dio la vuelta— queda en el tope.
+    bcs item_tope
+    cmp #(ITEM_MAX + 1)
+    bcc item_guardar
+item_tope:
+    lda #ITEM_MAX
+    bra item_guardar
+item_resto:
+    ; Restó: sin acarreo se fue abajo de cero, y queda en cero.
+    bcs item_guardar
+    lda #0
+item_guardar:
+    pha
+    rep #$20
+.a16
+    lda temp + 2                ; el puerto avanzó al leer: se vuelve
+    sta WMADDL
+    sep #$20
+.a8
+    pla
+    sta WMDATA
+    lda #1
+    sta refresco
     jmp otro
 
 ; El salto sin condición que el conversor pone donde estaba el `else`, para que
@@ -4563,9 +4643,9 @@ op_teleport:
     rts
 .endproc
 
-; Todas en cero, la semilla del azar puesta y la velocidad del héroe en 4.
-; Corre en el reset, antes de cargar la partida. Los tres viven seguidos en la
-; RAM lejana, así que es una sola pasada por el puerto.
+; Todas en cero, la semilla del azar puesta, la velocidad del héroe en 4 y el
+; inventario vacío. Corre en el reset, antes de cargar la partida. Los cuatro
+; viven seguidos en la RAM lejana, así que es una sola pasada por el puerto.
 .proc limpiar_variables
 .a8
 .i16
@@ -4573,7 +4653,9 @@ op_teleport:
 .a16
     lda #FAR_HERO_VEL
     sta WMADDL
-    ldx #(VARIABLES_N * 2)
+    ; Hasta el final del inventario, con el hueco que haya entre las
+    ; variables y él: es una pasada en el reset y no importa.
+    ldx #(FAR_ITEMS + ITEMS_N - FAR_HERO_VEL - 3)
     sep #$20
 .a8
     stz WMADDH
@@ -8584,7 +8666,7 @@ SRAM_RANURAS = 4
 ; vez que se agrega un campo a la partida —ya pasó con la música—. El
 ; ensamblador no lo puede cortar, así que lo cuida
 ; `pruebas/test_guardar.py::test_las_cuatro_ranuras_entran_en_la_sram`.
-SRAM_STRIDE = 512
+SRAM_STRIDE = 1024
 
 ; Y dentro de cada ranura, contando desde su base. `SRAM_MAGIA` sigue siendo
 ; $0100 y no $0000 por lo de siempre: un operando que entra en un byte lo
@@ -8619,13 +8701,14 @@ partida_tabla:
     ; conversor lo garantiza— porque un largo cero terminaría la tabla acá.
     .word FAR_VARIABLES, VARIABLES_N * 2
     .word FAR_HERO_VEL, 1       ; la velocidad del héroe, que las rutas cambian
+    .word FAR_ITEMS, ITEMS_N    ; el inventario
     .word 0, 0
 ; Los mismos largos, sumados, para poder recorrer la partida en la SRAM sin
 ; volver a mirar la tabla. Está duplicado a propósito y **la ROM lo comprueba**:
 ; `guardar_partida` compara con lo que le quedó a `partida_copiar` y si no dan
 ; iguales entra en pánico. Duplicar un número que nadie verifica es la forma de
 ; error que este repo ya pagó tres veces.
-PARTIDA_BYTES = 2 + 2 + 1 + 2 + 2 + 1 + 6 + 3 + 1 + 5 + 3 + SWITCH_BYTES + 1 + 2 + VARIABLES_N * 2 + 1
+PARTIDA_BYTES = 2 + 2 + 1 + 2 + 2 + 1 + 6 + 3 + 1 + 5 + 3 + SWITCH_BYTES + 1 + 2 + VARIABLES_N * 2 + 1 + ITEMS_N
 ; Dónde cae el grupo adentro de la partida: después de la posición, la
 ; dirección, la celda y el mapa. Lo lee la pantalla de ranuras desde la SRAM
 ; para poner el nombre del líder y las caras. Es la misma suma que arriba,
@@ -8637,11 +8720,12 @@ PARTIDA_GRUPO_N = PARTIDA_GRUPO + 4
 ; Pone la ranura con la que van a trabajar `guardar_partida` y `cargar_partida`,
 ; y calcula su desplazamiento. A trae el número de ranura.
 ;
-; El desplazamiento es la ranura por 512, o sea un `xba` y un `asl`: de ahí
-; sale que `SRAM_STRIDE` valga 512 y no el largo justo de una partida.
+; El desplazamiento es la ranura por 1024, o sea un `xba` y dos `asl`: de ahí
+; sale que `SRAM_STRIDE` valga 1024 y no el largo justo de una partida.
 ; Multiplicar por ese largo pediría el multiplicador del hardware y ocho
 ; ciclos de espera, para ahorrar unos bytes de una SRAM que sobra. Era 256
-; hasta que las 81 variables del juego entraron en la partida.
+; hasta que las 81 variables del juego entraron en la partida, y 512 hasta el
+; inventario; cuatro ranuras son la mitad de los 8 KB.
 .proc poner_ranura
 .a8
 .i16
@@ -8652,7 +8736,7 @@ PARTIDA_GRUPO_N = PARTIDA_GRUPO + 4
 ; El desplazamiento de la ranura en la SRAM, en X. **Pide el banco de datos
 ; normal**: lee `ranura`, que vive en la WRAM.
 ;
-; Es la ranura por 512, o sea un `xba` y un `asl`: ver `poner_ranura`.
+; Es la ranura por 1024, o sea un `xba` y dos `asl`: ver `poner_ranura`.
 .proc ranura_en_x
 .a8
 .i16
@@ -8661,7 +8745,8 @@ PARTIDA_GRUPO_N = PARTIDA_GRUPO + 4
     lda ranura
     and #$00FF
     xba                         ; por 256...
-    asl a                       ; ...y por dos: SRAM_STRIDE, que es 512
+    asl a
+    asl a                       ; ...y por cuatro: SRAM_STRIDE, que es 1024
     tax
     sep #$20
 .a8
@@ -9570,16 +9655,18 @@ listo:
     rts
 
 ; El actor que está en el lugar `titulo_flancos` del grupo de la ranura, leído
-; de la SRAM. Devuelve A y se lleva X. El desplazamiento es la ranura por 512
+; de la SRAM. Devuelve A y se lleva X. El desplazamiento es la ranura por 1024
 ; —`SRAM_STRIDE`— más el lugar, armado con dos `xba` y sin tocar los vecinos
 ; de la página directa: leer `titulo_flancos` a dieciséis bits se llevaría
-; `menu_abierto`. El byte alto es la ranura por dos, que entra: son cuatro.
+; `menu_abierto`. El byte alto es la ranura por cuatro, que entra: son cuatro
+; ranuras.
 actor_del_miembro:
     lda titulo_flancos
     xba
     lda ranura
     asl a
-    xba                         ; C = ranura * 512 + lugar
+    asl a
+    xba                         ; C = ranura * 1024 + lugar
     rep #$20
 .a16
     tax
@@ -16239,7 +16326,7 @@ done:
     .byte $20                      ; LoROM, velocidad lenta
     .byte $02                      ; ROM y RAM con batería: la partida guardada
     .byte $0A                      ; tamaño: 1 MB (el byte es log2 de los KB)
-    .byte $03                      ; SRAM: 8 KB, y se usan cuatro ranuras de 512
+    .byte $03                      ; SRAM: 8 KB, y se usan cuatro ranuras de 1024
     .byte $01                      ; región
     .byte $00                      ; desarrollador
     .byte $00                      ; versión
