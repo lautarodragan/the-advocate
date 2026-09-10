@@ -914,6 +914,49 @@ limpia del upstream.
   ranura y sin menú. Está abajo, en lo que espera respuesta.
 
 
+## Cargar la partida: anda en dos emuladores y no en los otros dos
+
+taro lo trajo el 2026-09-10, y **el save quedó confirmado en hardware**: el FX
+Pak escribió `sd2snes/saves/demo-ciudad.srm`, 8192 B, y el volcado decodifica
+entero contra `partida_tabla` —magia `ABLS`, `mapa_actual` 7 que es el mapa 8,
+la celda 9,56 y los 100 creds—. Los `ff` de alrededor son la SRAM virgen: de
+los 8192 B se usan 260.
+
+**Lo que no anda es cargar.** Y la parte importante del dato de taro es dónde
+lo probó: `demo-ciudad`, que **no lleva pantalla de título**, en mednafen y con
+power cycle. O sea que el defecto no es del menú, que es lo que yo había
+supuesto al encontrarlo por mi lado con `pruebas/test_titulo.py`.
+
+Lo medido acá el 2026-09-10, y es lo que acota la búsqueda:
+
+    snes9x     `just pruebas` carga bien: test_guardar pasa entero
+    bsnes      también. Con NUCLEO=bsnes pasan 3 de 4, y el que falla es
+               `test_la_sram_queda_escrita`, que falla porque bsnes **no
+               expone la SRAM** al frontend, no por la carga
+    mednafen    no carga: arranca desde el principio (taro)
+    hardware    tampoco (taro)
+
+Es el mismo patrón que el brillo de `INIDISP`, al revés: **los dos con los que
+corre la tanda son los que perdonan**, y los dos que no perdonan son los que
+no se pueden correr acá adentro —el core de mednafen no está en
+`/usr/lib/libretro`, por eso `snes-mednafen` va desde el host—. Con lo cual la
+red que este repo tiene montada **no puede ver este defecto**, y por eso lo
+encontró taro jugando: son ya tres de esa clase.
+
+Por dónde empezar la próxima vuelta:
+
+* **Correr `test_guardar` con mednafen**, desde el host, que es lo único que
+  convierte esto de un reporte en un caso. Es un `NUCLEO=<el .so de mednafen>
+  just pruebas`; el resto de la maquinaria ya está.
+* El sospechoso natural es **cómo se lee la SRAM**, no cómo se escribe:
+  escribir anda en los cuatro. `partida_suma` la lee con `lda $0000, x` y el
+  banco de datos en `$70`, que es direccionamiento absoluto y no DMA; el DMA de
+  carga va de A a B, al revés que el de guardar. Son dos caminos distintos y
+  sólo el de guardar está probado en hardware.
+* Y hay que mirar si **el defecto del menú del título es éste mismo o es otro**.
+  `pruebas/test_titulo.py` lo ve en snes9x, donde el del arranque no se ve, así
+  que probablemente sean dos.
+
 ## Esperando respuesta de taro
 
 * **Si el save point tiene que avisar que guardó.** Hoy no dice nada: la

@@ -62,7 +62,10 @@ def test_el_reloj_del_juego_no_corre_en_el_titulo(partida):
     "es cuándo corre cargar_partida: en el arranque es a los microsegundos del "
     "reset, y desde el menú es después de cargar_mapa, flush_video y la subida "
     "al SPC700. Se descartó que sea el banco de datos: con un phk/plb delante "
-    "pasa lo mismo. Está anotado en ESTADO.md"))
+    "pasa lo mismo. Ojo que hay un segundo defecto de carga, y puede que no "
+    "sea éste: en mednafen y en hardware la partida tampoco se carga en el "
+    "arranque, sin pantalla de título de por medio, y eso snes9x y bsnes lo "
+    "perdonan. Los dos están en ESTADO.md"))
 def test_seguir_la_historia_carga_la_partida(partida):
     """'Resume the Story' carga la partida de la SRAM.
 
