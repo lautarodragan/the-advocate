@@ -66,6 +66,13 @@ class Simbolos:
                 "no existe." % (nombre, self.ruta)) from None
 
 
+# Cuántos cuadros se le dan a la pantalla de título para llegar a su lazo antes
+# de apretarle nada. No es un número medido al filo: es aire de sobra para los
+# 33 KB que sube a la VRAM, y la pantalla se queda quieta hasta que alguien
+# aprieta, así que pasarse no cuesta nada.
+TITULO_AIRE = 30
+
+
 class Partida:
     """La ROM corriendo, con el arranque ya pasado.
 
@@ -82,7 +89,7 @@ class Partida:
     `tools/snes_correr.py`.
     """
 
-    def __init__(self, sfc, simbolos, mapas, switches=()):
+    def __init__(self, sfc, simbolos, mapas, switches=(), titulo=None):
         self.simbolos = simbolos
         # Los ids de mapa de RM2k en el orden de la tabla de la ROM, que es lo
         # que `mapa_actual` indexa. Sale del `mapdata.inc` generado y no de
@@ -100,6 +107,11 @@ class Partida:
         # en `snes_correr.py`. Contándolo, cada toque caía ciento quince
         # cuadros antes de tiempo y la escena no avanzaba.
         self.consola.correr(self.simbolos["BOOT_CUADROS"])
+        # Con pantalla de título el arranque no termina en el mapa sino en el
+        # menú, y el primer cuadro de juego es el de después de elegir.
+        self.titulo = titulo
+        if titulo is not None:
+            self.pasar_el_titulo(titulo)
         # Los switches se escriben **antes del primer cuadro de juego**, no
         # después: mientras dura el arranque el mapa está congelado y no corre
         # ninguna página, así que acá el estado inicial llega a tiempo para
@@ -109,16 +121,44 @@ class Partida:
             self.prender(*switches)
         self.consola.correr(3)
 
-    def reiniciar(self):
+    def pasar_el_titulo(self, opcion):
+        """Baja el cursor hasta `opcion` y aprieta A.
+
+        Los botones se sueltan entre toque y toque porque el menú del título
+        mira **flancos**: sostener abajo no baja un renglón por cuadro, que es
+        el `Input::IsTriggered` de RM2k y lo que la tanda comprueba en pixeles.
+        """
+        # Unos cuadros de aire primero: `pantalla_titulo` corre **después** de
+        # que el arranque contó sus BOOT_CUADROS, y antes de llegar a su lazo
+        # sube 33 KB a la VRAM con la pantalla apagada. Un toque en el cuadro
+        # BOOT_CUADROS justo cae ahí y se pierde.
+        self.consola.correr(TITULO_AIRE)
+        for _ in range(opcion):
+            self.consola.apretar("down")
+            self.consola.correr(2)
+            self.consola.apretar()
+            self.consola.correr(2)
+        self.consola.apretar("a")
+        self.consola.correr(2)
+        self.consola.apretar()
+        self.consola.correr(2)
+
+    def reiniciar(self, opcion=None):
         """El botón de reset: la SRAM del cartucho sobrevive y la WRAM no.
 
         Es la única forma honesta de probar que una partida guardada se carga:
         volver a arrancar la consola de verdad, con el mismo cartucho, y mirar
         dónde queda parada. Escribirle la RAM a mano probaría otra cosa.
+
+        Con pantalla de título hay que volver a elegir, y `opcion` dice qué:
+        sin ella se repite la de la vez anterior.
         """
         self.consola.reset()
         self.cuadro = 0
         self.consola.correr(self.simbolos["BOOT_CUADROS"])
+        elegir = self.titulo if opcion is None else opcion
+        if elegir is not None:
+            self.pasar_el_titulo(elegir)
         self.consola.correr(3)
         return self
 
@@ -307,7 +347,7 @@ def huella():
 
 
 def armar(map_id, mapas=(), con_ventana=True, destino=None, rama=(),
-          descartar=False, guardar=0):
+          descartar=False, guardar=0, titulo=False):
     """Convierte, ensambla y devuelve (ROM, símbolos, ids de mapa en orden).
 
     Los mismos dos comandos que corre el justfile, para que una ROM de prueba
@@ -347,6 +387,11 @@ def armar(map_id, mapas=(), con_ventana=True, destino=None, rama=(),
         convertir += ["--guardar-de-prueba", "--pagina-de-prueba", str(guardar)]
     if con_ventana:
         convertir.append("--con-ventana")
+    if titulo:
+        # La pantalla de título, que cambia el arranque: la ROM no carga la
+        # partida sola y espera a que el menú lo decida. Va en su propio
+        # cartucho justamente por eso.
+        convertir.append("--con-titulo")
     if descartar:
         # Esta ROM descarta algún evento que cambia de gráfico y el conversor
         # corta si no se le dice que siga; ver `aviso_de_descarte`. Se pide por

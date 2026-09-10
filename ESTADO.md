@@ -20,7 +20,9 @@ Se escribe **mientras se trabaja**, no al final.
 a vuelta en el emulador.
 
 Al 2026-09-10: `just snes-hitos-foto` son **97 casos, todos en verde** —el
-número 97 es la pantalla de título— y `just pruebas` son **39 en verde**. Ese mismo día la ROM corrió por primera vez en la **SNES de verdad**
+número 97 es la pantalla de título— y `just pruebas` son **42 en verde y 2
+`xfail`**. Los dos `xfail` no son adorno: son dos defectos medidos de la carga
+de partida desde el menú del título, y están abajo. Ese mismo día la ROM corrió por primera vez en la **SNES de verdad**
 con el FX Pak, con el cartucho ya expandido a 1 MB, y anduvo. `demo-ciudad` se juega desde la apertura hasta la
 calle de Lashe City, con los relámpagos, los autos y los NPCs andando, **el agua
 moviéndose** y el save point animado y guardando.
@@ -173,9 +175,36 @@ pasando lo de siempre.
   no hace falta componer texto en caliente. Medido sobre el menú: 4 ranuras por
   2 variantes, a 24 celdas por 2 filas, son unos 400 tiles de 4bpp, 12800 B.
   Entra sin discusión, y esa pantalla ni siquiera lleva la imagen.
-* **Hoy "Resume the Story" carga la ranura única que ya existe**, la misma que
-  escribe el save point. O sea que cargar de verdad **ya anda**; lo que falta es
-  que haya cuatro y que se pueda elegir.
+* **Cargar no anda todavía, y el commit anterior decía que sí.** Lo encontró
+  `pruebas/test_titulo.py`, que es justo el caso que ese commit no tenía. El
+  síntoma, medido el 2026-09-10: se guarda con el switch 7 prendido, la SRAM
+  queda con la magia `ABLS` y el switch adentro, se resetea la consola de
+  verdad, se elige "Resume the Story" —`titulo_sel` vale 1, así que la opción
+  es la correcta— y el switch **no vuelve**.
+
+  Lo que se sabe: **sin** pantalla de título el mismo cartucho carga solo en el
+  arranque y el switch sí vuelve, que es lo que hace `test_guardar`. Lo único
+  que cambió es **cuándo** corre `cargar_partida`: en el arranque es a los
+  microsegundos del reset, y desde el menú es después de `cargar_mapa`,
+  `flush_video` y la subida al SPC700. Se descartó que sea el banco de datos:
+  con un `phk`/`plb` delante pasa exactamente lo mismo, así que ese código no
+  quedó —agregarlo sin evidencia habría sido ruido—.
+
+  Queda como `xfail(strict=True)` y no como comentario: el día que se arregle,
+  la prueba falla y obliga a sacar la marca.
+
+* **Y un segundo defecto del mismo vecindario**, encontrado buscando el
+  primero: con pantalla de título, **irse de mapa antes de guardar deja la
+  partida sin guardar**. Quedándose en el mapa de arranque la SRAM tiene la
+  magia a las ~400 vueltas; con un `ir_al_mapa(6)` en el medio sigue sin
+  tenerla a las 491. Sin pantalla de título ese camino guarda. El sospechoso es
+  el **doble `cargar_mapa`**: con título el mapa se carga una vez en el arranque
+  y otra al salir del menú, y eso no pasaba antes. También queda como
+  `xfail(strict=True)`.
+
+  Los dos son el mismo vecindario y conviene mirarlos juntos: **son lo primero
+  de la próxima vuelta**, antes que las cuatro ranuras. Una pantalla de ranuras
+  sobre una carga que no carga no sirve de nada.
 
 ### Lo próximo, si no se decide otra cosa
 
