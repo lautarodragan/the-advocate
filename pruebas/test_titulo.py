@@ -69,7 +69,7 @@ def test_seguir_la_historia_carga_la_partida(partida):
     """
     una = partida(titulo=EMPEZAR, guardar=ESPERA)
     una.prender(7)
-    una.correr(ESPERA + 60)
+    una.guardar_en()
     assert una.sram(0x100, 4) == b"ABLS", "la partida no llegó a guardarse"
 
     una.reiniciar(SEGUIR)
@@ -105,7 +105,7 @@ def test_irse_de_mapa_antes_de_guardar_no_guarda(partida):
     una = partida(titulo=EMPEZAR, guardar=ESPERA)
     una.ir_al_mapa(6, 20, 30)
     una.prender(7)
-    una.correr(ESPERA + 60)
+    una.guardar_en()
     assert una.sram(0x100, 4) == b"ABLS", "la partida no llegó a guardarse"
 
 
@@ -121,7 +121,7 @@ def test_empezar_ignora_la_partida_guardada(partida):
     una = partida(titulo=EMPEZAR, guardar=ESPERA)
     una.ir_al_mapa(6, 20, 30)
     una.prender(7)
-    una.correr(ESPERA)
+    una.guardar_en()
 
     una.reiniciar(EMPEZAR)
     assert una.mapa() == MAPA_DE_ARRANQUE, (
@@ -152,7 +152,7 @@ def test_la_musica_viaja_en_la_partida(partida):
     assert not una.byte("music_apagada"), (
         "esta ROM tenía que arrancar con un tema sonando y arrancó callada: "
         "sin eso el caso no compara nada")
-    una.correr(ESPERA + 60)
+    una.guardar_en()
     assert una.sram(0x100, 4) == b"ABLS", "la partida no llegó a guardarse"
 
     # Los tres últimos bytes de la partida son las dos entradas nuevas de
@@ -178,7 +178,7 @@ def test_la_partida_cargada_arranca_con_su_musica(partida):
     misma trampa que escondió el bug de página directa de `partida_suma`.
     """
     una = partida(titulo=EMPEZAR, guardar=ESPERA, tema="escape_newyork")
-    una.correr(ESPERA + 60)
+    una.guardar_en()
     assert una.sram(0x100, 4) == b"ABLS", "la partida no llegó a guardarse"
     sonaba = una.palabra("tema_actual")
 
@@ -195,3 +195,28 @@ def test_la_partida_cargada_arranca_con_su_musica(partida):
     assert una.palabra("tema_actual") == sonaba, (
         "volvió sonando el tema %d en vez del %d que estaba guardado"
         % (una.palabra("tema_actual"), sonaba))
+
+
+def test_la_pantalla_de_ranuras_carga_la_que_se_elige(partida):
+    """Elegir la ranura 1 carga la 1, y elegir una vacía no carga nada.
+
+    Es lo que distingue cuatro ranuras de una sola disfrazada de cuatro: si el
+    número que elige el cursor no llegara hasta `cargar_partida`, la primera
+    mitad de este caso pasaría igual —hay una partida y se carga— y sólo la
+    segunda lo delataría. Por eso están las dos.
+    """
+    una = partida(titulo=EMPEZAR, guardar=ESPERA)
+    una.prender(7)
+    una.guardar_en(1)                   # se elige la segunda en la pantalla
+    base = una.simbolos["SRAM_MAGIA"] + una.simbolos["SRAM_STRIDE"]
+    assert una.sram(base, 4) == b"ABLS", "no quedó nada en la ranura 1"
+
+    # La ranura 1 tiene la partida: elegirla la carga.
+    una.reiniciar(SEGUIR, ranura=1)
+    assert una.switch(7), (
+        "se eligió la ranura 1, que tenía una partida, y no se cargó")
+
+    # Y la 0 está vacía: elegirla arranca de cero en vez de cargar la 1.
+    una.reiniciar(SEGUIR, ranura=0)
+    assert not una.switch(7), (
+        "se eligió la ranura 0, que está vacía, y se cargó la partida de otra")

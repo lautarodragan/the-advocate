@@ -1952,6 +1952,32 @@ snes-titulo nombre="titulo" mapa="4" mapas="1 2 3 5 6 7 8":
   python3 tools/snes_compare.py {{snes_pngs}}/{{nombre}}-2.png \
       {{snes_pngs}}/esperado-{{nombre}}-2.png \
       -o {{snes_pngs}}/comparacion-{{nombre}}-2.png
+  # La pantalla de ranuras, a la que se llega bajando el cursor a "Resume the
+  # Story" y apretando A. Dos cuadros: como se entra, y con el cursor dos
+  # ranuras más abajo. Van con --toques y no con --teclas porque el menú mira
+  # **flancos**: sostener abajo mueve el cursor una sola vez.
+  #
+  # Las cuatro salen vacías porque la SRAM del emulador arranca virgen. La
+  # variante "llena" no la cubre esta tanda —haría falta precargar un .srm— y
+  # la cubren las pruebas de estado, que sí pueden guardar antes de mirar.
+  python3 tools/titulo.py -o {{snes_pngs}}/esperado-{{nombre}}-ranuras.png \
+      --ranuras 4
+  python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} \
+      -o {{snes_pngs}}/{{nombre}}-ranuras.png --toques down:2 a:6 \
+      --cuadros 20 --arranque 150 --sin-contador
+  python3 tools/snes_compare.py {{snes_pngs}}/{{nombre}}-ranuras.png \
+      {{snes_pngs}}/esperado-{{nombre}}-ranuras.png \
+      -o {{snes_pngs}}/comparacion-{{nombre}}-ranuras.png
+  python3 tools/titulo.py -o {{snes_pngs}}/esperado-{{nombre}}-ranuras2.png \
+      --ranuras 4 --elegida 2
+  python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} \
+      -o {{snes_pngs}}/{{nombre}}-ranuras2.png \
+      --toques down:2 a:6 down:10 down:14 --cuadros 20 --arranque 150 \
+      --sin-contador
+  python3 tools/snes_compare.py {{snes_pngs}}/{{nombre}}-ranuras2.png \
+      {{snes_pngs}}/esperado-{{nombre}}-ranuras2.png \
+      -o {{snes_pngs}}/comparacion-{{nombre}}-ranuras2.png
+
   # Y un tercero: salir del título tiene que dejar el juego **idéntico** a la
   # misma ROM sin pantalla de título. Se pasa con START, que el juego no mira
   # para nada, así que sostenerlo no interfiere; y de ahí en más las dos ROMs

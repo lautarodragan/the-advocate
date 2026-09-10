@@ -121,19 +121,14 @@ class Partida:
             self.prender(*switches)
         self.consola.correr(3)
 
-    def pasar_el_titulo(self, opcion):
-        """Baja el cursor hasta `opcion` y aprieta A.
+    def _bajar_y_elegir(self, cuantas):
+        """`cuantas` toques de abajo y después A.
 
-        Los botones se sueltan entre toque y toque porque el menú del título
-        mira **flancos**: sostener abajo no baja un renglón por cuadro, que es
-        el `Input::IsTriggered` de RM2k y lo que la tanda comprueba en pixeles.
+        Los botones se sueltan entre toque y toque porque estos menús miran
+        **flancos**: sostener abajo no baja un renglón por cuadro, que es el
+        `Input::IsTriggered` de RM2k y lo que la tanda comprueba en pixeles.
         """
-        # Unos cuadros de aire primero: `pantalla_titulo` corre **después** de
-        # que el arranque contó sus BOOT_CUADROS, y antes de llegar a su lazo
-        # sube 33 KB a la VRAM con la pantalla apagada. Un toque en el cuadro
-        # BOOT_CUADROS justo cae ahí y se pierde.
-        self.consola.correr(TITULO_AIRE)
-        for _ in range(opcion):
+        for _ in range(cuantas):
             self.consola.apretar("down")
             self.consola.correr(2)
             self.consola.apretar()
@@ -143,7 +138,37 @@ class Partida:
         self.consola.apretar()
         self.consola.correr(2)
 
-    def reiniciar(self, opcion=None):
+    def pasar_el_titulo(self, opcion, ranura=0):
+        """Elige `opcion` en el menú del título, y `ranura` si hace falta.
+
+        La segunda opción —"Resume the Story"— abre **otra pantalla**, la de
+        ranuras, así que elegirla son dos menús y no uno. `ranura` dice cuál se
+        elige ahí; con la primera opción no se mira.
+        """
+        # Unos cuadros de aire primero: `pantalla_titulo` corre **después** de
+        # que el arranque contó sus BOOT_CUADROS, y antes de llegar a su lazo
+        # sube 33 KB a la VRAM con la pantalla apagada. Un toque en el cuadro
+        # BOOT_CUADROS justo cae ahí y se pierde. La pantalla de ranuras sube
+        # bastante menos, pero el aire no cuesta nada y se le da el mismo.
+        self.consola.correr(TITULO_AIRE)
+        self._bajar_y_elegir(opcion)
+        if opcion:
+            self.consola.correr(TITULO_AIRE)
+            self._bajar_y_elegir(ranura)
+
+    def guardar_en(self, ranura=0, espera=200):
+        """Corre hasta que la página de prueba guarde, en la ranura pedida.
+
+        El save point **todavía no abre el menú de guardado** —ver `op_guardar`
+        en main.s— así que la ranura se elige escribiéndola, que es lo mismo que
+        hace la ROM cuando la partida viene de una ranura cargada. El día que el
+        menú ande, esto pasa a atravesarlo y el resto de las pruebas no cambia.
+        """
+        self.poner_byte("ranura", ranura)
+        self.correr(espera + 60)
+        return self
+
+    def reiniciar(self, opcion=None, ranura=0):
         """El botón de reset: la SRAM del cartucho sobrevive y la WRAM no.
 
         Es la única forma honesta de probar que una partida guardada se carga:
@@ -158,7 +183,7 @@ class Partida:
         self.consola.correr(self.simbolos["BOOT_CUADROS"])
         elegir = self.titulo if opcion is None else opcion
         if elegir is not None:
-            self.pasar_el_titulo(elegir)
+            self.pasar_el_titulo(elegir, ranura)
         self.consola.correr(3)
         return self
 

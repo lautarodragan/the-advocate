@@ -4029,8 +4029,18 @@ fundir_nada:
 ; tools/eventos.py.
 ;
 ; **En qué ranura**: en la que se cargó la partida, y en la primera si la
-; partida es nueva —`ranura` en $FF—. Así las cuatro ranuras se pueden llenar
-; jugando desde ahora, sin esperar a que exista la pantalla que las muestra.
+; partida es nueva —`ranura` en $FF—. Así las cuatro se pueden llenar jugando.
+;
+; **Todavía no abre el menú de guardado**, que es lo que taro pidió el
+; 2026-09-09 y lo que hace RM2k. Se intentó el 2026-09-10 y no anda: llamar a
+; `ranuras_pantalla` desde acá dibuja una pantalla negra con basura, el cursor
+; no se mueve, y el testigo dice que **se entra 85 veces** en vez de una, o sea
+; que la rutina vuelve enseguida y el intérprete repite el comando. Desde el
+; título la misma rutina y el mismo modo andan perfecto —está comparada pixel
+; por pixel—, así que lo que falla es el contexto: entrar a un lazo que espera
+; el pad desde adentro del intérprete, que a su vez corre adentro del lazo
+; principal. Se descartaron el banco de datos y el tamaño de los registros,
+; poniendo los dos explícitos al entrar. Está anotado en ESTADO.md.
 op_guardar:
     phy
     lda ranura
@@ -8314,6 +8324,17 @@ no_hay:
     bne hay
     rts
 hay:
+    jsr titulo_subir
+    jmp titulo_lazo
+.endproc
+
+; Sube la pantalla de título entera —la imagen, el menú, los colores— y la
+; enciende. Está aparte del lazo porque hay dos caminos que llegan acá: entrar,
+; y **volver de la pantalla de ranuras después de cancelar**, que pisó la VRAM y
+; CGRAM con lo suyo.
+.proc titulo_subir
+.a8
+.i16
     lda #$80
     sta INIDISP                 ; blanking forzado: la VRAM sólo se toca así
     stz HDMAEN                  ; y sin la ventana de mensaje encima
@@ -8438,17 +8459,24 @@ hay:
     sta INIDISP                 ; y la pantalla encendida, al máximo
 
     ; El tema del título. $FF quiere decir que esta ROM no lo lleva —o que no
-    ; entró en la ARAM—, y entonces la pantalla se ve callada.
+    ; entró en la ARAM—, y entonces la pantalla se ve callada. Al volver de la
+    ; pantalla de ranuras el tema ya está sonando y `music_start` lo reinicia,
+    ; que es lo que hace RM2k al volver al título.
     lda #TEMA_TITULO
     cmp #$FF
     beq mudo
     jsr music_start
 mudo:
+    rts
+.endproc
 
-    ; El lazo. Arriba y abajo mueven el cursor por **flanco** y dando la
-    ; vuelta, igual que `eleccion_tick` con el ShowChoice: es el
-    ; `Window_Selectable::Update` de RM2k con una sola columna, y sostener
-    ; abajo no baja un renglón por cuadro.
+; El lazo del menú. Arriba y abajo mueven el cursor por **flanco** y dando la
+; vuelta, igual que `eleccion_tick` con el ShowChoice: es el
+; `Window_Selectable::Update` de RM2k con una sola columna, y sostener abajo no
+; baja un renglón por cuadro.
+.proc titulo_lazo
+.a8
+.i16
 espera:
     jsr wait_vblank
     jsr read_pad
@@ -8499,10 +8527,19 @@ elige:
     ; primera, que es lo que hace RM2k cuando no hay nada que cargar.
     lda titulo_sel
     beq salir
-    lda #0                      ; la primera, hasta que exista la pantalla de
-    jsr poner_ranura            ; ranuras que deje elegir cuál
+    ; 'Resume the Story': la pantalla de ranuras, en modo cargar. Si el jugador
+    ; cancela con B se vuelve al título, y como esa pantalla pisó la VRAM y
+    ; CGRAM hay que subirlo de nuevo entero.
+    lda #0
+    jsr ranuras_pantalla
+    cmp #$FF
+    bne la_elegida
+    jsr titulo_subir
+    jmp titulo_lazo
+la_elegida:
+    jsr poner_ranura
     jsr cargar_partida
-    beq salir
+    beq salir                   ; la ranura estaba vacía o la suma no cuadra
     jsr entrada_de_la_partida
     lda mapa_actual
     bra cargar_el_mapa
@@ -8606,6 +8643,344 @@ listo_musica:
     lda #$01
     sta MDMAEN
     rts
+.endproc
+
+; --- la pantalla de ranuras ------------------------------------------------
+;
+; La usan las dos puntas: "Resume the Story" en el título, y el save point de
+; Lashe City. Es una pantalla propia y no una capa encima del título, así que
+; **comparte la VRAM del menú**: cuando una se ve la otra no, y las dos se
+; suben enteras cada vez que se entra.
+;
+; Todo el texto viene pre-renderizado del conversor, incluidas las dos
+; variantes de cada ranura —vacía y llena—. Lo único que se decide en caliente
+; es qué bloque de celdas le toca a cada fila, y **de qué bloque se trata lo
+; dice una tabla de punteros**, no una multiplicación: calcular el
+; desplazamiento con corrimientos habría puesto la misma cuenta acá y en el
+; conversor, que es la forma de error que este repo ya pagó tres veces.
+;
+; Mover el cursor reescribe **dos filas** de 96 celdas, no el tilemap entero.
+
+; Si la ranura que viene en A tiene una partida. Devuelve A distinto de cero, y
+; **se lleva `ranura`**: el llamador la repone.
+;
+; Mira sólo la magia y no la suma: es para pintar la lista, y recorrer los 159
+; bytes de cada ranura para dibujar una pantalla sería pagar de más. La suma la
+; comprueba `cargar_partida` cuando el jugador elige, que es donde importa.
+.proc ranura_llena
+.a8
+.i16
+    jsr poner_ranura
+    jsr ranura_en_x             ; con el banco de datos todavía normal
+    phb
+    lda #SRAM_BANCO
+    pha
+    plb
+    lda SRAM_MAGIA, x
+    cmp #$41
+    bne no
+    lda SRAM_MAGIA + 1, x
+    cmp #$42
+    bne no
+    lda SRAM_MAGIA + 2, x
+    cmp #$4C
+    bne no
+    lda SRAM_MAGIA + 3, x
+    cmp #$53
+    bne no
+    plb
+    lda #$01
+    rts
+no:
+    plb
+    lda #$00
+    rts
+.endproc
+
+; Sube un bloque de celdas al tilemap. X trae el índice del bloque en
+; `ranura_bloque_lo/hi/bk`, Y la dirección de VRAM en palabras y `temp` cuántas
+; celdas son.
+;
+; Con la pantalla apagada al entrar y adentro del vblank al mover el cursor:
+; 192 bytes por DMA entran de sobra en un vblank que no tiene nada más que
+; hacer.
+.proc ranura_bloque_subir
+.a8
+.i16
+    sty VMADDL
+    lda #$80
+    sta VMAIN
+    lda ranura_bloque_lo, x
+    sta A1T0L
+    lda ranura_bloque_hi, x
+    sta A1T0L + 1
+    lda ranura_bloque_bk, x
+    sta A1B0
+    rep #$20
+.a16
+    lda temp
+    asl a                       ; celdas a bytes
+    sta DAS0L
+    sep #$20
+.a8
+    lda #$01
+    sta DMAP0
+    lda #$18
+    sta BBAD0
+    lda #$01
+    sta MDMAEN
+    rts
+.endproc
+
+; Pinta la fila de la ranura que viene en A: con cursor si `titulo_sel` la
+; señala, y llena si la SRAM dice que lo está.
+;
+; El estado de llenado se vuelve a preguntar en cada repintado en vez de
+; guardarse: son cuatro bytes de la SRAM y pasa sólo cuando el cursor se mueve.
+; Guardarlo pediría RAM que no hay —ver `ranura`— y una forma de invalidarlo
+; después de guardar.
+.proc ranura_pintar
+.a8
+.i16
+    pha
+    jsr ranura_llena
+    asl a                       ; llena vale 2 en el índice de variante
+    sta temp + 2
+    pla
+    pha
+    cmp titulo_sel
+    bne sin_cursor
+    inc temp + 2                ; y el cursor, 1
+sin_cursor:
+    ; El índice del bloque: las dos cabeceras primero, y después cuatro
+    ; variantes por ranura.
+    pla
+    pha
+    asl a
+    asl a
+    clc
+    adc temp + 2
+    clc
+    adc #RANURA_BLOQUE_FILAS
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    ; Y a dónde va, que lo dice la tabla y no una cuenta.
+    pla
+    rep #$20
+.a16
+    and #$00FF
+    asl a                       ; dos bytes por entrada
+    tay
+    lda ranura_vram, y
+    tay
+    lda #RANURA_CELDAS
+    sta temp
+    sep #$20
+.a8
+    jmp ranura_bloque_subir
+.endproc
+
+; La pantalla entera: la sube, la muestra y la maneja hasta que el jugador
+; elija o cancele. A trae el modo —0 cargar, 1 guardar— y vuelve con la ranura
+; elegida, o **$FF si canceló con B**.
+;
+; Deja la VRAM y CGRAM pisadas, así que el llamador repone lo suyo: el título
+; vuelve a subir su imagen y su menú, y el save point recarga el mapa. Es lo
+; mismo que hace `pantalla_titulo` al salir, y por la misma razón: mientras esta
+; pantalla se ve no hay ni mapa ni título que preservar.
+.proc ranuras_pantalla
+.a8
+.i16
+    ; El banco de datos, al 0. **Desde el título ya lo es; desde el save point
+    ; no tiene por qué**: el intérprete corre con el banco puesto donde vive el
+    ; bytecode del evento. Y todo lo de acá abajo escribe los registros del PPU
+    ; y del DMA con direccionamiento absoluto, que usa el banco de datos, así
+    ; que con el banco corrido la pantalla se dibujaba en negro con basura
+    ; arriba.
+    phb
+    phk
+    plb
+    ; Y el tamaño de los registros, explícito. Desde el título se llega con A
+    ; de ocho bits y X/Y de dieciséis; **desde el intérprete no hay tal
+    ; promesa**, y una `lda #$80` interpretada como de dieciséis bits se come el
+    ; byte siguiente y descoloca todo lo que sigue.
+    sep #$20
+    rep #$10
+    pha                         ; el modo, hasta que se dibuje la cabecera
+    lda #$80
+    sta INIDISP
+    stz HDMAEN
+    stz TM                      ; nada a la vista mientras se arma
+
+    ; --- los tiles ---
+    lda #$80
+    sta VMAIN
+    rep #$20
+.a16
+    lda #TITULO_MENU_VRAM
+    sta VMADDL
+    lda #(RANURA_TILES * 32)
+    sta DAS0L
+    lda #<(ranura_tiles)
+    ora #(>(ranura_tiles) * 256)
+    sta A1T0L
+    sep #$20
+.a8
+    lda #^(ranura_tiles)
+    sta A1B0
+    lda #$01
+    sta DMAP0
+    lda #$18
+    sta BBAD0
+    lda #$01
+    sta MDMAEN
+
+    ; --- el tilemap, en blanco ---
+    ; Un DMA con la dirección de origen **fija** —el bit 3 de DMAP— repitiendo
+    ; una palabra en cero. El origen es el primer tile del banco, que es el
+    ; transparente y por lo tanto son 32 bytes de cero: no hace falta un bloque
+    ; aparte para tener dos ceros a mano.
+    rep #$20
+.a16
+    lda #TITULO_MENU_MAP
+    sta VMADDL
+    lda #(32 * 32 * 2)
+    sta DAS0L
+    lda #<(ranura_tiles)
+    ora #(>(ranura_tiles) * 256)
+    sta A1T0L
+    sep #$20
+.a8
+    lda #^(ranura_tiles)
+    sta A1B0
+    lda #$09                    ; dos registros, sin avanzar el origen
+    sta DMAP0
+    lda #$01
+    sta MDMAEN
+
+    ; --- los colores ---
+    ; Sólo la paleta 0, que es la única que usa esta pantalla: es todo texto de
+    ; cuatro bits sobre negro.
+    stz CGADD
+    rep #$20
+.a16
+    lda #(TITULO_MENU_CGRAM * 2)
+    sta DAS0L
+    lda #<(ranura_cgram)
+    ora #(>(ranura_cgram) * 256)
+    sta A1T0L
+    sep #$20
+.a8
+    lda #^(ranura_cgram)
+    sta A1B0
+    stz DMAP0
+    lda #$22
+    sta BBAD0
+    lda #$01
+    sta MDMAEN
+
+    ; --- la cabecera, según el modo ---
+    pla
+    rep #$20
+.a16
+    and #$00FF
+    tax                         ; los dos primeros bloques son las cabeceras
+    lda #RANURA_CAB_CELDAS
+    sta temp
+    ldy #(TITULO_MENU_MAP + RANURA_CAB_VRAM)
+    sep #$20
+.a8
+    jsr ranura_bloque_subir
+
+    ; --- y las cuatro filas ---
+    stz titulo_sel
+    lda #0
+pintar_todas:
+    pha
+    jsr ranura_pintar
+    pla
+    inc a
+    cmp #SRAM_RANURAS_N
+    bcc pintar_todas
+
+    ; --- el PPU ---
+    lda #(TITULO_MENU_MAP / 1024 * 4)
+    sta BG2SC
+    lda #(TITULO_MENU_VRAM / 4096 * 16)
+    sta BG12NBA                 ; sólo BG2; BG1 no se dibuja
+    stz BG2HOFS
+    stz BG2HOFS
+    lda #$FF
+    sta BG2VOFS
+    sta BG2VOFS
+    lda #$02
+    sta TM
+    lda #$0F
+    sta INIDISP
+
+espera:
+    jsr wait_vblank
+    jsr read_pad
+    jsr music_tick
+
+    lda pad
+    eor pad_ant
+    and pad
+    sta titulo_flancos
+    and #PAD_UP
+    beq no_arriba
+    lda titulo_sel
+    bne sube
+    lda #SRAM_RANURAS_N         ; desde la primera, arriba da la vuelta
+sube:
+    dec a
+    jsr mover_cursor
+    bra espera
+no_arriba:
+    lda titulo_flancos
+    and #PAD_DOWN
+    beq no_abajo
+    lda titulo_sel
+    inc a
+    cmp #SRAM_RANURAS_N
+    bcc baja
+    lda #0
+baja:
+    jsr mover_cursor
+    bra espera
+no_abajo:
+    lda titulo_flancos
+    and #PAD_B
+    beq mira_a
+    plb
+    lda #$FF                    ; cancelar
+    rts
+mira_a:
+    lda pad_a
+    beq espera
+    lda pad_a_ant
+    bne espera                  ; ya lo tenía apretado: no es un flanco
+    plb
+    lda titulo_sel
+    rts
+
+; El cursor a la ranura que trae A: se repintan **las dos filas que cambian** y
+; ninguna más. Adentro del vblank, que es donde estamos al salir de
+; `wait_vblank`.
+mover_cursor:
+    sta temp + 3                ; la nueva
+    lda titulo_sel
+    pha                         ; y la vieja, a la pila
+    lda temp + 3
+    sta titulo_sel
+    pla
+    jsr ranura_pintar           ; se despinta el cursor de donde estaba
+    lda titulo_sel
+    jmp ranura_pintar           ; y se pinta donde va
 .endproc
 
 ; --- los eventos quietos que animan igual ---------------------------------

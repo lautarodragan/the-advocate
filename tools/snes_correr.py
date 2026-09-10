@@ -242,6 +242,12 @@ def main():
                              "arranque, igual que los de la referencia, y son "
                              "los mismos que se le pasan a snes_expect.py con "
                              "--apretar-a")
+    parser.add_argument("--toques", nargs="*", metavar="BOTON:CUADRO",
+                        help="toques sueltos: el botón se aprieta en ese "
+                             "cuadro y se suelta en el siguiente. Es lo que "
+                             "hace falta para caminar un menú, que mira "
+                             "flancos y no estados, y que por eso no se puede "
+                             "recorrer con --teclas")
     parser.add_argument("--sin-contador", action="store_true",
                         help="cuenta cuadros de hardware en vez de leer\n"
                              "`vueltas` de la WRAM. Hace falta para la\n"
@@ -256,16 +262,33 @@ def main():
                              "rápido")
     args = parser.parse_args()
 
-    if args.teclas is not None:
+    if args.teclas is not None or args.toques:
         consola = Consola(args.rom, core=args.core)
         consola.correr(args.arranque)
         reloj = Reloj(consola, args.rom, not args.sin_contador)
-        if args.teclas:
-            consola.apretar(*args.teclas)
-        reloj.avanzar(args.cuadros)
+        sostenidos = tuple(args.teclas or ())
+        # Los toques: un botón apretado en un cuadro y soltado en el siguiente.
+        # Es lo que hace falta para caminar un menú —bajar dos veces y elegir—
+        # y no lo cubre `--teclas`, que sostiene: los menús miran **flancos**,
+        # así que sostener abajo mueve el cursor una sola vez.
+        cuando = {}
+        for toque in args.toques or ():
+            boton, _, cuadro = toque.partition(":")
+            if not cuadro.isdigit():
+                sys.exit("--toques quiere BOTON:CUADRO, y vino %r" % toque)
+            cuando.setdefault(int(cuadro), []).append(boton)
+
+        def antes(n):
+            consola.apretar(*(sostenidos + tuple(cuando.get(n, ()))))
+
+        if sostenidos:
+            consola.apretar(*sostenidos)
+        reloj.avanzar(args.cuadros, antes if cuando else None)
         consola.imagen().save(args.output)
         print("captura -> %s: %s, %d cuadros (%d de arranque)"
-              % (args.output, " ".join(args.teclas) or "sin apretar nada",
+              % (args.output,
+                 " ".join(sostenidos + tuple(args.toques or ()))
+                 or "sin apretar nada",
                  args.arranque + args.cuadros, args.arranque))
         return
 

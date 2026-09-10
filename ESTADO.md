@@ -20,7 +20,7 @@ Se escribe **mientras se trabaja**, no al final.
 a vuelta en el emulador.
 
 Al 2026-09-10: `just snes-hitos-foto` son **97 casos, todos en verde** —el
-número 97 es la pantalla de título— y `just pruebas` son **45 en verde y 1
+número 97 es la pantalla de título— y `just pruebas` son **48 en verde y 1
 `xfail`**. El `xfail` no es adorno: es un defecto medido de guardar con la
 pantalla de título puesta, y está abajo. Ese mismo día la ROM corrió por primera vez en la **SNES de verdad**
 con el FX Pak, con el cartucho ya expandido a 1 MB, y anduvo. `demo-ciudad` se juega desde la apertura hasta la
@@ -187,17 +187,57 @@ haga la prueba porque `PARTIDA_BYTES` crece cada vez que se agrega un campo.
 primera si la partida es nueva. Así las cuatro se pueden llenar jugando desde
 ahora, sin esperar a la pantalla que las muestra.
 
+**Hecho y verificado: la pantalla de ranuras, del lado de cargar.** "Resume
+the Story" abre una lista de cuatro con su cabecera —"Load which slot?", que es
+`load_game_message` del LDB— y B cancela y vuelve al título. `just snes-titulo`
+compara **cinco** cuadros y los cinco dan cero: el menú, el menú con el cursor
+abajo, la lista de ranuras, la lista con el cursor dos abajo, y el juego
+después de salir.
+
+Tres decisiones:
+
+* **Todo el texto viene pre-renderizado**, incluidas las dos variantes de cada
+  ranura —vacía y llena—. Los datos que muestra o son fijos o están mockeados,
+  así que no hay nada que componer en caliente. Son 93 tiles de 4bpp, 2976 B,
+  más 3328 B de celdas.
+* **De qué bloque se trata lo dice una tabla de punteros**, no una
+  multiplicación: calcular el desplazamiento con corrimientos habría puesto la
+  misma cuenta en el conversor y en el 65816. Lo mismo la dirección de VRAM de
+  cada fila.
+* **Mover el cursor reescribe dos filas**, no el tilemap entero: 96 celdas cada
+  una, adentro del vblank.
+
+Y el arnés aprendió `--toques BOTON:CUADRO`, que es lo que permite caminar un
+menú en la tanda: `--teclas` sostiene, y estos menús miran flancos.
+
+**El nivel está mockeado en 1**, como se acordó. La partida guarda posición,
+mapa, switches, oro y ahora el tema; nivel no hay porque no hay actores con
+nivel todavía.
+
 **Lo que falta de esto:**
 
-* **La pantalla de ranuras**, en modo cargar y en modo guardar. taro decidió el
-  2026-09-09 que el save point **también** abra menú, como RM2k, así que la
-  pantalla se usa de los dos lados y hay que darle escritura y confirmación de
-  pisar una ranura ocupada.
-* **La SRAM multi-ranura.** Hoy es una sola, con la magia en `$0100` y
-  `PARTIDA_BYTES` = 156. Cuatro ranuras de 162 B entran de sobra en los 8 KB;
-  seis también. El límite no es la SRAM.
-* **Los datos mockeados** de la pantalla de archivos: nivel 1 y los HP. El mapa
-  y la posición sí los tenemos guardados.
+* **El menú de guardado desde el save point**, que taro pidió el 2026-09-09 y
+  es lo único de la lista que quedó sin andar. Se intentó el 2026-09-10 y está
+  medido: llamar a `ranuras_pantalla` desde `op_guardar` dibuja una pantalla
+  negra con basura arriba, el cursor no se mueve —aunque el flanco de abajo
+  **sí** llega, se leyó `titulo_flancos` y vale `$04`— y un testigo dice que
+  **se entra 85 veces** en vez de una: la rutina vuelve enseguida y el
+  intérprete repite el comando.
+
+  Lo que se descartó, y conviene no volver a probarlo: **no es el modo** —la
+  misma rutina con modo 1 llamada desde el título dibuja "Save in which slot?"
+  perfecto—, **no es el banco de datos** ni **el tamaño de los registros**, que
+  quedaron puestos explícitamente al entrar y no cambiaron nada. Lo que queda es
+  el contexto: entrar a un lazo que espera el pad desde adentro del intérprete,
+  que a su vez corre adentro del lazo principal.
+
+  Mientras tanto el save point guarda en la ranura de la que se cargó, o en la
+  primera si la partida es nueva.
+
+* **Confirmación de pisar una ranura ocupada**, que va con lo anterior.
+* **La variante "llena" no la cubre la tanda de pixeles**: la SRAM del emulador
+  arranca virgen y no hay forma de precargarla desde `snes_correr.py`. La
+  cubren las pruebas de estado, que sí pueden guardar antes de mirar.
 * **El texto de las ranuras.** El camino ya está probado por el menú: dibujar
   con `ventana.dibujar_linea` sobre una capa transparente, cortarla en tiles de
   4bpp y emitir un tilemap por variante. Las filas de ranura tienen dos

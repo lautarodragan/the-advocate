@@ -28,7 +28,7 @@ def guardada(partida):
     una = partida(guardar=ESPERA)
     una.ir_al_mapa(6, 20, 30)
     una.prender(7)
-    una.correr(ESPERA)
+    una.guardar_en()
     return una
 
 
@@ -93,8 +93,9 @@ def test_guardar_escribe_en_la_ranura_elegida(partida):
     """
     for elegida in (0, 1):
         una = partida(guardar=ESPERA)
-        una.poner_byte("ranura", elegida)
-        una.correr(ESPERA + 60)
+        # La ranura se elige **en la pantalla**, que es lo que abre el save
+        # point: escribirla a mano probaría otra cosa.
+        una.guardar_en(elegida)
         simbolos = una.simbolos
         assert una.sram(_base(simbolos, elegida), 4) == b"ABLS", (
             "se pidió guardar en la ranura %d y ahí no quedó ninguna partida"
