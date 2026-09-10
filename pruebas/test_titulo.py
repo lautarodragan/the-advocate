@@ -174,10 +174,11 @@ def test_la_musica_viaja_en_la_partida(partida):
     una.guardar_en()
     assert una.sram(0x100, 4) == b"ABLS", "la partida no llegó a guardarse"
 
-    # Los tres últimos bytes de la partida son las dos entradas nuevas de
-    # `partida_tabla`, en su orden: `music_apagada` y después `tema_actual`, que
-    # es de dos bytes con el alto en cero.
-    largo = una.simbolos["PARTIDA_BYTES"]
+    # Las dos entradas de la música en `partida_tabla`, en su orden:
+    # `music_apagada` y después `tema_actual`, que es de dos bytes con el alto
+    # en cero. Están al final de la partida, **antes de las variables**, que
+    # desde el 2026-09-10 cierran la tabla con VARIABLES_N palabras.
+    largo = una.simbolos["PARTIDA_BYTES"] - 2 * una.simbolos["VARIABLES_N"]
     cola = una.sram(0x106 + largo - 3, 3)
     assert cola[0] == una.byte("music_apagada"), (
         "la SRAM guardó music_apagada = %d y la consola lo tenía en %d"

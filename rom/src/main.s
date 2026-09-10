@@ -137,6 +137,18 @@ WMDATA   = $2180
 ; acá también.
 FAR_PAR_ESTADO = $2000      ; EV_MAX entradas de PAR_BYTES
 FAR_PAR_LISTA  = $2400      ; PARALELO_MAX índices de evento
+; Las variables de RM2k, una palabra con signo por ranura. Cuántas son lo dice
+; el conversor —`VARIABLES_N`—, que le da ranura sólo a las que nombran las
+; páginas de los mapas de la ROM; el bytecode habla de ranuras. Se leen y
+; escriben por la ventana, `var_leer` y `var_escribir`, y viajan en la
+; partida: `partida_tabla` las copia desde acá, que el DMA alcanza igual que
+; el banco 0 porque WMADD es una dirección de diecisiete bits.
+FAR_VARIABLES  = $2600
+; Y el estado del azar, dos bytes antes: un xorshift de dieciséis bits, el
+; mismo que `azar_siguiente` en eventos.py, sembrado en el reset. Va acá y no
+; en la página directa porque la página directa quedó en 258 de 256 al
+; intentarlo; el azar se pide pocas veces y el puerto no lo nota.
+FAR_AZAR       = $25FE
 ; Cursor (2), espera (2), si está corriendo (1) y de qué página (2).
 PAR_BYTES = 7
 WMADDL   = $2181
@@ -730,6 +742,9 @@ grupo_listo:
     ; plantar al héroe.
     lda #$FF
     sta ranura                  ; ninguna cargada; la RAM arranca con basura
+    ; La semilla del azar, y las variables en cero: la RAM lejana también
+    ; arranca con basura, y una partida cargada las pisa después.
+    jsr limpiar_variables
     ; El testigo de la pantalla de ranuras también: con $55 el arnés la vería
     ; abierta desde el reset. Es lo que pasó el 2026-09-10 con los dos
     ; contadores que "daban 85": leían la basura del emulador.
@@ -3422,6 +3437,12 @@ otro:
 :   cmp #OP_TELEPORT
     bne :+
     jmp op_teleport
+:   cmp #OP_VAR
+    bne :+
+    jmp op_var
+:   cmp #OP_SI_VAR
+    bne :+
+    jmp op_si_var
 :   stz ev_activo               ; OP_FIN, o algo que no conocemos: se corta
     rts
 
@@ -3954,6 +3975,7 @@ op_timer:
     rep #$20
 .a16
     lda [cod_ptr], y            ; los segundos, de dieciséis bits
+timer_poner_16:
     sta timer_seg
     sep #$20
 .a8
@@ -3965,6 +3987,21 @@ op_timer:
     jsr timer_digitos
     bra timer_fin
 no_pone:
+    cmp #TIMER_PONER_VAR
+    bne no_pone_var
+    ; Los segundos desde una variable, que es lo que hace el Tram Officer del
+    ; mapa 9: "lo que le queda al cronómetro, menos sesenta". Una variable
+    ; negativa pone cero, como `Game_Party::SetTimer`.
+    lda [cod_ptr], y            ; la ranura
+    phy
+    jsr var_leer                ; A de dieciséis bits
+.a16
+    ply
+    bpl timer_poner_16
+    lda #0
+    bra timer_poner_16
+.a8
+no_pone_var:
     cmp #TIMER_ARRANCAR
     bne timer_para
     lda #1
@@ -4075,6 +4112,257 @@ op_rutas:
     sty ev_cur
     rts
 op_rutas_sigue:
+    jmp otro
+
+; `ControlVars`, de a una variable: ranura, operación, clase del operando, y
+; a y b de dieciséis bits. Ver OP_VAR en eventos.py. Dieciséis bits con signo,
+; dando la vuelta.
+op_var:
+.a8
+.i16
+    lda [cod_ptr], y
+    sta temp                    ; la ranura
+    iny
+    lda [cod_ptr], y
+    sta temp + 1                ; la operación
+    iny
+    lda [cod_ptr], y            ; la clase del operando
+    iny
+    phy                         ; Y -> a; se repone al final
+    cmp #VAR_VARIABLE
+    beq var_de_variable
+    cmp #VAR_AZAR
+    beq var_al_azar
+    cmp #VAR_OTRO
+    beq var_de_otro
+    rep #$20
+.a16
+    lda [cod_ptr], y            ; una constante
+    sta temp + 2
+    sep #$20
+.a8
+    bra var_aplicar
+var_de_variable:
+    lda [cod_ptr], y            ; la ranura de donde sale
+    jsr var_leer
+.a16
+    sta temp + 2
+    sep #$20
+.a8
+    bra var_aplicar
+var_de_otro:
+    lda [cod_ptr], y
+    bne var_del_timer
+    ; El oro, topado en 32767: la variable es de dieciséis bits con signo.
+    lda oro + 2
+    bne var_oro_tope
+    rep #$20
+.a16
+    lda oro
+    bmi var_oro_tope_16
+    sta temp + 2
+    sep #$20
+.a8
+    bra var_aplicar
+.a16
+var_oro_tope_16:
+    sep #$20
+.a8
+var_oro_tope:
+    lda #$FF
+    sta temp + 2
+    lda #$7F
+    sta temp + 3
+    bra var_aplicar
+var_del_timer:
+    rep #$20
+.a16
+    lda timer_seg               ; los segundos que le quedan al cronómetro
+    sta temp + 2
+    sep #$20
+.a8
+    bra var_aplicar
+var_al_azar:
+    ; a + x mod (b - a + 1), con x el paso siguiente del xorshift y el módulo
+    ; con el divisor de ocho bits del hardware: el conversor no deja pasar un
+    ; rango de más de 255.
+    jsr azar_siguiente
+    sta WRDIVL                  ; el dividendo, de dieciséis
+    lda [cod_ptr], y            ; a
+    sta temp + 2
+    iny
+    iny
+    lda [cod_ptr], y            ; b
+    sec
+    sbc temp + 2
+    inc a                       ; b - a + 1
+    sep #$20
+.a8
+    sta WRDIVB                  ; arranca: dieciséis ciclos
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    rep #$20
+.a16
+    lda RDMPYL                  ; el resto
+    clc
+    adc temp + 2
+    sta temp + 2
+    sep #$20
+.a8
+var_aplicar:
+    ; `temp + 2` es el operando; según la operación, se pone tal cual o se
+    ; suma o resta a lo que la variable tenía.
+    lda temp + 1
+    beq var_pone
+    lda temp
+    jsr var_leer                ; A = lo que tenía, de dieciséis
+.a16
+    pha
+    sep #$20
+.a8
+    lda temp + 1
+    cmp #VAR_SUMAR
+    beq var_suma
+    rep #$20
+.a16
+    pla
+    sec
+    sbc temp + 2
+    sta temp + 2
+    sep #$20
+.a8
+    bra var_pone
+var_suma:
+    rep #$20
+.a16
+    pla
+    clc
+    adc temp + 2
+    sta temp + 2
+    sep #$20
+.a8
+var_pone:
+    lda temp
+    jsr var_escribir
+    ply
+    iny                         ; a y b, cuatro bytes
+    iny
+    iny
+    iny
+    jmp otro
+
+; `ConditionalBranch` por variable: ranura, clase del valor, comparación, el
+; valor de dieciséis bits y el destino si no se cumple. La comparación es con
+; signo: después de restar, "menor" es N distinto de V.
+op_si_var:
+.a8
+.i16
+    lda [cod_ptr], y
+    sta temp                    ; la ranura
+    iny
+    lda [cod_ptr], y
+    sta temp + 1                ; la clase: constante u otra variable
+    iny
+    lda [cod_ptr], y            ; la comparación
+    pha
+    iny
+    rep #$20
+.a16
+    lda [cod_ptr], y            ; el valor, o la ranura
+    sta temp + 2
+    sep #$20
+.a8
+    iny
+    iny                         ; Y -> el destino
+    lda temp + 1
+    beq si_var_contra_constante
+    lda temp + 2
+    phy
+    jsr var_leer
+.a16
+    ply
+    sta temp + 2
+    sep #$20
+.a8
+si_var_contra_constante:
+    lda temp
+    phy
+    jsr var_leer                ; A = la variable, de dieciséis
+.a16
+    ply
+    sec
+    sbc temp + 2                ; N, V y Z de la resta con signo
+    sep #$20
+.a8
+    php
+    pla                         ; A = las banderas: N $80, V $40, Z $02
+    sta temp + 1
+    and #$C0
+    beq si_var_no_menor         ; N y V en cero: no es menor
+    cmp #$C0
+    beq si_var_no_menor         ; los dos puestos: tampoco
+    lda #1
+    bra si_var_menor_listo
+si_var_no_menor:
+    lda #0
+si_var_menor_listo:
+    sta temp + 2                ; menor
+    lda temp + 1
+    and #$02
+    beq si_var_no_igual
+    lda #1
+si_var_no_igual:
+    sta temp + 3                ; igual
+    pla                         ; la comparación
+    ; ==, >=, <=, >, <, != en ese orden
+    beq si_var_igual
+    cmp #1
+    beq si_var_mayor_igual
+    cmp #2
+    beq si_var_menor_igual
+    cmp #3
+    beq si_var_mayor
+    cmp #4
+    beq si_var_menor
+    lda temp + 3                ; !=
+    eor #1
+    bra si_var_decide
+si_var_igual:
+    lda temp + 3
+    bra si_var_decide
+si_var_mayor_igual:
+    lda temp + 2
+    eor #1
+    bra si_var_decide
+si_var_menor_igual:
+    lda temp + 2
+    ora temp + 3
+    bra si_var_decide
+si_var_mayor:
+    lda temp + 2
+    ora temp + 3
+    eor #1
+    bra si_var_decide
+si_var_menor:
+    lda temp + 2
+si_var_decide:
+    bne si_var_sigue
+    rep #$20
+.a16
+    lda [cod_ptr], y            ; no se cumple: al destino
+    tay
+    sep #$20
+.a8
+    jmp otro
+si_var_sigue:
+    iny
+    iny
     jmp otro
 
 op_grupo:
@@ -4229,6 +4517,153 @@ op_teleport:
     sty ev_cur
     rts
 .endproc
+
+; --- las variables ---------------------------------------------------------
+;
+; Viven en la RAM lejana, así que no se indexan: se apunta WMADD a la ranura y
+; se lee o escribe la palabra por el puerto. Son pocas operaciones por página y
+; el precio no se nota. `var_leer` devuelve en A de dieciséis bits **y deja M
+; en dieciséis**; `var_escribir` toma el valor de `temp + 2`.
+
+; A: la ranura. Deja WMADD apuntando a su palabra.
+.proc var_apuntar
+.a8
+.i16
+    rep #$20
+.a16
+    and #$00FF
+    asl a                       ; dos bytes por variable
+    clc
+    adc #FAR_VARIABLES
+    sta WMADDL
+    sep #$20
+.a8
+    stz WMADDH
+    rts
+.endproc
+
+; A: la ranura. Vuelve con su valor en A de dieciséis bits, y M en dieciséis.
+.proc var_leer
+.a8
+.i16
+    jsr var_apuntar
+    lda WMDATA                  ; el byte bajo
+    pha
+    lda WMDATA                  ; y el alto
+    xba
+    pla                         ; C = alto:bajo
+    rep #$20
+.a16
+    rts
+.endproc
+
+; A: la ranura; `temp + 2`: el valor.
+.proc var_escribir
+.a8
+.i16
+    jsr var_apuntar
+    lda temp + 2
+    sta WMDATA
+    lda temp + 3
+    sta WMDATA
+    rts
+.endproc
+
+; Todas en cero y la semilla del azar puesta. Corre en el reset, antes de
+; cargar la partida. El azar está justo antes de las variables, así que es
+; una sola pasada por el puerto.
+.proc limpiar_variables
+.a8
+.i16
+    rep #$20
+.a16
+    lda #FAR_AZAR
+    sta WMADDL
+    ldx #(VARIABLES_N * 2)
+    sep #$20
+.a8
+    stz WMADDH
+    lda #<AZAR_SEMILLA
+    sta WMDATA
+    lda #>AZAR_SEMILLA
+    sta WMDATA
+otra:
+    stz WMDATA
+    dex
+    bne otra
+    rts
+.endproc
+
+; El paso del xorshift: x ^= x << 7; x ^= x >> 9; x ^= x << 8. Vuelve con el
+; valor nuevo en A de dieciséis bits, y M en dieciséis. Es `azar_siguiente` de
+; eventos.py, instrucción por instrucción. Usa `temp + 2` de escritorio: quien
+; lo llama —`op_var`— todavía no lo cargó.
+.proc azar_siguiente
+.a8
+.i16
+    rep #$20
+.a16
+    lda #FAR_AZAR
+    sta WMADDL
+    sep #$20
+.a8
+    stz WMADDH
+    lda WMDATA
+    pha
+    lda WMDATA
+    xba
+    pla                         ; C = x
+    rep #$20
+.a16
+    sta temp + 2
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a
+    eor temp + 2
+    sta temp + 2
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    eor temp + 2
+    sta temp + 2
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a
+    eor temp + 2
+    sta temp + 2
+    lda #FAR_AZAR
+    sta WMADDL
+    sep #$20
+.a8
+    stz WMADDH
+    lda temp + 2
+    sta WMDATA
+    lda temp + 3
+    sta WMDATA
+    rep #$20
+.a16
+    lda temp + 2
+    rts
+.endproc
+.a8
+.i16
+
+
 
 ; Compone la ventana de la opción marcada. El cuadro sale de la tabla, en
 ; `eleg_tabla + eleg_sel * 4`; el destino está dos bytes más allá y lo lee
@@ -8042,13 +8477,16 @@ partida_tabla:
     ; pegados es un detalle del orden en que se declararon y no una promesa.
     .word music_apagada, 1
     .word tema_actual, 2
+    ; Y las variables, desde la RAM lejana. VARIABLES_N es al menos 1 —el
+    ; conversor lo garantiza— porque un largo cero terminaría la tabla acá.
+    .word FAR_VARIABLES, VARIABLES_N * 2
     .word 0, 0
 ; Los mismos largos, sumados, para poder recorrer la partida en la SRAM sin
 ; volver a mirar la tabla. Está duplicado a propósito y **la ROM lo comprueba**:
 ; `guardar_partida` compara con lo que le quedó a `partida_copiar` y si no dan
 ; iguales entra en pánico. Duplicar un número que nadie verifica es la forma de
 ; error que este repo ya pagó tres veces.
-PARTIDA_BYTES = 2 + 2 + 1 + 2 + 2 + 1 + 6 + 3 + 1 + 5 + 3 + SWITCH_BYTES + 1 + 2
+PARTIDA_BYTES = 2 + 2 + 1 + 2 + 2 + 1 + 6 + 3 + 1 + 5 + 3 + SWITCH_BYTES + 1 + 2 + VARIABLES_N * 2
 ; Dónde cae el grupo adentro de la partida: después de la posición, la
 ; dirección, la celda y el mapa. Lo lee la pantalla de ranuras desde la SRAM
 ; para poner el nombre del líder y las caras. Es la misma suma que arriba,

@@ -603,8 +603,19 @@ SHOW_PICTURE = 11110
 MOVE_PICTURE = 11120
 ERASE_PICTURE = 11130
 
+# Los dos códigos de comando de las variables, que se usan más abajo y en la
+# lista de acá: ver "las variables de RM2k".
+CONTROL_VARS = 10220
+CALL_EVENT = 12330
+
 ACEPTADOS_SIN_HACER = {
     WEATHER_EFFECTS,
+    # CallEvent llama a la página de otro evento en el lugar. En los mapas 1 a
+    # 10 lo usa una sola página, el Tram Officer del mapa 9, para subir al
+    # Hover-Tram; taro pidió el 2026-09-10 dejarlo para otra vuelta. Lo que se
+    # pierde: la escena del tram no corre y el jugador se queda parado con el
+    # "It's here!" dicho. Es deuda declarada, no equivalencia.
+    CALL_EVENT,
     PLAY_SOUND,
     SHOW_BATTLE_ANIMATION,
     CHANGE_ITEMS,
@@ -1203,6 +1214,109 @@ COND_ACTOR = 5
 # De los 155 comandos del juego que preguntan por un héroe, 57 son de ésta; 78
 # preguntan por el equipo y 20 por una habilidad.
 COND_ACTOR_EN_GRUPO = 0
+# La rama por variable: `[1, variable, clase del valor, valor, comparación,
+# hay else]`. La clase es 0 para una constante y 1 para otra variable; la
+# comparación, `==`, `>=`, `<=`, `>`, `<` y `!=`, en ese orden, que es el de
+# RM2k. Compila a OP_SI_VAR, no a OP_SI: no entra en siete bytes.
+COND_VARIABLE = 1
+
+# --- las variables de RM2k ---------------------------------------------------
+#
+# El juego declara cinco mil y usa **81**, la mayor la 201; los mapas 1 a 10
+# usan seis. La ROM no lleva las cinco mil: el conversor mira qué variables
+# nombran las páginas de los mapas de la ROM y les da una **ranura** cada una,
+# de cero en adelante —`VARIABLE_SLOT`—, y el bytecode habla de ranuras. Así
+# la RAM que cuesta es dos bytes por variable usada, viven en la RAM del
+# banco 1 (`FAR_VARIABLES`) y viajan en la partida guardada. El mismo índice
+# lo arma la referencia, de la misma lista de mapas, con `indexar_variables`.
+#
+# Son de **dieciséis bits con signo**: RM2k las lleva a 32 y las topa en
+# ±999999, pero ninguna del juego pasa de unos cientos —segundos de
+# cronómetro, un azar de 0 a 100, contadores—. Lo que no entra en el word no
+# compila, que es más honesto que truncar.
+OP_VAR = 0x17       # ranura (byte), operación (byte), clase (byte), a (word), b (word)
+OP_SI_VAR = 0x18    # ranura (byte), clase (byte), comparación (byte), valor (word),
+                    # destino (word): como OP_SI, el destino va último para el parcheo
+# Las operaciones de ControlVars que compilan: poner, sumar, restar. Multiplicar,
+# dividir y el resto no las usa ninguna página del juego.
+VAR_PONER, VAR_SUMAR, VAR_RESTAR = 0, 1, 2
+# Y de dónde sale el operando, con el número de RM2k: una constante, otra
+# variable, un número al azar entre a y b, u "otro", que acá son el oro y los
+# segundos que le quedan al cronómetro. El azar pide que b - a sea menor que
+# 256: la ROM divide con el divisor de ocho bits del hardware.
+VAR_CONSTANTE, VAR_VARIABLE, VAR_AZAR, VAR_OTRO = 0, 1, 3, 7
+OTRO_ORO, OTRO_TIMER = 0, 1
+CMP_IGUAL, CMP_MAYOR_IGUAL, CMP_MENOR_IGUAL, CMP_MAYOR, CMP_MENOR, \
+    CMP_DISTINTO = range(6)
+# El generador de azar, **el mismo de los dos lados**: un xorshift de dieciséis
+# bits —x ^= x << 7; x ^= x >> 9; x ^= x << 8— sembrado en el reset. Que la
+# ROM y la referencia coincidan pixel por pixel en una página con azar es
+# porque las dos sacan la misma secuencia; no hay entropía de verdad, y no la
+# hay en RPG_RT tampoco a los efectos de esta comparación.
+AZAR_SEMILLA = 0xACE1
+TIMER_PONER_VAR = 3     # la cuarta operación del cronómetro: los segundos desde
+                        # una variable. Las tres de RM2k son 0, 1 y 2.
+
+VARIABLE_SLOT = {}      # variable de RM2k -> ranura en la ROM
+VARIABLES_PRUEBA_AL_TIMER = 9   # la "operación" de --vars-de-prueba que pone el
+                                # cronómetro desde la variable; ver pagina_de_prueba
+
+
+def variables_de(game_dir, map_ids, extra=()):
+    """Qué variables nombran las páginas de estos mapas, cada una con su ranura.
+
+    Se miran todos los comandos de todas las páginas, compilen o no: es un
+    superconjunto barato —dos bytes por variable— y así una página que compile
+    después no cambia las ranuras de las demás. `extra` son las de la página de
+    prueba, que no salen de ningún mapa.
+    """
+    import lcf
+    ids = set(extra)
+    for map_id in map_ids:
+        game_map = lcf.Map(os.path.join(game_dir, "Map%04d.lmu" % map_id))
+        for evento in game_map.events:
+            for page in evento.pages:
+                for cmd in page.commands:
+                    p = cmd.parameters
+                    if cmd.code == CONTROL_VARS and len(p) >= 7:
+                        if p[0] == 0:
+                            ids.add(p[1])
+                        elif p[0] == 1:
+                            ids.update(range(p[1], p[2] + 1))
+                        if p[4] == VAR_VARIABLE:
+                            ids.add(p[5])
+                    elif cmd.code == COND_RAMA and len(p) >= 5 \
+                            and p[0] == COND_VARIABLE:
+                        ids.add(p[1])
+                        if p[2] == 1:
+                            ids.add(p[3])
+                    elif cmd.code == TIMER_OPERATION and len(p) >= 3 \
+                            and p[0] == TIMER_PONER \
+                            and p[1] != TIMER_SEGUNDOS_FIJOS:
+                        ids.add(p[2])
+    return {variable: ranura for ranura, variable in enumerate(sorted(ids))}
+
+
+def indexar_variables(game_dir, map_ids, extra=()):
+    """Deja en `VARIABLE_SLOT` el índice de esta ROM. Lo llaman el conversor y
+    la referencia con la misma lista de mapas, antes de compilar nada."""
+    VARIABLE_SLOT.clear()
+    VARIABLE_SLOT.update(variables_de(game_dir, map_ids, extra))
+    return dict(VARIABLE_SLOT)
+
+
+def ranura_de_variable(numero):
+    if numero not in VARIABLE_SLOT:
+        raise NoSePuede("la variable %d no tiene ranura en esta ROM" % numero)
+    return VARIABLE_SLOT[numero]
+
+
+def azar_siguiente(x):
+    """El paso del xorshift, en dieciséis bits."""
+    x ^= (x << 7) & 0xFFFF
+    x ^= x >> 9
+    x ^= (x << 8) & 0xFFFF
+    return x
 
 # El tope del oro en RM2k: `Game_Party::GainGold` recorta a
 # `MaxGoldValue()`, que por omisión es esto.
@@ -1303,6 +1417,23 @@ def bytes_de_rama(cmd):
             raise NoSePuede("actor %d fuera de rango" % numero)
         # "Está en el grupo" no tiene polaridad: la rama de abajo es el `else`.
         return bytes([OP_SI, COND_ACTOR, numero & 0xFF, numero >> 8, 0, 0, 0])
+    elif p[0] == COND_VARIABLE:
+        if len(p) < 5:
+            raise NoSePuede("una rama por variable sin operandos")
+        ranura = ranura_de_variable(p[1])
+        if p[2] == 0:
+            clase, valor = VAR_CONSTANTE, p[3]
+            if not -0x8000 <= valor <= 0x7FFF:
+                raise NoSePuede("comparación contra %d, que no entra en un "
+                                "word con signo" % valor)
+        elif p[2] == 1:
+            clase, valor = VAR_VARIABLE, ranura_de_variable(p[3])
+        else:
+            raise NoSePuede("rama por variable contra algo que no sabemos")
+        if not 0 <= p[4] <= CMP_DISTINTO:
+            raise NoSePuede("comparación %d que no existe" % p[4])
+        return bytes([OP_SI_VAR, ranura, clase, p[4], valor & 0xFF,
+                      (valor >> 8) & 0xFF, 0, 0])
     else:
         raise NoSePuede("rama sobre una condición que no sabemos hacer")
     return bytes([OP_SI, p[0], numero & 0xFF, numero >> 8,
@@ -1559,15 +1690,46 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
             out += bytes([OP_ESPERAR, cuadros & 0xFF, cuadros >> 8])
         return out
 
+    if cmd.code == CONTROL_VARS:
+        # `[cómo se elige, desde, hasta, operación, clase del operando, a, b]`.
+        # De a una variable y nada más: los rangos y el indirecto no los usa
+        # ninguna página del juego. Ver OP_VAR.
+        if len(p) < 7:
+            raise NoSePuede("un ControlVars sin operandos")
+        if p[0] != 0:
+            raise NoSePuede("ControlVars sobre un rango o indirecto")
+        ranura = ranura_de_variable(p[1])
+        if p[3] not in (VAR_PONER, VAR_SUMAR, VAR_RESTAR):
+            raise NoSePuede("operación %d de ControlVars" % p[3])
+        clase, a, b = p[4], p[5], p[6]
+        if clase == VAR_CONSTANTE:
+            if not -0x8000 <= a <= 0x7FFF:
+                raise NoSePuede("constante %d que no entra en un word" % a)
+            b = 0
+        elif clase == VAR_VARIABLE:
+            a, b = ranura_de_variable(a), 0
+        elif clase == VAR_AZAR:
+            if not (0 <= a <= b <= 0x7FFF and b - a < 256):
+                raise NoSePuede("azar entre %d y %d: la ROM divide por un "
+                                "byte" % (a, b))
+        elif clase == VAR_OTRO:
+            if a not in (OTRO_ORO, OTRO_TIMER):
+                raise NoSePuede("'otro' %d de ControlVars" % a)
+            b = 0
+        else:
+            raise NoSePuede("operando de clase %d en ControlVars" % clase)
+        return bytes([OP_VAR, ranura, p[3], clase, a & 0xFF, (a >> 8) & 0xFF,
+                      b & 0xFF, b >> 8])
     if cmd.code == TIMER_OPERATION:
         # El cronómetro. Se hace la operación entera —poner, arrancar y parar—
-        # menos los segundos que salen de una variable, que es lo mismo que
-        # pasa con los switches indirectos: no leemos variables.
+        # y los segundos pueden salir de una variable: es la cuarta operación,
+        # `TIMER_PONER_VAR`, con la ranura en el operando.
         if len(p) < 5:
             raise NoSePuede()
         if p[0] == TIMER_PONER:
             if p[1] != TIMER_SEGUNDOS_FIJOS:
-                raise NoSePuede()
+                ranura = ranura_de_variable(p[2])
+                return bytes([OP_TIMER, TIMER_PONER_VAR, ranura, 0, 0])
             # La ROM cuenta los cuadros en dieciséis bits, así que el tope no
             # es el del operando sino el de la cuenta. Son dieciocho minutos, y
             # el cronómetro más largo del juego son diez.
@@ -2319,6 +2481,22 @@ class Estado:
         self.destello_mostrado = 0
         self.tinte_cambio = False
         self.timer_visible = False
+        # Las variables, por ranura, y el estado del azar. Las variables viajan
+        # en la partida guardada; el azar no, que RM2k tampoco lo guarda.
+        self.variables = {}
+        self.azar_estado = AZAR_SEMILLA
+
+    def variable(self, ranura):
+        return self.variables.get(ranura, 0)
+
+    def poner_variable(self, ranura, valor):
+        """Dieciséis bits con signo, dando la vuelta como la ROM."""
+        self.variables[ranura] = con_signo(valor & 0xFFFF)
+
+    def azar(self, a, b):
+        """Un número entre a y b, del xorshift compartido con la ROM."""
+        self.azar_estado = azar_siguiente(self.azar_estado)
+        return a + self.azar_estado % (b - a + 1)
 
     # El héroe visto como estaba antes. Su ruta es una `Ruta` como la de
     # cualquier evento, pero el resto del código la lee por estos nombres y no
@@ -2815,7 +2993,7 @@ LARGO_DE_OPCODE = {
     OP_GRUPO: 3, OP_MENSAJE: 3, OP_RUTAS: 1, OP_FLASH: 7, OP_TIMER: 5,
     OP_BGM: 2, OP_LUGAR: 6, OP_TRUEQUE: 3, OP_SACUDIR: 5, OP_DESTELLO: 6,
     OP_FUNDIR_BGM: 3, OP_PAN: 8, OP_SI: 7, OP_IR: 3, OP_ORO: 5,
-    OP_GUARDAR: 1,
+    OP_GUARDAR: 1, OP_VAR: 8, OP_SI_VAR: 8,
 }
 
 
@@ -3017,7 +3195,8 @@ def evento_de_prueba(game_map):
 def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
                     flash=(), switches=(), timer=(), lugar=(),
                     frecuencia=RUTA_FRECUENCIA, sacudida=(), fundir_bgm=0,
-                    pan=(), rama=(), destello=(), guardar=False):
+                    pan=(), rama=(), destello=(), guardar=False,
+                    variables=(), rama_var=()):
     """Una página automática inventada: una ruta forzada, una espera, un tinte.
 
     No sale de ningún dato del juego, y ésa es la idea. El intérprete corre
@@ -3177,6 +3356,36 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
         codigo += bytes([OP_MENSAJE, mensaje & 0xFF, mensaje >> 8])
     if espera:
         codigo += bytes([OP_ESPERAR, espera & 0xFF, espera >> 8])
+    if variables:
+        # ControlVars, de a cinco números —variable, operación, clase, a, b—
+        # con los mismos números de RM2k, y compilados por el mismo camino que
+        # el juego: el mismo `_compilar` con un comando armado a mano.
+        import lcf
+        for k in range(0, len(variables), 5):
+            v, operacion, clase, a, b = variables[k:k + 5]
+            if operacion == VARIABLES_PRUEBA_AL_TIMER:
+                # La operación inventada de la página de prueba: los segundos
+                # del cronómetro desde la variable, que en RM2k es un
+                # TimerOperation y no un ControlVars. Va en la misma lista
+                # para no abrir otro flag por una sola cosa.
+                codigo += _compilar(lcf.EventCommand(
+                    TIMER_OPERATION, 0, "", [TIMER_PONER, 1, v, 0, 0]), None)
+                continue
+            codigo += _compilar(lcf.EventCommand(
+                CONTROL_VARS, 0, "", [0, v, v, operacion, clase, a, b]), None)
+    if rama_var:
+        # (variable, comparación, valor, adentro, después): la rama por
+        # variable, como `rama` pero con OP_SI_VAR. Existe porque en los mapas
+        # 1 a 10 la única página que compara una variable es el Tram Officer, y
+        # ahí el valor sale de un azar.
+        import lcf
+        v, comparacion, valor, adentro, despues = rama_var
+        destino = len(codigo) + LARGO_DE_OPCODE[OP_SI_VAR] + 4
+        codigo += con_destino(bytes_de_rama(lcf.EventCommand(
+            COND_RAMA, 0, "", [COND_VARIABLE, v, 0, valor, comparacion, 0])),
+            destino)
+        codigo += bytes([OP_SWITCH, adentro & 0xFF, adentro >> 8, 1])
+        codigo += bytes([OP_SWITCH, despues & 0xFF, despues >> 8, 1])
     if guardar:
         # Guardar la partida. El save point del mapa 8 es el único evento del
         # juego que lo pide, y está en un mapa que las pruebas no llevan; sin
@@ -3733,6 +3942,37 @@ def ejecutar(codigo, estado, desde=0):
             if espera:
                 return (i + 8, espera, False)
             i += 8
+        elif op == OP_VAR:
+            ranura, operacion, clase = codigo[i + 1], codigo[i + 2], codigo[i + 3]
+            a = con_signo(codigo[i + 4] | (codigo[i + 5] << 8))
+            b = con_signo(codigo[i + 6] | (codigo[i + 7] << 8))
+            if clase == VAR_CONSTANTE:
+                valor = a
+            elif clase == VAR_VARIABLE:
+                valor = estado.variable(a)
+            elif clase == VAR_AZAR:
+                valor = estado.azar(a, b)
+            elif a == OTRO_ORO:
+                valor = min(estado.oro, 0x7FFF)
+            else:
+                valor = estado.timer_cuadros // CUADROS_POR_SEGUNDO
+            actual = estado.variable(ranura)
+            estado.poner_variable(ranura, valor if operacion == VAR_PONER
+                                  else actual + valor if operacion == VAR_SUMAR
+                                  else actual - valor)
+            i += 8
+        elif op == OP_SI_VAR:
+            ranura, clase, comparacion = codigo[i + 1], codigo[i + 2], codigo[i + 3]
+            contra = con_signo(codigo[i + 4] | (codigo[i + 5] << 8))
+            if clase == VAR_VARIABLE:
+                contra = estado.variable(contra)
+            v = estado.variable(ranura)
+            vale = (v == contra, v >= contra, v <= contra, v > contra,
+                    v < contra, v != contra)[comparacion]
+            if vale:
+                i += 8
+            else:
+                i = codigo[i + 6] | (codigo[i + 7] << 8)
         elif op == OP_GUARDAR:
             # La pantalla de ranuras, y guardar en la que se elija. De este
             # lado no hay nada que guardar —la referencia es un modelo, no una
@@ -3798,6 +4038,12 @@ def ejecutar(codigo, estado, desde=0):
             if operacion == TIMER_PONER:
                 estado.timer_cuadros = ((codigo[i + 2] | (codigo[i + 3] << 8))
                                         * CUADROS_POR_SEGUNDO
+                                        + TIMER_CUADROS_DE_MAS)
+            elif operacion == TIMER_PONER_VAR:
+                # Una variable negativa pone cero: `Game_Party::SetTimer` topa
+                # abajo en cero.
+                segundos = max(0, estado.variable(codigo[i + 2]))
+                estado.timer_cuadros = (segundos * CUADROS_POR_SEGUNDO
                                         + TIMER_CUADROS_DE_MAS)
             elif operacion == TIMER_ARRANCAR:
                 estado.timer_activo = True

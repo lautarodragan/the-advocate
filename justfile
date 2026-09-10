@@ -838,6 +838,36 @@ snes-timer mapa="6" timer="600 1" celda="2 10" cuadros="2 31 61 90" tinte="12 0 
         --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
   done
 
+# Las variables de RM2k, vistas por el cronómetro: la página pone el cronómetro
+# en `timer` segundos, lee esos segundos a la variable 17 —"otro 1" de
+# ControlVars—, le resta `resta` y vuelve a poner el cronómetro desde la
+# variable. Lo que se ve son los dígitos, que cambian cada segundo, así que un
+# cuadro mal elegido se nota. Es la misma cuenta del Tram Officer del mapa 9
+# —"lo que le queda al cronómetro, menos sesenta"— con números más cortos.
+#
+# `vars` van de a cinco con los números de RM2k —variable, operación, clase,
+# a, b— y la operación 9 es la inventada de la página de prueba: el cronómetro
+# desde la variable, que en RM2k es un TimerOperation.
+snes-vars mapa="6" timer="60 1" vars="17 0 7 1 0 17 2 0 25 0 17 9 0 0 0" celda="2 10" cuadros="2 31 61 90" tinte="12 0 0 50" arranque="115" nombre="vars":
+  #!/usr/bin/env bash
+  set -euo pipefail
+  mkdir -p {{snes_pngs}} {{snes_inc}}
+  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
+      --inicio {{celda}} --timer-de-prueba {{timer}} --vars-de-prueba {{vars}} \
+      --pagina-de-prueba {{tinte}} -o {{snes_inc}}/mapdata.inc
+  just snes-build
+  pre={{snes_pngs}}/{{nombre}}
+  python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
+      --hero-tile {{celda}} --timer-de-prueba {{timer}} --vars-de-prueba {{vars}} \
+      --pagina-de-prueba {{tinte}} --cuadros {{cuadros}} \
+      --saltar $pre-{}.saltar.txt -o $pre-{}.esperado.png
+  for n in {{cuadros}}; do
+    python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre-$n.png \
+        --walk none --cuadros $n --arranque {{arranque}}
+    python3 tools/snes_compare.py $pre-$n.png $pre-$n.esperado.png \
+        --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
+  done
+
 # La saturación del tinte de pantalla, y la mitad de arriba del hard light.
 #
 # `TintScreen` tiene cuatro parámetros y hasta ahora la ROM hacía tres: la

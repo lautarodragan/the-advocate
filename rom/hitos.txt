@@ -116,6 +116,16 @@ snes-sacudir 6 "9 8 3 1" "2 5 9 14 17 60" 115 sacudir-fuerte
 snes-sacudir 2 "3 3 2 1" "3 6 9 11 13 60" 115 sacudir-borde "4 54"
 snes-timer
 snes-timer 6 "1 1" "2 10" "2 40 59 61" "12 0 0 50" 115 timer-cero
+# Las variables, vistas por el cronómetro: 60 segundos a la variable 17, menos
+# 25, y el cronómetro desde la variable. Sin las variables mostraría 60.
+snes-vars
+# El Tram Officer del mapa 9 entero: cuatro mensajes, la elección "1 minute",
+# la caminata de espera, el cronómetro leído a una variable y restado, la rama
+# que dice "it's official, I'm late", y el azar que decide "It's here!". Los
+# cuadros van después de que cada ventana esté compuesta de los dos lados; la
+# ROM tarda unos doce ticks en componerla y la referencia no. El CallEvent al
+# Hover-Tram se acepta sin hacer.
+snes-escena 9 "24 8" 12 up "26 50 70 88 108 150 190 220 243 256 320" 115 tram "10 30 54 74 91 115 224 246 260" "24" "8"
 snes-hablar 7 "3 7" 25 25 "20 60" 115 hablar-sin-switch
 # El destello de pantalla, que hasta el 2026-09-08 no lo corría nadie.
 # Verificado que da rojo con el `lda #0` de antes: 387 pixeles en los tres.

@@ -3186,6 +3186,38 @@ evento entero quedaba afuera: no se dibujaba, no frenaba y no disparaba. Son
 cronómetro siguen tirando el evento entero, porque ésas sí pueden cumplirse y
 no se sabe cuándo.
 
+### Las variables de RM2k
+
+El juego declara cinco mil y usa 81. La ROM lleva **las que nombran las
+páginas de sus mapas**, con una ranura cada una: el conversor las cuenta antes
+de compilar nada —`indexar_variables`— y el bytecode habla de ranuras, así que
+cuestan dos bytes de RAM por variable usada y no diez kilobytes. La referencia
+arma el mismo índice de la misma lista de mapas, que es lo que hace que los dos
+lados lean el mismo stream. Viven en la RAM lejana —`FAR_VARIABLES`, por la
+ventana de `WMDATA`, como el estado de los paralelos— y viajan en la partida
+guardada.
+
+Son de **dieciséis bits con signo**. RM2k las lleva a 32 y las topa en ±999999,
+pero ninguna del juego pasa de unos cientos —segundos del cronómetro, un azar de
+0 a 100, contadores— y lo que no entra en el word no compila, que es más
+honesto que truncar. Lo que compila: `ControlVars` de a una variable, con poner,
+sumar y restar, y el operando constante, otra variable, un azar entre a y b, o
+"otro" —el oro y los segundos del cronómetro—; `ConditionalBranch` por variable
+con las seis comparaciones; y `TimerOperation` con los segundos desde una
+variable. Los rangos y el indirecto no los usa ninguna página.
+
+**El azar es el mismo de los dos lados.** Un xorshift de dieciséis bits —`x ^=
+x << 7; x ^= x >> 9; x ^= x << 8`—, sembrado en el reset, instrucción por
+instrucción en `azar_siguiente` de `main.s` y de `eventos.py`. Por eso una
+página con azar se compara pixel por pixel: el Tram Officer del mapa 9 tira un
+número de 0 a 100 y dice "It's here!" si sale 90 o más; los dos lados sacan 97.
+No hay entropía, y a los efectos de la comparación tampoco la hay en RPG_RT.
+
+`CallEvent` —la página de otro evento, en el lugar— se acepta sin hacer, como
+`PlaySound`: en los mapas 1 a 10 lo usa sólo el Tram Officer para subir al
+Hover-Tram, y esa escena quedó para otra vuelta. Es deuda declarada en
+`ACEPTADOS_SIN_HACER`.
+
 ### Lo que falta
 
 * **Las órdenes de ruta que faltan.** Son quince las que la ROM entiende

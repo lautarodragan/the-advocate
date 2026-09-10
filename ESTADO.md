@@ -442,10 +442,40 @@ Y la ruta destapó **dos errores de la ROM que no eran del evento**:
   desde el 41. Ahora una tira pendiente descuenta una pose, como el renglón de
   la ventana. 1563 pixeles, una fila de 200.
 
-Lo que sigue, en el orden que pidió taro: el Tram Officer del mapa 9, que
-pide **variables**: `ControlVars` con constante, resta y random, "otro:
-segundos del cronómetro", `TimerOperation` desde una variable, y
-`ConditionalBranch` por variable. El `CallEvent` al Hover-Tram no va.
+### Las variables, y el Tram Officer (2026-09-10, a la noche)
+
+Hecho. La ROM tiene **variables de RM2k**: no las cinco mil sino las que
+nombran las páginas de los mapas de la ROM, con una ranura cada una que
+reparte el conversor y que la referencia reparte igual de la misma lista de
+mapas —`indexar_variables`—. Los mapas 1 a 10 usan seis. Viven en la RAM
+lejana (`FAR_VARIABLES`), son de dieciséis bits con signo, y **viajan en la
+partida**: `PARTIDA_BYTES` creció en dos por variable, y la prueba de que las
+cuatro ranuras entran en la SRAM sigue en verde, pero con las 81 del juego
+entero la partida pasaría de los 256 bytes de la ranura. Ese día
+`SRAM_STRIDE` pasa a 512 —un `xba` y un `asl`— y hay lugar para ocho veces
+eso.
+
+Lo que hay: `ControlVars` de a una —poner, sumar, restar; constante, otra
+variable, azar, y "otro" oro y segundos del cronómetro—, `ConditionalBranch`
+por variable con las seis comparaciones y signo, y `TimerOperation` desde una
+variable. El azar es un xorshift de dieciséis bits **igual de los dos lados**,
+sembrado en el reset: por eso una página con azar compara pixel por pixel.
+`CallEvent` se acepta sin hacer, con la deuda declarada en
+`ACEPTADOS_SIN_HACER`: en los mapas 1 a 10 sólo lo usa el Tram Officer para
+subir al Hover-Tram, que taro dejó para otra vuelta.
+
+Lo cobran `snes-vars` —el cronómetro puesto desde una variable, dígitos a la
+vista— y **`tram`, la escena entera del Tram Officer**: once cuadros en cero,
+con la elección, la caminata de espera, la rama "I'm late" y el "It's here!"
+que sale del azar (la variable 21 da 97). Y `test_variables.py`: las
+operaciones contra Python, el primer azar contra `azar_siguiente`, la rama, y
+que las variables vuelven de la SRAM.
+
+Dos cosas para saber: las órdenes 28 y 29 de la ruta del héroe —subir y bajar
+la velocidad— se tiran de los dos lados, así que la caminata de espera del
+Tram Officer va a velocidad normal, y es una deuda de antes; y `Wait 15` son
+quince **décimas**, noventa ticks, que fue lo que explicó por qué el mensaje
+de "I'm late" tardaba cien ticks en salir.
 
 ### Lo próximo, si no se decide otra cosa
 
@@ -495,12 +525,13 @@ acotados; del cuarto para abajo es lo de siempre.
    rompía con las direcciones viejas de VRAM, y snes9x sí lo cobró, pero sólo
    con el grupo 11—.
 
-5. **Lo que sigue faltando de Lashe City**, por tamaño: la condición de **ítem**
-   —45 eventos, pide inventario— y las **variables** de RM2k —el juego usa 81
-   distintas, la mayor es la 201, y los mapas 1 a 10 sólo la 17, 21 y 39 a
-   42; no entran en el banco 0 y van a la RAM del banco 1—. **Lashe City
-   Interiors (10) y Lashe City 33,36 (9) están en la demo desde el 2026-09-10
-   a la noche**, con sus puertas: ver "Los mapas 9 y 10", más abajo.
+5. **Lo que sigue faltando de Lashe City**: la condición de **ítem** —45
+   eventos— quedó resuelta como "nunca activa", las **variables** están desde
+   el 2026-09-10 a la noche, y **Lashe City Interiors (10) y Lashe City 33,36
+   (9) están en la demo** con sus puertas. Lo que queda: las condiciones de
+   página por variable y por cronómetro, que todavía tiran el evento entero
+   —en los mapas de la demo no hay ninguna—, el `CallEvent` del Hover-Tram, y
+   la velocidad del héroe en las rutas.
 
 6. **La animación del save point** (`animation_type` 3, "Fixed Dir/Continuous")
    está **hecha** desde el 2026-09-09; queda el renglón para que nadie la

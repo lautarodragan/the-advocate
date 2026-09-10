@@ -2530,6 +2530,19 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "OP_ELEGIR   = $%02X\n"
         "OP_ORO      = $%02X\n"
         "OP_GUARDAR  = $%02X\n"
+        "OP_VAR      = $%02X\n"
+        "OP_SI_VAR   = $%02X\n"
+        "; Las variables: cuántas ranuras lleva esta ROM —al menos una, porque\n"
+        "; un largo cero cerraría la tabla de la partida—, las clases de\n"
+        "; operando de ControlVars que la ROM distingue, la suma, y la\n"
+        "; semilla del azar. Ver 'las variables de RM2k' en eventos.py.\n"
+        "VARIABLES_N   = %d\n"
+        "VAR_SUMAR     = %d\n"
+        "VAR_VARIABLE  = %d\n"
+        "VAR_AZAR      = %d\n"
+        "VAR_OTRO      = %d\n"
+        "AZAR_SEMILLA  = $%04X\n"
+        "TIMER_PONER_VAR = %d\n"
         "; Las clases de condición de ConditionalBranch que sabemos,\n"
         "; con el número de RM2k tal cual.\n"
         "COND_ORO    = %d\n"
@@ -2750,6 +2763,10 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            eventos.OP_DESTELLO, eventos.OP_FUNDIR_BGM, eventos.OP_PAN,
            eventos.OP_SI, eventos.OP_IR, eventos.OP_ELEGIR,
            eventos.OP_ORO, eventos.OP_GUARDAR,
+           eventos.OP_VAR, eventos.OP_SI_VAR,
+           max(1, len(eventos.VARIABLE_SLOT)),
+           eventos.VAR_SUMAR, eventos.VAR_VARIABLE, eventos.VAR_AZAR,
+           eventos.VAR_OTRO, eventos.AZAR_SEMILLA, eventos.TIMER_PONER_VAR,
            eventos.COND_ORO, eventos.COND_ACTOR,
            eventos.ORO_MAX,
            eventos.PAN_CORRER, eventos.PAN_VOLVER,
@@ -3361,6 +3378,22 @@ def ruta_de_evento(argumento):
     return argumento[0], list(argumento[1:])
 
 
+def variables_de_prueba(vars_de_prueba, rama_var_de_prueba):
+    """Las variables que nombra la página de prueba, para darles ranura."""
+    ids = set()
+    if vars_de_prueba:
+        if len(vars_de_prueba) % 5:
+            sys.exit("--vars-de-prueba pide VARIABLE OPERACION CLASE A B, y se "
+                     "puede repetir de a cinco")
+        for k in range(0, len(vars_de_prueba), 5):
+            ids.add(vars_de_prueba[k])
+            if vars_de_prueba[k + 2] == eventos.VAR_VARIABLE:
+                ids.add(vars_de_prueba[k + 3])
+    if rama_var_de_prueba:
+        ids.add(rama_var_de_prueba[0])
+    return ids
+
+
 def pan_de_prueba(argumento):
     """Los PanScreen de la página de prueba, de a cinco números."""
     if not argumento:
@@ -3605,6 +3638,20 @@ def main():
                         help="prende estos switches desde la página de prueba, "
                              "que es la forma de poner al mundo en un estado al "
                              "que el juego llega más tarde")
+    parser.add_argument("--vars-de-prueba", nargs="+", type=int, default=None,
+                        metavar="N",
+                        help="ControlVars en la página de prueba, de a cinco: "
+                             "VARIABLE OPERACION CLASE A B con los números de "
+                             "RM2k (operación 0 pone, 1 suma, 2 resta; clase "
+                             "0 constante, 1 variable, 3 azar, 7 otro)")
+    parser.add_argument("--rama-var-de-prueba", nargs=5, type=int,
+                        default=None,
+                        metavar=("VARIABLE", "COMPARACION", "VALOR", "ADENTRO",
+                                 "DESPUES"),
+                        help="una rama por variable en la página de prueba, "
+                             "como --rama-de-prueba: prende ADENTRO si la "
+                             "variable cumple la comparación con VALOR, y "
+                             "DESPUES siempre")
     parser.add_argument("--rama-de-prueba", nargs=3, type=int, default=None,
                         metavar=("SWITCH", "ADENTRO", "DESPUES"),
                         help="una rama en la página de prueba: si SWITCH está "
@@ -3756,6 +3803,11 @@ def main():
     args_game_dir[0] = args.game_dir
     todos = orden_de_mapas(args)
     args.lideres = lideres_posibles(renderer, todos, grupo, args.con_ventana)
+    # Las variables de esta ROM, con su ranura, antes de compilar una sola
+    # página. La referencia arma el mismo índice de la misma lista de mapas.
+    eventos.indexar_variables(args.game_dir, todos,
+                              variables_de_prueba(args.vars_de_prueba,
+                                                  args.rama_var_de_prueba))
     # En cuántos mapas de esta ROM aparece cada personaje. Lo usa el reparto de
     # paletas para elegir a quién puede bajarle un color sin romper nada: el
     # banco de poses es **de la ROM entera**, así que un personaje que está en
@@ -3847,6 +3899,7 @@ def main():
                      % (mapa["id"], graficos.pares, mapa["graficos_de_ruta"]))
         if (args.pagina_de_prueba or args.ruta_de_prueba
                 or args.rama_de_prueba or args.guardar_de_prueba
+                or args.vars_de_prueba or args.rama_var_de_prueba
                 or args.ruta_de_evento or args.flash_de_prueba or args.switch
                 or args.destello_de_prueba
                 or args.timer_de_prueba or args.lugar_de_prueba
@@ -3880,7 +3933,9 @@ def main():
                     pan=pan_de_prueba(args.pan_de_prueba),
                     rama=tuple(args.rama_de_prueba or ()),
                     destello=tuple(args.destello_de_prueba or ()),
-                    guardar=args.guardar_de_prueba)}, {
+                    guardar=args.guardar_de_prueba,
+                    variables=tuple(args.vars_de_prueba or ()),
+                    rama_var=tuple(args.rama_var_de_prueba or ()))}, {
                 # Y la que la apaga: misma idea que en la referencia, ver
                 # `PAGINA_DE_PRUEBA_APAGADA`. Sin código, así que en cuanto
                 # gana, el evento inventado deja de tener una automática que

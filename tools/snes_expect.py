@@ -145,6 +145,10 @@ class Mundo:
         # pero el opcode **ocupa dos bytes** en el bytecode, así que si un lado
         # lo emitiera y el otro no, los dos recorrerían streams distintos.
         self.temas = eventos.Temas()
+        # El mismo índice de variables que el conversor, de la misma lista.
+        eventos.indexar_variables(game_dir, self.ids, (
+            snes_convert.variables_de_prueba(prueba[15], prueba[16])
+            if prueba is not None else ()))
         if mensajes is not None:
             # Con ventana los mapas se compilan **todos y en el orden de la
             # tabla**, acá y no cuando el héroe pise cada uno. El bloque de
@@ -190,7 +194,9 @@ class Mundo:
                                               pan=self.prueba[11],
                                               rama=self.prueba[12],
                                               destello=self.prueba[13],
-                                              guardar=self.prueba[14])),
+                                              guardar=self.prueba[14],
+                                              variables=self.prueba[15],
+                                              rama_var=self.prueba[16])),
                                      dict(PAGINA_DE_PRUEBA_APAGADA,
                                           evento=numero)]
             self.paginas_cache[map_id] = paginas
@@ -1228,6 +1234,11 @@ def main():
                         help="prende estos switches desde la página de prueba, "
                              "que es la forma de poner al mundo en un estado al "
                              "que el juego llega más tarde")
+    parser.add_argument("--vars-de-prueba", nargs="+", type=int, default=None,
+                        help="el otro lado del mismo flag de snes_convert.py")
+    parser.add_argument("--rama-var-de-prueba", nargs=5, type=int,
+                        default=None,
+                        help="el otro lado del mismo flag de snes_convert.py")
     parser.add_argument("--rama-de-prueba", nargs=3, type=int, default=None,
                         metavar=("SWITCH", "ADENTRO", "DESPUES"),
                         help="la misma rama que arma el conversor; ver allá")
@@ -1353,6 +1364,7 @@ def main():
                   or args.timer_de_prueba or args.lugar_de_prueba
                   or args.sacudida_de_prueba or args.fundir_bgm
                 or args.pan_de_prueba or args.rama_de_prueba
+                  or args.vars_de_prueba or args.rama_var_de_prueba
                   or args.mensaje_de_prueba is not None)
     # El bloque de textos, armado igual que en el conversor y en el mismo orden:
     # el mensaje de prueba primero —desplazamiento 0— y después los mapas de la
@@ -1371,7 +1383,9 @@ def main():
                    args.fundir_bgm, snes_convert.pan_de_prueba(args.pan_de_prueba),
                    tuple(args.rama_de_prueba or ()),
                    tuple(args.destello_de_prueba or ()),
-                   args.guardar_de_prueba)
+                   args.guardar_de_prueba,
+                   tuple(args.vars_de_prueba or ()),
+                   tuple(args.rama_var_de_prueba or ()))
                   if hay_prueba else None, mensajes,
                   graficos_de_prueba=snes_convert.graficos_de_prueba(
                       args.grafico_de_prueba),

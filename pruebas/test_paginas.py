@@ -61,3 +61,23 @@ def test_una_condicion_por_variable_sigue_dejando_el_evento_afuera():
         assert not rm2k.condiciones_soportadas(evento)
     assert eventos.SWITCH_IMPOSIBLE not in range(1, 1004), (
         "el juego consulta switches hasta el 1003")
+
+
+def test_el_tram_officer_compila_con_las_variables():
+    """El Tram Officer del mapa 9 pide variables —azar, resta, los segundos del
+    cronómetro, una rama por variable— y un CallEvent que se acepta sin hacer.
+    Con las ranuras indexadas compila; sin ellas, no."""
+    game_map = lcf.Map(os.path.join(GAME_DIR, "Map0009.lmu"))
+    del_mapa = eventos.Eventos(game_map)
+    oficial = [e for e in game_map.events if e.name == "Tram Officer"][0]
+    eventos.VARIABLE_SLOT.clear()
+    assert eventos.compilar_pagina(oficial.pages[0], {9: 0}.get,
+                                   eventos.Mensajes(),
+                                   del_mapa.para(oficial.id)) is None
+    ranuras = eventos.indexar_variables(GAME_DIR, [4, 1, 2, 3, 5, 6, 7, 8, 9, 10])
+    assert ranuras == {17: 0, 21: 1, 39: 2, 40: 3, 41: 4, 42: 5}, ranuras
+    codigo = eventos.compilar_pagina(oficial.pages[0], {9: 0}.get,
+                                     eventos.Mensajes(),
+                                     del_mapa.para(oficial.id))
+    assert codigo is not None and eventos.OP_VAR in codigo \
+        and eventos.OP_SI_VAR in codigo

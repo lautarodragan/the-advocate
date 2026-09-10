@@ -421,6 +421,13 @@ class Partida:
         self.correr(cuadros)
         return self
 
+    def variable(self, ranura):
+        """El valor de la ranura, con signo, leído de la RAM lejana."""
+        bajo, alto = self.consola.ram(self.simbolos["FAR_VARIABLES"]
+                                      + ranura * 2, 2)
+        valor = bajo | (alto << 8)
+        return valor - 0x10000 if valor & 0x8000 else valor
+
     def corriendo_una_pagina(self):
         return bool(self.byte("ev_activo"))
 
@@ -452,7 +459,8 @@ def huella():
 
 
 def armar(map_id, mapas=(), con_ventana=True, destino=None, rama=(),
-          descartar=False, guardar=0, titulo=False, tema=None):
+          descartar=False, guardar=0, titulo=False, tema=None, variables=(),
+          rama_var=()):
     """Convierte, ensambla y devuelve (ROM, símbolos, ids de mapa en orden).
 
     Los mismos dos comandos que corre el justfile, para que una ROM de prueba
@@ -484,6 +492,10 @@ def armar(map_id, mapas=(), con_ventana=True, destino=None, rama=(),
         convertir += ["--mapas"] + [str(m) for m in mapas]
     if rama:
         convertir += ["--rama-de-prueba"] + [str(n) for n in rama]
+    if variables:
+        convertir += ["--vars-de-prueba"] + [str(n) for n in variables]
+    if rama_var:
+        convertir += ["--rama-var-de-prueba"] + [str(n) for n in rama_var]
     if guardar:
         # La página de prueba espera `guardar` ticks y recién ahí guarda la
         # partida. La espera es lo que le deja a la prueba mover el mundo antes
