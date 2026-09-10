@@ -266,3 +266,66 @@ def test_el_cursor_de_guardar_arranca_en_la_ranura_en_uso(partida):
     assert una.byte("titulo_sel") == 2, (
         "el cursor arrancó en la ranura %d y la partida vino de la 2"
         % una.byte("titulo_sel"))
+
+
+def test_la_pantalla_de_ranuras_muestra_el_grupo_guardado(partida):
+    """Una ranura con partida muestra el nombre del líder y las caras del
+    grupo, como `Window_SaveFile` en RM2k, y **pixel por pixel** contra
+    `titulo.render_ranuras` con ese mismo grupo.
+
+    Es la única prueba de pixeles de la variante "llena": la tanda no puede
+    llegar a ella porque la SRAM del emulador arranca virgen, y acá sí, porque
+    primero se guarda. El grupo es Talan y DummyHero —los dos que pueden
+    estar en el grupo con los mapas de esta ROM—: Talan tiene cara y nombre,
+    DummyHero no tiene cara, así que se ven las dos cosas y un hueco.
+    """
+    import os
+    import sys
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(
+        os.path.abspath(__file__))), "tools"))
+    import lcf
+    import titulo
+    import ventana
+    from render_map import GAME_DIR
+    from snes_compare import quantize
+
+    una = partida(titulo=EMPEZAR, guardar=ESPERA)
+    una.poner_grupo(14, 10)
+    una.guardar_en(1)
+    una.abrir_ranuras_desde_el_titulo()
+
+    db = lcf.Database(os.path.join(GAME_DIR, "RPG_RT.ldb"))
+    skin = ventana.skin(GAME_DIR, db.system_name)
+    ranuras = una.simbolos["SRAM_RANURAS"]
+
+    def comparar(elegida):
+        captura = una.imagen().convert("RGB")
+        esperada = titulo.render_ranuras(skin, db, ranuras, [False] * ranuras,
+                                         elegida, 0, db.font_id,
+                                         {1: [14, 10]}, GAME_DIR)
+        distintos = sum(1 for x, y in zip(quantize(captura),
+                                          quantize(esperada)) if x != y)
+        if distintos:
+            donde = os.path.join(os.path.dirname(os.path.dirname(
+                os.path.abspath(__file__))), "rom", "shots")
+            os.makedirs(donde, exist_ok=True)
+            captura.save(os.path.join(
+                donde, "prueba-ranuras-grupo-%d.png" % elegida))
+            esperada.save(os.path.join(
+                donde, "prueba-ranuras-grupo-%d.esperado.png" % elegida))
+        assert distintos == 0, (
+            "la pantalla de ranuras con la partida de Talan y el cursor en la "
+            "%d difiere de la referencia en %d pixeles; están en "
+            "rom/shots/prueba-ranuras-grupo-%d*.png"
+            % (elegida, distintos, elegida))
+
+    # Como se entra, y con el cursor sobre la fila de Talan: bajar el cursor
+    # repinta la fila entera adentro del vblank, cara y nombre incluidos, y
+    # eso es lo que se mira acá. Medido: contra una referencia sin grupo o
+    # con otro actor son unos 400 pixeles, así que el cero no es vacío.
+    comparar(0)
+    una.consola.apretar("down")
+    una.consola.correr(2)
+    una.consola.apretar()
+    una.consola.correr(2)
+    comparar(1)

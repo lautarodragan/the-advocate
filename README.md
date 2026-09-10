@@ -589,6 +589,40 @@ Tres cosas de cómo está hecho, porque las tres costaron un día:
   testigo que "entraba 85 veces" leía RAM sin inicializar: snes9x la llena de
   `$55`, que es 85.
 
+**Cada ranura con partida muestra lo que muestra RM2k**, que es lo que
+`Window_SaveFile::Refresh` dibuja por archivo: el nombre del archivo, el
+nombre del líder, el nivel —mockeado en 1, porque no hay actores con nivel— y
+las **caras** del grupo, del FaceSet y a 48x48; los puntos de vida no, porque
+este port no los tiene. taro lo pidió el 2026-09-10 al ver que EasyRPG mostraba
+la cara de Talan. La fila mide 48 pixeles por eso, y entran tres caras: la
+cuarta no cabe en 256 sin comerse el borde que un televisor de tubo no
+muestra.
+
+Cómo está hecho, porque no es una variante más de la fila pre-renderizada: el
+grupo lo dice **la partida guardada** —los seis bytes de `grupo` en la SRAM de
+la ranura, en `PARTIDA_GRUPO`— y por cada actor que pueda entrar al grupo con
+los mapas de la ROM, `miembros_posibles`, el conversor emite un bloque de 36
+celdas con su cara y otro de 14 con su nombre. `ranura_pintar` sube la fila y
+después, si tiene partida, `ranura_grupo_pintar` lee el grupo de la SRAM y
+escribe encima los rectángulos que le tocan, con `ranura_rect_subir`: un DMA
+por fila de celdas, con el puntero de origen que el DMA mismo va dejando donde
+terminó. A dónde va cada cara y cada nombre lo dicen dos tablas del conversor
+—`ranura_cara_vram`, de a cuatro por ranura para no multiplicar por tres, y
+`ranura_nombre_vram`—, como `ranura_vram` para las filas. Cada cara lleva su
+paleta, reducida a 15 colores con `reducir` como la imagen del título, en las
+paletas 1 a 7 de BG2; en RM2k el índice 0 del FaceSet es transparente, igual
+que en un CharSet, y `ABLFaces` lo usa: dibujado opaco cada cara era un
+cuadrado rojo. Un actor sin cara —DummyHero— no dibuja nada, como `DrawFace`
+con un nombre vacío.
+
+La variante llena no la puede ver la tanda —la SRAM del emulador arranca
+virgen— y la cobra `test_la_pantalla_de_ranuras_muestra_el_grupo_guardado`,
+que guarda con Talan y DummyHero en el grupo, reinicia, entra por "Resume the
+Story" y compara la pantalla **pixel por pixel** contra `titulo.render_ranuras`
+con ese grupo, con el cursor en la primera fila y después sobre la de Talan,
+que es lo que la repinta en el vblank. Contra una referencia sin grupo o con
+Kersh son unos 400 pixeles, así que el cero no es vacío.
+
 Lo cobra `just snes-guardar` en seis cuadros, todos en cero: la pantalla al
 abrirse y con el cursor dos ranuras abajo, contra `titulo.py --modo 1`; y el
 mapa de vuelta después de cancelar y después de elegir, en dos ticks, contra la

@@ -238,16 +238,17 @@ nivel todavía.
 * **Confirmación de pisar una ranura ocupada: no va.** `Scene_Save::Action`
   guarda y saca la escena sin preguntar; hacerlo acá sería inventar.
 
-* **La variante "llena" no la cubre la tanda de pixeles**: la SRAM del emulador
-  arranca virgen y no hay forma de precargarla desde `snes_correr.py`. La
-  cubren las pruebas de estado, que sí pueden guardar antes de mirar.
-* **El texto de las ranuras.** El camino ya está probado por el menú: dibujar
-  con `ventana.dibujar_linea` sobre una capa transparente, cortarla en tiles de
-  4bpp y emitir un tilemap por variante. Las filas de ranura tienen dos
-  variantes cada una —vacía y ocupada— así que **también se pre-renderizan**, y
-  no hace falta componer texto en caliente. Medido sobre el menú: 4 ranuras por
-  2 variantes, a 24 celdas por 2 filas, son unos 400 tiles de 4bpp, 12800 B.
-  Entra sin discusión, y esa pantalla ni siquiera lleva la imagen.
+* **La variante "llena" la cubre `test_titulo.py` pixel por pixel** desde el
+  2026-09-10 a la noche —`test_la_pantalla_de_ranuras_muestra_el_grupo_guardado`—
+  porque la tanda no puede: la SRAM del emulador arranca virgen. Guarda con
+  Talan y DummyHero, reinicia, abre "Resume the Story" y compara contra
+  `titulo.render_ranuras` con ese grupo, con el cursor en la primera fila y
+  sobre la de Talan.
+* **Cada ranura con partida muestra el nombre del líder y las caras del
+  grupo**, como `Window_SaveFile` en RM2k; taro lo pidió el 2026-09-10 al ver
+  la cara de Talan en EasyRPG. Hecho esa noche; el cómo está en el README, "El
+  save point". Lo que no muestra: los puntos de vida, que este port no tiene,
+  y la cuarta cara, que no entra en 256 pixeles. El nivel sigue mockeado en 1.
 * **Cargar no anda todavía, y el commit anterior decía que sí.** Lo encontró
   `pruebas/test_titulo.py`, que es justo el caso que ese commit no tenía. El
   síntoma, medido el 2026-09-10: se guarda con el switch 7 prendido, la SRAM
@@ -318,10 +319,21 @@ Lo que hay que saber para tocarlo, además de lo del README:
   es de esa capa: `savepoint-guarda` arranca en (9,56) y no en (9,55). De
   frente el caso daba cero **en vacío**, lo dijo `menu_abierto`. Es la trampa
   de siempre y la receta lo deja escrito.
-* **Lo que no cubre nada todavía**: la variante "llena" de la fila en la
-  pantalla de guardar, en pixeles —la SRAM del emulador arranca virgen desde
-  `snes_correr.py`—; y qué queda en la SRAM después de `savepoint-guarda`,
-  que es el caso del save point real y sólo mira pixeles.
+* **Lo que no cubre nada todavía**: qué queda en la SRAM después de
+  `savepoint-guarda`, que es el caso del save point real y sólo mira pixeles.
+  La variante "llena" de la fila sí está cubierta desde esa noche, con las
+  caras: ver arriba.
+* **Las caras del grupo en la fila (2026-09-10, a la noche).** Tres cosas que
+  costaron: el FaceSet tiene el índice 0 transparente como un CharSet, y se
+  abre con `render_map.load_image` y no con `Image.open`; el escritorio de
+  `ranura_grupo_pintar` está justo —`temp` entero, `temp + 3` y
+  `titulo_flancos` de índice— y el primer borrador pisaba `hero_x` para
+  guardar una columna, que en el save point es el juego mismo: las direcciones
+  de destino pasaron a tablas del conversor y no hizo falta más RAM; y leer
+  `titulo_flancos` a dieciséis bits se lleva `menu_abierto`, que vale 1
+  mientras la pantalla se ve, así que el índice de la SRAM se arma con dos
+  `xba`. La VRAM de la pantalla es ahora $2000 para los tiles —170 con las
+  cuatro caras de la demo, tope 448— y $3C00 para el tilemap.
 
 ### El build: dónde se va el tiempo (medido el 2026-09-10)
 

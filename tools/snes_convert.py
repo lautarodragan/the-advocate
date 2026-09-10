@@ -277,8 +277,10 @@ def convert_above(image, palettes=None, grid=None):
 def entry(tile, horizontal, vertical, priority=0):
     """Una celda del tilemap: vhop ppcc cccc cccc.
 
-    Los tres bits de paleta no se usan: en 8 bits por pixel el índice ya
-    alcanza CGRAM entero y el PPU los ignora.
+    Los tres bits de paleta no se ponen acá: en 8 bits por pixel el índice ya
+    alcanza CGRAM entero y el PPU los ignora. Las celdas de la pantalla de
+    ranuras, que es BG2 a 4bpp, ya vienen de `titulo.py` con la paleta puesta
+    en `tile`, y esto la deja pasar.
     """
     return (tile | (priority << 13) | (horizontal << 14) | (vertical << 15))
 
@@ -1483,13 +1485,14 @@ RANURAS = 4
 #   LAYOUT_VENTANA        $2000..$5800
 #   LAYOUT_VENTANA_FONDO  $1000..$4C00
 #
-# La base de tiles de un BG va de a 4096 palabras y el tilemap de a 1024: $3000
-# para los 93 tiles —terminan en $35D0— y $2000 para el tilemap. La pantalla de
-# título los pisa —su imagen llega a $3E00— y no importa: al volver de las
-# ranuras el título se sube entero. `_controlar_ranuras` lo comprueba contra
-# los repartos de verdad, para que mover uno no deje esto escrito mal.
-RANURA_MAP = 0x2000
-RANURA_VRAM = 0x3000
+# La base de tiles de un BG va de a 4096 palabras y el tilemap de a 1024: los
+# tiles en $2000, que con las caras del grupo son unos 300 y pueden llegar a
+# 448 —hasta $3C00—, y el tilemap en $3C00. La pantalla de título los pisa —su
+# imagen llega a $3E00— y no importa: al volver de las ranuras el título se
+# sube entero. `_controlar_ranuras` lo comprueba contra los repartos de
+# verdad, para que mover uno no deje esto escrito mal.
+RANURA_VRAM = 0x2000
+RANURA_MAP = 0x3C00
 
 VRAM_MAP = 0x5800
 VRAM_ABOVE_MAP = 0x7800
@@ -1537,6 +1540,10 @@ def _controlar_ranuras(ranura_tiles):
     """
     fin_tiles = RANURA_VRAM + ranura_tiles * 16
     fin_map = RANURA_MAP + 32 * 32
+    if not (fin_tiles <= RANURA_MAP or fin_map <= RANURA_VRAM):
+        raise SystemExit(
+            "los %d tiles de la pantalla de ranuras llegan a $%04X y pisan su "
+            "tilemap en $%04X" % (ranura_tiles, fin_tiles, RANURA_MAP))
     for nombre, layout in (("ANCHO", LAYOUT_ANCHO), ("FONDO", LAYOUT_FONDO),
                            ("VENTANA", LAYOUT_VENTANA),
                            ("VENTANA_FONDO", LAYOUT_VENTANA_FONDO)):
@@ -2710,8 +2717,23 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "; Cuántos bloques hay antes del primero de las filas: son las dos\n"
         "; cabeceras, cargar y guardar.\n"
         "RANURA_BLOQUE_FILAS = 2\n"
-        "; Cuántas entradas de CGRAM usa el menú y la pantalla de ranuras: una\n"
-        "; paleta de dieciséis, la 0.\n"
+        "; El grupo de la partida guardada, encima de la fila: las caras de\n"
+        "; hasta RANURA_CARAS_MAX, de RANURA_CARA_COLS por RANURA_CARA_FILAS\n"
+        "; celdas, y el nombre del primero. Qué bloque le toca a cada actor lo\n"
+        "; dicen `ranura_cara_bloque` y `ranura_nombre_bloque`, por id de actor\n"
+        "; hasta RANURA_ACTORES_N, con $FF para 'no tiene'; y a dónde van,\n"
+        "; `ranura_cara_vram` —de a cuatro por ranura— y `ranura_nombre_vram`.\n"
+        "RANURA_CARAS_MAX  = %d\n"
+        "RANURA_CARA_COLS  = %d\n"
+        "RANURA_CARA_FILAS = %d\n"
+        "RANURA_NOMBRE_COLS  = %d\n"
+        "RANURA_NOMBRE_FILAS = %d\n"
+        "RANURA_ACTORES_N  = %d\n"
+        "; Cuántas entradas de CGRAM sube la pantalla de ranuras: la paleta 0\n"
+        "; del texto y una por cara, de dieciséis cada una.\n"
+        "RANURA_CGRAM_N    = %d\n"
+        "; Cuántas entradas de CGRAM usa el menú del título: una paleta de\n"
+        "; dieciséis, la 0.\n"
         "TITULO_MENU_CGRAM = %d\n\n"
         % (", ".join("%d %s" % (m["id"], m["nombre"]) for m in mapas),
            len(mapas), MAPA_STRIDE, inicial,
@@ -2779,6 +2801,12 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            titulo_mod.RANURA_FILAS,
            titulo_mod.RANURA_FILAS * titulo_mod.COLS,
            titulo_mod.CABECERA_Y // titulo_mod.CELL * 32,
+           titulo_mod.CARAS_MAX, titulo_mod.CARA_CELDAS,
+           titulo_mod.CARA_CELDAS, titulo_mod.NOMBRE_COLS,
+           titulo_mod.NOMBRE_FILAS,
+           (max(list(ranuras["caras"]) + list(ranuras["nombres"]) + [-1])
+            + 1),
+           len(ranuras["paletas"]) * titulo_mod.MENU_CGRAM,
            titulo_mod.MENU_CGRAM))
 
     with open(path, "w") as handle:
@@ -2996,6 +3024,28 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                         bloque(nombre, celdas_asm([fila[llena][cursor]]))
                         + "\n")
                     bloques_ranura.append(nombre)
+        # Y detrás, por actor que pueda entrar al grupo, su cara y su nombre:
+        # la ROM los escribe encima de la fila según lo que la partida guardó.
+        # Las celdas de las caras llevan la paleta en sus tres bits, que acá
+        # sí se usan: es BG2 a 4bpp.
+        bloque_de_cara, bloque_de_nombre = {}, {}
+        for actor in sorted(ranuras["caras"]):
+            nombre = "ranura_cara_%d" % actor
+            handle.write(bloque(nombre, celdas_asm([ranuras["caras"][actor]]))
+                         + "\n")
+            bloque_de_cara[actor] = len(bloques_ranura)
+            bloques_ranura.append(nombre)
+        for actor in sorted(ranuras["nombres"]):
+            nombre = "ranura_nombre_%d" % actor
+            handle.write(bloque(nombre,
+                                celdas_asm([ranuras["nombres"][actor]]))
+                         + "\n")
+            bloque_de_nombre[actor] = len(bloques_ranura)
+            bloques_ranura.append(nombre)
+        if len(bloques_ranura) > 255:
+            raise SystemExit("la pantalla de ranuras tiene %d bloques y las "
+                             "tablas que los nombran son de un byte"
+                             % len(bloques_ranura))
         # Las tablas que los nombran **no van acá**: la ROM las lee con
         # `lda ranura_bloque_lo, x`, que direcciona el banco de datos, así que
         # tienen que vivir en el banco 0 junto con el código. Se emiten más
@@ -3004,8 +3054,11 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # La paleta va rellena hasta las TITULO_MENU_CGRAM entradas, que es lo
         # que la ROM sube de una vez: si el texto usa menos colores, el DMA
         # leería lo que siga en el cartucho.
-        colores = list(ranuras["paleta"])
-        colores += [(0, 0, 0)] * (titulo_mod.MENU_CGRAM - len(colores))
+        colores = []
+        for paleta in ranuras["paletas"]:
+            paleta = list(paleta)
+            colores += paleta + [(0, 0, 0)] * (titulo_mod.MENU_CGRAM
+                                               - len(paleta))
         handle.write(bloque("ranura_cgram",
                             b"".join(cgram_word(c).to_bytes(2, "little")
                                      for c in colores)) + "\n")
@@ -3020,11 +3073,30 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             handle.write("ranura_bloque_%s:\n    .byte %s\n"
                          % (campo, ", ".join(prefijo + e
                                              for e in bloques_ranura)))
-        handle.write("ranura_vram:\n    .word %s\n\n" % ", ".join(
-            str(RANURA_MAP
-                + (titulo_mod.RANURA_Y
-                   + n * titulo_mod.RANURA_SALTO) // titulo_mod.CELL * 32)
-            for n in range(RANURAS)))
+        fila_de = [RANURA_MAP + (titulo_mod.RANURA_Y
+                                 + n * titulo_mod.RANURA_SALTO)
+                   // titulo_mod.CELL * 32 for n in range(RANURAS)]
+        handle.write("ranura_vram:\n    .word %s\n" % ", ".join(
+            str(v) for v in fila_de))
+        # A dónde van las caras —de a cuatro entradas por ranura, para que el
+        # índice sea la ranura por cuatro más el lugar, sin multiplicar por
+        # tres— y el nombre del líder.
+        handle.write("ranura_cara_vram:\n    .word %s\n" % ", ".join(
+            str(fila_de[n] + titulo_mod.CARA_COL
+                + lugar * titulo_mod.CARA_PASO if lugar < titulo_mod.CARAS_MAX
+                else 0)
+            for n in range(RANURAS) for lugar in range(4)))
+        handle.write("ranura_nombre_vram:\n    .word %s\n" % ", ".join(
+            str(fila_de[n] + titulo_mod.NOMBRE_FILA * 32
+                + titulo_mod.NOMBRE_COL) for n in range(RANURAS)))
+        actores_n = max(list(bloque_de_cara) + list(bloque_de_nombre)
+                        + [-1]) + 1
+        for nombre, tabla in (("ranura_cara_bloque", bloque_de_cara),
+                              ("ranura_nombre_bloque", bloque_de_nombre)):
+            handle.write("%s:\n    .byte %s\n" % (nombre, ", ".join(
+                str(tabla.get(actor, 0xFF)) for actor in range(actores_n))
+                or "$FF"))
+        handle.write("\n")
         # `fuente_color` va en el banco 0 y no con el resto de la ventana: la
         # ROM la lee con `lda fuente_color, y`, y ese modo direcciona el banco
         # de datos. Con ella en RODATA leía basura, y el texto salía en negro.
@@ -3976,18 +4048,29 @@ def main():
     # del mapa, y esta pantalla vive en la VRAM del título, donde no hay mapa.
     import ventana as ventana_mod
     skin = ventana_mod.skin(args.game_dir, renderer.database.system_name)
-    ranura_tiles, ranura_paleta, ranura_cabs, ranura_filas = \
-        titulo_mod.pantalla_ranuras(skin, renderer.database, RANURAS,
-                                    renderer.database.font_id)
-    ranuras_datos = {"tiles": ranura_tiles, "paleta": ranura_paleta,
-                     "cabeceras": ranura_cabs, "filas": ranura_filas}
+    # Los actores que pueden estar en el grupo cuando se guarda, para tener
+    # su cara y su nombre en el cartucho: los de arranque y todos los que
+    # agrega algún `ChangePartyMembers` de estos mapas, compilen sus páginas o
+    # no. Es un superconjunto a propósito: una cara de más cuesta 36 tiles y
+    # una de menos deja un hueco en el menú.
+    miembros = miembros_posibles(todos, grupo)
+    (ranura_tiles, ranura_paletas, ranura_cabs, ranura_filas, ranura_caras,
+     ranura_nombres) = titulo_mod.pantalla_ranuras(
+        skin, renderer.database, RANURAS, renderer.database.font_id,
+        miembros, args.game_dir)
+    ranuras_datos = {"tiles": ranura_tiles, "paletas": ranura_paletas,
+                     "cabeceras": ranura_cabs, "filas": ranura_filas,
+                     "caras": ranura_caras, "nombres": ranura_nombres}
     _controlar_ranuras(len(ranura_tiles))
-    print("  pantalla de ranuras: %d, %d tiles de 4bpp (%d B) + %d colores, "
-          "%d B de celdas"
+    print("  pantalla de ranuras: %d, %d tiles de 4bpp (%d B) + %d paletas, "
+          "%d B de celdas; %d actores con cara: %s"
           % (RANURAS, len(ranura_tiles), len(ranura_tiles) * 32,
-             len(ranura_paleta),
+             len(ranura_paletas),
              (len(ranura_cabs) * len(ranura_cabs[0])
-              + RANURAS * 4 * len(ranura_filas[0][0][0])) * 2))
+              + RANURAS * 4 * len(ranura_filas[0][0][0])) * 2,
+             len(ranura_caras),
+             ", ".join("%d %s" % (a, renderer.database.actors[a].name)
+                       for a in sorted(ranura_caras)) or "ninguno"))
     titulo_datos = None
     if args.con_titulo:
         from PIL import Image
@@ -4202,6 +4285,32 @@ def lideres_posibles(renderer, map_ids, grupo, con_ventana=False):
 # El directorio del juego, para `lideres_posibles`. Es feo pero es un solo
 # lugar: la alternativa era pasarlo por tres funciones que no lo usan.
 args_game_dir = [GAME_DIR]
+
+
+def miembros_posibles(map_ids, grupo):
+    """Los actores que pueden estar en el grupo con estos mapas en la ROM.
+
+    Los de arranque más los que agrega cualquier `ChangePartyMembers` de
+    cualquier página de estos mapas. No se mira si la página compila: es para
+    la pantalla de ranuras, que necesita la cara y el nombre de quien pueda
+    aparecer en una partida guardada, y una cara de más no cuesta nada que
+    importe.
+    """
+    actores = list(grupo)
+    for map_id in map_ids:
+        game_map = lcf.Map(os.path.join(args_game_dir[0],
+                                        "Map%04d.lmu" % map_id))
+        for evento in game_map.events:
+            for page in evento.pages:
+                for cmd in page.commands:
+                    if cmd.code != eventos.CHANGE_PARTY_MEMBERS:
+                        continue
+                    p = cmd.parameters
+                    if len(p) < 3 or p[1] != eventos.GRUPO_ID_FIJO:
+                        continue
+                    if p[0] == 0 and p[2] not in actores:
+                        actores.append(p[2])
+    return sorted(actores)
 
 
 def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):

@@ -205,6 +205,11 @@ TERMS_LEVEL = 0x7B
 ACTOR_NAME = 0x01
 ACTOR_CHARSET = 0x03
 ACTOR_CHARSET_INDEX = 0x04
+# La cara del actor —el FaceSet y cuál de sus dieciséis— que es lo que el menú
+# de archivos muestra por cada uno del grupo. `ChunkActor::face_name` y
+# `face_index` en ldb/chunks.h de liblcf.
+ACTOR_FACE_NAME = 0x0F
+ACTOR_FACE_INDEX = 0x10
 SYSTEM_PARTY = 0x16
 # El System del juego: el PNG con el marco de la ventana, los colores de texto
 # y la sombra. Este juego usa `ablskin`, no el `BLSys` que también trae.
@@ -562,6 +567,8 @@ class Actor:
         self.name = to_string(fields.get(ACTOR_NAME, b""))
         self.charset = to_string(fields.get(ACTOR_CHARSET, b""))
         self.charset_index = to_int(fields.get(ACTOR_CHARSET_INDEX, b"\x00"))
+        self.face_name = to_string(fields.get(ACTOR_FACE_NAME, b""))
+        self.face_index = to_int(fields.get(ACTOR_FACE_INDEX, b"\x00"))
 
 
 class Database:

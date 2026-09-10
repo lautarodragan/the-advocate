@@ -8040,6 +8040,13 @@ partida_tabla:
 ; iguales entra en pánico. Duplicar un número que nadie verifica es la forma de
 ; error que este repo ya pagó tres veces.
 PARTIDA_BYTES = 2 + 2 + 1 + 2 + 2 + 1 + 6 + 3 + 1 + 5 + 3 + SWITCH_BYTES + 1 + 2
+; Dónde cae el grupo adentro de la partida: después de la posición, la
+; dirección, la celda y el mapa. Lo lee la pantalla de ranuras desde la SRAM
+; para poner el nombre del líder y las caras. Es la misma suma que arriba,
+; cortada en el sexto renglón de la tabla; si `partida_tabla` cambia de orden,
+; esto cambia con ella.
+PARTIDA_GRUPO   = 2 + 2 + 1 + 2 + 2 + 1
+PARTIDA_GRUPO_N = PARTIDA_GRUPO + 4
 
 ; Pone la ranura con la que van a trabajar `guardar_partida` y `cargar_partida`,
 ; y calcula su desplazamiento. A trae el número de ranura.
@@ -8790,6 +8797,7 @@ sin_cursor:
 .a8
     ; Y a dónde va, que lo dice la tabla y no una cuenta.
     pla
+    pha                         ; la ranura, para el grupo de después
     rep #$20
 .a16
     and #$00FF
@@ -8801,7 +8809,202 @@ sin_cursor:
     sta temp
     sep #$20
 .a8
-    jmp ranura_bloque_subir
+    jsr ranura_bloque_subir
+    ; Y encima de la fila, si tiene partida, el nombre del líder y las caras
+    ; del grupo que guardó. `temp + 2` quedó con la variante: llena vale 2 o 3.
+    pla
+    lda temp + 2
+    cmp #2
+    bcc sin_grupo
+    jmp ranura_grupo_pintar
+sin_grupo:
+    rts
+.endproc
+
+; Sube un rectángulo de celdas al tilemap, fila por fila. X trae el índice del
+; bloque en `ranura_bloque_lo/hi/bk`, Y la dirección de VRAM de su primera
+; celda, `temp` cuántos bytes tiene cada fila y `temp + 2` cuántas filas son.
+;
+; Un solo puntero de origen para todas las filas: el DMA deja `A1T0` apuntando
+; a donde terminó, así que la fila siguiente arranca de ahí sin volver a
+; cargarlo. Lo que cambia por fila es el destino, que baja 32 celdas.
+.proc ranura_rect_subir
+.a8
+.i16
+    lda #$80
+    sta VMAIN
+    lda ranura_bloque_lo, x
+    sta A1T0L
+    lda ranura_bloque_hi, x
+    sta A1T0L + 1
+    lda ranura_bloque_bk, x
+    sta A1B0
+    lda #$01
+    sta DMAP0
+    lda #$18
+    sta BBAD0
+fila:
+    sty VMADDL
+    rep #$20
+.a16
+    lda temp
+    sta DAS0L
+    tya
+    clc
+    adc #32
+    tay
+    sep #$20
+.a8
+    lda #$01
+    sta MDMAEN
+    dec temp + 2
+    bne fila
+    rts
+.endproc
+
+; El grupo de la partida de la ranura que está en `ranura`: las caras de los
+; primeros RANURA_CARAS_MAX, y el nombre del primero. Es lo que
+; `Window_SaveFile::Refresh` dibuja por archivo, menos los puntos de vida, que
+; este port no tiene.
+;
+; El grupo se lee de la SRAM de la ranura, con el banco de datos en $70 el
+; tiempo justo de leer un byte: las tablas de bloques y los registros del DMA
+; direccionan el banco 0. Un actor sin cara —DummyHero— no dibuja nada, que es
+; lo que hace `DrawFace` con un nombre vacío. Y a dónde va cada cara y cada
+; nombre lo dicen dos tablas del conversor, `ranura_cara_vram` y
+; `ranura_nombre_vram`, como `ranura_vram` para las filas: la cuenta vive en
+; un solo lado.
+;
+; El escritorio, que está justo: `temp` y `temp + 2` son del rectángulo,
+; `temp + 3` guarda cuántos son, y **`titulo_flancos` hace de índice de
+; miembro**. En la página directa no hay otro byte, y los flancos ya se miraron
+; cuando se llega acá.
+.proc ranura_grupo_pintar
+.a8
+.i16
+    jsr ranura_en_x
+    phb
+    lda #SRAM_BANCO
+    pha
+    plb
+    lda SRAM_DATOS + PARTIDA_GRUPO_N, x
+    plb
+    cmp #RANURA_CARAS_MAX
+    bcc caben
+    lda #RANURA_CARAS_MAX
+caben:
+    sta temp + 3
+    stz titulo_flancos
+otro_miembro:
+    lda titulo_flancos
+    cmp temp + 3
+    bcs las_caras_listas
+    jsr actor_del_miembro
+    cmp #RANURA_ACTORES_N
+    bcs siguiente               ; un actor que esta ROM no conoce
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda ranura_cara_bloque, x
+    cmp #$FF
+    beq siguiente               ; sin cara
+    pha                         ; el bloque, mientras se arma el destino
+    ; La tabla va de a cuatro por ranura: la ranura por cuatro más el lugar.
+    lda ranura
+    asl a
+    asl a
+    ora titulo_flancos
+    rep #$20
+.a16
+    and #$00FF
+    asl a                       ; dos bytes por entrada
+    tax
+    lda ranura_cara_vram, x
+    tay
+    lda #(RANURA_CARA_COLS * 2)
+    sta temp
+    sep #$20
+.a8
+    lda #RANURA_CARA_FILAS
+    sta temp + 2
+    pla
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    jsr ranura_rect_subir
+siguiente:
+    inc titulo_flancos
+    bra otro_miembro
+las_caras_listas:
+    ; El nombre del líder, que es el primero.
+    lda temp + 3
+    beq listo                   ; un grupo vacío no tiene líder
+    stz titulo_flancos
+    jsr actor_del_miembro
+    cmp #RANURA_ACTORES_N
+    bcs listo
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda ranura_nombre_bloque, x
+    cmp #$FF
+    beq listo
+    pha
+    lda ranura
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    tax
+    lda ranura_nombre_vram, x
+    tay
+    lda #(RANURA_NOMBRE_COLS * 2)
+    sta temp
+    sep #$20
+.a8
+    lda #RANURA_NOMBRE_FILAS
+    sta temp + 2
+    pla
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    jsr ranura_rect_subir
+listo:
+    rts
+
+; El actor que está en el lugar `titulo_flancos` del grupo de la ranura, leído
+; de la SRAM. Devuelve A y se lleva X. El desplazamiento es la ranura por 256
+; más el lugar, armado con dos `xba` y sin tocar los vecinos de la página
+; directa: leer `titulo_flancos` a dieciséis bits se llevaría `menu_abierto`.
+actor_del_miembro:
+    lda titulo_flancos
+    xba
+    lda ranura
+    xba                         ; C = ranura * 256 + lugar
+    rep #$20
+.a16
+    tax
+    sep #$20
+.a8
+    phb
+    lda #SRAM_BANCO
+    pha
+    plb
+    lda SRAM_DATOS + PARTIDA_GRUPO, x
+    plb
+    rts
 .endproc
 
 ; La pantalla entera: la sube, la muestra y la maneja hasta que el jugador
@@ -8883,12 +9086,11 @@ sin_cursor:
     sta MDMAEN
 
     ; --- los colores ---
-    ; Sólo la paleta 0, que es la única que usa esta pantalla: es todo texto de
-    ; cuatro bits sobre negro.
+    ; La paleta 0 del texto y una por cara: RANURA_CGRAM_N entradas, seguidas.
     stz CGADD
     rep #$20
 .a16
-    lda #(TITULO_MENU_CGRAM * 2)
+    lda #(RANURA_CGRAM_N * 2)
     sta DAS0L
     lda #<(ranura_cgram)
     ora #(>(ranura_cgram) * 256)
@@ -9089,6 +9291,11 @@ mover_cursor:
     lda mapa_tabla + M_BG12NBA_VALUE, x
     sta BG12NBA
     jsr load_map
+    ; Y la capa de encima, por su paleta: las caras de la pantalla usan hasta
+    ; ocho paletas de BG2, o sea las entradas 16 a 127, y `load_map` repone
+    ; sólo las del fondo. Las de encima empiezan en ABOVE_FIRST, que puede
+    ; caer ahí adentro.
+    jsr load_above
     jsr aplicar_tinte
     stz destello_listo          ; `pal_buf` era de antes; si el destello sigue,
                                 ; el cuadro que viene lo vuelve a armar

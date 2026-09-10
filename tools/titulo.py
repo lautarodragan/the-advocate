@@ -207,6 +207,12 @@ def main():
     parser.add_argument("--llenas", default="", metavar="0,1,...",
                         help="qué ranuras tienen partida, separadas por comas. "
                              "Sin esto, ninguna")
+    parser.add_argument("--grupo-ranura", action="append", default=[],
+                        metavar="N:ACTOR,ACTOR,...",
+                        help="el grupo guardado en la ranura N, por ids de "
+                             "actor: pone el nombre del primero y las caras. "
+                             "La ranura cuenta como llena. Se repite por "
+                             "ranura")
     parser.add_argument("--modo", type=int, default=0,
                         help="0 para la pantalla de cargar y 1 para la de "
                              "guardar; cambia el texto de la cabecera")
@@ -225,8 +231,14 @@ def main():
         skin = ventana_mod.skin(args.game_dir, db.system_name)
         llenas = [n in {int(x) for x in args.llenas.split(",") if x != ""}
                   for n in range(args.ranuras)]
+        grupos = {}
+        for uno in args.grupo_ranura:
+            ranura, _, actores = uno.partition(":")
+            grupos[int(ranura)] = [int(a) for a in actores.split(",") if a]
+            llenas[int(ranura)] = True
         render_ranuras(skin, db, args.ranuras, llenas, args.elegida,
-                       args.modo, db.font_id).save(args.output)
+                       args.modo, db.font_id, grupos,
+                       args.game_dir).save(args.output)
         print("ranuras %s -> %s"
               % ("".join("X" if l else "." for l in llenas), args.output))
         return
@@ -370,42 +382,75 @@ def menu(sys_img, textos, font_id=None):
 # cada fila**: por ranura hay cuatro —vacía o llena, con cursor o sin él— y
 # mover el cursor es reescribir dos filas de 96 celdas. No hay tilemap completo
 # por combinación porque serían 64.
-RANURA_Y = 56                   # dónde arranca la primera fila, en pixeles
+# La fila mide **48 pixeles, seis celdas**, que es lo que mide una cara del
+# FaceSet: `Window_SaveFile::Refresh` en easyrpg dibuja, por archivo, el nombre
+# del archivo, el del líder, el nivel y los puntos de vida, y las caras de
+# hasta cuatro del grupo a 48x48. Acá van tres líneas de texto a la izquierda y
+# hasta tres caras a la derecha: la cuarta no entra en 256 pixeles sin comerse
+# el borde, que en un televisor de tubo no se ve. Cuatro filas de 48 más la
+# cabecera terminan en la línea 216 de las 224.
+RANURA_Y = 24                   # dónde arranca la primera fila, en pixeles
 # Y cada cuánto va la siguiente. **Múltiplo de 8 a propósito**: cada fila se
 # sube al tilemap como un bloque de celdas enteras, así que si el salto no
 # cayera en una celda el texto de una fila se escribiría en el bloque de la
-# siguiente y se cortaría. Con 40 las cuatro terminan en la línea 200 de las
-# 224 que hay.
-RANURA_SALTO = 40
-RANURA_FILAS = 3                # celdas de 8 px de alto que ocupa cada una
+# siguiente y se cortaría.
+RANURA_SALTO = 48
+RANURA_FILAS = 6                # celdas de 8 px de alto que ocupa cada una
 RANURA_X = 56                   # dónde arranca el texto
-CABECERA_Y = 20
+LINEA = 16                      # cada cuánto va una línea de texto en la fila
+CABECERA_Y = 4
 CABECERA_FILAS = 2
 # Qué dice una ranura sin partida. RM2k no tiene un término para esto —su menú
 # muestra el hueco vacío— así que el texto es nuestro y por eso se escribe acá
 # y no se saca del LDB, para que se vea que lo inventamos.
 VACIA = "- Empty -"
+# Las caras: dónde va la primera, en celdas desde el borde izquierdo, y cada
+# cuántas la siguiente. Seis de ancho por seis de alto, pegadas.
+CARA = 48
+CARA_CELDAS = CARA // CELL      # 6
+CARA_COL = 14                   # o sea x = 112
+CARA_PASO = CARA_CELDAS         # pegadas: 112, 160, 208
+CARAS_MAX = 3
+# El nombre del líder, en la segunda línea: un bloque de dos celdas de alto
+# —la fuente mide 12 con la sombra— y siete de ancho, o sea nueve caracteres
+# de 6 px, que es lo más largo que hay en el LDB.
+NOMBRE_COL = RANURA_X // CELL   # 7
+NOMBRE_COLS = 7
+NOMBRE_FILA = LINEA // CELL     # 2: la segunda línea arranca en y+16
+NOMBRE_FILAS = 2
+# Y con qué paleta van las caras: la 0 es del texto, y cada cara lleva la suya
+# desde la 1. Son las paletas de BG2 a 4bpp, que en la consola son ocho.
+CARAS_PALETAS_MAX = 7
+# Cuántos tiles entran en el banco de la pantalla: el conversor lo comprueba
+# contra el reparto de VRAM, ver RANURA_MAP allá.
+RANURA_TILES_MAX = 448
 
 
-def _bloque_de_celdas(capa, fila0, filas, tiles, donde, indice):
-    """Las celdas de una franja horizontal de `capa`, agregando tiles nuevos.
+def _bloque_de_celdas(capa, fila0, filas, tiles, donde, indice, col0=0,
+                      cols=COLS, paleta=0):
+    """Las celdas de un rectángulo de `capa`, agregando tiles nuevos.
 
-    Devuelve la lista de índices de tile, de a `filas` de 32. Los tiles se
-    comparten con todo lo demás de la pantalla: el banco es uno solo y los
-    bloques lo indexan, así que deduplicar por separado daría índices que no
-    coinciden.
+    Devuelve la lista de palabras del tilemap, de a `cols` por fila: el índice
+    del tile con los tres bits de `paleta` encima. Los tiles se comparten con
+    todo lo demás de la pantalla: el banco es uno solo y los bloques lo
+    indexan, así que deduplicar por separado daría índices que no coinciden.
+    Se deduplican por sus índices y no por sus colores, así que un tile con el
+    mismo dibujo en dos paletas es uno solo.
+
+    `indice` va de color de 15 bits a índice de paleta; lo que no esté ahí es
+    un error y no un color parecido, para que un color de más se note.
     """
     px = capa.load()
     celdas = []
     for fila in range(filas):
-        for col in range(COLS):
+        for col in range(col0, col0 + cols):
             celda = []
             for y in range(CELL):
                 renglon = []
                 for x in range(CELL):
                     sx = col * CELL + x
                     sy = (fila0 + fila) * CELL + y
-                    if sy >= ALTO:
+                    if sy >= ALTO or sx >= ANCHO:
                         renglon.append(0)
                         continue
                     r, g, b, a = px[sx, sy]
@@ -415,33 +460,87 @@ def _bloque_de_celdas(capa, fila0, filas, tiles, donde, indice):
             if celda not in donde:
                 donde[celda] = len(tiles)
                 tiles.append(celda)
-            celdas.append(donde[celda])
+            celdas.append(donde[celda] | (paleta << 10))
     return celdas
 
 
 def _texto_de_ranura(numero, db, llena):
-    """Las dos líneas de una ranura, con los términos del juego.
+    """Las líneas de una ranura, con los términos del juego: la primera y la
+    tercera; la segunda es el nombre del líder, que va aparte porque depende
+    de la partida.
 
-    El nivel está **mockeado en 1**: la partida guarda la posición, el mapa, los
-    switches y el oro, pero todavía no hay actores con nivel. Es una decisión
-    tomada con taro y no un olvido; el día que exista, sale de la partida.
+    El nivel está **mockeado en 1**: la partida guarda la posición, el mapa, el
+    grupo, los switches y el oro, pero todavía no hay actores con nivel. Es una
+    decisión tomada con taro y no un olvido; el día que exista, sale de la
+    partida.
     """
     if not llena:
-        return ["%s %d" % (db.term_file, numero + 1), VACIA]
-    return ["%s %d" % (db.term_file, numero + 1),
+        return ["%s %d" % (db.term_file, numero + 1), VACIA, ""]
+    return ["%s %d" % (db.term_file, numero + 1), "",
             "%s 1" % db.term_level]
 
 
-def pantalla_ranuras(sys_img, db, ranuras, font_id=None):
-    """Los tiles de la pantalla de ranuras, su paleta y sus bloques de celdas.
+def cara_de(db, actor, game_dir):
+    """La cara del actor, 48x48 en RGBA, o None si no tiene.
 
-    Devuelve `(tiles, paleta, cabeceras, filas)`:
+    Va por `render_map.load_image` y no por `Image.open`, como el skin: en
+    RM2k el índice 0 de la paleta es transparente también en un FaceSet, y en
+    `ABLFaces` es un rojo que ocupa casi toda la cara. Dibujado opaco, cada
+    cara era un cuadrado rojo con un muñeco adentro.
+    """
+    import os
+    import render_map
+    a = db.actors[actor]
+    if not a.face_name:
+        return None
+    hoja = render_map.load_image(os.path.join(game_dir, "FaceSet",
+                                              a.face_name + ".png"))
+    col, fila = a.face_index % 4, a.face_index // 4
+    return hoja.crop((col * CARA, fila * CARA, (col + 1) * CARA,
+                      (fila + 1) * CARA))
 
+
+def _paleta_de_cara(cara):
+    """Quince colores para una cara, y de cada color de la imagen a cuál va.
+
+    Las caras del ABL usan entre 22 y 29 colores de 15 bits, y en una paleta de
+    4bpp entran 15: se reduce como la imagen del título, con `reducir`, que
+    manda cada color que sobra al más cercano de los que quedan. El índice 0 es
+    el transparente, y el negro va ahí: sobre el fondo negro de la pantalla da
+    lo mismo y no gasta una entrada.
+    """
+    pixeles = [(r >> 3, g >> 3, b >> 3) if a else NEGRO
+               for r, g, b, a in cara.get_flattened_data()]
+    usados = collections.Counter(p for p in pixeles if p != NEGRO)
+    if len(usados) > 15:
+        paleta, destino = reducir([p for p in pixeles if p != NEGRO], 15)
+    else:
+        paleta = sorted(usados, key=lambda c: (-usados[c], c))
+        destino = {c: c for c in usados}
+    colores = [NEGRO] + list(paleta)
+    indice = {NEGRO: 0}
+    for color, a_donde in destino.items():
+        indice[color] = colores.index(a_donde)
+    return colores, indice
+
+
+def pantalla_ranuras(sys_img, db, ranuras, font_id=None, actores=(),
+                     game_dir=None):
+    """Los tiles de la pantalla de ranuras, sus paletas y sus bloques de celdas.
+
+    Devuelve `(tiles, paletas, cabeceras, filas, caras, nombres)`:
+
+    * `paletas[0]` es la del texto y las que siguen, una por cara.
     * `cabeceras[modo]` son las celdas del título de la pantalla, con `modo` 0
       para cargar y 1 para guardar. Los dos textos salen del LDB
       —`load_game_message` y `save_game_message`, que en el ABL dicen "Load
       which slot?" y "Save in which slot?"—.
-    * `filas[ranura][llena][cursor]` son las celdas de una fila.
+    * `filas[ranura][llena][cursor]` son las celdas de una fila entera, con
+      las celdas de las caras y del nombre en blanco.
+    * `caras[actor]` son las 36 celdas de la cara, con su paleta puesta, para
+      los `actores` que tienen una; `nombres[actor]` las 14 del nombre. La ROM
+      los escribe encima de la fila según el grupo que la partida guardó, y
+      `render_ranuras` hace lo mismo.
 
     Todas las variantes se dibujan antes de deduplicar, por lo mismo de siempre:
     el banco de tiles es uno solo.
@@ -453,14 +552,15 @@ def pantalla_ranuras(sys_img, db, ranuras, font_id=None):
         return Image.new("RGBA", (ANCHO, ALTO), (0, 0, 0, 0))
 
     def escribir(destino, x, y, texto):
-        ventana_mod.dibujar_linea(destino, sys_img, x, y, texto,
-                                  font_id=font_id)
+        if texto:
+            ventana_mod.dibujar_linea(destino, sys_img, x, y, texto,
+                                      font_id=font_id)
 
-    # Primero todas las capas, para poder juntar los colores de una vez.
+    # Primero todas las capas de texto, para poder juntar los colores de una vez.
     capas = []
     for modo, texto in enumerate((db.term_load_message, db.term_save_message)):
         una = capa()
-        escribir(una, RANURA_X, CABECERA_Y * 1, texto)
+        escribir(una, RANURA_X, CABECERA_Y, texto)
         capas.append(("cabecera", modo, una))
     for numero in range(ranuras):
         for llena in (0, 1):
@@ -468,11 +568,14 @@ def pantalla_ranuras(sys_img, db, ranuras, font_id=None):
                 una = capa()
                 y = RANURA_Y + numero * RANURA_SALTO
                 if cursor:
-                    escribir(una, RANURA_X - 16, y, ">")
-                lineas = _texto_de_ranura(numero, db, llena)
-                escribir(una, RANURA_X, y, lineas[0])
-                escribir(una, RANURA_X + 96, y, lineas[1])
+                    escribir(una, RANURA_X - 16, y + 2, ">")
+                for n, linea in enumerate(_texto_de_ranura(numero, db, llena)):
+                    escribir(una, RANURA_X, y + 2 + n * LINEA, linea)
                 capas.append(("fila", (numero, llena, cursor), una))
+    for actor in actores:
+        una = capa()
+        escribir(una, RANURA_X, RANURA_Y + 2 + LINEA, db.actors[actor].name)
+        capas.append(("nombre", actor, una))
 
     vistos = collections.Counter()
     for _, _, una in capas:
@@ -490,52 +593,101 @@ def pantalla_ranuras(sys_img, db, ranuras, font_id=None):
     tiles, donde = [vacio], {vacio: 0}
     cabeceras = [None, None]
     filas = [[[None, None], [None, None]] for _ in range(ranuras)]
+    nombres = {}
     for clase, clave, una in capas:
         if clase == "cabecera":
             cabeceras[clave] = _bloque_de_celdas(
                 una, CABECERA_Y // CELL, CABECERA_FILAS, tiles, donde, indice)
-        else:
+        elif clase == "fila":
             numero, llena, cursor = clave
             fila0 = (RANURA_Y + numero * RANURA_SALTO) // CELL
             filas[numero][llena][cursor] = _bloque_de_celdas(
                 una, fila0, RANURA_FILAS, tiles, donde, indice)
-    return tiles, paleta, cabeceras, filas
+        else:
+            nombres[clave] = _bloque_de_celdas(
+                una, RANURA_Y // CELL + NOMBRE_FILA, NOMBRE_FILAS, tiles,
+                donde, indice, NOMBRE_COL, NOMBRE_COLS)
 
-def render_ranuras(sys_img, db, ranuras, llenas, elegida, modo=0, font_id=None):
+    # Y las caras, cada una con su paleta, pegadas arriba a la izquierda de la
+    # primera fila para cortarlas en celdas con la misma función.
+    paletas, caras = [paleta], {}
+    for actor in actores:
+        cara = cara_de(db, actor, game_dir)
+        if cara is None:
+            continue
+        if len(paletas) > CARAS_PALETAS_MAX:
+            raise SystemExit(
+                "más de %d actores con cara pueden entrar al grupo y BG2 "
+                "tiene ocho paletas, una de ellas del texto"
+                % CARAS_PALETAS_MAX)
+        colores, indice_cara = _paleta_de_cara(cara)
+        una = capa()
+        una.paste(cara, (CARA_COL * CELL, RANURA_Y))
+        caras[actor] = _bloque_de_celdas(
+            una, RANURA_Y // CELL, CARA_CELDAS, tiles, donde, indice_cara,
+            CARA_COL, CARA_CELDAS, len(paletas))
+        paletas.append(colores)
+    if len(tiles) > RANURA_TILES_MAX:
+        raise SystemExit(
+            "la pantalla de ranuras junta %d tiles y en su banco entran %d"
+            % (len(tiles), RANURA_TILES_MAX))
+    return tiles, paletas, cabeceras, filas, caras, nombres
+
+
+def render_ranuras(sys_img, db, ranuras, llenas, elegida, modo=0, font_id=None,
+                   grupos=None, game_dir=None):
     """La pantalla de ranuras como la tiene que mostrar la consola.
 
     `llenas` es una secuencia de booleanos, una por ranura; `elegida`, dónde
-    está el cursor; `modo`, 0 para cargar y 1 para guardar.
+    está el cursor; `modo`, 0 para cargar y 1 para guardar; `grupos`, por
+    ranura llena, los actores del grupo guardado, que ponen el nombre del
+    primero y las caras de hasta CARAS_MAX.
 
     Se arma con **los mismos bloques de celdas que la ROM sube**, no volviendo a
-    dibujar el texto: si se dibujara acá con la fuente y allá con los tiles,
-    quedaría afuera justo el paso que puede salir mal.
+    dibujar el texto ni pegando la cara: si se dibujara acá con la fuente y
+    allá con los tiles, quedaría afuera justo el paso que puede salir mal.
     """
     from PIL import Image
-    tiles, paleta, cabeceras, filas = pantalla_ranuras(
-        sys_img, db, ranuras, font_id)
+    grupos = grupos or {}
+    actores = sorted({a for g in grupos.values() for a in g})
+    tiles, paletas, cabeceras, filas, caras, nombres = pantalla_ranuras(
+        sys_img, db, ranuras, font_id, actores, game_dir)
     fuera = Image.new("RGB", (ANCHO, ALTO), (0, 0, 0))
     px = fuera.load()
 
-    def pegar(celdas, fila0):
-        for i, indice in enumerate(celdas):
-            tx = (i % COLS) * CELL
-            ty = (fila0 + i // COLS) * CELL
-            celda = tiles[indice]
+    def pegar(celdas, fila0, col0=0, cols=COLS):
+        for i, palabra in enumerate(celdas):
+            tx = (col0 + i % cols) * CELL
+            ty = (fila0 + i // cols) * CELL
+            celda = tiles[palabra & 0x3FF]
+            paleta = paletas[(palabra >> 10) & 7]
             for y in range(CELL):
                 if ty + y >= ALTO:
                     break
                 for x in range(CELL):
                     valor = celda[y][x]
                     if valor:
-                        px[tx + x, ty + y] = tuple(
-                            v << 3 for v in paleta[valor])
+                        px[tx + x, ty + y] = tuple(v << 3 for v in paleta[valor])
 
     pegar(cabeceras[modo], CABECERA_Y // CELL)
     for numero in range(ranuras):
         fila0 = (RANURA_Y + numero * RANURA_SALTO) // CELL
-        pegar(filas[numero][1 if llenas[numero] else 0][
+        llena = bool(llenas[numero]) or numero in grupos
+        pegar(filas[numero][1 if llena else 0][
             1 if numero == elegida else 0], fila0)
+        if not llena:
+            continue
+        grupo = list(grupos.get(numero, ()))
+        # El nombre del líder y las caras, como la ROM: los bloques del actor
+        # encima de la fila. Un actor sin cara no dibuja nada, que es lo que
+        # hace `DrawFace` con un nombre vacío.
+        if grupo and grupo[0] in nombres:
+            pegar(nombres[grupo[0]], fila0 + NOMBRE_FILA, NOMBRE_COL,
+                  NOMBRE_COLS)
+        for lugar, actor in enumerate(grupo[:CARAS_MAX]):
+            if actor in caras:
+                pegar(caras[actor], fila0, CARA_COL + lugar * CARA_PASO,
+                      CARA_CELDAS)
     return fuera
 
 

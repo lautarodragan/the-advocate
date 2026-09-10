@@ -169,6 +169,39 @@ class Partida:
         raise RuntimeError(
             "la pantalla de ranuras no se abrió en %d cuadros" % tope)
 
+    def abrir_ranuras_desde_el_titulo(self):
+        """Resetea la consola, pasa el título por "Resume the Story" y se
+        queda **con la pantalla de ranuras a la vista**, para mirarla.
+
+        Es `reiniciar(SEGUIR)` cortado antes de elegir: lo que la pantalla
+        muestra de cada ranura —el nombre y las caras del grupo guardado— sólo
+        se puede comprobar con una partida guardada de verdad, y eso una
+        captura de `snes_correr.py` no lo tiene.
+        """
+        self.consola.reset()
+        self.cuadro = 0
+        self.consola.correr(self.simbolos["BOOT_CUADROS"])
+        self.consola.correr(TITULO_AIRE)
+        self._bajar_y_elegir(1)
+        self.consola.correr(TITULO_AIRE)
+        return self.esperar_la_pantalla_de_ranuras()
+
+    def poner_grupo(self, *actores):
+        """El grupo, por ids de actor, escrito en la RAM como lo dejaría un
+        `ChangePartyMembers`. Es lo que la partida guarda y la pantalla de
+        ranuras muestra."""
+        largo = self.simbolos["GRUPO_MAX"]
+        assert len(actores) <= largo
+        self.consola.escribir_ram(self.simbolos["grupo"],
+                                  list(actores) + [0] * (largo - len(actores)))
+        self.consola.escribir_ram(self.simbolos["grupo_n"],
+                                  [len(actores), 0])
+        return self
+
+    def imagen(self):
+        """La pantalla, como la dibuja el emulador."""
+        return self.consola.imagen()
+
     def guardar_en(self, ranura=0, espera=200, cancelar=False):
         """Corre hasta que la página de prueba abra la pantalla de ranuras, y
         elige `ranura` ahí —o cancela con B—.
