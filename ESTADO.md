@@ -934,6 +934,7 @@ Lo medido acá el 2026-09-10, y es lo que acota la búsqueda:
                `test_la_sram_queda_escrita`, que falla porque bsnes **no
                expone la SRAM** al frontend, no por la carga
     mednafen    no carga: arranca desde el principio (taro)
+    mesen       tampoco (taro, 2026-09-10)
     hardware    tampoco (taro)
 
 Es el mismo patrón que el brillo de `INIDISP`, al revés: **los dos con los que
@@ -956,6 +957,58 @@ Por dónde empezar la próxima vuelta:
 * Y hay que mirar si **el defecto del menú del título es éste mismo o es otro**.
   `pruebas/test_titulo.py` lo ve en snes9x, donde el del arranque no se ve, así
   que probablemente sean dos.
+
+## El PPU se queda con los registros del título, y snes9x no lo ve
+
+taro lo encontró en Mesen el 2026-09-10, y el síntoma se leía en dos formas
+distintas según el build:
+
+* **`titulo.sfc`**: la pantalla de título se ve bien, se elige cualquier opción
+  y la pantalla queda **negra** —con la música corriendo detrás y hasta
+  cambiando de tema—, que es `TM` en cero con toda la lógica andando.
+* **`demo-titulo.sfc`**: el juego se ve, los `PanScreen` y los relámpagos
+  aplican bien, pero **todos los tiles apuntan al gráfico equivocado**, "como
+  movido X bytes". Ése es `BG1SC` apuntando al tilemap del título, en `$4000`,
+  en vez de al del mapa.
+
+La causa es una sola: **`BG1SC` y `TM` se escriben en `ppu_init` y en la
+pantalla de título, y en ningún otro lado**. `ppu_init` corría una única vez en
+el arranque porque hasta ahora nadie los tocaba después. El arreglo es volver a
+llamarlo al salir del menú, antes de `cargar_mapa`.
+
+**Lo que hay que saber de esto es que la red no lo ve.** Verificado sacando el
+`jsr ppu_init` y volviendo a correr: snes9x sigue dando **cero pixeles de
+diferencia**. O sea que es el cuarto defecto de la clase "snes9x perdona", y el
+tercero seguido que encuentra taro jugando.
+
+El caso nuevo de `snes-titulo` —salir del título tiene que dejar el juego
+idéntico a la misma ROM sin pantalla de título, comparando ROM contra ROM y
+pasando el título con START, que el juego no mira— **queda igual**, pero con la
+advertencia escrita en la receta: cubre el reparto de la VRAM y **no** cubre
+esto. Un caso verde que no da rojo con el bug puesto no prueba lo que parece.
+
+`demo-titulo/` estaba armada con el código de media tarde —la etapa sin menú— y
+por eso taro no veía el cuadro para elegir. Las dos ROMs con título quedaron
+rearmadas.
+
+## El mapa 4 vacío se confunde con una pantalla rota
+
+taro lo propuso el 2026-09-10, y tiene razón en que ya pasó más de una vez: el
+mapa 4 es "Blank (Leave START here)" y es negro a propósito, así que una
+captura negra puede ser el mapa o puede ser el PPU mal configurado. Ese mismo
+día me pasó a mí: miré la captura de después de salir del título, la di por
+buena, y era el defecto de arriba.
+
+**Cómo hacerlo sin ensuciar la vara**: no editando `Map0004.lmu`. El juego
+original en `/extras/abl-rm` es lo que hace que este port sea comparable contra
+easyrpg, y un mapa retocado ahí contamina toda esa comparación y además viaja a
+cualquier medición futura sin avisar. La forma que no cuesta nada es un **tile
+testigo emitido por el conversor bajo un flag**, con la referencia sacándolo de
+la misma función: así los dos lados siguen coincidiendo, la comparación pixel a
+pixel sigue valiendo, y **ninguna ROM de la tanda cambia** porque el flag no se
+usa en ninguna.
+
+Sin hacer. Va después de los dos defectos abiertos.
 
 ## Esperando respuesta de taro
 

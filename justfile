@@ -1928,7 +1928,7 @@ _cam-y:
 snes-titulo nombre="titulo" mapa="4" mapas="1 2 3 5 6 7 8":
   #!/usr/bin/env bash
   set -euo pipefail
-  mkdir -p {{snes_pngs}} {{snes_inc}}
+  mkdir -p {{snes_pngs}} {{snes_inc}} {{snes_dir}}/sintitulo
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
       --mapas {{mapas}} --con-ventana --con-titulo \
       -o {{snes_inc}}/mapdata.inc
@@ -1952,6 +1952,36 @@ snes-titulo nombre="titulo" mapa="4" mapas="1 2 3 5 6 7 8":
   python3 tools/snes_compare.py {{snes_pngs}}/{{nombre}}-2.png \
       {{snes_pngs}}/esperado-{{nombre}}-2.png \
       -o {{snes_pngs}}/comparacion-{{nombre}}-2.png
+  # Y un tercero: salir del título tiene que dejar el juego **idéntico** a la
+  # misma ROM sin pantalla de título. Se pasa con START, que el juego no mira
+  # para nada, así que sostenerlo no interfiere; y de ahí en más las dos ROMs
+  # cuentan `vueltas` igual, que es lo que deja compararlas en el mismo cuadro.
+  #
+  # Esto compara ROM contra ROM y no contra la referencia, a diferencia del
+  # resto de la tanda. Vale porque la ROM sin título ya está comparada contra
+  # la referencia por los otros 96 casos, y porque la pregunta es justamente
+  # "¿son la misma?".
+  #
+  # **Lo que este caso no cubre**, y hay que decirlo: el defecto que taro
+  # encontró en Mesen el 2026-09-10 —el PPU quedando con los registros del
+  # título— **no lo ve**. Verificado sacando el `jsr ppu_init` que lo arregla:
+  # snes9x sigue dando cero. Lo que sí cobra es el reparto de la VRAM.
+  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
+      --mapas {{mapas}} --con-ventana \
+      -o {{snes_dir}}/sintitulo/mapdata.inc
+  python3 tools/w65.py rom/src/main.s -I {{snes_dir}}/sintitulo \
+      -o {{snes_dir}}/sintitulo/sintitulo.sfc \
+      --simbolos {{snes_dir}}/sintitulo/sintitulo.sfc.sym
+  python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} \
+      -o {{snes_pngs}}/{{nombre}}-juego.png --teclas start --cuadros 300 \
+      --arranque 0
+  python3 tools/snes_correr.py --core {{nucleo}} \
+      {{snes_dir}}/sintitulo/sintitulo.sfc \
+      -o {{snes_pngs}}/{{nombre}}-juego-sin.png --teclas start --cuadros 300 \
+      --arranque 0
+  python3 tools/snes_compare.py {{snes_pngs}}/{{nombre}}-juego.png \
+      {{snes_pngs}}/{{nombre}}-juego-sin.png \
+      -o {{snes_pngs}}/comparacion-{{nombre}}-juego.png
 
 # --- verificación del ensamblador ------------------------------------------
 # w65.py reemplaza a ca65 y ld65. Que se pueda confiar en él no es una promesa:

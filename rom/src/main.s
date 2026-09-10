@@ -8368,12 +8368,24 @@ salir:
     lda #MAPA_INICIAL
 cargar_el_mapa:
     ; La VRAM quedó con la imagen del título, así que el mapa hay que volver a
-    ; cargarlo entero: `cargar_mapa` repone las dos bases, los dos tilemaps,
-    ; los tiles y CGRAM. Es lo mismo que hace un teletransporte.
+    ; cargarlo entero. Pero la VRAM no es lo único que esta pantalla movió: los
+    ; **registros del PPU** también, y ésos no los repone `cargar_mapa`.
+    ;
+    ; `BG1SC`, `BG2SC`, los scrolls y `TM` los escribe `ppu_init`, que hasta
+    ; ahora corría una sola vez en el arranque porque nadie los tocaba después.
+    ; Sin volver a llamarlo el juego arranca con el tilemap de BG1 apuntando al
+    ; del título —o sea todos los tiles corridos, que es lo que taro vio en
+    ; `demo-titulo`— y con `TM` en cero, que es la pantalla en negro con la
+    ; lógica y la música corriendo detrás.
+    ;
+    ; **snes9x y la comparación de pixeles no lo vieron**, y por una razón que
+    ; conviene recordar: la tanda mira la pantalla de título y no lo que pasa
+    ; después de salir de ella. El cuadro que lo habría cobrado no existía.
     pha
     lda #$80
     sta INIDISP
     stz TM                      ; y sin el menú encima mientras se rehace todo
+    jsr ppu_init                ; los registros del PPU, como los dejó el reset
     pla
     jsr cargar_mapa
     jsr clear_oam
