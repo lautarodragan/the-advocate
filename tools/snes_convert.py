@@ -2411,8 +2411,9 @@ class Materiales:
 def datos_del_mapa(mapa, numero, indice_global, materiales):
     """Los bloques de datos de un mapa, con el número pegado a cada etiqueta.
 
-    `indice_global` es el número que lleva en la ROM cada (CharSet, índice)
-    con sus doce poses: ver `banco_de_poses`.
+    `indice_global` es el número que lleva en la ROM el banco de doce poses de
+    cada (CharSet, índice) **tal como este mapa lo cuantizó**: ver
+    `banco_de_poses`, y el reparto de bancos en `emit`.
     """
     above, sprite = mapa["above"], mapa["sprite"]
     pares = [
@@ -2827,25 +2828,30 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # recorre con `lda mapa_tabla + campo, x` y ese modo direcciona el banco
         # de datos. Los datos ya no pueden estar ahí: no entran.
         handle.write('.segment "RODATA"\n')
-        # Las doce poses de cada personaje que cambia de pose, una vez por
-        # ROM: los mapas las nombran por este índice.
-        indice_global, bancos = {}, []
+        # Las doce poses de cada personaje que cambia de pose, **una vez por
+        # cuantización** y no una por ROM: dos mapas que dibujen al mismo
+        # personaje con la misma paleta comparten el banco, y si uno lo
+        # cuantizó distinto —porque le prestó una paleta ajena, como el mapa 8
+        # a Chara2:0, o le bajó un color— lleva el suyo. Hasta el 2026-09-10
+        # esto era un `sys.exit`, y el reparto de paletas tenía una regla para
+        # esquivarlo que el préstamo no miraba: agregar Lashe City 33,36 a la
+        # demo cortaba ahí. Un banco de más son 6 KB de cartucho; un corte es
+        # un mapa que no entra.
+        indice_global, bancos, indice_por_mapa = {}, [], []
         for mapa in mapas:
-            if not mapa["sprite"]:
-                continue
-            for par, datos in mapa["sprite"][8].items():
-                if par not in indice_global:
-                    indice_global[par] = len(bancos)
+            propio = {}
+            for par, datos in (mapa["sprite"][8].items()
+                               if mapa["sprite"] else ()):
+                clave = (par, datos)
+                if clave not in indice_global:
+                    if any(k[0] == par for k in indice_global):
+                        print("  mapa %d: %s:%d va con un banco de poses "
+                              "propio, cuantizado distinto que en otro mapa"
+                              % (mapa["id"], par[0], par[1]))
+                    indice_global[clave] = len(bancos)
                     bancos.append(datos)
-                else:
-                    if bancos[indice_global[par]] != datos:
-                        sys.exit(
-                            "el personaje %s:%d tiene dos bancos de poses "
-                            "distintos en esta ROM: el mapa %d lo cuantizó de "
-                            "otra manera. El banco es de la ROM entera, así que "
-                            "el número de colores tiene que ser el mismo en "
-                            "todos los mapas."
-                            % (par[0], par[1], mapa["id"]))
+                propio[par] = indice_global[clave]
+            indice_por_mapa.append(propio)
         handle.write("; --- las poses de los personajes que cambian de pose, "
                      "de toda la ROM ---\n")
         for g, datos in enumerate(bancos):
@@ -2856,8 +2862,8 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         for numero, mapa in enumerate(mapas):
             handle.write("; --- %d: mapa %d %r ---\n"
                          % (numero, mapa["id"], mapa["nombre"]))
-            texto, suyas = datos_del_mapa(mapa, numero, indice_global,
-                                          materiales)
+            texto, suyas = datos_del_mapa(mapa, numero,
+                                          indice_por_mapa[numero], materiales)
             etiquetas.append(suyas)
             handle.write(texto)
             handle.write("\n")

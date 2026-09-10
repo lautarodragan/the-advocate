@@ -391,6 +391,36 @@ Y **spcasm no aporta nada**, que taro preguntó: el driver del SPC700 son 20
 bytes y `spc700.assemble` tarda 0,000 s. Lo caro de la música es codificar las
 muestras, no ensamblar el driver.
 
+### Los mapas 9 y 10 (2026-09-10, a la noche)
+
+taro pidió Lashe City Interiors (10) y Lashe City 33,36 (9) para habilitar los
+teletransportes del 8. Están en `snes-demos` y cuatro cruces están en la
+tanda —8→10, 10→8, 8→9, 9→8, con `snes-escena` pisando la puerta con un paso de
+ruta—. Con los dos en la ROM, del mapa 8 compilan 68 páginas de 71 (las tres
+que faltan van al 16), del 9 32 de 40 y del 10 21 de 26.
+
+Dos cosas que costaron:
+
+* **El banco de poses era uno por ROM** y el mapa 9 cuantiza a `Chara2:0`
+  distinto que el 8, que le presta una paleta ajena: el conversor cortaba con
+  un `sys.exit`. El reparto de paletas tenía una regla para esquivarlo
+  —`solo_aqui`— que el préstamo no miraba. Ahora hay **un banco por
+  cuantización**: cada mapa nombra el suyo, y si dos coinciden lo comparten.
+  Verificado que la demo de ocho mapas sale byte por byte igual.
+* **`PanScreen` con espera y distancia cero cortaba el cuadro.** Lo delató el
+  cruce 8→9: la puerta EV0009 vuelve la cámara antes del `Teleport`, y el auto
+  rojo del 9 iba 4 px atrás de la referencia, constante. Medido tick por tick:
+  la referencia llegaba al `Teleport` en el mismo cuadro y la ROM uno después.
+  EasyRPG pone `wait_time = GetPanWait()` y sigue si es cero. Arreglado en
+  `op_pan`; lo cobra `snes-pan 6 "3 0 0 4 1"`, que daba 13710 pixeles.
+
+Lo que se miró y quedó para la vuelta que sigue, en el orden que pidió taro:
+EV0041, EV0042 y EV0052 del mapa 8 —tres páginas por condición de switch, y
+la tercera además por ítem, que no hay: esa queda afuera—; y el Tram Officer
+del mapa 9, que pide **variables**: `ControlVars` con constante, resta y
+random, "otro: segundos del cronómetro", `TimerOperation` desde una variable,
+y `ConditionalBranch` por variable. El `CallEvent` al Hover-Tram no va.
+
 ### Lo próximo, si no se decide otra cosa
 
 Al 2026-09-10, en orden. Los tres primeros son deuda de esta vuelta y están
@@ -440,10 +470,11 @@ acotados; del cuarto para abajo es lo de siempre.
    con el grupo 11—.
 
 5. **Lo que sigue faltando de Lashe City**, por tamaño: la condición de **ítem**
-   —45 eventos, pide inventario—, las **variables** de RM2k —5000, y no entran
-   en el banco 0: van a la RAM del banco 1, que ya se usa para los intérpretes
-   paralelos— y el mapa **Lashe City Interiors** con sus tres teletransportes,
-   que taro pidió.
+   —45 eventos, pide inventario— y las **variables** de RM2k —el juego usa 81
+   distintas, la mayor es la 201, y los mapas 1 a 10 sólo la 17, 21 y 39 a
+   42; no entran en el banco 0 y van a la RAM del banco 1—. **Lashe City
+   Interiors (10) y Lashe City 33,36 (9) están en la demo desde el 2026-09-10
+   a la noche**, con sus puertas: ver "Los mapas 9 y 10", más abajo.
 
 6. **La animación del save point** (`animation_type` 3, "Fixed Dir/Continuous")
    está **hecha** desde el 2026-09-09; queda el renglón para que nadie la

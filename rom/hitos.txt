@@ -74,6 +74,14 @@ snes-escena 8 "9 55" 0 down "20 30 40 50" 115 savepoint ""
 # El save point de verdad: parado encima del evento 67, A, la pantalla de
 # ranuras, y B por cuadros de hardware.
 snes-escena 8 "9 56" 14 down "60 200" 115 savepoint-guarda "10" "" "" "b:40"
+# Las puertas entre Lashe City y sus dos vecinos, Interiors (10) y 33,36 (9),
+# pisadas con un paso de ruta, y la vuelta. El cruce 8→9 es el que encontró el
+# `PanScreen` de espera cero: la puerta EV0009 vuelve la cámara antes del
+# Teleport, y el auto rojo del 9 delataba el tick.
+snes-escena 8 "48 21" 0 up "40 120 220" 115 puerta-8-10 "" "" "10"
+snes-escena 10 "42 16" 0 up "40 120 220" 115 puerta-10-8 "" "" "8"
+snes-escena 8 "73 56" 1 right "40 120 220" 115 puerta-8-9 "" "" "9"
+snes-escena 9 "73 47" 1 right "40 120 220" 115 puerta-9-8 "" "" "8"
 snes-pisar
 snes-escena 2 "7 76" "0 0 0 0" up "40 60 100" 115 bloqueo ""
 snes-escena 2 "7 74" 14 down "3 8 25 60 106 200" 115 droide ""
@@ -94,6 +102,10 @@ snes-ruta-pisa 70 "12 8" "0 0 0 0 0" 0 "100 200" 115 ruta-pasa
 snes-ruta-pisa 70 "12 8" "0 0 0 0" "60 0 0 50" "50 200" 115 ruta-pisa-cola
 snes-pan
 snes-pan 6 "2 0 2 2 1 3 0 0 4 1" "16 48 65 70 82 83" 115 pan-vuelve
+# Un "volver" con espera y la cámara ya en su lugar: cero cuadros, y la página
+# sigue en el mismo. Verificado que da rojo con el `rts` de antes: 13710
+# pixeles en el cuadro 1, el tinte un tick tarde.
+snes-pan 6 "3 0 0 4 1" "1 2 3 4" 115 pan-cero
 snes-sacudir
 snes-sacudir 6 "9 8 3 1" "2 5 9 14 17 60" 115 sacudir-fuerte
 snes-sacudir 2 "3 3 2 1" "3 6 9 11 13 60" 115 sacudir-borde "4 54"

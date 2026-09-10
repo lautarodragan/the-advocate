@@ -2110,13 +2110,17 @@ snes-titulo nombre="titulo" mapa="4" mapas="1 2 3 5 6 7 8":
 # acá. `snes-cinematica` usa el 10 por la misma razón.
 #
 # Con cronómetro, para hacerle lugar al rojo de los dígitos; ver "Lashe City" en
-# ESTADO.md.
+# ESTADO.md. Desde el 2026-09-10 llevan también Lashe City Interiors (10) y
+# Lashe City 33,36 (9), que taro pidió: con ellos compilan los cinco
+# teletransportes que salen del 8 hacia ahí y los que vuelven. El 9 trae a
+# Chara2:0 cuantizado distinto que el 8 —allá con paleta prestada— y por eso
+# el banco de poses dejó de ser uno por ROM y pasó a ser uno por cuantización.
 snes-demo nombre="demo-ciudad" titulo="":
   #!/usr/bin/env bash
   set -euo pipefail
   titulo="{{titulo}}"
   mkdir -p rom/build/{{nombre}}
-  python3 tools/snes_convert.py --grupo 10 --map-id 4 --mapas 1 2 3 5 6 7 8 \
+  python3 tools/snes_convert.py --grupo 10 --map-id 4 --mapas 1 2 3 5 6 7 8 9 10 \
       --con-ventana --con-timer ${titulo:+--con-titulo} \
       -o rom/build/{{nombre}}/mapdata.inc
   python3 tools/w65.py rom/src/main.s -I rom/build/{{nombre}} \

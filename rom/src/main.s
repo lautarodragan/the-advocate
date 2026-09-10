@@ -4161,8 +4161,17 @@ pan_leer_paso:
     rep #$20
 .a16
     sta ev_esperando
+    ora #$0000                  ; `sta` no toca las banderas
     sep #$20
 .a8
+    ; Cero cuadros —la cámara ya estaba donde va— y la página **sigue en este
+    ; mismo cuadro**: `CommandPanScreen` pone `wait_time = GetPanWait()` y
+    ; devuelve true, y el lazo del intérprete sólo se detiene si `wait_time`
+    ; es mayor que cero. Acá se cortaba el cuadro igual, y la puerta EV0009 del
+    ; mapa 8 —un "volver" con espera y después el Teleport— llegaba al mapa 9
+    ; un tick después que la referencia: el auto de Lashe City 33,36 iba 4 px
+    ; atrás, medido el 2026-09-10. Lo cobra `snes-pan 6 "3 0 0 4 1"`.
+    beq pan_sin_espera
     sty ev_cur
     rts
 pan_sin_espera:
