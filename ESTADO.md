@@ -37,7 +37,7 @@ mapa 3— corre y **está verificada** en mil doscientos cuadros, y
 Las páginas automáticas que compilan enteras son **272 de 489**, y del juego
 entero compilan **2329 de 3473**.
 
-### En qué estamos ahora (2026-09-09)
+### Lo que se hizo el 2026-09-09
 
 taro pidió dos cosas y elegimos hacerlas **en serie y no con sub-agentes**: las
 dos tocan `snes_convert.py`, `main.s` y `snes_expect.py`, que son justo los
@@ -224,12 +224,26 @@ nivel todavía.
   **se entra 85 veces** en vez de una: la rutina vuelve enseguida y el
   intérprete repite el comando.
 
-  Lo que se descartó, y conviene no volver a probarlo: **no es el modo** —la
+  **Ojo con el 85, que puede ser una medición mal leída.** Se hicieron dos
+  experimentos: uno reseteaba el contador al entrar a la pantalla y contaba
+  llamadas a `ranura_pintar`; el otro no lo reseteaba y contaba entradas a
+  `ranuras_pantalla`. **Los dos dieron 85**, que es demasiada coincidencia para
+  creerle a ninguno de los dos. La lectura más probable es que la página de
+  prueba —que es automática y vuelve a correr— repita el comando, y que
+  entonces lo único roto sea **el dibujo** y no el flujo. Antes de seguir por
+  "la rutina vuelve enseguida", **medir de nuevo y bien**: resetear el contador
+  al entrar en los dos casos, y contar las dos cosas por separado.
+
+  Lo que sí se descartó, y no conviene volver a probar: **no es el modo** —la
   misma rutina con modo 1 llamada desde el título dibuja "Save in which slot?"
-  perfecto—, **no es el banco de datos** ni **el tamaño de los registros**, que
-  quedaron puestos explícitamente al entrar y no cambiaron nada. Lo que queda es
-  el contexto: entrar a un lazo que espera el pad desde adentro del intérprete,
-  que a su vez corre adentro del lazo principal.
+  perfecto, está la captura—, **no es el banco de datos** ni **el tamaño de los
+  registros**, que quedaron puestos explícitamente al entrar y no cambiaron
+  nada.
+
+  **Por dónde tirar**: si el problema es el dibujo, el sospechoso es lo que
+  `flush_video` deja programado en el **canal 0 de DMA** justo antes de que
+  corra el intérprete, que es el mismo canal que usa toda esta pantalla. Desde
+  el título ese canal está libre; desde el save point, no necesariamente.
 
   Mientras tanto el save point guarda en la ranura de la que se cargó, o en la
   primera si la partida es nueva.
@@ -278,31 +292,52 @@ nivel todavía.
 
 ### Lo próximo, si no se decide otra cosa
 
-1. De la lista de abajo, lo que sigue por tamaño es la condición de **ítem** de
-   Lashe City —45 eventos, pide inventario— y las **variables** de RM2k.
+Al 2026-09-10, en orden. Los tres primeros son deuda de esta vuelta y están
+acotados; del cuarto para abajo es lo de siempre.
 
-2. **Lo que sigue faltando de Lashe City**, por tamaño: la condición de **ítem**
+1. **El menú de guardado desde el save point.** Es lo único que taro pidió el
+   2026-09-09 y quedó sin andar. Está medido, con la advertencia de que uno de
+   los números medidos puede estar mal leído y hay que rehacerlo; ver "La
+   pantalla de título", más arriba.
+
+2. **El `xfail` de guardar tras cambiar de mapa.** Todo indica que es un
+   artefacto de la página de prueba y no del juego —los switches quedan
+   idénticos, la pantalla también, y taro guardó jugando después de caminar—
+   pero está sin confirmar. Confirmarlo pide un caso que use el save point de
+   verdad.
+
+3. **El tile testigo del mapa 4**, que propuso taro: que un mapa vacío no se
+   confunda con una pantalla rota. Por el conversor y bajo un flag, no editando
+   `Map0004.lmu`. Ver la sección propia, más abajo.
+
+4. **Probarlo en hardware.** `demo-ciudad` y `demo-titulo` están rearmadas.
+   **La partida guardada de antes no sirve**: `PARTIDA_BYTES` cambió dos veces
+   el 2026-09-10 —las ranuras y la música— así que hay que guardar de nuevo con
+   la ROM nueva antes de probar la carga.
+
+5. **Lo que sigue faltando de Lashe City**, por tamaño: la condición de **ítem**
    —45 eventos, pide inventario—, las **variables** de RM2k —5000, y no entran
    en el banco 0: van a la RAM del banco 1, que ya se usa para los intérpretes
    paralelos— y el mapa **Lashe City Interiors** con sus tres teletransportes,
    que taro pidió.
 
-3. **La animación del save point** (`animation_type` 3, "Fixed Dir/Continuous"),
-   que taro pidió el 2026-09-07: es el punto 2 de arriba y está en curso.
+6. **La animación del save point** (`animation_type` 3, "Fixed Dir/Continuous")
+   está **hecha** desde el 2026-09-09; queda el renglón para que nadie la
+   busque como pendiente.
 
-4. **El giro de los eventos al hablarles.** Hoy contestan mirando para donde
+7. **El giro de los eventos al hablarles.** Hoy contestan mirando para donde
    estaban; es una deuda declarada en `assets/LIMITACIONES.md`, con el diseño de
    la ranura de VRAM que haría falta ya escrito.
 
-5. **La ráfaga de entrada del mapa 8**, ahora que la tanda no la cobra: son dos
+8. **La ráfaga de entrada del mapa 8**, ahora que la tanda no la cobra: son dos
    cuadros perdidos al entrar, invisibles jugando porque el fundido los absorbe.
    Está perfilada más abajo. Es optimización, no corrección.
 
-6. **Los gráficos: está todo medido y vive en `assets/`.** El titular, para no
+9. **Los gráficos: está todo medido y vive en `assets/`.** El titular, para no
    tener que abrirlo: **el juego entra en 4 MB**. Son unos 2,9 MB entre mapas,
    sprites, tiles y música, más 2,7 de arte que todavía no dibuja nadie.
 
-7. **Los líderes posibles son una aproximación.** El conversor simula los
+10. **Los líderes posibles son una aproximación.** El conversor simula los
    `ChangePartyMembers` de las páginas que compilan para saber qué actores
    pueden ir primeros. Si alguna vez un personaje se dibuja sin gráfico, es el
    primer lugar donde mirar; `pruebas/test_lideres.py` cuida la parte que ya
@@ -1179,6 +1214,32 @@ Lo que eso confirma y no lo hacía ninguna prueba de acá adentro:
 
 Falta lo mismo de siempre y sólo eso: **el hardware**. `demo-ciudad` y
 `demo-titulo` quedaron rearmadas con todo esto.
+
+## Lo que sólo sabía la sesión, y por eso queda escrito
+
+Anotado el 2026-09-10 antes de un `/clear`. Son las cosas que no están en
+ningún commit ni en ningún caso, y que sin esto habría que volver a descubrir.
+
+* **Las dos ROMs para probar son `rom/build/demo-ciudad/` y
+  `rom/build/demo-titulo/`**, las dos rearmadas ese día. La primera no lleva
+  pantalla de título y la segunda sí; el resto es idéntico.
+* **Ninguna partida guardada de antes del 2026-09-10 sirve.**
+  `PARTIDA_BYTES` cambió dos veces ese día —las cuatro ranuras y la música— y
+  la suma se calcula sobre el largo, así que una ranura vieja da inválida y la
+  carga arranca de cero. No es un bug: hay que guardar de nuevo.
+* **`snes9x` perdona cosas que el hardware no.** Van cuatro defectos de esa
+  clase y tres los encontró taro jugando: la carga de la SRAM, el PPU al salir
+  del título, y los dos que están más arriba. Antes de escribir un caso que
+  dependa de que algo *no* sobreviva a un reinicio, acordarse de que **el reset
+  de snes9x no borra la WRAM**: hay que ensuciarla a mano o la prueba mide
+  cero. Está en `test_titulo.py`, con el comentario al lado.
+* **Un caso nuevo se verifica en las dos direcciones.** Esta vuelta, tres casos
+  que parecían correctos no probaban nada hasta que se les puso el bug adelante
+  y se comprobó que daban rojo. Uno de ellos —el de la música— pasó dos veces
+  con el campo sacado antes de que el tercer intento midiera algo.
+* **El scratchpad de esa sesión ya no existe**, así que las capturas que se
+  nombran en los commits no se pueden mirar: si hace falta ver algo, se vuelve
+  a correr la receta, que es de donde salían.
 
 ## Esperando respuesta de taro
 
