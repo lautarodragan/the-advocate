@@ -790,10 +790,6 @@ limpia del upstream.
   conversor sabe emitir un `OP_MENSAJE`— pero es un texto que el juego no
   tiene, así que lo inventaríamos nosotros. taro lo preguntó el 2026-09-09.
 
-* **`rom/build/demo-apertura-jugable/`**: es la copia pre-fundido que taro pidió
-  el 2026-09-05 para que un test no se la pisara. Nunca dijo si la refresca o
-  se borra.
-
 * **Si las ocho décimas de arranque molestan.** Ver la decisión de arriba.
 
 
@@ -931,11 +927,6 @@ El 2026-09-07, sobre `demo-apertura` en mednafen:
 
   **Lo que el hardware todavía no desempató**, porque taro miró y no midió:
 
-  - **El redondeo del brillo de `INIDISP`** —mesen-s contra los otros dos, acá
-    abajo—. "Igual que en el emulador" es una señal a favor de snes9x y bsnes,
-    que es donde corre la tanda, pero el fundido dura una fracción de segundo y
-    la diferencia es un paso de quince: a ojo no se ve. Desempatarlo de verdad
-    pide una captura del hardware, no una impresión.
   - **Guardar en el FX Pak.** En mednafen la partida llegó al disco —8 KB de
     `.srm`—, y en el flashcart es justo lo que puede portarse distinto: el
     cartucho tiene que escribir la SRAM a su tarjeta al apagar. La prueba es
@@ -947,7 +938,13 @@ El 2026-09-07, sobre `demo-apertura` en mednafen:
   la etapa en que la ROM era una prueba de audio. Es cosmético y de una línea del
   header, pero se ve en hardware, que es donde ahora estamos mirando.
 
-* **El brillo de `INIDISP`: mesen-s contra los otros dos, medido.** El
+* **El brillo de `INIDISP`: cerrado el 2026-09-09.** taro lo miró en la SNES de
+  verdad y dijo *"está todo OK a simple vista"*, así que damos por bueno el
+  redondeo de snes9x y bsnes, que es con los que corre la tanda. **No se midió
+  contra una captura del hardware**: lo que se cierra es la decisión, no el
+  número. Si algún día un fundido se ve mal en fierro, acá está lo que se sabe.
+
+  El
   2026-09-06 se compararon los tres cores cuadro por cuadro sobre el fundido de
   entrada al mapa 1 de `demo-apertura`, que recorre los dieciséis niveles:
 

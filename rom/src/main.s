@@ -14343,7 +14343,10 @@ done:
 
 ; --- cabecera y vectores ---------------------------------------------------
 .segment "HEADER"
-    .byte "ABL SNES MUSIC POC   "  ; 21 caracteres
+    ; Es lo que muestra el menú del FX Pak y lo que lee cualquier base de datos
+    ; de ROMs. Decía "ABL SNES MUSIC POC" hasta el 2026-09-09, de cuando esto era
+    ; una prueba de audio; en hardware se ve, así que dejó de dar igual.
+    .byte "A BLURRED LINE       "  ; 21 caracteres
     .byte $20                      ; LoROM, velocidad lenta
     .byte $02                      ; ROM y RAM con batería: la partida guardada
     .byte $0A                      ; tamaño: 1 MB (el byte es log2 de los KB)
