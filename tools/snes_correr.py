@@ -302,6 +302,14 @@ def main():
             else:
                 consola.apretar(*apretados)
 
+        # El mismo tope que `Reloj.avanzar`, y por la misma razón: una ROM que
+        # no llegue nunca al tick pedido tiene que fallar, no quedarse dando
+        # vueltas. Acá faltaba, y el 2026-09-10 costó caro: una captura de la
+        # pantalla de título —donde `vueltas` no avanza y el tick pedido no
+        # llega jamás— se quedó **una hora** comiéndose un núcleo entero y 42
+        # GiB de la máquina de taro, hasta que él la vio en `ps`. Con el tope
+        # habría cortado a los dos minutos diciendo qué pasaba.
+        tope = (ticks + 2) * reloj.CUADROS_POR_TICK
         while reloj.cuadro() < ticks:
             antes(reloj.cuadro() + 1)
             reloj.paso()
@@ -309,6 +317,12 @@ def main():
             if actual != anterior[0]:
                 quieto_desde = reloj.cuadro()
             anterior[0] = actual
+            tope -= 1
+            if tope <= 0:
+                raise RuntimeError(
+                    "la ROM no llegó al tick %d: se colgó, va lentísima, o su "
+                    "reloj no corre —la pantalla de título no cuenta "
+                    "`vueltas`, y para eso está --sin-contador—" % ticks)
         return quieto_desde
 
     # El plan dice, por dirección, cuántos cuadros dura la caminata. Sale de la

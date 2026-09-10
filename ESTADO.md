@@ -20,9 +20,9 @@ Se escribe **mientras se trabaja**, no al final.
 a vuelta en el emulador.
 
 Al 2026-09-10: `just snes-hitos-foto` son **97 casos, todos en verde** —el
-número 97 es la pantalla de título— y `just pruebas` son **42 en verde y 2
-`xfail`**. Los dos `xfail` no son adorno: son dos defectos medidos de la carga
-de partida desde el menú del título, y están abajo. Ese mismo día la ROM corrió por primera vez en la **SNES de verdad**
+número 97 es la pantalla de título— y `just pruebas` son **43 en verde y 1
+`xfail`**. El `xfail` no es adorno: es un defecto medido de guardar con la
+pantalla de título puesta, y está abajo. Ese mismo día la ROM corrió por primera vez en la **SNES de verdad**
 con el FX Pak, con el cartucho ya expandido a 1 MB, y anduvo. `demo-ciudad` se juega desde la apertura hasta la
 calle de Lashe City, con los relámpagos, los autos y los NPCs andando, **el agua
 moviéndose** y el save point animado y guardando.
@@ -914,49 +914,75 @@ limpia del upstream.
   ranura y sin menú. Está abajo, en lo que espera respuesta.
 
 
-## Cargar la partida: anda en dos emuladores y no en los otros dos
+## Cargar la partida: era un modo de direccionamiento, y está arreglado
 
-taro lo trajo el 2026-09-10, y **el save quedó confirmado en hardware**: el FX
-Pak escribió `sd2snes/saves/demo-ciudad.srm`, 8192 B, y el volcado decodifica
-entero contra `partida_tabla` —magia `ABLS`, `mapa_actual` 7 que es el mapa 8,
-la celda 9,56 y los 100 creds—. Los `ff` de alrededor son la SRAM virgen: de
-los 8192 B se usan 260.
+**Un solo bug explicaba los tres reportes de taro** —mednafen, Mesen y la
+consola de verdad no cargaban la partida— **y el `xfail` del menú del título.**
+Estaba en `partida_suma`, en `main.s`:
 
-**Lo que no anda es cargar.** Y la parte importante del dato de taro es dónde
-lo probó: `demo-ciudad`, que **no lleva pantalla de título**, en mednafen y con
-power cycle. O sea que el defecto no es del menú, que es lo que yo había
-supuesto al encontrarlo por mi lado con `pruebas/test_titulo.py`.
+    ldx #SRAM_DATOS
+    lda $0000, x        ; "X ya trae la dirección; el banco es la SRAM"
 
-Lo medido acá el 2026-09-10, y es lo que acota la búsqueda:
+El operando `$0000` **entra en un byte**, así que `w65.py` elige página directa
+igual que ca65, y el bucle sumaba **la WRAM baja** en vez de la SRAM. Es
+exactamente la trampa que el comentario de `SRAM_MAGIA` advierte veinte líneas
+más arriba —"con la partida en `$0000` un `lda SRAM_MAGIA, x` leería la página
+directa"— cometida en la línea de al lado.
 
-    snes9x     `just pruebas` carga bien: test_guardar pasa entero
-    bsnes      también. Con NUCLEO=bsnes pasan 3 de 4, y el que falla es
-               `test_la_sram_queda_escrita`, que falla porque bsnes **no
-               expone la SRAM** al frontend, no por la carga
-    mednafen    no carga: arranca desde el principio (taro)
-    mesen       tampoco (taro, 2026-09-10)
-    hardware    tampoco (taro)
+**Por qué sobrevivió tanto.** El error es *simétrico*: guardar y cargar suman
+los dos la misma basura, así que **mientras la WRAM no cambie entre una cosa y
+la otra, los números coinciden y la partida carga igual**. Eso es justo lo que
+pasa en snes9x, que llena la RAM siempre con lo mismo y llama a
+`cargar_partida` a los microsegundos del reset. Con la WRAM de mednafen, de
+Mesen o de la consola, no coinciden y no carga nunca; y desde el menú del
+título tampoco, porque para entonces la WRAM ya se movió.
 
-Es el mismo patrón que el brillo de `INIDISP`, al revés: **los dos con los que
-corre la tanda son los que perdonan**, y los dos que no perdonan son los que
-no se pueden correr acá adentro —el core de mednafen no está en
-`/usr/lib/libretro`, por eso `snes-mednafen` va desde el host—. Con lo cual la
-red que este repo tiene montada **no puede ver este defecto**, y por eso lo
-encontró taro jugando: son ya tres de esa clase.
+O sea que `test_guardar` daba verde **cobrando la coincidencia de dos errores**,
+que es el modo de fallar en silencio que este repo tiene escrito en CLAUDE.md
+como la regla que sostiene todo.
 
-Por dónde empezar la próxima vuelta:
+El arreglo es indexar desde cero y poner la dirección en la base —`ldx #$0000`
+y `lda SRAM_DATOS, x`—, que no entra en un byte y sale absoluto.
 
-* **Correr `test_guardar` con mednafen**, desde el host, que es lo único que
-  convierte esto de un reporte en un caso. Es un `NUCLEO=<el .so de mednafen>
-  just pruebas`; el resto de la maquinaria ya está.
-* El sospechoso natural es **cómo se lee la SRAM**, no cómo se escribe:
-  escribir anda en los cuatro. `partida_suma` la lee con `lda $0000, x` y el
-  banco de datos en `$70`, que es direccionamiento absoluto y no DMA; el DMA de
-  carga va de A a B, al revés que el de guardar. Son dos caminos distintos y
-  sólo el de guardar está probado en hardware.
-* Y hay que mirar si **el defecto del menú del título es éste mismo o es otro**.
-  `pruebas/test_titulo.py` lo ve en snes9x, donde el del arranque no se ve, así
-  que probablemente sean dos.
+**Lo que lo cobra ahora**: `pruebas/test_titulo.py::test_seguir_la_historia_
+carga_la_partida`. Verificado que da rojo con el bug puesto y verde sin él, que
+es la única forma de que un caso nuevo pruebe algo. `test_guardar` **no** lo
+cobra ni lo cobraría: en snes9x pasa de las dos maneras.
+
+Medido antes y después, sobre la misma partida guardada:
+
+    con el bug     SRAM_SUMA guardada $052d, recalculada al cargar $0729,
+                   suma real de los 156 bytes $0479 — las tres distintas
+    arreglado      guardada $0479, recalculada $0479, real $0479
+
+**Falta que taro lo pruebe en hardware**, que es lo único que cierra esto:
+`rom/build/demo-ciudad/` quedó rearmada con el arreglo. La partida que ya tiene
+guardada en la SD **no va a cargar** —su `SRAM_SUMA` es la vieja, calculada
+sobre la WRAM— así que hay que guardar de nuevo con la ROM nueva y recién ahí
+apagar y encender.
+
+### Lo que sigue abierto del mismo vecindario
+
+Con pantalla de título, **irse de mapa antes de guardar deja la partida sin
+guardar**. Quedándose en el mapa de arranque la SRAM tiene la magia a las ~400
+vueltas; con un `ir_al_mapa(6)` en el medio sigue sin tenerla a las 491. Sin
+pantalla de título ese camino guarda, que es `test_guardar`.
+
+**No es el bug de arriba**: sigue pasando con ése arreglado, y con ése
+arreglado cargar sí anda. El sospechoso es el **doble `cargar_mapa`** que ahora
+hay —una vez en el arranque y otra al salir del menú—, que le reinicia la
+espera a la página de prueba. Queda como `xfail(strict=True)` en
+`test_irse_de_mapa_antes_de_guardar_no_guarda`.
+
+## El arnés se comía la máquina en vez de fallar
+
+`correr_con_a`, en `snes_correr.py`, tenía un `while reloj.cuadro() < ticks`
+**sin tope**, a diferencia de `Reloj.avanzar`, que sí lo tiene. El 2026-09-10
+costó caro: una captura de la pantalla de título —donde `vueltas` no avanza y
+el tick pedido no llega jamás— se quedó **una hora** comiéndose un núcleo y 42
+GiB de la máquina de taro, hasta que él la vio en `ps`. Ahora lleva el mismo
+tope y corta en dos minutos diciendo qué pasa y que para eso está
+`--sin-contador`.
 
 ## El PPU se queda con los registros del título, y snes9x no lo ve
 

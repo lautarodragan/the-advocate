@@ -8012,6 +8012,22 @@ listo:
 
 ; La suma de los bytes de la partida que hay en la SRAM, en `temp + 2`. Pide el
 ; banco de datos ya puesto en la SRAM.
+;
+; **El índice va desde cero y la dirección la pone la base.** Escrito al revés
+; —`ldx #SRAM_DATOS` y después `lda $0000, x`— parece lo mismo y no lo es: el
+; operando `$0000` entra en un byte, así que el ensamblador elige página
+; directa igual que ca65, y el bucle terminaba sumando **la WRAM baja** en vez
+; de la SRAM. Es exactamente la trampa que el comentario de `SRAM_MAGIA`
+; advierte veinte líneas más arriba, cometida en la línea de al lado.
+;
+; Lo que lo mantuvo escondido es que el error es **simétrico**: guardar y
+; cargar suman los dos la misma basura, así que mientras la WRAM no cambie
+; entre una cosa y la otra los números coinciden y la partida carga. Eso pasa
+; en el arranque de snes9x, que llena la RAM siempre con lo mismo y llama a
+; `cargar_partida` a los microsegundos del reset. Con la WRAM de mednafen, de
+; Mesen o de la consola de verdad, no coinciden y la partida no carga nunca;
+; y desde el menú del título tampoco, porque para entonces la WRAM ya se movió.
+; Tres reportes de taro y un `xfail` eran todos este bug.
 .proc partida_suma
 .a8
 .i16
@@ -8021,9 +8037,10 @@ listo:
     sta temp + 2
     sep #$20
 .a8
-    ldx #SRAM_DATOS
+    ldx #$0000
 suma:
-    lda $0000, x                ; X ya trae la dirección; el banco es la SRAM
+    lda SRAM_DATOS, x           ; la base no entra en un byte: absoluto, y el
+                                ; banco de datos es la SRAM
     rep #$20
 .a16
     and #$00FF
@@ -8033,7 +8050,7 @@ suma:
     sep #$20
 .a8
     inx
-    cpx #(SRAM_DATOS + PARTIDA_BYTES)
+    cpx #PARTIDA_BYTES
     bne suma
     rts
 .endproc

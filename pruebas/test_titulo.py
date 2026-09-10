@@ -54,18 +54,6 @@ def test_el_reloj_del_juego_no_corre_en_el_titulo(partida):
         % una.palabra("vueltas"))
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "'Resume the Story' no carga la partida: la SRAM tiene la magia y el "
-    "switch guardado, y después del reset el switch no vuelve. Medido el "
-    "2026-09-10. Sin pantalla de título el mismo cartucho carga solo en el "
-    "arranque y sí vuelve —es lo que hace test_guardar— así que lo que cambió "
-    "es cuándo corre cargar_partida: en el arranque es a los microsegundos del "
-    "reset, y desde el menú es después de cargar_mapa, flush_video y la subida "
-    "al SPC700. Se descartó que sea el banco de datos: con un phk/plb delante "
-    "pasa lo mismo. Ojo que hay un segundo defecto de carga, y puede que no "
-    "sea éste: en mednafen y en hardware la partida tampoco se carga en el "
-    "arranque, sin pantalla de título de por medio, y eso snes9x y bsnes lo "
-    "perdonan. Los dos están en ESTADO.md"))
 def test_seguir_la_historia_carga_la_partida(partida):
     """'Resume the Story' carga la partida de la SRAM.
 
@@ -91,14 +79,16 @@ def test_seguir_la_historia_carga_la_partida(partida):
 
 @pytest.mark.xfail(strict=True, reason=(
     "con pantalla de título, irse de mapa antes de guardar deja la partida sin "
-    "guardar. Medido el 2026-09-10 sobre esta misma ROM: quedándose en el mapa "
-    "de arranque la SRAM tiene la magia a las ~400 vueltas, y con un "
-    "ir_al_mapa(6) en el medio sigue sin tenerla a las 491. Sin pantalla de "
-    "título el mismo camino guarda —es lo que hace test_guardar—, así que el "
-    "sospechoso es el segundo cargar_mapa: con título el mapa se carga una vez "
-    "en el arranque y otra al salir del menú. Está anotado en ESTADO.md"))
+    "guardar. Medido el 2026-09-10: quedándose en el mapa de arranque la SRAM "
+    "tiene la magia a las ~400 vueltas, y con un ir_al_mapa(6) en el medio "
+    "sigue sin tenerla a las 491. Sin pantalla de título el mismo camino "
+    "guarda, que es lo que hace test_guardar. **No es el bug de página directa "
+    "de partida_suma**: sigue pasando con ése arreglado, y con ése arreglado "
+    "cargar sí anda. El sospechoso es el doble cargar_mapa que ahora hay —una "
+    "vez en el arranque y otra al salir del menú—, que le reinicia la espera a "
+    "la página de prueba. Está anotado en ESTADO.md"))
 def test_irse_de_mapa_antes_de_guardar_no_guarda(partida):
-    """El defecto de arriba, escrito como prueba para que se sepa cuándo se
+    """El segundo defecto, escrito como prueba para que se sepa cuándo se
     arregló.
 
     Va con `strict`: el día que alguien toque el doble `cargar_mapa` y esto
