@@ -1994,7 +1994,7 @@ PUERTA_BYTES = 16
 # código. Las páginas de un mismo evento van seguidas y en orden, que es lo que
 # le permite a la ROM elegir la última que cumple sus condiciones en una sola
 # pasada, sin llevar una tabla por evento.
-PAGINA_BYTES = 24
+PAGINA_BYTES = 28
 # Un candidato a líder: id, paleta, **sus quince colores** y doce punteros de 24
 # bits a sus poses. Los colores van adentro de la tabla y no en un bloque aparte
 # porque son pocos actores por mapa y así la ROM los sube con un DMA desde donde
@@ -2345,7 +2345,19 @@ def tabla_de_paginas(mapa, numero, evcodigo):
         else:
             out.append("    .byte $%02X, $%02X, $%02X, $%02X ; +20 su gráfico: "
                        "tile, atributos, pose, paso" % oam)
-        assert PAGINA_BYTES == 24
+        # +24..+27: la condición por variable: la ranura o $FF, cómo se
+        # compara —==, >=, <=, >, <, !=— y contra qué, con signo. Es lo que
+        # `condiciones_ok` le pasa a `comparar_var`.
+        variable = pagina.get("variable")
+        if variable is None:
+            out.append("    .byte $FF, 0 ; +24 sin condición por variable")
+            out.append("    .word 0")
+        else:
+            ranura, comparacion, contra = variable
+            out.append("    .byte %d, %d ; +24 la variable que pide y la "
+                       "comparación" % (ranura, comparacion))
+            out.append("    .word %d ; +26 contra qué" % (contra & 0xFFFF))
+        assert PAGINA_BYTES == 28
     if not mapa["paginas"]:
         out.append("    .byte $00")     # una etiqueta no puede quedar vacía
     return "\n".join(out)
@@ -3803,9 +3815,9 @@ def main():
     args_game_dir[0] = args.game_dir
     todos = orden_de_mapas(args)
     args.lideres = lideres_posibles(renderer, todos, grupo, args.con_ventana)
-    # Las variables de esta ROM, con su ranura, antes de compilar una sola
-    # página. La referencia arma el mismo índice de la misma lista de mapas.
-    eventos.indexar_variables(args.game_dir, todos,
+    # Las variables del juego entero, con su ranura, antes de compilar una
+    # sola página. La referencia arma el mismo índice.
+    eventos.indexar_variables(args.game_dir,
                               variables_de_prueba(args.vars_de_prueba,
                                                   args.rama_var_de_prueba))
     # En cuántos mapas de esta ROM aparece cada personaje. Lo usa el reparto de
@@ -3919,7 +3931,8 @@ def main():
             paginas = paginas + [{
                 "evento": mapa["EV_COUNT_PRUEBA"], "pagina": 0,
                 "trigger": eventos.TRIGGER_AUTOMATICO,
-                "switch_a": 0, "switch_b": 0, "actor": 0, "capa": 0,
+                "switch_a": 0, "switch_b": 0, "actor": 0, "variable": None,
+                "capa": 0,
                 "frecuencia": eventos.RUTA_FRECUENCIA, "velocidad": 4,
                 "codigo": eventos.pagina_de_prueba(
                     espera, tinte, args.ruta_de_prueba or (), prueba,
@@ -3943,7 +3956,7 @@ def main():
                 "evento": mapa["EV_COUNT_PRUEBA"], "pagina": 1,
                 "trigger": eventos.TRIGGER_AUTOMATICO,
                 "switch_a": eventos.SWITCH_DE_PRUEBA, "switch_b": 0,
-                "actor": 0, "capa": 0,
+                "actor": 0, "variable": None, "capa": 0,
                 "frecuencia": eventos.RUTA_FRECUENCIA, "velocidad": 4,
                 "codigo": b""}]
         codigo = bytearray()

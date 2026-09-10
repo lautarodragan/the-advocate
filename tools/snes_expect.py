@@ -160,8 +160,8 @@ class Mundo:
         # pero el opcode **ocupa dos bytes** en el bytecode, así que si un lado
         # lo emitiera y el otro no, los dos recorrerían streams distintos.
         self.temas = eventos.Temas()
-        # El mismo índice de variables que el conversor, de la misma lista.
-        eventos.indexar_variables(game_dir, self.ids, (
+        # El mismo índice de variables que el conversor: el del juego entero.
+        eventos.indexar_variables(game_dir, (
             snes_convert.variables_de_prueba(prueba[15], prueba[16])
             if prueba is not None else ()))
         if mensajes is not None:
@@ -310,7 +310,8 @@ class DemasiadosSaltos(RuntimeError):
 # propósito: tiene que no chocar con ninguno del mapa.
 EVENTO_DE_PRUEBA = {"evento": 0, "pagina": 0,
                     "trigger": eventos.TRIGGER_AUTOMATICO,
-                    "switch_a": 0, "switch_b": 0, "actor": 0, "capa": 0,
+                    "switch_a": 0, "switch_b": 0, "actor": 0, "variable": None,
+                    "capa": 0,
                     "frecuencia": eventos.RUTA_FRECUENCIA, "velocidad": 4,
                     "codigo": b""}
 

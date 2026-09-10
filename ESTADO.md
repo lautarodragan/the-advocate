@@ -444,16 +444,37 @@ Y la ruta destapó **dos errores de la ROM que no eran del evento**:
 
 ### Las variables, y el Tram Officer (2026-09-10, a la noche)
 
-Hecho. La ROM tiene **variables de RM2k**: no las cinco mil sino las que
-nombran las páginas de los mapas de la ROM, con una ranura cada una que
-reparte el conversor y que la referencia reparte igual de la misma lista de
-mapas —`indexar_variables`—. Los mapas 1 a 10 usan seis. Viven en la RAM
-lejana (`FAR_VARIABLES`), son de dieciséis bits con signo, y **viajan en la
-partida**: `PARTIDA_BYTES` creció en dos por variable, y la prueba de que las
-cuatro ranuras entran en la SRAM sigue en verde, pero con las 81 del juego
-entero la partida pasaría de los 256 bytes de la ranura. Ese día
-`SRAM_STRIDE` pasa a 512 —un `xba` y un `asl`— y hay lugar para ocho veces
-eso.
+Hecho. La ROM tiene **variables de RM2k**: no las cinco mil sino **las 81
+que nombra el juego entero**, con una ranura cada una que reparte el
+conversor y que la referencia reparte igual —`indexar_variables`, que lee los
+328 mapas en un tercio de segundo—. Hasta la noche del 2026-09-10 el índice
+era de los mapas de cada ROM —seis en los mapas 1 a 10— y una partida
+guardada con una ROM no valía para otra con más mapas; ahora la ranura de
+una variable es la misma en cualquier ROM. Viven en la RAM lejana
+(`FAR_VARIABLES`), son de dieciséis bits con signo, y **viajan en la
+partida**: `PARTIDA_BYTES` son 322, así que `SRAM_STRIDE` pasó a 512 —un
+`xba` y un `asl` en `ranura_en_x`, y el `asl` que faltaba en
+`actor_del_miembro`, que lo cobró `test_titulo`— y las cuatro ranuras entran
+en 2 KB de los 8.
+
+**Las condiciones de página por variable** están desde esa misma noche: la
+página lleva +24 la ranura o $FF, +25 la comparación y +26 el valor, y
+`condiciones_ok` los lee de la tabla —la BSS está llena— y los pasa a
+`comparar_var`, que es la comparación con signo de `ConditionalBranch`
+compartida. `PAGINA_BYTES` pasó de 24 a 28. Escribir una variable pide el
+refresco de páginas, como `SetNeedRefreshForVarChange`: sin eso el cofre
+del mapa 133 no aparecía de ningún lado. Son catorce páginas del juego,
+todas con `>=`; la condición por **cronómetro** la pide una sola, la 81 del
+mapa 312, y sigue dejando el evento afuera. Lo cobran `cofre` y `cofre-no`
+en rom/hitos.txt —el KeyChest del mapa 133 con la variable 123 en 8 y en 7:
+252 pixeles entre los dos en el cuadro 30, cero contra la referencia— y
+`test_paginas.py`.
+
+Y `OpenShop` se acepta sin abrir nada: los dos vendedores de Lashe City
+Interiors no contestaban por ese comando, taro lo vio jugando. Ninguna de
+las 43 tiendas del juego usa las ramas de compró/no compró, así que el
+diálogo de antes y el de después salen enteros; la tienda es del sistema de
+ítems. Lo cobra `tienda` en rom/hitos.txt.
 
 Lo que hay: `ControlVars` de a una —poner, sumar, restar; constante, otra
 variable, azar, y "otro" oro y segundos del cronómetro—, `ConditionalBranch`
@@ -510,6 +531,40 @@ velocidad. Tanda: 109 casos en verde sobre la foto `7c6e76a`; `just pruebas`:
 Al 2026-09-10, en orden. Los tres primeros son deuda de esta vuelta y están
 acotados; del cuarto para abajo es lo de siempre.
 
+0. **El sistema de ítems y equipamiento, y el menú de pausa.** taro lo planteó
+   el 2026-09-10 a la noche como lo que sigue. Lo medido, para diseñarlo:
+
+   * El LDB tiene 450 ítems (`data/db/items.json`); el juego da o vende **226**
+     —81 armas, 48 piezas de armadura, 36 comunes, 18 medicinas, 17 únicos, 7
+     libros, 1 de switch—. `ChangeItems` aparece 509 veces en 87 mapas, siempre
+     de a un ítem constante y una cantidad constante (366 dan, 143 quitan);
+     `ChangeGold` 48 veces; `ChangeEquipment` 34 veces en dos mapas (el 30 y
+     el 151); `OpenShop` 43, ninguna con ramas. Ocho ítems distintos entran
+     en condiciones de página (52 páginas).
+   * Datos en la ROM: por ítem el nombre, la descripción, el tipo, el precio y
+     el efecto (HP que cura; ataque y defensa del equipo). Texto en la fuente
+     que ya compone la ventana. Unos 12 KB.
+   * Estado: la cantidad por ítem —450 bytes, un byte cada uno, RM2k topa en
+     99— y el equipo por actor —cinco ranuras de un word para los actores
+     posibles—, en la RAM lejana desde `$26A2` (después de las variables) y
+     en la partida, que pasaría de 322 a unos 900 bytes: sigue entrando en la
+     ranura de 512 sólo si se sube `SRAM_STRIDE` a 1024; hay 8 KB.
+   * Orden sugerido, cada paso con su caso en la tanda y su prueba de estado:
+     (1) el inventario y `ChangeItems`/`ChangeGold` de verdad, con lo que las
+     condiciones de página por ítem dejan de ser "nunca activa" y `OpenShop`
+     deja de ser una deuda; la referencia lleva el mismo inventario en
+     `Estado`. (2) El menú de pausa de RM2k —`Use Item`, `Tech Skill`,
+     `Equipment`, `Save`, `End Game`, con el grupo a la derecha: cara, nombre,
+     nivel, HP— sobre la máquina de la pantalla de ranuras (`ranuras_pantalla`
+     ya bloquea el reloj y vuelve al mapa) y el compositor de la ventana; el
+     oráculo es `titulo.py` extendido, como con las ranuras. (3) El inventario
+     y el uso de medicinas —pide HP, o sea los parámetros de los actores y los
+     niveles, que hoy no existen—. (4) El equipo y la tienda. Sin batallas,
+     HP, ataque y defensa son cosméticos: se muestran, no se usan.
+   * `ChangeSaveAccess` (70 usos) y `ChangeMainMenuAccess` (4) hay que
+     honrarlos antes de abrir el menú con un botón: hoy la ROM no tiene ningún
+     botón de menú.
+
 1. **El menú de guardado desde el save point: hecho** el 2026-09-10 a la
    tarde. Queda el renglón para que nadie lo busque.
 
@@ -561,10 +616,10 @@ acotados; del cuarto para abajo es lo de siempre.
 5. **Lo que sigue faltando de Lashe City**: la condición de **ítem** —45
    eventos— quedó resuelta como "nunca activa", las **variables** están desde
    el 2026-09-10 a la noche, y **Lashe City Interiors (10) y Lashe City 33,36
-   (9) están en la demo** con sus puertas. Lo que queda: las condiciones de
-   página por variable y por cronómetro, que todavía tiran el evento entero
-   —en los mapas de la demo no hay ninguna— y el `CallEvent` del Hover-Tram.
-   La velocidad del héroe en las rutas está hecha (2026-09-10 a la noche).
+   (9) están en la demo** con sus puertas. Las condiciones de página por
+   variable y la velocidad del héroe en las rutas están hechas (2026-09-10 a
+   la noche). Lo que queda: la condición por cronómetro —una página en todo
+   el juego— y el `CallEvent` del Hover-Tram.
 
 6. **La animación del save point** (`animation_type` 3, "Fixed Dir/Continuous")
    está **hecha** desde el 2026-09-09; queda el renglón para que nadie la

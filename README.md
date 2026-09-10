@@ -1380,8 +1380,10 @@ todos sus comandos se pueden ejecutar**. Si aparece uno que no modelamos, la
 página no se emite y el evento no hace nada. Ejecutar la mitad de un script
 dejaría al juego en un estado que no existe, y la comparación no lo vería porque
 la referencia haría lo mismo mal. Por lo mismo, un evento con una condición que
-no sabemos evaluar —un ítem, un cronómetro— queda entero afuera: sin saber qué
-página está activa, correr la equivocada es peor que no correr ninguna.
+no sabemos evaluar —hoy sólo el cronómetro, una página en todo el juego— queda
+entero afuera: sin saber qué página está activa, correr la equivocada es peor
+que no correr ninguna. Las de switch, actor y variable se evalúan; la de ítem
+se sabe que nunca se cumple.
 
 De las 519 páginas automáticas del juego, 42 se compilan enteras con este juego
 de comandos, y 31 sobreviven además al filtro por evento. Pero **29 de esas 31
@@ -3184,20 +3186,30 @@ pida uno no está activa jamás. Desde el 2026-09-10 esa página se emite con
 `switch_a = SWITCH_IMPOSIBLE` —un switch que nadie prende— sin código ni
 gráfico, y las demás páginas del evento corren como corresponde. Antes el
 evento entero quedaba afuera: no se dibujaba, no frenaba y no disparaba. Son
-45 eventos; EV0041 del mapa 8 es uno. Las condiciones por **variable** y por
-cronómetro siguen tirando el evento entero, porque ésas sí pueden cumplirse y
-no se sabe cuándo.
+45 eventos; EV0041 del mapa 8 es uno.
+
+**La condición por variable se evalúa** desde el 2026-09-10 a la noche: la
+página lleva la ranura, la comparación y el valor (+24 a +27, `PAGINA_BYTES`
+28), `condiciones_ok` los lee de la tabla y los compara con `comparar_var`,
+la misma comparación con signo de `ConditionalBranch` —RM2k usa
+`CheckOperator` para las dos—. Y escribir una variable pide un refresco de
+páginas, como `SetNeedRefreshForVarChange`: sin eso el cofre del mapa 133,
+cuya primera página pide la variable 123 >= 8, no aparecía de ningún lado. La
+condición por cronómetro sigue tirando el evento: la pide una sola página del
+juego.
 
 ### Las variables de RM2k
 
-El juego declara cinco mil y usa 81. La ROM lleva **las que nombran las
-páginas de sus mapas**, con una ranura cada una: el conversor las cuenta antes
-de compilar nada —`indexar_variables`— y el bytecode habla de ranuras, así que
-cuestan dos bytes de RAM por variable usada y no diez kilobytes. La referencia
-arma el mismo índice de la misma lista de mapas, que es lo que hace que los dos
-lados lean el mismo stream. Viven en la RAM lejana —`FAR_VARIABLES`, por la
-ventana de `WMDATA`, como el estado de los paralelos— y viajan en la partida
-guardada.
+El juego declara cinco mil y usa 81. La ROM lleva **esas 81**, con una ranura
+cada una: el conversor las cuenta en los 328 mapas antes de compilar nada
+—`indexar_variables`, un tercio de segundo— y el bytecode habla de ranuras,
+así que cuestan 162 bytes de RAM y no diez kilobytes. La referencia arma el
+mismo índice, que es lo que hace que los dos lados lean el mismo stream. Hasta
+el 2026-09-10 a la noche el índice era de los mapas de cada ROM y una partida
+guardada con una ROM no valía para otra con más mapas: las ranuras se
+corrían. Viven en la RAM lejana —`FAR_VARIABLES`, por la ventana de `WMDATA`,
+como el estado de los paralelos— y viajan en la partida guardada, que por eso
+pasó de 256 a 512 bytes de SRAM por ranura.
 
 Son de **dieciséis bits con signo**. RM2k las lleva a 32 y las topa en ±999999,
 pero ninguna del juego pasa de unos cientos —segundos del cronómetro, un azar de

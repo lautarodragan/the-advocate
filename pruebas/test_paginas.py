@@ -48,25 +48,43 @@ def test_la_pagina_con_item_nunca_esta_activa_y_las_otras_si():
     assert tercera["codigo"] is None and tercera["grafico"] is None
 
 
-def test_una_condicion_por_variable_sigue_dejando_el_evento_afuera():
-    """Lo contrario: una variable sí puede cumplirse, y mientras la ROM no las
-    tenga no se sabe qué página está activa. Ese evento no entra."""
-    # El mapa 11 tiene uno, el EV0017; el 9 y el 10, que son los de la demo,
-    # ninguno.
-    game_map = lcf.Map(os.path.join(GAME_DIR, "Map0011.lmu"))
-    con_variable = [e for e in game_map.events
-                    if any("variable" in p.condition.active for p in e.pages)]
-    assert con_variable, "el mapa 11 tenía eventos con condición por variable"
-    for evento in con_variable:
-        assert not rm2k.condiciones_soportadas(evento)
+def test_la_condicion_por_variable_va_en_la_pagina():
+    """El KeyChest del mapa 133: la primera página pide la variable 123 >= 8,
+    la segunda un switch y la tercera un ítem. La tabla lleva la ranura, la
+    comparación y el valor de la primera, nada en la segunda, y la tercera
+    sigue siendo la que no se activa nunca. Que la ROM elija con eso lo cobra
+    `snes-vars 133 ... cofre` en rom/hitos.txt."""
+    eventos.indexar_variables(GAME_DIR)
+    paginas = paginas_de(133, 2)
+    assert len(paginas) == 3
+    primera, segunda, tercera = paginas
+    assert primera["variable"] == (eventos.ranura_de_variable(123),
+                                   eventos.CMP_MAYOR_IGUAL, 8)
+    assert segunda["variable"] is None and segunda["switch_a"] == 411
+    assert tercera["switch_a"] == eventos.SWITCH_IMPOSIBLE \
+        and tercera["variable"] is None
     assert eventos.SWITCH_IMPOSIBLE not in range(1, 1004), (
         "el juego consulta switches hasta el 1003")
+
+
+def test_las_ranuras_son_las_del_juego_entero():
+    """Ochenta y una variables, las mismas ranuras en cualquier ROM: una
+    partida guardada con la demo tiene que valer para una ROM con más mapas."""
+    ranuras = eventos.indexar_variables(GAME_DIR)
+    assert len(ranuras) == 81, len(ranuras)
+    assert max(ranuras) == 201
+    assert list(ranuras.values()) == list(range(81))
+    # Las de la página de prueba se suman al final, sin correr a las demás.
+    con_extra = eventos.indexar_variables(GAME_DIR, extra=(3000,))
+    assert con_extra[3000] == 81
+    assert all(con_extra[v] == r for v, r in ranuras.items())
 
 
 def test_el_tram_officer_compila_con_las_variables():
     """El Tram Officer del mapa 9 pide variables —azar, resta, los segundos del
     cronómetro, una rama por variable— y un CallEvent que se acepta sin hacer.
-    Con las ranuras indexadas compila; sin ellas, no."""
+    Con las ranuras indexadas compila; sin ellas, no. Las suyas son la 17, la
+    21 y de la 39 a la 42."""
     game_map = lcf.Map(os.path.join(GAME_DIR, "Map0009.lmu"))
     del_mapa = eventos.Eventos(game_map)
     oficial = [e for e in game_map.events if e.name == "Tram Officer"][0]
@@ -74,8 +92,8 @@ def test_el_tram_officer_compila_con_las_variables():
     assert eventos.compilar_pagina(oficial.pages[0], {9: 0}.get,
                                    eventos.Mensajes(),
                                    del_mapa.para(oficial.id)) is None
-    ranuras = eventos.indexar_variables(GAME_DIR, [4, 1, 2, 3, 5, 6, 7, 8, 9, 10])
-    assert ranuras == {17: 0, 21: 1, 39: 2, 40: 3, 41: 4, 42: 5}, ranuras
+    ranuras = eventos.indexar_variables(GAME_DIR)
+    assert {17, 21, 39, 40, 41, 42} <= set(ranuras), ranuras
     codigo = eventos.compilar_pagina(oficial.pages[0], {9: 0}.get,
                                      eventos.Mensajes(),
                                      del_mapa.para(oficial.id))

@@ -3096,8 +3096,44 @@ cumple:
 .a8
     ; Y la condición de grupo: un 0 quiere decir "esta página no pide a nadie".
     lda pg_actor
-    beq cumple8
+    beq mirar_var
     jsr en_el_grupo
+    beq falla8
+mirar_var:
+    ; Y la variable, que se lee de la tabla y no de una copia —la BSS está
+    ; llena—: +24 la ranura o $FF por "no pide ninguna", +25 cómo se compara y
+    ; +26 contra qué. Es la misma comparación con signo de
+    ; `ConditionalBranch`, `comparar_var`, con los mismos seis códigos: RM2k
+    ; usa `CheckOperator` para las dos. Pisa X e Y, como ya lo hacía
+    ; `switch_encendido`.
+    ldy pag_ofs
+    rep #$20
+.a16
+    tya
+    clc
+    adc #24
+    tay
+    sep #$20
+.a8
+    lda [pag_ptr], y            ; +24 la ranura
+    cmp #$FF
+    beq cumple8
+    pha
+    iny
+    lda [pag_ptr], y            ; +25 la comparación
+    sta temp + 1
+    iny
+    rep #$20
+.a16
+    lda [pag_ptr], y            ; +26 contra qué, con signo
+    sta temp + 2
+    sep #$20
+.a8
+    pla
+    jsr var_leer                ; A = la variable, de dieciséis
+.a16
+    jsr comparar_var
+.a8
     beq falla8
 cumple8:
     lda #1                      ; Z=0
@@ -4258,7 +4294,9 @@ var_suma:
 var_pone:
     lda temp
     jsr var_escribir
-    ply
+    lda #1
+    sta refresco                ; las páginas que piden una variable pueden
+    ply                         ; cambiar: `SetNeedRefreshForVarChange`
     iny                         ; a y b, cuatro bytes
     iny
     iny
@@ -4299,67 +4337,15 @@ op_si_var:
     sep #$20
 .a8
 si_var_contra_constante:
+    pla                         ; la comparación
+    sta temp + 1
     lda temp
     phy
     jsr var_leer                ; A = la variable, de dieciséis
 .a16
-    ply
-    sec
-    sbc temp + 2                ; N, V y Z de la resta con signo
-    sep #$20
+    jsr comparar_var
 .a8
-    php
-    pla                         ; A = las banderas: N $80, V $40, Z $02
-    sta temp + 1
-    and #$C0
-    beq si_var_no_menor         ; N y V en cero: no es menor
-    cmp #$C0
-    beq si_var_no_menor         ; los dos puestos: tampoco
-    lda #1
-    bra si_var_menor_listo
-si_var_no_menor:
-    lda #0
-si_var_menor_listo:
-    sta temp + 2                ; menor
-    lda temp + 1
-    and #$02
-    beq si_var_no_igual
-    lda #1
-si_var_no_igual:
-    sta temp + 3                ; igual
-    pla                         ; la comparación
-    ; ==, >=, <=, >, <, != en ese orden
-    beq si_var_igual
-    cmp #1
-    beq si_var_mayor_igual
-    cmp #2
-    beq si_var_menor_igual
-    cmp #3
-    beq si_var_mayor
-    cmp #4
-    beq si_var_menor
-    lda temp + 3                ; !=
-    eor #1
-    bra si_var_decide
-si_var_igual:
-    lda temp + 3
-    bra si_var_decide
-si_var_mayor_igual:
-    lda temp + 2
-    eor #1
-    bra si_var_decide
-si_var_menor_igual:
-    lda temp + 2
-    ora temp + 3
-    bra si_var_decide
-si_var_mayor:
-    lda temp + 2
-    ora temp + 3
-    eor #1
-    bra si_var_decide
-si_var_menor:
-    lda temp + 2
-si_var_decide:
+    ply
     bne si_var_sigue
     rep #$20
 .a16
@@ -4652,6 +4638,71 @@ otra:
     sep #$20
 .a8
     lda anim_por_vel, x
+    rts
+.endproc
+
+; La comparación con signo de `ConditionalBranch` y de la condición de página
+; por variable —RM2k usa `CheckOperator` para las dos—. A trae el valor de la
+; variable en dieciséis bits, `temp + 2` contra qué se compara y `temp + 1` el
+; código: ==, >=, <=, >, <, != en ese orden. Vuelve en ocho bits con A = 1 y
+; Z=0 si se cumple, A = 0 y Z=1 si no. Pisa `temp + 1` a `temp + 3`.
+.proc comparar_var
+.a16
+.i16
+    sec
+    sbc temp + 2                ; N, V y Z de la resta con signo
+    sep #$20
+.a8
+    php
+    pla                         ; A = las banderas: N $80, V $40, Z $02
+    pha
+    and #$C0
+    beq no_menor                ; N y V en cero: no es menor
+    cmp #$C0
+    beq no_menor                ; los dos puestos: tampoco
+    lda #1
+    bra menor_listo
+no_menor:
+    lda #0
+menor_listo:
+    sta temp + 2                ; menor
+    pla
+    and #$02
+    beq no_igual
+    lda #1
+no_igual:
+    sta temp + 3                ; igual
+    lda temp + 1                ; la comparación
+    beq igual
+    cmp #1
+    beq mayor_igual
+    cmp #2
+    beq menor_igual
+    cmp #3
+    beq mayor
+    cmp #4
+    beq menor
+    lda temp + 3                ; !=
+    eor #1
+    rts
+igual:
+    lda temp + 3
+    rts
+mayor_igual:
+    lda temp + 2
+    eor #1
+    rts
+menor_igual:
+    lda temp + 2
+    ora temp + 3
+    rts
+mayor:
+    lda temp + 2
+    ora temp + 3
+    eor #1
+    rts
+menor:
+    lda temp + 2
     rts
 .endproc
 
@@ -8533,7 +8584,7 @@ SRAM_RANURAS = 4
 ; vez que se agrega un campo a la partida —ya pasó con la música—. El
 ; ensamblador no lo puede cortar, así que lo cuida
 ; `pruebas/test_guardar.py::test_las_cuatro_ranuras_entran_en_la_sram`.
-SRAM_STRIDE = 256
+SRAM_STRIDE = 512
 
 ; Y dentro de cada ranura, contando desde su base. `SRAM_MAGIA` sigue siendo
 ; $0100 y no $0000 por lo de siempre: un operando que entra en un byte lo
@@ -8586,10 +8637,11 @@ PARTIDA_GRUPO_N = PARTIDA_GRUPO + 4
 ; Pone la ranura con la que van a trabajar `guardar_partida` y `cargar_partida`,
 ; y calcula su desplazamiento. A trae el número de ranura.
 ;
-; El desplazamiento es la ranura por 256, o sea un `xba`: de ahí sale que
-; `SRAM_STRIDE` valga 256 y no el largo justo de una partida. Multiplicar por
-; 165 pediría el multiplicador del hardware y ocho ciclos de espera, para
-; ahorrar 364 bytes de una SRAM que sobra.
+; El desplazamiento es la ranura por 512, o sea un `xba` y un `asl`: de ahí
+; sale que `SRAM_STRIDE` valga 512 y no el largo justo de una partida.
+; Multiplicar por ese largo pediría el multiplicador del hardware y ocho
+; ciclos de espera, para ahorrar unos bytes de una SRAM que sobra. Era 256
+; hasta que las 81 variables del juego entraron en la partida.
 .proc poner_ranura
 .a8
 .i16
@@ -8600,10 +8652,7 @@ PARTIDA_GRUPO_N = PARTIDA_GRUPO + 4
 ; El desplazamiento de la ranura en la SRAM, en X. **Pide el banco de datos
 ; normal**: lee `ranura`, que vive en la WRAM.
 ;
-; Es la ranura por 256, o sea un `xba`: de ahí sale que `SRAM_STRIDE` valga 256
-; y no el largo justo de una partida. Multiplicar por 165 pediría el
-; multiplicador del hardware y ocho ciclos de espera, para ahorrar 364 bytes de
-; una SRAM que sobra.
+; Es la ranura por 512, o sea un `xba` y un `asl`: ver `poner_ranura`.
 .proc ranura_en_x
 .a8
 .i16
@@ -8611,7 +8660,8 @@ PARTIDA_GRUPO_N = PARTIDA_GRUPO + 4
 .a16
     lda ranura
     and #$00FF
-    xba                         ; por SRAM_STRIDE, que es 256
+    xba                         ; por 256...
+    asl a                       ; ...y por dos: SRAM_STRIDE, que es 512
     tax
     sep #$20
 .a8
@@ -9520,14 +9570,16 @@ listo:
     rts
 
 ; El actor que está en el lugar `titulo_flancos` del grupo de la ranura, leído
-; de la SRAM. Devuelve A y se lleva X. El desplazamiento es la ranura por 256
-; más el lugar, armado con dos `xba` y sin tocar los vecinos de la página
-; directa: leer `titulo_flancos` a dieciséis bits se llevaría `menu_abierto`.
+; de la SRAM. Devuelve A y se lleva X. El desplazamiento es la ranura por 512
+; —`SRAM_STRIDE`— más el lugar, armado con dos `xba` y sin tocar los vecinos
+; de la página directa: leer `titulo_flancos` a dieciséis bits se llevaría
+; `menu_abierto`. El byte alto es la ranura por dos, que entra: son cuatro.
 actor_del_miembro:
     lda titulo_flancos
     xba
     lda ranura
-    xba                         ; C = ranura * 256 + lugar
+    asl a
+    xba                         ; C = ranura * 512 + lugar
     rep #$20
 .a16
     tax
@@ -15772,6 +15824,8 @@ pg_frec:     .res 1
 pg_vel:      .res 1
 pg_ruta:     .res 3
 pg_ruta_n:   .res 1
+; +24..+27, la condición por variable, no se copia: `condiciones_ok` la lee
+; de la tabla, que es la única que la mira. La BSS está llena.
 ; Que un switch o el grupo cambió y hay que volver a mirar qué página está
 ; activa en cada evento: `rutas_de_pagina`, al empezar el cuadro siguiente.
 refresco:    .res 1
@@ -16185,7 +16239,7 @@ done:
     .byte $20                      ; LoROM, velocidad lenta
     .byte $02                      ; ROM y RAM con batería: la partida guardada
     .byte $0A                      ; tamaño: 1 MB (el byte es log2 de los KB)
-    .byte $03                      ; SRAM: 8 KB, y se usan 260 bytes
+    .byte $03                      ; SRAM: 8 KB, y se usan cuatro ranuras de 512
     .byte $01                      ; región
     .byte $00                      ; desarrollador
     .byte $00                      ; versión

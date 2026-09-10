@@ -73,6 +73,7 @@ snes-cinematica 5 "3 6" "300 600 1200 1600 2500 2800 3300 3900" 115 manta 1 "212
 snes-escena 2 "4 54" 12 up "100 230 600 950" 115 puerta-izq "20 202 323 444 565"
 snes-escena 2 "36 74" 3 left "60 200 450 930 1300 1800" 115 pantalla "161 282 342 584 735 857 948 1008 1099 1159 1219 1430 1490 1732"
 snes-escena 8 "9 55" 0 down "20 30 40 50" 115 savepoint ""
+snes-escena 10 "42 6" 12 up "20 60 120 200" 115 tienda "25 90 150"
 # El save point de verdad: parado encima del evento 67, A, la pantalla de
 # ranuras, y B por cuadros de hardware.
 snes-escena 8 "9 56" 14 down "60 200" 115 savepoint-guarda "10" "" "" "b:40"
@@ -121,6 +122,8 @@ snes-timer 6 "1 1" "2 10" "2 40 59 61" "12 0 0 50" 115 timer-cero
 # Las variables, vistas por el cronómetro: 60 segundos a la variable 17, menos
 # 25, y el cronómetro desde la variable. Sin las variables mostraría 60.
 snes-vars
+snes-vars 133 "0 0" "123 0 0 8 0" "4 7" "2 30" "12 100 100 100" 115 cofre
+snes-vars 133 "0 0" "123 0 0 7 0" "4 7" "2 30" "12 100 100 100" 115 cofre-no
 # El Tram Officer del mapa 9 entero: cuatro mensajes, la elección "1 minute",
 # la caminata de espera, el cronómetro leído a una variable y restado, la rama
 # que dice "it's official, I'm late", y el azar que decide "It's here!". Los

@@ -610,6 +610,12 @@ ERASE_PICTURE = 11130
 # lista de acá: ver "las variables de RM2k".
 CONTROL_VARS = 10220
 CALL_EVENT = 12330
+# Y la tienda: `OpenShop`. Cuarenta y tres en el juego, ninguna con las ramas
+# de "compró"/"no compró", así que aceptarla sin abrir nada deja pasar el
+# diálogo de antes y el de después. Los dos vendedores de Lashe City Interiors
+# —EV0021 y EV0023— no contestaban por esto: taro lo vio jugando el 2026-09-10
+# a la noche. La tienda de verdad es del sistema de ítems, que todavía no hay.
+OPEN_SHOP = 10720
 
 ACEPTADOS_SIN_HACER = {
     WEATHER_EFFECTS,
@@ -619,6 +625,7 @@ ACEPTADOS_SIN_HACER = {
     # pierde: la escena del tram no corre y el jugador se queda parado con el
     # "It's here!" dicho. Es deuda declarada, no equivalencia.
     CALL_EVENT,
+    OPEN_SHOP,
     PLAY_SOUND,
     SHOW_BATTLE_ANIMATION,
     CHANGE_ITEMS,
@@ -1225,13 +1232,17 @@ COND_VARIABLE = 1
 
 # --- las variables de RM2k ---------------------------------------------------
 #
-# El juego declara cinco mil y usa **81**, la mayor la 201; los mapas 1 a 10
-# usan seis. La ROM no lleva las cinco mil: el conversor mira qué variables
-# nombran las páginas de los mapas de la ROM y les da una **ranura** cada una,
-# de cero en adelante —`VARIABLE_SLOT`—, y el bytecode habla de ranuras. Así
-# la RAM que cuesta es dos bytes por variable usada, viven en la RAM del
-# banco 1 (`FAR_VARIABLES`) y viajan en la partida guardada. El mismo índice
-# lo arma la referencia, de la misma lista de mapas, con `indexar_variables`.
+# El juego declara cinco mil y usa **81**, la mayor la 201. La ROM no lleva
+# las cinco mil: el conversor mira qué variables nombran las páginas **de
+# todos los mapas del juego** y les da una **ranura** cada una, de cero en
+# adelante —`VARIABLE_SLOT`—, y el bytecode habla de ranuras. Así la RAM que
+# cuesta es 162 bytes, viven en la RAM del banco 1 (`FAR_VARIABLES`) y viajan
+# en la partida guardada. El mismo índice lo arma la referencia con
+# `indexar_variables`. Hasta el 2026-09-10 a la noche el índice era de los
+# mapas de cada ROM —seis variables en los mapas 1 a 10— y con eso una partida
+# guardada con una ROM no valía para otra con más mapas: las ranuras se
+# corrían. Con el índice del juego entero la ranura de una variable es la
+# misma en cualquier ROM, y la partida pasó de 256 a 512 bytes de SRAM.
 #
 # Son de **dieciséis bits con signo**: RM2k las lleva a 32 y las topa en
 # ±999999, pero ninguna del juego pasa de unos cientos —segundos de
@@ -1265,20 +1276,30 @@ VARIABLES_PRUEBA_AL_TIMER = 9   # la "operación" de --vars-de-prueba que pone e
                                 # cronómetro desde la variable; ver pagina_de_prueba
 
 
-def variables_de(game_dir, map_ids, extra=()):
-    """Qué variables nombran las páginas de estos mapas, cada una con su ranura.
+def mapas_del_juego(game_dir):
+    """Los números de todos los mapas que hay en el juego, en orden."""
+    import glob
+    return sorted(int(os.path.basename(p)[3:7]) for p in
+                  glob.glob(os.path.join(game_dir, "Map[0-9][0-9][0-9][0-9].lmu")))
 
-    Se miran todos los comandos de todas las páginas, compilen o no: es un
-    superconjunto barato —dos bytes por variable— y así una página que compile
-    después no cambia las ranuras de las demás. `extra` son las de la página de
-    prueba, que no salen de ningún mapa.
+
+def variables_de(game_dir, map_ids=None, extra=()):
+    """Qué variables nombran las páginas de estos mapas —sin lista, las de
+    todo el juego—, cada una con su ranura.
+
+    Se miran todos los comandos y las condiciones de todas las páginas,
+    compilen o no: es un superconjunto barato —dos bytes por variable— y así
+    una página que compile después no cambia las ranuras de las demás. `extra`
+    son las de la página de prueba, que no salen de ningún mapa.
     """
     import lcf
     ids = set(extra)
-    for map_id in map_ids:
+    for map_id in (mapas_del_juego(game_dir) if map_ids is None else map_ids):
         game_map = lcf.Map(os.path.join(game_dir, "Map%04d.lmu" % map_id))
         for evento in game_map.events:
             for page in evento.pages:
+                if "variable" in page.condition.active:
+                    ids.add(page.condition.ids["variable"])
                 for cmd in page.commands:
                     p = cmd.parameters
                     if cmd.code == CONTROL_VARS and len(p) >= 7:
@@ -1300,12 +1321,21 @@ def variables_de(game_dir, map_ids, extra=()):
     return {variable: ranura for ranura, variable in enumerate(sorted(ids))}
 
 
-def indexar_variables(game_dir, map_ids, extra=()):
-    """Deja en `VARIABLE_SLOT` el índice de esta ROM. Lo llaman el conversor y
-    la referencia con la misma lista de mapas, antes de compilar nada."""
+def indexar_variables(game_dir, extra=()):
+    """Deja en `VARIABLE_SLOT` el índice del juego entero. Lo llaman el
+    conversor y la referencia antes de compilar nada; tarda un tercio de
+    segundo en leer los 328 mapas."""
     VARIABLE_SLOT.clear()
-    VARIABLE_SLOT.update(variables_de(game_dir, map_ids, extra))
+    VARIABLE_SLOT.update(variables_de(game_dir, None, extra))
     return dict(VARIABLE_SLOT)
+
+
+def cumple_comparacion(valor, comparacion, contra):
+    """`CheckOperator` de RM2k: ==, >=, <=, >, <, != en ese orden. Lo usan la
+    rama por variable y la condición de página; en la ROM es `comparar_var`
+    para las dos."""
+    return (valor == contra, valor >= contra, valor <= contra, valor > contra,
+            valor < contra, valor != contra)[comparacion]
 
 
 def ranura_de_variable(numero):
@@ -3183,6 +3213,14 @@ def pagina_activa_viva(paginas, evento, estado):
             continue
         if pagina["actor"] and pagina["actor"] not in estado.grupo:
             continue
+        # Y la condición por variable, desde el 2026-09-10 a la noche: la
+        # ranura, la comparación y el valor, como `AreConditionsMet` con
+        # `CheckOperator`. Catorce páginas del juego la usan, todas con >=.
+        if pagina.get("variable") is not None:
+            ranura, comparacion, contra = pagina["variable"]
+            if not cumple_comparacion(estado.variable(ranura), comparacion,
+                                      contra):
+                continue
         elegida = pagina
     return elegida
 
@@ -3991,16 +4029,18 @@ def ejecutar(codigo, estado, desde=0):
             estado.poner_variable(ranura, valor if operacion == VAR_PONER
                                   else actual + valor if operacion == VAR_SUMAR
                                   else actual - valor)
+            # Las páginas con condición por variable pueden cambiar:
+            # `SetNeedRefreshForVarChange`, que RM2k hace tras cada
+            # ControlVars. La ROM marca `refresco` en `var_pone`.
+            estado.refresco = True
             i += 8
         elif op == OP_SI_VAR:
             ranura, clase, comparacion = codigo[i + 1], codigo[i + 2], codigo[i + 3]
             contra = con_signo(codigo[i + 4] | (codigo[i + 5] << 8))
             if clase == VAR_VARIABLE:
                 contra = estado.variable(contra)
-            v = estado.variable(ranura)
-            vale = (v == contra, v >= contra, v <= contra, v > contra,
-                    v < contra, v != contra)[comparacion]
-            if vale:
+            if cumple_comparacion(estado.variable(ranura), comparacion,
+                                  contra):
                 i += 8
             else:
                 i = codigo[i + 6] | (codigo[i + 7] << 8)
@@ -4331,6 +4371,7 @@ def paginas_del_mapa(game_map, indice_de_mapa, mensajes=None, temas=None,
                     "evento": numero_evento, "pagina": numero_pagina,
                     "trigger": page.trigger,
                     "switch_a": SWITCH_IMPOSIBLE, "switch_b": 0, "actor": 0,
+                    "variable": None,
                     "capa": page.layer, "frecuencia": page.move_frequency,
                     "velocidad": page.move_speed, "codigo": None,
                     "ruta_propia": None, "grafico": None, "tile_pasa": None,
@@ -4348,6 +4389,9 @@ def paginas_del_mapa(game_map, indice_de_mapa, mensajes=None, temas=None,
                 "switch_a": cond.ids["switch_a"] if "switch_a" in cond.active else 0,
                 "switch_b": cond.ids["switch_b"] if "switch_b" in cond.active else 0,
                 "actor": cond.ids["actor"] if "actor" in cond.active else 0,
+                "variable": ((ranura_de_variable(cond.ids["variable"]),
+                              cond.operator, cond.variable_value)
+                             if "variable" in cond.active else None),
                 "capa": page.layer,
                 "frecuencia": page.move_frequency,
                 "velocidad": page.move_speed,

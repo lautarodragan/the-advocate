@@ -7,7 +7,7 @@ donde viven, y por los switches que una rama por variable prendió.
 La página de prueba las escribe con los mismos números que RM2k: variable,
 operación (0 pone, 1 suma, 2 resta), clase del operando (0 constante, 1 otra
 variable, 3 azar, 7 otro) y dos números. Las ranuras las da
-`eventos.indexar_variables` con la misma lista de mapas que la ROM.
+`eventos.indexar_variables`, que es el índice del juego entero.
 """
 
 import os
@@ -37,9 +37,9 @@ RAMA = (17, 1, 12, 200, 201)
 
 
 def ranuras():
-    arranca, resto = CON_VENTANA
-    return eventos.variables_de(GAME_DIR, [arranca] + list(resto),
-                                {17, 21, 39, 40, 41})
+    # El índice es del juego entero desde el 2026-09-10 a la noche: las cinco
+    # de la página de prueba ya son del juego, así que no agregan ninguna.
+    return eventos.variables_de(GAME_DIR, None, {17, 21, 39, 40, 41})
 
 
 @pytest.fixture
