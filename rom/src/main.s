@@ -8340,6 +8340,20 @@ no_hay:
     rts
 hay:
     jsr titulo_subir
+    ; El tema del título. $FF quiere decir que esta ROM no lo lleva —o que no
+    ; entró en la ARAM—, y entonces la pantalla se ve callada.
+    ;
+    ; Va **acá y no en `titulo_subir`**: ésa corre también al volver de la
+    ; pantalla de ranuras, y ahí el tema sigue sonando y no hay que tocarlo.
+    ; Hasta el 2026-09-10 lo reiniciaba, con un comentario que decía que eso
+    ; hacía RM2k, y no: `Scene_Title::Continue` al volver de la pantalla de
+    ; cargar no pasa por `Start()`, y `Game_System::BgmPlay` con el mismo tema
+    ; que ya suena no lo reinicia. taro lo escuchó en la consola.
+    lda #TEMA_TITULO
+    cmp #$FF
+    beq mudo
+    jsr music_start
+mudo:
     jmp titulo_lazo
 .endproc
 
@@ -8472,16 +8486,6 @@ hay:
 
     lda #$0F
     sta INIDISP                 ; y la pantalla encendida, al máximo
-
-    ; El tema del título. $FF quiere decir que esta ROM no lo lleva —o que no
-    ; entró en la ARAM—, y entonces la pantalla se ve callada. Al volver de la
-    ; pantalla de ranuras el tema ya está sonando y `music_start` lo reinicia,
-    ; que es lo que hace RM2k al volver al título.
-    lda #TEMA_TITULO
-    cmp #$FF
-    beq mudo
-    jsr music_start
-mudo:
     rts
 .endproc
 

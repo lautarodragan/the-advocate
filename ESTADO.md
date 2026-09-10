@@ -307,6 +307,12 @@ Lo que hay que saber para tocarlo, además de lo del README:
 * **El cursor arranca en la ranura en uso** en modo guardar: `latest_slot` sin
   fechas. Y `ranuras_pantalla` deja `ranura` como estaba al salir, porque
   pintar las filas la pisa; sin eso cancelar dejaba "cargada" la última fila.
+* **El tema del título no se reinicia al volver de las ranuras.** taro lo
+  escuchó el 2026-09-10 en la consola: se reiniciaba, y el comentario decía
+  que eso hacía RM2k. No: `Scene_Title::Continue` no pasa por `Start()` al
+  volver de cargar, y `BgmPlay` con el mismo tema no lo reinicia. `music_start`
+  se mudó de `titulo_subir` a `pantalla_titulo`. Medido con el puntero del
+  stream, que sigue de largo al volver; la tanda no escucha.
 * **Un evento de la capa de abajo se dispara parado encima, no de frente.**
   Es `CheckEventTriggerHere` contra `CheckEventTriggerThere`, y el save point
   es de esa capa: `savepoint-guarda` arranca en (9,56) y no en (9,55). De
@@ -343,9 +349,12 @@ acotados; del cuarto para abajo es lo de siempre.
    confunda con una pantalla rota. Por el conversor y bajo un flag, no editando
    `Map0004.lmu`. Ver la sección propia, más abajo.
 
-4. **Probarlo en hardware.** `demo-ciudad` y `demo-titulo` están rearmadas
-   el 2026-09-10 a la tarde, con el menú de guardado: al hablarle al save
-   point se abre "Save in which slot?", se elige con A o se vuelve con B.
+4. **Probado en hardware el 2026-09-10 a la tarde, y anda.** taro jugó las
+   demos con el menú de guardado: guardó y cargó en las ranuras 1 y 4, con el
+   cronómetro en distintos momentos, y todo perfecto. Lo único que trajo fue
+   el tema del título reiniciándose al volver de las ranuras, que está
+   arreglado abajo. Al hablarle al save point se abre "Save in which slot?",
+   se elige con A o se vuelve con B.
    **Salen de `just snes-demos` y de ningún otro lado.** La primera versión de
    esa tarde estaba armada a mano con el `grupo` del justfile, que es el 11
    del banco de pruebas, y taro la vio así: Kersh sobre negro desde el primer
