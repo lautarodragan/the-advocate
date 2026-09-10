@@ -346,6 +346,14 @@ acotados; del cuarto para abajo es lo de siempre.
 4. **Probarlo en hardware.** `demo-ciudad` y `demo-titulo` están rearmadas
    el 2026-09-10 a la tarde, con el menú de guardado: al hablarle al save
    point se abre "Save in which slot?", se elige con A o se vuelve con B.
+   **Salen de `just snes-demos` y de ningún otro lado.** La primera versión de
+   esa tarde estaba armada a mano con el `grupo` del justfile, que es el 11
+   del banco de pruebas, y taro la vio así: Kersh sobre negro desde el primer
+   cuadro, y la apertura del mapa 1 quieta y sin música. Con Kersh ya en el
+   grupo la página automática de la apertura no corre, y la referencia hace lo
+   mismo; `snes-cinematica` usa el 10 por eso. Verificado sobre la rearmada:
+   la apertura entera hasta el tick 2910 da cero contra la referencia con los
+   ocho mapas y el cronómetro.
    **La partida guardada de antes no sirve**: `PARTIDA_BYTES` cambió dos veces
    el 2026-09-10 —las ranuras y la música; el menú no lo tocó— así que hay que
    guardar de nuevo con la ROM nueva antes de probar la carga. Lo que conviene

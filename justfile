@@ -2097,6 +2097,37 @@ snes-titulo nombre="titulo" mapa="4" mapas="1 2 3 5 6 7 8":
       {{snes_pngs}}/{{nombre}}-juego-sin.png \
       -o {{snes_pngs}}/comparacion-{{nombre}}-juego.png
 
+# Las dos ROMs que taro juega: `demo-ciudad`, la cadena entera de la apertura
+# hasta Lashe City, y `demo-titulo`, la misma con pantalla de título. Van a
+# `rom/build/<nombre>/`, que es donde él las busca.
+#
+# **Con el grupo de verdad, el 10**, y no con el 11 del banco de pruebas. El
+# juego arranca con DummyHero y la apertura del mapa 1 lo da por sentado: con
+# Kersh ya en el grupo la página automática no corre, y queda Kersh sobre negro,
+# sin música y sin cámara. La referencia hace lo mismo, así que no es un bug de
+# la ROM: es una demo mal armada. Pasó el 2026-09-10, armándolas a mano con el
+# `grupo` del justfile; por eso ahora son una receta y el número está escrito
+# acá. `snes-cinematica` usa el 10 por la misma razón.
+#
+# Con cronómetro, para hacerle lugar al rojo de los dígitos; ver "Lashe City" en
+# ESTADO.md.
+snes-demo nombre="demo-ciudad" titulo="":
+  #!/usr/bin/env bash
+  set -euo pipefail
+  titulo="{{titulo}}"
+  mkdir -p rom/build/{{nombre}}
+  python3 tools/snes_convert.py --grupo 10 --map-id 4 --mapas 1 2 3 5 6 7 8 \
+      --con-ventana --con-timer ${titulo:+--con-titulo} \
+      -o rom/build/{{nombre}}/mapdata.inc
+  python3 tools/w65.py rom/src/main.s -I rom/build/{{nombre}} \
+      -o rom/build/{{nombre}}/{{nombre}}.sfc \
+      --simbolos rom/build/{{nombre}}/{{nombre}}.sfc.sym
+
+# Las dos de una vez.
+snes-demos:
+  just snes-demo demo-ciudad
+  just snes-demo demo-titulo 1
+
 # --- verificación del ensamblador ------------------------------------------
 # w65.py reemplaza a ca65 y ld65. Que se pueda confiar en él no es una promesa:
 # se genera un fuente con cada mnemónico en cada modo de direccionamiento que la
