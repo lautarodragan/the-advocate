@@ -149,6 +149,11 @@ FAR_VARIABLES  = $2600
 ; en la página directa porque la página directa quedó en 258 de 256 al
 ; intentarlo; el azar se pide pocas veces y el puerto no lo nota.
 FAR_AZAR       = $25FE
+; Y la velocidad del héroe, de 1 a 6, un byte antes: las órdenes 28 y 29 de una
+; ruta forzada la suben y la bajan y **queda así**, también para el pad —RM2k
+; sólo repone la frecuencia al terminar la ruta, `original_move_frequency`; la
+; velocidad no—. Viaja en la partida. Se lee una vez por paso.
+FAR_HERO_VEL   = $25FD
 ; Cursor (2), espera (2), si está corriendo (1) y de qué página (2).
 PAR_BYTES = 7
 WMADDL   = $2181
@@ -195,8 +200,10 @@ DIR_LEFT  = 3
 
 ; A velocidad 4, que es la del héroe, se avanzan dos pixeles por cuadro y la
 ; animación cambia de frame cada seis.
-WALK_SPEED = 2
-ANIM_FRAMES = 6
+; WALK_SPEED ya no existe: el héroe avanza según su velocidad, ver
+; `paso_medio_por_vel`. Quedó el renglón para que nadie lo busque.
+; ANIM_FRAMES = 6 era cada cuántos cuadros cambiaba el frame de la caminata;
+; ahora depende de la velocidad del héroe: ver `anim_por_vel`.
 
 ; El sprite se dibuja centrado sobre su celda de 16x16 y apoyado por los pies.
 ; Al objeto de 32 hay que restarle además los 4 que sobran de cada lado.
@@ -354,11 +361,13 @@ tira_paso_col: .res 2   ; lo que mide una fila de bloques, en bytes
 tira_resta: .res 2      ; cuántas celdas faltan por armar
 hero_ptr:   .res 3      ; y en qué celda de la grilla, como puntero: se mueve
                         ; con él en vez de recalcularse
-step_left:  .res 1      ; pixeles que faltan del paso en curso, 0 si no hay
-step_dx:    .res 2      ; cuánto avanza por cuadro, con signo
+step_left:  .res 1      ; lo que falta del paso en curso, en medias unidades
+                        ; de RM2k —128 por celda—, 0 si no hay
+step_dx:    .res 2      ; el sentido del paso en x: -1, 0 o 1
 step_dy:    .res 2
 anim_step:  .res 1      ; en qué punto del ciclo de caminata va
-anim_timer: .res 1      ; cuántos cuadros faltan para el frame siguiente
+anim_timer: .res 1      ; cuántos cuadros lleva el frame de la caminata:
+                        ; `anim_count`, que sube y se compara con la velocidad
 moving:     .res 1      ; si se movió este cuadro
 oam_slot:   .res 2      ; en qué objeto de OAM vamos
 npc_ofs:    .res 2      ; desplazamiento dentro de la tabla de NPCs
@@ -773,8 +782,7 @@ cargar:
     stz pad                     ; la RAM arranca con basura y move_hero la lee
     lda #1
     sta anim_step               ; el frame del medio: la pose parada
-    lda #ANIM_FRAMES
-    sta anim_timer
+    stz anim_timer
 
     jsr build_oam
     jsr flush_video
@@ -4569,20 +4577,22 @@ op_teleport:
     rts
 .endproc
 
-; Todas en cero y la semilla del azar puesta. Corre en el reset, antes de
-; cargar la partida. El azar está justo antes de las variables, así que es
-; una sola pasada por el puerto.
+; Todas en cero, la semilla del azar puesta y la velocidad del héroe en 4.
+; Corre en el reset, antes de cargar la partida. Los tres viven seguidos en la
+; RAM lejana, así que es una sola pasada por el puerto.
 .proc limpiar_variables
 .a8
 .i16
     rep #$20
 .a16
-    lda #FAR_AZAR
+    lda #FAR_HERO_VEL
     sta WMADDL
     ldx #(VARIABLES_N * 2)
     sep #$20
 .a8
     stz WMADDH
+    lda #4                      ; la velocidad normal del héroe
+    sta WMDATA
     lda #<AZAR_SEMILLA
     sta WMDATA
     lda #>AZAR_SEMILLA
@@ -4591,6 +4601,57 @@ otra:
     stz WMDATA
     dex
     bne otra
+    rts
+.endproc
+
+; La velocidad del héroe, en A. Sólo A: quien la pide está en medio de un paso
+; con X e Y ocupados.
+.proc hero_vel_leer
+.a8
+.i16
+    rep #$20
+.a16
+    lda #FAR_HERO_VEL
+    sta WMADDL
+    sep #$20
+.a8
+    stz WMADDH
+    lda WMDATA
+    rts
+.endproc
+
+; A: la velocidad nueva.
+.proc hero_vel_escribir
+.a8
+.i16
+    pha
+    rep #$20
+.a16
+    lda #FAR_HERO_VEL
+    sta WMADDL
+    sep #$20
+.a8
+    stz WMADDH
+    pla
+    sta WMDATA
+    rts
+.endproc
+
+; Cuántos cuadros dura cada frame de la caminata a la velocidad del héroe:
+; `ANIM_PARADO` en eventos.py, `GetStationaryAnimFrames`. Con la velocidad 4
+; son los seis de siempre.
+.proc anim_cuadros_del_heroe
+.a8
+.i16
+    jsr hero_vel_leer
+    rep #$20
+.a16
+    and #$00FF
+    dec a
+    tax
+    sep #$20
+.a8
+    lda anim_por_vel, x
     rts
 .endproc
 
@@ -5880,7 +5941,9 @@ hay_orden:
     jmp listo
 no_es_wait:
     cmp #12
-    bcc mover                   ; 0..3 son los move_*
+    bcs no_es_mover
+    jmp mover                   ; 0..3 son los move_*
+no_es_mover:
     cmp #16
     bcc face                    ; 12..15 son los face_*
     ; Girar sin moverse no se compila, y encarar al héroe no se compila
@@ -5898,8 +5961,12 @@ no_es_salto:
     bne no_es_fin
     jmp otra_orden              ; el par ya lo consumió el `begin_jump`
 no_es_fin:
+    cmp #28
+    bcc otra_orden              ; 26 y 27 no llegan sobre el héroe
     cmp #30
-    bcc otra_orden              ; 26 a 29 no llegan sobre el héroe
+    bcs no_es_velocidad
+    jmp velocidad               ; 28 y 29: la velocidad, que queda
+no_es_velocidad:
     cmp #32
     bcc frecuencia              ; 30 y 31: la frecuencia de la ruta
     cmp #36
@@ -6008,6 +6075,26 @@ arranco:
     sta ruta_paso
 listo:
     rts
+velocidad:
+    ; `increase_movement_speed` y `decrease_movement_speed`, topadas en 6 y 1
+    ; como `MoveRouteSpeedUp`. Sobre el héroe la ROM las ignoraba; ahora
+    ; cambian el paso, y lo cambian para siempre: RM2k repone la frecuencia al
+    ; terminar la ruta y la velocidad no.
+    cmp #29
+    beq vel_menos
+    jsr hero_vel_leer
+    cmp #6
+    bcs vel_guardar
+    inc a
+    bra vel_guardar
+vel_menos:
+    jsr hero_vel_leer
+    cmp #2
+    bcc vel_guardar
+    dec a
+vel_guardar:
+    jsr hero_vel_escribir
+    jmp otra_orden
 .endproc
 
 ; Si queda alguna ruta forzada sin terminar, la del héroe incluida. Devuelve A
@@ -8480,13 +8567,14 @@ partida_tabla:
     ; Y las variables, desde la RAM lejana. VARIABLES_N es al menos 1 —el
     ; conversor lo garantiza— porque un largo cero terminaría la tabla acá.
     .word FAR_VARIABLES, VARIABLES_N * 2
+    .word FAR_HERO_VEL, 1       ; la velocidad del héroe, que las rutas cambian
     .word 0, 0
 ; Los mismos largos, sumados, para poder recorrer la partida en la SRAM sin
 ; volver a mirar la tabla. Está duplicado a propósito y **la ROM lo comprueba**:
 ; `guardar_partida` compara con lo que le quedó a `partida_copiar` y si no dan
 ; iguales entra en pánico. Duplicar un número que nadie verifica es la forma de
 ; error que este repo ya pagó tres veces.
-PARTIDA_BYTES = 2 + 2 + 1 + 2 + 2 + 1 + 6 + 3 + 1 + 5 + 3 + SWITCH_BYTES + 1 + 2 + VARIABLES_N * 2
+PARTIDA_BYTES = 2 + 2 + 1 + 2 + 2 + 1 + 6 + 3 + 1 + 5 + 3 + SWITCH_BYTES + 1 + 2 + VARIABLES_N * 2 + 1
 ; Dónde cae el grupo adentro de la partida: después de la posición, la
 ; dirección, la celda y el mapa. Lo lee la pantalla de ranuras desde la SRAM
 ; para poner el nombre del líder y las caras. Es la misma suma que arriba,
@@ -12874,6 +12962,19 @@ sin_fila:
 ciclo_tres:
     .byte 0, 1, 2, 1
 
+; Cuánto avanza el héroe por cuadro según su velocidad, en **medias unidades**
+; de RM2k: RM2k cuenta 256 por celda y avanza `1 << (1 + velocidad)`, o sea 4,
+; 8, 16, 32, 64 y 128 —`PASO_POR_VELOCIDAD` en eventos.py—, y acá `step_left`
+; es un byte, así que se cuenta de a dos: 128 por celda y la mitad de cada
+; paso. Los pixeles que faltan son `step_left >> 3`, que es la misma división
+; entera que `pixeles_del_paso` hace con `paso_resta // 16`: a las velocidades
+; con medio pixel por cuadro los dos lados redondean igual.
+paso_medio_por_vel:
+    .byte 2, 4, 8, 16, 32, 64
+; Y cada cuántos cuadros cambia el frame de la caminata: `ANIM_PARADO`.
+anim_por_vel:
+    .byte 12, 10, 8, 6, 5, 4
+
 ; Deja en X la entrada de la familia Y adentro de `anim_tabla`. Cuál es el mapa
 ; sale de `mapa_ofs` sin guardar nada: los dos pasos son potencias de dos.
 .proc anim_donde
@@ -13312,7 +13413,7 @@ no_derecha:
     dec tile_y
     lda #0
     sta step_dx
-    lda #-WALK_SPEED
+    lda #-1
     sta step_dy
     sep #$20
 .a8
@@ -13359,7 +13460,7 @@ no8:
     inc tile_y
     lda #0
     sta step_dx
-    lda #WALK_SPEED
+    lda #1
     sta step_dy
     sep #$20
 .a8
@@ -13402,7 +13503,7 @@ no8:
     rep #$20
 .a16
     dec tile_x
-    lda #-WALK_SPEED
+    lda #-1
     sta step_dx
     lda #0
     sta step_dy
@@ -13449,7 +13550,7 @@ no8:
     rep #$20
 .a16
     inc tile_x
-    lda #WALK_SPEED
+    lda #1
     sta step_dx
     lda #0
     sta step_dy
@@ -13732,12 +13833,13 @@ sin_filas:
     rts
 .endproc
 
-; Arranca el paso: dieciséis pixeles por recorrer y el índice ya en la celda
-; nueva, que es como RM2k lleva la cuenta.
+; Arranca el paso: una celda entera por recorrer —128 medias unidades, ver
+; `paso_medio_por_vel`— y el índice ya en la celda nueva, que es como RM2k
+; lleva la cuenta.
 .proc begin_step
 .a8
 .i16
-    lda #16
+    lda #128
     sta step_left
     rep #$20
 .a16
@@ -13755,22 +13857,60 @@ sin_filas:
 .i16
     lda #$01
     sta moving
+    ; Lo que falta del paso baja lo que diga la velocidad, y los pixeles se
+    ; **recalculan** desde la celda de destino y no se acumulan: con medio
+    ; pixel por cuadro no hay nada entero que sumar. `step_dx` y `step_dy` son
+    ; el sentido del paso, -1, 0 o 1.
+    jsr anim_cuadros_del_heroe  ; de paso deja X en la velocidad menos uno
+    lda step_left
+    sec
+    sbc paso_medio_por_vel, x
+    bcs no_negativo
+    lda #0
+no_negativo:
+    sta step_left
+    lsr a
+    lsr a
+    lsr a                       ; los pixeles que faltan
     rep #$20
 .a16
-    lda hero_x
+    and #$00FF
+    sta temp                    ; nadie lo tiene tomado en un paso
+    lda tile_x
+    asl a
+    asl a
+    asl a
+    asl a
+    ldx step_dx
+    beq x_listo
+    bmi x_desde_la_derecha
+    sec
+    sbc temp
+    bra x_listo
+x_desde_la_derecha:
     clc
-    adc step_dx
+    adc temp
+x_listo:
     sta hero_x
-    lda hero_y
+    lda tile_y
+    asl a
+    asl a
+    asl a
+    asl a
+    ldx step_dy
+    beq y_listo
+    bmi y_desde_abajo
+    sec
+    sbc temp
+    bra y_listo
+y_desde_abajo:
     clc
-    adc step_dy
+    adc temp
+y_listo:
     sta hero_y
     sep #$20
 .a8
     lda step_left
-    sec
-    sbc #WALK_SPEED
-    sta step_left
     bne sigue                   ; el paso todavía no terminó
     ; Mientras al héroe le quede ruta forzada no se pisa nada: ni puerta ni
     ; evento de contacto. Es el `!IsMoveRouteOverwritten()` de
@@ -13926,15 +14066,22 @@ pedir_puerta:
 quieto:
     lda #1                      ; quieto: el frame del medio
     sta anim_step
-    lda #ANIM_FRAMES
-    sta anim_timer
+    stz anim_timer
     rts
 
 caminando:
-    dec anim_timer
-    bne listo
-    lda #ANIM_FRAMES
-    sta anim_timer
+    ; La cuenta sube y se compara con el tope **de la velocidad de ahora**,
+    ; como `GetAnimCount() >= stationary_limit`: si una ruta cambia la
+    ; velocidad a mitad de un frame, el frame que viene ya sale con la nueva.
+    ; Contando para abajo desde el tope, como antes, la nueva recién valía un
+    ; frame después, y la referencia y la ROM diferían en un cuadro.
+    inc anim_timer
+    jsr anim_cuadros_del_heroe
+    cmp anim_timer
+    beq cambia
+    bcs listo                   ; la cuenta todavía no llegó al tope
+cambia:
+    stz anim_timer
     lda anim_step
     inc a
     and #$03                    ; el ciclo son cuatro pasos

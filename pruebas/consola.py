@@ -317,6 +317,31 @@ class Partida:
         self._un_tick()
         return self
 
+    def sostener(self, ticks, *botones):
+        """Los botones apretados durante `ticks` vueltas, y después sueltos.
+
+        Es la caminata con el pad: `correr` sólo sabe de A. Se lee el estado
+        **antes** de soltar, así que lo que se pregunta después es lo que la
+        ROM tenía con el botón todavía apretado en la última vuelta.
+        """
+        self.consola.apretar(*botones)
+        for _ in range(ticks):
+            self._un_tick()
+        return self
+
+    def soltar(self):
+        self.consola.apretar()
+        return self
+
+    def velocidad_del_heroe(self):
+        """La velocidad de RM2k del héroe, de 1 a 6, leída de la RAM lejana."""
+        return self.consola.ram(self.simbolos["FAR_HERO_VEL"], 1)[0]
+
+    def poner_velocidad_del_heroe(self, velocidad):
+        """Lo que una ruta con 28 o 29 le deja al héroe, sin correr la ruta."""
+        self.consola.escribir_ram(self.simbolos["FAR_HERO_VEL"], [velocidad])
+        return self
+
     def poner_byte(self, nombre, valor):
         """Escribe un byte de la RAM de la ROM, por nombre de símbolo.
 

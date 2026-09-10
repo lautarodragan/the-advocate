@@ -472,10 +472,38 @@ operaciones contra Python, el primer azar contra `azar_siguiente`, la rama, y
 que las variables vuelven de la SRAM.
 
 Dos cosas para saber: las órdenes 28 y 29 de la ruta del héroe —subir y bajar
-la velocidad— se tiran de los dos lados, así que la caminata de espera del
-Tram Officer va a velocidad normal, y es una deuda de antes; y `Wait 15` son
-quince **décimas**, noventa ticks, que fue lo que explicó por qué el mensaje
-de "I'm late" tardaba cien ticks en salir.
+la velocidad— **se hacen desde el 2026-09-10 a la noche**, así que la caminata
+de espera del Tram Officer va a velocidad 5 como en RM2k; ver "La velocidad
+del héroe" más abajo. Y `Wait 15` son quince **décimas**, noventa ticks, que
+fue lo que explicó por qué el mensaje de "I'm late" tardaba cien ticks en
+salir.
+
+### La velocidad del héroe (2026-09-10, a la noche)
+
+El paso del héroe dejó de ser fijo. `step_left` cuenta **medias unidades de
+RM2k** —128 por celda— y baja `paso_medio_por_vel` por cuadro según la
+velocidad, que vive en `FAR_HERO_VEL` (la RAM lejana: la ZP y la BSS están
+llenas), arranca en 4, la suben y bajan las órdenes 28 y 29 de una ruta
+forzada, **y queda así**: RM2k repone la frecuencia al terminar la ruta y la
+velocidad no, o sea que el pad camina después a la que dejó la ruta. Viaja en
+la partida (un byte al final de `partida_tabla`). Los pixeles se recalculan
+desde la celda de destino con `step_left >> 3`, que es el `paso_resta // 16`
+de `pixeles_del_paso`; `step_dx`/`step_dy` son ahora el sentido y no los
+pixeles por cuadro. La animación cuenta **para arriba** contra el tope de la
+velocidad de ese cuadro (`anim_por_vel`, `ANIM_PARADO`), como
+`GetAnimCount() >= stationary_limit`: contando para abajo desde el tope, una
+velocidad cambiada a mitad de frame recién valía un frame después. En la
+referencia es `Ruta._contar_movimiento` y `columna_del_heroe`, en vez del
+`cuadros_moviendose // 6` de antes, y `cuadros_por_celda(estado)` reemplaza a
+la constante en la caminata con el pad.
+
+Lo cobran `ruta-vel` (velocidad 5, cuatro pixeles por cuadro) y
+`ruta-vel-lenta` (velocidad 2, medio pixel por cuadro, y después 5) en
+rom/hitos.txt, cuadro por cuadro; `tram`, que ahora espera a velocidad 5; y
+`test_velocidad.py`, que camina con el pad a las velocidades 1, 2, 5 y 6 —la
+tanda no puede apretar una dirección después de una ruta— y guarda y carga la
+velocidad. Tanda: 109 casos en verde sobre la foto `7c6e76a`; `just pruebas`:
+61 pasan y una xfail de siempre.
 
 ### Lo próximo, si no se decide otra cosa
 
@@ -535,8 +563,8 @@ acotados; del cuarto para abajo es lo de siempre.
    el 2026-09-10 a la noche, y **Lashe City Interiors (10) y Lashe City 33,36
    (9) están en la demo** con sus puertas. Lo que queda: las condiciones de
    página por variable y por cronómetro, que todavía tiran el evento entero
-   —en los mapas de la demo no hay ninguna—, el `CallEvent` del Hover-Tram, y
-   la velocidad del héroe en las rutas.
+   —en los mapas de la demo no hay ninguna— y el `CallEvent` del Hover-Tram.
+   La velocidad del héroe en las rutas está hecha (2026-09-10 a la noche).
 
 6. **La animación del save point** (`animation_type` 3, "Fixed Dir/Continuous")
    está **hecha** desde el 2026-09-09; queda el renglón para que nadie la
@@ -637,12 +665,13 @@ de cada una está en `README.md`.
   `SkipToNextConditional`: él recorre una lista lineal, acá los bloques ya
   vienen anidados.
 
-* **Las órdenes de ruta 26 a 29 sobre el héroe se aceptan y se tiran.** Fijar y
-  soltar la mirada y subir y bajar la velocidad. Decidido con taro el
-  2026-09-06: son un extra, como los efectos climáticos, y el juego se puede
-  jugar sin ellas. Se tiran **al compilar**, como el sonido y la transparencia,
-  así que la referencia tampoco las camina y los dos lados quedan iguales por
-  construcción.
+* **Las órdenes de ruta 26 y 27 sobre el héroe se aceptan y se tiran.** Fijar y
+  soltar la mirada. Decidido con taro el 2026-09-06: son un extra, como los
+  efectos climáticos, y el juego se puede jugar sin ellas. Se tiran **al
+  compilar**, como el sonido y la transparencia, así que la referencia tampoco
+  las camina y los dos lados quedan iguales por construcción. **Las 28 y 29
+  —la velocidad— se hacen desde el 2026-09-10 a la noche**: lo que sigue es
+  la historia de por qué se tiraban.
 
   El primer intento fue **rechazar la página entera**, y costaba demasiado: la
   escena de Talan tiene una ruta del héroe que empieza con la 28, así que la
@@ -650,12 +679,12 @@ de cada una está en `README.md`.
   encerrado en el pasillo del Emitter Room —taro lo encontró jugando—. Son 4
   páginas automáticas más ésa.
 
-  Lo que se pierde es el cambio de ritmo: donde RM2k acelera al héroe, acá
-  camina a la suya. Es visible y está aceptado. Arreglarlo de verdad es que su
-  paso deje de ser fijo —hoy `WALK_SPEED`, ocho cuadros por celda, escrito a
-  mano en `try_up` y sus tres hermanas— y pase al acumulador de 256 por celda
-  que ya tienen los eventos; eso toca además caminar con el pad, la cámara y el
-  plan de cuadros de los casos. En todo el juego son 178 rutas.
+  Lo que se perdía era el cambio de ritmo: donde RM2k acelera al héroe, acá
+  caminaba a la suya. Arreglarlo fue que su paso dejara de ser fijo —era
+  `WALK_SPEED`, ocho cuadros por celda, escrito a mano en `try_up` y sus tres
+  hermanas— y pasara al acumulador de 256 por celda que ya tenían los eventos,
+  a medias unidades para que entre en el byte de `step_left`. Ver "La
+  velocidad del héroe" arriba. En todo el juego son 178 rutas.
 
 * **Las diagonales y la orden 34 van sobre eventos, no sobre el héroe.** El
   paso del héroe está escrito una vez por dirección y su gráfico sale de la

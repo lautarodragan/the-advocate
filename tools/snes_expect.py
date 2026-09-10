@@ -40,13 +40,24 @@ from rm2k import collect_doors, collect_npcs, passability_map, puede_pasar
 from render_map import (GAME_DIR, REPO, RTP_DIR, Renderer, build_passability,
                         find_resource, load_image)
 
-# El paso del héroe son dieciséis pixeles y la ROM avanza WALK_SPEED = 2 por
-# cuadro, así que cada celda cuesta ocho cuadros. Este número es el puente entre
-# la referencia —que sabe cuántas celdas se camina— y el emulador, que ahora
-# corre cuadros exactos en vez de segundos de reloj. Si alguna vez cambia
-# WALK_SPEED en main.s, cambia acá: son los dos lados de la misma cuenta y
-# separarlos es el error que este repo ya cometió cinco veces.
-CUADROS_POR_CELDA = 8
+# El paso del héroe son 256 unidades de RM2k por celda a `PASO_POR_VELOCIDAD`
+# por cuadro: a la velocidad 4 son ocho cuadros. Este número es el puente entre
+# la referencia —que sabe cuántas celdas se camina— y el emulador, que corre
+# cuadros exactos; y desde el 2026-09-10 sale de la velocidad del héroe, que
+# una ruta puede dejar cambiada. La ROM hace la misma cuenta en
+# `paso_medio_por_vel`.
+CUADROS_POR_CELDA = 8           # a la velocidad 4, que es la de arranque
+
+
+def cuadros_por_celda(estado):
+    paso = eventos.PASO_POR_VELOCIDAD[estado.ruta_heroe.velocidad - 1]
+    return -(-eventos.SALTO_PASO // paso)
+
+
+def cuadros_de_avance(estado, pixeles):
+    """Cuántos cuadros tarda el héroe en andar esos pixeles a su velocidad."""
+    paso = eventos.PASO_POR_VELOCIDAD[estado.ruta_heroe.velocidad - 1]
+    return -(-pixeles * 16 // paso)
 
 # Cuántos ticks se corren de más después de la caminata. La ROM llega uno o dos
 # cuadros después de `pasos x 8` —el pad se lee una vez por cuadro y el primero
@@ -72,9 +83,13 @@ ANIM_FRAMES = 6
 ANIM_INICIAL = 1
 
 
-def columna_de_caminata(cuadros_moviendose):
-    """En qué columna del CharSet está el héroe tras N cuadros caminando."""
-    paso = (ANIM_INICIAL + cuadros_moviendose // ANIM_FRAMES) % 4
+def columna_de_caminata(cuadros_moviendose, velocidad=4):
+    """En qué columna del CharSet está el héroe tras N cuadros caminando.
+
+    El frame cambia cada `ANIM_PARADO[velocidad - 1]` cuadros: seis a la
+    velocidad de arranque, `ANIM_FRAMES`."""
+    cada = eventos.ANIM_PARADO[velocidad - 1]
+    paso = (ANIM_INICIAL + cuadros_moviendose // cada) % 4
     return 1 if paso == 3 else paso
 
 SCREEN_W, SCREEN_H = 256, 224
@@ -871,10 +886,10 @@ def hero_position(mundo, estado, map_id, direction_name, inicio=None,
         # el cuadro que se compara es uno de **adentro** de la caminata, así
         # que los eventos tienen que estar donde estaban ahí y no donde
         # terminan. La caminata sigue igual, para saber cuántas celdas son.
-        vivir = CUADROS_POR_CELDA
+        vivir = cuadros_por_celda(estado)
         if avance is not None:
-            vivir = max(0, min(CUADROS_POR_CELDA,
-                               avance // eventos.WALK_SPEED - vividos))
+            vivir = max(0, min(vivir, cuadros_de_avance(estado, avance)
+                               - vividos))
         vividos += vivir
         correr(vivir, x, y)
         puerta = puertas.get((x, y))
@@ -1640,7 +1655,8 @@ def main():
         # pide un avance. El héroe se mueve WALK_SPEED = 2 pixeles por cuadro,
         # así que los cuadros que lleva moviéndose son el avance sobre dos.
         if avance is not None:
-            columna = columna_de_caminata(avance // 2)
+            columna = columna_de_caminata(cuadros_de_avance(estado, avance),
+                                          estado.ruta_heroe.velocidad)
         elif estado.cuadros_moviendose:
             # Caminando por una ruta forzada: la pose sale del mismo ciclo que
             # `animate_hero`, contando los cuadros que lleva moviéndose. Sin
@@ -1651,7 +1667,7 @@ def main():
             # cambiaban de columna en cuadros distintos y sólo se notaba en los
             # múltiplos de ANIM_FRAMES: barriendo los 70 cuadros de una ruta de
             # ocho celdas, fallaban exactamente el 6, el 12, el 18 y así.
-            columna = columna_de_caminata(estado.cuadros_moviendose)
+            columna = estado.ruta_heroe.columna_del_heroe()
         else:
             columna = STAND
         # El héroe finge la X más alta posible, que es lo que hace
@@ -1788,8 +1804,9 @@ def main():
                     % (mensajes.lineas(estado.mensaje),)
                     if estado.mensaje is not None else "")))
         if pasos:
+            por_celda = cuadros_por_celda(estado)
             print("  camina %d celdas = %d cuadros a %d por celda"
-                  % (pasos, pasos * CUADROS_POR_CELDA, CUADROS_POR_CELDA))
+                  % (pasos, pasos * por_celda, por_celda))
 
     if args.plan:
         with open(args.plan, "w") as handle:

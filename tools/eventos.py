@@ -236,8 +236,11 @@ RUTA_ANIM_PARAR, RUTA_ANIM_SEGUIR = 38, 39
 RUTA_FIJAR_DIR, RUTA_SOLTAR_DIR = 26, 27
 RUTA_VEL_MAS, RUTA_VEL_MENOS = 28, 29
 # Las cuatro de arriba, **sobre el héroe**, no se compilan: ver `traducir`.
-RUTA_HEROE_AFUERA = {RUTA_FIJAR_DIR, RUTA_SOLTAR_DIR,
-                     RUTA_VEL_MAS, RUTA_VEL_MENOS}
+# Sobre el héroe se tiran fijar y soltar la mirada; subir y bajar la velocidad
+# **se hacen** desde el 2026-09-10 —el Tram Officer lo pide, y 170 rutas del
+# juego—, y quedan: RM2k repone la frecuencia al terminar la ruta y la
+# velocidad no, así que el pad camina después a la velocidad que dejó la ruta.
+RUTA_HEROE_AFUERA = {RUTA_FIJAR_DIR, RUTA_SOLTAR_DIR}
 # Subir y bajar la frecuencia a mitad de una ruta:
 # `increase/decrease_movement_frequence`, que RM2k topa en 8 y en 1. Las usa
 # **una sola ruta de todo el juego** —la que sacude a Manta en la escena del
@@ -1971,8 +1974,12 @@ class Ruta:
         self.atraviesa = False
         self.anim_parada = False
         # Cuántos cuadros seguidos lleva moviéndose, para la pose de caminata.
-        # `animate_hero` lo reinicia en cuanto se queda quieto.
+        # `animate_hero` lo reinicia en cuanto se queda quieto. Y el ciclo de
+        # caminata del héroe, que va aparte del de `_animar`: ver
+        # `_contar_movimiento`.
         self.cuadros_moviendose = 0
+        self.anim_heroe_cuenta = 0
+        self.anim_heroe_cuadro = 1
         # Hacia dónde mira si una ruta se lo dijo. None es "lo decide la
         # caminata", que es lo de siempre.
         self.mirando = None
@@ -2089,6 +2096,32 @@ class Ruta:
         dibujando la misma que el 1."""
         return 1 if self.anim_cuadro == 3 else self.anim_cuadro
 
+    def _contar_movimiento(self, moviendo):
+        """Los cuadros que el **héroe** lleva moviéndose, y su ciclo.
+
+        Es lo que `animate_hero` hace en la ROM, que no es `_animar` entero:
+        parado vuelve al frame del medio en el acto y la cuenta a cero;
+        moviéndose la cuenta sube y el frame cambia al llegar al tope de la
+        velocidad **de ese cuadro**, `ANIM_PARADO`, que una orden 28 o 29 de
+        la misma ruta puede haber cambiado a mitad del frame. Antes esto era
+        `cuadros_moviendose // ANIM_FRAMES` en snes_expect.py, que sólo sirve
+        con la velocidad quieta.
+        """
+        if not moviendo:
+            self.cuadros_moviendose = 0
+            self.anim_heroe_cuenta = 0
+            self.anim_heroe_cuadro = 1
+            return
+        self.cuadros_moviendose += 1
+        self.anim_heroe_cuenta += 1
+        if self.anim_heroe_cuenta >= ANIM_PARADO[self.velocidad - 1]:
+            self.anim_heroe_cuenta = 0
+            self.anim_heroe_cuadro = (self.anim_heroe_cuadro + 1) % 4
+
+    def columna_del_heroe(self):
+        """La columna del CharSet del héroe caminando por esta ruta."""
+        return 1 if self.anim_heroe_cuadro == 3 else self.anim_heroe_cuadro
+
     def _animar(self, moviendo, saltando=False):
         """`Game_Character::UpdateAnimation`, sin el giro en el lugar.
 
@@ -2144,8 +2177,7 @@ class Ruta:
             # llama a `ResetAnimation` en cada cuadro mientras `IsAnimPaused()`,
             # que deja la pose del medio y el contador en cero. Camina igual;
             # lo único que no pasa es el ciclo.
-            self.cuadros_moviendose = 0 if self.anim_parada else \
-                self.cuadros_moviendose + 1
+            self._contar_movimiento(not self.anim_parada)
             direccion = self.paso_dir
             if not self.paso_resta:
                 self.paso_dir = None
@@ -2163,7 +2195,7 @@ class Ruta:
             # `ResetAnimation` mientras se salta, o sea la del medio.
             self.salto_resta = max(
                 0, self.salto_resta - SALTO_VELOCIDADES[self.velocidad - 1])
-            self.cuadros_moviendose = 0
+            self._contar_movimiento(False)
             # En el cuadro en que el salto termina ya no se está saltando:
             # `UpdateAnimation` corre después de `UpdateMovement`, que bajó
             # la bandera, y la cuenta sube. La ROM lo hace igual sin
@@ -2172,11 +2204,11 @@ class Ruta:
             return None
         if self.espera:
             self.espera -= 1
-            self.cuadros_moviendose = 0
+            self._contar_movimiento(False)
             self._animar(False)
             return None
         if congelada and self.de_pagina:
-            self.cuadros_moviendose = 0
+            self._contar_movimiento(False)
             self._animar(False)
             return None
         while True:
@@ -2300,8 +2332,7 @@ class Ruta:
             self.paso_dir = direccion
             self.paso_resta = SALTO_PASO - paso
             self.paso_cuadros = self.paso_resta // paso
-            self.cuadros_moviendose = 0 if self.anim_parada else \
-                self.cuadros_moviendose + 1
+            self._contar_movimiento(not self.anim_parada)
             self._animar(True)
             return direccion
         # Ningún paso en este cuadro: el contador vuelve a cero, que es lo que
@@ -2309,7 +2340,7 @@ class Ruta:
         # ciclo empezando de nuevo en el paso siguiente—. La espera cae acá por
         # `break` y no por `return`: en la ROM una espera de ruta deja al héroe
         # quieto, igual que el final de la ruta, y antes acá seguía contando.
-        self.cuadros_moviendose = 0
+        self._contar_movimiento(False)
         self._animar(False)
         return None
 
@@ -2388,7 +2419,7 @@ class Ruta:
         self.salto_dx, self.salto_dy = dx, dy
         self.salto_resta = SALTO_PASO - SALTO_VELOCIDADES[self.velocidad - 1]
         self.arranco_salto = (dx, dy)
-        self.cuadros_moviendose = 0
+        self._contar_movimiento(False)
         return True
 
 

@@ -2369,9 +2369,11 @@ disparaba la comparación sin que nada estuviera roto. Ahora N cuadros son N
 cuadros.
 
 Y los cuadros tampoco se eligen. La referencia camina celda por celda hasta
-chocar, así que sabe cuántas son; el paso del héroe son dieciséis pixeles a
-`WALK_SPEED = 2` por cuadro, o sea ocho cuadros por celda. `snes_expect.py`
-escribe ese plan y `snes_correr.py` lo lee. El único número puesto a mano es el
+chocar, así que sabe cuántas son; el paso del héroe son 256 unidades de RM2k
+por celda a `PASO_POR_VELOCIDAD` por cuadro —ocho cuadros por celda a la
+velocidad 4, la de arranque; desde el 2026-09-10 una ruta con 28 o 29 la
+cambia y queda cambiada, como en RM2k, y `cuadros_por_celda(estado)` la
+sigue—. `snes_expect.py` escribe ese plan y `snes_correr.py` lo lee. El único número puesto a mano es el
 margen: ocho cuadros, una celda, porque la ROM llega uno o dos después —el pad
 se lee una vez por cuadro y el primero se pierde—. Cruzar una puerta lleva
 dieciséis, porque obliga a cargar el mapa entero y eso la referencia no lo
@@ -3251,9 +3253,12 @@ Hover-Tram, y esa escena quedó para otra vuelta. Es deuda declarada en
   de ésas es el evento 1 del **mapa 7, Talan's Pad**, que es adonde va el juego
   después del Emitter Room. No lo cobra ninguna prueba porque ningún caso mira
   una de esas páginas, y no es lo mismo que lo de arriba: no es un comando que
-  falte sino dos lados que ya no hacen lo mismo. La velocidad del héroe pide
-  además que su paso deje de ser fijo, que hoy son `WALK_SPEED` y ocho cuadros
-  por celda.
+  falte sino dos lados que ya no hacen lo mismo. **Las 28 y 29 sobre el héroe
+  se hacen desde el 2026-09-10**: su paso dejó de ser fijo —`step_left` cuenta
+  medias unidades de RM2k, 128 por celda, y baja `paso_medio_por_vel` por
+  cuadro— y la velocidad vive en `FAR_HERO_VEL`, viaja en la partida y queda
+  como la dejó la última ruta, que es lo que hace RM2k: sólo la frecuencia se
+  repone. Las 26 y 27 se siguen tirando.
 
   Y aparte, **girar sin moverse** (`turn_90_degree_right` y sus hermanas): no
   está afuera por costo sino por dónde arranca el giro. RM2k gira sobre la
