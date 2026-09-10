@@ -59,7 +59,12 @@
 # contenedor. Lo que sí importa es el orden de apagado de acá abajo —primero el
 # player, después el Xvfb—: al revés, el player sobrevive a su pantalla y se
 # queda en el lazo libre para siempre. Ya pasó con un proceso de una prueba.
-# Con FPS=60 se le pone tope.
+# Con FPS=60 se le pone tope. Con REPLAY el tope va solo: los cuadros del
+# archivo son cuadros de juego, y sin tope el 400 pasa antes de que el título
+# esté en pantalla y la tecla cae en el vacío. Y **el player termina cuando se
+# acaba el replay**: medido, siete capturas con la última tecla en el cuadro
+# 400. Para mirar la pantalla un rato, una tecla inofensiva al final
+# —`F 1500,DOWN`— la sostiene hasta ahí.
 #
 # Las capturas no se piden con F7 sino con las automáticas de EasyRPG, cada un
 # segundo: inyectar la tecla depende de que la ventana ya exista y de que el
@@ -79,6 +84,10 @@ printf '[Player]\nAutomaticScreenshots=1\nAutomaticScreenshotsInterval=1\n' \
 Xvfb :99 -screen 0 640x480x24 >/dev/null 2>&1 &
 XVFB=$!
 sleep 2
+TOPE=${FPS:-}
+if [ -n "${REPLAY:-}" ]; then
+    TOPE=${TOPE:-60}
+fi
 if [ "${TITULO:-0}" = "1" ]; then
     ARRANQUE=""
 else
@@ -89,7 +98,7 @@ DISPLAY=:99 "$ERPG/easyrpg-player" --project-path "$JUEGO" \
     ${CELDA:+--start-position $CELDA} ${GRUPO:+--start-party $GRUPO} \
     ${REPLAY:+--replay-input $REPLAY} \
     ${EXTRA:-} \
-    --no-vsync ${FPS:+--fps-limit $FPS} --config-path "$CFG" \
+    --no-vsync ${TOPE:+--fps-limit $TOPE} --config-path "$CFG" \
     --save-path "${PARTIDAS:-$SALIDA}" \
     </dev/null >"$CFG/log" 2>&1 &
 PLAYER=$!
@@ -112,6 +121,7 @@ for _ in $(seq 1 "$SEGUNDOS"); do
 done
 kill $PLAYER 2>/dev/null; wait $PLAYER 2>/dev/null
 kill $XVFB 2>/dev/null;   wait $XVFB 2>/dev/null
+cp "$CFG/log" "$SALIDA/log"      # queda, por si hay que ver por qué no anduvo
 rm -rf "$CFG"
 if [ -n "${PARTIDAS:-}" ]; then
     mv "$PARTIDAS"/*.png "$SALIDA"/ 2>/dev/null
