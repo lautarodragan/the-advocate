@@ -98,6 +98,16 @@ def encode_block(samples, old=0, older=0, loop=False, end=False,
     return bytes(data), new_old, new_older, error
 
 
+# Lo ya codificado en esta corrida, por (muestras, loop). Está acá y no en
+# quien llama porque la repetición es de acá abajo: cada tema arma su banco de
+# tambores desde cero y vuelve a pedir las mismas muestras. Medido el
+# 2026-09-10 sobre `demo-ciudad`, ocho mapas: 1611 llamadas a `encode` para 111
+# entradas distintas, 44 s de los 77 del build. La salida es una función pura
+# de la entrada, así que devolver lo mismo es exactamente lo mismo; se
+# comprobó comparando el `.sfc` byte por byte con y sin esto.
+_hechas = {}
+
+
 def encode(samples, loop_block=None):
     """Una muestra entera, con el punto de loop en el bloque que se le diga.
 
@@ -105,6 +115,14 @@ def encode(samples, loop_block=None):
     El largo se completa con ceros hasta un múltiplo de 16, porque el DSP sólo
     entiende bloques enteros.
     """
+    clave = (tuple(samples), loop_block)
+    hecha = _hechas.get(clave)
+    if hecha is None:
+        hecha = _hechas[clave] = _encode(samples, loop_block)
+    return hecha
+
+
+def _encode(samples, loop_block):
     padded = list(samples)
     if len(padded) % BLOCK_SAMPLES:
         padded += [0] * (BLOCK_SAMPLES - len(padded) % BLOCK_SAMPLES)

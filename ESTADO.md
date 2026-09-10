@@ -339,11 +339,31 @@ con música, en este contenedor:
 O sea que **el ensamblador no es el problema**: son 2,5 s de 80, y pasarlo a
 C no cambiaría nada que se note. Lo que tarda es codificar las muestras a BRR
 —un lazo en Python puro, muestra por muestra, por 4 filtros y 13 rangos— y se
-codifica **la misma muestra catorce veces**: 1611 llamadas para 111 entradas
-distintas, porque cada tema arma su banco de tambores desde cero. Una tabla en
-memoria por entrada la baja a unos 3 s; un caché en disco por hash de la
-muestra, a cero. Y los mapas tampoco cambian entre builds: un caché por mapa
-haría lo mismo con los otros 30 s. Ninguna de las dos cosas está hecha.
+codificaba **la misma muestra catorce veces**: 1611 llamadas para 111 entradas
+distintas, porque cada tema arma su banco de tambores desde cero.
+
+**Hecho el 2026-09-10: la tabla en memoria**, `_hechas` en `brr.py`. Medido
+después, mismo build:
+
+    convertir los 8 mapas con la música     39,2 s   (era 76,6)
+      de eso, la música                     10,1 s   (era 46,8)
+        de eso, brr.encode                   7,6 s   las 111 distintas, una vez
+      de eso, los mapas en sí               ~29 s
+
+Verificado como corresponde: el `.sfc` con la tabla y sin ella son **byte por
+byte iguales** —`filecmp` sobre las dos ROMs armadas con el mismo `main.s`—.
+La primera comparación dio distinto y era otra cosa: la ROM "de antes" se
+había armado antes del arreglo de la música del título.
+
+Lo que queda, en orden de lo que rinde: **los mapas, ~29 s**, que no cambian
+entre builds y admiten un caché por mapa en disco —clave: el `.lmu`, el
+ChipSet, los flags y la versión del conversor—; y los 7,6 s de BRR que quedan,
+que un caché en disco por hash de la muestra lleva a cero. Ninguna de las dos
+está hecha.
+
+Y **spcasm no aporta nada**, que taro preguntó: el driver del SPC700 son 20
+bytes y `spc700.assemble` tarda 0,000 s. Lo caro de la música es codificar las
+muestras, no ensamblar el driver.
 
 ### Lo próximo, si no se decide otra cosa
 
