@@ -78,15 +78,22 @@ def test_seguir_la_historia_carga_la_partida(partida):
 
 
 @pytest.mark.xfail(strict=True, reason=(
-    "con pantalla de título, irse de mapa antes de guardar deja la partida sin "
-    "guardar. Medido el 2026-09-10: quedándose en el mapa de arranque la SRAM "
-    "tiene la magia a las ~400 vueltas, y con un ir_al_mapa(6) en el medio "
-    "sigue sin tenerla a las 491. Sin pantalla de título el mismo camino "
-    "guarda, que es lo que hace test_guardar. **No es el bug de página directa "
-    "de partida_suma**: sigue pasando con ése arreglado, y con ése arreglado "
-    "cargar sí anda. El sospechoso es el doble cargar_mapa que ahora hay —una "
-    "vez en el arranque y otra al salir del menú—, que le reinicia la espera a "
-    "la página de prueba. Está anotado en ESTADO.md"))
+    "la PÁGINA DE PRUEBA de guardado no llega a guardar si se cambia de mapa, "
+    "y sólo con pantalla de título. Medido el 2026-09-10: quedándose en el "
+    "mapa de arranque la SRAM tiene la magia a las ~350 vueltas; con un "
+    "ir_al_mapa(6) en el medio no la tiene ni a las 891, o sea que no es "
+    "cuestión de esperar más. Sin pantalla de título el mismo camino guarda a "
+    "las 351. "
+    "Lo que se descartó: no es el bug de página directa de partida_suma "
+    "—sigue pasando con ése arreglado, y con ése arreglado cargar sí anda— y "
+    "**no parece afectar al juego**: con título y sin título los 128 bytes de "
+    "switches quedan idénticos después de cambiar de mapa, la pantalla también "
+    "(lo compara snes-titulo), y taro guardó y cargó en demo-titulo el "
+    "2026-09-10 después de caminar hasta el save point, que es cambiar de "
+    "mapa. O sea que el sospechoso es la página de prueba misma —una "
+    "automática con espera, que el doble cargar_mapa del menú reinicia— y no "
+    "el save point. Confirmarlo pide un caso que use el save point de verdad, "
+    "que hoy no existe. Está anotado en ESTADO.md"))
 def test_irse_de_mapa_antes_de_guardar_no_guarda(partida):
     """El segundo defecto, escrito como prueba para que se sepa cuándo se
     arregló.
@@ -122,3 +129,69 @@ def test_empezar_ignora_la_partida_guardada(partida):
         % una.mapa())
     assert not una.switch(7), (
         "el switch 7 de la partida guardada sobrevivió a empezar de nuevo")
+
+
+def test_la_musica_viaja_en_la_partida(partida):
+    """El tema que está sonando se guarda en la SRAM, como un switch.
+
+    Lo prende un `PlayBGM` de un evento, así que es estado del mundo: sin
+    guardarlo, una partida cargada arrancaría con el tema del mapa inicial de la
+    ROM —el de la apertura— en vez de con el del lugar donde uno guardó.
+
+    **Lo que se mira son los bytes de la SRAM y no el estado después de
+    cargar**, y la razón vale la pena: al cargar, las páginas del mapa corren
+    sus propios `PlayBGM` y reponen la música en un par de cuadros, así que un
+    caso que mirara `tema_actual` después de cargar **pasa igual con el campo
+    sacado de `partida_tabla`** —se comprobó, y pasa—. Mirar la SRAM no depende
+    de eso: si el campo no se guarda, los bytes no están.
+
+    La ROM lleva `--tema-de-arranque` porque los mapas de las pruebas no traen
+    música propia.
+    """
+    una = partida(titulo=EMPEZAR, guardar=ESPERA, tema="escape_newyork")
+    assert not una.byte("music_apagada"), (
+        "esta ROM tenía que arrancar con un tema sonando y arrancó callada: "
+        "sin eso el caso no compara nada")
+    una.correr(ESPERA + 60)
+    assert una.sram(0x100, 4) == b"ABLS", "la partida no llegó a guardarse"
+
+    # Los tres últimos bytes de la partida son las dos entradas nuevas de
+    # `partida_tabla`, en su orden: `music_apagada` y después `tema_actual`, que
+    # es de dos bytes con el alto en cero.
+    largo = una.simbolos["PARTIDA_BYTES"]
+    cola = una.sram(0x106 + largo - 3, 3)
+    assert cola[0] == una.byte("music_apagada"), (
+        "la SRAM guardó music_apagada = %d y la consola lo tenía en %d"
+        % (cola[0], una.byte("music_apagada")))
+    assert cola[1] | (cola[2] << 8) == una.palabra("tema_actual"), (
+        "la SRAM guardó el tema %d y estaba sonando el %d"
+        % (cola[1] | (cola[2] << 8), una.palabra("tema_actual")))
+
+
+def test_la_partida_cargada_arranca_con_su_musica(partida):
+    """Y al cargar, la ROM la usa en vez del tema del mapa inicial.
+
+    Es la otra mitad de lo de arriba: que el dato esté en la SRAM no alcanza si
+    `music_boot` lo ignora. Se ensucia la WRAM antes de elegir porque **el reset
+    de snes9x no la borra** —una consola de verdad enciende con basura ahí— y
+    sin ensuciarla el estado viejo sobrevive solo y no se compara nada. Es la
+    misma trampa que escondió el bug de página directa de `partida_suma`.
+    """
+    una = partida(titulo=EMPEZAR, guardar=ESPERA, tema="escape_newyork")
+    una.correr(ESPERA + 60)
+    assert una.sram(0x100, 4) == b"ABLS", "la partida no llegó a guardarse"
+    sonaba = una.palabra("tema_actual")
+
+    una.consola.reset()
+    una.cuadro = 0
+    una.consola.correr(una.simbolos["BOOT_CUADROS"])
+    una.poner_byte("tema_actual", (sonaba + 1) % una.simbolos["TEMA_TOTAL"])
+    una.poner_byte("music_apagada", 1)
+    una.pasar_el_titulo(SEGUIR)
+    una.consola.correr(3)
+
+    assert not una.byte("music_apagada"), (
+        "la partida cargada arrancó callada y se había guardado con música")
+    assert una.palabra("tema_actual") == sonaba, (
+        "volvió sonando el tema %d en vez del %d que estaba guardado"
+        % (una.palabra("tema_actual"), sonaba))

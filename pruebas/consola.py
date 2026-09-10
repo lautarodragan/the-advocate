@@ -347,7 +347,7 @@ def huella():
 
 
 def armar(map_id, mapas=(), con_ventana=True, destino=None, rama=(),
-          descartar=False, guardar=0, titulo=False):
+          descartar=False, guardar=0, titulo=False, tema=None):
     """Convierte, ensambla y devuelve (ROM, símbolos, ids de mapa en orden).
 
     Los mismos dos comandos que corre el justfile, para que una ROM de prueba
@@ -387,6 +387,12 @@ def armar(map_id, mapas=(), con_ventana=True, destino=None, rama=(),
         convertir += ["--guardar-de-prueba", "--pagina-de-prueba", str(guardar)]
     if con_ventana:
         convertir.append("--con-ventana")
+    if tema:
+        # Que la ROM arranque con un tema sonando. Los mapas de estas pruebas
+        # no traen música propia, así que sin esto no hay forma de comprobar
+        # que el tema viaja en la partida guardada: `music_apagada` valdría 1
+        # en los dos lados y la prueba pasaría sin probar nada.
+        convertir += ["--tema-de-arranque", tema]
     if titulo:
         # La pantalla de título, que cambia el arranque: la ROM no carga la
         # partida sola y espera a que el menú lo decida. Va en su propio

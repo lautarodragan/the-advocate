@@ -20,7 +20,7 @@ Se escribe **mientras se trabaja**, no al final.
 a vuelta en el emulador.
 
 Al 2026-09-10: `just snes-hitos-foto` son **97 casos, todos en verde** —el
-número 97 es la pantalla de título— y `just pruebas` son **43 en verde y 1
+número 97 es la pantalla de título— y `just pruebas` son **45 en verde y 1
 `xfail`**. El `xfail` no es adorno: es un defecto medido de guardar con la
 pantalla de título puesta, y está abajo. Ese mismo día la ROM corrió por primera vez en la **SNES de verdad**
 con el FX Pak, con el cartucho ya expandido a 1 MB, y anduvo. `demo-ciudad` se juega desde la apertura hasta la
@@ -968,11 +968,66 @@ guardar**. Quedándose en el mapa de arranque la SRAM tiene la magia a las ~400
 vueltas; con un `ir_al_mapa(6)` en el medio sigue sin tenerla a las 491. Sin
 pantalla de título ese camino guarda, que es `test_guardar`.
 
-**No es el bug de arriba**: sigue pasando con ése arreglado, y con ése
-arreglado cargar sí anda. El sospechoso es el **doble `cargar_mapa`** que ahora
-hay —una vez en el arranque y otra al salir del menú—, que le reinicia la
-espera a la página de prueba. Queda como `xfail(strict=True)` en
-`test_irse_de_mapa_antes_de_guardar_no_guarda`.
+**No es el bug de arriba** —sigue pasando con ése arreglado— y **tampoco
+parece afectar al juego**, que es lo que importa saber antes de asustarse:
+
+* No es cuestión de esperar más: a las 891 vueltas sigue sin guardar, y sin
+  título guarda a las 351.
+* Con título y sin título, **los 128 bytes de switches quedan idénticos**
+  después de cambiar de mapa. Y la pantalla también, que es lo que compara el
+  caso nuevo de `snes-titulo`. O sea que las páginas del juego no se rompen.
+* taro **guardó y cargó en `demo-titulo`** el 2026-09-10 después de caminar
+  hasta el save point, que es cambiar de mapa.
+
+Con lo cual el sospechoso es **la página de prueba misma** —una automática con
+espera, que el doble `cargar_mapa` del menú reinicia— y no el save point.
+Confirmarlo pide un caso que use el save point de verdad, que hoy no existe:
+las pruebas de guardado usan la página falsa justamente para no tener que
+llegar caminando hasta Lashe City.
+
+Queda como `xfail(strict=True)` en `test_irse_de_mapa_antes_de_guardar_no_guarda`.
+
+## La música del título se quedaba sonando adentro del juego
+
+taro lo vio el 2026-09-10: se elige una opción, entra la partida, y sigue
+sonando `Fantasia_Of_The_Wind`. Faltaba que al salir del menú pasara lo mismo
+que en el arranque de una ROM sin título, o sea `music_boot`.
+
+Con una vuelta de tuerca que no es obvia: `music_boot` con `TEMA_ARRANQUE` en
+`$FF` —el caso normal en este juego, donde el tema lo prende un `PlayBGM`— sólo
+marca `music_apagada` y **no le escribe nada al DSP**, porque en el arranque no
+hay nada sonando. Viniendo del título sí lo hay, así que el volumen general se
+baja a mano; el `PlayBGM` que venga lo vuelve a subir, porque su stream escribe
+los dos registros al arrancar.
+
+Verificado comparando el estado contra la ROM sin título: las dos llegan al
+juego con `music_apagada` en 1.
+
+**Y el tema pasó a guardarse en la partida**, que lo pidió taro en el mismo
+mensaje y tiene razón: lo prende un `PlayBGM` de un evento, así que es estado
+del mundo igual que un switch. Son dos entradas nuevas en `partida_tabla`
+—`music_apagada` y `tema_actual`— y `PARTIDA_BYTES` pasó de 156 a 159.
+
+**Esto invalida las partidas guardadas con la ROM anterior**: la suma se
+calcula sobre otro largo. Hay que guardar de nuevo.
+
+Los dos casos que lo cubren costaron tres intentos, y los dos descartes valen
+más que el resultado:
+
+* **Mirar `tema_actual` después de cargar no prueba nada.** Al cargar, las
+  páginas del mapa corren sus propios `PlayBGM` y reponen la música en un par
+  de cuadros, así que el caso pasa igual con el campo sacado de
+  `partida_tabla`. Comprobado. Lo que sí prueba es mirar **los bytes de la
+  SRAM**: si el campo no se guarda, no están.
+* **El reset de snes9x no borra la WRAM.** El caso que sí mira el estado
+  después de cargar tiene que **ensuciarla a mano** primero, porque si no el
+  valor viejo sobrevive solo y la comparación mide cero. Una consola de verdad
+  enciende con basura ahí. Es la misma trampa que escondió el bug de página
+  directa de `partida_suma` durante semanas, y conviene tenerla presente en
+  cualquier prueba futura que dependa de que algo se borre al reiniciar.
+
+Los dos están verificados en las dos direcciones: dan rojo con el campo sacado
+de la tabla y verde con él puesto.
 
 ## El arnés se comía la máquina en vez de fallar
 

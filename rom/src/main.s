@@ -294,6 +294,9 @@ eleg_flancos: .res 1    ; los botones que se acaban de apretar este cuadro. No
 ; aunque el movimiento del cursor sea el mismo: la elección del intérprete vive
 ; adentro de una página de evento y ésta corre antes de que haya mapa, así que
 ; compartirlos ataría dos cosas que no se tocan nunca.
+; 1 si el arranque —o el menú del título— cargó una partida de la SRAM. Lo mira
+; `music_boot`: una partida trae su propio tema y no el del mapa inicial.
+partida_cargada: .res 1
 titulo_sel:     .res 1  ; qué opción está elegida, desde cero
 titulo_flancos: .res 1  ; y los botones que se acaban de apretar
 pad_ant:     .res 1     ; JOY1H del cuadro pasado, para mirar flancos de las
@@ -710,6 +713,7 @@ grupo_listo:
     ; estar puestos **antes** de cargar el mapa. Y la entrada se arma con la
     ; celda guardada, que es como una puerta le dice a `cargar_mapa` dónde
     ; plantar al héroe.
+    stz partida_cargada         ; la RAM arranca con basura y `music_boot` la lee
     ; Con pantalla de título esto no se hace acá: cargar o empezar de nuevo lo
     ; decide el menú, y hasta que el jugador elija la partida guardada no se
     ; toca. Sin pantalla de título —que es toda la tanda— sigue pasando lo de
@@ -7950,13 +7954,21 @@ partida_tabla:
     .word timer_seg, 5          ; segundos, sub, si corre y si se ve
     .word oro, 3
     .word switches, SWITCH_BYTES
+    ; Qué tema está sonando y si está callado. Lo prende un `PlayBGM` de un
+    ; evento, así que es estado del mundo como un switch: sin esto una partida
+    ; cargada arranca con el tema del mapa inicial de la ROM en vez de con el
+    ; que sonaba. Van seguidos en la BSS —`music_apagada` y después
+    ; `tema_actual`— pero se piden por separado igual, porque que estén
+    ; pegados es un detalle del orden en que se declararon y no una promesa.
+    .word music_apagada, 1
+    .word tema_actual, 2
     .word 0, 0
 ; Los mismos largos, sumados, para poder recorrer la partida en la SRAM sin
 ; volver a mirar la tabla. Está duplicado a propósito y **la ROM lo comprueba**:
 ; `guardar_partida` compara con lo que le quedó a `partida_copiar` y si no dan
 ; iguales entra en pánico. Duplicar un número que nadie verifica es la forma de
 ; error que este repo ya pagó tres veces.
-PARTIDA_BYTES = 2 + 2 + 1 + 2 + 2 + 1 + 6 + 3 + 1 + 5 + 3 + SWITCH_BYTES
+PARTIDA_BYTES = 2 + 2 + 1 + 2 + 2 + 1 + 6 + 3 + 1 + 5 + 3 + SWITCH_BYTES + 1 + 2
 
 ; Recorre `partida_tabla` copiando cada tramo. A trae el DMAP: $80 guarda —de la
 ; ventana de la WRAM a la SRAM— y $00 carga. Deja en `temp` dónde terminó la
@@ -8138,10 +8150,12 @@ cuadra:
     lda #$00                    ; de la SRAM a la ventana de la WRAM
     jsr partida_copiar
     lda #$01
+    sta partida_cargada
     rts
 no_hay:
     plb
     lda #$00
+    sta partida_cargada
     rts
 .endproc
 
@@ -8408,6 +8422,27 @@ cargar_el_mapa:
     jsr clear_oam
     jsr build_oam
     jsr flush_video
+
+    ; La música. Sin esto el tema del título se queda sonando adentro del
+    ; juego, que es lo que taro vio el 2026-09-10: `Fantasia_Of_The_Wind` en el
+    ; pasillo de la apertura. `music_boot` es exactamente lo que hace una ROM
+    ; sin pantalla de título al arrancar —el tema del mapa inicial, o callar si
+    ; no tiene—, así que las dos siguen sonando igual.
+    jsr music_boot
+    lda music_apagada
+    beq listo_musica
+    ; `TEMA_ARRANQUE` en $FF quiere decir que el mapa arranca callado y que lo
+    ; prende un `PlayBGM`, que es lo normal en este juego. `music_boot` no le
+    ; escribe nada al DSP porque en el arranque no hay nada sonando; **acá sí
+    ; lo hay**, así que el volumen general hay que bajarlo a mano. El
+    ; `PlayBGM` que venga lo vuelve a subir: su stream escribe los dos
+    ; registros al arrancar.
+    stz dsp_valor
+    lda #DSP_MVOL_L
+    jsr escribir_dsp
+    lda #DSP_MVOL_R
+    jsr escribir_dsp
+listo_musica:
     lda #$0F
     sta INIDISP
     rts
@@ -14584,9 +14619,21 @@ espera:
 .proc music_boot
 .a8
 .i16
+    ; Una partida cargada trae su propio tema —el que prendió el `PlayBGM` del
+    ; evento— y `cargar_partida` ya lo dejó en `tema_actual` y `music_apagada`.
+    ; Sin esto la partida arrancaría con el tema del mapa inicial de la ROM,
+    ; que es el de la apertura y no el del lugar donde uno guardó.
+    lda partida_cargada
+    beq del_mapa
+    lda music_apagada
+    bne callado                 ; se guardó en un momento sin música
+    lda tema_actual
+    jmp music_start
+del_mapa:
     lda #TEMA_ARRANQUE
     cmp #$FF
     bne suena
+callado:
     lda #1
     sta music_apagada
     rts

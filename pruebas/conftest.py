@@ -56,10 +56,10 @@ def partida(builds):
     empezar en otro mapa, `.ir_al_mapa(...)`.
     """
     def hacer(switch=(), con_ventana=True, rama=(), mapas=None,
-              descartar=False, guardar=0, titulo=None):
+              descartar=False, guardar=0, titulo=None, tema=None):
         arranca, resto = mapas or (CON_VENTANA if con_ventana else SIN_VENTANA)
         clave = (arranca, tuple(resto), con_ventana, tuple(rama), descartar,
-                 guardar, titulo is not None)
+                 guardar, titulo is not None, tema)
         if clave not in builds:
             destino = os.path.join(
                 os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
@@ -69,9 +69,10 @@ def partida(builds):
                                 ("-r" + "_".join(str(n) for n in rama)
                                  if rama else "")
                                 + ("-g%d" % guardar if guardar else "")
-                                + ("-t" if titulo is not None else "")))
+                                + ("-t" if titulo is not None else "")
+                                + ("-" + tema if tema else "")))
             builds[clave] = armar(arranca, resto, con_ventana, destino, rama,
-                                  descartar, guardar, titulo is not None)
+                                  descartar, guardar, titulo is not None, tema)
         sfc, simbolos, tabla = builds[clave]
         return Partida(sfc, simbolos, tabla, switch, titulo)
 
