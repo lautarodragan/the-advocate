@@ -67,3 +67,60 @@ def test_sin_partida_arranca_de_cero(partida):
     """
     una = partida()
     assert una.mapa() == 5
+
+
+# --- las cuatro ranuras -----------------------------------------------------
+#
+# Cada una arranca en un múltiplo de SRAM_STRIDE, y de eso depende que llenar
+# una no toque a las demás. Es la clase de cosa que anda de casualidad si el
+# desplazamiento se calcula mal en un solo lado: guardar escribiría siempre en
+# la primera y cargar la leería siempre de la primera, con lo cual todo
+# "funcionaría" y habría una sola ranura disfrazada de cuatro.
+
+
+def _base(simbolos, ranura):
+    """Dónde arranca la ranura en la SRAM, con los números de la ROM."""
+    return simbolos["SRAM_MAGIA"] + ranura * simbolos["SRAM_STRIDE"]
+
+
+def test_guardar_escribe_en_la_ranura_elegida(partida):
+    """Poner otra ranura antes de guardar manda la partida a otro lado.
+
+    Se corre dos veces la misma página de prueba, cambiando sólo `ranura`. Si
+    el desplazamiento se ignorara, las dos escribirían en la primera y este
+    caso pasaría a medias: por eso se comprueba **las dos** cosas, que la
+    elegida tenga la magia y que la otra no.
+    """
+    for elegida in (0, 1):
+        una = partida(guardar=ESPERA)
+        una.poner_byte("ranura", elegida)
+        una.correr(ESPERA + 60)
+        simbolos = una.simbolos
+        assert una.sram(_base(simbolos, elegida), 4) == b"ABLS", (
+            "se pidió guardar en la ranura %d y ahí no quedó ninguna partida"
+            % elegida)
+        otra = 1 - elegida
+        assert una.sram(_base(simbolos, otra), 4) != b"ABLS", (
+            "guardar en la ranura %d también escribió en la %d: las ranuras se "
+            "están pisando" % (elegida, otra))
+
+
+def test_las_cuatro_ranuras_entran_en_la_sram(partida):
+    """La última ranura termina adentro de los 8 KB del cartucho.
+
+    Es una cuenta y no una medición, pero conviene que la haga la prueba y no
+    yo: `PARTIDA_BYTES` crece cada vez que se agrega un campo a la partida —ya
+    pasó con la música— y el día que pase de `SRAM_STRIDE` cada ranura empezaría
+    a pisar el final de la anterior **sin que nada avise**.
+    """
+    una = partida()
+    simbolos = una.simbolos
+    largo = simbolos["PARTIDA_BYTES"]
+    stride = simbolos["SRAM_STRIDE"]
+    ranuras = simbolos["SRAM_RANURAS"]
+    assert simbolos["SRAM_DATOS"] - simbolos["SRAM_MAGIA"] + largo <= stride, (
+        "una partida ocupa %d bytes y las ranuras van cada %d: la %d pisaría "
+        "el final de la anterior" % (largo, stride, ranuras))
+    fin = _base(simbolos, ranuras - 1) + stride
+    assert fin <= 0x2000, (
+        "las %d ranuras terminan en $%04X y la SRAM son 8 KB" % (ranuras, fin))

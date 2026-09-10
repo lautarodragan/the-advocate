@@ -157,6 +157,36 @@ Con `--con-titulo` el arranque **no** carga la partida sola: eso lo decide el
 menú. Sin el flag —o sea toda la tanda y todas las pruebas de estado— sigue
 pasando lo de siempre.
 
+**Hecho y verificado: las cuatro ranuras en la SRAM.** Son **cuatro**, que es
+lo que taro pidió; en la SRAM entrarían muchas más —son 8 KB y una partida
+ocupa 159 bytes— así que el número no sale de ahí sino de cuántas se pueden
+mostrar y elegir sin que la pantalla se vuelva una lista.
+
+Cada ranura arranca en un múltiplo de **256**, que es lo que hace que su
+desplazamiento sea un `xba` y no una multiplicación: multiplicar por 165
+pediría el multiplicador del hardware y ocho ciclos de espera, para ahorrar 364
+bytes de una SRAM que sobra. Las cuatro terminan en `$0500` de los `$2000`.
+
+Dos cosas que costaron el rato:
+
+* **La RAM del banco 0 está llena.** Las dos variables nuevas no entraban: 7683
+  bytes en 7680. Quedó una sola, `ranura`, con **`$FF` como "ninguna partida
+  cargada"**, haciendo de las dos cosas.
+* **Y vive en la página directa, no por lugar sino por el banco.** Las rutinas
+  que tocan la SRAM corren con el banco de datos en `$70`, así que una variable
+  de la BSS leída con direccionamiento absoluto les daría la SRAM. La página
+  directa apunta siempre al banco 0. Es el mismo vecindario del bug que hizo
+  que la partida no cargara en hardware.
+
+Lo cubren dos casos nuevos en `test_guardar.py`: que guardar en la ranura
+elegida no toque a la otra —verificado que da rojo si el desplazamiento se
+ignora— y que las cuatro entren en los 8 KB, que es una cuenta que conviene que
+haga la prueba porque `PARTIDA_BYTES` crece cada vez que se agrega un campo.
+
+**Mientras tanto el save point guarda en la ranura de la que se cargó**, o en la
+primera si la partida es nueva. Así las cuatro se pueden llenar jugando desde
+ahora, sin esperar a la pantalla que las muestra.
+
 **Lo que falta de esto:**
 
 * **La pantalla de ranuras**, en modo cargar y en modo guardar. taro decidió el

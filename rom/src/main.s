@@ -296,7 +296,17 @@ eleg_flancos: .res 1    ; los botones que se acaban de apretar este cuadro. No
 ; compartirlos ataría dos cosas que no se tocan nunca.
 ; 1 si el arranque —o el menú del título— cargó una partida de la SRAM. Lo mira
 ; `music_boot`: una partida trae su propio tema y no el del mapa inicial.
-partida_cargada: .res 1
+; En qué ranura se está trabajando, de 0 a SRAM_RANURAS - 1, o **$FF si no hay
+; ninguna partida cargada**. Ese centinela hace de las dos cosas —qué ranura y
+; si se cargó— porque la RAM del banco 0 está llena y guardar el dato aparte no
+; entraba.
+;
+; Vive en la **página directa** a propósito, y no por lugar sino por el banco:
+; las rutinas que trabajan con la SRAM tienen el banco de datos en $70, y una
+; variable de la BSS leída con direccionamiento absoluto les daría la SRAM. La
+; página directa apunta siempre al banco 0, así que desde ahí se lee bien esté
+; el banco donde esté.
+ranura: .res 1
 titulo_sel:     .res 1  ; qué opción está elegida, desde cero
 titulo_flancos: .res 1  ; y los botones que se acaban de apretar
 pad_ant:     .res 1     ; JOY1H del cuadro pasado, para mirar flancos de las
@@ -713,7 +723,8 @@ grupo_listo:
     ; estar puestos **antes** de cargar el mapa. Y la entrada se arma con la
     ; celda guardada, que es como una puerta le dice a `cargar_mapa` dónde
     ; plantar al héroe.
-    stz partida_cargada         ; la RAM arranca con basura y `music_boot` la lee
+    lda #$FF
+    sta ranura                  ; ninguna cargada; la RAM arranca con basura
     ; Con pantalla de título esto no se hace acá: cargar o empezar de nuevo lo
     ; decide el menú, y hasta que el jugador elija la partida guardada no se
     ; toca. Sin pantalla de título —que es toda la tanda— sigue pasando lo de
@@ -721,6 +732,8 @@ grupo_listo:
     lda #<TITULO_TILES
     ora #>TITULO_TILES
     bne nueva
+    lda #0                      ; sin menú que elija, siempre la primera
+    jsr poner_ranura
     jsr cargar_partida
     beq nueva
     jsr entrada_de_la_partida
@@ -4011,11 +4024,21 @@ fundir_nada:
     jmp otro
 
 ; Guardar la partida: sin operandos y sin cortar el cuadro. En RM2k abre el
-; menú de guardar y bloquea; acá hay una sola ranura y no hay nada que mirar,
-; así que la página sigue de largo. La referencia hace lo mismo con el mismo
-; opcode: ver `OP_GUARDAR` en tools/eventos.py.
+; menú de guardar y bloquea; acá todavía no, así que la página sigue de largo.
+; La referencia hace lo mismo con el mismo opcode: ver `OP_GUARDAR` en
+; tools/eventos.py.
+;
+; **En qué ranura**: en la que se cargó la partida, y en la primera si la
+; partida es nueva —`ranura` en $FF—. Así las cuatro ranuras se pueden llenar
+; jugando desde ahora, sin esperar a que exista la pantalla que las muestra.
 op_guardar:
     phy
+    lda ranura
+    cmp #$FF
+    bne en_la_suya
+    lda #0
+    jsr poner_ranura
+en_la_suya:
     jsr guardar_partida
     ply
     jmp otro
@@ -7937,6 +7960,29 @@ listo:
 ; con la partida en $0000 un `lda SRAM_MAGIA, x` leería la página directa en vez
 ; de la SRAM. Los 256 bytes que quedan abajo no los usa nadie.
 SRAM_BANCO = $70            ; en LoROM la SRAM se ve desde $70:0000
+
+; **Cuatro ranuras**, que es lo que pidió taro: RM2k abre un menú de quince y
+; para este juego no tiene sentido. En la SRAM entrarían muchas más —son 8 KB y
+; una ranura ocupa 165 bytes— así que el número no sale de acá sino de cuántas
+; se pueden mostrar y elegir sin que la pantalla se vuelva una lista.
+SRAM_RANURAS = 4
+
+; Cada ranura arranca en un múltiplo de 256, que es lo que hace que su
+; desplazamiento sea la ranura por 256 —un `xba`— y no una multiplicación. Se
+; pagan 91 bytes de relleno por ranura y sobra SRAM de todas formas: cuatro
+; ranuras terminan en $0500 de los $2000 que hay.
+;
+; **Si `PARTIDA_BYTES` pasara de 250, esto se rompe en silencio**: la ranura
+; siguiente empieza a pisar el final de la anterior. Hoy son 159, y crecen cada
+; vez que se agrega un campo a la partida —ya pasó con la música—. El
+; ensamblador no lo puede cortar, así que lo cuida
+; `pruebas/test_guardar.py::test_las_cuatro_ranuras_entran_en_la_sram`.
+SRAM_STRIDE = 256
+
+; Y dentro de cada ranura, contando desde su base. `SRAM_MAGIA` sigue siendo
+; $0100 y no $0000 por lo de siempre: un operando que entra en un byte lo
+; resuelve el ensamblador como página directa y leería la WRAM. Ese error costó
+; que la partida no cargara en mednafen, en Mesen ni en la consola.
 SRAM_MAGIA = $0100          ; cuatro bytes: "ABLS", $41 $42 $4C $53
 SRAM_SUMA  = $0104          ; la suma de los bytes de la partida
 SRAM_DATOS = $0106
@@ -7970,6 +8016,41 @@ partida_tabla:
 ; error que este repo ya pagó tres veces.
 PARTIDA_BYTES = 2 + 2 + 1 + 2 + 2 + 1 + 6 + 3 + 1 + 5 + 3 + SWITCH_BYTES + 1 + 2
 
+; Pone la ranura con la que van a trabajar `guardar_partida` y `cargar_partida`,
+; y calcula su desplazamiento. A trae el número de ranura.
+;
+; El desplazamiento es la ranura por 256, o sea un `xba`: de ahí sale que
+; `SRAM_STRIDE` valga 256 y no el largo justo de una partida. Multiplicar por
+; 165 pediría el multiplicador del hardware y ocho ciclos de espera, para
+; ahorrar 364 bytes de una SRAM que sobra.
+.proc poner_ranura
+.a8
+.i16
+    sta ranura
+    rts
+.endproc
+
+; El desplazamiento de la ranura en la SRAM, en X. **Pide el banco de datos
+; normal**: lee `ranura`, que vive en la WRAM.
+;
+; Es la ranura por 256, o sea un `xba`: de ahí sale que `SRAM_STRIDE` valga 256
+; y no el largo justo de una partida. Multiplicar por 165 pediría el
+; multiplicador del hardware y ocho ciclos de espera, para ahorrar 364 bytes de
+; una SRAM que sobra.
+.proc ranura_en_x
+.a8
+.i16
+    rep #$20
+.a16
+    lda ranura
+    and #$00FF
+    xba                         ; por SRAM_STRIDE, que es 256
+    tax
+    sep #$20
+.a8
+    rts
+.endproc
+
 ; Recorre `partida_tabla` copiando cada tramo. A trae el DMAP: $80 guarda —de la
 ; ventana de la WRAM a la SRAM— y $00 carga. Deja en `temp` dónde terminó la
 ; partida adentro de la SRAM.
@@ -7982,10 +8063,19 @@ PARTIDA_BYTES = 2 + 2 + 1 + 2 + 2 + 1 + 6 + 3 + 1 + 5 + 3 + SWITCH_BYTES + 1 + 2
     lda #SRAM_BANCO
     sta A1B0
     ldx #$0000                  ; por dónde va la tabla
+    phx
+    jsr ranura_en_x             ; banco de datos normal: acá todavía lo es
     rep #$20
 .a16
-    lda #SRAM_DATOS
-    sta temp                    ; y por dónde va la SRAM
+    txa
+    clc
+    adc #SRAM_DATOS
+    sta temp                    ; y por dónde va la SRAM, dentro de su ranura
+    sep #$20
+.a8
+    plx
+    rep #$20
+.a16
     sep #$20
 .a8
 otra:
@@ -8023,7 +8113,9 @@ listo:
 .endproc
 
 ; La suma de los bytes de la partida que hay en la SRAM, en `temp + 2`. Pide el
-; banco de datos ya puesto en la SRAM.
+; banco de datos ya puesto en la SRAM y **X con el desplazamiento de la
+; ranura**: no lo lee de `ranura_ofs` porque con el banco en $70 eso leería la
+; SRAM. Se lleva X.
 ;
 ; **El índice va desde cero y la dirección la pone la base.** Escrito al revés
 ; —`ldx #SRAM_DATOS` y después `lda $0000, x`— parece lo mismo y no lo es: el
@@ -8049,7 +8141,7 @@ listo:
     sta temp + 2
     sep #$20
 .a8
-    ldx #$0000
+    ldy #$0000                  ; X ya viene con el principio de su ranura
 suma:
     lda SRAM_DATOS, x           ; la base no entra en un byte: absoluto, y el
                                 ; banco de datos es la SRAM
@@ -8062,7 +8154,8 @@ suma:
     sep #$20
 .a8
     inx
-    cpx #PARTIDA_BYTES
+    iny                         ; X anda por la SRAM e Y cuenta: la ranura no
+    cpy #PARTIDA_BYTES          ; arranca en cero y las dos cosas no son la misma
     bne suma
     rts
 .endproc
@@ -8079,8 +8172,15 @@ suma:
     ; por qué.
     rep #$20
 .a16
-    lda temp
-    cmp #(SRAM_DATOS + PARTIDA_BYTES)
+    sep #$20
+.a8
+    jsr ranura_en_x
+    rep #$20
+.a16
+    txa
+    clc
+    adc #(SRAM_DATOS + PARTIDA_BYTES)
+    cmp temp                    ; dónde tendría que haber terminado la copia
     sep #$20
 .a8
     beq cuadra
@@ -8089,25 +8189,31 @@ cuadra:
     ; La magia y la suma son lo que dice que la ranura vale. El banco de datos
     ; se muda a la SRAM: es la única forma de direccionarla sin un puntero en la
     ; página directa, que está llena.
+    ;
+    ; El desplazamiento de la ranura se lee **antes** de mudarlo, y de ahí en
+    ; más viaja en X: con el banco en $70, `lda ranura_ofs` leería la SRAM.
+    jsr ranura_en_x
     phb
     lda #SRAM_BANCO
     pha
     plb
-    jsr partida_suma
+    phx
+    jsr partida_suma            ; se lleva X
+    plx
     rep #$20
 .a16
     lda temp + 2
-    sta SRAM_SUMA
+    sta SRAM_SUMA, x
     sep #$20
 .a8
     lda #$41
-    sta SRAM_MAGIA
+    sta SRAM_MAGIA, x
     lda #$42
-    sta SRAM_MAGIA + 1
+    sta SRAM_MAGIA + 1, x
     lda #$4C
-    sta SRAM_MAGIA + 2
+    sta SRAM_MAGIA + 2, x
     lda #$53
-    sta SRAM_MAGIA + 3
+    sta SRAM_MAGIA + 3, x
     plb
     rts
 .endproc
@@ -8122,27 +8228,30 @@ cuadra:
 .proc cargar_partida
 .a8
 .i16
+    jsr ranura_en_x             ; antes de mudar el banco: ver `guardar_partida`
     phb
     lda #SRAM_BANCO
     pha
     plb
-    lda SRAM_MAGIA
+    lda SRAM_MAGIA, x
     cmp #$41
     bne no_hay
-    lda SRAM_MAGIA + 1
+    lda SRAM_MAGIA + 1, x
     cmp #$42
     bne no_hay
-    lda SRAM_MAGIA + 2
+    lda SRAM_MAGIA + 2, x
     cmp #$4C
     bne no_hay
-    lda SRAM_MAGIA + 3
+    lda SRAM_MAGIA + 3, x
     cmp #$53
     bne no_hay
-    jsr partida_suma
+    phx
+    jsr partida_suma            ; se lleva X
+    plx
     rep #$20
 .a16
     lda temp + 2
-    cmp SRAM_SUMA
+    cmp SRAM_SUMA, x
     sep #$20
 .a8
     bne no_hay
@@ -8150,12 +8259,12 @@ cuadra:
     lda #$00                    ; de la SRAM a la ventana de la WRAM
     jsr partida_copiar
     lda #$01
-    sta partida_cargada
     rts
 no_hay:
     plb
+    lda #$FF
+    sta ranura                  ; el centinela: no hay partida cargada
     lda #$00
-    sta partida_cargada
     rts
 .endproc
 
@@ -8390,6 +8499,8 @@ elige:
     ; primera, que es lo que hace RM2k cuando no hay nada que cargar.
     lda titulo_sel
     beq salir
+    lda #0                      ; la primera, hasta que exista la pantalla de
+    jsr poner_ranura            ; ranuras que deje elegir cuál
     jsr cargar_partida
     beq salir
     jsr entrada_de_la_partida
@@ -14416,6 +14527,7 @@ salto_dy:  .res 1
 ; Y el valor absoluto con el que `direccion_del_salto` compara los dos ejes.
 mirar_abs: .res 2
 
+
 ; 1 mientras no haya ningún tema sonando. Va en la BSS y no en la página directa
 ; —donde vive el resto del estado de la música— porque ahí ya no entra.
 music_apagada: .res 1
@@ -14623,8 +14735,9 @@ espera:
     ; evento— y `cargar_partida` ya lo dejó en `tema_actual` y `music_apagada`.
     ; Sin esto la partida arrancaría con el tema del mapa inicial de la ROM,
     ; que es el de la apertura y no el del lugar donde uno guardó.
-    lda partida_cargada
-    beq del_mapa
+    lda ranura
+    cmp #$FF
+    beq del_mapa                ; ninguna ranura cargada: el tema del mapa
     lda music_apagada
     bne callado                 ; se guardó en un momento sin música
     lda tema_actual
