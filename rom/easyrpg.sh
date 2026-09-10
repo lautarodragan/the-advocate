@@ -8,7 +8,28 @@
 #   CELDA="70 97"   dónde arranca el héroe, con --start-position
 #   GRUPO="11"      con qué actores, con --start-party
 #   TECLAS="Down"   qué teclas mandarle, una por segundo, en vez de Enter
+#   REPLAY=archivo  la entrada desde un archivo, con --replay-input; ver abajo
+#   TITULO=1        arrancar en la pantalla de título en vez de en MAPA
+#   PARTIDAS=dir    dónde deja y busca las partidas, en vez de en SALIDA
 #   EXTRA="..."     cualquier otro argumento suelto
+#
+# **Las teclas por xdotool se pierden.** Medido el 2026-09-10 con
+# --record-input: de cuatro `xdotool key` llegaron dos, porque suelta la tecla
+# en milisegundos y el player la muestrea a 60 cuadros. Para una secuencia que
+# tenga que llegar entera —hablarle al save point, guardar, volver al título y
+# abrir el menú de cargar— va REPLAY, que es el formato de --record-input:
+#
+#   H EasyRPG Player Recording
+#   V 2 0.8.1.1
+#   F 600,DECISION          en el cuadro 600, Enter
+#   F 700,DECISION
+#
+# Las teclas se llaman como en `Input::InputButton`: DECISION, CANCEL, UP,
+# DOWN, LEFT, RIGHT. Así se consiguió la captura del menú de archivos con una
+# partida de verdad: guardar sobre el save point del mapa 8 con
+# `CELDA="9 56" GRUPO="14 12"`, y después `TITULO=1` con DECISION en el cuadro
+# 400 —el cursor ya arranca en "Resume the Story" cuando hay partida; un DOWN
+# antes lo lleva a "End" y el juego se cierra—.
 #
 # `--start-position` es lo que hace posible pedirle una escena concreta en vez
 # de esperar a que el juego llegue sola: sin eso, mirar dos NPCs que se tapan en
@@ -51,19 +72,25 @@ ERPG=${ERPG:-/extras/erpg}
 JUEGO=${GAME_DIR:-/extras/abl-rm}
 CFG=$(mktemp -d)
 
-rm -rf "$SALIDA"; mkdir -p "$SALIDA"
+rm -rf "$SALIDA"; mkdir -p "$SALIDA" "${PARTIDAS:-$SALIDA}"
 printf '[Player]\nAutomaticScreenshots=1\nAutomaticScreenshotsInterval=1\n' \
     > "$CFG/config.ini"
 
 Xvfb :99 -screen 0 640x480x24 >/dev/null 2>&1 &
 XVFB=$!
 sleep 2
+if [ "${TITULO:-0}" = "1" ]; then
+    ARRANQUE=""
+else
+    ARRANQUE="--new-game --start-map-id $MAPA"
+fi
 DISPLAY=:99 "$ERPG/easyrpg-player" --project-path "$JUEGO" \
-    --rtp-path /extras/rtp --new-game --start-map-id "$MAPA" --window \
+    --rtp-path /extras/rtp $ARRANQUE --window \
     ${CELDA:+--start-position $CELDA} ${GRUPO:+--start-party $GRUPO} \
+    ${REPLAY:+--replay-input $REPLAY} \
     ${EXTRA:-} \
     --no-vsync ${FPS:+--fps-limit $FPS} --config-path "$CFG" \
-    --save-path "$SALIDA" \
+    --save-path "${PARTIDAS:-$SALIDA}" \
     </dev/null >"$CFG/log" 2>&1 &
 PLAYER=$!
 sleep 12                        # que cargue la base y el mapa
@@ -86,4 +113,7 @@ done
 kill $PLAYER 2>/dev/null; wait $PLAYER 2>/dev/null
 kill $XVFB 2>/dev/null;   wait $XVFB 2>/dev/null
 rm -rf "$CFG"
+if [ -n "${PARTIDAS:-}" ]; then
+    mv "$PARTIDAS"/*.png "$SALIDA"/ 2>/dev/null
+fi
 echo "$(ls "$SALIDA"/*.png 2>/dev/null | wc -l) capturas en $SALIDA"

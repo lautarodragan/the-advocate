@@ -591,12 +591,19 @@ Tres cosas de cómo está hecho, porque las tres costaron un día:
 
 **Cada ranura con partida muestra lo que muestra RM2k**, que es lo que
 `Window_SaveFile::Refresh` dibuja por archivo: el nombre del archivo, el
-nombre del líder, el nivel —mockeado en 1, porque no hay actores con nivel— y
-las **caras** del grupo, del FaceSet y a 48x48; los puntos de vida no, porque
-este port no los tiene. taro lo pidió el 2026-09-10 al ver que EasyRPG mostraba
-la cara de Talan. La fila mide 48 pixeles por eso, y entran tres caras: la
-cuarta no cabe en 256 sin comerse el borde que un televisor de tubo no
-muestra.
+nombre del líder, el nivel —`lvl_short` en el color 1 del sistema y el número
+a dos cifras, "L  1", mockeado en 1 porque no hay actores con nivel— y las
+**caras** del grupo, del FaceSet y a 48x48. taro lo pidió el 2026-09-10 al ver
+que EasyRPG mostraba la cara de Talan. La fila mide 48 pixeles por eso.
+
+Está mirado contra el oráculo y no sólo leído del código: `rom/easyrpg.sh`
+con `REPLAY` guardó sobre el save point del mapa 8 en el juego original y
+abrió el menú de cargar desde el título, y la captura está en
+`/extras/capturas/erpg-cargar`. Lo que difiere a propósito: los puntos de vida
+no van, porque este port no los tiene; entran tres caras y no cuatro, y
+pegadas en vez de a 56 px, porque en 256 de ancho no hay más lugar sin comerse
+el borde que un televisor de tubo no muestra; y el cursor es un ">" sobre
+fondo negro y no la caja del skin, que es como estaba el menú desde el título.
 
 Cómo está hecho, porque no es una variante más de la fila pre-renderizada: el
 grupo lo dice **la partida guardada** —los seis bytes de `grupo` en la SRAM de

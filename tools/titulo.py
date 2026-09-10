@@ -464,20 +464,38 @@ def _bloque_de_celdas(capa, fila0, filas, tiles, donde, indice, col0=0,
     return celdas
 
 
-def _texto_de_ranura(numero, db, llena):
-    """Las líneas de una ranura, con los términos del juego: la primera y la
-    tercera; la segunda es el nombre del líder, que va aparte porque depende
-    de la partida.
+# El nivel está **mockeado en 1**: la partida guarda la posición, el mapa, el
+# grupo, los switches y el oro, pero todavía no hay actores con nivel. Es una
+# decisión tomada con taro y no un olvido; el día que exista, sale de la
+# partida.
+NIVEL = 1
 
-    El nivel está **mockeado en 1**: la partida guarda la posición, el mapa, el
-    grupo, los switches y el oro, pero todavía no hay actores con nivel. Es una
-    decisión tomada con taro y no un olvido; el día que exista, sale de la
-    partida.
-    """
+
+def _texto_de_ranura(numero, db, llena):
+    """Las dos primeras líneas de una ranura, con los términos del juego. La
+    segunda de una ranura llena es el nombre del líder, que va aparte porque
+    depende de la partida; la tercera es el nivel, que se escribe en dos
+    colores y también va aparte."""
     if not llena:
-        return ["%s %d" % (db.term_file, numero + 1), VACIA, ""]
-    return ["%s %d" % (db.term_file, numero + 1), "",
-            "%s 1" % db.term_level]
+        return ["%s %d" % (db.term_file, numero + 1), VACIA]
+    return ["%s %d" % (db.term_file, numero + 1), ""]
+
+
+def _escribir_nivel(destino, sys_img, x, y, db, font_id):
+    """La tercera línea de una ranura llena, como `Window_SaveFile::Refresh`:
+    `lvl_short` completado a dos caracteres y en el color 1 del sistema, y el
+    número a dos cifras en el color normal. En el ABL es "L  1". Los puntos de
+    vida que RM2k pone al lado no van: este port no los tiene.
+
+    Está copiado de la captura de EasyRPG del 2026-09-10, no del código solo:
+    ver `rom/easyrpg.sh`.
+    """
+    import ventana as ventana_mod
+    corto = (db.term_lvl_short or "")[:2].ljust(2)
+    fin = ventana_mod.dibujar_linea(destino, sys_img, x, y, corto, color=1,
+                                    font_id=font_id)
+    ventana_mod.dibujar_linea(destino, sys_img, fin, y, "%2d" % NIVEL,
+                              font_id=font_id)
 
 
 def cara_de(db, actor, game_dir):
@@ -571,6 +589,9 @@ def pantalla_ranuras(sys_img, db, ranuras, font_id=None, actores=(),
                     escribir(una, RANURA_X - 16, y + 2, ">")
                 for n, linea in enumerate(_texto_de_ranura(numero, db, llena)):
                     escribir(una, RANURA_X, y + 2 + n * LINEA, linea)
+                if llena:
+                    _escribir_nivel(una, sys_img, RANURA_X, y + 2 + 2 * LINEA,
+                                    db, font_id)
                 capas.append(("fila", (numero, llena, cursor), una))
     for actor in actores:
         una = capa()

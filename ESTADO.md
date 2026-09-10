@@ -244,11 +244,14 @@ nivel todavía.
   Talan y DummyHero, reinicia, abre "Resume the Story" y compara contra
   `titulo.render_ranuras` con ese grupo, con el cursor en la primera fila y
   sobre la de Talan.
-* **Cada ranura con partida muestra el nombre del líder y las caras del
-  grupo**, como `Window_SaveFile` en RM2k; taro lo pidió el 2026-09-10 al ver
-  la cara de Talan en EasyRPG. Hecho esa noche; el cómo está en el README, "El
-  save point". Lo que no muestra: los puntos de vida, que este port no tiene,
-  y la cuarta cara, que no entra en 256 pixeles. El nivel sigue mockeado en 1.
+* **Cada ranura con partida muestra el nombre del líder, "L  1" y las caras
+  del grupo**, como `Window_SaveFile` en RM2k; taro lo pidió el 2026-09-10 al
+  ver la cara de Talan en EasyRPG. Hecho esa noche y **mirado contra EasyRPG
+  de verdad**, que está en `/extras/erpg` y corre con `rom/easyrpg.sh`: ahora
+  con `REPLAY`, porque las teclas por xdotool se pierden —de cuatro llegaron
+  dos, medido con `--record-input`—. El cómo está en el README, "El save
+  point". Lo que no muestra: los puntos de vida, que este port no tiene, y la
+  cuarta cara, que no entra en 256 pixeles. El nivel sigue mockeado en 1.
 * **Cargar no anda todavía, y el commit anterior decía que sí.** Lo encontró
   `pruebas/test_titulo.py`, que es justo el caso que ese commit no tenía. El
   síntoma, medido el 2026-09-10: se guarda con el switch 7 prendido, la SRAM

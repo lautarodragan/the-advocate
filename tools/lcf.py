@@ -198,6 +198,9 @@ TERMS_LOAD_MESSAGE = 0x93
 TERMS_SAVE_MESSAGE = 0x92
 TERMS_FILE = 0x94
 TERMS_LEVEL = 0x7B
+# El nivel abreviado —"L" en el ABL— que es lo que el menú de archivos escribe
+# delante del número: `lcf::Data::terms.lvl_short` en `Window_SaveFile`.
+TERMS_LVL_SHORT = 0x80
 
 # Del esquema de liblcf, igual que todo lo demás de este archivo: los números no
 # se ponen de memoria. Ya pasó una vez con los códigos de comando de las puertas
@@ -615,6 +618,7 @@ class Database:
             terminos.get(TERMS_SAVE_MESSAGE, b""))
         self.term_file = to_string(terminos.get(TERMS_FILE, b""))
         self.term_level = to_string(terminos.get(TERMS_LEVEL, b""))
+        self.term_lvl_short = to_string(terminos.get(TERMS_LVL_SHORT, b""))
 
     def lider(self, party=None):
         """El CharSet del primero del grupo: (nombre, índice).
