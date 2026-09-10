@@ -503,7 +503,12 @@ acotados; del cuarto para abajo es lo de siempre.
    confunda con una pantalla rota. Por el conversor y bajo un flag, no editando
    `Map0004.lmu`. Ver la sección propia, más abajo.
 
-4. **Probado en mednafen el 2026-09-10 a la tarde, y anda; en la consola
+4. **Las ROMs para probar viven en `/extras/builds/<fecha>-<commit>/`**,
+   copiadas de las demos apenas se arman, porque `rom/build/` lo pisan las
+   pruebas y el `snes-demos` siguiente; taro lo pidió el 2026-09-10. La de hoy
+   es `/extras/builds/2026-09-10-5837301/`, con `demo-ciudad.sfc` y
+   `demo-titulo.sfc` del commit 5837301 —variables y Tram Officer—.
+   **Probado en mednafen el 2026-09-10 a la tarde, y anda; en la consola
    todavía no.** taro jugó las demos con el menú de guardado: guardó y cargó
    en las ranuras 1 y 4, con el cronómetro en distintos momentos, y todo
    perfecto. Lo único que trajo fue el tema del título reiniciándose al volver
