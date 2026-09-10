@@ -1161,6 +1161,25 @@ usa en ninguna.
 
 Sin hacer. Va después de los dos defectos abiertos.
 
+## Guardar y cargar: probado de punta a punta
+
+taro lo jugó el 2026-09-10 sobre `demo-titulo`: caminó hasta el save point,
+guardó, reinició, eligió "Resume the Story", cargó, y **el cronómetro y la
+música volvieron bien**. Eso cierra el camino entero, que hasta ayer estaba
+roto en tres lugares distintos —la suma que leía la WRAM, la música que no se
+guardaba, el PPU que quedaba con los registros del título—.
+
+Lo que eso confirma y no lo hacía ninguna prueba de acá adentro:
+
+* La partida cargada **sigue jugándose**, no sólo arranca. Las pruebas de
+  estado miran el primer cuadro después de cargar; taro siguió jugando.
+* **El cronómetro** vuelve donde estaba. Está en `partida_tabla` desde el
+  principio y nadie lo había mirado después de un ciclo completo.
+* **La música** vuelve, que es lo que se agregó ese mismo día.
+
+Falta lo mismo de siempre y sólo eso: **el hardware**. `demo-ciudad` y
+`demo-titulo` quedaron rearmadas con todo esto.
+
 ## Esperando respuesta de taro
 
 * **Si el save point tiene que avisar que guardó.** Hoy no dice nada: la
