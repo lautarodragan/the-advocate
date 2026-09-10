@@ -98,14 +98,17 @@ def encode_block(samples, old=0, older=0, loop=False, end=False,
     return bytes(data), new_old, new_older, error
 
 
-# Lo ya codificado en esta corrida, por (muestras, loop). Está acá y no en
-# quien llama porque la repetición es de acá abajo: cada tema arma su banco de
-# tambores desde cero y vuelve a pedir las mismas muestras. Medido el
-# 2026-09-10 sobre `demo-ciudad`, ocho mapas: 1611 llamadas a `encode` para 111
-# entradas distintas, 44 s de los 77 del build. La salida es una función pura
-# de la entrada, así que devolver lo mismo es exactamente lo mismo; se
-# comprobó comparando el `.sfc` byte por byte con y sin esto.
+# Lo ya codificado, por (muestras, loop): en esta corrida en `_hechas`, y
+# entre corridas en disco. Está acá y no en quien llama porque la repetición es
+# de acá abajo: cada tema arma su banco de tambores desde cero y vuelve a pedir
+# las mismas muestras. Medido el 2026-09-10 sobre `demo-ciudad`, ocho mapas:
+# 1611 llamadas a `encode` para 111 entradas distintas, 44 s de los 77 del
+# build; y las 111 distintas, otros 7,6 s que el disco deja en cero. La salida
+# es una función pura de la entrada, así que devolver lo mismo es exactamente
+# lo mismo; se comprobó comparando el `.sfc` byte por byte con y sin esto. La
+# clave del disco lleva el hash de este archivo: tocar el codificador la cambia.
 _hechas = {}
+_VERSION = None
 
 
 def encode(samples, loop_block=None):
@@ -115,10 +118,20 @@ def encode(samples, loop_block=None):
     El largo se completa con ceros hasta un múltiplo de 16, porque el DSP sólo
     entiende bloques enteros.
     """
+    global _VERSION
     clave = (tuple(samples), loop_block)
     hecha = _hechas.get(clave)
     if hecha is None:
-        hecha = _hechas[clave] = _encode(samples, loop_block)
+        import cache_disco
+        if _VERSION is None:
+            _VERSION = cache_disco.version_de("brr.py")
+        en_disco = cache_disco.clave(
+            _VERSION, str(loop_block), " ".join(str(x) for x in clave[0]))
+        hecha = cache_disco.leer("brr", en_disco)
+        if hecha is None:
+            hecha = _encode(samples, loop_block)
+            cache_disco.guardar("brr", en_disco, hecha)
+        _hechas[clave] = hecha
     return hecha
 
 

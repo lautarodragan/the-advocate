@@ -108,6 +108,12 @@ que se haya convertido, aunque el código sea el correcto: así se terminó
 mirando el mapa 6 creyendo que era la demo del hito 12. **Las ROMs salen de una
 receta, no de un `w65.py` suelto.**
 
+**`rom/build/cache/` es un caché en disco del conversor** —muestras BRR y
+capas convertidas— y su clave lleva el hash de los fuentes, así que no hay que
+borrarlo al tocar código. Lo único que pide es que cualquier cambio en lo que
+se cachea se verifique con `SIN_CACHE=1`: las dos ROMs tienen que ser byte por
+byte iguales. Ver `tools/cache_disco.py`.
+
 **Mientras corre una tanda de regresión no se toca ningún fuente.** Cada receta
 recompila desde `main.s`, así que editarlo a mitad de camino mezcla dos
 versiones y el resultado no dice nada.

@@ -1057,8 +1057,51 @@ def build_palette(grid, bg_colors, otras=()):
             [fusionar(g) for g in otras], merged)
 
 
+def _huella_de_imagen(img):
+    """Lo que hace a una imagen: modo, tamaño y pixeles."""
+    return b"%s %dx%d " % (img.mode.encode(), img.size[0], img.size[1]) \
+        + img.tobytes()
+
+
+_VERSION_CAPAS = None
+
+
 def convert_layers(base, above_img, con_ventana=False, ventana_paleta=None,
                    variantes=None):
+    """`_convert_layers`, recordado en disco.
+
+    Es lo más caro del conversor —cuantizar y cortar en tiles las capas y sus
+    dibujos animados, y repartir CGRAM: unos 25 de los 39 s de `demo-ciudad`,
+    medido el 2026-09-10— y es una función pura de sus argumentos. La clave son
+    **los pixeles de las imágenes** y no el `.lmu` ni el ChipSet: así entra
+    todo lo que las produce, el renderer incluido, sin tener que enumerarlo. Y
+    lleva el hash de este archivo y de `rm2k.py`, que es de donde salen las
+    constantes del reparto: tocar el conversor invalida lo suyo solo.
+
+    Verificado con `SIN_CACHE=1`: el `.sfc` es el mismo byte por byte.
+    """
+    global _VERSION_CAPAS
+    import cache_disco
+    if _VERSION_CAPAS is None:
+        _VERSION_CAPAS = cache_disco.version_de("snes_convert.py", "rm2k.py")
+    partes = [_VERSION_CAPAS, _huella_de_imagen(base),
+              _huella_de_imagen(above_img), str(bool(con_ventana)),
+              repr(ventana_paleta)]
+    for familia in sorted(variantes or {}):
+        partes.append("familia %s" % familia)
+        for img in variantes[familia]:
+            partes.append(_huella_de_imagen(img))
+    en_disco = cache_disco.clave(*partes)
+    hecho = cache_disco.leer("capas", en_disco)
+    if hecho is None:
+        hecho = _convert_layers(base, above_img, con_ventana, ventana_paleta,
+                                variantes)
+        cache_disco.guardar("capas", en_disco, hecho)
+    return hecho
+
+
+def _convert_layers(base, above_img, con_ventana=False, ventana_paleta=None,
+                    variantes=None):
     """Las dos capas juntas, que es la única forma de repartir CGRAM bien.
 
     El corte entre el fondo y la capa de encima no lo puede decidir ninguna de

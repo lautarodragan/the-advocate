@@ -355,11 +355,22 @@ byte iguales** —`filecmp` sobre las dos ROMs armadas con el mismo `main.s`—.
 La primera comparación dio distinto y era otra cosa: la ROM "de antes" se
 había armado antes del arreglo de la música del título.
 
-Lo que queda, en orden de lo que rinde: **los mapas, ~29 s**, que no cambian
-entre builds y admiten un caché por mapa en disco —clave: el `.lmu`, el
-ChipSet, los flags y la versión del conversor—; y los 7,6 s de BRR que quedan,
-que un caché en disco por hash de la muestra lleva a cero. Ninguna de las dos
-está hecha.
+**Hecho el 2026-09-10, después: el caché en disco**, `tools/cache_disco.py`,
+en `rom/build/cache/`. Dos categorías: `brr`, por muestra, y `capas`, que es
+`convert_layers` —cuantizar, cortar en tiles y repartir CGRAM— con clave en
+**los pixeles** de las capas y sus dibujos animados, no en el `.lmu`: así
+entra todo lo que las produce sin enumerarlo. Las dos claves llevan el hash de
+los fuentes de los que salen, así que tocar `brr.py`, `snes_convert.py` o
+`rm2k.py` invalida solo. Medido, mismo build:
+
+    demo-ciudad, caché frío (escribiéndolo)   41,3 s
+    demo-ciudad, caché tibio                   8,7 s   (era 76,6)
+    snes-espera, un mapa, tibio                1,8 s
+    el caché de la demo en disco               1,5 MB, 122 archivos
+
+Verificado: las ROMs armadas con caché frío, con caché tibio y con
+`SIN_CACHE=1` son **byte por byte iguales**. Lo que queda de los 8,7 s es
+renderizar las capas, los sprites y ensamblar; ninguno vale otro caché hoy.
 
 Y **spcasm no aporta nada**, que taro preguntó: el driver del SPC700 son 20
 bytes y `spc700.assemble` tarda 0,000 s. Lo caro de la música es codificar las
