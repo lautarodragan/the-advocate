@@ -414,12 +414,38 @@ Dos cosas que costaron:
   EasyRPG pone `wait_time = GetPanWait()` y sigue si es cero. Arreglado en
   `op_pan`; lo cobra `snes-pan 6 "3 0 0 4 1"`, que daba 13710 pixeles.
 
-Lo que se miró y quedó para la vuelta que sigue, en el orden que pidió taro:
-EV0041, EV0042 y EV0052 del mapa 8 —tres páginas por condición de switch, y
-la tercera además por ítem, que no hay: esa queda afuera—; y el Tram Officer
-del mapa 9, que pide **variables**: `ControlVars` con constante, resta y
-random, "otro: segundos del cronómetro", `TimerOperation` desde una variable,
-y `ConditionalBranch` por variable. El `CallEvent` al Hover-Tram no va.
+### EV0041, y lo que había debajo (2026-09-10, a la noche)
+
+EV0041, EV0042 y EV0052 del mapa 8 son el mismo evento tres veces: tres
+páginas por switch, y la tercera además por **ítem**, que este port no tiene.
+Hasta hoy una condición de ítem tiraba el evento entero. Ahora esa página se
+emite como **nunca activa** —`switch_a = SWITCH_IMPOSIBLE`, sin código ni
+gráfico; ver `rm2k.CONDICIONES_IMPOSIBLES`— y las otras corren. Es honesto
+porque `ChangeItems` se acepta sin hacer nada: el grupo no tiene ítems jamás.
+Los dos lados leen la misma tabla; `test_paginas.py` mira que diga eso. Son
+45 eventos que vuelven a existir en todo el juego. Lo cobra `snes-escena ...
+ev41`: hablarle parado encima —es de la capa de abajo—, cerrar el mensaje y
+mirar la ruta.
+
+Y la ruta destapó **dos errores de la ROM que no eran del evento**:
+
+* **El salto del héroe no respetaba el atravesar paredes.** `puede_caer` mira
+  `atravesando`, y `armar_salto_heroe` no lo ponía desde `ruta_atraviesa`. La
+  ruta es `through`, salto sobre la reja, cuatro pasos: la referencia saltaba
+  y la ROM caminaba. 40840 pixeles en el cuadro 60.
+* **Una fila del mapa que se arma en un vblank lleno se pierde.** Es el bug
+  "medio random" que taro vio el 2026-09-09. `push_strips` corre después de
+  las poses y no descontaba nada del presupuesto: con las cinco poses del
+  arranque de un salto, los cuatro DMA de la fila caían con la pantalla
+  encendida y la VRAM los ignoraba, y la fila quedaba negra hasta que la
+  cámara volviera. Medido: `row_addr` puesto en el tick 40 y la fila ausente
+  desde el 41. Ahora una tira pendiente descuenta una pose, como el renglón de
+  la ventana. 1563 pixeles, una fila de 200.
+
+Lo que sigue, en el orden que pidió taro: el Tram Officer del mapa 9, que
+pide **variables**: `ControlVars` con constante, resta y random, "otro:
+segundos del cronómetro", `TimerOperation` desde una variable, y
+`ConditionalBranch` por variable. El `CallEvent` al Hover-Tram no va.
 
 ### Lo próximo, si no se decide otra cosa
 

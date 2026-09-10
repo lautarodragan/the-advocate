@@ -12148,6 +12148,25 @@ sin_tinte:
     lda #1
     sta vq_tope
 sin_renglon:
+    ; Y una tira del mapa esperando —la fila o la columna que la cámara
+    ; destapó— también: `push_strips` corre después de las poses y hasta el
+    ; 2026-09-10 no descontaba nada, así que en un vblank con las cinco poses
+    ; sus DMA caían con la pantalla encendida y la VRAM los ignoraba. La fila
+    ; quedaba sin dibujar hasta que la cámara volviera a pasar por ahí. taro lo
+    ; vio jugando el 2026-09-09, "medio random", y lo reproduce EV0041 del
+    ; mapa 8: el salto del héroe encola poses nuevas justo cuando la cámara
+    ; cruza una fila. Una fila son cuatro DMA de 64 bytes, media pose: se le
+    ; descuenta una entera para no andar midiendo el borde.
+    lda row_addr
+    ora row_addr + 1
+    ora col_addr
+    ora col_addr + 1
+    beq sin_tira
+    lda vq_tope
+    beq sin_tira
+    dec a
+    sta vq_tope
+sin_tira:
     ; Y un paso de la animación del ChipSet, que también sale de este vblank:
     ; hasta 26 tiles de fondo, o sea 1664 bytes, que es más de tres poses. Se lo
     ; descuenta al presupuesto en vez de fijarlo, para que se sume a lo que ya
@@ -13840,7 +13859,24 @@ con_fin:
     sta celda_y
     sep #$20
 .a8
+    ; Atravesando paredes se cae en cualquier celda: es el mismo
+    ; `if (self.GetThrough()) return true;` que mira un paso, y `puede_caer`
+    ; lo lee de `atravesando`, que acá nadie ponía. La ruta de EV0041 del mapa
+    ; 8 —`through`, salto de una celda sobre la reja, cuatro pasos— saltaba
+    ; en la referencia y en la ROM caminaba: el salto se salteaba por la reja y
+    ; los pasos de después sí atravesaban. Medido el 2026-09-10, 40840
+    ; pixeles en el cuadro 60.
+    lda ruta_atraviesa
+    beq sin_atravesar
+    lda #1
+sin_atravesar:
+    sta atravesando
+    stz atravesando + 1
     jsr puede_caer
+    php
+    stz atravesando
+    stz atravesando + 1
+    plp
     bne se_puede
     stz ruta_salto              ; no se puede caer ahí: el salto se saltea
     rts

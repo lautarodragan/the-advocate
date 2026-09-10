@@ -2990,6 +2990,13 @@ def pagina_activa_viva(paginas, evento, estado):
 # —es el idioma de RM2k— así que la de prueba hace lo mismo, y de paso ejercita
 # ese idioma.
 SWITCH_DE_PRUEBA = 1023
+# El switch que no se prende nunca: es lo que lleva como `switch_a` una página
+# con una condición que el port no puede cumplir —un ítem, ver
+# `rm2k.CONDICIONES_IMPOSIBLES`— para que ni la ROM ni la referencia la elijan
+# jamás, y las otras páginas del evento sí. Los dos lados leen la misma tabla,
+# así que no hay dos maneras de equivocarse. El juego consulta switches hasta el
+# 1003 y el 1023 es el de la página de prueba.
+SWITCH_IMPOSIBLE = 1021
 
 def evento_de_prueba(game_map):
     """Qué número de evento le toca a la página inventada: el primero libre.
@@ -4027,10 +4034,11 @@ def paginas_del_mapa(game_map, indice_de_mapa, mensajes=None, temas=None,
         # nadie.
         #
         # Si alguna página del evento pide una condición que la ROM no sabe
-        # evaluar —un ítem, un héroe en el grupo, un cronómetro— entonces no se
-        # sabe cuál página está activa, y correr la equivocada es peor que no
-        # correr ninguna. El evento entero queda afuera, y tampoco frena: su
-        # capa es tan desconocida como su código.
+        # evaluar —una variable, un cronómetro— entonces no se sabe cuál
+        # página está activa, y correr la equivocada es peor que no correr
+        # ninguna. El evento entero queda afuera, y tampoco frena: su capa es
+        # tan desconocida como su código. La condición de **ítem** es otra
+        # cosa: se sabe que no se cumple nunca, y la página se emite como tal.
         if not rm2k.condiciones_soportadas(event):
             continue
 
@@ -4038,6 +4046,19 @@ def paginas_del_mapa(game_map, indice_de_mapa, mensajes=None, temas=None,
         for numero_pagina, page in enumerate(event.pages):
             cond = page.condition
             codigo = None
+            if rm2k.pagina_imposible(page):
+                # Nunca activa: sin código, sin gráfico, y con el switch que
+                # no se prende. Las páginas de abajo siguen ganando cuando les
+                # toca, que es lo que hace RM2k mientras el ítem no está.
+                grupo.append({
+                    "evento": numero_evento, "pagina": numero_pagina,
+                    "trigger": page.trigger,
+                    "switch_a": SWITCH_IMPOSIBLE, "switch_b": 0, "actor": 0,
+                    "capa": page.layer, "frecuencia": page.move_frequency,
+                    "velocidad": page.move_speed, "codigo": None,
+                    "ruta_propia": None, "grafico": None, "tile_pasa": None,
+                })
+                continue
             grafico = rm2k.grafico_de_pagina(page, chipset)
             if page.trigger in TRIGGERS and puede_dispararse(page):
                 codigo = compilar_pagina(page, indice_de_mapa, mensajes,

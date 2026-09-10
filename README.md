@@ -3172,6 +3172,20 @@ aporta cuatro, así que a partir de nueve personajes juntos se pierden los
 últimos. No tiene arreglo; se declara y se excluyen esas líneas de la
 comparación.
 
+### Lo que una condición de ítem hace, y lo que no
+
+RM2k elige la página de número más alto cuyas condiciones se cumplen. Las de
+switch y de actor en el grupo la ROM las evalúa; las de **ítem** no puede,
+porque no hay inventario. Pero sí sabe una cosa: `ChangeItems` se acepta sin
+hacer nada, así que el grupo **no tiene ningún ítem nunca**, y una página que
+pida uno no está activa jamás. Desde el 2026-09-10 esa página se emite con
+`switch_a = SWITCH_IMPOSIBLE` —un switch que nadie prende— sin código ni
+gráfico, y las demás páginas del evento corren como corresponde. Antes el
+evento entero quedaba afuera: no se dibujaba, no frenaba y no disparaba. Son
+45 eventos; EV0041 del mapa 8 es uno. Las condiciones por **variable** y por
+cronómetro siguen tirando el evento entero, porque ésas sí pueden cumplirse y
+no se sabe cuándo.
+
 ### Lo que falta
 
 * **Las órdenes de ruta que faltan.** Son quince las que la ROM entiende

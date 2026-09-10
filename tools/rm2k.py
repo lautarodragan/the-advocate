@@ -241,10 +241,24 @@ def nombre_de_tile(chipset, indice):
 # que pida otra cosa queda afuera entero: sin sus páginas en la tabla, la ROM
 # no puede saber cuál está activa, así que no cambia de gráfico ni frena.
 CONDICIONES_SOPORTADAS = ("switch_a", "switch_b", "actor")
+# Y las que el port **no puede cumplir nunca**: no hay inventario, y
+# `ChangeItems` se acepta sin hacer nada, así que el grupo no tiene ningún
+# ítem jamás. Una página con esta condición se emite como una que no está
+# activa nunca —ver `SWITCH_IMPOSIBLE` en eventos.py— y las demás páginas del
+# evento corren como corresponde. Antes el evento entero quedaba afuera: no
+# se dibujaba, no frenaba y no disparaba. Son 45 eventos, EV0041 entre ellos,
+# que taro pidió el 2026-09-10.
+CONDICIONES_IMPOSIBLES = ("item",)
+
+
+def pagina_imposible(page):
+    """Si la página pide algo que este port no cumple nunca."""
+    return any(c in CONDICIONES_IMPOSIBLES for c in page.condition.active)
 
 
 def condiciones_soportadas(event):
     return not any(c not in CONDICIONES_SOPORTADAS
+                   and c not in CONDICIONES_IMPOSIBLES
                    for page in event.pages for c in page.condition.active)
 
 
@@ -304,7 +318,9 @@ def collect_npcs(game_map):
     npcs = []
     chipset = getattr(game_map, "chipset_nombre", None)
     for numero, event in enumerate(game_map.events):
-        graficos = [grafico_de_pagina(p, chipset) for p in event.pages]
+        # Una página imposible no se dibuja nunca: su gráfico no cuenta.
+        graficos = [None if pagina_imposible(p) else grafico_de_pagina(p, chipset)
+                    for p in event.pages]
         if not any(graficos):
             continue
         # Qué puede llegar a dibujar este evento a lo largo de la partida. No
@@ -329,8 +345,8 @@ def collect_npcs(game_map):
         if not visible:
             # La fila existe escondida: sus campos salen de la primera página
             # con gráfico, que es de donde va a salir cuando aparezca.
-            page = next(p for p in event.pages
-                        if grafico_de_pagina(p, chipset) is not None)
+            page = next(p for p, g in zip(event.pages, graficos)
+                        if g is not None)
         charset, index, pose = grafico_de_pagina(page, chipset)
         npcs.append({
             # El índice en la tabla de eventos del mapa, que es lo que lleva el
