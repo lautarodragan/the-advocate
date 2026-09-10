@@ -12,7 +12,14 @@ flag cambia el arranque —sin él la partida guardada se carga sola, con él es
 a que el menú lo decida— y ése es justamente el camino que hay que probar.
 """
 
+import os
+import sys
+
 import pytest
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__))), "tools"))
+from eventos import SWITCH_DE_PRUEBA                    # noqa: E402
 
 # Cuántos ticks espera la página de prueba antes de guardar, como en
 # `test_guardar`: alcanzan para irse a otro mapa —el fundido son 90— y sobra.
@@ -92,8 +99,11 @@ def test_seguir_la_historia_carga_la_partida(partida):
     "2026-09-10 después de caminar hasta el save point, que es cambiar de "
     "mapa. O sea que el sospechoso es la página de prueba misma —una "
     "automática con espera, que el doble cargar_mapa del menú reinicia— y no "
-    "el save point. Confirmarlo pide un caso que use el save point de verdad, "
-    "que hoy no existe. Está anotado en ESTADO.md"))
+    "el save point. Confirmarlo pide un caso que use el save point de verdad "
+    "—`OpenSaveMenu` desde el evento 67 del mapa 8—, que hoy no existe: "
+    "`just snes-guardar` usa la página de prueba. Desde el 2026-09-10 el "
+    "síntoma es que la pantalla de ranuras no se abre nunca, que es lo mismo "
+    "dicho por `guardar_en`. Está anotado en ESTADO.md"))
 def test_irse_de_mapa_antes_de_guardar_no_guarda(partida):
     """El segundo defecto, escrito como prueba para que se sepa cuándo se
     arregló.
@@ -114,14 +124,23 @@ def test_empezar_ignora_la_partida_guardada(partida):
     que nadie se entere.
 
     Con la ROM de antes de la pantalla de título el arranque cargaba la partida
-    **siempre**, así que 'Begin the Story' habría devuelto al jugador al mapa 6
-    con el switch prendido. Elegir empezar de nuevo tiene que dejar el mundo
-    como estaba.
+    **siempre**, así que 'Begin the Story' habría devuelto al jugador el switch
+    prendido. Elegir empezar de nuevo tiene que dejar el mundo como estaba.
+
+    Se guarda **sin irse del mapa de arranque**, igual que
+    `test_seguir_la_historia_carga_la_partida`, y por la misma razón: con
+    título, la página de prueba no llega a guardar si se cambió de mapa —ver
+    el `xfail` de acá arriba—. Hasta el 2026-09-10 esto se iba al mapa 6 y
+    pasaba **en vacío**: `guardar_en` corría los ticks sin mirar si la partida
+    se había guardado, la SRAM quedaba virgen y "empezar de nuevo no cargó
+    nada" era cierto sin probar nada. Ahora `guardar_en` atraviesa la pantalla
+    de ranuras y se cuelga si no se abre, que fue lo que lo delató; y la
+    aserción sobre la SRAM está para que no vuelva a pasar.
     """
     una = partida(titulo=EMPEZAR, guardar=ESPERA)
-    una.ir_al_mapa(6, 20, 30)
     una.prender(7)
     una.guardar_en()
+    assert una.sram(0x100, 4) == b"ABLS", "la partida no llegó a guardarse"
 
     una.reiniciar(EMPEZAR)
     assert una.mapa() == MAPA_DE_ARRANQUE, (
@@ -220,3 +239,30 @@ def test_la_pantalla_de_ranuras_carga_la_que_se_elige(partida):
     una.reiniciar(SEGUIR, ranura=0)
     assert not una.switch(7), (
         "se eligió la ranura 0, que está vacía, y se cargó la partida de otra")
+
+
+def test_el_cursor_de_guardar_arranca_en_la_ranura_en_uso(partida):
+    """Con una partida cargada de la ranura 2, la pantalla de guardar abre con
+    el cursor en la 2: es el `latest_slot` de `Scene_File::Start`, sin fechas.
+    Elegir sin mover el cursor vuelve a escribir la misma ranura, que es lo que
+    uno espera de "guardar" después de "continuar".
+
+    Hace falta el título porque es la única forma de llegar con `ranura`
+    puesta: la página de prueba corre una sola vez por partida, así que
+    guardar dos veces seguidas en la misma sesión no se puede. Y después de
+    cargar hay que **apagar `SWITCH_DE_PRUEBA`**: la página lo prende al
+    arrancar, viaja en la partida, y con él puesto gana la página que la apaga.
+    Medido: sin esto `ev_activo` queda en cero para siempre después de "Resume
+    the Story". Es de la página inventada, no del juego.
+    """
+    una = partida(titulo=EMPEZAR, guardar=ESPERA)
+    una.prender(7)
+    una.guardar_en(2)
+    una.reiniciar(SEGUIR, ranura=2)
+    assert una.byte("ranura") == 2, "no se cargó de la ranura 2"
+    una.apagar(SWITCH_DE_PRUEBA)
+    una.correr(ESPERA - 10)
+    una.esperar_la_pantalla_de_ranuras()
+    assert una.byte("titulo_sel") == 2, (
+        "el cursor arrancó en la ranura %d y la partida vino de la 2"
+        % una.byte("titulo_sel"))

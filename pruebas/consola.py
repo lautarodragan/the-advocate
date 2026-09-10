@@ -156,16 +156,46 @@ class Partida:
             self.consola.correr(TITULO_AIRE)
             self._bajar_y_elegir(ranura)
 
-    def guardar_en(self, ranura=0, espera=200):
-        """Corre hasta que la página de prueba guarde, en la ranura pedida.
+    def esperar_la_pantalla_de_ranuras(self, tope=120):
+        """Cuadros de hardware hasta que la pantalla de ranuras esté a la vista.
 
-        El save point **todavía no abre el menú de guardado** —ver `op_guardar`
-        en main.s— así que la ranura se elige escribiéndola, que es lo mismo que
-        hace la ROM cuando la partida viene de una ranura cargada. El día que el
-        menú ande, esto pasa a atravesarlo y el resto de las pruebas no cambia.
+        Se mira `menu_abierto`, que la ROM pone para esto: mientras la pantalla
+        se ve `vueltas` no avanza, así que esperar por ticks se colgaría.
         """
-        self.poner_byte("ranura", ranura)
-        self.correr(espera + 60)
+        for _ in range(tope):
+            if self.byte("menu_abierto"):
+                return self
+            self.consola.correr(1)
+        raise RuntimeError(
+            "la pantalla de ranuras no se abrió en %d cuadros" % tope)
+
+    def guardar_en(self, ranura=0, espera=200, cancelar=False):
+        """Corre hasta que la página de prueba abra la pantalla de ranuras, y
+        elige `ranura` ahí —o cancela con B—.
+
+        Es el camino del save point de verdad: `OpenSaveMenu` abre la pantalla
+        adentro del intérprete y la página sigue cuando se cierra. La ranura
+        no se escribe a mano: se baja el cursor y se aprieta A, como lo haría
+        el jugador.
+
+        La página abre la pantalla al tick `espera`, más o menos uno, contado
+        desde el arranque y no desde acá: la prueba puede haber gastado ticks
+        antes —`ir_al_mapa` son 90—. Se corre por ticks hasta unos cuantos
+        antes y de ahí por cuadros de hardware hasta que la pantalla esté, que
+        es lo que `esperar_la_pantalla_de_ranuras` mira.
+        """
+        if self.cuadro < espera - 10:
+            self.correr(espera - 10 - self.cuadro)
+        self.esperar_la_pantalla_de_ranuras()
+        self.consola.correr(TITULO_AIRE)
+        if cancelar:
+            self.consola.apretar("b")
+            self.consola.correr(2)
+            self.consola.apretar()
+        else:
+            self._bajar_y_elegir(ranura)
+        # Y unos ticks de aire: que la página siga y el mapa vuelva.
+        self.correr(10)
         return self
 
     def reiniciar(self, opcion=None, ranura=0):
@@ -304,6 +334,23 @@ class Partida:
             direccion = base + numero // 8
             octeto = self.consola.ram(direccion, 1)[0] | (1 << (numero % 8))
             self.consola.escribir_ram(direccion, [octeto])
+        self.consola.escribir_ram(self.simbolos["refresco"], [1])
+        return self
+
+    def apagar(self, *numeros):
+        """Lo contrario de `prender`, con el mismo `refresco` detrás.
+
+        Hace falta para volver a correr la página de prueba después de cargar
+        una partida: la página prende `SWITCH_DE_PRUEBA` al arrancar, la
+        partida se guarda con ese switch puesto, y al cargarla gana la página
+        que lo mira y la apaga. Es un artefacto de la página inventada y no del
+        juego, así que se deshace desde afuera.
+        """
+        base = self.simbolos["switches"]
+        for numero in numeros:
+            direccion = base + numero // 8
+            octeto = self.consola.ram(direccion, 1)[0] & ~(1 << (numero % 8))
+            self.consola.escribir_ram(direccion, [octeto & 0xFF])
         self.consola.escribir_ram(self.simbolos["refresco"], [1])
         return self
 

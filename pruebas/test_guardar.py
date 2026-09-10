@@ -1,8 +1,10 @@
 """Guardar la partida en la SRAM del cartucho, y volver a cargarla.
 
 El save point de Lashe City —`SaveByTalansPad0`, el evento 67 del mapa 8— pide
-`OpenSaveMenu`. Acá no hay menú: hay **una sola ranura**, el evento la pisa y la
-página sigue de largo. Lo que se guarda lo dice `partida_tabla` en `main.s`.
+`OpenSaveMenu`, y eso abre la pantalla de ranuras adentro del intérprete: se
+elige una con el cursor, se guarda ahí y la página sigue. Lo que se guarda lo
+dice `partida_tabla` en `main.s`; cómo se ve la pantalla lo cobra
+`just snes-guardar`.
 
 Esto no lo puede cubrir la tanda de pixeles: guardar no cambia un pixel. Lo que
 se mira acá es lo único que importa —que lo guardado sobreviva a apagar la
@@ -84,18 +86,18 @@ def _base(simbolos, ranura):
 
 
 def test_guardar_escribe_en_la_ranura_elegida(partida):
-    """Poner otra ranura antes de guardar manda la partida a otro lado.
+    """Elegir otra ranura en la pantalla manda la partida a otro lado.
 
-    Se corre dos veces la misma página de prueba, cambiando sólo `ranura`. Si
-    el desplazamiento se ignorara, las dos escribirían en la primera y este
-    caso pasaría a medias: por eso se comprueba **las dos** cosas, que la
-    elegida tenga la magia y que la otra no.
+    Se corre dos veces la misma página de prueba, bajando el cursor a una
+    ranura distinta cada vez. Si el desplazamiento se ignorara, las dos
+    escribirían en la primera y este caso pasaría a medias: por eso se
+    comprueba **las dos** cosas, que la elegida tenga la magia y que la otra
+    no. Y de paso cobra que el número que elige el cursor llegue hasta
+    `guardar_partida`, que es el camino del save point de verdad.
     """
     for elegida in (0, 1):
         una = partida(guardar=ESPERA)
-        # La ranura se elige **en la pantalla**, que es lo que abre el save
-        # point: escribirla a mano probaría otra cosa.
-        una.guardar_en(elegida)
+        una.guardar_en(elegida)             # en la pantalla, con el cursor
         simbolos = una.simbolos
         assert una.sram(_base(simbolos, elegida), 4) == b"ABLS", (
             "se pidió guardar en la ranura %d y ahí no quedó ninguna partida"
@@ -104,6 +106,25 @@ def test_guardar_escribe_en_la_ranura_elegida(partida):
         assert una.sram(_base(simbolos, otra), 4) != b"ABLS", (
             "guardar en la ranura %d también escribió en la %d: las ranuras se "
             "están pisando" % (elegida, otra))
+
+
+def test_cancelar_no_guarda_ni_cambia_la_ranura(partida):
+    """B cierra la pantalla sin escribir nada, y `ranura` queda como estaba.
+
+    Lo segundo no es obvio: pintar la lista pisa `ranura` —`ranura_llena` la
+    usa para direccionar la SRAM— y sin reponerla al salir, cancelar dejaría a
+    la partida "cargada" de la última fila pintada. Verificado que da rojo
+    sacando el `pla; sta ranura` de `cerrar`: queda en 3.
+    """
+    una = partida(guardar=ESPERA)
+    una.guardar_en(cancelar=True)
+    assert una.byte("menu_abierto") == 0, "la pantalla sigue abierta"
+    assert una.byte("ranura") == 0xFF, (
+        "cancelar dejó `ranura` en %d y la partida no venía de ninguna"
+        % una.byte("ranura"))
+    for n in range(una.simbolos["SRAM_RANURAS"]):
+        assert una.sram(_base(una.simbolos, n), 4) != b"ABLS", (
+            "se canceló y la ranura %d quedó escrita igual" % n)
 
 
 def test_las_cuatro_ranuras_entran_en_la_sram(partida):

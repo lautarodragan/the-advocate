@@ -309,6 +309,11 @@ eleg_flancos: .res 1    ; los botones que se acaban de apretar este cuadro. No
 ranura: .res 1
 titulo_sel:     .res 1  ; qué opción está elegida, desde cero
 titulo_flancos: .res 1  ; y los botones que se acaban de apretar
+; 1 mientras la pantalla de ranuras está a la vista. La ROM no lo lee: es para
+; el arnés, como `cuadros_perdidos`. `vueltas` no avanza mientras la pantalla
+; se ve, así que una prueba que espera por ticks se colgaría; con esto
+; `consola.py` sabe cuándo apretar. Ver `Partida.guardar_en`.
+menu_abierto:   .res 1
 pad_ant:     .res 1     ; JOY1H del cuadro pasado, para mirar flancos de las
                         ; direcciones y de B como ya se hacía con A
 
@@ -725,6 +730,10 @@ grupo_listo:
     ; plantar al héroe.
     lda #$FF
     sta ranura                  ; ninguna cargada; la RAM arranca con basura
+    ; El testigo de la pantalla de ranuras también: con $55 el arnés la vería
+    ; abierta desde el reset. Es lo que pasó el 2026-09-10 con los dos
+    ; contadores que "daban 85": leían la basura del emulador.
+    stz menu_abierto
     ; Con pantalla de título esto no se hace acá: cargar o empezar de nuevo lo
     ; decide el menú, y hasta que el jugador elija la partida guardada no se
     ; toca. Sin pantalla de título —que es toda la tanda— sigue pasando lo de
@@ -4023,33 +4032,39 @@ fundir_nada:
     iny
     jmp otro
 
-; Guardar la partida: sin operandos y sin cortar el cuadro. En RM2k abre el
-; menú de guardar y bloquea; acá todavía no, así que la página sigue de largo.
-; La referencia hace lo mismo con el mismo opcode: ver `OP_GUARDAR` en
-; tools/eventos.py.
+; `OpenSaveMenu`: la pantalla de ranuras en modo guardar, y la partida a la
+; que el jugador elija. Sin operandos. La referencia hace lo mismo con el mismo
+; opcode: ver `OP_GUARDAR` en tools/eventos.py.
 ;
-; **En qué ranura**: en la que se cargó la partida, y en la primera si la
-; partida es nueva —`ranura` en $FF—. Así las cuatro se pueden llenar jugando.
+; **Bloquea adentro del intérprete y no cuesta ningún tick**, que es lo que hace
+; RM2k: `OpenSaveMenu` apila `Scene_Save`, el mapa deja de actualizarse hasta
+; que se cierra, y la página sigue por el comando siguiente. Acá
+; `ranuras_pantalla` corre su propio lazo de cuadros —como desde el título— y
+; `vueltas` no avanza mientras se ve, así que los dos intérpretes siguen en el
+; mismo tick cuando vuelve. Cancelar con B vuelve al mapa sin guardar, que es
+; también lo de RM2k; elegir guarda y vuelve, sin preguntar si la ranura estaba
+; ocupada, porque `Scene_Save::Action` tampoco pregunta.
 ;
-; **Todavía no abre el menú de guardado**, que es lo que taro pidió el
-; 2026-09-09 y lo que hace RM2k. Se intentó el 2026-09-10 y no anda: llamar a
-; `ranuras_pantalla` desde acá dibuja una pantalla negra con basura, el cursor
-; no se mueve, y el testigo dice que **se entra 85 veces** en vez de una, o sea
-; que la rutina vuelve enseguida y el intérprete repite el comando. Desde el
-; título la misma rutina y el mismo modo andan perfecto —está comparada pixel
-; por pixel—, así que lo que falla es el contexto: entrar a un lazo que espera
-; el pad desde adentro del intérprete, que a su vez corre adentro del lazo
-; principal. Se descartaron el banco de datos y el tamaño de los registros,
-; poniendo los dos explícitos al entrar. Está anotado en ESTADO.md.
+; La pantalla pisó la VRAM de los tiles y la paleta 0, y `volver_al_mapa` los
+; repone. El estado del juego no se toca: la tabla de eventos, las rutas, la
+; OAM y las poses en VRAM siguen como estaban, y por eso no se llama a
+; `cargar_mapa`, que reiniciaría todo eso.
+;
+; Hasta el 2026-09-10 esto guardaba en la ranura cargada —o en la primera— sin
+; mostrar nada, y el intento de abrir la pantalla dio "negro con basura": la
+; ROM de prueba no llevaba título, y sin título el conversor emitía la pantalla
+; de ranuras como un byte de relleno con `RANURA_TILES` en cero. Hoy va en toda
+; ROM.
 op_guardar:
     phy
-    lda ranura
+    lda #1                      ; modo guardar
+    jsr ranuras_pantalla
     cmp #$FF
-    bne en_la_suya
-    lda #0
+    beq cancelado
     jsr poner_ranura
-en_la_suya:
     jsr guardar_partida
+cancelado:
+    jsr volver_al_mapa
     ply
     jmp otro
 
@@ -8662,7 +8677,8 @@ listo_musica:
 ; Mover el cursor reescribe **dos filas** de 96 celdas, no el tilemap entero.
 
 ; Si la ranura que viene en A tiene una partida. Devuelve A distinto de cero, y
-; **se lleva `ranura`**: el llamador la repone.
+; **se lleva `ranura`**: `ranuras_pantalla` la guarda al entrar y la repone al
+; salir.
 ;
 ; Mira sólo la magia y no la suma: es para pintar la lista, y recorrer los 159
 ; bytes de cada ranura para dibujar una pantalla sería pagar de más. La suma la
@@ -8821,7 +8837,7 @@ sin_cursor:
     sta VMAIN
     rep #$20
 .a16
-    lda #TITULO_MENU_VRAM
+    lda #RANURA_VRAM
     sta VMADDL
     lda #(RANURA_TILES * 32)
     sta DAS0L
@@ -8846,7 +8862,7 @@ sin_cursor:
     ; aparte para tener dos ceros a mano.
     rep #$20
 .a16
-    lda #TITULO_MENU_MAP
+    lda #RANURA_MAP
     sta VMADDL
     lda #(32 * 32 * 2)
     sta DAS0L
@@ -8885,19 +8901,44 @@ sin_cursor:
 
     ; --- la cabecera, según el modo ---
     pla
+    pha                         ; el modo, otra vez: decide dónde arranca el cursor
     rep #$20
 .a16
     and #$00FF
     tax                         ; los dos primeros bloques son las cabeceras
     lda #RANURA_CAB_CELDAS
     sta temp
-    ldy #(TITULO_MENU_MAP + RANURA_CAB_VRAM)
+    ldy #(RANURA_MAP + RANURA_CAB_VRAM)
     sep #$20
 .a8
     jsr ranura_bloque_subir
 
+    ; --- dónde arranca el cursor ---
+    ; Cargando, en la primera. Guardando, en la ranura que se está usando —de
+    ; la que se cargó, o en la que se guardó la última vez—: es el
+    ; `index = latest_slot` de `Scene_File::Start`, que allá es la de fecha más
+    ; nueva y acá, sin fechas, la que está en uso. Sin partida cargada, la
+    ; primera.
+    pla
+    beq primera
+    lda ranura
+    cmp #$FF
+    bne arranca_ahi
+primera:
+    lda #0
+arranca_ahi:
+    sta titulo_sel
+
+    ; `ranura` a la pila. Pintar una fila la pisa —`ranura_llena` la escribe
+    ; para direccionar la SRAM— y al salir tiene que valer lo que valía, elija
+    ; el jugador o cancele: quien elige la pone después con `poner_ranura`.
+    ; Desde el título daba lo mismo porque valía $FF y se ponía al elegir;
+    ; desde el save point, cancelar dejaría a la partida "cargada" de la última
+    ; fila pintada.
+    lda ranura
+    pha
+
     ; --- y las cuatro filas ---
-    stz titulo_sel
     lda #0
 pintar_todas:
     pha
@@ -8908,9 +8949,9 @@ pintar_todas:
     bcc pintar_todas
 
     ; --- el PPU ---
-    lda #(TITULO_MENU_MAP / 1024 * 4)
+    lda #(RANURA_MAP / 1024 * 4)
     sta BG2SC
-    lda #(TITULO_MENU_VRAM / 4096 * 16)
+    lda #(RANURA_VRAM / 4096 * 16)
     sta BG12NBA                 ; sólo BG2; BG1 no se dibuja
     stz BG2HOFS
     stz BG2HOFS
@@ -8921,6 +8962,8 @@ pintar_todas:
     sta TM
     lda #$0F
     sta INIDISP
+    lda #1
+    sta menu_abierto
 
 espera:
     jsr wait_vblank
@@ -8956,7 +8999,7 @@ no_abajo:
     lda titulo_flancos
     and #PAD_B
     beq mira_a
-    plb
+    jsr cerrar
     lda #$FF                    ; cancelar
     rts
 mira_a:
@@ -8964,8 +9007,27 @@ mira_a:
     beq espera
     lda pad_a_ant
     bne espera                  ; ya lo tenía apretado: no es un flanco
-    plb
+    jsr cerrar
     lda titulo_sel
+    rts
+
+; Lo que las dos salidas tienen en común: `ranura` como estaba, el banco de
+; datos como estaba, el testigo abajo. Y `nmi_visto` al día, para que
+; `contar_perdidos` no cuente como perdidos los cuadros que el jugador pasó
+; eligiendo: desde el save point esto corre adentro de una vuelta del lazo, y
+; sin esto la vuelta mediría cientos de cuadros y saturaría el contador.
+;
+; La pila trae, de arriba abajo: la dirección de vuelta de este `jsr`, `ranura`
+; y el banco. Se saca la de vuelta primero para llegar a los otros dos.
+cerrar:
+    plx                         ; la dirección de vuelta, aparte
+    pla
+    sta ranura
+    plb
+    phx
+    stz menu_abierto
+    lda boot_cuadros
+    sta nmi_visto
     rts
 
 ; El cursor a la ranura que trae A: se repintan **las dos filas que cambian** y
@@ -8981,6 +9043,53 @@ mover_cursor:
     jsr ranura_pintar           ; se despinta el cursor de donde estaba
     lda titulo_sel
     jmp ranura_pintar           ; y se pinta donde va
+.endproc
+
+; Repone lo que la pantalla de ranuras le pisó al mapa, y nada más. Es para el
+; save point, que la abre con el juego andando; el título no la necesita porque
+; al salir carga el mapa entero.
+;
+; Qué pisó, en palabras de VRAM: los tiles en RANURA_VRAM y el tilemap en
+; RANURA_MAP, que están elegidos para caer adentro del banco de tiles de BG1
+; **en los cuatro repartos** de `vram_layout` —el conversor lo comprueba—. Los
+; sprites, la capa de encima, la ventana y los dos tilemaps del mapa quedan
+; afuera. No era así con las direcciones del menú del título: en el reparto
+; ancho los sprites arrancan en $4000 y el tilemap en $4400 les caía encima,
+; que se vio como 267 pixeles en el héroe del mapa 73 con el grupo 11 —el del
+; bloque 0 se salvaba—. Y en CGRAM, la paleta 0: el color de fondo y la ventana
+; de mensaje, más los primeros colores del mapa. Los registros: BG2SC,
+; BG12NBA, TM y el scroll de BG2.
+;
+; Así que se vuelve a subir el banco de tiles con `load_map` —que además trae
+; la CGRAM de abajo y la del mapa, y el dibujo de la animación que toca—, se
+; tiñe de nuevo porque lo que subió viene sin teñir, y los registros los pone
+; `ppu_init` más el BG12NBA del mapa. Es un subconjunto de
+; `cargar_mapa_sin_eventos`, elegido a mano: lo que falta de ahí es estado
+; —eventos, rutas, poses, la cola de VRAM— y reponerlo reiniciaría el juego.
+;
+; La pantalla se apaga a mano y **no se vuelve a prender acá**: `flush_video`
+; escribe `brillo` en el vblank que viene, y así el mapa aparece en un cuadro
+; entero y no a mitad de uno. Se llega apenas empezado un vblank —la pantalla
+; de ranuras sale justo después de su `read_pad`—, así que el apagado también
+; cae en un borde de cuadro. Medido: se ven **dos** cuadros negros y después el
+; mapa, porque los 30 KB de `load_map` no entran en un vblank y ese tick dura
+; dos cuadros —`cuadros_perdidos` cuenta uno—. En RM2k cerrar la escena lleva
+; una transición, así que no desentona.
+.proc volver_al_mapa
+.a8
+.i16
+    lda #$80
+    sta INIDISP
+    jsr ppu_init
+    ldx mapa_ofs
+    lda mapa_tabla + M_BG12NBA_VALUE, x
+    sta BG12NBA
+    jsr load_map
+    jsr aplicar_tinte
+    stz destello_listo          ; `pal_buf` era de antes; si el destello sigue,
+                                ; el cuadro que viene lo vuelve a armar
+    jsr subir_tinte
+    rts
 .endproc
 
 ; --- los eventos quietos que animan igual ---------------------------------

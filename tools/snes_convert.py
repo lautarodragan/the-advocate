@@ -1423,10 +1423,30 @@ LAYOUT_VENTANA_FONDO = {"sprites": (0x0000, 256), "tiles": (0x1000, 480),
 # la pantalla mostraría un número de ranuras y la SRAM tendría otro.
 RANURAS = 4
 
-# Dónde vive el tilemap de la pantalla de ranuras y del menú del título, en
-# palabras. Las dos comparten dirección porque nunca se ven a la vez, y el mismo
-# número está en el `.inc` como TITULO_MENU_MAP.
-TITULO_MENU_MAP = 0x4400
+# Dónde viven, en palabras, el tilemap y los tiles de la pantalla de ranuras.
+# Los mismos números están en el `.inc` como RANURA_MAP y RANURA_VRAM.
+#
+# **No comparten con el menú del título**, aunque hasta el 2026-09-10 lo
+# hacían: el save point abre esta pantalla con un mapa cargado y al cerrarla
+# hay que reponer lo que pisó, y eso es barato sólo si lo que pisó es el banco
+# de tiles de BG1, que `load_map` vuelve a subir entero. Las direcciones del
+# menú —$4400 y $5000— caen en los sprites de LAYOUT_ANCHO, que arrancan en
+# $4000: los NPCs volvían del menú con las poses rotas y el héroe también si
+# no era el del bloque 0. Las de acá están en la intersección del banco de BG1
+# de los cuatro repartos, que es $2000..$4000:
+#
+#   LAYOUT_ANCHO          $0000..$4000
+#   LAYOUT_FONDO          $0000..$5000
+#   LAYOUT_VENTANA        $2000..$5800
+#   LAYOUT_VENTANA_FONDO  $1000..$4C00
+#
+# La base de tiles de un BG va de a 4096 palabras y el tilemap de a 1024: $3000
+# para los 93 tiles —terminan en $35D0— y $2000 para el tilemap. La pantalla de
+# título los pisa —su imagen llega a $3E00— y no importa: al volver de las
+# ranuras el título se sube entero. `_controlar_ranuras` lo comprueba contra
+# los repartos de verdad, para que mover uno no deje esto escrito mal.
+RANURA_MAP = 0x2000
+RANURA_VRAM = 0x3000
 
 VRAM_MAP = 0x5800
 VRAM_ABOVE_MAP = 0x7800
@@ -1464,6 +1484,29 @@ def vram_layout(tiles, sprites=0, con_ventana=False):
         "este mapa no puede llevar ventana de mensaje: gasta %d tiles de fondo "
         "y %d de sprite, y no hay reparto que le deje 8 KB de tiles más 2 KB de "
         "tilemap a la ventana" % (tiles, sprites))
+
+
+def _controlar_ranuras(ranura_tiles):
+    """Que la pantalla de ranuras caiga en el banco de BG1 de los cuatro repartos.
+
+    Es lo que hace que `volver_al_mapa` pueda reponer el mapa con `load_map` y
+    nada más; ver el comentario de RANURA_MAP.
+    """
+    fin_tiles = RANURA_VRAM + ranura_tiles * 16
+    fin_map = RANURA_MAP + 32 * 32
+    for nombre, layout in (("ANCHO", LAYOUT_ANCHO), ("FONDO", LAYOUT_FONDO),
+                           ("VENTANA", LAYOUT_VENTANA),
+                           ("VENTANA_FONDO", LAYOUT_VENTANA_FONDO)):
+        base, cuantos = layout["tiles"]
+        tope = base + cuantos * (BYTES_PER_TILE // 2)
+        for que, desde, hasta in (("los tiles", RANURA_VRAM, fin_tiles),
+                                  ("el tilemap", RANURA_MAP, fin_map)):
+            if desde < base or hasta > tope:
+                raise SystemExit(
+                    "la pantalla de ranuras pone %s en $%04X..$%04X y el "
+                    "banco de BG1 de LAYOUT_%s es $%04X..$%04X: al volver del "
+                    "menú `load_map` no lo repondría"
+                    % (que, desde, hasta, nombre, base, tope))
 
 
 # La ventana de mensaje, partida en dos: lo que la ROM lleva hecho y lo que
@@ -2367,8 +2410,14 @@ def datos_del_mapa(mapa, numero, indice_global, materiales):
 
 
 def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
-         ventana=None, titulo=None):
-    """El .inc que arma w65.py junto con main.s."""
+         ventana=None, titulo=None, ranuras=None):
+    """El .inc que arma w65.py junto con main.s.
+
+    `titulo` es la pantalla de título —la imagen y su menú— y puede faltar;
+    `ranuras` es la pantalla de ranuras y **va siempre**: la abre el save point
+    desde adentro del juego, tenga la ROM título o no. Ver `pantalla_ranuras`
+    en titulo.py.
+    """
     for numero, mapa in enumerate(mapas):
         layout = mapa["layout"]
         for cuantos, nombre in (
@@ -2590,8 +2639,14 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "TITULO_MENU_N     = %d\n"
         "; La pantalla de ranuras, que usan las dos puntas: 'Resume the Story'\n"
         "; y el save point. Es una pantalla propia —no una capa encima del\n"
-        "; título— así que se sube entera al entrar y comparte la VRAM del\n"
-        "; menú: cuando una se ve, la otra no.\n"
+        "; título— así que se sube entera al entrar. **Va en toda ROM**, con\n"
+        "; título o sin él: el save point la abre desde adentro del juego, y\n"
+        "; por eso sus direcciones de VRAM son suyas y no las del menú: caen\n"
+        "; en el banco de tiles de BG1 de los cuatro repartos, que es lo que\n"
+        "; `volver_al_mapa` repone con `load_map`. Ver RANURA_MAP en el\n"
+        "; conversor.\n"
+        "RANURA_VRAM       = $%04X\n"
+        "RANURA_MAP        = $%04X\n"
         ";\n"
         "; Los bloques de celdas: la cabecera tiene dos variantes —cargar y\n"
         "; guardar— y cada ranura cuatro —vacía o llena, con cursor o sin él—.\n"
@@ -2670,8 +2725,9 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            titulo_mod.MENU_CGRAM,
            0 if titulo is None else len(titulo["menu_tiles"]),
            0 if titulo is None else len(titulo["menu_tilemaps"]),
-           0 if titulo is None else len(titulo["ranura_filas"]),
-           0 if titulo is None else len(titulo["ranura_tiles"]),
+           RANURA_VRAM, RANURA_MAP,
+           len(ranuras["filas"]),
+           len(ranuras["tiles"]),
            titulo_mod.CABECERA_Y // titulo_mod.CELL,
            titulo_mod.CABECERA_FILAS,
            titulo_mod.CABECERA_FILAS * titulo_mod.COLS,
@@ -2810,10 +2866,6 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             handle.write(bloque("titulo_celdas", b"\x00") + "\n")
             handle.write(bloque("titulo_menu_tiles", b"\x00") + "\n")
             handle.write(bloque("titulo_menu_celdas", b"\x00") + "\n")
-            handle.write(bloque("ranura_tiles", b"\x00") + "\n")
-            handle.write(bloque("ranura_cab_0", b"\x00") + "\n")
-            bloques_ranura = ["ranura_cab_0"]
-            handle.write(bloque("ranura_cgram", b"\x00") + "\n")
         else:
             datos = bytearray()
             for celda in titulo["tiles"]:
@@ -2842,54 +2894,6 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                     plano += entry(indice, False, False,
                                    PRIORITY_ABOVE).to_bytes(2, "little")
             handle.write(bloque("titulo_menu_celdas", bytes(plano)) + "\n")
-
-            # La pantalla de ranuras. Su banco de tiles es propio: comparte la
-            # dirección de VRAM con el del menú, pero no los tiles, porque las
-            # dos pantallas se suben enteras cada vez que se entra a una.
-            datos = bytearray()
-            for celda in titulo["ranura_tiles"]:
-                datos += pack_tile(celda, planes=4)
-            handle.write(bloque("ranura_tiles", bytes(datos)) + "\n")
-
-            def celdas_asm(bloques):
-                plano = bytearray()
-                for celdas in bloques:
-                    for indice in celdas:
-                        plano += entry(indice, False, False).to_bytes(
-                            2, "little")
-                return bytes(plano)
-
-            # Cada bloque de celdas va con etiqueta propia y se nombra por una
-            # tabla de punteros, igual que los temas de música. Es más ROM que
-            # calcular el desplazamiento con corrimientos —tres tablas de un
-            # byte por bloque— y a cambio la ROM no tiene que multiplicar por
-            # 96 ni por 192 en ningún lado. Esa multiplicación estaría escrita
-            # acá y allá, que es exactamente la forma de error que este repo ya
-            # pagó tres veces.
-            #
-            # El orden: primero las dos cabeceras —cargar y guardar— y después,
-            # por ranura, las cuatro variantes como llena * 2 + cursor.
-            bloques_ranura = []
-            for modo, celdas in enumerate(titulo["ranura_cabeceras"]):
-                nombre = "ranura_cab_%d" % modo
-                handle.write(bloque(nombre, celdas_asm([celdas])) + "\n")
-                bloques_ranura.append(nombre)
-            for numero, fila in enumerate(titulo["ranura_filas"]):
-                for llena in (0, 1):
-                    for cursor in (0, 1):
-                        nombre = "ranura_%d_%d%d" % (numero, llena, cursor)
-                        handle.write(
-                            bloque(nombre, celdas_asm([fila[llena][cursor]]))
-                            + "\n")
-                        bloques_ranura.append(nombre)
-            # Las tablas que los nombran **no van acá**: la ROM las lee con
-            # `lda ranura_bloque_lo, x`, que direcciona el banco de datos, así
-            # que tienen que vivir en el banco 0 junto con el código. Se emiten
-            # más abajo, en el segmento TABLAS.
-            handle.write(bloque("ranura_cgram",
-                                b"".join(cgram_word(c).to_bytes(2, "little")
-                                         for c in titulo["ranura_paleta"]))
-                         + "\n")
             # El tilemap es de 32x32 y la imagen ocupa 32x28: las cuatro filas
             # que sobran quedan en el tile 0, que es negro entero. Sin
             # rellenarlas el PPU mostraría ahí lo que hubiera quedado en la
@@ -2902,6 +2906,67 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                     plano += entry(indice, False, False).to_bytes(2, "little")
             handle.write(bloque("titulo_celdas", bytes(plano)) + "\n")
 
+        # La pantalla de ranuras, que **va en toda ROM** y no sólo en las que
+        # llevan título: la abre el save point desde adentro del juego. Hasta
+        # el 2026-09-10 salía sólo con `--con-titulo` y sin él quedaba un byte
+        # de relleno con `RANURA_TILES` en cero; y un DMA de "cero bytes" son
+        # 65536, así que abrirla desde una ROM sin título llenaba la VRAM de
+        # basura. Es la "pantalla negra con basura arriba" que ESTADO.md
+        # describía como un misterio del contexto del intérprete.
+        #
+        # Su banco de tiles es propio: comparte la dirección de VRAM con el del
+        # menú del título, pero no los tiles, porque las dos pantallas se suben
+        # enteras cada vez que se entra a una.
+        handle.write("\n; --- la pantalla de ranuras ---\n")
+        datos = bytearray()
+        for celda in ranuras["tiles"]:
+            datos += pack_tile(celda, planes=4)
+        handle.write(bloque("ranura_tiles", bytes(datos)) + "\n")
+
+        def celdas_asm(bloques):
+            plano = bytearray()
+            for celdas in bloques:
+                for indice in celdas:
+                    plano += entry(indice, False, False).to_bytes(2, "little")
+            return bytes(plano)
+
+        # Cada bloque de celdas va con etiqueta propia y se nombra por una
+        # tabla de punteros, igual que los temas de música. Es más ROM que
+        # calcular el desplazamiento con corrimientos —tres tablas de un byte
+        # por bloque— y a cambio la ROM no tiene que multiplicar por 96 ni por
+        # 192 en ningún lado. Esa multiplicación estaría escrita acá y allá,
+        # que es exactamente la forma de error que este repo ya pagó tres
+        # veces.
+        #
+        # El orden: primero las dos cabeceras —cargar y guardar— y después, por
+        # ranura, las cuatro variantes como llena * 2 + cursor.
+        bloques_ranura = []
+        for modo, celdas in enumerate(ranuras["cabeceras"]):
+            nombre = "ranura_cab_%d" % modo
+            handle.write(bloque(nombre, celdas_asm([celdas])) + "\n")
+            bloques_ranura.append(nombre)
+        for numero, fila in enumerate(ranuras["filas"]):
+            for llena in (0, 1):
+                for cursor in (0, 1):
+                    nombre = "ranura_%d_%d%d" % (numero, llena, cursor)
+                    handle.write(
+                        bloque(nombre, celdas_asm([fila[llena][cursor]]))
+                        + "\n")
+                    bloques_ranura.append(nombre)
+        # Las tablas que los nombran **no van acá**: la ROM las lee con
+        # `lda ranura_bloque_lo, x`, que direcciona el banco de datos, así que
+        # tienen que vivir en el banco 0 junto con el código. Se emiten más
+        # abajo, en el segmento TABLAS.
+        #
+        # La paleta va rellena hasta las TITULO_MENU_CGRAM entradas, que es lo
+        # que la ROM sube de una vez: si el texto usa menos colores, el DMA
+        # leería lo que siga en el cartucho.
+        colores = list(ranuras["paleta"])
+        colores += [(0, 0, 0)] * (titulo_mod.MENU_CGRAM - len(colores))
+        handle.write(bloque("ranura_cgram",
+                            b"".join(cgram_word(c).to_bytes(2, "little")
+                                     for c in colores)) + "\n")
+
         handle.write('\n.segment "TABLAS"\n')
         # Los bloques de celdas de la pantalla de ranuras se nombran por
         # punteros, y las tres tablas van en el banco 0 porque la ROM las lee
@@ -2913,7 +2978,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                          % (campo, ", ".join(prefijo + e
                                              for e in bloques_ranura)))
         handle.write("ranura_vram:\n    .word %s\n\n" % ", ".join(
-            str(TITULO_MENU_MAP
+            str(RANURA_MAP
                 + (titulo_mod.RANURA_Y
                    + n * titulo_mod.RANURA_SALTO) // titulo_mod.CELL * 32)
             for n in range(RANURAS)))
@@ -3861,6 +3926,25 @@ def main():
                  sum(1 for w in ventana_datos["cram"] if w),
                  len(ventana_datos["fuente"]), len(mensajes.textos),
                  len(ventana_datos["mensajes"])))
+    # La pantalla de ranuras va en toda ROM: la abre el save point desde
+    # adentro del juego, y "Resume the Story" desde el título cuando lo hay.
+    # Se dibuja con la misma fuente y la misma skin que la ventana de mensaje,
+    # pero no depende de `--con-ventana`: ese flag es un presupuesto de VRAM
+    # del mapa, y esta pantalla vive en la VRAM del título, donde no hay mapa.
+    import ventana as ventana_mod
+    skin = ventana_mod.skin(args.game_dir, renderer.database.system_name)
+    ranura_tiles, ranura_paleta, ranura_cabs, ranura_filas = \
+        titulo_mod.pantalla_ranuras(skin, renderer.database, RANURAS,
+                                    renderer.database.font_id)
+    ranuras_datos = {"tiles": ranura_tiles, "paleta": ranura_paleta,
+                     "cabeceras": ranura_cabs, "filas": ranura_filas}
+    _controlar_ranuras(len(ranura_tiles))
+    print("  pantalla de ranuras: %d, %d tiles de 4bpp (%d B) + %d colores, "
+          "%d B de celdas"
+          % (RANURAS, len(ranura_tiles), len(ranura_tiles) * 32,
+             len(ranura_paleta),
+             (len(ranura_cabs) * len(ranura_cabs[0])
+              + RANURAS * 4 * len(ranura_filas[0][0][0])) * 2))
     titulo_datos = None
     if args.con_titulo:
         from PIL import Image
@@ -3868,35 +3952,20 @@ def main():
         imagen = Image.open(os.path.join(args.game_dir, "Title",
                                          nombre + ".png"))
         tiles, paleta, tilemap = titulo_mod.convertir(imagen)
-        import ventana as ventana_mod
-        skin = ventana_mod.skin(args.game_dir, renderer.database.system_name)
         textos = titulo_mod.opciones(renderer.database)
         menu_tiles, menu_paleta, menu_mapas = titulo_mod.menu(
             skin, textos, renderer.database.font_id)
-        ranura_tiles, ranura_paleta, ranura_cabs, ranura_filas = \
-            titulo_mod.pantalla_ranuras(skin, renderer.database, RANURAS,
-                                        renderer.database.font_id)
         titulo_datos = {"tiles": tiles, "paleta": paleta, "tilemap": tilemap,
                         "menu_tiles": menu_tiles, "menu_paleta": menu_paleta,
-                        "menu_tilemaps": menu_mapas,
-                        "ranura_tiles": ranura_tiles,
-                        "ranura_paleta": ranura_paleta,
-                        "ranura_cabeceras": ranura_cabs,
-                        "ranura_filas": ranura_filas}
+                        "menu_tilemaps": menu_mapas}
         print("  pantalla de título %r: %d tiles de 8bpp (%d B) + %d colores, "
               "%d B de tilemap" % (nombre, len(tiles), len(tiles) * 64,
                                    len(paleta), 32 * 32 * 2))
         print("    menú (%s): %d tiles de 4bpp (%d B) + %d colores, %d tilemap(s)"
               % (", ".join(repr(t) for t in textos), len(menu_tiles),
                  len(menu_tiles) * 32, len(menu_paleta), len(menu_mapas)))
-        print("    ranuras: %d, %d tiles de 4bpp (%d B) + %d colores, "
-              "%d B de celdas"
-              % (RANURAS, len(ranura_tiles), len(ranura_tiles) * 32,
-                 len(ranura_paleta),
-                 (len(ranura_cabs) * len(ranura_cabs[0])
-                  + RANURAS * 4 * len(ranura_filas[0][0][0])) * 2))
     informe = emit(args.output, mapas, args.inicial, args.heroe_encima, grupo,
-                   ventana_datos, titulo_datos)
+                   ventana_datos, titulo_datos, ranuras_datos)
     print("%d mapa(s) -> %s, arranca en el %d (mapa %d)"
           % (len(mapas), args.output, args.inicial, mapas[args.inicial]["id"]))
     if informe:

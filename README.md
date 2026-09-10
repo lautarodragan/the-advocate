@@ -551,10 +551,53 @@ mapa 8 se queda una columna atrás y son 76 pixeles. Lo cobra
 la celda (9,55) lo deja en pantalla y los cuatro cuadros caen en tres columnas
 distintas del ciclo.
 
-**Guardar es una sola ranura y no hay menú.** Es el alcance que acordamos: el
-evento guarda y la página sigue de largo, y al encender la consola la partida
-vuelve si hay una. El cartucho pasó a declarar SRAM con batería en la cabecera
-—`$02` y 8 KB— y en el EverDrive eso es una pila de verdad.
+**Guardar abre la pantalla de ranuras, como en RM2k.** `OpenSaveMenu` apila
+la misma pantalla que "Resume the Story" abre desde el título, en modo guardar
+—"Save in which slot?", que es `save_game_message` del LDB—, con el cursor en
+la ranura que la partida está usando, que es el `latest_slot` de
+`Scene_File::Start` sin fechas. A elige y guarda ahí, B vuelve sin guardar, y
+no se pregunta si la ranura estaba ocupada porque `Scene_Save::Action` tampoco
+pregunta. El cartucho declara SRAM con batería en la cabecera —`$02` y 8 KB— y
+en el EverDrive eso es una pila de verdad. Empezó siendo una sola ranura sin
+menú, que fue el alcance de la primera vuelta.
+
+Tres cosas de cómo está hecho, porque las tres costaron un día:
+
+* **Bloquea adentro del intérprete y no cuesta ningún tick.** La pantalla corre
+  su propio lazo de cuadros desde `op_guardar`, igual que desde el título, y
+  `vueltas` no avanza mientras se ve. Es lo que hace RM2k: la escena apilada
+  para el reloj del mapa, y la página sigue por el comando siguiente cuando se
+  cierra. Por eso la referencia no modela nada —`OP_GUARDAR` ocupa su byte y no
+  cuesta un cuadro— y después de cerrar los dos lados van por el mismo tick,
+  tarde lo que tarde el jugador.
+* **Al cerrar se repone sólo lo que la pantalla pisó**, y no el mapa entero:
+  `volver_al_mapa` vuelve a subir el banco de tiles de BG1 con `load_map`, tiñe
+  de nuevo, y repone los registros con `ppu_init`. Llamar a `cargar_mapa`
+  reiniciaría los eventos, las rutas y las poses, que es justo lo que tiene que
+  sobrevivir. Para que eso alcance, **la pantalla vive en `$2000`..`$3600` de
+  la VRAM**, que es la intersección del banco de BG1 de los cuatro repartos de
+  `vram_layout`, y el conversor lo comprueba. Con las direcciones del menú del
+  título —`$4400` y `$5000`— pisaba los sprites del reparto ancho, que arrancan
+  en `$4000`: 267 pixeles en el héroe del mapa 73, sólo con el grupo 11, porque
+  el líder del grupo 10 cae en el bloque 0 y se salvaba. Cuesta dos cuadros
+  negros al volver: 30 KB de DMA no entran en un vblank.
+* **La pantalla va en toda ROM**, con título o sin él. Hasta el 2026-09-10 salía
+  sólo con `--con-titulo` y sin él era un byte de relleno con `RANURA_TILES` en
+  cero, y un DMA de cero bytes son 65536: abrirla desde una ROM sin título
+  llenaba la VRAM de basura. Ésa era la "pantalla negra con basura arriba" del
+  primer intento, que ESTADO.md atribuía al contexto del intérprete. Y el
+  testigo que "entraba 85 veces" leía RAM sin inicializar: snes9x la llena de
+  `$55`, que es 85.
+
+Lo cobra `just snes-guardar` en seis cuadros, todos en cero: la pantalla al
+abrirse y con el cursor dos ranuras abajo, contra `titulo.py --modo 1`; y el
+mapa de vuelta después de cancelar y después de elegir, en dos ticks, contra la
+referencia. Los toques de adentro de la pantalla van con `--toques-hardware`,
+que cuenta cuadros de hardware desde el arranque: un toque por tick no puede
+caer donde no hay ticks. Y lo que queda en la SRAM lo mira
+`pruebas/test_guardar.py`, que ahora **atraviesa la pantalla** —baja el cursor
+y aprieta A— en vez de escribir `ranura` a mano; `menu_abierto` es el byte que
+la ROM le deja para saber cuándo, porque esperar por ticks ahí se colgaría.
 
 Qué se guarda lo dice **una tabla y nada más**, `partida_tabla` en `main.s`:
 pares de (dirección en la WRAM, cuántos bytes). Guardar y cargar la recorren los
@@ -581,12 +624,12 @@ Una ranura vale si tiene la magia `ABLS` y la suma de sus bytes cuadra. Las dos
 cosas hacen falta: la SRAM sin escribir trae basura —snes9x la llena de $60— y
 una ROM de prueba que la tomara por buena cargaría una partida inventada.
 
-**Esto no lo puede cubrir la tanda de pixeles**, porque guardar no cambia un
-pixel. Lo cubre `pruebas/test_guardar.py`, que hace lo único que prueba algo:
-va a otro mapa, prende un switch, guarda, **resetea la consola de verdad** y
-mira dónde arranca. La SRAM sobrevive al reset y la WRAM no, así que si la
-partida vuelve es porque salió del cartucho. Con `guardar_partida` cortado a
-propósito, tres de sus cuatro pruebas dan rojo.
+**Lo que se escribe no lo puede cubrir la tanda de pixeles**, porque guardar
+no cambia un pixel. Lo cubre `pruebas/test_guardar.py`, que hace lo único que
+prueba algo: va a otro mapa, prende un switch, guarda, **resetea la consola de
+verdad** y mira dónde arranca. La SRAM sobrevive al reset y la WRAM no, así que
+si la partida vuelve es porque salió del cartucho. Con `guardar_partida`
+cortado a propósito, tres de sus cuatro pruebas dan rojo.
 
 ### Varios mapas en la ROM
 

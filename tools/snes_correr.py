@@ -248,6 +248,14 @@ def main():
                              "hace falta para caminar un menú, que mira "
                              "flancos y no estados, y que por eso no se puede "
                              "recorrer con --teclas")
+    parser.add_argument("--toques-hardware", nargs="*", metavar="BOTON:CUADRO",
+                        help="como --toques, pero el cuadro se cuenta en "
+                             "cuadros de hardware desde --arranque y no en "
+                             "ticks. Es para apretar adentro de una pantalla "
+                             "que congela el reloj del juego —la de ranuras "
+                             "abierta por el save point— mientras la captura "
+                             "sigue esperando un tick: los toques por tick no "
+                             "pueden caer ahí, porque ahí no hay ticks")
     parser.add_argument("--sin-contador", action="store_true",
                         help="cuenta cuadros de hardware en vez de leer\n"
                              "`vueltas` de la WRAM. Hace falta para la\n"
@@ -262,34 +270,47 @@ def main():
                              "rápido")
     args = parser.parse_args()
 
-    if args.teclas is not None or args.toques:
+    # Los toques: un botón apretado en un cuadro y soltado en el siguiente. Es
+    # lo que hace falta para caminar un menú —bajar dos veces y elegir— y no lo
+    # cubre `--teclas`, que sostiene: los menús miran **flancos**, así que
+    # sostener abajo mueve el cursor una sola vez.
+    #
+    # Los de `--toques-hardware` van en cuadros de hardware desde el arranque:
+    # `reloj.corridos` los cuenta. Es la única forma de apretar adentro de la
+    # pantalla de ranuras del save point, donde `vueltas` no avanza y por lo
+    # tanto un toque por tick no cae nunca. Valen en los dos caminos de abajo:
+    # con `--teclas`/`--toques`, y con `--apretar-a`, que es el de las escenas.
+    cuando, cuando_hw = {}, {}
+    for lista, donde, flag in ((args.toques, cuando, "--toques"),
+                               (args.toques_hardware, cuando_hw,
+                                "--toques-hardware")):
+        for toque in lista or ():
+            boton, _, cuadro = toque.partition(":")
+            if not cuadro.isdigit():
+                sys.exit("%s quiere BOTON:CUADRO, y vino %r" % (flag, toque))
+            donde.setdefault(int(cuadro), []).append(boton)
+
+    if args.teclas is not None or args.toques or args.toques_hardware:
         consola = Consola(args.rom, core=args.core)
         consola.correr(args.arranque)
         reloj = Reloj(consola, args.rom, not args.sin_contador)
         sostenidos = tuple(args.teclas or ())
-        # Los toques: un botón apretado en un cuadro y soltado en el siguiente.
-        # Es lo que hace falta para caminar un menú —bajar dos veces y elegir—
-        # y no lo cubre `--teclas`, que sostiene: los menús miran **flancos**,
-        # así que sostener abajo mueve el cursor una sola vez.
-        cuando = {}
-        for toque in args.toques or ():
-            boton, _, cuadro = toque.partition(":")
-            if not cuadro.isdigit():
-                sys.exit("--toques quiere BOTON:CUADRO, y vino %r" % toque)
-            cuando.setdefault(int(cuadro), []).append(boton)
 
         def antes(n):
-            consola.apretar(*(sostenidos + tuple(cuando.get(n, ()))))
+            consola.apretar(*(sostenidos + tuple(cuando.get(n, ()))
+                              + tuple(cuando_hw.get(reloj.corridos, ()))))
 
         if sostenidos:
             consola.apretar(*sostenidos)
-        reloj.avanzar(args.cuadros, antes if cuando else None)
+        reloj.avanzar(args.cuadros, antes if cuando or cuando_hw else None)
         consola.imagen().save(args.output)
-        print("captura -> %s: %s, %d cuadros (%d de arranque)"
+        print("captura -> %s: %s, %d cuadros (%d de arranque)%s"
               % (args.output,
-                 " ".join(sostenidos + tuple(args.toques or ()))
+                 " ".join(sostenidos + tuple(args.toques or ())
+                          + tuple(args.toques_hardware or ()))
                  or "sin apretar nada",
-                 args.arranque + args.cuadros, args.arranque))
+                 args.arranque + args.cuadros, args.arranque,
+                 cuadros_perdidos(consola, args.rom)))
         return
 
     # El número N es el cuadro en que la referencia cierra el mensaje **y lo
@@ -320,10 +341,11 @@ def main():
         quieto_desde, anterior = None, [None]
 
         def antes(n):
+            de_hardware = tuple(cuando_hw.get(reloj.corridos, ()))
             if n in presiones:
-                consola.apretar(*(apretados + ("a",)))
+                consola.apretar(*(apretados + ("a",) + de_hardware))
             else:
-                consola.apretar(*apretados)
+                consola.apretar(*(apretados + de_hardware))
 
         # El mismo tope que `Reloj.avanzar`, y por la misma razón: una ROM que
         # no llegue nunca al tick pedido tiene que fallar, no quedarse dando

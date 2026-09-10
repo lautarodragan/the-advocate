@@ -1033,13 +1033,28 @@ snes-hablar mapa="7" celda="3 7" switch="24" apretar="25" cuadros="20 60" arranq
 # (9,55) lo deja en pantalla, la ruta 0 no mueve a nadie, y los cuadros 20, 30,
 # 40 y 50 caen en tres columnas distintas del ciclo —a velocidad 3 cambia cada
 # diez—. Sin el `inc` de la fase en `animar_quietos` son 76 pixeles.
-snes-escena mapa="2" celda="4 54" ruta="12" dir="up" cuadros="60" arranque="115" nombre="escena" apretar="" switch="" mapas="":
+#
+# Y **usarlo**: `savepoint-guarda` arranca **parado encima** del evento 67, en
+# (9,56), y aprieta A en el tick 10. Encima y no enfrente: el save point está
+# en la capa de abajo, y a un evento de esa capa se le habla desde su celda
+# —`CheckEventTriggerHere`— y no desde la de al lado, que es sólo para los de
+# la misma capa. De frente, desde (9,55), la página no corre y el caso pasa en
+# vacío; medido con `menu_abierto`. Su página es `PlaySound`, `OpenSaveMenu`,
+# `ChangeSaveAccess`. La pantalla de ranuras se abre adentro del intérprete y
+# congela el reloj, así que `toques` la cierra con B por **cuadros de
+# hardware** —`--toques-hardware`, que es lo único que puede caer ahí— y de ahí
+# en más los dos lados van por el mismo tick. Es el caso que ESTADO.md pedía:
+# el save point de verdad y no la página de prueba de `snes-guardar`. No es
+# vacío: sin el B la ROM se queda en la pantalla y el arnés no llega al tick 60
+# —"la ROM no llegó al tick 60"—, verificado el 2026-09-10.
+snes-escena mapa="2" celda="4 54" ruta="12" dir="up" cuadros="60" arranque="115" nombre="escena" apretar="" switch="" mapas="" toques="":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
   apretar="{{apretar}}"
   switch="{{switch}}"
   mapas="{{mapas}}"
+  toques="{{toques}}"
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
       --inicio {{celda}} --con-ventana --ruta-de-prueba {{ruta}} \
       ${switch:+--switch $switch} ${mapas:+--mapas $mapas} \
@@ -1054,7 +1069,8 @@ snes-escena mapa="2" celda="4 54" ruta="12" dir="up" cuadros="60" arranque="115"
   for n in {{cuadros}}; do
     python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre-$n.png \
         --walk none --cuadros $n --arranque {{arranque}} \
-        ${apretar:+--apretar-a $apretar}
+        ${apretar:+--apretar-a $apretar} \
+        ${toques:+--toques-hardware $toques}
     python3 tools/snes_compare.py $pre-$n.png $pre-$n.esperado.png \
         --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
   done
@@ -1606,6 +1622,78 @@ snes-espera mapa="73" espera="120" antes="60" despues="400" nombre="espera":
         {{snes_pngs}}/esperado-{{nombre}}-$n.png \
         --saltar {{snes_pngs}}/saltar-{{nombre}}-$n.txt \
         -o {{snes_pngs}}/comparacion-{{nombre}}-$n.png
+  done
+
+# La pantalla de ranuras abierta por el save point —`OpenSaveMenu`— y el mapa
+# de vuelta al cerrarla. La página de prueba es la de `snes-espera` con
+# `--guardar-de-prueba`: espera, abre la pantalla, y después tiñe.
+#
+# Cuatro cuadros:
+#
+#   guardar             la pantalla como se abre, contra `titulo.py --modo 1`:
+#                       "Save in which slot?" y las cuatro ranuras vacías.
+#   guardar-2           el cursor dos ranuras más abajo: ejercita los DMA de
+#                       las dos filas desde adentro del intérprete, que es lo
+#                       que el 2026-09-10 "no se movía".
+#   guardar-vuelve      B cancela, y el cuadro `vuelve` del mapa contra la
+#                       referencia del mismo tick. Es el que cobra la
+#                       reposición de la VRAM y CGRAM —`volver_al_mapa`— y el
+#                       tinte que la página aplica justo después. Compara en
+#                       ticks: el reloj del juego no corre mientras la pantalla
+#                       se ve, así que después de cerrarla los dos lados van
+#                       por el mismo cuadro, como con `OpenSaveMenu` en RM2k.
+#   guardar-elige       lo mismo eligiendo la ranura 1 con A: la partida se
+#                       guarda y el mapa vuelve igual. Lo que quedó en la SRAM
+#                       lo mira `pruebas/test_guardar.py`, no esto.
+#
+# Los dos primeros van con `--sin-contador`, como `snes-titulo`: ahí no hay
+# tick que esperar. Los otros dos aprietan con `--toques-hardware`, que cuenta
+# cuadros de hardware desde el arranque, porque un toque por tick no puede caer
+# adentro de una pantalla que no cuenta ticks. La pantalla se abre en el cuadro
+# `espera`, y los toques van diez y pico después para no depender del cuadro
+# exacto.
+#
+# El mapa vuelve **dos cuadros negros después** de cerrar: reponer el banco de
+# tiles son 30 KB de DMA y no entran en un vblank, así que ese tick dura dos
+# cuadros —`cuadros_perdidos` lo cuenta— y la pantalla se enciende en el que
+# sigue. Por eso `vuelve` es 122 y no 121: el 121 sale negro. En RM2k el cierre
+# de la escena lleva una transición, así que no desentona.
+snes-guardar mapa="73" espera="120" vuelve="122 200" nombre="guardar":
+  #!/usr/bin/env bash
+  set -euo pipefail
+  mkdir -p {{snes_pngs}} {{snes_inc}}
+  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
+      --pagina-de-prueba {{espera}} 0 0 50 --guardar-de-prueba \
+      -o {{snes_inc}}/mapdata.inc
+  just snes-build
+  pre={{snes_pngs}}/{{nombre}}
+  abre=$(( {{espera}} + 10 ))
+  python3 tools/titulo.py -o $pre.esperado.png --ranuras 4 --modo 1
+  python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre.png \
+      --teclas --cuadros $abre --sin-contador
+  python3 tools/snes_compare.py $pre.png $pre.esperado.png \
+      -o $pre.comparacion.png
+  python3 tools/titulo.py -o $pre-2.esperado.png --ranuras 4 --modo 1 \
+      --elegida 2
+  python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre-2.png \
+      --toques down:$abre down:$(( abre + 4 )) --cuadros $(( abre + 10 )) \
+      --sin-contador
+  python3 tools/snes_compare.py $pre-2.png $pre-2.esperado.png \
+      -o $pre-2.comparacion.png
+  for n in {{vuelve}}; do
+    python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
+        --pagina-de-prueba {{espera}} 0 0 50 --guardar-de-prueba --cuadros $n \
+        --saltar $pre-vuelve-$n.saltar.txt -o $pre-vuelve-$n.esperado.png
+    python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} \
+        -o $pre-vuelve-$n.png --cuadros $n \
+        --toques-hardware down:$abre down:$(( abre + 4 )) b:$(( abre + 8 ))
+    python3 tools/snes_compare.py $pre-vuelve-$n.png $pre-vuelve-$n.esperado.png \
+        --saltar $pre-vuelve-$n.saltar.txt -o $pre-vuelve-$n.comparacion.png
+    python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} \
+        -o $pre-elige-$n.png --cuadros $n \
+        --toques-hardware down:$abre a:$(( abre + 4 ))
+    python3 tools/snes_compare.py $pre-elige-$n.png $pre-vuelve-$n.esperado.png \
+        --saltar $pre-vuelve-$n.saltar.txt -o $pre-elige-$n.comparacion.png
   done
 
 # El héroe a mitad de camino: se lo captura con N pixeles andados, en la pose

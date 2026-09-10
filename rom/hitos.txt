@@ -52,6 +52,8 @@ snes-grafico 6 "4 2 2 34 0 2 2" "nobodyhere 0" "22 12" "10 25 40 70" 115 invisib
 snes-pagina 121 10 grupo-121
 snes-pagina 74 21 ruta-74
 snes-espera
+# La pantalla de ranuras desde el save point, y el mapa de vuelta al cerrarla.
+snes-guardar
 snes-anclada
 snes-texto
 snes-ruta-evento
@@ -69,6 +71,9 @@ snes-cinematica 5 "3 6" "300 600 1200 1600 2500 2800 3300 3900" 115 manta 1 "212
 snes-escena 2 "4 54" 12 up "100 230 600 950" 115 puerta-izq "20 202 323 444 565"
 snes-escena 2 "36 74" 3 left "60 200 450 930 1300 1800" 115 pantalla "161 282 342 584 735 857 948 1008 1099 1159 1219 1430 1490 1732"
 snes-escena 8 "9 55" 0 down "20 30 40 50" 115 savepoint ""
+# El save point de verdad: parado encima del evento 67, A, la pantalla de
+# ranuras, y B por cuadros de hardware.
+snes-escena 8 "9 56" 14 down "60 200" 115 savepoint-guarda "10" "" "" "b:40"
 snes-pisar
 snes-escena 2 "7 76" "0 0 0 0" up "40 60 100" 115 bloqueo ""
 snes-escena 2 "7 74" 14 down "3 8 25 60 106 200" 115 droide ""

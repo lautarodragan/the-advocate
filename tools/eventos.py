@@ -31,8 +31,8 @@ TELEPORT = 10810
 TINT_SCREEN = 11030
 WAIT = 11410
 CHANGE_SAVE_ACCESS = 11930
-# Abrir el menú de guardar. Acá no hay menú: guarda en la única ranura que hay
-# y sigue, sin costar un cuadro. Ver `OP_GUARDAR`.
+# Abrir el menú de guardar: la pantalla de ranuras, que congela el juego
+# mientras se ve y no cuesta ningún tick. Ver `OP_GUARDAR`.
 OPEN_SAVE_MENU = 11910
 CHANGE_PARTY_MEMBERS = 10330
 PLAY_BGM = 11510
@@ -3727,13 +3727,18 @@ def ejecutar(codigo, estado, desde=0):
                 return (i + 8, espera, False)
             i += 8
         elif op == OP_GUARDAR:
-            # Guardar la partida en la SRAM del cartucho. De este lado no hay
-            # nada que guardar —la referencia es un modelo, no una partida— y
-            # tampoco nada que dibujar: lo que importa es que el opcode ocupe
-            # el mismo byte y no cueste un cuadro, para que los dos intérpretes
-            # sigan leyendo el mismo stream y en el mismo cuadro. Lo que la ROM
-            # escribe lo cubre `pruebas/test_guardar.py`, no la comparación de
-            # pixeles.
+            # La pantalla de ranuras, y guardar en la que se elija. De este
+            # lado no hay nada que guardar —la referencia es un modelo, no una
+            # partida— ni nada que dibujar: lo que importa es que el opcode
+            # ocupe el mismo byte y **no cueste ningún tick**, que es lo que
+            # hace RM2k: `OpenSaveMenu` apila una escena y el reloj del mapa
+            # no corre hasta que se cierra. En la ROM la pantalla bloquea
+            # adentro del intérprete y `vueltas` no avanza mientras se ve, así
+            # que en ticks los dos lados siguen leyendo el mismo stream en el
+            # mismo cuadro, tarde lo que tarde el jugador en elegir. Lo que la
+            # pantalla muestra lo cobra `just snes-guardar` contra
+            # `titulo.py --ranuras`, y lo que la ROM escribe,
+            # `pruebas/test_guardar.py`.
             i += 1
         elif op == OP_FUNDIR_BGM:
             # Lo mismo que OP_BGM: no se modela el audio, pero el opcode ocupa

@@ -19,8 +19,8 @@ Se escribe **mientras se trabaja**, no al final.
 **Los primeros diez minutos jugables**, que es lo que taro viene probando vuelta
 a vuelta en el emulador.
 
-Al 2026-09-10: `just snes-hitos-foto` son **97 casos, todos en verde** —el
-número 97 es la pantalla de título— y `just pruebas` son **48 en verde y 1
+Al 2026-09-10: `just snes-hitos-foto` son **99 casos, todos en verde** —los
+dos últimos son el menú de guardado, `snes-guardar` y `savepoint-guarda`— y `just pruebas` son **50 en verde y 1
 `xfail`**. El `xfail` no es adorno: es un defecto medido de guardar con la
 pantalla de título puesta, y está abajo. Ese mismo día la ROM corrió por primera vez en la **SNES de verdad**
 con el FX Pak, con el cartucho ya expandido a 1 MB, y anduvo. `demo-ciudad` se juega desde la apertura hasta la
@@ -55,9 +55,10 @@ archivos donde un merge mal hecho no se ve, y el cuello de botella es verificar
    agua están dibujadas iguales en los tres dibujos del ChipSet y lo único que
    se mueve son 9 tiles del grupo "animados", 400 pixeles.
 
-2. **El save point animado y guardando a disco: hecho.** Alcance acordado con
-   taro: **una sola ranura y sin menú** —guarda y listo, y al encender se carga
-   si hay partida—. El porqué largo está en `README.md`, "El save point".
+2. **El save point animado y guardando a disco: hecho.** El alcance de esa
+   vuelta fue **una sola ranura y sin menú**; desde el 2026-09-10 a la tarde
+   abre la pantalla de ranuras en modo guardar, como RM2k. El porqué largo
+   está en `README.md`, "El save point".
 
    La animación de un evento quieto sale del reloj del juego, porque no hay
    dónde guardarle un contador; y cuesta **doce tiles de sprite por evento**,
@@ -216,39 +217,27 @@ nivel todavía.
 
 **Lo que falta de esto:**
 
-* **El menú de guardado desde el save point**, que taro pidió el 2026-09-09 y
-  es lo único de la lista que quedó sin andar. Se intentó el 2026-09-10 y está
-  medido: llamar a `ranuras_pantalla` desde `op_guardar` dibuja una pantalla
-  negra con basura arriba, el cursor no se mueve —aunque el flanco de abajo
-  **sí** llega, se leyó `titulo_flancos` y vale `$04`— y un testigo dice que
-  **se entra 85 veces** en vez de una: la rutina vuelve enseguida y el
-  intérprete repite el comando.
+* **El menú de guardado desde el save point: hecho y verificado** el
+  2026-09-10 a la tarde. `op_guardar` abre `ranuras_pantalla` en modo 1,
+  bloquea adentro del intérprete sin gastar ticks —como `OpenSaveMenu` apila
+  su escena en RM2k—, guarda en la ranura elegida o vuelve con B, y
+  `volver_al_mapa` repone lo que la pantalla pisó. Lo cobran dos casos nuevos
+  de la tanda, `snes-guardar` —seis cuadros: la pantalla, el cursor, y el mapa
+  de vuelta tras cancelar y tras elegir— y `savepoint-guarda`, que es **el
+  save point de verdad** del mapa 8; y `test_guardar.py`, que ahora atraviesa
+  la pantalla con el cursor en vez de escribir `ranura`. Los detalles están en
+  "El menú de guardado", más abajo, y en el README.
 
-  **Ojo con el 85, que puede ser una medición mal leída.** Se hicieron dos
-  experimentos: uno reseteaba el contador al entrar a la pantalla y contaba
-  llamadas a `ranura_pintar`; el otro no lo reseteaba y contaba entradas a
-  `ranuras_pantalla`. **Los dos dieron 85**, que es demasiada coincidencia para
-  creerle a ninguno de los dos. La lectura más probable es que la página de
-  prueba —que es automática y vuelve a correr— repita el comando, y que
-  entonces lo único roto sea **el dibujo** y no el flujo. Antes de seguir por
-  "la rutina vuelve enseguida", **medir de nuevo y bien**: resetear el contador
-  al entrar en los dos casos, y contar las dos cosas por separado.
+  Lo que el intento de la mañana había medido estaba **mal leído dos veces**:
+  el "85" era `$55`, la basura con que snes9x llena la RAM, leída de un testigo
+  que nadie inicializaba; y la "pantalla negra con basura" era que **sin
+  `--con-titulo` el conversor no emitía la pantalla de ranuras** —un byte de
+  relleno y `RANURA_TILES` en cero, o sea un DMA de 64 KB—. No era el contexto
+  del intérprete, ni el canal 0 de DMA, ni nada de lo que se había sospechado.
 
-  Lo que sí se descartó, y no conviene volver a probar: **no es el modo** —la
-  misma rutina con modo 1 llamada desde el título dibuja "Save in which slot?"
-  perfecto, está la captura—, **no es el banco de datos** ni **el tamaño de los
-  registros**, que quedaron puestos explícitamente al entrar y no cambiaron
-  nada.
+* **Confirmación de pisar una ranura ocupada: no va.** `Scene_Save::Action`
+  guarda y saca la escena sin preguntar; hacerlo acá sería inventar.
 
-  **Por dónde tirar**: si el problema es el dibujo, el sospechoso es lo que
-  `flush_video` deja programado en el **canal 0 de DMA** justo antes de que
-  corra el intérprete, que es el mismo canal que usa toda esta pantalla. Desde
-  el título ese canal está libre; desde el save point, no necesariamente.
-
-  Mientras tanto el save point guarda en la ranura de la que se cargó, o en la
-  primera si la partida es nueva.
-
-* **Confirmación de pisar una ranura ocupada**, que va con lo anterior.
 * **La variante "llena" no la cubre la tanda de pixeles**: la SRAM del emulador
   arranca virgen y no hay forma de precargarla desde `snes_correr.py`. La
   cubren las pruebas de estado, que sí pueden guardar antes de mirar.
@@ -290,30 +279,80 @@ nivel todavía.
   de la próxima vuelta**, antes que las cuatro ranuras. Una pantalla de ranuras
   sobre una carga que no carga no sirve de nada.
 
+### El menú de guardado (2026-09-10, a la tarde)
+
+Lo que hay que saber para tocarlo, además de lo del README:
+
+* **Bloquea adentro del intérprete y `vueltas` no avanza.** Es lo mismo que la
+  pantalla de título, y por eso la referencia no cambia: `OP_GUARDAR` cuesta
+  cero ticks de los dos lados. El precio lo paga el arnés: adentro de la
+  pantalla no hay tick en el que caer, y de ahí `--toques-hardware` en
+  `snes_correr.py` —cuadros de hardware desde el arranque, en los dos caminos,
+  el de `--toques` y el de `--apretar-a`— y `menu_abierto` en la página cero,
+  que es un byte para que `consola.py` sepa cuándo apretar. Como
+  `cuadros_perdidos`, la ROM no lo lee.
+* **Las direcciones de VRAM son de la pantalla y no del menú del título**:
+  `RANURA_MAP` en `$2000` y `RANURA_VRAM` en `$3000`, dentro del banco de BG1
+  de los cuatro repartos, y el conversor lo comprueba en
+  `_controlar_ranuras`. Es lo que hace que `volver_al_mapa` alcance con
+  `load_map` más `ppu_init` y el tinte, sin `cargar_mapa` —que reiniciaría
+  eventos, rutas y poses—. Con las del menú, `$4400` pisaba los sprites del
+  reparto ancho: 267 pixeles en el héroe del mapa 73, y **sólo con el grupo
+  11**; el grupo 10 tiene al líder en el bloque 0 y pasaba. Medido con el
+  `GRUPO` del justfile, que es 11, y no con el 10 del scratch, que es donde
+  se vio primero un cero falso.
+* **Cuesta dos cuadros negros al volver**, porque `load_map` son 30 KB de DMA.
+  `cuadros_perdidos` cuenta uno —`cerrar` pone `nmi_visto` al día para que no
+  cuente los del jugador eligiendo—.
+* **El cursor arranca en la ranura en uso** en modo guardar: `latest_slot` sin
+  fechas. Y `ranuras_pantalla` deja `ranura` como estaba al salir, porque
+  pintar las filas la pisa; sin eso cancelar dejaba "cargada" la última fila.
+* **Un evento de la capa de abajo se dispara parado encima, no de frente.**
+  Es `CheckEventTriggerHere` contra `CheckEventTriggerThere`, y el save point
+  es de esa capa: `savepoint-guarda` arranca en (9,56) y no en (9,55). De
+  frente el caso daba cero **en vacío**, lo dijo `menu_abierto`. Es la trampa
+  de siempre y la receta lo deja escrito.
+* **Lo que no cubre nada todavía**: la variante "llena" de la fila en la
+  pantalla de guardar, en pixeles —la SRAM del emulador arranca virgen desde
+  `snes_correr.py`—; y qué queda en la SRAM después de `savepoint-guarda`,
+  que es el caso del save point real y sólo mira pixeles.
+
 ### Lo próximo, si no se decide otra cosa
 
 Al 2026-09-10, en orden. Los tres primeros son deuda de esta vuelta y están
 acotados; del cuarto para abajo es lo de siempre.
 
-1. **El menú de guardado desde el save point.** Es lo único que taro pidió el
-   2026-09-09 y quedó sin andar. Está medido, con la advertencia de que uno de
-   los números medidos puede estar mal leído y hay que rehacerlo; ver "La
-   pantalla de título", más arriba.
+1. **El menú de guardado desde el save point: hecho** el 2026-09-10 a la
+   tarde. Queda el renglón para que nadie lo busque.
 
-2. **El `xfail` de guardar tras cambiar de mapa.** Todo indica que es un
-   artefacto de la página de prueba y no del juego —los switches quedan
-   idénticos, la pantalla también, y taro guardó jugando después de caminar—
-   pero está sin confirmar. Confirmarlo pide un caso que use el save point de
-   verdad.
+2. **El `xfail` de guardar tras cambiar de mapa.** Sigue siendo un artefacto de
+   la página de prueba y sigue sin confirmar por ese camino, pero ahora hay dos
+   datos más. El caso con el save point de verdad **existe** —`savepoint-guarda`
+   en la tanda— y da cero, así que el juego guarda desde el mapa 8 después de
+   haber cambiado de mapa; lo que no se ha mirado es la SRAM después de ese
+   caso. Y se encontró un primo del mismo vecindario, también de la página y
+   no del juego: la página prende `SWITCH_DE_PRUEBA` al arrancar, la partida
+   se guarda con él puesto, y **al cargarla gana la página que la apaga**, así
+   que después de "Resume the Story" la automática no corre nunca. Está
+   resuelto desde afuera con `Partida.apagar`, y escrito en
+   `test_el_cursor_de_guardar_arranca_en_la_ranura_en_uso`. Vale la pena
+   mirar si el `xfail` es lo mismo con otra cara —el doble `cargar_mapa` del
+   título contra el refresco de páginas— antes de tocar la ROM.
 
 3. **El tile testigo del mapa 4**, que propuso taro: que un mapa vacío no se
    confunda con una pantalla rota. Por el conversor y bajo un flag, no editando
    `Map0004.lmu`. Ver la sección propia, más abajo.
 
-4. **Probarlo en hardware.** `demo-ciudad` y `demo-titulo` están rearmadas.
+4. **Probarlo en hardware.** `demo-ciudad` y `demo-titulo` están rearmadas
+   el 2026-09-10 a la tarde, con el menú de guardado: al hablarle al save
+   point se abre "Save in which slot?", se elige con A o se vuelve con B.
    **La partida guardada de antes no sirve**: `PARTIDA_BYTES` cambió dos veces
-   el 2026-09-10 —las ranuras y la música— así que hay que guardar de nuevo con
-   la ROM nueva antes de probar la carga.
+   el 2026-09-10 —las ranuras y la música; el menú no lo tocó— así que hay que
+   guardar de nuevo con la ROM nueva antes de probar la carga. Lo que conviene
+   mirar en la consola y acá no se puede: los dos cuadros negros al volver del
+   menú, y que los NPCs de Lashe City vuelvan con sus poses —es lo que se
+   rompía con las direcciones viejas de VRAM, y snes9x sí lo cobró, pero sólo
+   con el grupo 11—.
 
 5. **Lo que sigue faltando de Lashe City**, por tamaño: la condición de **ítem**
    —45 eventos, pide inventario—, las **variables** de RM2k —5000, y no entran
@@ -1015,8 +1054,9 @@ limpia del upstream.
   con 500 justos, 700, 499 y 0. No hay nada que arreglar; lo que hay es un
   camino del juego que no se puede caminar todavía.
 
-* **Apretar A sobre el save point no muestra nada, y es por diseño**: una sola
-  ranura y sin menú. Está abajo, en lo que espera respuesta.
+* **Apretar A sobre el save point abre la pantalla de ranuras** desde el
+  2026-09-10 a la tarde. Antes no mostraba nada por diseño: una sola ranura y
+  sin menú.
 
 
 ## Cargar la partida: era un modo de direccionamiento, y está arreglado
@@ -1243,12 +1283,12 @@ ningún commit ni en ningún caso, y que sin esto habría que volver a descubrir
 
 ## Esperando respuesta de taro
 
-* **Si el save point tiene que avisar que guardó.** Hoy no dice nada: la
-  ranura es una sola y no hay menú, así que no hay nada que elegir ni que
-  mostrar. RM2k abre su menú de quince y por eso allá se ve algo. Un
-  *"Partida guardada"* sale barato —la ventana de mensaje ya existe y el
-  conversor sabe emitir un `OP_MENSAJE`— pero es un texto que el juego no
-  tiene, así que lo inventaríamos nosotros. taro lo preguntó el 2026-09-09.
+* **Si el save point tiene que avisar que guardó.** Resuelto por el lado de
+  RM2k: ahora abre la pantalla de ranuras, que es lo que allá se ve, y al
+  elegir vuelve al mapa sin decir nada más, igual que `Scene_Save::Action`.
+  Un *"Partida guardada"* sería un texto que el juego no tiene. taro lo
+  preguntó el 2026-09-09; si quiere el aviso igual, es un `OP_MENSAJE` y sale
+  barato.
 
 * **Si las ocho décimas de arranque molestan.** Ver la decisión de arriba.
 
