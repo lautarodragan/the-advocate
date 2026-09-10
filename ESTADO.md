@@ -323,6 +323,28 @@ Lo que hay que saber para tocarlo, además de lo del README:
   `snes_correr.py`—; y qué queda en la SRAM después de `savepoint-guarda`,
   que es el caso del save point real y sólo mira pixeles.
 
+### El build: dónde se va el tiempo (medido el 2026-09-10)
+
+taro preguntó si convenía cambiar el ensamblador en Python por una toolchain
+en C —pvsneslib— porque el build tarda. Medido sobre `demo-ciudad`, ocho mapas
+con música, en este contenedor:
+
+    convertir los 8 mapas con la música     76,6 s
+      de eso, snes_music.build_varios       46,8 s
+        de eso, brr.encode                  44,1 s   1611 llamadas, 111 distintas
+      de eso, los mapas en sí               ~30 s    entre 1,3 y 9,6 s por mapa
+    ensamblar main.s con w65.py              2,5 s
+    convertir un mapa solo (el 73)           1,3 s
+
+O sea que **el ensamblador no es el problema**: son 2,5 s de 80, y pasarlo a
+C no cambiaría nada que se note. Lo que tarda es codificar las muestras a BRR
+—un lazo en Python puro, muestra por muestra, por 4 filtros y 13 rangos— y se
+codifica **la misma muestra catorce veces**: 1611 llamadas para 111 entradas
+distintas, porque cada tema arma su banco de tambores desde cero. Una tabla en
+memoria por entrada la baja a unos 3 s; un caché en disco por hash de la
+muestra, a cero. Y los mapas tampoco cambian entre builds: un caché por mapa
+haría lo mismo con los otros 30 s. Ninguna de las dos cosas está hecha.
+
 ### Lo próximo, si no se decide otra cosa
 
 Al 2026-09-10, en orden. Los tres primeros son deuda de esta vuelta y están
@@ -349,11 +371,11 @@ acotados; del cuarto para abajo es lo de siempre.
    confunda con una pantalla rota. Por el conversor y bajo un flag, no editando
    `Map0004.lmu`. Ver la sección propia, más abajo.
 
-4. **Probado en hardware el 2026-09-10 a la tarde, y anda.** taro jugó las
-   demos con el menú de guardado: guardó y cargó en las ranuras 1 y 4, con el
-   cronómetro en distintos momentos, y todo perfecto. Lo único que trajo fue
-   el tema del título reiniciándose al volver de las ranuras, que está
-   arreglado abajo. Al hablarle al save point se abre "Save in which slot?",
+4. **Probado en mednafen el 2026-09-10 a la tarde, y anda; en la consola
+   todavía no.** taro jugó las demos con el menú de guardado: guardó y cargó
+   en las ranuras 1 y 4, con el cronómetro en distintos momentos, y todo
+   perfecto. Lo único que trajo fue el tema del título reiniciándose al volver
+   de las ranuras, que está arreglado abajo. El FX Pak sigue pendiente. Al hablarle al save point se abre "Save in which slot?",
    se elige con A o se vuelve con B.
    **Salen de `just snes-demos` y de ningún otro lado.** La primera versión de
    esa tarde estaba armada a mano con el `grupo` del justfile, que es el 11
