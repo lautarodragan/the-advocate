@@ -187,6 +187,14 @@ def enum_name(names, value):
 DB_ACTORS = 0x0B
 DB_CHIPSETS = 0x14
 DB_SYSTEM = 0x16
+# Los términos del juego: los textos que el motor pone y no un evento. La
+# pantalla de título usa tres. Los códigos salen de `chunks.h` de liblcf, igual
+# que todo lo demás de este archivo.
+DB_TERMS = 0x15
+TERMS_NEW_GAME = 0x72
+TERMS_LOAD_GAME = 0x73
+TERMS_EXIT_GAME = 0x75
+TERMS_LOAD_MESSAGE = 0x93
 
 # Del esquema de liblcf, igual que todo lo demás de este archivo: los números no
 # se ponen de memoria. Ya pasó una vez con los códigos de comando de las puertas
@@ -585,6 +593,14 @@ class Database:
         titulo_music = Reader(
             sistema.get(SYSTEM_TITLE_MUSIC, b"\x00")).read_struct()
         self.title_music = to_string(titulo_music.get(MUSIC_NAME, b""))
+        # Los términos de la pantalla de título. En el ABL no son los de
+        # fábrica: dicen 'Begin the Story' y 'Resume the Story', que es lo que
+        # el juego eligió y por eso salen de acá y no de un literal nuestro.
+        terminos = Reader(self.fields.get(DB_TERMS, b"\x00")).read_struct()
+        self.term_new_game = to_string(terminos.get(TERMS_NEW_GAME, b""))
+        self.term_load_game = to_string(terminos.get(TERMS_LOAD_GAME, b""))
+        self.term_load_message = to_string(
+            terminos.get(TERMS_LOAD_MESSAGE, b""))
 
     def lider(self, party=None):
         """El CharSet del primero del grupo: (nombre, índice).

@@ -116,11 +116,47 @@ Tres decisiones que sostienen el resto:
    `Fantasia_Of_The_Wind`; el tema entró en la ARAM y el banco compartido quedó
    en 52684 B de 64512.
 
-**Lo que falta de esto**, y es la mayor parte:
+**Hecho y verificado: el menú.** "Begin the Story" y "Resume the Story", que
+son los términos del juego y salen del LDB —`new_game` y `load_game`, códigos
+`0x72` y `0x73` de liblcf— y no de un literal nuestro: el motor de fábrica
+diría "New Game" y "Load Game". Se dibujan con `ventana.dibujar_linea`, o sea
+la misma fuente, el mismo degradé y la misma sombra que un mensaje del juego,
+así que no hay una segunda fuente que mantener.
 
-* **El menú del título**: "Begin the Story" y "Resume the Story", que son los
-  términos del juego (`terms.json`). Hoy la pantalla sale con A o con START y
-  entra a la partida nueva.
+Van en **BG2, a cuatro bits por pixel**, y no mezclados con la imagen en BG1:
+son 50 tiles y 6 colores, 1600 B. Mezclarlos habría costado un tile nuevo por
+cada celda donde el texto pisa el fondo, y el texto no podría moverse.
+
+**El cursor no se dibuja aparte: hay un tilemap por opción, y moverlo es subir
+el otro** por DMA. Son 2048 B por tilemap y el DMA sólo corre cuando el jugador
+aprieta arriba o abajo. La alternativa —escribir a mano las dos celdas del
+tilemap que cambian— ahorra 2 KB de cartucho y pide saber en qué celda cae cada
+flecha, que es justo la clase de número que se escribe bien de un lado y mal
+del otro.
+
+`just snes-titulo` compara **dos cuadros** y los dos dan cero: el menú como se
+entra, y el cursor una opción más abajo. El segundo no es adorno —es lo único
+que ejercita el DMA del tilemap— y de paso cobra que sostener abajo no baje un
+renglón por cuadro: se corre con el botón apretado veinte cuadros y el cursor
+se movió una sola vez.
+
+Dos cosas que costaron un rojo y quedan escritas:
+
+* **El reparto de la VRAM.** Los tiles del menú y su tilemap estaban puestos en
+  `$1000` y `$0800`, que caen **adentro** de los 15872 palabras de la imagen. La
+  pantalla salía de basura. El reparto que quedó está en el comentario de
+  `TITULO_MENU_TILES` en el `.inc`, dibujado.
+* **CGRAM se sube entera o no se sube.** El DMA llevaba las 240 de la imagen y
+  no las 16 del menú, así que las últimas dieciséis entradas quedaban sin
+  escribir: 145 pixeles de diferencia, todos en el degradé de los créditos, que
+  es donde viven los colores menos usados.
+
+Con `--con-titulo` el arranque **no** carga la partida sola: eso lo decide el
+menú. Sin el flag —o sea toda la tanda y todas las pruebas de estado— sigue
+pasando lo de siempre.
+
+**Lo que falta de esto:**
+
 * **La pantalla de ranuras**, en modo cargar y en modo guardar. taro decidió el
   2026-09-09 que el save point **también** abra menú, como RM2k, así que la
   pantalla se usa de los dos lados y hay que darle escritura y confirmación de
@@ -130,9 +166,16 @@ Tres decisiones que sostienen el resto:
   seis también. El límite no es la SRAM.
 * **Los datos mockeados** de la pantalla de archivos: nivel 1 y los HP. El mapa
   y la posición sí los tenemos guardados.
-* **El texto**: la idea medida es no usar la ventana de mensaje —su tilemap y su
-  HDMA chocan con el reparto del título— sino tiles de glifos en BG1 y componer
-  por tilemap, que es lo que ya hace el cronómetro con sus dígitos.
+* **El texto de las ranuras.** El camino ya está probado por el menú: dibujar
+  con `ventana.dibujar_linea` sobre una capa transparente, cortarla en tiles de
+  4bpp y emitir un tilemap por variante. Las filas de ranura tienen dos
+  variantes cada una —vacía y ocupada— así que **también se pre-renderizan**, y
+  no hace falta componer texto en caliente. Medido sobre el menú: 4 ranuras por
+  2 variantes, a 24 celdas por 2 filas, son unos 400 tiles de 4bpp, 12800 B.
+  Entra sin discusión, y esa pantalla ni siquiera lleva la imagen.
+* **Hoy "Resume the Story" carga la ranura única que ya existe**, la misma que
+  escribe el save point. O sea que cargar de verdad **ya anda**; lo que falta es
+  que haya cuatro y que se pueda elegir.
 
 ### Lo próximo, si no se decide otra cosa
 

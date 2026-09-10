@@ -1933,6 +1933,11 @@ snes-titulo nombre="titulo" mapa="4" mapas="1 2 3 5 6 7 8":
       --mapas {{mapas}} --con-ventana --con-titulo \
       -o {{snes_inc}}/mapdata.inc
   just snes-build
+  # Dos cuadros: el menú como se entra, y el cursor una opción más abajo.
+  # El segundo no es un adorno: es lo único que ejercita el DMA que sube el
+  # otro tilemap, que es como está hecho el cursor. Y de paso cobra que
+  # sostener abajo no baje un renglón por cuadro —se corre con el botón
+  # apretado veinte cuadros y el cursor tiene que haberse movido una sola vez—.
   python3 tools/titulo.py -o {{snes_pngs}}/esperado-{{nombre}}.png --informe
   python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} \
       -o {{snes_pngs}}/{{nombre}}.png --cuadros 20 --arranque 150 \
@@ -1940,6 +1945,13 @@ snes-titulo nombre="titulo" mapa="4" mapas="1 2 3 5 6 7 8":
   python3 tools/snes_compare.py {{snes_pngs}}/{{nombre}}.png \
       {{snes_pngs}}/esperado-{{nombre}}.png \
       -o {{snes_pngs}}/comparacion-{{nombre}}.png
+  python3 tools/titulo.py -o {{snes_pngs}}/esperado-{{nombre}}-2.png --elegida 1
+  python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} \
+      -o {{snes_pngs}}/{{nombre}}-2.png --teclas down --cuadros 20 \
+      --arranque 150 --sin-contador
+  python3 tools/snes_compare.py {{snes_pngs}}/{{nombre}}-2.png \
+      {{snes_pngs}}/esperado-{{nombre}}-2.png \
+      -o {{snes_pngs}}/comparacion-{{nombre}}-2.png
 
 # --- verificación del ensamblador ------------------------------------------
 # w65.py reemplaza a ca65 y ld65. Que se pueda confiar en él no es una promesa:

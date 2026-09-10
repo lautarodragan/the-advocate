@@ -2558,7 +2558,26 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "TITULO_TILES   = %d\n"
         "TITULO_VRAM    = $0000\n"
         "TITULO_MAP     = $4000\n"
-        "TITULO_COLORES = %d\n\n"
+        "TITULO_COLORES = %d\n"
+        "; El menú, en BG2 a cuatro bits por pixel: su banco de tiles, cuántas\n"
+        "; opciones tiene y cuál está elegida al entrar. El cursor no se dibuja\n"
+        "; aparte: hay un tilemap por opción y moverlo es subir el otro.\n"
+        ";\n"
+        "; El reparto de la VRAM en esta pantalla, en palabras, y por qué cada\n"
+        "; uno está donde está: los tiles de la imagen arrancan en 0 y se\n"
+        "; llevan 15872, así que todo lo demás va **arriba** de eso. La base de\n"
+        "; tiles de un BG va de a 4096 palabras, que es lo que fija $5000 para\n"
+        "; el menú; los tilemaps van de a 1024 y entran en el hueco de al lado.\n"
+        ";\n"
+        ";   $0000 .. $3E00   los 496 tiles de la imagen, a 8bpp\n"
+        ";   $4000 .. $4400   su tilemap de 32x32\n"
+        ";   $4400 .. $4800   el del menú\n"
+        ";   $5000 ..         los tiles del menú, a 4bpp\n"
+        "TITULO_MENU_CGRAM = %d\n"
+        "TITULO_MENU_TILES = %d\n"
+        "TITULO_MENU_VRAM  = $5000\n"
+        "TITULO_MENU_MAP   = $4400\n"
+        "TITULO_MENU_N     = %d\n\n"
         % (", ".join("%d %s" % (m["id"], m["nombre"]) for m in mapas),
            len(mapas), MAPA_STRIDE, inicial,
            VRAM_MAP, VRAM_ABOVE_MAP, MAP_LAYOUT, NPC_STRIDE, NPC_MAX,
@@ -2610,7 +2629,10 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            len(rm2k.AGUA_CICLO), rm2k.ANIMADO_CUADROS, rm2k.ANIMADO_PASOS,
            BYTES_PER_TILE,
            0 if titulo is None else len(titulo["tiles"]),
-           0 if titulo is None else len(titulo["paleta"])))
+           0 if titulo is None else len(titulo["paleta"]),
+           titulo_mod.MENU_CGRAM,
+           0 if titulo is None else len(titulo["menu_tiles"]),
+           0 if titulo is None else len(titulo["menu_tilemaps"])))
 
     with open(path, "w") as handle:
         handle.write(cabecera)
@@ -2738,14 +2760,36 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             handle.write(bloque("titulo_tiles", b"\x00") + "\n")
             handle.write(bloque("titulo_cgram", b"\x00") + "\n")
             handle.write(bloque("titulo_celdas", b"\x00") + "\n")
+            handle.write(bloque("titulo_menu_tiles", b"\x00") + "\n")
+            handle.write(bloque("titulo_menu_celdas", b"\x00") + "\n")
         else:
             datos = bytearray()
             for celda in titulo["tiles"]:
                 datos += pack_tile(celda, planes=8)
             handle.write(bloque("titulo_tiles", bytes(datos)) + "\n")
+            # CGRAM entera de una vez: primero la paleta del menú, que ocupa
+            # las de abajo porque un BG de 4 bits sólo alcanza ésas, y después
+            # los colores de la imagen. Los índices de los tiles ya vienen
+            # corridos desde `titulo.convertir`.
+            colores = list(titulo["menu_paleta"])
+            colores += [(0, 0, 0)] * (titulo_mod.MENU_CGRAM - len(colores))
+            colores += list(titulo["paleta"])
             handle.write(bloque("titulo_cgram",
                                 b"".join(cgram_word(c).to_bytes(2, "little")
-                                         for c in titulo["paleta"])) + "\n")
+                                         for c in colores)) + "\n")
+            # El menú: un banco de tiles de 4 bits y un tilemap por opción
+            # seleccionada. Mover el cursor es subir el otro tilemap, y por eso
+            # van seguidos y del mismo tamaño: la ROM los indexa multiplicando.
+            menu = bytearray()
+            for celda in titulo["menu_tiles"]:
+                menu += pack_tile(celda, planes=4)
+            handle.write(bloque("titulo_menu_tiles", bytes(menu)) + "\n")
+            plano = bytearray()
+            for mapa_menu in titulo["menu_tilemaps"]:
+                for indice in mapa_menu:
+                    plano += entry(indice, False, False,
+                                   PRIORITY_ABOVE).to_bytes(2, "little")
+            handle.write(bloque("titulo_menu_celdas", bytes(plano)) + "\n")
             # El tilemap es de 32x32 y la imagen ocupa 32x28: las cuatro filas
             # que sobran quedan en el tile 0, que es negro entero. Sin
             # rellenarlas el PPU mostraría ahí lo que hubiera quedado en la
@@ -3710,10 +3754,20 @@ def main():
         imagen = Image.open(os.path.join(args.game_dir, "Title",
                                          nombre + ".png"))
         tiles, paleta, tilemap = titulo_mod.convertir(imagen)
-        titulo_datos = {"tiles": tiles, "paleta": paleta, "tilemap": tilemap}
+        import ventana as ventana_mod
+        skin = ventana_mod.skin(args.game_dir, renderer.database.system_name)
+        textos = titulo_mod.opciones(renderer.database)
+        menu_tiles, menu_paleta, menu_mapas = titulo_mod.menu(
+            skin, textos, renderer.database.font_id)
+        titulo_datos = {"tiles": tiles, "paleta": paleta, "tilemap": tilemap,
+                        "menu_tiles": menu_tiles, "menu_paleta": menu_paleta,
+                        "menu_tilemaps": menu_mapas}
         print("  pantalla de título %r: %d tiles de 8bpp (%d B) + %d colores, "
               "%d B de tilemap" % (nombre, len(tiles), len(tiles) * 64,
                                    len(paleta), 32 * 32 * 2))
+        print("    menú (%s): %d tiles de 4bpp (%d B) + %d colores, %d tilemap(s)"
+              % (", ".join(repr(t) for t in textos), len(menu_tiles),
+                 len(menu_tiles) * 32, len(menu_paleta), len(menu_mapas)))
     informe = emit(args.output, mapas, args.inicial, args.heroe_encima, grupo,
                    ventana_datos, titulo_datos)
     print("%d mapa(s) -> %s, arranca en el %d (mapa %d)"

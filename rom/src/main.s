@@ -290,6 +290,12 @@ eleg_tabla:  .res 2     ; dónde empieza la tabla de la elección, dentro de la
                         ; página: por cada opción, el cuadro y el destino
 eleg_flancos: .res 1    ; los botones que se acaban de apretar este cuadro. No
                         ; usa `temp` porque `eventos_tick` lo tiene ocupado.
+; El menú de la pantalla de título. Son dos bytes propios y no los de `eleg_`
+; aunque el movimiento del cursor sea el mismo: la elección del intérprete vive
+; adentro de una página de evento y ésta corre antes de que haya mapa, así que
+; compartirlos ataría dos cosas que no se tocan nunca.
+titulo_sel:     .res 1  ; qué opción está elegida, desde cero
+titulo_flancos: .res 1  ; y los botones que se acaban de apretar
 pad_ant:     .res 1     ; JOY1H del cuadro pasado, para mirar flancos de las
                         ; direcciones y de B como ya se hacía con A
 
@@ -704,16 +710,16 @@ grupo_listo:
     ; estar puestos **antes** de cargar el mapa. Y la entrada se arma con la
     ; celda guardada, que es como una puerta le dice a `cargar_mapa` dónde
     ; plantar al héroe.
+    ; Con pantalla de título esto no se hace acá: cargar o empezar de nuevo lo
+    ; decide el menú, y hasta que el jugador elija la partida guardada no se
+    ; toca. Sin pantalla de título —que es toda la tanda— sigue pasando lo de
+    ; siempre, o sea que si hay partida se carga sola.
+    lda #<TITULO_TILES
+    ora #>TITULO_TILES
+    bne nueva
     jsr cargar_partida
     beq nueva
-    rep #$20
-.a16
-    lda tile_x
-    sta entrada_x
-    lda tile_y
-    sta entrada_y
-    sep #$20
-.a8
+    jsr entrada_de_la_partida
     lda mapa_actual
     bra cargar
 nueva:
@@ -8122,6 +8128,25 @@ no_hay:
     rts
 .endproc
 
+; La celda donde quedó guardada la partida, puesta como entrada del mapa: es
+; como una puerta le dice a `cargar_mapa` dónde plantar al héroe. Lo usan el
+; arranque —cuando la ROM no lleva título y la partida se carga sola— y el menú
+; del título cuando el jugador elige seguir. Estaba escrito en el arranque nomás
+; y copiarlo al menú habría sido el segundo lugar donde equivocarse.
+.proc entrada_de_la_partida
+.a8
+.i16
+    rep #$20
+.a16
+    lda tile_x
+    sta entrada_x
+    lda tile_y
+    sta entrada_y
+    sep #$20
+.a8
+    rts
+.endproc
+
 ; --- la pantalla de título -------------------------------------------------
 ;
 ; La imagen del LDB —`title_name`, que en el ABL es ABL20Title— con su tema
@@ -8193,6 +8218,26 @@ hay:
     lda #$01
     sta MDMAEN
 
+    ; --- los tiles del menú ---
+    ; Van en BG2, que en modo 3 tiene cuatro bits por pixel, así que cuestan la
+    ; mitad. El tile 0 es transparente y le toca a casi toda la pantalla: es lo
+    ; que deja ver la imagen debajo.
+    rep #$20
+.a16
+    lda #TITULO_MENU_VRAM
+    sta VMADDL
+    lda #(TITULO_MENU_TILES * 32)
+    sta DAS0L
+    lda #<(titulo_menu_tiles)
+    ora #(>(titulo_menu_tiles) * 256)
+    sta A1T0L
+    sep #$20
+.a8
+    lda #^(titulo_menu_tiles)
+    sta A1B0
+    lda #$01
+    sta MDMAEN
+
     ; --- los colores ---
     ; CGRAM entera y desde el índice 0: acá no hay ni ventana de mensaje ni
     ; color de fondo que respetar, que es lo que en un mapa se lleva las de
@@ -8200,7 +8245,12 @@ hay:
     stz CGADD
     rep #$20
 .a16
-    lda #(TITULO_COLORES * 2)
+    ; CGRAM entera: las TITULO_MENU_CGRAM de abajo son del menú y las
+    ; TITULO_COLORES de arriba, de la imagen. Subir sólo las de la imagen
+    ; dejaba las últimas dieciséis sin escribir, y ahí viven los colores menos
+    ; usados —el degradé de los créditos—: 145 pixeles de diferencia contra la
+    ; referencia, todos en el mismo par de renglones.
+    lda #((TITULO_COLORES + TITULO_MENU_CGRAM) * 2)
     sta DAS0L
     lda #<(titulo_cgram)
     ora #(>(titulo_cgram) * 256)
@@ -8218,17 +8268,31 @@ hay:
     ; --- y el PPU apuntando a todo eso ---
     lda #(TITULO_MAP / 1024 * 4)
     sta BG1SC                   ; tilemap de 32x32: los dos bits bajos en cero
-    lda #(TITULO_VRAM / 4096)
-    sta BG12NBA                 ; la base de tiles de BG1; BG2 no se dibuja
+    lda #(TITULO_MENU_MAP / 1024 * 4)
+    sta BG2SC                   ; y el del menú, del mismo tamaño
+    ; Las dos bases de tiles, que van de a 4096 palabras: BG1 en el nibble bajo
+    ; y BG2 en el alto. La imagen arranca en $4000 porque 15872 palabras desde
+    ; ahí terminan en 32256 de las 32768 que hay; el menú, en $1000, entra en el
+    ; hueco que queda debajo junto con los dos tilemaps.
+    lda #((TITULO_MENU_VRAM / 4096 * 16) | (TITULO_VRAM / 4096))
+    sta BG12NBA
     stz BG1HOFS
     stz BG1HOFS
+    stz BG2HOFS
+    stz BG2HOFS
+    lda #$FF
+    sta BG2VOFS
+    sta BG2VOFS
     ; El PPU muestra la línea vofs+1 en el primer scanline, igual que en el
     ; mapa: con 0 la imagen sale corrida una línea hacia arriba.
     lda #$FF
     sta BG1VOFS
     sta BG1VOFS
-    lda #$01
-    sta TM                      ; sólo BG1: ni capa de encima ni sprites
+    lda #$03
+    sta TM                      ; la imagen y el menú; sprites no hay
+
+    stz titulo_sel              ; se entra con la primera opción elegida
+    jsr titulo_subir_menu
 
     lda #$0F
     sta INIDISP                 ; y la pantalla encendida, al máximo
@@ -8241,36 +8305,131 @@ hay:
     jsr music_start
 mudo:
 
+    ; El lazo. Arriba y abajo mueven el cursor por **flanco** y dando la
+    ; vuelta, igual que `eleccion_tick` con el ShowChoice: es el
+    ; `Window_Selectable::Update` de RM2k con una sola columna, y sostener
+    ; abajo no baja un renglón por cuadro.
 espera:
     jsr wait_vblank
     jsr read_pad
     jsr music_tick
-    ; Por ahora sale con A o con START, y entra a la partida nueva. El menú de
-    ; empezar, cargar y las cuatro ranuras es el paso que sigue.
+
+    lda pad
+    eor pad_ant
+    and pad                     ; lo que se apretó en este cuadro
+    sta titulo_flancos
+    and #PAD_UP
+    beq no_arriba
+    lda titulo_sel
+    bne sube_una
+    lda #TITULO_MENU_N          ; desde la primera, arriba da la vuelta
+sube_una:
+    dec a
+    sta titulo_sel
+    jsr titulo_subir_menu
+    bra espera
+no_arriba:
+    lda titulo_flancos
+    and #PAD_DOWN
+    beq no_abajo
+    lda titulo_sel
+    inc a
+    cmp #TITULO_MENU_N
+    bcc baja_una
+    lda #0                      ; y desde la última, abajo también
+baja_una:
+    sta titulo_sel
+    jsr titulo_subir_menu
+    bra espera
+no_abajo:
+    ; Elegir es A o START. START no lo mira RM2k —allá el menú es del ratón y
+    ; del teclado— pero en una consola la pantalla de título se pasa con START
+    ; y no tenerlo se siente roto.
     lda pad_a
     beq mira_start
     lda pad_a_ant
-    beq salir                   ; flanco, no estado
+    beq elige                   ; flanco, no estado
 mira_start:
-    lda pad
+    lda titulo_flancos
     and #PAD_START
     beq espera
-    lda pad_ant
-    and #PAD_START
-    bne espera                  ; ya venía apretado
+elige:
+    ; La segunda opción es 'Resume the Story': se carga la partida y, si hay,
+    ; el mapa y la celda salen de ella. Si no hay, empieza igual que la
+    ; primera, que es lo que hace RM2k cuando no hay nada que cargar.
+    lda titulo_sel
+    beq salir
+    jsr cargar_partida
+    beq salir
+    jsr entrada_de_la_partida
+    lda mapa_actual
+    bra cargar_el_mapa
 salir:
+    lda #MAPA_INICIAL
+cargar_el_mapa:
     ; La VRAM quedó con la imagen del título, así que el mapa hay que volver a
-    ; cargarlo entero: `cargar_mapa` repone las dos bases, el tilemap, los
-    ; tiles y CGRAM. Es lo mismo que hace un teletransporte.
+    ; cargarlo entero: `cargar_mapa` repone las dos bases, los dos tilemaps,
+    ; los tiles y CGRAM. Es lo mismo que hace un teletransporte.
+    pha
     lda #$80
     sta INIDISP
-    lda mapa_actual
+    stz TM                      ; y sin el menú encima mientras se rehace todo
+    pla
     jsr cargar_mapa
     jsr clear_oam
     jsr build_oam
     jsr flush_video
     lda #$0F
     sta INIDISP
+    rts
+.endproc
+
+; El tilemap del menú que le toca a la opción elegida. Hay uno por opción y
+; están seguidos, así que cuál es sale de multiplicar; mover el cursor es subir
+; el otro y no escribir a mano las dos celdas que cambian, que es la clase de
+; número que se escribe bien de un lado y mal del otro.
+;
+; Corre con la pantalla apagada la primera vez y adentro del vblank las demás:
+; son 2048 bytes por DMA, que entran de sobra en un vblank que no tiene nada más
+; que hacer.
+.proc titulo_subir_menu
+.a8
+.i16
+    lda #$80
+    sta VMAIN
+    rep #$20
+.a16
+    lda #TITULO_MENU_MAP
+    sta VMADDL
+    lda #(32 * 32 * 2)
+    sta DAS0L
+    ; El origen: el principio del bloque más 2048 por opción.
+    lda titulo_sel
+    and #$00FF
+    xba                         ; por 256
+    asl a
+    asl a
+    asl a                       ; y por 8: 2048 en total
+    sta temp
+    lda #<(titulo_menu_celdas)
+    ora #(>(titulo_menu_celdas) * 256)
+    clc
+    adc temp
+    ; La suma puede pasarse de los 16 bits del desplazamiento, así que el banco
+    ; se toma del acarreo: `.bloque` garantiza que el bloque no cruce de banco,
+    ; no en qué banco arranca.
+    sta A1T0L
+    sep #$20
+.a8
+    lda #^(titulo_menu_celdas)
+    adc #0
+    sta A1B0
+    lda #$01
+    sta DMAP0
+    lda #$18
+    sta BBAD0
+    lda #$01
+    sta MDMAEN
     rts
 .endproc
 
