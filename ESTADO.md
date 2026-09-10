@@ -11,7 +11,7 @@ volvió inusable; se borra sin culpa lo que ya esté en esos dos lados.
 
 Se escribe **mientras se trabaja**, no al final.
 
-Última vez que se tocó: 2026-09-09.
+Última vez que se tocó: 2026-09-10.
 
 
 ## El objetivo, y dónde estamos
@@ -19,9 +19,8 @@ Se escribe **mientras se trabaja**, no al final.
 **Los primeros diez minutos jugables**, que es lo que taro viene probando vuelta
 a vuelta en el emulador.
 
-Al 2026-09-09, corridas de nuevo sobre `fae54fb` sin nada encima: `just
-snes-hitos-foto` son **96 casos, todos en verde** y `just pruebas` son **39 en
-verde**. Ese mismo día la ROM corrió por primera vez en la **SNES de verdad**
+Al 2026-09-10: `just snes-hitos-foto` son **97 casos, todos en verde** —el
+número 97 es la pantalla de título— y `just pruebas` son **39 en verde**. Ese mismo día la ROM corrió por primera vez en la **SNES de verdad**
 con el FX Pak, con el cartucho ya expandido a 1 MB, y anduvo. `demo-ciudad` se juega desde la apertura hasta la
 calle de Lashe City, con los relámpagos, los autos y los NPCs andando, **el agua
 moviéndose** y el save point animado y guardando.
@@ -72,6 +71,68 @@ archivos donde un merge mal hecho no se ve, y el cuello de botella es verificar
    emulador: mednafen escribió `demo-ciudad.<hash>.srm`, 8 KB, en
    `~/.mednafen/sav`. Falta el EverDrive, que es la única parte que no se puede
    ver acá adentro.
+
+### La pantalla de título (2026-09-10)
+
+taro la pidió el 2026-09-09, con su música, su imagen de fondo, las opciones de
+empezar y cargar, un menú de ranuras que las muestre, y cargar de verdad. Y con
+**cuatro ranuras** —"6 si hay lugar"— en vez de las quince del original. Los
+datos que todavía no existen —el nivel, los HP— van mockeados.
+
+**Hecho y verificado: la imagen con su tema.** `just snes-titulo` compara la
+captura contra `tools/titulo.py` y da **cero pixeles de diferencia**; el caso
+está en `rom/hitos.txt` y la tanda pasó a ser de **97 casos**.
+
+Lo que se midió antes de escribir una línea:
+
+* La imagen **se escala y no se recorta**. El original es de 320x240 y la
+  pantalla de 256x224: el recorte centrado se come el "2.1" del título por la
+  derecha y los créditos de `Additional Graphics` por abajo. Se miró la imagen
+  para decidirlo.
+* Escalada son **496 tiles y 369 colores**; recortada, 498 y 133. Los 369 hay
+  que bajarlos a 256, y de eso se ocupa `titulo.reducir`: se queda con los más
+  usados y manda el resto a su vecino más cercano. No es mediancut —no promedia,
+  así que no inventa colores que haya que volver a cuantizar— y no depende de la
+  versión de PIL, que es lo que permite que el conversor y la referencia lo
+  llamen y saquen lo mismo.
+* **Entra cómoda**: 31744 B de tiles más 2048 de tilemap, de los 65536 de VRAM.
+  Va en BG1, que en modo 3 tiene ocho bits por pixel y direcciona CGRAM entera.
+  Es el único lugar del port donde eso se puede: mientras se ve el título no hay
+  mapa, así que no hay sprites que necesiten sus paletas.
+
+Tres decisiones que sostienen el resto:
+
+1. **El título corre después de `BOOT_CUADROS`,** no antes. Así una ROM sin
+   `--con-titulo` llega al lazo en el cuadro de siempre y **los 96 casos viejos
+   no se enteran de que esto existe**. Verificado: los 96 siguen en verde.
+2. **`vueltas` no avanza en la pantalla de título.** Es el reloj del juego, y el
+   título no es el juego: una ROM con título corre el mapa igual que una sin él,
+   así que las dos referencias siguen siendo comparables. El precio es que el
+   arnés no tiene a qué cuadro esperar, y de ahí sale `--sin-contador` en
+   `snes_correr.py`, que cuenta cuadros de hardware.
+3. **`title_name` y `title_music` salen del LDB**, no de la línea de comandos.
+   Los dos códigos de campo —`0x11` y `0x1F`— salen de `chunks.h` de liblcf,
+   igual que el resto de `lcf.py`. En el ABL son `ABL20Title` y
+   `Fantasia_Of_The_Wind`; el tema entró en la ARAM y el banco compartido quedó
+   en 52684 B de 64512.
+
+**Lo que falta de esto**, y es la mayor parte:
+
+* **El menú del título**: "Begin the Story" y "Resume the Story", que son los
+  términos del juego (`terms.json`). Hoy la pantalla sale con A o con START y
+  entra a la partida nueva.
+* **La pantalla de ranuras**, en modo cargar y en modo guardar. taro decidió el
+  2026-09-09 que el save point **también** abra menú, como RM2k, así que la
+  pantalla se usa de los dos lados y hay que darle escritura y confirmación de
+  pisar una ranura ocupada.
+* **La SRAM multi-ranura.** Hoy es una sola, con la magia en `$0100` y
+  `PARTIDA_BYTES` = 156. Cuatro ranuras de 162 B entran de sobra en los 8 KB;
+  seis también. El límite no es la SRAM.
+* **Los datos mockeados** de la pantalla de archivos: nivel 1 y los HP. El mapa
+  y la posición sí los tenemos guardados.
+* **El texto**: la idea medida es no usar la ventana de mensaje —su tilemap y su
+  HDMA chocan con el reparto del título— sino tiles de glifos en BG1 y componer
+  por tilemap, que es lo que ya hace el cronómetro con sus dígitos.
 
 ### Lo próximo, si no se decide otra cosa
 

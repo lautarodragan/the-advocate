@@ -43,6 +43,7 @@ import eventos
 import lcf
 import rm2k
 import pixeles
+import titulo as titulo_mod
 import snes_music
 from pixeles import CELL, cut_tiles, flips, reduce_colors, tile_colors, to_indices
 from rm2k import collect_npcs, hero_start, passability_map
@@ -2356,7 +2357,7 @@ def datos_del_mapa(mapa, numero, indice_global, materiales):
 
 
 def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
-         ventana=None):
+         ventana=None, titulo=None):
     """El .inc que arma w65.py junto con main.s."""
     for numero, mapa in enumerate(mapas):
         layout = mapa["layout"]
@@ -2547,7 +2548,17 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "AGUA_CICLO_N   = %d\n"
         "ANIMADO_CUADROS = %d\n"
         "ANIMADO_PASOS  = %d\n"
-        "BYTES_POR_TILE = %d\n\n"
+        "BYTES_POR_TILE = %d\n"
+        "; La pantalla de título. TITULO_TILES en 0 quiere decir que esta ROM\n"
+        "; no la lleva y que los bloques de abajo son un byte de relleno; el\n"
+        "; código de main.s se apaga solo con eso. Vive sola en la VRAM —no\n"
+        "; comparte con ningún mapa, porque mientras se ve no hay mapa\n"
+        "; cargado— así que sus dos direcciones son fijas y no salen del\n"
+        "; reparto de `vram_layout`.\n"
+        "TITULO_TILES   = %d\n"
+        "TITULO_VRAM    = $0000\n"
+        "TITULO_MAP     = $4000\n"
+        "TITULO_COLORES = %d\n\n"
         % (", ".join("%d %s" % (m["id"], m["nombre"]) for m in mapas),
            len(mapas), MAPA_STRIDE, inicial,
            VRAM_MAP, VRAM_ABOVE_MAP, MAP_LAYOUT, NPC_STRIDE, NPC_MAX,
@@ -2597,7 +2608,9 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            rm2k.AGUA_CUADROS_LENTO,
            FAMILIAS[0][1],
            len(rm2k.AGUA_CICLO), rm2k.ANIMADO_CUADROS, rm2k.ANIMADO_PASOS,
-           BYTES_PER_TILE))
+           BYTES_PER_TILE,
+           0 if titulo is None else len(titulo["tiles"]),
+           0 if titulo is None else len(titulo["paleta"])))
 
     with open(path, "w") as handle:
         handle.write(cabecera)
@@ -2710,6 +2723,41 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             # doce bytes alcanzan y la ROM no tiene que muestrear nada.
             handle.write(bloque("fuente_tabla", ventana["fuente"]) + "\n")
             handle.write(bloque("mensajes", ventana["mensajes"]) + "\n")
+        # --- la pantalla de título ---
+        #
+        # Va entera en BG1, que en modo 3 tiene ocho bits por pixel: la imagen
+        # direcciona CGRAM en directo y no hay que repartirla en paletas de
+        # dieciséis, que es lo que un mapa sí tiene que hacer porque los
+        # sprites necesitan las suyas. Acá no hay sprites.
+        #
+        # Los tiles se deduplican como los del mapa. La imagen tiene mucho negro
+        # —la mitad de abajo, que es donde va el menú— así que de las 1024
+        # celdas quedan menos de 500.
+        handle.write("\n; --- la pantalla de título ---\n")
+        if titulo is None:
+            handle.write(bloque("titulo_tiles", b"\x00") + "\n")
+            handle.write(bloque("titulo_cgram", b"\x00") + "\n")
+            handle.write(bloque("titulo_celdas", b"\x00") + "\n")
+        else:
+            datos = bytearray()
+            for celda in titulo["tiles"]:
+                datos += pack_tile(celda, planes=8)
+            handle.write(bloque("titulo_tiles", bytes(datos)) + "\n")
+            handle.write(bloque("titulo_cgram",
+                                b"".join(cgram_word(c).to_bytes(2, "little")
+                                         for c in titulo["paleta"])) + "\n")
+            # El tilemap es de 32x32 y la imagen ocupa 32x28: las cuatro filas
+            # que sobran quedan en el tile 0, que es negro entero. Sin
+            # rellenarlas el PPU mostraría ahí lo que hubiera quedado en la
+            # VRAM, y abajo de todo es justo donde va el menú.
+            plano = bytearray()
+            for fila in range(32):
+                for col in range(32):
+                    indice = (titulo["tilemap"][fila * 32 + col]
+                              if fila < titulo_mod.FILAS else 0)
+                    plano += entry(indice, False, False).to_bytes(2, "little")
+            handle.write(bloque("titulo_celdas", bytes(plano)) + "\n")
+
         handle.write('\n.segment "TABLAS"\n')
         # `fuente_color` va en el banco 0 y no con el resto de la ventana: la
         # ROM la lee con `lda fuente_color, y`, y ese modo direcciona el banco
@@ -3190,6 +3238,14 @@ def main():
                              "las seis del juego que lo prenden están cortadas "
                              "por otra cosa, así que sin esto no habría con qué "
                              "comparar. Implica --con-timer")
+    parser.add_argument("--con-titulo", action="store_true",
+                        help="lleva la pantalla de título del juego, con su "
+                             "menú de empezar y cargar. Sin esto la ROM "
+                             "arranca directo en el mapa, que es lo que hace "
+                             "toda la tanda de regresión: la pantalla de "
+                             "título le agregaría cuadros al arranque y los "
+                             "96 casos comparan cuadros contados desde el "
+                             "reset.")
     parser.add_argument("--con-timer", action="store_true",
                         help="la ROM lleva los dígitos del cronómetro: once "
                              "glifos de la imagen de System al final del banco "
@@ -3647,8 +3703,19 @@ def main():
                  sum(1 for w in ventana_datos["cram"] if w),
                  len(ventana_datos["fuente"]), len(mensajes.textos),
                  len(ventana_datos["mensajes"])))
+    titulo_datos = None
+    if args.con_titulo:
+        from PIL import Image
+        nombre = renderer.database.title_name
+        imagen = Image.open(os.path.join(args.game_dir, "Title",
+                                         nombre + ".png"))
+        tiles, paleta, tilemap = titulo_mod.convertir(imagen)
+        titulo_datos = {"tiles": tiles, "paleta": paleta, "tilemap": tilemap}
+        print("  pantalla de título %r: %d tiles de 8bpp (%d B) + %d colores, "
+              "%d B de tilemap" % (nombre, len(tiles), len(tiles) * 64,
+                                   len(paleta), 32 * 32 * 2))
     informe = emit(args.output, mapas, args.inicial, args.heroe_encima, grupo,
-                   ventana_datos)
+                   ventana_datos, titulo_datos)
     print("%d mapa(s) -> %s, arranca en el %d (mapa %d)"
           % (len(mapas), args.output, args.inicial, mapas[args.inicial]["id"]))
     if informe:
@@ -3670,14 +3737,17 @@ def main():
     # README.
     musica = os.path.join(os.path.dirname(os.path.abspath(args.output)),
                           "musicdata.inc")
-    pedidos, arranque = temas_de_la_rom(mapas[args.inicial]["id"], temas,
-                                        args.game_dir,
-                                        args.tema_de_arranque)
+    pedidos, arranque, tema_titulo = temas_de_la_rom(
+        mapas[args.inicial]["id"], temas, args.game_dir,
+        args.tema_de_arranque,
+        renderer.database.title_music if args.con_titulo else None)
     driver, muestras, hechos, banco, afuera = snes_music.build_varios(
         pedidos, args.game_dir)
     if arranque != 0xFF and arranque >= len(hechos):
         arranque = 0xFF             # el del mapa fue uno de los que no entró
-    snes_music.emit(musica, hechos, driver, muestras, arranque)
+    if tema_titulo != 0xFF and tema_titulo >= len(hechos):
+        tema_titulo = 0xFF          # el del título tampoco entró en la ARAM
+    snes_music.emit(musica, hechos, driver, muestras, arranque, tema_titulo)
     print("música -> %s: %s"
           % (musica, ", ".join(t["nombre"] for t in hechos)
              or "ninguna, sale muda"))
@@ -3696,7 +3766,7 @@ def main():
         print("referencia -> %s" % args.reference)
 
 
-def temas_de_la_rom(map_id, temas, game_dir, forzado=None):
+def temas_de_la_rom(map_id, temas, game_dir, forzado=None, titulo=None):
     """Qué temas pide el cartucho y cuál suena al arrancar.
 
     Se piden **todos**: los que los `PlayBGM` compilados nombran, más el del
@@ -3713,8 +3783,15 @@ def temas_de_la_rom(map_id, temas, game_dir, forzado=None):
     propio = forzado or snes_music.tema_del_mapa(map_id, game_dir)
     if propio:
         temas.indice(propio)            # lo agrega al final si no estaba
+    # El de la pantalla de título va después, por lo mismo: agregar al final es
+    # lo único que no renumera a los que el bytecode ya nombra. Sale del LDB
+    # —`title_music`, que en el ABL es Fantasia_Of_The_Wind— y no de la línea
+    # de comandos: es un dato del juego, no una elección nuestra.
+    if titulo:
+        temas.indice(titulo)
     nombres = list(temas.nombres)
-    return nombres, (nombres.index(propio) if propio else 0xFF)
+    return (nombres, (nombres.index(propio) if propio else 0xFF),
+            (nombres.index(titulo) if titulo else 0xFF))
 
 
 def inicio_del_mapa(renderer, map_id, passable, width, height, ocupadas=()):

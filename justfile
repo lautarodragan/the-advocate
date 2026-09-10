@@ -1916,6 +1916,31 @@ _cam-x:
 _cam-y:
   @grep -oP 'CAM_MAX_Y\s*=\s*\K\d+' {{snes_inc}}/mapdata.inc
 
+# La pantalla de título: la imagen del LDB con su tema, y de ahí a la partida.
+#
+# Corre con `--sin-contador` y no como el resto: en la pantalla de título
+# `vueltas` no avanza —es el reloj del juego, y el título no es el juego— así
+# que el arnés no tiene a qué cuadro esperar y cuenta cuadros de hardware.
+#
+# El `--arranque 150` no es un número medido sino un piso: BOOT_CUADROS son 112
+# y el título se dibuja en la vuelta siguiente, así que cualquier cosa desde
+# ahí muestra lo mismo. La pantalla está quieta hasta que alguien apriete algo.
+snes-titulo nombre="titulo" mapa="4" mapas="1 2 3 5 6 7 8":
+  #!/usr/bin/env bash
+  set -euo pipefail
+  mkdir -p {{snes_pngs}} {{snes_inc}}
+  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
+      --mapas {{mapas}} --con-ventana --con-titulo \
+      -o {{snes_inc}}/mapdata.inc
+  just snes-build
+  python3 tools/titulo.py -o {{snes_pngs}}/esperado-{{nombre}}.png --informe
+  python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} \
+      -o {{snes_pngs}}/{{nombre}}.png --cuadros 20 --arranque 150 \
+      --sin-contador
+  python3 tools/snes_compare.py {{snes_pngs}}/{{nombre}}.png \
+      {{snes_pngs}}/esperado-{{nombre}}.png \
+      -o {{snes_pngs}}/comparacion-{{nombre}}.png
+
 # --- verificación del ensamblador ------------------------------------------
 # w65.py reemplaza a ca65 y ld65. Que se pueda confiar en él no es una promesa:
 # se genera un fuente con cada mnemónico en cada modo de direccionamiento que la

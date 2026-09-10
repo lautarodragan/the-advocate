@@ -68,6 +68,9 @@ PAD_RIGHT = $01
 PAD_LEFT  = $02
 PAD_DOWN  = $04
 PAD_UP    = $08
+; Y start, que hasta la pantalla de título no lo miraba nadie: el juego se
+; camina con la cruceta y se habla con A.
+PAD_START = $10
 
 ; A vive en el otro byte. Los dieciséis bits del control son, de arriba hacia
 ; abajo, B Y select start arriba abajo izquierda derecha A X L R y cuatro de
@@ -748,6 +751,13 @@ espera_boot:
     lda boot_cuadros
     sta nmi_visto
     stz cuadros_perdidos
+
+    ; La pantalla de título, si esta ROM la lleva. Va **después** de que el
+    ; arranque terminó de contar sus BOOT_CUADROS y no antes: así una ROM sin
+    ; título llega al lazo exactamente en el cuadro de siempre, y los 96 casos
+    ; de la tanda —que cuentan cuadros desde el reset— no se enteran de que
+    ; esto existe.
+    jsr pantalla_titulo
 
 loop:
     jsr wait_vblank
@@ -8109,6 +8119,158 @@ cuadra:
 no_hay:
     plb
     lda #$00
+    rts
+.endproc
+
+; --- la pantalla de título -------------------------------------------------
+;
+; La imagen del LDB —`title_name`, que en el ABL es ABL20Title— con su tema
+; —`title_music`, Fantasia_Of_The_Wind—, y de ahí a la partida.
+;
+; **Vive sola en la VRAM.** Mientras se ve no hay mapa cargado, así que no hay
+; reparto que negociar: la imagen va en BG1, que en modo 3 tiene ocho bits por
+; pixel y direcciona CGRAM entera. Un mapa reparte sus colores en paletas de
+; dieciséis porque los sprites necesitan las suyas; acá no hay sprites.
+;
+; Los 496 tiles entran en $4000 —la base de tiles de BG1 va de a 4096 palabras,
+; y 15872 palabras desde ahí terminan en 32256 de las 32768 que hay— y el
+; tilemap en $0000. Al salir, `cargar_mapa` repone las dos bases y pisa todo.
+;
+; **Corre con su propio lazo y no con el principal.** El lazo principal mueve al
+; héroe, corre el intérprete y arma el OAM, y acá no hay nada de eso: lo único
+; que tiene que pasar por cuadro es leer el control y seguir la música.
+.proc pantalla_titulo
+.a8
+.i16
+    ; ¿Esta ROM lleva pantalla de título? TITULO_TILES no entra en ocho bits,
+    ; así que la pregunta son los dos bytes.
+    lda #<TITULO_TILES
+    ora #>TITULO_TILES
+    bne hay
+    rts
+hay:
+    lda #$80
+    sta INIDISP                 ; blanking forzado: la VRAM sólo se toca así
+    stz HDMAEN                  ; y sin la ventana de mensaje encima
+
+    ; --- los tiles ---
+    lda #$80
+    sta VMAIN                   ; avanzar una palabra tras el byte alto
+    rep #$20
+.a16
+    lda #TITULO_VRAM
+    sta VMADDL
+    lda #(TITULO_TILES * BYTES_POR_TILE)
+    sta DAS0L
+    lda #<(titulo_tiles)
+    ora #(>(titulo_tiles) * 256)
+    sta A1T0L
+    sep #$20
+.a8
+    lda #^(titulo_tiles)
+    sta A1B0
+    lda #$01
+    sta DMAP0                   ; dos registros, de a palabras
+    lda #$18
+    sta BBAD0                   ; destino: VMDATAL
+    lda #$01
+    sta MDMAEN
+
+    ; --- el tilemap ---
+    rep #$20
+.a16
+    lda #TITULO_MAP
+    sta VMADDL
+    lda #(32 * 32 * 2)
+    sta DAS0L
+    lda #<(titulo_celdas)
+    ora #(>(titulo_celdas) * 256)
+    sta A1T0L
+    sep #$20
+.a8
+    lda #^(titulo_celdas)
+    sta A1B0
+    lda #$01
+    sta MDMAEN
+
+    ; --- los colores ---
+    ; CGRAM entera y desde el índice 0: acá no hay ni ventana de mensaje ni
+    ; color de fondo que respetar, que es lo que en un mapa se lleva las de
+    ; abajo.
+    stz CGADD
+    rep #$20
+.a16
+    lda #(TITULO_COLORES * 2)
+    sta DAS0L
+    lda #<(titulo_cgram)
+    ora #(>(titulo_cgram) * 256)
+    sta A1T0L
+    sep #$20
+.a8
+    lda #^(titulo_cgram)
+    sta A1B0
+    stz DMAP0                   ; un registro, escribiendo de a un byte
+    lda #$22
+    sta BBAD0                   ; destino: CGDATA
+    lda #$01
+    sta MDMAEN
+
+    ; --- y el PPU apuntando a todo eso ---
+    lda #(TITULO_MAP / 1024 * 4)
+    sta BG1SC                   ; tilemap de 32x32: los dos bits bajos en cero
+    lda #(TITULO_VRAM / 4096)
+    sta BG12NBA                 ; la base de tiles de BG1; BG2 no se dibuja
+    stz BG1HOFS
+    stz BG1HOFS
+    ; El PPU muestra la línea vofs+1 en el primer scanline, igual que en el
+    ; mapa: con 0 la imagen sale corrida una línea hacia arriba.
+    lda #$FF
+    sta BG1VOFS
+    sta BG1VOFS
+    lda #$01
+    sta TM                      ; sólo BG1: ni capa de encima ni sprites
+
+    lda #$0F
+    sta INIDISP                 ; y la pantalla encendida, al máximo
+
+    ; El tema del título. $FF quiere decir que esta ROM no lo lleva —o que no
+    ; entró en la ARAM—, y entonces la pantalla se ve callada.
+    lda #TEMA_TITULO
+    cmp #$FF
+    beq mudo
+    jsr music_start
+mudo:
+
+espera:
+    jsr wait_vblank
+    jsr read_pad
+    jsr music_tick
+    ; Por ahora sale con A o con START, y entra a la partida nueva. El menú de
+    ; empezar, cargar y las cuatro ranuras es el paso que sigue.
+    lda pad_a
+    beq mira_start
+    lda pad_a_ant
+    beq salir                   ; flanco, no estado
+mira_start:
+    lda pad
+    and #PAD_START
+    beq espera
+    lda pad_ant
+    and #PAD_START
+    bne espera                  ; ya venía apretado
+salir:
+    ; La VRAM quedó con la imagen del título, así que el mapa hay que volver a
+    ; cargarlo entero: `cargar_mapa` repone las dos bases, el tilemap, los
+    ; tiles y CGRAM. Es lo mismo que hace un teletransporte.
+    lda #$80
+    sta INIDISP
+    lda mapa_actual
+    jsr cargar_mapa
+    jsr clear_oam
+    jsr build_oam
+    jsr flush_video
+    lda #$0F
+    sta INIDISP
     rts
 .endproc
 

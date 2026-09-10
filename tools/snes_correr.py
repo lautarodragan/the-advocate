@@ -107,7 +107,7 @@ class Reloj:
     # ventana del arranque, así que la muestra daba 0 y todo quedaba corrido uno.
     TICK_DEL_CUADRO_CERO = 1
 
-    def __init__(self, consola, rom):
+    def __init__(self, consola, rom, contador=True):
         self.consola = consola
         if consola.cuadro is None:
             # Todavía no corrió ni un cuadro, así que el reset tampoco: la RAM
@@ -122,7 +122,13 @@ class Reloj:
         # valiendo mientras la ROM no se atrase. Los casos que cruzan
         # emuladores corren mapas livianos justamente por eso.
         self.corridos = 0
-        direccion = simbolos(rom).get("vueltas")
+        # Con `contador` en falso se cuentan cuadros de hardware aunque la ROM
+        # tenga el símbolo. Es lo que hace falta para mirar la **pantalla de
+        # título**: ahí `vueltas` no avanza —es el reloj del juego, y el título
+        # no es el juego, así que una ROM con título corre el mapa igual que
+        # una sin él y las dos referencias siguen siendo comparables— de modo
+        # que esperar a que llegue a un cuadro no termina nunca.
+        direccion = simbolos(rom).get("vueltas") if contador else None
         if direccion is not None:
             try:
                 self.direccion = int(direccion)
@@ -236,6 +242,13 @@ def main():
                              "arranque, igual que los de la referencia, y son "
                              "los mismos que se le pasan a snes_expect.py con "
                              "--apretar-a")
+    parser.add_argument("--sin-contador", action="store_true",
+                        help="cuenta cuadros de hardware en vez de leer\n"
+                             "`vueltas` de la WRAM. Hace falta para la\n"
+                             "pantalla de título, donde el reloj del juego no\n"
+                             "corre: sin esto el arnés espera para siempre a\n"
+                             "que la ROM llegue a un cuadro que nunca va a\n"
+                             "contar.")
     parser.add_argument("--core", default=CORE,
                         help="el .so del core de libretro. Andan los tres "
                              "que hay instalados y dibujan lo mismo a 15 bits; "
@@ -246,7 +259,7 @@ def main():
     if args.teclas is not None:
         consola = Consola(args.rom, core=args.core)
         consola.correr(args.arranque)
-        reloj = Reloj(consola, args.rom)
+        reloj = Reloj(consola, args.rom, not args.sin_contador)
         if args.teclas:
             consola.apretar(*args.teclas)
         reloj.avanzar(args.cuadros)
@@ -326,7 +339,7 @@ def main():
         else:
             cuadros = args.cuadros
         consola.correr(args.arranque)
-        reloj = Reloj(consola, args.rom)
+        reloj = Reloj(consola, args.rom, not args.sin_contador)
         if walk != "none":
             consola.apretar(walk)
 

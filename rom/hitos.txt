@@ -117,5 +117,8 @@ snes-ventana 348 ventana-348
 snes-ventana 269 ventana-269
 snes-ventana
 snes-ventana 6 ventana-6
+# La pantalla de título, contra la imagen del LDB convertida. Es el único caso
+# que corre con `--sin-contador`: ahí el reloj del juego no avanza.
+snes-titulo
 snes-mednafen
 snes-bsnes

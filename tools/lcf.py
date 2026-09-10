@@ -198,6 +198,12 @@ SYSTEM_PARTY = 0x16
 # El System del juego: el PNG con el marco de la ventana, los colores de texto
 # y la sombra. Este juego usa `ablskin`, no el `BLSys` que también trae.
 SYSTEM_NAME = 0x13
+# La pantalla de título: qué imagen lleva y con qué tema suena. Los dos códigos
+# salen de `src/generated/lcf/ldb/chunks.h` de liblcf, igual que el resto de
+# este archivo; ponerlos de memoria es exactamente el error que este repo ya
+# pagó con los códigos de comando de las puertas.
+SYSTEM_TITLE_NAME = 0x11
+SYSTEM_TITLE_MUSIC = 0x1F
 # Con qué fuente dibuja el texto: 0 Gothic, 1 Mincho. easyrpg elige ttyp0 o
 # rmg2000 con esto, y las letras salen distintas. Este juego pide Mincho.
 SYSTEM_FONT_ID = 0x48
@@ -572,6 +578,13 @@ class Database:
         self.system_name = sistema.get(SYSTEM_NAME, b"").decode(
             "cp1252", "replace")
         self.font_id = sistema.get(SYSTEM_FONT_ID, b"\x00")[0]
+        # La imagen de la pantalla de título y su tema. En el ABL son
+        # 'ABL20Title' y 'Fantasia_Of_The_Wind'; el otro PNG que hay en Title/
+        # —'LineTitle'— es de una versión anterior y el juego no lo usa.
+        self.title_name = to_string(sistema.get(SYSTEM_TITLE_NAME, b""))
+        titulo_music = Reader(
+            sistema.get(SYSTEM_TITLE_MUSIC, b"\x00")).read_struct()
+        self.title_music = to_string(titulo_music.get(MUSIC_NAME, b""))
 
     def lider(self, party=None):
         """El CharSet del primero del grupo: (nombre, índice).

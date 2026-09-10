@@ -512,7 +512,7 @@ def build_nombre(name, game_dir=GAME_DIR):
             tema["resumen"])
 
 
-def emit(path, temas, driver, samples, arranque=0xFF):
+def emit(path, temas, driver, samples, arranque=0xFF, titulo=0xFF):
     """El .inc que arma el ensamblador junto con main.s.
 
     `temas` son los de `build_varios`, en el orden de `Temas`: el bytecode ya
@@ -552,6 +552,10 @@ def emit(path, temas, driver, samples, arranque=0xFF):
             "; prender un evento.\n"
             "TEMA_TOTAL       = %d\n"
             "TEMA_ARRANQUE    = $%02X\n"
+            "; Y el de la pantalla de título, que sale de `title_music` del\n"
+            "; LDB. $FF quiere decir que esta ROM no lleva pantalla de título,\n"
+            "; o que su tema no entró en la ARAM.\n"
+            "TEMA_TITULO      = $%02X\n"
             "; El volumen general con que suena el tema y los dos registros\n"
             "; del DSP donde va. Los emite `sdsp.py`, que es de donde salen:\n"
             "; el stream ya los escribe al arrancar, y un `FadeOutBGM` los\n"
@@ -571,7 +575,7 @@ def emit(path, temas, driver, samples, arranque=0xFF):
             '.segment "RODATA"\n%s\n%s\n%s\n'
             % (", ".join(t["nombre"] or "sin música" for t in temas)
                or "ninguno",
-               len(temas), arranque,
+               len(temas), arranque, titulo,
                sdsp.MASTER, sdsp.MVOL_L, sdsp.MVOL_R,
                DRIVER_ADDR, len(driver),
                SAMPLES_ADDR, len(samples),
