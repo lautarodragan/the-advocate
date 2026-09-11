@@ -57,6 +57,7 @@ snes-espera
 # La pantalla de ranuras desde el save point, y el mapa de vuelta al cerrarla.
 snes-guardar
 snes-menu
+snes-items
 snes-anclada
 snes-texto
 snes-ruta-evento

@@ -3111,6 +3111,28 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                          + "\n")
             bloque_de_actor[actor] = len(bloques_ranura)
             bloques_ranura.append(nombre)
+        # Y la pantalla de ítems, que tiene banco propio: la fuente de a una
+        # letra por celda, sus dos paletas, y el texto de cada ítem que la ROM
+        # conoce —nombre y dos renglones de descripción—, en ASCII.
+        datos = bytearray()
+        for celda in ranuras["items_tiles"]:
+            datos += pack_tile(celda, planes=4)
+        handle.write(bloque("items_tiles", bytes(datos)) + "\n")
+        handle.write(bloque("items_cgram", b"".join(
+            cgram_word(c).to_bytes(2, "little")
+            for paleta in ranuras["items_paletas"]
+            for c in list(paleta) + [(0, 0, 0)] * (titulo_mod.MENU_CGRAM
+                                                   - len(paleta)))) + "\n")
+        item_textos, item_textos_ofs = bytearray(), []
+        for numero in ranuras["items"]:
+            item = ranuras["items_db"][numero]
+            for texto in ([titulo_mod.texto_de_item(
+                    item.name, titulo_mod.ITEM_NOMBRE_ANCHO)]
+                    + titulo_mod.partir_descripcion(item.description)):
+                item_textos_ofs.append((len(item_textos), len(texto)))
+                item_textos += texto.encode("ascii")
+        handle.write(bloque("item_textos", bytes(item_textos) or b"\x00")
+                     + "\n")
         if len(bloques_ranura) > 255:
             raise SystemExit("la pantalla de ranuras tiene %d bloques y las "
                              "tablas que los nombran son de un byte"
@@ -3214,6 +3236,71 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         handle.write("menu_actor_bloque:\n    .byte %s\n" % (", ".join(
             str(bloque_de_actor.get(a, 0xFF)) for a in range(menu_actores_n))
             or "$FF"))
+        # La pantalla de ítems. `item_k` va del número de RM2k a su lugar en
+        # las tablas de la ROM, $FF si esta ROM no lo conoce; lo demás es por
+        # lugar. `item_uso`: bit 0 si A lo usa —hoy, los de switch—, bit 1 si
+        # usarlo gasta uno. Los textos van de a tres por ítem —el nombre y los
+        # dos renglones de la descripción—: el texto `t` es el `3k + campo`.
+        items = ranuras["items"]
+        db_items = ranuras["items_db"]
+        if len(items) > 255:
+            raise SystemExit("%d ítems no entran en las tablas de un byte"
+                             % len(items))
+        k_de = {numero: k for k, numero in enumerate(items)}
+        handle.write(
+            "ITEMS_ROM         = %d\n"
+            "ITEMS_TILES       = %d\n"
+            "ITEMS_CGRAM_N     = %d\n"
+            "ITEM_FILAS        = %d\n"
+            "ITEM_CURSOR_COL   = %d\n"
+            "ITEM_NOMBRE_COL   = %d\n"
+            "ITEM_DOS_PUNTOS_COL = %d\n"
+            "ITEM_CIFRAS_COL   = %d\n"
+            "ITEM_DESC_VRAM    = %d\n"
+            "ITEM_DESC_COL     = %d\n"
+            "ITEM_PRIMER_CARACTER = %d\n"
+            "ITEM_GLIFOS_GRIS  = %d\n"
+            % (len(items), len(ranuras["items_tiles"]),
+               len(ranuras["items_paletas"]) * titulo_mod.MENU_CGRAM,
+               T.ITEM_FILAS, T.ITEM_CURSOR_COL, T.ITEM_NOMBRE_COL,
+               T.ITEM_DOS_PUNTOS_COL, T.ITEM_CIFRAS_COL,
+               celda_vram(T.ITEM_DESC_Y // T.CELL, T.ITEM_DESC_COL),
+               T.ITEM_DESC_COL,
+               T.ITEM_PRIMER_CARACTER, T.ITEM_CARACTERES * 4))
+
+        def bytes_asm(etiqueta, valores, formato="%d"):
+            handle.write("%s:\n    .byte %s\n" % (etiqueta, ", ".join(
+                formato % v for v in valores) or "$FF"))
+
+        def words_asm(etiqueta, valores, formato="%d"):
+            handle.write("%s:\n    .word %s\n" % (etiqueta, ", ".join(
+                formato % v for v in valores) or "0"))
+
+        bytes_asm("item_k", [k_de.get(n, 0xFF)
+                             for n in range(eventos.ITEMS_N)])
+        words_asm("item_id", items)
+        bytes_asm("item_uso", [
+            (1 if T.item_usable(db_items[n]) else 0)
+            | (2 if T.item_usable(db_items[n]) and db_items[n].uses else 0)
+            for n in items])
+        words_asm("item_switch", [db_items[n].switch_id for n in items])
+        for campo, prefijo in (("lo", "<"), ("hi", ">"), ("bk", "^")):
+            handle.write("item_txt_%s:\n    .byte %s\n" % (campo, ", ".join(
+                "%s(item_textos + %d)" % (prefijo, ofs)
+                for ofs, _ in item_textos_ofs) or "0"))
+        bytes_asm("item_txt_n", [n for _, n in item_textos_ofs])
+        words_asm("item_fila_vram", [
+            celda_vram(T.ITEM_LISTA_Y // T.CELL + 2 * f, 0)
+            for f in range(T.ITEM_FILAS)])
+        # Las dos celdas de cada carácter, arriba y abajo: primero los 95 en
+        # blanco y después en gris. El carácter `c` en la variante `g` está en
+        # `g * ITEM_GLIFOS_GRIS + (c - ITEM_PRIMER_CARACTER) * 4`.
+        glifos = ranuras["items_glifos"]
+        words_asm("item_glifo_celdas", [
+            entry(celda, False, False) for gris in (0, 1)
+            for n in range(T.ITEM_CARACTERES)
+            for celda in glifos[gris][chr(T.ITEM_PRIMER_CARACTER + n)]],
+            "$%04X")
         handle.write("\n")
         # `fuente_color` va en el banco 0 y no con el resto de la ventana: la
         # ROM la lee con `lda fuente_color, y`, y ese modo direcciona el banco
@@ -4235,14 +4322,23 @@ def main():
     # no. Es un superconjunto a propósito: una cara de más cuesta 36 tiles y
     # una de menos deja un hueco en el menú.
     miembros = miembros_posibles(todos, grupo)
+    # Y los ítems que pueden estar en el inventario, para llevar su nombre y
+    # su descripción: ver "la pantalla de ítems" en titulo.py.
+    items_rom = items_posibles(todos, args.items_de_prueba)
     (ranura_tiles, ranura_paletas, ranura_cabs, ranura_filas, ranura_caras,
      ranura_nombres, ranura_menu) = titulo_mod.pantalla_ranuras(
         skin, renderer.database, RANURAS, renderer.database.font_id,
         miembros, args.game_dir)
+    items_tiles, items_paletas, items_glifos = titulo_mod.pantalla_items(
+        skin, renderer.database.font_id)
     ranuras_datos = {"tiles": ranura_tiles, "paletas": ranura_paletas,
                      "cabeceras": ranura_cabs, "filas": ranura_filas,
                      "caras": ranura_caras, "nombres": ranura_nombres,
-                     "menu": ranura_menu}
+                     "menu": ranura_menu, "items": items_rom,
+                     "items_db": renderer.database.items,
+                     "items_tiles": items_tiles,
+                     "items_paletas": items_paletas,
+                     "items_glifos": items_glifos}
     _controlar_ranuras(len(ranura_tiles))
     print("  pantalla de ranuras: %d, %d tiles de 4bpp (%d B) + %d paletas, "
           "%d B de celdas; %d actores con cara: %s"
@@ -4467,6 +4563,28 @@ def lideres_posibles(renderer, map_ids, grupo, con_ventana=False):
 # El directorio del juego, para `lideres_posibles`. Es feo pero es un solo
 # lugar: la alternativa era pasarlo por tres funciones que no lo usan.
 args_game_dir = [GAME_DIR]
+
+
+def items_posibles(map_ids, de_prueba=None):
+    """Los ítems que pueden estar en el inventario con estos mapas en la ROM:
+    los que da algún `ChangeItems` de cualquier página, compile o no, más los
+    que da la página de prueba. Es un superconjunto, como `miembros_posibles`,
+    y por la misma razón: un ítem de más cuesta su texto en el cartucho, uno
+    de menos no se ve en la lista."""
+    items = set()
+    for map_id in map_ids:
+        game_map = lcf.Map(os.path.join(args_game_dir[0],
+                                        "Map%04d.lmu" % map_id))
+        for evento in game_map.events:
+            for page in evento.pages:
+                for cmd in page.commands:
+                    p = cmd.parameters
+                    if (cmd.code == eventos.CHANGE_ITEMS and len(p) >= 5
+                            and p[0] == 0 and p[1] == 0):
+                        items.add(p[2])
+    for k in range(0, len(de_prueba or ()), 2):
+        items.add(de_prueba[k])
+    return sorted(i for i in items if 0 < i < eventos.ITEMS_N)
 
 
 def miembros_posibles(map_ids, grupo):

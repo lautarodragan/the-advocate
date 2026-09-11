@@ -1786,6 +1786,51 @@ snes-menu mapa="73" abre="40" vuelve="50 120" nombre="menu":
         --saltar $pre-vuelve-$n.saltar.txt -o $pre-vuelve-$n.comparacion.png
   done
 
+# La pantalla de ítems, desde el menú de pausa, con un inventario que da la
+# página de prueba con `ChangeItems` de verdad: trece pociones, un arma y la
+# Portable Console, que es el único ítem usable de la demo. Tres cosas:
+#
+#   items           como se entra —B y A sobre "Use Item"—, contra
+#                   `titulo.py --items`: la descripción del primero arriba, la
+#                   lista con las cantidades, y en gris lo que A no usa.
+#   items-2         el cursor dos más abajo, sobre la consola: el cursor y la
+#                   descripción que cambian adentro del vblank.
+#   items-vuelve-N  A usa la consola, que prende el switch 710 y vuelve derecho
+#                   al mapa, y el mapa del tick N contra la referencia. Que el
+#                   switch quede prendido lo mira `pruebas/test_items_pantalla.py`.
+snes-items mapa="73" abre="40" vuelve="60 120" nombre="items":
+  #!/usr/bin/env bash
+  set -euo pipefail
+  mkdir -p {{snes_pngs}} {{snes_inc}}
+  dar="81 1 1 13 17 1"
+  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
+      --items-de-prueba $dar -o {{snes_inc}}/mapdata.inc
+  just snes-build
+  pre={{snes_pngs}}/{{nombre}}
+  python3 tools/titulo.py -o $pre.esperado.png --items 1:13,17:1,81:1
+  python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre.png \
+      --toques-hardware b:{{abre}} a:$(( {{abre}} + 12 )) \
+      --cuadros $(( {{abre}} + 24 )) --sin-contador
+  python3 tools/snes_compare.py $pre.png $pre.esperado.png -o $pre.comparacion.png
+  python3 tools/titulo.py -o $pre-2.esperado.png --items 1:13,17:1,81:1 --elegida 2
+  python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre-2.png \
+      --toques-hardware b:{{abre}} a:$(( {{abre}} + 12 )) \
+      down:$(( {{abre}} + 24 )) down:$(( {{abre}} + 28 )) \
+      --cuadros $(( {{abre}} + 34 )) --sin-contador
+  python3 tools/snes_compare.py $pre-2.png $pre-2.esperado.png \
+      -o $pre-2.comparacion.png
+  for n in {{vuelve}}; do
+    python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
+        --items-de-prueba $dar --cuadros $n \
+        --saltar $pre-vuelve-$n.saltar.txt -o $pre-vuelve-$n.esperado.png
+    python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} \
+        -o $pre-vuelve-$n.png --cuadros $n \
+        --toques-hardware b:{{abre}} a:$(( {{abre}} + 12 )) \
+        down:$(( {{abre}} + 24 )) down:$(( {{abre}} + 28 )) a:$(( {{abre}} + 34 ))
+    python3 tools/snes_compare.py $pre-vuelve-$n.png $pre-vuelve-$n.esperado.png \
+        --saltar $pre-vuelve-$n.saltar.txt -o $pre-vuelve-$n.comparacion.png
+  done
+
 # El héroe a mitad de camino: se lo captura con N pixeles andados, en la pose
 # de caminata que le toca, y se compara contra la referencia calculada para ese
 # mismo avance.

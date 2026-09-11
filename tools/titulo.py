@@ -225,6 +225,10 @@ def main():
                         help="los actores que la ROM puede tener en el grupo, "
                              "que deciden el banco de tiles; sin esto, el "
                              "grupo del menú")
+    parser.add_argument("--items", metavar="ITEM:CUANTOS,...", default=None,
+                        help="dibuja la pantalla de ítems con este inventario")
+    parser.add_argument("--arriba", type=int, default=0,
+                        help="el primer ítem que se ve en la lista")
     parser.add_argument("--sin-guardar", action="store_true",
                         help="el menú con 'Save' prohibido")
     parser.add_argument("--sin-menu", action="store_true",
@@ -237,6 +241,18 @@ def main():
     db = lcf.Database(os.path.join(args.game_dir, "RPG_RT.ldb"))
     imagen = Image.open(os.path.join(args.game_dir, "Title",
                                      db.title_name + ".png"))
+    if args.items is not None:
+        import ventana as ventana_mod
+        skin = ventana_mod.skin(args.game_dir, db.system_name)
+        inventario = {}
+        for par in args.items.split(","):
+            if par:
+                numero, _, cuantos = par.partition(":")
+                inventario[int(numero)] = int(cuantos or 1)
+        render_items(skin, db, inventario, args.elegida, args.arriba,
+                     db.font_id).save(args.output)
+        print("ítems %s -> %s" % (inventario, args.output))
+        return
     if args.menu is not None:
         import ventana as ventana_mod
         skin = ventana_mod.skin(args.game_dir, db.system_name)
@@ -587,11 +603,12 @@ MENU_OPC_COLS = 9               # hasta x = 96, donde empieza el grupo
 MENU_CURSOR_COL = 1             # el ">", x = 8
 # Qué órdenes hacen algo. Las otras se dibujan en el color de "no se puede",
 # que es el 3 del sistema, como RM2k dibuja "Save" cuando está prohibido:
-# usar ítems, técnicas y equipo son los pasos que siguen, y terminar el juego
-# pide volver al título sin reiniciar el SPC700. La 3, guardar, depende de
-# `ChangeSaveAccess`.
+# técnicas y equipo son pasos que siguen, y terminar el juego pide volver al
+# título sin reiniciar el SPC700. Usar ítems abre la pantalla de ítems desde
+# el 2026-09-11. La 3, guardar, depende de `ChangeSaveAccess`.
+MENU_ITEMS = 0
 MENU_GUARDAR = 3
-MENU_HECHAS = (MENU_GUARDAR,)
+MENU_HECHAS = (MENU_ITEMS, MENU_GUARDAR)
 # El oro, abajo a la izquierda: hasta seis cifras **de a una celda cada una**
 # —no a los 6 pixeles de la fuente, para que la ROM las escriba de a una sin
 # rearmar tiles— y el término de la moneda detrás, en el color 1.
@@ -609,6 +626,119 @@ MENU_TEXTO_X = MENU_ACTOR_COL * CELL + CARA + 8     # 152
 MENU_ESTADO_DX = 42             # "Normal" va a 42 del nivel, como en RM2k
 MENU_HP_DX = 12                 # y los números de HP a 12 del "HP"
 MENU_FILAS_GRUPO = 4
+
+
+# --- la pantalla de ítems -----------------------------------------------------
+#
+# `Scene_Item`: arriba la descripción del ítem marcado y abajo la lista del
+# inventario con cuántos hay. En RM2k la lista va en dos columnas de 144
+# pixeles; acá no entran y va en **una**, con la cantidad a la derecha, y la
+# descripción se parte en dos renglones.
+#
+# El texto no va ya dibujado sino **de a una letra por celda**: la pantalla
+# lleva su propio banco de tiles con cada carácter de la fuente en dos celdas
+# —blanco y gris—, y nombres y descripciones van como texto en la ROM, que
+# escribe dos palabras del tilemap por letra. El primer intento dibujaba el
+# texto de cada ítem en el banco compartido con las ranuras y el menú, y con
+# una docena de ítems ya no entraba: cuatro ROMs de la tanda dejaron de
+# armarse. Así el costo no depende de cuántos ítems haya, y el precio es que
+# las letras van a 8 pixeles y no a los 6 de la fuente, como las cifras del
+# oro del menú. Es cosmético y está declarado.
+ITEM_DESC_Y = 8
+ITEM_DESC_COL = 1
+ITEM_DESC_ANCHO = 30            # letras por renglón, una por celda
+ITEM_DESC_RENGLONES = 2
+ITEM_LISTA_Y = 48
+ITEM_FILAS = 11                 # 48 + 11 * 16 = 224
+ITEM_CURSOR_COL = 1
+ITEM_NOMBRE_COL = 3             # x = 24, como las órdenes del menú
+ITEM_NOMBRE_ANCHO = 20          # el nombre más largo del juego
+ITEM_DOS_PUNTOS_COL = 27
+ITEM_CIFRAS_COL = 28            # dos cifras, 28 y 29
+ITEM_PRIMER_CARACTER = 32       # los que tiene la fuente: del espacio
+ITEM_CARACTERES = 95            # a la tilde, que es lo que usan los ítems
+
+
+def item_usable(item):
+    """Si A hace algo con el ítem en el mapa. Hoy sólo los de switch, que es
+    `Game_Party::IsItemUsable` fuera de batalla con `occasion_field2`: las
+    medicinas piden HP que cambien, y en los mapas de la demo nadie los baja."""
+    import lcf
+    return item.type == lcf.ITEM_TIPO_SWITCH and item.occasion_field2
+
+
+def texto_de_item(texto, ancho):
+    """Lo que la pantalla puede escribir: los caracteres que la fuente tiene,
+    con un '?' en lugar de los otros, y cortado al ancho."""
+    return "".join(c if ITEM_PRIMER_CARACTER <= ord(c)
+                   < ITEM_PRIMER_CARACTER + ITEM_CARACTERES else "?"
+                   for c in texto)[:ancho]
+
+
+def partir_descripcion(texto, ancho=ITEM_DESC_ANCHO):
+    """La descripción en dos renglones, cortada en un espacio. Lo que no
+    entra en dos se pierde."""
+    renglones, actual = [], ""
+    for palabra in texto.split(" "):
+        candidato = (actual + " " + palabra) if actual else palabra
+        if len(candidato) <= ancho:
+            actual = candidato
+            continue
+        renglones.append(actual)
+        actual = palabra[:ancho]
+    renglones.append(actual)
+    renglones = [texto_de_item(r, ancho) for r in renglones]
+    return (renglones + ["", ""])[:ITEM_DESC_RENGLONES]
+
+
+def lista_de_items(items, inventario):
+    """Los ítems que muestra la pantalla, en orden de número como
+    `Game_Party`: los que hay y que la ROM conoce."""
+    return [i for i in sorted(items) if inventario.get(i, 0) > 0]
+
+
+def pantalla_items(sys_img, font_id=None):
+    """El banco de la pantalla de ítems: cada carácter de la fuente en dos
+    celdas, una arriba de la otra, en blanco y en gris.
+
+    Devuelve `(tiles, paletas, glifos)`: `paletas[0]` es la del texto y
+    `paletas[1]` la del gris, y `glifos[gris][caracter]` las dos palabras del
+    tilemap. El espacio son dos celdas en blanco: es el que borra el cursor.
+    """
+    from PIL import Image
+    import ventana as ventana_mod
+    capas = []
+    for gris in (0, 1):
+        for n in range(ITEM_CARACTERES):
+            una = Image.new("RGBA", (ANCHO, ALTO), (0, 0, 0, 0))
+            ventana_mod.dibujar_linea(una, sys_img, 1, 2,
+                                      chr(ITEM_PRIMER_CARACTER + n),
+                                      color=3 if gris else 0, font_id=font_id)
+            capas.append((gris, n, una))
+    vistos = [collections.Counter(), collections.Counter()]
+    for gris, _, una in capas:
+        for r, g, b, a in una.get_flattened_data():
+            if a:
+                vistos[gris][(r >> 3, g >> 3, b >> 3)] += 1
+    paletas, indices = [], []
+    for cuenta in vistos:
+        if len(cuenta) > 15:
+            raise SystemExit("la fuente de la pantalla de ítems usa %d colores "
+                             "y en 4bpp entran 15" % len(cuenta))
+        paleta = [NEGRO] + sorted(cuenta, key=lambda c: (-cuenta[c], c))
+        paletas.append(paleta)
+        indices.append({color: i for i, color in enumerate(paleta)})
+    vacio = tuple(tuple([0] * CELL) for _ in range(CELL))
+    tiles, donde = [vacio], {vacio: 0}
+    glifos = [{}, {}]
+    for gris, n, una in capas:
+        glifos[gris][chr(ITEM_PRIMER_CARACTER + n)] = _bloque_de_celdas(
+            una, 0, 2, tiles, donde, indices[gris], 0, 1, gris)
+    if len(tiles) > RANURA_TILES_MAX:
+        raise SystemExit("la fuente de la pantalla de ítems junta %d tiles y "
+                         "en su banco entran %d" % (len(tiles),
+                                                    RANURA_TILES_MAX))
+    return tiles, paletas, glifos
 
 
 def _escribir_menu_actor(destino, sys_img, db, actor, font_id):
@@ -881,6 +1011,47 @@ def render_menu(sys_img, db, ranuras, grupo, oro, elegida=0,
         if actor in menu["actores"]:
             pegar(menu["actores"][actor], fila * MENU_ACTOR_FILAS,
                   MENU_ACTOR_COL, MENU_ACTOR_COLS)
+    return fuera
+
+
+def render_items(sys_img, db, inventario, elegida=0, arriba=0, font_id=None,
+                 items=None):
+    """La pantalla de ítems como la tiene que mostrar la consola.
+
+    `inventario` va de número de ítem a cuántos hay; `items` son los que la
+    ROM conoce —sin ella, los del inventario—; `elegida` es el lugar del
+    cursor en la lista y `arriba` el primero que se ve. Se arma con las mismas
+    celdas que escribe la ROM.
+    """
+    from PIL import Image
+    items = sorted(items if items is not None
+                   else [i for i, n in inventario.items() if n > 0])
+    tiles, paletas, glifos = pantalla_items(sys_img, font_id)
+    fuera = Image.new("RGB", (ANCHO, ALTO), (0, 0, 0))
+    pegar = _pintor(fuera, tiles, paletas)
+
+    def escribir(texto, fila0, col0, gris=0):
+        for n, c in enumerate(texto):
+            pegar(glifos[gris][c], fila0, col0 + n, 1)
+
+    lista = lista_de_items(items, inventario)
+    if lista:
+        for n, renglon in enumerate(partir_descripcion(
+                db.items[lista[elegida]].description)):
+            escribir(renglon, ITEM_DESC_Y // CELL + 2 * n, ITEM_DESC_COL)
+    for fila in range(ITEM_FILAS):
+        k = arriba + fila
+        if k >= len(lista):
+            break
+        item = db.items[lista[k]]
+        fila0 = ITEM_LISTA_Y // CELL + 2 * fila
+        gris = 0 if item_usable(item) else 1
+        if k == elegida:
+            escribir(">", fila0, ITEM_CURSOR_COL)
+        escribir(texto_de_item(item.name, ITEM_NOMBRE_ANCHO), fila0,
+                 ITEM_NOMBRE_COL, gris)
+        escribir(":%2d" % min(inventario[lista[k]], 99), fila0,
+                 ITEM_DOS_PUNTOS_COL, gris)
     return fuera
 
 

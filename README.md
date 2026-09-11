@@ -723,6 +723,46 @@ la tanda no alcanza lo mira `pruebas/test_menu.py`: el menú con un grupo y oro
 puestos, guardar desde el menú, los dos permisos puestos por el bytecode, B a
 mitad de un paso, y que los permisos vuelvan de la SRAM.
 
+### La pantalla de ítems
+
+"Use Item" abre `Scene_Item` desde el 2026-09-11: arriba la descripción del
+ítem marcado y abajo la lista del inventario con cuántos hay de cada uno, en
+orden de número como `Game_Party`. En gris va lo que A no usa, como
+`Window_Item`. Hoy A usa **los ítems de switch**, que en la demo son uno solo,
+la Portable Console: prende su switch —el 710—, gasta uno si tiene usos
+—`uses` en cero es infinito—, pide el refresco de páginas y vuelve derecho al
+mapa, que es el `PopUntil(Scene::Map)` de RM2k. B vuelve al menú. Las
+medicinas quedan en gris: piden HP que cambien, y en los mapas de la demo no
+hay cómo conseguir una ni nadie baja los HP —`ChangeHP` suma 1 a un grupo con
+la vida llena—. El switch 710 dispara el evento común 39, "NewMenuActivated",
+que es el menú propio del juego hecho con imágenes: 568 comandos, y los
+eventos comunes todavía no corren.
+
+**El texto va de a una letra por celda.** La pantalla tiene su propio banco
+de tiles con cada carácter de la fuente en dos celdas, en blanco y en gris
+—307 tiles, que no dependen de cuántos ítems haya—, y los nombres y las
+descripciones van en ASCII en el cartucho; escribir una letra son dos
+palabras del tilemap. El primer intento llevaba el texto de cada ítem ya
+dibujado en el banco de las ranuras y el menú, como las caras, y con una
+docena de ítems no entraba: cuatro ROMs de la tanda dejaron de armarse. El
+precio es que las letras van a 8 pixeles y no a los 6 de la fuente, como las
+cifras del oro. En RM2k la lista va en dos columnas de 144 pixeles; acá en una,
+con la cantidad a la derecha, y la descripción en dos renglones de 30 letras.
+Es cosmético y está declarado.
+
+La descripción se compone en `texto_buf` —el búfer del compositor de
+mensajes, libre con el menú abierto— y sube de un DMA al principio de cada
+cuadro: escribirla letra por letra al mover el cursor no entraba en el vblank
+y el segundo renglón salía cortado. Cuando el cursor se sale de las once
+filas, la lista se repinta entera con la pantalla apagada, que es un cuadro
+en negro.
+
+Lo cobran `just snes-items` —la pantalla como se entra y con el cursor sobre
+la consola contra `titulo.py --items`, y el mapa después de usarla contra
+`snes_expect.py`— y `pruebas/test_items_pantalla.py`: la consola prende el 710
+y no se gasta, un ítem en gris no hace nada, catorce ítems en once filas se
+corren y vuelven, y la lista vacía.
+
 ### Varios mapas en la ROM
 
 Un mapa solo no es un juego. Todo lo que antes era una constante del `.inc` —el

@@ -595,6 +595,33 @@ class Actor:
                                       signed=True) for i in range(por_tabla)]
 
 
+# Un ítem de la base (liblcf: ldb/chunks.h, ChunkItem).
+ITEM_NAME = 0x01
+ITEM_DESCRIPTION = 0x02
+ITEM_TYPE = 0x03
+ITEM_USES = 0x06
+ITEM_SWITCH_ID = 0x37
+ITEM_OCCASION_FIELD2 = 0x39
+# Los tipos, en el orden de `rpg::Item::Type`.
+ITEM_TIPO_COMUN, ITEM_TIPO_ARMA, ITEM_TIPO_ESCUDO, ITEM_TIPO_ARMADURA, \
+    ITEM_TIPO_CASCO, ITEM_TIPO_ACCESORIO, ITEM_TIPO_MEDICINA, \
+    ITEM_TIPO_LIBRO, ITEM_TIPO_MATERIAL, ITEM_TIPO_UNICO, \
+    ITEM_TIPO_SWITCH = range(11)
+
+
+class Item:
+    """Un ítem: lo que el menú muestra de él y lo poco que hace hoy."""
+
+    def __init__(self, fields):
+        self.name = to_string(fields.get(ITEM_NAME, b""))
+        self.description = to_string(fields.get(ITEM_DESCRIPTION, b""))
+        self.type = to_int(fields.get(ITEM_TYPE, b"\x00"))
+        self.uses = to_int(fields.get(ITEM_USES, b"\x01"))
+        self.switch_id = to_int(fields.get(ITEM_SWITCH_ID, b"\x01"))
+        self.occasion_field2 = to_bool(fields.get(ITEM_OCCASION_FIELD2,
+                                                  b"\x01"))
+
+
 class Database:
     """RPG_RT.ldb: los chipsets, los personajes y el grupo con el que se arranca."""
 
@@ -609,10 +636,11 @@ class Database:
             self.fields.get(DB_CHIPSETS, b"\x00")).read_struct_array().items()}
         self.actors = {i: Actor(f) for i, f in Reader(
             self.fields.get(DB_ACTORS, b"\x00")).read_struct_array().items()}
-        # El número más alto de ítem: `ITEMS_N` en eventos.py es éste más
-        # uno, y test_items.py lo comprueba.
-        self.items_max = max(Reader(
-            self.fields.get(DB_ITEMS, b"\x00")).read_struct_array(), default=0)
+        # Los ítems, y el número más alto: `ITEMS_N` en eventos.py es éste
+        # más uno, y test_items.py lo comprueba.
+        self.items = {i: Item(f) for i, f in Reader(
+            self.fields.get(DB_ITEMS, b"\x00")).read_struct_array().items()}
+        self.items_max = max(self.items, default=0)
 
         # El grupo con el que empieza la partida. En RM2k el gráfico del héroe
         # es el del primero de la lista, así que este dato es el que decide con

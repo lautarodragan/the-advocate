@@ -588,6 +588,33 @@ Lo que falta del menú, en orden: usar ítems —pide la lista del inventario y
 los nombres de los 450 ítems en la ROM—, el equipo, las técnicas y terminar
 el juego, que pide volver al título sin reiniciar el SPC700.
 
+### La pantalla de ítems (2026-09-11)
+
+El paso (3) del plan, recortado a lo que la demo tiene. "Use Item" abre la
+lista del inventario con la descripción arriba; A usa los ítems de switch
+—la Portable Console, el único ítem usable que da la demo: prende el 710 y
+vuelve al mapa— y B vuelve al menú. Las medicinas van en gris: piden HP que
+cambien, y en los mapas 1 a 10 ni se consiguen ni nadie baja los HP. El 710
+dispara el evento común 39, el menú propio del juego hecho con imágenes, que
+no corre porque los eventos comunes todavía no existen. Detalle en el README,
+"La pantalla de ítems".
+
+Lo que costó: el primer diseño llevaba el texto de cada ítem ya dibujado en el
+banco de las ranuras, y con una docena de ítems no entraba —cuatro ROMs de la
+tanda dejaron de armarse: `snes-puerta`, `snes-texto` y dos `snes-ventana`—.
+Ahora la pantalla tiene banco propio con la fuente de a una letra por celda,
+a 8 pixeles, y el texto va en ASCII. Y al mover el cursor la descripción no
+entraba en el vblank: se compone en `texto_buf` y sube de un DMA por cuadro.
+Dos veces más apareció el `ldx`/`ldy` de un byte con índices de 16 bits, que
+se lleva el de al lado: `grep` antes de dar por bueno un camino nuevo.
+
+Lo cobran `snes-items` y `pruebas/test_items_pantalla.py`, cinco pruebas.
+
+Lo que falta del sistema de ítems: HP que cambien —`ChangeHP`, `FullHeal`,
+los HP en la partida— y con eso las medicinas con la elección de actor; el
+equipo; la tienda; y los eventos comunes, que es lo que haría que la consola
+abra el menú del juego.
+
 ### Lo próximo, si no se decide otra cosa
 
 Al 2026-09-10, en orden. Los tres primeros son deuda de esta vuelta y están
@@ -626,7 +653,8 @@ acotados; del cuarto para abajo es lo de siempre.
    * `ChangeSaveAccess` (70 usos) y `ChangeMainMenuAccess` (4) se honran
      desde el 2026-09-11, junto con el menú.
    * **Hechos**: el (1), el inventario, el 2026-09-10 a la noche; el (2), el
-     menú de pausa con guardar, el 2026-09-11. Sigue el (3).
+     menú de pausa con guardar, el 2026-09-11; el (3) a medias el mismo día:
+     la pantalla de ítems y los de switch, sin medicinas.
 
 1. **El menú de guardado desde el save point: hecho** el 2026-09-10 a la
    tarde. Queda el renglón para que nadie lo busque.
