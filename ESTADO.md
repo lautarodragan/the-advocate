@@ -696,6 +696,18 @@ intro, en particular el Emitter Room. Lo medido:
   batalla: el sonido y la luz"—. **El dibujo falta**: celdas de 96x96 con zoom
   de hasta 200% y paleta propia; en el mapa 3 todas son de fuego (`Fire1`).
 
+**El dibujo de las animaciones, medido (2026-09-11, sin empezar).** En todo el
+juego son 388 `ShowBattleAnimation` en 81 mapas, con 42 animaciones distintas.
+Las más usadas son chicas: la 141 (144x144), la 168, la 1 y la 132 (96x96).
+Las de la intro son las peores: la 79 y la 82 llegan a 512x192 y 488x336 con
+zoom de hasta 400%, y la 62 a 384x384. Cada cuadro se puede prerenderizar
+—las celdas escaladas y compuestas— y subir como sprites, con estos límites:
+VRAM de sprites libre en los mapas 2 y 3, 101 y 162 tiles (una caja de 96x96
+son 144); una paleta de sprites más en mapas que ya usan las ocho; 34 tiles de
+sprite por línea, que una animación ancha se come; y el DMA de un cuadro de
+96x96 son 4,6 KB cada dos cuadros. Los colores —hasta 38— se reducen a 15, y
+la transparencia va tramada. Las grandes no entran enteras de ninguna forma.
+
 **Una deuda encontrada de paso, anterior a todo esto:** la página de prueba no
 arranca en el Emitter Room con `--switch 13 --mapas 4` —`auto_n` queda en cero
 y la bandera del evento de prueba apagada—, mientras la referencia la corre.
