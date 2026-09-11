@@ -1308,13 +1308,26 @@ OP_TIENDA = 0x1B    # tipo, juego, cuántos (bytes), y de a dos bytes cada ítem
 # grises opacos según le quede de vida, que es donde RM2k la desvanece. El tono
 # de pantalla la tiñe, como a todo lo demás. Van últimas en OAM, así que
 # cualquier personaje las tapa, y si la OAM se llena se cortan ahí.
+#
+# **La lluvia va pegada al mapa**, como en RM2k: ahí la superficie de las gotas
+# es del tamaño de la pantalla, da la vuelta en los bordes, y se pega corrida
+# por el paneo, que es lo que la cámara se movió. Acá es igual con una
+# superficie de 256x256: las gotas viven en bytes, el paso de cada cuadro da
+# la vuelta solo, y para dibujarlas se les resta el scroll del mapa —la
+# sacudida incluida— en ocho bits. Hasta el 2026-09-11 iba pegada a la
+# pantalla, y taro lo vio al caminar. De la superficie se ven 224 de las 256
+# líneas: la densidad en pantalla es la misma de antes, con gotas que nacen
+# también en la franja que no se ve.
+#
+# El diez por ciento de chance es `azar & 255 < 26`, 10,2%: con `% 100` la
+# ROM gastaba el divisor en cada gota apagada de cada cuadro.
 OP_CLIMA = 0x1C     # tipo, fuerza
 CLIMA_LLUVIA = 1
 LLUVIA_GOTAS = (15, 45, 75)
 LLUVIA_VIDA = 12
-LLUVIA_NACE = 10    # por ciento
+LLUVIA_NACE = 26    # de 256
 LLUVIA_SEMILLA = 0x1D2B
-LLUVIA_ANCHO, LLUVIA_ALTO = 256, 224
+LLUVIA_LADO = 256   # la superficie, en los dos sentidos
 LLUVIA_DX, LLUVIA_DY = -1, 4
 LLUVIA_COLORES = ((16, 16, 18), (11, 11, 13), (6, 6, 7))   # de 5 bits
 
@@ -3106,12 +3119,12 @@ class Estado:
         for gota in self.gotas:
             if gota[2] > 0:
                 gota[2] -= 1
-                gota[0] += LLUVIA_DX
-                gota[1] += LLUVIA_DY
-            elif self._lluvia_azar() % 100 < LLUVIA_NACE:
+                gota[0] = (gota[0] + LLUVIA_DX) % LLUVIA_LADO
+                gota[1] = (gota[1] + LLUVIA_DY) % LLUVIA_LADO
+            elif self._lluvia_azar() & 0xFF < LLUVIA_NACE:
                 gota[2] = LLUVIA_VIDA
                 gota[0] = self._lluvia_azar() & 0xFF
-                gota[1] = self._lluvia_azar() % LLUVIA_ALTO
+                gota[1] = self._lluvia_azar() & 0xFF
 
     def cuadro_de_sacudida(self):
         """Un cuadro de la sacudida: `Shake::Update` sin la continua, que
@@ -3468,7 +3481,8 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
                     flash=(), switches=(), timer=(), lugar=(),
                     frecuencia=RUTA_FRECUENCIA, sacudida=(), fundir_bgm=0,
                     pan=(), rama=(), destello=(), guardar=False,
-                    variables=(), rama_var=(), items=(), acceso=()):
+                    variables=(), rama_var=(), items=(), acceso=(),
+                    lluvia=None):
     """Una página automática inventada: una ruta forzada, una espera, un tinte.
 
     No sale de ningún dato del juego, y ésa es la idea. El intérprete corre
@@ -3518,6 +3532,11 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
     # cambio: su código está en la ROM y el cursor es suyo, igual que en RM2k.
     codigo = bytes([OP_SWITCH, SWITCH_DE_PRUEBA & 0xFF,
                     SWITCH_DE_PRUEBA >> 8, 1])
+    if lluvia is not None:
+        # La fuerza de un WeatherEffects de lluvia, de 0 a 2. La única que
+        # llueve en el juego es la apertura, y ahí la cámara no se mueve: sin
+        # esto nada miraría que las gotas van pegadas al mapa.
+        codigo += bytes([OP_CLIMA, CLIMA_LLUVIA, lluvia])
     if timer:
         # (segundos, visible). El cronómetro del juego lo prende una página que
         # no compila —la del despertador del pad—, así que sin esto no habría

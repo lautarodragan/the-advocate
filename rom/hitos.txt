@@ -117,9 +117,15 @@ snes-pan 6 "2 0 2 2 1 3 0 0 4 1" "16 48 65 70 82 83" 115 pan-vuelve
 # sigue en el mismo. Verificado que da rojo con el `rts` de antes: 13710
 # pixeles en el cuadro 1, el tinte un tick tarde.
 snes-pan 6 "3 0 0 4 1" "1 2 3 4" 115 pan-cero
+# La lluvia pegada al mapa: la cámara se corre dos celdas y las gotas con ella.
+# La apertura es el único lugar donde llueve y ahí la cámara no se mueve, así
+# que sin estos dos nada miraría el scroll de las gotas. `pan-lluvia` encontró
+# además que la referencia pintaba encimadas al revés que el PPU.
+snes-pan 6 "2 0 2 2 1" "16 32 48 64 65 66" 115 pan-lluvia "" 2
 snes-sacudir
 snes-sacudir 6 "9 8 3 1" "2 5 9 14 17 60" 115 sacudir-fuerte
 snes-sacudir 2 "3 3 2 1" "3 6 9 11 13 60" 115 sacudir-borde "4 54"
+snes-sacudir 6 "9 8 3 1" "2 5 9 14 17 60" 115 sacudir-lluvia "" 2
 snes-timer
 snes-timer 6 "1 1" "2 10" "2 40 59 61" "12 0 0 50" 115 timer-cero
 # Las variables, vistas por el cronómetro: 60 segundos a la variable 17, menos

@@ -644,20 +644,23 @@ snes-grafico mapa="6" ruta="4 2 2 34 0 2 2" grafico="Future1 0" celda="22 12" cu
 #
 # El caso de la tanda es el del juego: dos celdas para arriba a velocidad 2, o
 # sea 64 cuadros, que es el PanScreen de la escena de Talan en el mapa 3.
-snes-pan mapa="6" pan="2 0 2 2 1" cuadros="16 32 48 64 65 66" arranque="115" nombre="pan" celda="":
+snes-pan mapa="6" pan="2 0 2 2 1" cuadros="16 32 48 64 65 66" arranque="115" nombre="pan" celda="" lluvia="":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
   celda="{{celda}}"
+  lluvia="{{lluvia}}"
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
       ${celda:+--inicio $celda} \
       --pan-de-prueba {{pan}} --pagina-de-prueba 0 0 0 50 \
+      ${lluvia:+--lluvia-de-prueba $lluvia} \
       -o {{snes_inc}}/mapdata.inc
   just snes-build
   pre={{snes_pngs}}/{{nombre}}
   python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
       ${celda:+--hero-tile $celda} \
       --pan-de-prueba {{pan}} --pagina-de-prueba 0 0 0 50 \
+      ${lluvia:+--lluvia-de-prueba $lluvia} \
       --cuadros {{cuadros}} \
       --saltar $pre-{}.saltar.txt -o $pre-{}.esperado.png
   for n in {{cuadros}}; do
@@ -681,20 +684,23 @@ snes-pan mapa="6" pan="2 0 2 2 1" cuadros="16 32 48 64 65 66" arranque="115" nom
 # la pantalla volvió a su lugar y el tinte se aplicó. El mapa 7 tiene la cámara
 # en el borde izquierdo, así que la sacudida asoma lo que hay a la izquierda
 # del mapa; el segundo caso, en el 6, tiene la cámara en el medio.
-snes-sacudir mapa="7" sacudida="3 3 2 1" cuadros="3 6 9 11 13 60" arranque="115" nombre="sacudir" celda="":
+snes-sacudir mapa="7" sacudida="3 3 2 1" cuadros="3 6 9 11 13 60" arranque="115" nombre="sacudir" celda="" lluvia="":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
   celda="{{celda}}"
+  lluvia="{{lluvia}}"
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
       ${celda:+--inicio $celda} \
       --sacudida-de-prueba {{sacudida}} --pagina-de-prueba 0 0 0 50 \
+      ${lluvia:+--lluvia-de-prueba $lluvia} \
       -o {{snes_inc}}/mapdata.inc
   just snes-build
   pre={{snes_pngs}}/{{nombre}}
   python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
       ${celda:+--hero-tile $celda} \
       --sacudida-de-prueba {{sacudida}} --pagina-de-prueba 0 0 0 50 \
+      ${lluvia:+--lluvia-de-prueba $lluvia} \
       --cuadros {{cuadros}} \
       --saltar $pre-{}.saltar.txt -o $pre-{}.esperado.png
   for n in {{cuadros}}; do

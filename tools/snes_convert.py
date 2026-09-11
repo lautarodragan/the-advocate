@@ -2663,7 +2663,6 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "LLUVIA_VIDA   = %d\n"
         "LLUVIA_NACE   = %d\n"
         "LLUVIA_SEMILLA = $%04X\n"
-        "LLUVIA_ALTO   = %d\n"
         "CLIMA_LLUVIA  = %d\n"
         "; El inventario: un byte por ítem del LDB y el tope de RM2k. Ver\n"
         "; OP_ITEM en eventos.py.\n"
@@ -2905,7 +2904,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            eventos.OP_CLIMA, eventos.OP_SONIDO, max(eventos.LLUVIA_GOTAS),
            eventos.LLUVIA_GOTAS[0], eventos.LLUVIA_GOTAS[1],
            eventos.LLUVIA_GOTAS[2], eventos.LLUVIA_VIDA,
-           eventos.LLUVIA_NACE, eventos.LLUVIA_SEMILLA, eventos.LLUVIA_ALTO,
+           eventos.LLUVIA_NACE, eventos.LLUVIA_SEMILLA,
            eventos.CLIMA_LLUVIA,
            eventos.ITEMS_N,
            eventos.ITEM_MAX,
@@ -4092,6 +4091,10 @@ def main():
                              "como --rama-de-prueba: prende ADENTRO si la "
                              "variable cumple la comparación con VALOR, y "
                              "DESPUES siempre")
+    parser.add_argument("--lluvia-de-prueba", type=int, default=None,
+                        metavar="FUERZA",
+                        help="la página de prueba pone lluvia, de 0 a 2, y "
+                             "la ROM lleva las gotas aunque ningún mapa llueva")
     parser.add_argument("--acceso-de-prueba", nargs="+", type=int,
                         default=None, metavar="N",
                         help="CUAL PERMITIDO, repetible de a dos: la página "
@@ -4254,7 +4257,7 @@ def main():
     todos = orden_de_mapas(args)
     args.lideres = lideres_posibles(renderer, todos, grupo, args.con_ventana)
     # Si algún mapa pone lluvia, todos llevan las gotas: ver `hay_lluvia`.
-    args.con_lluvia = hay_lluvia(todos)
+    args.con_lluvia = hay_lluvia(todos) or args.lluvia_de_prueba is not None
     # Las variables del juego entero, con su ranura, antes de compilar una
     # sola página. La referencia arma el mismo índice.
     eventos.indexar_variables(args.game_dir,
@@ -4348,7 +4351,7 @@ def main():
                 or args.destello_de_prueba
                 or args.timer_de_prueba or args.lugar_de_prueba
                 or args.sacudida_de_prueba or args.fundir_bgm
-                or args.pan_de_prueba
+                or args.pan_de_prueba or args.lluvia_de_prueba is not None
                 or args.mensaje_de_prueba is not None) \
                 and mapa is mapas[args.inicial]:
             # La página inventada, sólo en el mapa donde arranca la ROM. No sale
@@ -4382,7 +4385,8 @@ def main():
                     variables=tuple(args.vars_de_prueba or ()),
                     rama_var=tuple(args.rama_var_de_prueba or ()),
                     items=tuple(args.items_de_prueba or ()),
-                    acceso=tuple(args.acceso_de_prueba or ()))}, {
+                    acceso=tuple(args.acceso_de_prueba or ()),
+                    lluvia=args.lluvia_de_prueba)}, {
                 # Y la que la apaga: misma idea que en la referencia, ver
                 # `PAGINA_DE_PRUEBA_APAGADA`. Sin código, así que en cuanto
                 # gana, el evento inventado deja de tener una automática que

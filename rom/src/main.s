@@ -13253,11 +13253,19 @@ si_a:
 ; la pantalla de 256x224: ver OP_CLIMA en eventos.py, que es la referencia. El
 ; estado vive en la RAM lejana: el tipo y la fuerza del clima, cuántas gotas
 ; hay y el azar de la lluvia —un xorshift propio, sembrado cada vez que el
-; clima cambia— en `FAR_CLIMA`, y cinco bytes por gota —x y y de dieciséis
-; bits, que se van de la pantalla, y la vida— en `FAR_LLUVIA`. El clima no
-; viaja en la partida: al cargar no llueve.
+; clima cambia— en `FAR_CLIMA`, y tres bytes por gota —x, y y la vida— en
+; `FAR_LLUVIA`. La x y la y son de la superficie de 256x256 que va pegada al
+; mapa, así que un byte alcanza y el paso de cada cuadro da la vuelta solo; en
+; pantalla es eso menos el scroll. El clima no viaja en la partida: al cargar
+; no llueve.
+;
+; `lluvia_tick` y `lluvia_oam` corren en cada cuadro que llueve y leen con el
+; direccionamiento largo, que va de a una instrucción por byte: con la
+; ventana de WMADD cada gota pagaba apuntarla.
 FAR_CLIMA  = $2EF0
 FAR_LLUVIA = $2F00
+CLIMA_L    = $7E0000 + FAR_CLIMA
+LLUVIA_L   = $7E0000 + FAR_LLUVIA
 
 ; El clima en cero: sin lluvia. En el reset.
 .proc clima_limpiar
@@ -13340,7 +13348,7 @@ cuantas:
     sta WMADDL
     sep #$20
 .a8
-    ldx #(LLUVIA_GOTAS_MAX * 5)
+    ldx #(LLUVIA_GOTAS_MAX * 3)
 apagar:
     stz WMDATA
     dex
@@ -13383,163 +13391,80 @@ apagar:
     rts
 .endproc
 
-; A16: un número. X: el divisor, de un byte. Vuelve con el resto en A16.
-.proc lluvia_resto
-.a16
-.i16
-    sta WRDIVL
-    sep #$20
-.a8
-    txa
-    sta WRDIVB                  ; arranca: el cociente tarda dieciséis ciclos
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    rep #$20
-.a16
-    lda RDMPYL                  ; el resto
-    rts
-.endproc
-
-; Un cuadro de la lluvia: `eventos.Estado.cuadro_de_lluvia`. El escritorio es
-; del compositor de mensajes, que recalcula sus variables en cada carácter:
-; `comp_col` cuántas gotas y cuál va, `comp_mask` el azar, `comp_dup` la x y
-; la y de la gota, `comp_color` su vida y `comp_base` su dirección.
+; Un cuadro de la lluvia: `eventos.Estado.cuadro_de_lluvia`. `comp_col`
+; cuenta las gotas y `comp_mask` lleva el azar; son del compositor de
+; mensajes, que las recalcula en cada carácter. X es la gota, de a tres bytes.
 .proc lluvia_tick
 .a8
 .i16
-    rep #$20
-.a16
-    lda #(FAR_CLIMA + 2)
-    sta WMADDL
-    sep #$20
-.a8
-    stz WMADDH
-    lda WMDATA
+    lda f:CLIMA_L + 2
     bne hay
     rts
 hay:
     sta comp_col                ; cuántas
-    lda WMDATA
-    sta comp_mask
-    lda WMDATA
-    sta comp_mask + 1
-    stz comp_col + 1            ; cuál va
-gota:
-    ; Su dirección: FAR_LLUVIA + i * 5.
     rep #$20
 .a16
-    lda comp_col + 1
-    and #$00FF
-    sta comp_base
-    asl a
-    asl a
-    clc
-    adc comp_base
-    clc
-    adc #FAR_LLUVIA
-    sta comp_base
-    sta WMADDL
+    lda f:CLIMA_L + 3
+    sta comp_mask
     sep #$20
 .a8
-    lda WMDATA
-    sta comp_dup
-    lda WMDATA
-    sta comp_dup + 1
-    lda WMDATA
-    sta comp_dup + 2
-    lda WMDATA
-    sta comp_dup + 3
-    lda WMDATA
-    sta comp_color
+    ldx #0
+gota:
+    lda f:LLUVIA_L + 2, x       ; la vida
     beq apagada
     ; Viva: baja cuatro, corre uno a la izquierda, y le queda uno menos.
-    dec comp_color
-    rep #$20
-.a16
-    dec comp_dup
-    lda comp_dup + 2
+    dec a
+    sta f:LLUVIA_L + 2, x
+    lda f:LLUVIA_L, x
+    dec a
+    sta f:LLUVIA_L, x
+    lda f:LLUVIA_L + 1, x
     clc
     adc #4
-    sta comp_dup + 2
-    sep #$20
-.a8
-    bra guardar
+    sta f:LLUVIA_L + 1, x
+    bra siguiente
 apagada:
-    ; Nace con un diez por ciento de chance, en un lugar al azar. Las dos
-    ; rutinas vuelven con A de dieciséis, y el ensamblador tiene que saberlo:
-    ; sin el `.a16` el `cmp` de abajo salía de un byte y la CPU se comía el
-    ; siguiente.
+    ; Nace con LLUVIA_NACE de 256 de chance, en un lugar al azar.
+    ; `lluvia_azar` vuelve con A de dieciséis y no toca X.
     jsr lluvia_azar
-.a16
-    ldx #100
-    jsr lluvia_resto
-.a16
-    cmp #LLUVIA_NACE
     sep #$20
 .a8
+    cmp #LLUVIA_NACE
     bcs siguiente
     lda #LLUVIA_VIDA
-    sta comp_color
+    sta f:LLUVIA_L + 2, x
     jsr lluvia_azar
-.a16
-    and #$00FF
-    sta comp_dup
-    jsr lluvia_azar
-.a16
-    ldx #LLUVIA_ALTO
-    jsr lluvia_resto
-.a16
-    sta comp_dup + 2
     sep #$20
 .a8
-guardar:
-    rep #$20
-.a16
-    lda comp_base
-    sta WMADDL
+    sta f:LLUVIA_L, x
+    jsr lluvia_azar
     sep #$20
 .a8
-    lda comp_dup
-    sta WMDATA
-    lda comp_dup + 1
-    sta WMDATA
-    lda comp_dup + 2
-    sta WMDATA
-    lda comp_dup + 3
-    sta WMDATA
-    lda comp_color
-    sta WMDATA
+    sta f:LLUVIA_L + 1, x
 siguiente:
-    inc comp_col + 1
-    lda comp_col + 1
-    cmp comp_col
-    bcs listo
-    jmp gota
-listo:
-    ; El azar, de vuelta a su lugar.
+    inx
+    inx
+    inx
+    dec comp_col
+    bne gota
     rep #$20
 .a16
-    lda #(FAR_CLIMA + 3)
-    sta WMADDL
+    lda comp_mask
+    sta f:CLIMA_L + 3           ; el azar, de vuelta a su lugar
     sep #$20
 .a8
-    lda comp_mask
-    sta WMDATA
-    lda comp_mask + 1
-    sta WMDATA
     rts
 .endproc
 
 ; Las gotas en OAM: dos objetos de 8x8 por gota viva, con prioridad 2, al
 ; final de todo —cualquier personaje las tapa— y hasta que se llene la OAM.
 ; Un mapa sin lugar para sus colores tiene `M_LLUVIA_BASE` en cero y no dibuja
-; lluvia. Ver `gotas_en_oam` en snes_expect.py.
+; lluvia. Ver `gotas_en_oam` en snes_expect.py, que tiene la regla de qué se
+; descarta.
+;
+; No pasa por `emit_object`, que para 150 objetos era más de media pantalla:
+; la X de una gota queda siempre entre 0 y 255 —el noveno bit y el tamaño son
+; cero—, así que se escribe directo. X es la gota y Y el objeto.
 .proc lluvia_oam
 .a8
 .i16
@@ -13549,36 +13474,30 @@ listo:
     bne con_gotas
     rts
 con_gotas:
-    rep #$20
-.a16
-    lda #(FAR_CLIMA + 2)
-    sta WMADDL
-    sep #$20
-.a8
-    stz WMADDH
-    lda WMDATA
+    lda f:CLIMA_L + 2
     bne hay
     rts
 hay:
     sta comp_col                ; cuántas
-    stz obj_grande              ; las gotas son de 8x8
     rep #$20
 .a16
-    lda #FAR_LLUVIA
-    sta WMADDL                  ; y se leen de corrido: nada acá abajo toca
-    sep #$20                    ; la ventana de la WRAM
+    lda mapa_tabla + M_LLUVIA_BASE, x
+    sta comp_base               ; el primer tile
+    sep #$20
 .a8
+    ; vhoopppN: prioridad 2 y la paleta de las gotas; el noveno bit va aparte.
+    lda mapa_tabla + M_LLUVIA_PAL, x
+    and #$07
+    asl a
+    ora #$20
+    sta comp_color
+    stz comp_dup + 3
+    ldx #0
 gota:
-    lda WMDATA
-    sta comp_dup
-    lda WMDATA
-    sta comp_dup + 1
-    lda WMDATA
-    sta comp_dup + 2
-    lda WMDATA
-    sta comp_dup + 3
-    lda WMDATA
-    beq siguiente               ; apagada
+    lda f:LLUVIA_L + 2, x
+    bne viva
+    jmp siguiente
+viva:
     ; El tono: 0 con nueve o más de vida, 1 con cinco o más, 2 si no.
     cmp #9
     bcs tono0
@@ -13592,71 +13511,96 @@ tono0:
 tono1:
     lda #1
 tono:
-    sta comp_color
+    sta comp_dup + 2
+    ; En pantalla: menos el scroll del mapa, en ocho bits.
+    lda f:LLUVIA_L, x
+    sec
+    sbc pantalla_x
+    sta comp_dup
+    lda f:LLUVIA_L + 1, x
+    sec
+    sbc camara_y
+    sta comp_dup + 1
     stz comp_fila               ; la mitad: 0 arriba, 1 abajo
 mitad:
+    lda comp_dup + 1
+    cmp #224
+    bcc se_ve
+    cmp #248
+    bcs se_ve                   ; asoma por arriba
+    jmp otra_mitad
+se_ve:
     rep #$20
 .a16
     lda oam_slot
     cmp #128
+    bcc queda_lugar
     sep #$20
 .a8
-    bcc queda_lugar
-    jmp lleno
-queda_lugar:
-    rep #$20
+    rts
 .a16
-    lda comp_dup
-    sta obj_x
+queda_lugar:
+    asl a
+    asl a
+    tay
+    ; El tile: base + 16 * mitad + tono, de nueve bits.
     lda comp_fila
     and #$00FF
+    asl a
     asl a
     asl a
     asl a
     clc
     adc comp_dup + 2
-    sta obj_y
-    ; El tile: base + 16 * mitad + tono.
-    lda comp_fila
-    and #$00FF
-    asl a
-    asl a
-    asl a
-    asl a
     clc
-    adc comp_color
-    and #$00FF
-    ldx mapa_ofs
-    clc
-    adc mapa_tabla + M_LLUVIA_BASE, x
-    sta comp_base
+    adc comp_base
     sep #$20
 .a8
-    lda comp_base
-    sta obj_tile
-    ; vhoopppN: prioridad 2, la paleta de las gotas, y el noveno bit.
-    lda comp_base + 1
+    sta oam + 2, y
+    xba
     and #$01
-    sta comp_base + 1
-    lda mapa_tabla + M_LLUVIA_PAL, x
-    and #$07
-    asl a
-    ora #$20
-    ora comp_base + 1
-    sta obj_attr
-    jsr emit_object
+    ora comp_color
+    sta oam + 3, y
+    lda comp_dup
+    sta oam, y
+    lda comp_dup + 1
+    sta oam + 1, y
+    ; Sus dos bits en la tabla chica, los dos en cero: `push_high`.
+    lda high_acc
+    lsr a
+    lsr a
+    sta high_acc
+    lda oam_slot
+    and #$03
+    cmp #$03
+    bne sin_byte
+    phx
+    jsr store_high
+    plx
+sin_byte:
+    rep #$20
+.a16
+    inc oam_slot
+    sep #$20
+.a8
+otra_mitad:
+    lda comp_dup + 1
+    clc
+    adc #8
+    sta comp_dup + 1
     inc comp_fila
     lda comp_fila
     cmp #2
-    bcc mitad
+    bcs siguiente
+    jmp mitad
 siguiente:
+    inx
+    inx
+    inx
     dec comp_col
     beq listo
     jmp gota
-lleno:
 listo:
-    lda #$02                    ; lo que siga vuelve a ser de 32x32
-    sta obj_grande
     rts
 .endproc
 

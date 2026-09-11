@@ -215,7 +215,8 @@ class Mundo:
                                               variables=self.prueba[15],
                                               rama_var=self.prueba[16],
                                               items=self.prueba[17],
-                                              acceso=self.prueba[18])),
+                                              acceso=self.prueba[18],
+                                              lluvia=self.prueba[19])),
                                      dict(PAGINA_DE_PRUEBA_APAGADA,
                                           evento=numero)]
             self.paginas_cache[map_id] = paginas
@@ -288,7 +289,9 @@ class Mundo:
             return self.lluvia_cache[map_id]
         snes_convert.args_game_dir[0] = self.game_dir
         if self.hay_lluvia is None:
-            self.hay_lluvia = snes_convert.hay_lluvia(self.ids)
+            self.hay_lluvia = (snes_convert.hay_lluvia(self.ids)
+                               or (self.prueba is not None
+                                   and self.prueba[19] is not None))
         cabe = False
         if self.hay_lluvia:
             timer_colores = ()
@@ -1170,25 +1173,31 @@ def glifos_del_timer(estado):
     return fuera
 
 
-def gotas_en_oam(gotas, usados):
+def gotas_en_oam(gotas, usados, pan_x, pan_y):
     """Los objetos de 8x8 que la ROM pone por la lluvia: (x, y, mitad, tono).
 
-    Van en el orden de las gotas, arriba y abajo, y se descarta lo que
-    `emit_object` descarta —fuera de pantalla— y lo que ya no entra en los 128
-    de OAM después de los `usados` por los personajes y el cronómetro.
+    Van en el orden de las gotas, arriba y abajo. La gota está en la
+    superficie de 256x256 que va pegada al mapa, así que en pantalla es su
+    lugar menos el scroll (`pan_x` con la sacudida, `pan_y`), en ocho bits: la
+    X queda siempre adentro, y de la Y se descarta lo que cae entre 224 y 247
+    —de 248 en adelante el PPU lo dibuja asomando por arriba—. Ver
+    `lluvia_oam`. Y se corta lo que ya no entra en los 128 de OAM después de
+    los `usados` por los personajes y el cronómetro.
     """
     objetos = []
     libres = 128 - usados
     for x, y, t in gotas:
         if t <= 0:
             continue
+        ox = (x - pan_x) & 0xFF
         for mitad in (0, 1):
-            oy = y + 8 * mitad
-            if not (-32 <= x < 256 and -32 <= oy < 224):
+            oy = (y - pan_y + 8 * mitad) & 0xFF
+            if 224 <= oy < 248:
                 continue
             if len(objetos) >= libres:
                 return objetos
-            objetos.append((x, oy, mitad, eventos.lluvia_tono(t)))
+            objetos.append((ox, oy if oy < 224 else oy - 256, mitad,
+                            eventos.lluvia_tono(t)))
     return objetos
 
 
@@ -1250,7 +1259,11 @@ def draw_actors(view, sprites, encima=None, timer=(), lluvia=(),
         pix = view.load()
         tope = SCREEN_H - (snes_convert.VENTANA_FILAS_INC * 8 if ventana
                            else 0)
-        for x, y, mitad, tono in lluvia:
+        # Al revés: entre dos gotas encimadas gana la de índice más bajo de
+        # OAM, que es la primera de la lista. Pintándolas en orden ganaba la
+        # última, y la apertura no lo cobró nunca porque ahí no se enciman
+        # en ningún cuadro que se compare; lo encontró `pan-lluvia`.
+        for x, y, mitad, tono in reversed(lluvia):
             color = tuple(v << 3 for v in eventos.LLUVIA_COLORES[tono]) + (255,)
             for px, py in eventos.lluvia_pixeles(x, y - 8 * mitad)[
                     8 * mitad:8 * mitad + 8]:
@@ -1348,6 +1361,8 @@ def main():
     parser.add_argument("--rama-var-de-prueba", nargs=5, type=int,
                         default=None,
                         help="el otro lado del mismo flag de snes_convert.py")
+    parser.add_argument("--lluvia-de-prueba", type=int, default=None,
+                        help="FUERZA: el mismo flag del conversor")
     parser.add_argument("--acceso-de-prueba", nargs="+", type=int,
                         default=None,
                         help="CUAL PERMITIDO, repetible de a dos: el mismo "
@@ -1482,6 +1497,7 @@ def main():
                 or args.pan_de_prueba or args.rama_de_prueba
                   or args.vars_de_prueba or args.rama_var_de_prueba
                   or args.items_de_prueba or args.acceso_de_prueba
+                  or args.lluvia_de_prueba is not None
                   or args.mensaje_de_prueba is not None)
     # El bloque de textos, armado igual que en el conversor y en el mismo orden:
     # el mensaje de prueba primero —desplazamiento 0— y después los mapas de la
@@ -1504,7 +1520,8 @@ def main():
                    tuple(args.vars_de_prueba or ()),
                    tuple(args.rama_var_de_prueba or ()),
                    tuple(args.items_de_prueba or ()),
-                   tuple(args.acceso_de_prueba or ()))
+                   tuple(args.acceso_de_prueba or ()),
+                   args.lluvia_de_prueba)
                   if hay_prueba else None, mensajes,
                   graficos_de_prueba=snes_convert.graficos_de_prueba(
                       args.grafico_de_prueba),
@@ -1811,7 +1828,7 @@ def main():
         glifos = glifos_del_timer(estado)
         usados = sum(1 for _i, sx, sy, _a in sprites
                      if -32 <= sx < 256 and -32 <= sy < 224) + len(glifos)
-        gotas = (gotas_en_oam(estado.gotas, usados)
+        gotas = (gotas_en_oam(estado.gotas, usados, cam_x, cam_y)
                  if mundo.lleva_lluvia(map_id) else [])
         excedidas = draw_actors(view, sprites, encima, glifos, gotas,
                                 estado.mensaje is not None)

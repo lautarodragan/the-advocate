@@ -646,7 +646,9 @@ las imágenes del original.
 por ciento de chance de nacer— con la densidad escalada a 256x224, un
 xorshift propio igual de los dos lados, y rayas de 4x16 en tres grises
 opacos. Son objetos de 8x8 con prioridad 2 al final de la OAM, tapados por
-los personajes y por la ventana. Un mapa sin lugar para sus colores no dibuja
+los personajes y por la ventana. **Van pegadas al mapa** desde la noche del
+2026-09-11 —taro vio que seguían a la pantalla al caminar—, y lo cobran
+`pan-lluvia` y `sacudir-lluvia`. Un mapa sin lugar para sus colores no dibuja
 lluvia —en la demo, el 2, el 8 y el 10, que no la usan—. Lo cobra `apertura`.
 Detalle en el README, "La lluvia".
 

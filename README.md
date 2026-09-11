@@ -840,13 +840,26 @@ primero débil y después media—. Hasta ahí se aceptaba sin hacer nada porque
 era lo único que trababa la cinemática. Compila a `OP_CLIMA` con el tipo y la
 fuerza, y la regla es la de `Game_Screen::UpdateRain`: cada gota vive doce
 cuadros, baja cuatro pixeles y corre uno a la izquierda por cuadro, y una
-apagada nace con un diez por ciento de chance en un lugar al azar. Tres cosas
-son nuestras y están declaradas:
+apagada nace con un diez por ciento de chance en un lugar al azar.
+
+**La lluvia va pegada al mapa**, como en RM2k, desde el 2026-09-11: antes iba
+pegada a la pantalla, y taro lo vio al caminar. En RPG_RT las gotas viven en
+una superficie del tamaño de la pantalla que da la vuelta en los bordes, y se
+pega corrida por el paneo, que es lo que la cámara se movió
+(`Weather::DrawParticles`). Acá la superficie es de 256x256: la x y la y de
+cada gota son bytes, el paso de cada cuadro da la vuelta solo, y para
+dibujarlas se les resta el scroll del mapa —la sacudida incluida— en ocho
+bits. De la superficie se ven 224 de las 256 líneas, así que en pantalla la
+densidad es la de antes.
+
+Cuatro cosas son nuestras y están declaradas:
 
 * **La densidad, no la cantidad.** RM2k tiene 20, 60 y 100 gotas en 320x240;
   acá son 15, 45 y 75 en 256x224.
 * **El azar es un xorshift propio**, sembrado cada vez que el clima cambia e
   igual de los dos lados: el de RM2k no se puede reproducir.
+* **El diez por ciento es 26 de 256**, 10,2%: con `% 100` la ROM pagaba el
+  divisor por cada gota apagada de cada cuadro.
 * **La gota es una raya de 4x16** con la pendiente de la de 6x24 de RM2k, en
   tres grises opacos según le quede de vida, que es donde RM2k la desvanece
   con transparencia.
@@ -862,6 +875,19 @@ seis tiles y sus tres colores se reservan como los dígitos del cronómetro, y
 `lluvia_cabe`. En la demo pasa en los mapas 2, 8 y 10, que no la usan. La
 nieve, la niebla y la arena no se dibujan y apagan la lluvia; el clima no
 viaja en la partida.
+
+En OAM las gotas no pasan por `emit_object`: la X queda siempre entre 0 y
+255, así que `lluvia_oam` las escribe directo, y de la Y descarta lo que cae
+entre 224 y 247 —de 248 en adelante el PPU lo dibuja asomando por arriba—.
+Con eso y el direccionamiento largo en vez de la ventana de WMADD, la lluvia
+fuerte bajó de 58 a 24 líneas en `lluvia_tick` y `build_oam` de 130 a 84.
+
+Lo cobran `pan-lluvia` y `sacudir-lluvia` en la tanda, que corren la cámara
+con lluvia fuerte por la página de prueba (`--lluvia-de-prueba`): en la
+apertura la cámara no se mueve, así que ella sola no miraba el scroll de las
+gotas. `pan-lluvia` encontró además un error de la referencia: entre dos
+gotas encimadas pintaba arriba la última, y en el PPU gana la de índice más
+bajo de OAM.
 
 Costó un detalle de la referencia: el lazo con presupuesto cortaba cuando la
 escena se quedaba quieta, y la lluvia no se aquieta nunca. Al final de la
