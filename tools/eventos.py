@@ -953,15 +953,30 @@ TRIGGER_PARALELO = 4
 TRIGGERS = (TRIGGER_ACCION, TRIGGER_TOCA_HEROE, TRIGGER_AUTOMATICO,
             TRIGGER_PARALELO)
 
-# Un evento con gráfico **gira hacia el héroe** cuando le hablás, salvo que
-# tenga la dirección fija: es el `SetFacing(GetDirectionToCharacter(GetPlayer()))`
-# de `Game_Event::ScheduleForegroundExecution`. Eso pide sus cuatro poses paradas
-# en la VRAM y no se hace; desde el 2026-09-08 la página corre igual y el evento
-# contesta mirando para donde estaba, de los dos lados. Ver `puede_dispararse`.
+# GIRO. Un evento con gráfico **gira hacia el héroe** cuando él lo dispara,
+# salvo que tenga la dirección fija: es el
+# `SetFacing(GetDirectionToCharacter(GetPlayer()))` de
+# `Game_Event::ScheduleForegroundExecution`. Desde el 2026-09-11 se hace, de los
+# dos lados —antes contestaba mirando para donde estaba—. Las reglas, que la
+# ROM sigue en `giro_disparar` y compañía:
 #
-# No es un recorte grande, y está medido: de las 1006 páginas de tecla de acción
-# que compilarían, 474 son sobre eventos sin gráfico y 394 más sobre eventos con
-# la dirección fija, que tampoco giran. Quedan 138 afuera.
+# * Gira si su página gira —CharSet y animación que no fija la dirección,
+#   `pagina["gira"]`— y no tiene una ruta: con ruta, adónde mira lo decide
+#   ella. Los que caminan solos tienen ruta siempre, así que no giran; en RM2k
+#   se pausan mientras corre su página y sí, y eso no está modelado.
+# * Mira hacia el héroe mientras dura **la página de ese evento**, y al
+#   terminar vuelve a su pose: el `UpdateFacing` de `OnFinishForegroundEvent`.
+# * Un refresco que le cambia la página lo deshace si la nueva no gira o dibuja
+#   otra cosa; con el mismo gráfico sigue girado, como en `RefreshPage`. Si la
+#   nueva trae otro CharSet con la misma dirección y columna, RM2k lo deja
+#   girado con el dibujo nuevo y acá se deshace: declarado.
+# * Una ruta que lo agarra lo deshace, y cargar un mapa también.
+#
+# En la consola un quieto comparte su ranura de VRAM con los demás quietos de
+# la misma pose, así que para girar se muda a **la ranura de giro** del mapa
+# —una sola, porque gira uno a la vez— y ahí se le sube la pose desde las doce
+# de su gráfico, que por esto van al cartucho. El que camina o anima quieto
+# gira en su propia ranura.
 #
 # Los tipos de animación con la dirección fija son los `fixed_*` de
 # `rpg::EventPage::AnimType`, más `spin`, que gira solo y tampoco obedece.
@@ -1171,22 +1186,10 @@ def puede_dispararse(page):
       le bloquea el paso y nunca llegaría a pisarlo. De las 983 páginas de
       contacto del juego, 978 son de la capa de abajo.
 
-    **El giro hacia el héroe no se hace, y la página corre igual.** En RM2k
-    `ScheduleForegroundExecution` le pone al evento la dirección hacia el
-    jugador si su `animation_type` no la fija —`game_event.cpp:329`—. Acá no:
-    el evento contesta mirando para donde estaba. Es una deuda declarada, del
-    mismo tipo que los cinco bits del destello, y **la referencia hace lo
-    mismo**, así que la comparación sigue midiendo un solo programa.
-
-    Frenar la página por eso costaba **1572 páginas de acción en 1224 eventos
-    de 220 mapas**: la mitad de los NPCs del juego no se podían usar. taro lo
-    encontró el 2026-09-08 con el `Mechanic` de Lashe City, que se ve y no
-    habla. Un NPC que contesta de espaldas se ve raro; uno mudo no se puede
-    jugar.
-
-    Lo que falta para hacerlo bien está medido en `assets/LIMITACIONES.md`: una
-    ranura de VRAM para el que gira, porque los quietos comparten la suya por
-    (CharSet, índice, pose) y pisarla giraría también a los demás.
+    **El giro hacia el héroe no frena la página.** Hasta el 2026-09-08 la
+    frenaba, y eso costaba **1572 páginas de acción en 1224 eventos de 220
+    mapas**: la mitad de los NPCs del juego no se podían usar. Desde el
+    2026-09-11 el evento además gira de verdad: ver GIRO.
     """
     if page.trigger == TRIGGER_ACCION:
         # Las dos celdas valen, y cada una pide la capa contraria. La de
@@ -2648,6 +2651,8 @@ class Estado:
         # `cuadros_moviendose`— siguen valiendo y son ésta.
         self.ruta_heroe = Ruta()
         self.rutas_ev = {}
+        # El evento que mira al héroe porque él lo disparó: ver `girar`.
+        self.giro = None
         # Qué página tiene activa cada evento, como la dejó el último refresco.
         # Ver `pagina_activa`.
         self.paginas_activas = {}
@@ -2786,6 +2791,7 @@ class Estado:
         """
         self.rutas_ev = {}
         self.flashes = {}
+        self.giro = None            # las filas del mapa nuevo son otras
         # Y la cámara corrida vuelve a cero, de golpe: es lo que hace
         # `PerformTeleport` con `map_changed`, devolviéndole a `pan_current` y a
         # `pan_finish` el valor por omisión. Un salto al mismo mapa no pasa por
@@ -2819,6 +2825,44 @@ class Estado:
         self.aplicar = False
         self.rutas_de_pagina()
 
+    def girar(self, indice, pagina, celda, heroe):
+        """El giro hacia el héroe de un evento que él disparó: ver GIRO.
+
+        Gira si su página gira y no tiene una ruta —ésa decide adónde mira—.
+        `celda` es la del evento y `heroe` la del héroe. Queda anotado el
+        gráfico de la página, para que un refresco sepa si el giro sigue. La
+        ROM es `giro_disparar`.
+        """
+        if not pagina.get("gira") or indice in self.rutas_ev:
+            return
+        self.giro = {"evento": indice, "dir": direccion_hacia(celda, heroe),
+                     "grafico": tuple(pagina["grafico"])}
+
+    def revisar_giro(self):
+        """Al aplicar las páginas: el giro se termina si el evento se quedó
+        sin página, o con una que no gira o que dibuja otra cosa. Es el
+        `SetFacing(page->character_direction)` de `Game_Event::RefreshPage`,
+        que sólo corre si la página es otra; con la misma, el evento sigue
+        mirando al héroe. La ROM es `giro_revisar`.
+
+        Una diferencia declarada: si la página nueva trae otro CharSet con la
+        misma dirección y la misma columna, RM2k lo deja girado con el dibujo
+        nuevo y acá se termina el giro.
+        """
+        if self.giro is None:
+            return
+        pagina = self.paginas_activas.get(self.giro["evento"])
+        if (pagina is None or not pagina.get("gira")
+                or tuple(pagina["grafico"]) != self.giro["grafico"]):
+            self.giro = None
+
+    def pose_girada(self, indice, pose):
+        """La pose con que se dibuja el evento: la de siempre, o la que mira
+        al héroe si es el que gira —la misma columna, la fila del giro—."""
+        if self.giro is not None and self.giro["evento"] == indice:
+            return self.giro["dir"] * 3 + pose % 3
+        return pose
+
     def rutas_de_pagina(self):
         """`Game_Map::Refresh` entero: elegir las páginas y aplicarlas."""
         self.elegir_paginas()
@@ -2843,6 +2887,7 @@ class Estado:
         evento con la misma página de antes no se toca, y su ruta sigue por
         donde iba.
         """
+        self.revisar_giro()
         for indice in self.pos_ev:
             pagina = self.paginas_activas[indice]
             propia = pagina.get("ruta_propia") if pagina is not None else None
@@ -2914,6 +2959,10 @@ class Estado:
 
     def ruta_de_evento(self, indice):
         if indice not in self.rutas_ev:
+            # Con ruta, adónde mira lo decide ella: el giro se termina. En la
+            # ROM es `giro_por_ruta`, donde el evento se queda con su ranura.
+            if self.giro is not None and self.giro["evento"] == indice:
+                self.giro = None
             self.rutas_ev[indice] = Ruta()
             # A la velocidad de la página con que se dibuja, que es la que
             # RM2k le deja a una ruta forzada: `SetupFromPage` la pone y
@@ -3803,10 +3852,10 @@ class Interprete:
         que dejan hablar del otro lado de un mostrador.
         """
         propia = self.probar_celda(x, y, TRIGGER_ACCION, estado,
-                                   capa_propia=True)
+                                   capa_propia=True, heroe=(x, y))
         dx, dy = RUTA_PASOS[mirando]
         adelante = self.probar_celda(x + dx, y + dy, TRIGGER_ACCION, estado,
-                                     capa_propia=False)
+                                     capa_propia=False, heroe=(x, y))
         return propia or adelante
 
     def probar_contacto(self, x, y, estado):
@@ -3815,9 +3864,11 @@ class Interprete:
         Es `CheckEventTriggerHere` desde `Game_Player::UpdateMovement`, que
         corre cuando el paso termina.
         """
-        return self.probar_celda(x, y, TRIGGER_TOCA_HEROE, estado)
+        return self.probar_celda(x, y, TRIGGER_TOCA_HEROE, estado,
+                                 heroe=(x, y))
 
-    def probar_celda(self, x, y, trigger, estado, capa_propia=None):
+    def probar_celda(self, x, y, trigger, estado, capa_propia=None,
+                     heroe=None):
         """Encola la página activa del evento de esa celda si la dispara eso.
 
         `capa_propia` dice cuál de las dos reglas de capa se aplica: `True` es
@@ -3835,6 +3886,8 @@ class Interprete:
         if (pagina is not None and pagina["trigger"] == trigger
                 and pagina["codigo"]):
             self.esperando_ev.add(indice)
+            if heroe is not None:
+                estado.girar(indice, pagina, (x, y), heroe)
             return True
         return False
 
@@ -3912,6 +3965,7 @@ class Interprete:
             pagina = pagina_activa(self.paginas, evento, self.estado)
             if pagina is not None and pagina["codigo"]:
                 self.codigo, self.cursor = pagina["codigo"], 0
+                self.evento_corriendo = evento
                 return True
         return False
 
@@ -4009,6 +4063,13 @@ class Interprete:
             self.refrescar_y_remarcar(eligiendo=True)
             if corte is None:               # la página terminó
                 self.codigo = None
+                # Y el evento que giraba vuelve a su pose, si era el suyo: el
+                # `UpdateFacing` de `OnFinishForegroundEvent`.
+                giro = self.estado.giro
+                if (giro is not None
+                        and giro["evento"] == getattr(self, "evento_corriendo",
+                                                      None)):
+                    self.estado.giro = None
                 arranques -= 1
                 if not arranques:
                     return False
@@ -4639,6 +4700,7 @@ def paginas_del_mapa(game_map, indice_de_mapa, mensajes=None, temas=None,
                     "capa": page.layer, "frecuencia": page.move_frequency,
                     "velocidad": page.move_speed, "codigo": None,
                     "ruta_propia": None, "grafico": None, "tile_pasa": None,
+                    "gira": False,
                 })
                 continue
             grafico = rm2k.grafico_de_pagina(page, chipset)
@@ -4668,6 +4730,11 @@ def paginas_del_mapa(game_map, indice_de_mapa, mensajes=None, temas=None,
                 "tile_pasa": (rm2k.pasabilidad_del_tile(game_map, grafico[0],
                                                         page.layer)
                               if grafico is not None else None),
+                # Si el evento se da vuelta hacia el héroe con esta página: un
+                # CharSet —un tile del chipset no tiene hacia dónde mirar— y
+                # un tipo de animación que no fije la dirección. Ver GIRO.
+                "gira": bool(page.character_name)
+                        and page.animation_type not in ANIM_FIJAS,
             })
         salida += grupo
     return salida

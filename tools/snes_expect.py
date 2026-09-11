@@ -231,7 +231,7 @@ class Mundo:
         sola función.
         """
         if map_id not in self.anima_cache:
-            _, _, animados = snes_convert.eventos_movibles(
+            _, _, animados, _ = snes_convert.eventos_movibles(
                 self.mapa(map_id)[0], self.indices.get,
                 con_ventana=self.mensajes is not None)
             self.anima_cache[map_id] = animados
@@ -1756,6 +1756,9 @@ def main():
                     # tools/eventos.py y `animar_quietos` en main.s.
                     pose = (pose_pagina // 3) * 3 + eventos.columna_animada(
                         tick, npc["velocidad"])
+                # Y si es el que el héroe acaba de disparar, mirándolo: ver
+                # `Estado.girar`.
+                pose = estado.pose_girada(npc["evento"], pose)
             else:
                 altura = eventos.altura_del_salto(ruta)
                 px, py = eventos.pixeles_del_paso(cx, cy, ruta)

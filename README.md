@@ -2932,6 +2932,27 @@ en la tabla chica de OAM. Sin él, el héroe pegado al borde izquierdo —que en
 pantalla queda en -8— se leía como positivo y el sprite saltaba al otro lado de
 la pantalla.
 
+#### El giro hacia el héroe
+
+Desde el 2026-09-11 el NPC que el héroe dispara —con A o por contacto— se da
+vuelta hacia él mientras dura su página, como en RM2k. Las reglas están en
+GIRO, en `tools/eventos.py`, y la ROM las sigue en `giro_disparar`.
+
+Lo difícil era la VRAM: los quietos comparten ranura por (CharSet, índice,
+pose), así que subirle otra pose a uno giraría a todos sus gemelos. El
+conversor le reserva a cada mapa que lo necesite **una ranura de giro**, un
+bloque de 16 tiles más, y le pone al cartucho las doce poses de cada gráfico
+que puede girar. El quieto que gira se muda ahí y se le sube la pose que mira
+al héroe; al terminar vuelve a su ranura compartida. Uno que camina o anima
+quieto gira en la suya. El estado vive en la RAM lejana y la página lleva dos
+bytes más —ahora son 32— con la entrada de sus poses y su pose, que es lo que
+un refresco compara para saber si el giro sobrevive a un cambio de página.
+
+Un error que valió un caso: el giro guardaba la **fila** del NPC, y las filas
+se reordenan cuando alguien camina. Al terminar le devolvía el tile al evento
+que había quedado en esa fila. Ahora se la busca por evento cada vez. Lo
+encontró `bum-vuelve`; `gemelo` mira el quieto con un gemelo al lado.
+
 ### La colisión
 
 Toda la lógica de RM2k vive en `tools/rm2k.py`, fuera del conversor y de esta
@@ -3571,6 +3592,16 @@ Hover-Tram, y esa escena quedó para otra vuelta. Es deuda declarada en
 
 ### Lo que falta
 
+* **La música, del lado del SPC700.** Hoy la toca el 65816 desde una IRQ
+  —ver "La música no espera al lazo"—, y funciona, pero cuesta hasta veinte
+  líneas por cuadro y obliga a las reglas de la interrupción. El paso que
+  sigue, acordado con taro el 2026-09-11, **no** es un secuenciador en el
+  SPC700 como los de los juegos comerciales, sino uno chico que lea el mismo
+  stream de hoy desde un buffer circular en la ARAM, a su propio ritmo, y que
+  el 65816 sólo mantenga lleno. El conversor y `snes-check` no cambian, y los
+  efectos de sonido pasarían allá también. Se encara cuando haga falta el
+  margen del lazo, o si en la consola el audio muestra algo que el emulador
+  no.
 * **Las órdenes de ruta que faltan.** Son quince las que la ROM entiende
   —mover en los cuatro sentidos, girar en los cuatro, esperar, saltar,
   atravesar paredes y parar o seguir la animación— y `play_sound_effect` se

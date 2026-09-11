@@ -113,7 +113,25 @@ día entero porque destapaba más gráficos de los que entran en ocho paletas; l
 destrabó la sección de acá arriba.
 
 
-## Un evento no gira hacia vos cuando le hablás
+## El giro hacia vos cuando le hablás: lo que no se modela
+
+**Desde el 2026-09-11 gira**, de los dos lados, con una ranura de VRAM de giro
+por mapa para los quietos: ver GIRO en `tools/eventos.py`. Lo que queda afuera:
+
+* **Los que caminan solos no giran.** Tienen una ruta siempre, y con ruta
+  adónde mira lo decide ella. En RM2k la página que corre los **pausa**
+  —`SetPaused(true)`— y entonces sí giran; la pausa no está modelada, así que
+  acá siguen caminando mientras hablan, que es la deuda de fondo.
+* **Otro CharSet con la misma pose.** Si un refresco le cambia la página a
+  una que dibuja otro CharSet con la misma dirección y columna, RM2k lo deja
+  girado con el dibujo nuevo; acá el giro se deshace.
+* **Si la cola de subidas a VRAM está llena** en el cuadro del disparo, el
+  quieto no gira. La cola es de ocho y en el juego no se llena nunca en ese
+  momento, pero la referencia no la modela.
+
+Lo que sigue es cómo estaba antes, para el registro.
+
+### Antes: no giraba
 
 En RM2k, al dispararse una página con la tecla de acción el evento se da vuelta
 hacia el jugador: `ScheduleForegroundExecution` hace

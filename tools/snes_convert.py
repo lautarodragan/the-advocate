@@ -2113,6 +2113,9 @@ MAPA_BYTES = [
     ("ABOVE_FIRST", "en qué entrada de CGRAM arranca la capa de encima"),
     ("TIMER_PAL", "la paleta de sprite de los dígitos del cronómetro"),
     ("LLUVIA_PAL", "la paleta de sprite de las gotas de lluvia"),
+    # Un byte y no un escalar porque el registro está en sus 128 justos. El
+    # tile de un bloque es siempre múltiplo de cuatro y menor que 512.
+    ("GIRO_TILE4", "el tile de la ranura de giro sobre cuatro, o $FF"),
 ]
 MAPA_PUNTEROS = ["map_tiles", "map_cgram", "above_tiles", "above_cgram",
                  "sprite_tiles", "sprite_cgram", "map_celdas", "map_bloques",
@@ -2146,7 +2149,9 @@ PUERTA_BYTES = 16
 # código. Las páginas de un mismo evento van seguidas y en orden, que es lo que
 # le permite a la ROM elegir la última que cumple sus condiciones en una sola
 # pasada, sin llevar una tabla por evento.
-PAGINA_BYTES = 30
+PAGINA_BYTES = 32
+# Sin ranura de giro: el mapa no tiene ningún quieto que se dé vuelta.
+GIRO_NINGUNO = 0xFFFF
 # Un candidato a líder: id, paleta, **sus quince colores** y doce punteros de 24
 # bits a sus poses. Los colores van adentro de la tabla y no en un bloque aparte
 # porque son pocos actores por mapa y así la ROM los sube con un DMA desde donde
@@ -2210,6 +2215,8 @@ def campos_del_mapa(mapa):
         "ABOVE_FIRST": above[3] * COLORS_PER_PALETTE,
         "TIMER_PAL": (sprite[6] if sprite and sprite[6] is not None else 0),
         "LLUVIA_PAL": sprite[11] if sprite else 0,
+        "GIRO_TILE4": (sprite[12] // 4 if sprite and sprite[12] != GIRO_NINGUNO
+                       else 0xFF),
     }
 
 
@@ -2514,7 +2521,18 @@ def tabla_de_paginas(mapa, numero, evcodigo):
         # +28: el ítem que pide tener, o 0: `condiciones_ok` mira su cuenta
         # en `FAR_ITEMS`.
         out.append("    .word %-4d ; +28 el ítem que pide, o 0" % pagina["item"])
-        assert PAGINA_BYTES == 30
+        # +30 y +31: el giro hacia el héroe. En qué entrada de `npc_poses`
+        # están las poses de su gráfico, o $FF si la página no gira, y su
+        # pose. Al dispararse, la ROM sube la que mira al héroe; en un
+        # refresco, un cambio a una página que no gira o con otro gráfico
+        # deshace el giro. Ver GIRO en eventos.py.
+        grafico = pagina.get("grafico")
+        k = (mapa.get("giro_k", {}).get(tuple(grafico[:2]))
+             if pagina.get("gira") and grafico and pagina["evento"] in
+             mapa.get("giran", ()) else None)
+        out.append("    .byte $%02X, %d ; +30 el giro: sus poses y su pose"
+                   % (0xFF if k is None else k, grafico[2] if k is not None else 0))
+        assert PAGINA_BYTES == 32
     if not mapa["paginas"]:
         out.append("    .byte $00")     # una etiqueta no puede quedar vacía
     return "\n".join(out)
@@ -2672,6 +2690,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "RUTA_EV_MAX = %d\n"
         "PUERTA_BYTES = %d\n"
         "PAGINA_BYTES = %d\n"
+        "GIRO_NINGUNO = $%04X\n"
         "; Y cuántos gráficos distintos puede pedir la orden 34 en un mapa:\n"
         "; su tabla se copia a la RAM como la de NPCs.\n"
         "RUTA_GRAF_MAX = %d\n"
@@ -2943,7 +2962,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            VRAM_MAP, VRAM_ABOVE_MAP, MAP_LAYOUT, NPC_STRIDE, NPC_MAX,
            NPC_QUIETO,
            EV_STRIDE, EV_MAX, RUTA_EV_MAX,
-           PUERTA_BYTES, PAGINA_BYTES, RUTA_GRAF_MAX,
+           PUERTA_BYTES, PAGINA_BYTES, GIRO_NINGUNO, RUTA_GRAF_MAX,
            eventos.OP_FIN, eventos.OP_SWITCH, eventos.OP_TELEPORT,
            eventos.OP_ESPERAR, eventos.OP_TINTE, eventos.OP_GRUPO,
            eventos.OP_RUTA, eventos.OP_MENSAJE, eventos.OP_RUTAS,
@@ -3845,7 +3864,22 @@ def eventos_movibles(game_map, indice_de_mapa, con_ventana=False):
     # el único que se pasa es el 52.
     if len(animados) > ANIMA_QUIETO_MAX:
         animados = set()
-    return con_ruta | animados, list(graficos.pares), animados
+    # Y los que se dan vuelta hacia el héroe cuando les habla: los eventos con
+    # alguna página de acción o de contacto que compiló y gira —ver GIRO en
+    # eventos.py—, con los gráficos de **todas** sus páginas que giran. Las
+    # doce poses de cada uno van al cartucho, que es de donde la ROM saca la
+    # que mira al héroe; el refresco compara los gráficos de las páginas para
+    # saber si el giro sobrevive a un cambio de página.
+    giran = {}
+    for p in paginas:
+        if (p["codigo"] and p.get("gira")
+                and p["trigger"] in (eventos.TRIGGER_ACCION,
+                                     eventos.TRIGGER_TOCA_HEROE)):
+            giran[p["evento"]] = set()
+    for p in paginas:
+        if p["evento"] in giran and p.get("gira") and p["grafico"]:
+            giran[p["evento"]].add(tuple(p["grafico"][:2]))
+    return con_ruta | animados, list(graficos.pares), animados, giran
 
 
 def graficos_de_prueba(argumento):
@@ -4974,7 +5008,7 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
     # más y pide paleta como cualquiera: repartiendo sin contarlo, entraría
     # después y podía no haber lugar.
     orden = orden_de_mapas(args)
-    movibles, graficos_de_ruta, anima_quieto = eventos_movibles(
+    movibles, graficos_de_ruta, anima_quieto, giran = eventos_movibles(
         game_map, {m: i for i, m in enumerate(orden)}.get,
         con_ventana=args.con_ventana)
     # Y los de `--grafico-de-prueba`, que van sólo en el mapa donde arranca la
@@ -5070,6 +5104,12 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
             and (charset, index) in reparto[1])
         if grafico_se_ve[-1] and (charset, index) not in animados:
             animados.append((charset, index))
+    # Y los que giran hacia el héroe: sus doce poses, para subir la que mira
+    # hacia él. Van al final para no mover el índice de nadie más.
+    for pares in giran.values():
+        for par in sorted(pares):
+            if par in reparto[1] and par not in animados:
+                animados.append(par)
     afuera_de_ruta = [par for par, se_ve in zip(graficos_de_ruta, grafico_se_ve)
                       if not se_ve and sprite_colors(
                           images_de(renderer, args, par[0]), par[1])]
@@ -5124,6 +5164,20 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
             for clave in poses:
                 if clave not in {r[0] for r in ranuras}:
                     ranuras.append((clave,) + clave)
+    # La ranura de giro: una pose más, para el quieto que se da vuelta hacia
+    # el héroe. Los quietos comparten ranura por (CharSet, índice, pose), así
+    # que girar la suya giraría también a los demás que la usan; el que gira
+    # se muda a ésta mientras dura su página. Es una sola porque sólo gira el
+    # evento que el héroe disparó, y hay uno a la vez. Los que caminan o
+    # animan no la necesitan: tienen la suya. Ver GIRO en eventos.py.
+    quietos_que_giran = [npc for npc in npcs
+                         if npc["evento"] in giran
+                         and npc["evento"] not in movibles
+                         and any(par in reparto[1]
+                                 for par in giran[npc["evento"]])]
+    if quietos_que_giran:
+        npc = quietos_que_giran[0]
+        ranuras.append(("giro", npc["charset"], npc["index"], npc["pose"]))
     personajes = list(animados)
     for _clave, charset, index, _pose in ranuras:
         if (charset, index) not in personajes:
@@ -5192,8 +5246,11 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
         actores.append((actor, paleta_de[(a.charset, a.charset_index)],
                         indice_animado[(a.charset, a.charset_index)],
                         [cgram_word(c) for c in propia]))
+    giro_tile = (block_tile(where["giro"][0]) if "giro" in where
+                 else GIRO_NINGUNO)
     sprite = (tiles, palettes, where, table, actores, timer_base, timer_pal,
-              animados, bancos, ruta_graficos, lluvia_base, lluvia_pal)
+              animados, bancos, ruta_graficos, lluvia_base, lluvia_pal,
+              giro_tile)
 
     # La colisión: un byte por celda de 16x16 con los cuatro bits de dirección
     # ya resueltos. Toda la lógica de RM2k —que la capa alta manda salvo que sea
@@ -5292,6 +5349,10 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
         # en el banco de sprites, qué eventos cambian de gráfico con la
         # página y qué gráficos suyos quedaron afuera de las paletas.
         "where": where,
+        # Para el giro hacia el héroe: en qué entrada de `npc_poses` están las
+        # doce poses de cada gráfico, que es el +30 de la página.
+        "giro_k": {par: indice_animado[par] for par in animados},
+        "giran": set(giran),
         "cambian": {npc["evento"] for npc in npcs if npc["cambia"]},
         # Y los que sólo aparecen y desaparecen con ella: los que caminan, a
         # los que el gráfico se les fijó más arriba.

@@ -668,6 +668,17 @@ texto, y pidió que el audio ande siempre aunque la imagen se atrase más. La
 música pasó a `irq_musica`, una IRQ vertical por cuadro de hardware; ya no
 depende de cuánto tarda el lazo. README, "La música no espera al lazo".
 
+### El giro hacia el héroe (2026-09-11)
+
+taro lo pidió probando la ROM: los NPCs miran al héroe cuando les habla, y al
+terminar su página vuelven a su pose. Es la "ranura de giro por mapa" que
+`assets/LIMITACIONES.md` proponía: el quieto se muda a ella y ahí se le sube
+la pose desde las doce de su gráfico, que por eso van al cartucho; el que
+camina gira en la suya. Lo cobran `bum-vuelve` —el que camina, con el giro
+deshaciéndose al cerrar el último mensaje— y `gemelo` —un quieto del mapa 10
+con un gemelo que no se mueve—. Los que caminan solos no giran porque no está
+modelada la pausa de RM2k: ver LIMITACIONES.
+
 ### El atraso de la apertura (2026-09-11)
 
 La apertura perdía 181 cuadros en 3000; ahora 20, sueltos. FastROM —el
