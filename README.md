@@ -2932,6 +2932,26 @@ en la tabla chica de OAM. Sin él, el héroe pegado al borde izquierdo —que en
 pantalla queda en -8— se leía como positivo y el sprite saltaba al otro lado de
 la pantalla.
 
+#### Los eventos translúcidos van tramados
+
+El "Trans" de una página —`translucent`— en RM2k dibuja el evento con
+opacidad 160 de 255. La consola tiene transparencia de verdad, el color math,
+pero la aplica a todos los sprites de las paletas 4 a 7 a la vez: un mapa con
+translúcidos tendría que dejarles esas cuatro paletas solas, y el 9 —donde
+están los fuegos de los barriles que taro pidió el 2026-09-11— lleva once
+personajes en las ocho. Así que van **tramados**: la mitad de sus pixeles en
+damero, que es lo que hacían los juegos de la época y en un televisor de tubo
+se ve como semitransparencia. En una pantalla moderna se ve la trama.
+
+Para el port un CharSet translúcido es **otro CharSet**, con `~trama` pegado
+al nombre: lo pega el lector en las páginas translúcidas —`lcf` lo hace sólo
+si alguien prende `SUFIJO_TRANSLUCIDO`, que es el conversor, para que el
+volcado a JSON siga viendo el nombre de verdad— y `render_map.Charsets`
+fabrica la imagen. Todo lo demás —paletas, ranuras de VRAM, poses, la
+referencia— lo trata como a cualquier gráfico, y por eso no hubo que tocar
+nada más. Los eventos translúcidos dibujados con un tile del chipset no lo
+llevan todavía. Lo cobra `fuego` en la tanda. Son 70 páginas en 35 mapas.
+
 #### El giro hacia el héroe
 
 Desde el 2026-09-11 el NPC que el héroe dispara —con A o por contacto— se da

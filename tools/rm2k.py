@@ -233,6 +233,20 @@ LAYER_ABOVE = 2
 TILE_PREFIX = "@tile:"
 
 
+# Un evento **translúcido** —el "Trans" de la página, `translucent`— se dibuja
+# en RM2k con opacidad 160 de 255. La consola tiene transparencia de verdad
+# —el color math— pero la aplica a todos los sprites de las paletas 4 a 7, y
+# un mapa como el 9, con once personajes en las ocho paletas, no puede dejar
+# cuatro para los translúcidos solos. Así que va **tramado**: la mitad de los
+# pixeles en damero, que es lo que hacían los juegos de la época y en un
+# televisor de tubo se ve como semitransparencia. Para el port es otro
+# CharSet, con este sufijo en el nombre: el lector lo pega en las páginas
+# translúcidas —ver `lcf.SUFIJO_TRANSLUCIDO`, que prende `snes_convert`— y
+# `render_map.Charsets` fabrica la imagen tramada. Todo lo demás —paletas,
+# ranuras, poses, la referencia— lo trata como a cualquier otro.
+TRAMA_SUFIJO = "~trama"
+
+
 def nombre_de_tile(chipset, indice):
     return "%s%s:%d" % (TILE_PREFIX, chipset, indice)
 

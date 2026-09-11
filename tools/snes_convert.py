@@ -42,6 +42,9 @@ import event_codes
 import eventos
 import lcf
 import rm2k
+
+# Los eventos translúcidos van tramados: ver `rm2k.TRAMA_SUFIJO`.
+lcf.SUFIJO_TRANSLUCIDO = rm2k.TRAMA_SUFIJO
 import pixeles
 import titulo as titulo_mod
 import pantallas as pantallas_mod

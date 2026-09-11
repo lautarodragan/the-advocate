@@ -668,6 +668,12 @@ texto, y pidió que el audio ande siempre aunque la imagen se atrase más. La
 música pasó a `irq_musica`, una IRQ vertical por cuadro de hardware; ya no
 depende de cuánto tarda el lazo. README, "La música no espera al lazo".
 
+### Los translúcidos, tramados (2026-09-11)
+
+Los fuegos de los barriles del mapa 9 —el "Trans" de su página— van en
+damero: la transparencia de la consola pide paletas que ese mapa no tiene.
+README, "Los eventos translúcidos van tramados". Lo cobra `fuego`.
+
 ### Lo que le falta a la intro: medido, sin decidir (2026-09-11)
 
 taro pidió todas las animaciones y los efectos de sonido que faltan en la

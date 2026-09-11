@@ -125,7 +125,10 @@ class Charsets:
 
     def get(self, name):
         if name not in self.images:
-            if name.startswith(rm2k.TILE_PREFIX):
+            if name.endswith(rm2k.TRAMA_SUFIJO):
+                self.images[name] = self._tramado(
+                    name[:-len(rm2k.TRAMA_SUFIJO)])
+            elif name.startswith(rm2k.TILE_PREFIX):
                 self.images[name] = self._de_tile(name)
             else:
                 path = find_resource(self.search_dirs, "CharSet", name)
@@ -133,6 +136,19 @@ class Charsets:
                     self.missing.add(name)
                 self.images[name] = load_image(path) if path else None
         return self.images[name]
+
+    def _tramado(self, name):
+        """El CharSet de un evento translúcido: el mismo, con los pixeles
+        de (x + y) impar transparentes. Ver `rm2k.TRAMA_SUFIJO`."""
+        base = self.get(name)
+        if base is None:
+            return None
+        image = base.convert("RGBA")
+        pix = image.load()
+        for y in range(image.height):
+            for x in range(1 - y % 2, image.width, 2):
+                pix[x, y] = (0, 0, 0, 0)
+        return image
 
     def _de_tile(self, name):
         """Un CharSet inventado con un tile de la página alta del chipset en

@@ -309,6 +309,13 @@ def read_commands(payload):
     return commands
 
 
+# Si no es None, el nombre del CharSet de una página translúcida lleva esto
+# pegado, y para quien lo lea es otro gráfico. Lo prende el port —ver
+# `rm2k.TRAMA_SUFIJO`— y no el lector: el volcado a JSON tiene que seguir
+# viendo el nombre de verdad.
+SUFIJO_TRANSLUCIDO = None
+
+
 class EventPageCondition:
     """Lo que tiene que pasar para que esta página sea la activa."""
 
@@ -365,10 +372,14 @@ class EventPage:
 
     def __init__(self, fields):
         self.character_name = to_string(fields.get(PAGE_CHARACTER_NAME, b""))
+        self.translucent = to_bool(fields.get(PAGE_TRANSLUCENT))
+        if SUFIJO_TRANSLUCIDO and self.translucent and self.character_name:
+            # Ver SUFIJO_TRANSLUCIDO: para el port, un CharSet translúcido es
+            # otro gráfico.
+            self.character_name += SUFIJO_TRANSLUCIDO
         self.character_index = to_int(fields.get(PAGE_CHARACTER_INDEX, b"\x00"))
         self.character_direction = to_int(fields.get(PAGE_CHARACTER_DIRECTION, b"\x02"))
         self.character_pattern = to_int(fields.get(PAGE_CHARACTER_PATTERN, b"\x01"))
-        self.translucent = to_bool(fields.get(PAGE_TRANSLUCENT))
         self.move_type = to_int(fields.get(PAGE_MOVE_TYPE, b"\x01"))
         self.move_frequency = to_int(fields.get(PAGE_MOVE_FREQUENCY, b"\x03"))
         self.move_speed = to_int(fields.get(PAGE_MOVE_SPEED, b"\x03"))

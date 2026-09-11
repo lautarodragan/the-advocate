@@ -157,6 +157,9 @@ snes-hablar 8 "38 54" 24 25 "20 60" 115 bum
 # guardada del que gira pasaba a ser de otro cuando las filas se reordenan.
 snes-hablar 8 "38 54" 24 "24 70 110 150 190" "60 170 200" 115 bum-vuelve
 snes-hablar 10 "11 4" 24 "25 70 110 150" "20 60 140 160" 115 gemelo
+# Los fuegos translúcidos de los barriles del mapa 9, tramados: ver
+# `rm2k.TRAMA_SUFIJO`. La A cae después de la última captura.
+snes-hablar 9 "57 36" 24 900 "20 40" 115 fuego
 # Parallel Process: los dos autos y los dos que los reubican del mapa 9,
 # mirados a lo largo de cuatro segundos. Verificado que da rojo sin
 # `paralelos_tick`: 232 pixeles en el cuadro 2. El mapa 8 tiene nueve y no
