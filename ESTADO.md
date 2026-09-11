@@ -800,9 +800,10 @@ acotados; del cuarto para abajo es lo de siempre.
    menú, y que los NPCs de Lashe City vuelvan con sus poses —es lo que se
    rompía con las direcciones viejas de VRAM, y snes9x sí lo cobró, pero sólo
    con el grupo 11—.
-   **Las más nuevas son `/extras/builds/2026-09-11-7d992b6/`**: el menú con
-   ítems, equipo y guardar, la tienda, la lluvia pegada al mapa, los efectos
-   de sonido, la música en una IRQ y FastROM, todo sin probar a mano. Son de
+   **Las más nuevas son `/extras/builds/2026-09-11-9fe396b/`**, con el giro
+   hacia el héroe. La anterior, `2026-09-11-7d992b6/` —el menú, la tienda, la
+   lluvia pegada al mapa, los efectos, la música en una IRQ y FastROM—, taro
+   la probó en mednafen y anda sin lag. Son de
    2 MB. La anterior, `2026-09-11-19e7dcc/`, es la que taro probó y le trajo
    el lag y la lluvia pegada a la pantalla. La SRAM pasó a 32 KB y la partida creció con el
    equipo, así que las partidas de las ROMs anteriores no cargan.
