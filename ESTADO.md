@@ -811,8 +811,10 @@ acotados; del cuarto para abajo es lo de siempre.
    menú, y que los NPCs de Lashe City vuelvan con sus poses —es lo que se
    rompía con las direcciones viejas de VRAM, y snes9x sí lo cobró, pero sólo
    con el grupo 11—.
-   **Las más nuevas son `/extras/builds/2026-09-11-9fe396b/`**, con el giro
-   hacia el héroe. La anterior, `2026-09-11-7d992b6/` —el menú, la tienda, la
+   **Las más nuevas son `/extras/builds/2026-09-11-d150491/`**: el paquete
+   de audio por mapa, las animaciones con sonido y destellos, y los
+   translúcidos tramados, sin probar a mano. Antes, `2026-09-11-9fe396b/`, con
+   el giro hacia el héroe. La anterior, `2026-09-11-7d992b6/` —el menú, la tienda, la
    lluvia pegada al mapa, los efectos, la música en una IRQ y FastROM—, taro
    la probó en mednafen y anda sin lag. Son de
    2 MB. La anterior, `2026-09-11-19e7dcc/`, es la que taro probó y le trajo
