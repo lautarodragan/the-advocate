@@ -747,6 +747,10 @@ acotados; del cuarto para abajo es lo de siempre.
    menú, y que los NPCs de Lashe City vuelvan con sus poses —es lo que se
    rompía con las direcciones viejas de VRAM, y snes9x sí lo cobró, pero sólo
    con el grupo 11—.
+   **Las más nuevas son `/extras/builds/2026-09-11-19e7dcc/`**: el menú con
+   ítems, equipo y guardar, la tienda, la lluvia y los efectos de sonido,
+   todo sin probar a mano. La SRAM pasó a 32 KB y la partida creció con el
+   equipo, así que las partidas de las ROMs anteriores no cargan.
 
 5. **Lo que sigue faltando de Lashe City**: la condición de **ítem** —45
    eventos— quedó resuelta como "nunca activa", las **variables** están desde
