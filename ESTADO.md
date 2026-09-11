@@ -11,7 +11,7 @@ volvió inusable; se borra sin culpa lo que ya esté en esos dos lados.
 
 Se escribe **mientras se trabaja**, no al final.
 
-Última vez que se tocó: 2026-09-10.
+Última vez que se tocó: 2026-09-11.
 
 
 ## El objetivo, y dónde estamos
@@ -734,6 +734,27 @@ y el destello con una tabla de productos. Ni la referencia ni lo que se
 dibuja cambian. README, "El costo de la apertura". **Falta que taro lo
 pruebe en la consola**: FastROM y los 2 MB son justo lo que un emulador
 puede perdonar y el FX Pak no.
+
+### El MSU-1, en un tema (2026-09-11)
+
+taro pidió probarlo: *"la música hoy en día está sonando bastante fea"*, y el
+FX Pak lo soporta. Hecho para **`escape_newyork` y nada más** —es un
+experimento y así queda hasta que él lo escuche—. El detalle está en el README,
+"El MSU-1"; lo que hay que saber acá:
+
+* **Sin los archivos `.msu`/`.pcm` la ROM suena exactamente como antes**, y ése
+  es el camino que corren la tanda y todas las pruebas: 123 casos en verde
+  sobre la foto `9e32158`, y `just pruebas` 83 en verde con el `xfail` de
+  siempre. Verificar el camino *con* MSU-1 pide grabar audio, y eso se hizo
+  aparte: nivel, correlación de envolventes (0,927) y fundido, los tres
+  medidos y escritos en el README.
+* **Las pistas no salen de `snes-demos`**: son `just snes-msu <demo>`, aparte,
+  porque pesan 10,6 MB por minuto y para jugar no hacen falta.
+* **En la tarjeta los tres archivos van juntos y con el mismo nombre base.** Si
+  taro renombra el `.sfc`, tiene que renombrar el `.msu` y los `.pcm` o el
+  MSU-1 no se enciende y la música vuelve al SPC700 —sin romper nada—.
+* **Falta escucharlo**: en la consola y en el emulador. Y falta decidir si va
+  el resto de los temas, que es agregarlos a `PISTAS_MSU`.
 
 ### Lo próximo, si no se decide otra cosa
 

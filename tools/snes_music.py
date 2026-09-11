@@ -65,6 +65,19 @@ OP_END = 0xFF
 DRUM_VOICES = 2
 
 
+# Los temas que además tienen pista de MSU-1, y con qué número. El MSU-1 no es
+# hardware de la consola sino una extensión que soportan el FX Pak Pro y los
+# emuladores: la música sale de un archivo PCM al lado de la ROM
+# —`<rom>-<pista>.pcm`, habilitado por un `<rom>.msu`— en vez de sintetizarse
+# en el SPC700. Cuando el tema tiene pista, la ROM calla el SPC700 y la toca;
+# los efectos siguen sonando en el SPC700, así que la ARAM les queda entera.
+#
+# Es el experimento que pidió taro el 2026-09-11, porque la música
+# sintetizada suena fea. Las pistas las arma `tools/msu.py` desde los mismos
+# MIDI, con el soundfont con que sonaba el juego original en la PC.
+PISTAS_MSU = {"escape_newyork": 1}
+
+
 # --- el driver del SPC700 ---------------------------------------------------
 # Se queda esperando que el 65816 cambie el testigo del puerto 3 —lo
 # incrementa en cada escritura, y el driver se lo devuelve como acuse— y mira
@@ -781,6 +794,10 @@ def emit(path, temas, driver, voces, arranque=0xFF, titulo=0xFF,
         "%s:\n    .byte %s" % (nombre, ", ".join(prefijo + e for e in etiquetas))
         for nombre, prefijo in (("tema_lo", "<"), ("tema_hi", ">"),
                                 ("tema_bk", "^")))
+    # Y qué pista de MSU-1 le toca a cada uno, o $FF: ver PISTAS_MSU.
+    tabla += "\ntema_msu:\n    .byte " + ", ".join(
+        "$%02X" % PISTAS_MSU.get(t["nombre"], 0xFF)
+        for t in (temas or [{"nombre": ""}]))
     # Y los efectos de sonido: siete bytes por entrada de `Temas.sonidos`.
     # Fuera del banco 0: `op_sonido` los lee con `lda f:sonido_tabla, x`.
     filas = list(sonidos) or [(0xFF, 0, 0, 0, 0)]

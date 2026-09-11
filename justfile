@@ -2357,6 +2357,18 @@ snes-demos:
   just snes-demo demo-ciudad
   just snes-demo demo-titulo 1
 
+# Las pistas de MSU-1 al lado de una ROM ya armada: el `.msu` que lo enciende
+# —puede estar vacío— y un `.pcm` por tema de `PISTAS_MSU`. No va adentro de
+# `snes-demo` porque no hace falta para jugar: sin estos archivos la ROM suena
+# como siempre, por el SPC700. Y porque es cara —renderiza el MIDI con
+# fluidsynth y normaliza en Python— y pesa: son 10,6 MB por minuto de música.
+#
+# En la tarjeta del FX Pak los tres van en el mismo directorio y con el mismo
+# nombre base que la ROM: renombrar el `.sfc` obliga a renombrar los otros, o
+# el MSU-1 no se enciende.
+snes-msu nombre="demo-ciudad":
+  python3 tools/msu.py rom/build/{{nombre}}/{{nombre}}.sfc
+
 # --- verificación del ensamblador ------------------------------------------
 # w65.py reemplaza a ca65 y ld65. Que se pueda confiar en él no es una promesa:
 # se genera un fuente con cada mnemónico en cada modo de direccionamiento que la

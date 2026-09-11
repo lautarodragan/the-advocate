@@ -635,6 +635,7 @@ rapido:
     jsr ppu_reset               ; la consola no arranca limpia; el emulador sí
     lda #$01
     sta MEMSEL                  ; la ROM del espejo, rápida
+    jsr msu_detectar            ; ¿la música sale de una pista?
 
     ; Después del reset, no antes: ppu_reset apaga NMITIMEN junto con todo lo
     ; demás, así que habilitarlo primero no serviría de nada.
@@ -13656,6 +13657,119 @@ listo:
 .endproc
 
 
+; --- el MSU-1 ---------------------------------------------------------------
+;
+; El MSU-1 no es hardware de la consola: es una extensión que soportan el FX
+; Pak Pro y los emuladores, con la música en archivos PCM al lado de la ROM.
+; Cuando el tema que se prende tiene pista —`tema_msu`, que emite el
+; conversor—, el SPC700 se calla y suena la pista; los efectos de sonido
+; siguen en el SPC700 como siempre. Sin MSU-1 no cambia nada: la firma no
+; está y todo sigue saliendo del SPC700.
+;
+; Los registros viven en $2000..$2007 de cualquier banco del área baja:
+;
+;   $2000  leer: bit 7 datos ocupados, 6 pista cargando, 5 repitiendo,
+;          4 tocando, 3 pista ausente, 2..0 revisión
+;   $2002..$2007  leer: la firma "S-MSU1"
+;   $2004  escribir: qué pista, dos bytes
+;   $2006  el volumen, de 0 a 255
+;   $2007  bit 0 tocar, bit 1 repetir
+MSU_ESTADO  = $2000
+MSU_FIRMA   = $2002
+MSU_PISTA   = $2004
+MSU_VOLUMEN = $2006
+MSU_CONTROL = $2007
+MSU_HAY     = $7E30E8           ; si la firma está
+MSU_SUENA   = $7E30E9           ; si la pista está tocando ahora
+
+; La firma, una vez, en el reset.
+.proc msu_detectar
+.a8
+.i16
+    lda #0
+    sta f:MSU_SUENA
+    ldx #$0000
+mirar:
+    lda MSU_FIRMA, x
+    cmp msu_firma, x
+    bne no_hay
+    inx
+    cpx #6
+    bcc mirar
+    lda #1
+    sta f:MSU_HAY
+    rts
+no_hay:
+    lda #0
+    sta f:MSU_HAY
+    rts
+.endproc
+
+msu_firma:
+    .byte "S-MSU1"
+
+; Calla la pista, si había una.
+.proc msu_parar
+.a8
+.i16
+    lda f:MSU_SUENA
+    beq listo
+    lda #0
+    sta f:MSU_SUENA
+    sta MSU_CONTROL
+listo:
+    rts
+.endproc
+
+; Arranca la pista del tema A, si tiene y si hay MSU-1. Vuelve con A distinto
+; de cero si la pista quedó sonando, y ahí la música del SPC700 no va.
+.proc msu_arrancar
+.a8
+.i16
+    pha
+    lda f:MSU_HAY               ; de a un byte: con `ldx` se leía el de al lado
+    beq sin_msu1
+    pla
+    cmp #TEMA_TOTAL
+    bcs no
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda tema_msu, x
+    cmp #$FF
+    beq no
+    sta MSU_PISTA
+    stz MSU_PISTA + 1
+    ldx #$0000
+espera:
+    lda MSU_ESTADO
+    and #$40                    ; la está cargando
+    beq cargada
+    inx
+    cpx #$4000
+    bcc espera
+    bra no                      ; no cargó: que suene el SPC700
+cargada:
+    lda MSU_ESTADO
+    and #$08                    ; la pista no está en la tarjeta
+    bne no
+    lda #$FF                    ; el volumen del MSU-1 va de 0 a 255
+    sta MSU_VOLUMEN
+    lda #$03                    ; tocar y repetir
+    sta MSU_CONTROL
+    lda #1
+    sta f:MSU_SUENA
+    rts
+sin_msu1:
+    pla
+no:
+    lda #0
+    rts
+.endproc
+
 ; --- el paquete de audio de cada mapa ----------------------------------------
 ;
 ; La ARAM no alcanza para todas las muestras del cartucho —la música de los
@@ -22124,6 +22238,31 @@ listo:
     ; título—, y cambiar el puntero a medias con `irq_musica` leyéndolo sería
     ; tocar un tema desde la mitad de otro.
     pha
+    jsr msu_parar               ; la pista de antes, si había
+    pla
+    pha
+    jsr msu_arrancar
+    beq sin_pista
+    ; Con pista, el SPC700 se calla: el stream no corre y las voces sueltan.
+    pla
+    sta tema_actual
+    stz tema_actual + 1
+    php
+    sei
+    lda #1
+    sta music_apagada
+    stz bgm_fundido
+    lda #$FF
+    ldx #SE_KOF
+    jsr dsp_par
+    plp
+    rts
+sin_pista:
+    ; El tema se queda en la pila: `tema_asegurar` pisa el acumulador, y
+    ; `music_start_ya` lo necesita. Sacarlo antes dejaba el tema en $FF, el
+    ; puntero del stream fuera de su tabla y la ROM muda a los diez cuadros.
+    pla
+    pha
     jsr tema_asegurar           ; que sus muestras estén en la ARAM
     pla
     php
@@ -22211,6 +22350,17 @@ sin_sumar:
     sep #$20
 .a8
     sta dsp_valor
+    ; Y lo mismo para la pista del MSU-1, que es la que suena si hay: el
+    ; `FadeOutBGM` la baja igual. Al llegar a cero se corta.
+    lda f:MSU_SUENA
+    beq sin_msu
+    lda bgm_nivel + 1           ; el nivel del fundido ya va de 255 a 0
+    sta MSU_VOLUMEN
+    bne con_msu
+    jsr msu_parar               ; llegó a cero: la pista se corta
+con_msu:
+    lda dsp_valor
+sin_msu:
     lda #DSP_MVOL_L
     jsr escribir_dsp
     lda #DSP_MVOL_R
