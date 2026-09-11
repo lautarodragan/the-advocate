@@ -4428,9 +4428,17 @@ otro_tema:
 ;
 ; Con el tema apagado no se arranca nada: el fundido escribiría el volumen de un
 ; tema que no suena, y encima lo dejaría en cero para el `PlayBGM` que venga.
+;
+; Con una pista del MSU-1 sonando, en cambio, sí hay qué fundir: `music_apagada`
+; vale 1 —el SPC700 está callado a propósito— y el que baja es el volumen del
+; MSU-1. Sin esta salida, un `FadeOutBGM` no hacía nada y la pista seguía
+; sonando para siempre.
 op_fundir_bgm:
+    lda f:MSU_SUENA
+    bne fundir
     lda music_apagada
     bne fundir_nada
+fundir:
     php
     sei                         ; lo lee `irq_musica`: todo junto o nada
     lda [cod_ptr], y
@@ -22254,7 +22262,27 @@ listo:
     stz bgm_fundido
     lda #$FF
     ldx #SE_KOF
+    jsr dsp_par                 ; las ocho voces sueltan, y KOF queda puesto
+    ; Y el DSP hay que ponerlo a punto acá, que es lo que no estaba: lo hace
+    ; el comienzo del stream —FLG sin el mute con que arranca el SPC700, el
+    ; volumen general, y dónde está el directorio de muestras— y con pista el
+    ; stream no corre nunca. Sin esto los efectos de sonido se disparan contra
+    ; un DSP mudo: medido en la apertura, correr con el efecto y con el efecto
+    ; suprimido daba **cero** muestras de diferencia.
+    ;
+    ; KOF se queda en $FF, que es lo que mantiene calladas las voces de la
+    ; música; `se_despues` lo limpia solo cuando arranca un efecto.
+    ldy #0
+otro_init:
+    lda dsp_init_reg, y
+    cmp #$FF
+    beq init_listo
+    tax                         ; dsp_par mira sólo el byte bajo de X
+    lda dsp_init_val, y
     jsr dsp_par
+    iny
+    bra otro_init
+init_listo:
     plp
     rts
 sin_pista:
@@ -22354,12 +22382,16 @@ sin_sumar:
     ; `FadeOutBGM` la baja igual. Al llegar a cero se corta.
     lda f:MSU_SUENA
     beq sin_msu
+    ; Con pista, el fundido baja **su** volumen y no el del DSP. El volumen
+    ; general del SPC700 es el que oyen los efectos de sonido, así que bajarlo
+    ; acá los dejaba mudos hasta el `PlayBGM` siguiente, que es el único que lo
+    ; repone.
     lda bgm_nivel + 1           ; el nivel del fundido ya va de 255 a 0
     sta MSU_VOLUMEN
-    bne con_msu
+    bne listo_msu
     jsr msu_parar               ; llegó a cero: la pista se corta
-con_msu:
-    lda dsp_valor
+listo_msu:
+    rts
 sin_msu:
     lda #DSP_MVOL_L
     jsr escribir_dsp

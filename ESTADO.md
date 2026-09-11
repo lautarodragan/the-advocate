@@ -735,26 +735,58 @@ dibuja cambian. README, "El costo de la apertura". **Falta que taro lo
 pruebe en la consola**: FastROM y los 2 MB son justo lo que un emulador
 puede perdonar y el FX Pak no.
 
-### El MSU-1, en un tema (2026-09-11)
+### El MSU-1: los ocho temas de las demos (2026-09-11)
 
 taro pidió probarlo: *"la música hoy en día está sonando bastante fea"*, y el
-FX Pak lo soporta. Hecho para **`escape_newyork` y nada más** —es un
-experimento y así queda hasta que él lo escuche—. El detalle está en el README,
-"El MSU-1"; lo que hay que saber acá:
+FX Pak lo soporta. Lo escuchó en Mesen —*"se escucha con mucha más calidad"*— y
+pidió el resto de la música, así que ahora son **los ocho temas de las demos**.
+Y trajo un defecto: con la pista sonando **no había efectos de sonido**.
+
+**Arreglado: el DSP se quedaba sin inicializar.** Lo hacía el comienzo del
+stream del tema —el mute con que arranca el SPC700, el volumen general, el
+directorio de muestras—, y con pista el stream no corre nunca, así que los
+efectos se disparaban contra un DSP mudo. El prólogo lo emite ahora el
+conversor (`dsp_init_reg`/`dsp_init_val`, desde `init_writes`) y lo manda
+`music_start`. De paso, dos del mismo vecindario: el fundido ya no baja el
+volumen del DSP cuando hay pista —es el que oyen los efectos— y `op_fundir_bgm`
+deja pasar el `FadeOutBGM` con `music_apagada` puesto, que con pista vale 1 y
+hacía que la pista no se fundiera nunca.
+
+**Los efectos por MSU-1 no van, y no es una decisión: es el hardware.** El
+MSU-1 es un único stream estéreo; mientras toca la música no hay dónde meter un
+disparo. Se quedan en el SPC700, que además ahora tiene la ARAM más holgada.
+
+**Cómo medir esto, que costó dos intentos.** La primera medición —poner
+`SE_CUADROS` en cero desde el arnés para suprimir el efecto— daba cero
+diferencias **también sin MSU-1**, donde los efectos se oyen: no suprimía nada.
+La que sirve es la misma ROM con los volúmenes de `sonido_tabla` en cero. Y el
+control por el camino conocido es obligatorio: sin él ese cero parecía una
+medición. Está escrito en el README.
+
+El detalle está en el README, "El MSU-1"; lo que hay que saber acá:
 
 * **Sin los archivos `.msu`/`.pcm` la ROM suena exactamente como antes**, y ése
   es el camino que corren la tanda y todas las pruebas: 123 casos en verde
-  sobre la foto `9e32158`, y `just pruebas` 83 en verde con el `xfail` de
+  sobre la foto `b188079`, y `just pruebas` 83 en verde con el `xfail` de
   siempre. Verificar el camino *con* MSU-1 pide grabar audio, y eso se hizo
-  aparte: nivel, correlación de envolventes (0,927) y fundido, los tres
+  aparte: nivel, correlación de envolventes (0,927), fundido y efectos, todos
   medidos y escritos en el README.
+* **Lo que no tiene evidencia propia**: el guard nuevo de `op_fundir_bgm`. El
+  fundido se probó escribiendo `bgm_fundido` desde el arnés, que entra por
+  debajo del comando; para ejercitarlo de verdad hay que correr una escena con
+  `FadeOutBGM` y pista sonando —las hay en los mapas 3, 4 y 9— y ninguna está
+  en la tanda con MSU-1, porque la tanda corre sin esos archivos.
 * **Las pistas no salen de `snes-demos`**: son `just snes-msu <demo>`, aparte,
   porque pesan 10,6 MB por minuto y para jugar no hacen falta.
 * **En la tarjeta los tres archivos van juntos y con el mismo nombre base.** Si
   taro renombra el `.sfc`, tiene que renombrar el `.msu` y los `.pcm` o el
   MSU-1 no se enciende y la música vuelve al SPC700 —sin romper nada—.
-* **Falta escucharlo**: en la consola y en el emulador. Y falta decidir si va
-  el resto de los temas, que es agregarlos a `PISTAS_MSU`.
+* **Escuchado en Mesen el 2026-09-11** y aprobado; mednafen **no tiene MSU-1**,
+  así que ahí suena por el SPC700 y es el control natural de que el camino sin
+  pista sigue andando. **Falta el FX Pak**, que es lo que taro iba a probar.
+* **Falta el punto de loop**: el MSU-1 vuelve al principio del archivo, así que
+  un tema con introducción la repite cada vuelta. Y faltan los 35 temas que las
+  demos no tocan, que son 923 MB si algún día van todos.
 
 ### Lo próximo, si no se decide otra cosa
 

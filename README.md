@@ -989,9 +989,10 @@ consola sino una extensión que soportan el FX Pak Pro y los emuladores, con la
 música en archivos PCM al lado de la ROM. El tema sale de un archivo de 44,1
 kHz estéreo en vez de las ocho voces del SPC700.
 
-Es un experimento, y por eso hoy lo usa **un solo tema**, `escape_newyork`:
-`PISTAS_MSU` en `snes_music.py` dice cuáles tienen pista y con qué número, y el
-conversor emite `tema_msu`, un byte por tema —`$FF` el que no tiene—.
+Lo usan **los ocho temas de las demos**: `PISTAS_MSU` en `snes_music.py` dice
+cuáles tienen pista y con qué número, y el conversor emite `tema_msu`, un byte
+por tema —`$FF` el que no tiene—. Los del juego entero son 43, noventa y un
+minutos, 923 MB de PCM; entran el día que haya una ROM que los toque.
 
 Cómo funciona, del lado de la ROM:
 
@@ -1007,7 +1008,21 @@ Cómo funciona, del lado de la ROM:
   Los efectos de sonido siguen en el SPC700, así que la ARAM les queda libre.
 * **El `FadeOutBGM` baja el volumen del MSU-1**, no el del DSP: el nivel del
   fundido ya va de 255 a 0, que es justo la escala de `$2006`, y al llegar a
-  cero se corta la pista.
+  cero se corta la pista. El volumen del DSP no se toca **porque es el que
+  oyen los efectos de sonido**: bajarlo en el fundido los dejaba mudos hasta
+  el `PlayBGM` siguiente, que es el único que lo repone. Y el comando tiene
+  que dejarse arrancar con `music_apagada` puesto, que con pista vale 1: sin
+  eso un `FadeOutBGM` no hacía nada y la pista seguía para siempre.
+* **El DSP hay que ponerlo a punto igual**, aunque no lo use la música. Lo
+  hacía el comienzo del stream —sacarlo del mute con que arranca el SPC700, el
+  volumen general, y dónde está el directorio de muestras— y con pista el
+  stream no corre nunca. Sin eso los efectos de sonido se disparan contra un
+  DSP mudo, que es lo que taro escuchó: música por MSU-1 y **ningún efecto**.
+  El prólogo sale de `dsp_init_reg`/`dsp_init_val`, que el conversor emite de
+  `init_writes`, o sea de la misma lista que ya escribía el stream; copiarla a
+  mano en el 65816 serían dos lados que se pueden equivocar igual. KON y KOF
+  quedan afuera: con pista, KOF se deja en `$FF` para que las voces de la
+  música no suenen, y `se_despues` lo limpia solo al arrancar un efecto.
 
 Y del lado del cartucho, `tools/msu.py` (receta `snes-msu`): renderiza el MIDI
 con fluidsynth y **con el mismo soundfont con el que el juego sonaba en la PC**
@@ -1036,6 +1051,23 @@ firma, el estado antes y después, y cuántas vueltas tardó en cargar—. Y des
 la ROM de verdad, corriendo 1800 cuadros con el núcleo de libretro y grabando
 la salida:
 
+**Y para los efectos de sonido hay que aislarlos, porque la música los tapa.**
+La forma que sirve es la misma ROM con los dos bytes de volumen de cada fila de
+`sonido_tabla` puestos en cero, y comparar las dos salidas muestra por muestra:
+lo que difiere **son** los efectos. Con pista, y con el prólogo del DSP puesto,
+difieren 714382 muestras de 1027098 desde el cuadro 212; con el prólogo
+deshabilitado —un `$FF` en el primer byte de `dsp_init_reg`, que es exactamente
+la ROM de antes— difieren **cero**. Ese par es lo que prueba que el arreglo es
+lo que los hace sonar, y no el emulador.
+
+Y queda escrito el intento que no servía, porque es la trampa que este repo ya
+conoce: la primera medición ponía `SE_CUADROS` en cero desde el arnés para
+"suprimir" el efecto, y daba cero diferencias **también sin MSU-1**, donde los
+efectos se oyen perfectamente. No suprimía nada —la voz ya había arrancado en
+el KON de ese cuadro—, así que los dos lados salían iguales por la misma razón
+equivocada. Un control por el camino conocido es lo que lo delató; sin él,
+habría "verificado" un arreglo sin evidencia.
+
 * **el nivel**: picos de 17096 a 20118 en las ventanas de 300 cuadros, contra
   los 17012 de la música del SPC700;
 * **que suene esa pista y no otra cosa**: la envolvente de energía del audio
@@ -1047,11 +1079,13 @@ la salida:
 Y la tanda entera —123 casos— sigue en verde **sin** los archivos de MSU-1, que
 es el camino que recorre cualquier prueba de acá.
 
-Lo que falta, si esto gusta: el resto de los temas, que es sólo agregarlos a
-`PISTAS_MSU` y volver a correr la receta. El precio es el tamaño —`escape_newyork`
-son 197 segundos y 34 MB— y que el bucle del MSU-1 vuelve al principio del
-archivo, así que un tema con intro pide poner el punto de loop a mano; el
-`escape_newyork` de hoy loopea entero.
+Lo que falta: el punto de loop. El MSU-1 vuelve al principio del archivo, así
+que un tema con introducción la repite cada vuelta; hoy los ocho loopean
+enteros. Y los 35 temas que las demos no tocan.
+
+Lo que pesa: los ocho son 195 MB por ROM, de 62 a 215 segundos cada uno. La
+normalización se nota acá —`lufsorr` sube 1,35 y `cd4` baja a 0,97—, que es lo
+que evita el salto de volumen al cambiar de tema.
 
 ### Las animaciones de batalla: el sonido y la luz
 

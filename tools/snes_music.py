@@ -75,7 +75,22 @@ DRUM_VOICES = 2
 # Es el experimento que pidió taro el 2026-09-11, porque la música
 # sintetizada suena fea. Las pistas las arma `tools/msu.py` desde los mismos
 # MIDI, con el soundfont con que sonaba el juego original en la PC.
-PISTAS_MSU = {"escape_newyork": 1}
+#
+# Son los ocho temas que llevan las demos. `escape_newyork` se queda en la 1,
+# que es el número con el que se armó la primera pista: cambiarlo obligaría a
+# renombrar archivos que ya están en la tarjeta. Los temas del juego son 43 en
+# total —91 minutos, 923 MB de PCM—, así que el resto entra el día que haya
+# una ROM que los toque.
+PISTAS_MSU = {
+    "escape_newyork": 1,
+    "hzstream": 2,
+    "TF3_1_awe": 3,
+    "evilrhys": 4,
+    "lufsorr": 5,
+    "cd4": 6,
+    "C3classi": 7,
+    "Fantasia_Of_The_Wind": 8,
+}
 
 
 # --- el driver del SPC700 ---------------------------------------------------
@@ -794,6 +809,25 @@ def emit(path, temas, driver, voces, arranque=0xFF, titulo=0xFF,
         "%s:\n    .byte %s" % (nombre, ", ".join(prefijo + e for e in etiquetas))
         for nombre, prefijo in (("tema_lo", "<"), ("tema_hi", ">"),
                                 ("tema_bk", "^")))
+    # El prólogo del DSP, para el camino del MSU-1. Con pista el stream no
+    # corre nunca, y es el comienzo del stream el que saca al DSP del mute con
+    # que arranca el SPC700, le pone el volumen general y le dice dónde está el
+    # directorio de muestras. Sin esto los efectos de sonido se disparan contra
+    # un DSP mudo y no se oyen.
+    #
+    # KON y KOF quedan afuera a propósito: con pista, la ROM deja KOF en $FF
+    # para que las voces de la música no suenen, y `se_despues` lo limpia solo
+    # cuando arranca un efecto. Escribir acá KOF en cero volvería a encender
+    # las voces de un tema que no está sonando.
+    #
+    # Van en dos tablas paralelas y no en una de pares porque el 65816 las
+    # recorre con un índice: `lda dsp_init_reg, y`.
+    init = [(r, v) for r, v in init_writes()
+            if r not in (sdsp.KON, sdsp.KOF)]
+    tabla += "\ndsp_init_reg:\n    .byte " + ", ".join(
+        "$%02X" % r for r, _ in init) + ", $FF"
+    tabla += "\ndsp_init_val:\n    .byte " + ", ".join(
+        "$%02X" % v for _, v in init) + ", $00"
     # Y qué pista de MSU-1 le toca a cada uno, o $FF: ver PISTAS_MSU.
     tabla += "\ntema_msu:\n    .byte " + ", ".join(
         "$%02X" % PISTAS_MSU.get(t["nombre"], 0xFF)
