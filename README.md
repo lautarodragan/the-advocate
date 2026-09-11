@@ -980,6 +980,37 @@ por muestra durante tres segundos y difiere desde la primera nota de la voz 0,
 con las muestras y los disparos iguales en los dos lados; la sospecha es el
 instante en que cae ese KON dentro del cuadro, que no quedó demostrada.
 
+### Las animaciones de batalla: el sonido y la luz
+
+`ShowBattleAnimation` se aceptaba sin hacer. Desde el 2026-09-11 hace **todo
+menos el dibujo**: sus efectos de sonido y sus destellos, en el cuadro en que
+RM2k los pone. Son once en la intro —tres en el Linkage Block, ocho en el
+Emitter Room, todas de fuego— y sin ellas esas escenas eran silencio y nada.
+
+Compila a `OP_ANIMACION` con la línea de tiempo adentro: por cada `timing` de
+la animación, en el cuadro par `2 * (frame - 1)`, su efecto y su destello, de
+la pantalla o del evento objetivo. Hay una sola a la vez, como en
+`Game_Screen::ShowBattleAnimation`, y avanza una vez por cuadro antes que los
+destellos (`animacion_tick`, `Estado.cuadro_de_animacion`). Con "esperar", la
+página espera lo que dura. Tres cosas son nuestras:
+
+* **El destello es un `FlashScreen` o un `FlashSprite`** que arranca en la
+  fuerza que RM2k le da al primer cuadro y baja lineal en diez; allá baja a
+  escalones. Diez, y par a propósito: el destello de pantalla trabaja en dos
+  fases según la paridad de lo que le queda, y con once arrancaba por la que
+  ninguna página del juego toma, donde la ROM y la referencia no coinciden.
+* **Al héroe no se lo destella.** Con quién comparte paleta depende del grupo,
+  que el compilador no ve; para los `FlashSprite` el conversor lo mira y corta
+  la ROM entera, y una animación no vale eso. Tampoco a un evento que comparta
+  gráfico con otro.
+* **El dibujo no está.** Son celdas de 96x96 con zoom de hasta el doble y su
+  propia paleta; es el siguiente paso, y es un sistema aparte.
+
+Lo cobra `animacion` en la tanda —la 82 sobre el héroe, que destella la
+pantalla—, por la página de prueba (`--animacion-de-prueba`): la escena del
+Emitter Room no se puede disparar desde una prueba. Los efectos los cobra el
+paquete de audio de cada mapa, que los cuenta como uno más.
+
 ### Varios mapas en la ROM
 
 Un mapa solo no es un juego. Todo lo que antes era una constante del `.inc` —el

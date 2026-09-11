@@ -166,6 +166,7 @@ class Mundo:
         eventos.indexar_variables(game_dir, (
             snes_convert.variables_de_prueba(prueba[15], prueba[16])
             if prueba is not None else ()))
+        eventos.indexar_animaciones(game_dir)
         if mensajes is not None:
             # Con ventana los mapas se compilan **todos y en el orden de la
             # tabla**, acá y no cuando el héroe pise cada uno. El bloque de
@@ -216,7 +217,8 @@ class Mundo:
                                               rama_var=self.prueba[16],
                                               items=self.prueba[17],
                                               acceso=self.prueba[18],
-                                              lluvia=self.prueba[19])),
+                                              lluvia=self.prueba[19],
+                                              animacion=self.prueba[20])),
                                      dict(PAGINA_DE_PRUEBA_APAGADA,
                                           evento=numero)]
             self.paginas_cache[map_id] = paginas
@@ -507,6 +509,7 @@ def cuadro_de_eventos(estado, passable, game_map, heroe, paginas=(),
     # lo que le deja al plan decir cuántos ticks correr. La vuelta de un evento
     # suelto no cuenta: ya salió más arriba.
     estado.ticks += 1
+    estado.cuadro_de_animacion()    # antes que los destellos que dispara
     estado.cuadro_de_flashes()
     estado.cuadro_de_timer()
     estado.cuadro_de_sacudida()
@@ -1361,6 +1364,8 @@ def main():
     parser.add_argument("--rama-var-de-prueba", nargs=5, type=int,
                         default=None,
                         help="el otro lado del mismo flag de snes_convert.py")
+    parser.add_argument("--animacion-de-prueba", nargs=3, type=int,
+                        default=None, help="el mismo flag del conversor")
     parser.add_argument("--lluvia-de-prueba", type=int, default=None,
                         help="FUERZA: el mismo flag del conversor")
     parser.add_argument("--acceso-de-prueba", nargs="+", type=int,
@@ -1498,6 +1503,7 @@ def main():
                   or args.vars_de_prueba or args.rama_var_de_prueba
                   or args.items_de_prueba or args.acceso_de_prueba
                   or args.lluvia_de_prueba is not None
+                  or args.animacion_de_prueba
                   or args.mensaje_de_prueba is not None)
     # El bloque de textos, armado igual que en el conversor y en el mismo orden:
     # el mensaje de prueba primero —desplazamiento 0— y después los mapas de la
@@ -1521,7 +1527,8 @@ def main():
                    tuple(args.rama_var_de_prueba or ()),
                    tuple(args.items_de_prueba or ()),
                    tuple(args.acceso_de_prueba or ()),
-                   args.lluvia_de_prueba)
+                   args.lluvia_de_prueba,
+                   tuple(args.animacion_de_prueba or ()))
                   if hay_prueba else None, mensajes,
                   graficos_de_prueba=snes_convert.graficos_de_prueba(
                       args.grafico_de_prueba),

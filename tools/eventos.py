@@ -628,7 +628,6 @@ ACEPTADOS_SIN_HACER = {
     # pierde: la escena del tram no corre y el jugador se queda parado con el
     # "It's here!" dicho. Es deuda declarada, no equivalencia.
     CALL_EVENT,
-    SHOW_BATTLE_ANIMATION,
     SHOW_PICTURE,
     MOVE_PICTURE,
     ERASE_PICTURE,
@@ -1370,6 +1369,58 @@ def lluvia_pixeles(x, y):
 # roba a la música mientras duran. No se ven, así que la referencia sólo los
 # salta: no cuestan ningún tick, como en RM2k.
 OP_SONIDO = 0x1D    # índice (word)
+
+# Las animaciones de batalla sobre el mapa, desde el 2026-09-11: sus sonidos y
+# sus destellos, **sin el dibujo**. `ShowBattleAnimation` compila a
+# OP_ANIMACION con la línea de tiempo entera adentro: cuántas entradas y, por
+# cada una, ocho bytes —el tick en que dispara, contado desde el del comando,
+# el tipo y seis de datos—. Es lo que `BattleAnimation::Update` hace con los
+# `timings` de la animación: en el cuadro par `2 * (frame - 1)` suena el efecto
+# y arranca el destello de la pantalla o del evento objetivo. Hay una sola a la
+# vez —`Game_Screen::ShowBattleAnimation` reemplaza la anterior— y avanza una
+# vez por cuadro **antes** que los destellos, que es donde `Game_Screen::Update`
+# la pone. Con "esperar", la página espera lo que dura: dos cuadros por cuadro
+# de la animación. Ver `cuadro_de_animacion`, y `animacion_tick` en main.s.
+#
+# El destello no es el de RM2k exacto: allá la fuerza es
+# `min((7 - (d + 1) / 2) * potencia / 6, 31)` durante diez cuadros, a
+# escalones; acá es un `FlashScreen` o un `FlashSprite` que arranca en la
+# primera y baja lineal en `ANIM_DESTELLO_CUADROS`. Es la misma luz y dura lo
+# mismo, y los dos lados hacen esta cuenta.
+OP_ANIMACION = 0x1E     # n, y n entradas de ANIM_ENTRADA bytes
+ANIM_ENTRADA = 8
+ANIM_SONIDO, ANIM_DESTELLO, ANIM_FLASH = 0, 1, 2
+# Diez, que es lo que dura el de RM2k, y **par** a propósito: el destello de
+# pantalla trabaja en dos fases según la paridad de lo que le queda —ver
+# `destello_tick`—, y un `FlashScreen` del juego dura siempre décimas por seis.
+# Con once la primera fase era la par, un camino que ninguna página toma y
+# donde la ROM y la referencia no coinciden: `snes-animacion` lo mostró.
+ANIM_DESTELLO_CUADROS = 10
+ANIMACIONES = {}
+
+
+def indexar_animaciones(game_dir):
+    """Las animaciones de batalla del LDB, por id: sus cuadros y sus
+    timings, con los valores por omisión de liblcf —el decodificador omite
+    los que no están—. Lo llaman el conversor y la referencia."""
+    import lcf
+    db = lcf.Database(os.path.join(game_dir, "RPG_RT.ldb"))
+    ANIMACIONES.clear()
+    for numero, anim in db.decode().get("animations", {}).items():
+        timings = []
+        for _i, t in sorted((anim.get("timings") or {}).items()):
+            se = t.get("se") or {}
+            timings.append({
+                "frame": t.get("frame", 0),
+                "se": (se.get("name", ""), se.get("volume", 100),
+                       se.get("tempo", 100), se.get("balance", 50)),
+                "alcance": t.get("flash_scope", 0),
+                "rgb": (t.get("flash_red", 31), t.get("flash_green", 31),
+                        t.get("flash_blue", 31)),
+                "fuerza": t.get("flash_power", 31),
+            })
+        ANIMACIONES[numero] = {"cuadros": len(anim.get("frames") or ()),
+                               "timings": timings}
 CHANGE_HP = 10460
 CHANGE_CONDITION = 10480
 FULL_HEAL = 10490
@@ -2088,6 +2139,55 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
             out += bytes([OP_ESPERAR, cuadros & 0xFF, cuadros >> 8])
         return out
 
+    if cmd.code == SHOW_BATTLE_ANIMATION:
+        # (animación, objetivo, esperar, global): ver OP_ANIMACION.
+        if len(p) < 3:
+            raise NoSePuede()
+        anim = ANIMACIONES.get(p[0])
+        if p[1] == RUTA_HEROE:
+            blanco, quien = 0, None
+        elif eventos_mapa is None:
+            blanco, quien = None, None
+        else:
+            blanco = eventos_mapa.blanco(p[1])
+            quien = (eventos_mapa.mio if p[1] == RUTA_ESTE_EVENTO else p[1])
+        if anim is None or blanco is None:
+            return b""      # sin animación o sin objetivo RM2k no hace nada
+        # El destello del objetivo es un tinte de su paleta en la consola, y
+        # dos eventos con el mismo gráfico la comparten: ver FLASH_SPRITE.
+        # Acá no se corta la página por eso: ese destello no se hace. **Al
+        # héroe no se lo destella nunca**: con quién comparte paleta depende
+        # del grupo, que el compilador no ve —el conversor lo mira para los
+        # `FlashSprite` y corta la ROM entera—, y una animación no vale eso.
+        destella = (blanco != 0
+                    and not eventos_mapa.comparte_grafico(quien))
+        entradas = []
+        for t in anim["timings"]:
+            tick = (t["frame"] - 1) * 2
+            if not 0 <= tick <= 255:
+                continue
+            nombre, volumen, tempo, balance = t["se"]
+            if nombre and nombre != "(OFF)" and temas is not None:
+                k = temas.sonido(nombre, volumen, tempo, balance)
+                entradas.append(bytes([tick, ANIM_SONIDO, k & 0xFF, k >> 8,
+                                       0, 0, 0, 0]))
+            r, g, b = (min(31, max(0, v)) for v in t["rgb"])
+            fuerza = min(7 * max(0, t["fuerza"]) // 6, 31)
+            if t["alcance"] == 2:
+                entradas.append(bytes([tick, ANIM_DESTELLO, r, g, b, fuerza,
+                                       ANIM_DESTELLO_CUADROS, 0]))
+            elif t["alcance"] == 1 and destella:
+                entradas.append(bytes([tick, ANIM_FLASH, blanco, r, g, b,
+                                       fuerza, ANIM_DESTELLO_CUADROS]))
+        entradas.sort(key=lambda e: e[0])   # estable: el orden del LDB
+        if len(entradas) > 255:
+            raise NoSePuede()
+        out = bytes([OP_ANIMACION, len(entradas)]) + b"".join(entradas)
+        cuadros = 2 * anim["cuadros"]
+        if p[2] and cuadros:
+            out += bytes([OP_ESPERAR, cuadros & 0xFF, cuadros >> 8])
+        return out
+
     if cmd.code == FLASH_SCREEN:
         # `CommandFlashScreen`, en su forma de RM2k: color, fuerza, décimas y
         # si espera. Las 62 del juego son de esa forma, y ninguna dura más de
@@ -2667,6 +2767,8 @@ class Estado:
         # `cuadros_moviendose`— siguen valiendo y son ésta.
         self.ruta_heroe = Ruta()
         self.rutas_ev = {}
+        # La animación de batalla en curso: ver OP_ANIMACION.
+        self.animacion = None
         # El evento que mira al héroe porque él lo disparó: ver `girar`.
         self.giro = None
         # Qué página tiene activa cada evento, como la dejó el último refresco.
@@ -2808,6 +2910,7 @@ class Estado:
         self.rutas_ev = {}
         self.flashes = {}
         self.giro = None            # las filas del mapa nuevo son otras
+        self.animacion = None       # y la animación de batalla no sigue
         # Y la cámara corrida vuelve a cero, de golpe: es lo que hace
         # `PerformTeleport` con `map_changed`, devolviéndole a `pan_current` y a
         # `pan_finish` el valor por omisión. Un salto al mismo mapa no pasa por
@@ -3122,7 +3225,7 @@ class Estado:
         """
         return (self.sacudida_resta > 0 or self.destello_nivel > 0
                 or bool(self.flashes) or self.rutas_pendientes()
-                or self.pan_falta() > 0)
+                or self.pan_falta() > 0 or self.animacion is not None)
 
     def cuadro_de_destello(self):
         """Un cuadro del destello de pantalla: `Flash::Update` sin el continuo,
@@ -3265,6 +3368,26 @@ class Estado:
                     >= CUADROS_POR_SEGUNDO // 2) else " ",
             segundos % 60)
 
+    def cuadro_de_animacion(self):
+        """Un cuadro de la animación de batalla: las entradas de este tick
+        disparan su destello —el sonido no se ve— y el reloj avanza. Va antes
+        que los destellos, como en `Game_Screen::Update`. La ROM es
+        `animacion_tick`."""
+        anim = self.animacion
+        if anim is None:
+            return
+        while anim["entradas"] and anim["entradas"][0][0] == anim["t"]:
+            e = anim["entradas"].pop(0)
+            if e[1] == ANIM_DESTELLO:
+                self.destello = (e[2], e[3], e[4])
+                self.destello_nivel = e[5] << 8
+                self.destello_resta = e[6]
+            elif e[1] == ANIM_FLASH:
+                self.flashes[e[2]] = (e[3], e[4], e[5], e[6], e[7], 0)
+        anim["t"] += 1
+        if not anim["entradas"]:
+            self.animacion = None
+
     def cuadro_de_flashes(self):
         """Un cuadro de todos los destellos: los que se acabaron se apagan."""
         for blanco in list(self.flashes):
@@ -3367,6 +3490,8 @@ def largo_de_opcode(codigo, i):
         return 3 + 4 * codigo[i + 1]
     if op == OP_TIENDA:
         return 4 + 2 * codigo[i + 3]
+    if op == OP_ANIMACION:
+        return 2 + ANIM_ENTRADA * codigo[i + 1]
     largo = LARGO_DE_OPCODE.get(op)
     if largo is None:
         raise ValueError("opcode %d que no sé medir" % op)
@@ -3547,7 +3672,7 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
                     frecuencia=RUTA_FRECUENCIA, sacudida=(), fundir_bgm=0,
                     pan=(), rama=(), destello=(), guardar=False,
                     variables=(), rama_var=(), items=(), acceso=(),
-                    lluvia=None):
+                    lluvia=None, animacion=()):
     """Una página automática inventada: una ruta forzada, una espera, un tinte.
 
     No sale de ningún dato del juego, y ésa es la idea. El intérprete corre
@@ -3674,6 +3799,15 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
         # relámpago de la apertura —una paralela— este camino no lo corría nadie:
         # así sobrevivió el `lda #0` de `destellar_fondo`.
         codigo += bytes([OP_DESTELLO]) + bytes(destello)
+    if animacion:
+        # (animación, objetivo, esperar): un `ShowBattleAnimation` compilado
+        # por el mismo camino que el juego. Existe por lo mismo que el resto:
+        # la escena del Emitter Room, que es la que las usa, no se puede
+        # disparar desde una prueba —ver ESTADO—. El objetivo es el héroe:
+        # esta página no tiene eventos a quienes nombrar.
+        import lcf
+        codigo += _compilar(lcf.EventCommand(
+            SHOW_BATTLE_ANIMATION, 0, "", list(animacion) + [0]), None)
     if ruta_ev:
         blanco, ordenes = ruta_ev
         codigo += (bytes([OP_RUTA, blanco, frecuencia, len(ordenes)])
@@ -4425,6 +4559,16 @@ def ejecutar(codigo, estado, desde=0):
             else:
                 estado.sacudida_pos = estado.sacudida_resta = 0
             i += 5
+        elif op == OP_ANIMACION:
+            # La animación nueva reemplaza a la que hubiera; sus entradas las
+            # dispara `cuadro_de_animacion`. No cuesta ningún tick.
+            n = codigo[i + 1]
+            estado.animacion = {
+                "entradas": [codigo[i + 2 + ANIM_ENTRADA * j:
+                                    i + 2 + ANIM_ENTRADA * (j + 1)]
+                             for j in range(n)],
+                "t": 0}
+            i += 2 + ANIM_ENTRADA * n
         elif op == OP_DESTELLO:
             # `FlashOnce`: el nivel arranca en la fuerza y baja cuadro a
             # cuadro. No corta el cuadro: si la página espera, el conversor le

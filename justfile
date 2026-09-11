@@ -712,6 +712,36 @@ snes-sacudir mapa="7" sacudida="3 3 2 1" cuadros="3 6 9 11 13 60" arranque="115"
         --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
   done
 
+# La animación de batalla: ShowBattleAnimation, sus sonidos y sus destellos.
+#
+# Es la 82 del LDB —"Whole Magic Flame C"— sobre el héroe y esperando, que
+# destella a los dos: la pantalla y el objetivo. La página de prueba la
+# muestra **y espera**, y después tiñe: los cuadros del medio miran los
+# destellos del tick 34 al 50 y el último que la espera fue la de los 56
+# cuadros de la animación. Ver OP_ANIMACION en eventos.py.
+snes-animacion mapa="6" animacion="82 10001 1" cuadros="1 3 35 37 43 60" arranque="115" nombre="animacion" celda="":
+  #!/usr/bin/env bash
+  set -euo pipefail
+  mkdir -p {{snes_pngs}} {{snes_inc}}
+  celda="{{celda}}"
+  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
+      ${celda:+--inicio $celda} \
+      --animacion-de-prueba {{animacion}} --pagina-de-prueba 0 0 0 50 \
+      -o {{snes_inc}}/mapdata.inc
+  just snes-build
+  pre={{snes_pngs}}/{{nombre}}
+  python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
+      ${celda:+--hero-tile $celda} \
+      --animacion-de-prueba {{animacion}} --pagina-de-prueba 0 0 0 50 \
+      --cuadros {{cuadros}} \
+      --saltar $pre-{}.saltar.txt -o $pre-{}.esperado.png
+  for n in {{cuadros}}; do
+    python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre-$n.png \
+        --walk none --cuadros $n --arranque {{arranque}}
+    python3 tools/snes_compare.py $pre-$n.png $pre-$n.esperado.png \
+        --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
+  done
+
 # Plantar a un evento en una celda: ChangeEventLocation.
 #
 # Es `MoveTo`, y la vuelta que tiene está en lo que **no** hace: no toca la ruta

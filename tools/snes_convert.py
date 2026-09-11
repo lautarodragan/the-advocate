@@ -2728,6 +2728,10 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "OP_TIENDA   = $%02X\n"
         "OP_CLIMA    = $%02X\n"
         "OP_SONIDO   = $%02X\n"
+        "OP_ANIMACION = $%02X\n"
+        "ANIM_ENTRADA = %d\n"
+        "ANIM_SONIDO  = %d\n"
+        "ANIM_DESTELLO = %d\n"
         "; La lluvia: ver OP_CLIMA en eventos.py.\n"
         "LLUVIA_GOTAS_MAX = %d\n"
         "LLUVIA_GOTAS_0 = %d\n"
@@ -2976,7 +2980,9 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            eventos.OP_ORO, eventos.OP_GUARDAR,
            eventos.OP_VAR, eventos.OP_SI_VAR,
            eventos.OP_ITEM, eventos.OP_ACCESO, eventos.OP_TIENDA,
-           eventos.OP_CLIMA, eventos.OP_SONIDO, max(eventos.LLUVIA_GOTAS),
+           eventos.OP_CLIMA, eventos.OP_SONIDO, eventos.OP_ANIMACION,
+           eventos.ANIM_ENTRADA, eventos.ANIM_SONIDO, eventos.ANIM_DESTELLO,
+           max(eventos.LLUVIA_GOTAS),
            eventos.LLUVIA_GOTAS[0], eventos.LLUVIA_GOTAS[1],
            eventos.LLUVIA_GOTAS[2], eventos.LLUVIA_VIDA,
            eventos.LLUVIA_NACE, eventos.LLUVIA_SEMILLA,
@@ -4201,6 +4207,10 @@ def main():
                              "como --rama-de-prueba: prende ADENTRO si la "
                              "variable cumple la comparación con VALOR, y "
                              "DESPUES siempre")
+    parser.add_argument("--animacion-de-prueba", nargs=3, type=int,
+                        default=None, metavar=("ID", "OBJETIVO", "ESPERAR"),
+                        help="la página de prueba muestra una animación de "
+                             "batalla: sus sonidos y sus destellos")
     parser.add_argument("--lluvia-de-prueba", type=int, default=None,
                         metavar="FUERZA",
                         help="la página de prueba pone lluvia, de 0 a 2, y "
@@ -4373,6 +4383,9 @@ def main():
     eventos.indexar_variables(args.game_dir,
                               variables_de_prueba(args.vars_de_prueba,
                                                   args.rama_var_de_prueba))
+    # Y las animaciones de batalla, que `ShowBattleAnimation` compila con su
+    # línea de tiempo adentro: ver OP_ANIMACION.
+    eventos.indexar_animaciones(args.game_dir)
     # En cuántos mapas de esta ROM aparece cada personaje. Lo usa el reparto de
     # paletas para elegir a quién puede bajarle un color sin romper nada: el
     # banco de poses es **de la ROM entera**, así que un personaje que está en
@@ -4464,6 +4477,7 @@ def main():
                 or args.timer_de_prueba or args.lugar_de_prueba
                 or args.sacudida_de_prueba or args.fundir_bgm
                 or args.pan_de_prueba or args.lluvia_de_prueba is not None
+                or args.animacion_de_prueba
                 or args.mensaje_de_prueba is not None) \
                 and mapa is mapas[args.inicial]:
             # La página inventada, sólo en el mapa donde arranca la ROM. No sale
@@ -4498,7 +4512,8 @@ def main():
                     rama_var=tuple(args.rama_var_de_prueba or ()),
                     items=tuple(args.items_de_prueba or ()),
                     acceso=tuple(args.acceso_de_prueba or ()),
-                    lluvia=args.lluvia_de_prueba)}, {
+                    lluvia=args.lluvia_de_prueba,
+                    animacion=tuple(args.animacion_de_prueba or ()))}, {
                 # Y la que la apaga: misma idea que en la referencia, ver
                 # `PAGINA_DE_PRUEBA_APAGADA`. Sin código, así que en cuanto
                 # gana, el evento inventado deja de tener una automática que

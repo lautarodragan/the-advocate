@@ -802,6 +802,7 @@ grupo_listo:
     jsr se_limpiar
     jsr giro_limpiar
     jsr aram_limpiar
+    jsr animacion_limpiar
     ; El testigo de la pantalla de ranuras también: con $55 el arnés la vería
     ; abierta desde el reset. Es lo que pasó el 2026-09-10 con los dos
     ; contadores que "daban 85": leían la basura del emulador.
@@ -914,6 +915,8 @@ loop:
     jsr mover_eventos           ; y las rutas forzadas de los eventos, después
                                 ; del héroe y después del intérprete: el orden
                                 ; es el mismo que el de la referencia
+    jsr animacion_tick          ; la animación de batalla, antes que los
+                                ; destellos que dispara
     jsr flashes_tick            ; y los destellos, en el mismo lugar
     jsr sacudida_tick           ; y uno de la sacudida de pantalla
     jsr pan_tick                ; y uno de la cámara corrida sin el héroe
@@ -1207,6 +1210,7 @@ cero:
 .i16
     pha
     jsr giro_limpiar            ; las filas van a ser otras
+    jsr animacion_limpiar       ; y la animación de batalla no sigue
     pla
     sta mapa_actual             ; para saber si el próximo salto cambia de mapa
     pha
@@ -3601,6 +3605,9 @@ otro:
 :   cmp #OP_CLIMA
     bne :+
     jmp op_clima
+:   cmp #OP_ANIMACION
+    bne :+
+    jmp op_animacion
 :   cmp #OP_SONIDO
     bne :+
     jmp op_sonido
@@ -3988,76 +3995,42 @@ op_tienda_listo:
 ; `OP_SONIDO`: el índice en `sonido_tabla`. Queda pendiente y arranca al
 ; final de `music_tick`, detrás de lo que la música escriba en el cuadro.
 op_sonido:
-.a8
-.i16
+    jsr sonido_de_codigo
+    jmp otro
+
+; `OP_ANIMACION`: cuántas entradas y las entradas, que se quedan en el
+; bytecode. Ver OP_ANIMACION en eventos.py y `animacion_tick`. La nueva
+; reemplaza a la que hubiera, y no cuesta ningún tick.
+op_animacion:
+    lda [cod_ptr], y            ; cuántas
+    sta f:ANIM_N
+    iny
     rep #$20
 .a16
-    lda [cod_ptr], y            ; el índice
-    iny
-    iny
-    phy
-    phb
-    pha
+    tya
+    clc
+    adc cod_ptr
+    sta f:ANIM_PTR              ; la primera, en el banco del bytecode
     sep #$20
 .a8
-    phk
-    plb                         ; la tabla vive en el banco del código
-    rep #$20
-.a16
-    pla
-    sta temp
-    asl a
-    asl a
-    asl a
-    sec
-    sbc temp                    ; por siete
-    tax
-    sep #$20
-.a8
-    lda f:sonido_tabla, x
-    cmp #$FF
-    beq op_sonido_listo         ; no hay efecto
-    ; Y sólo si su muestra está en la ARAM: el paquete del mapa puede no
-    ; haberla subido. Ver `paquete_cargar`.
-    phx
+    lda cod_ptr + 2
+    sta f:ANIM_PTR + 2
+    lda #0
+    sta f:ANIM_T
+    lda f:ANIM_N
     rep #$20
 .a16
     and #$00FF
     asl a
-    tax
-    lda f:FAR_ARAM_DE, x
+    asl a
+    asl a                       ; ocho bytes por entrada
+    sta temp
+    tya
+    clc
+    adc temp
+    tay
     sep #$20
 .a8
-    plx
-    cmp #0
-    bne op_sonido_esta
-    xba
-    cmp #0
-    bne op_sonido_esta
-    bra op_sonido_listo
-op_sonido_esta:
-    ; Sin interrupciones mientras se copia: `irq_musica` lee el pendiente, y
-    ; uno a medio escribir arrancaría con la muestra de uno y la altura de
-    ; otro. La interrupción no se pierde, se atrasa hasta el `plp`.
-    php
-    sei
-    ldy #0
-op_sonido_copiar:
-    lda f:sonido_tabla, x
-    phx
-    tyx
-    sta f:SE_NUEVO, x
-    plx
-    inx
-    iny
-    cpy #7
-    bcc op_sonido_copiar
-    lda #1
-    sta f:SE_PENDIENTE
-    plp
-op_sonido_listo:
-    plb
-    ply
     jmp otro
 
 ; `WeatherEffects`: el tipo y la fuerza. No cuesta ningún tick.
@@ -4339,22 +4312,7 @@ con_cuadros:
 ; `FlashOnce`: el color, el nivel a escala 256 y los cuadros. No corta el
 ; cuadro: si la página espera, el conversor le pone un OP_ESPERAR detrás.
 op_destello:
-    lda [cod_ptr], y            ; r
-    sta destello_rgb
-    iny
-    lda [cod_ptr], y            ; g
-    sta destello_rgb + 1
-    iny
-    lda [cod_ptr], y            ; b
-    sta destello_rgb + 2
-    iny
-    lda [cod_ptr], y            ; la fuerza, que es el nivel de arranque
-    sta destello_nivel + 1
-    stz destello_nivel
-    iny
-    lda [cod_ptr], y            ; cuadros
-    sta destello_resta
-    iny
+    jsr destello_de_codigo
     jmp otro
 
 ; "Esperá a que terminen las rutas". Si no queda ninguna corriendo no cuesta ni
@@ -15573,6 +15531,195 @@ listo:
     rts
 .endproc
 
+
+.proc sonido_de_codigo
+.a8
+.i16
+    rep #$20
+.a16
+    lda [cod_ptr], y            ; el índice
+    iny
+    iny
+    phy
+    phb
+    pha
+    sep #$20
+.a8
+    phk
+    plb                         ; la tabla vive en el banco del código
+    rep #$20
+.a16
+    pla
+    sta temp
+    asl a
+    asl a
+    asl a
+    sec
+    sbc temp                    ; por siete
+    tax
+    sep #$20
+.a8
+    lda f:sonido_tabla, x
+    cmp #$FF
+    beq listo         ; no hay efecto
+    ; Y sólo si su muestra está en la ARAM: el paquete del mapa puede no
+    ; haberla subido. Ver `paquete_cargar`.
+    phx
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    tax
+    lda f:FAR_ARAM_DE, x
+    sep #$20
+.a8
+    plx
+    cmp #0
+    bne esta
+    xba
+    cmp #0
+    bne esta
+    bra listo
+esta:
+    ; Sin interrupciones mientras se copia: `irq_musica` lee el pendiente, y
+    ; uno a medio escribir arrancaría con la muestra de uno y la altura de
+    ; otro. La interrupción no se pierde, se atrasa hasta el `plp`.
+    php
+    sei
+    ldy #0
+copiar:
+    lda f:sonido_tabla, x
+    phx
+    tyx
+    sta f:SE_NUEVO, x
+    plx
+    inx
+    iny
+    cpy #7
+    bcc copiar
+    lda #1
+    sta f:SE_PENDIENTE
+    plp
+listo:
+    plb
+    ply
+    rts
+.endproc
+
+.proc destello_de_codigo
+.a8
+.i16
+    lda [cod_ptr], y            ; r
+    sta destello_rgb
+    iny
+    lda [cod_ptr], y            ; g
+    sta destello_rgb + 1
+    iny
+    lda [cod_ptr], y            ; b
+    sta destello_rgb + 2
+    iny
+    lda [cod_ptr], y            ; la fuerza, que es el nivel de arranque
+    sta destello_nivel + 1
+    stz destello_nivel
+    iny
+    lda [cod_ptr], y            ; cuadros
+    sta destello_resta
+    iny
+    rts
+.endproc
+
+; --- la animación de batalla ------------------------------------------------
+;
+; `OP_ANIMACION` deja acá la línea de tiempo: dónde está la entrada que sigue
+; —en el bytecode—, cuántas quedan y el reloj. `animacion_tick` corre una vez
+; por cuadro antes que los destellos y dispara las del tick: un efecto, un
+; destello de pantalla o uno del evento objetivo. Es `cuadro_de_animacion` en
+; eventos.py. El dibujo de la animación no se hace.
+ANIM_PTR   = $7E30E2            ; tres bytes
+ANIM_N     = $7E30E5
+ANIM_T     = $7E30E6
+
+.proc animacion_limpiar
+.a8
+.i16
+    lda #0
+    sta f:ANIM_N
+    rts
+.endproc
+
+.proc animacion_tick
+.a8
+.i16
+    lda f:ANIM_N
+    bne hay
+    rts
+hay:
+    ; `cod_ptr` prestado: las rutinas de los opcodes leen sus operandos de
+    ; ahí, y la página que esté corriendo lo necesita de vuelta.
+    lda cod_ptr + 2
+    pha
+    rep #$20
+.a16
+    lda cod_ptr
+    pha
+    lda f:ANIM_PTR
+    sta cod_ptr
+    sep #$20
+.a8
+    lda f:ANIM_PTR + 2
+    sta cod_ptr + 2
+otra:
+    ldy #0
+    lda [cod_ptr], y            ; su tick
+    cmp f:ANIM_T
+    bne listo
+    iny
+    lda [cod_ptr], y            ; su tipo
+    iny                         ; y los datos, desde el tercer byte
+    cmp #ANIM_SONIDO
+    bne no_sonido
+    jsr sonido_de_codigo
+    bra hecha
+no_sonido:
+    cmp #ANIM_DESTELLO
+    bne no_destello
+    jsr destello_de_codigo
+    bra hecha
+no_destello:
+    jsr flash_empezar           ; el del objetivo
+hecha:
+    rep #$20
+.a16
+    lda cod_ptr
+    clc
+    adc #ANIM_ENTRADA
+    sta cod_ptr
+    sep #$20
+.a8
+    lda f:ANIM_N
+    dec a
+    sta f:ANIM_N
+    bne otra
+listo:
+    rep #$20
+.a16
+    lda cod_ptr
+    sta f:ANIM_PTR
+    sep #$20
+.a8
+    lda f:ANIM_T
+    inc a
+    sta f:ANIM_T
+    rep #$20
+.a16
+    pla
+    sta cod_ptr
+    sep #$20
+.a8
+    pla
+    sta cod_ptr + 2
+    rts
+.endproc
 
 ; --- el giro hacia el héroe ------------------------------------------------
 ;

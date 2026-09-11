@@ -692,11 +692,15 @@ intro, en particular el Emitter Room. Lo medido:
   décimas de segundo de negro de más, y hacer que el driver sepa escribir la
   ARAM con la música andando.
 * **Animaciones de batalla** (`ShowBattleAnimation`, 3 en el mapa 2 y 8 en el
-  3). Son celdas de 96x96 con zoom de hasta 200% y paleta propia; en el mapa 3
-  todas son de fuego (`Fire1`). Tienen además sus propios sonidos y destellos
-  por cuadro, que sí se pueden hacer con lo que ya hay.
+  3): **sus sonidos y sus destellos, hechos** —README, "Las animaciones de
+  batalla: el sonido y la luz"—. **El dibujo falta**: celdas de 96x96 con zoom
+  de hasta 200% y paleta propia; en el mapa 3 todas son de fuego (`Fire1`).
 
-Está planteado a taro con opciones; no se empezó ninguna.
+**Una deuda encontrada de paso, anterior a todo esto:** la página de prueba no
+arranca en el Emitter Room con `--switch 13 --mapas 4` —`auto_n` queda en cero
+y la bandera del evento de prueba apagada—, mientras la referencia la corre.
+Es lo que impidió armar un caso con la escena grande del mapa 3. No se
+investigó más.
 
 ### El giro hacia el héroe (2026-09-11)
 
