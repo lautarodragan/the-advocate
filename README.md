@@ -833,6 +833,44 @@ del juego las usa. El caso `tienda` de la tanda entra y sale de la del mapa
 `pantallas.pantalla_tienda`: comprar, el tope del oro, vender, el oro y el
 inventario que quedan.
 
+### La lluvia
+
+`WeatherEffects` dibuja la lluvia desde el 2026-09-11 —la apertura llueve,
+primero débil y después media—. Hasta ahí se aceptaba sin hacer nada porque
+era lo único que trababa la cinemática. Compila a `OP_CLIMA` con el tipo y la
+fuerza, y la regla es la de `Game_Screen::UpdateRain`: cada gota vive doce
+cuadros, baja cuatro pixeles y corre uno a la izquierda por cuadro, y una
+apagada nace con un diez por ciento de chance en un lugar al azar. Tres cosas
+son nuestras y están declaradas:
+
+* **La densidad, no la cantidad.** RM2k tiene 20, 60 y 100 gotas en 320x240;
+  acá son 15, 45 y 75 en 256x224.
+* **El azar es un xorshift propio**, sembrado cada vez que el clima cambia e
+  igual de los dos lados: el de RM2k no se puede reproducir.
+* **La gota es una raya de 4x16** con la pendiente de la de 6x24 de RM2k, en
+  tres grises opacos según le quede de vida, que es donde RM2k la desvanece
+  con transparencia.
+
+En la consola cada gota son dos objetos de 8x8 con prioridad 2, al final de
+la OAM: pasan por delante de la capa de encima, cualquier personaje las tapa
+—en la consola gana el objeto de índice más bajo—, y la ventana de mensaje las
+tapa con la misma máscara que a los eventos "above". El tono de pantalla las
+tiñe, como a todo, porque sus colores van en una paleta de personaje. Sus
+seis tiles y sus tres colores se reservan como los dígitos del cronómetro, y
+**un mapa sin lugar en las paletas de sprite no dibuja lluvia**: la ROM lleva
+`M_LLUVIA_BASE` en cero y la referencia lo sabe con la misma cuenta,
+`lluvia_cabe`. En la demo pasa en los mapas 2, 8 y 10, que no la usan. La
+nieve, la niebla y la arena no se dibujan y apagan la lluvia; el clima no
+viaja en la partida.
+
+Costó un detalle de la referencia: el lazo con presupuesto cortaba cuando la
+escena se quedaba quieta, y la lluvia no se aquieta nunca. Al final de la
+apertura la referencia dibujaba las gotas de 26 ticks antes; ahora las gotas
+sostienen el lazo, como el cronómetro. Lo encontró la comparación de la
+secuencia de estados de la lluvia de los dos lados, actualización por
+actualización: las primeras 2626 eran idénticas. Lo cobra `apertura` en la
+tanda, que desde ahora compara con lluvia.
+
 ### Varios mapas en la ROM
 
 Un mapa solo no es un juego. Todo lo que antes era una constante del `.inc` —el

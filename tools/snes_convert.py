@@ -985,6 +985,104 @@ def digitos_del_timer(sys_img, tiles, palettes, de_lider=()):
     return bytes(tiles), base, cual
 
 
+def gotas_de_lluvia(tiles, palettes, de_lider=(), timer_base=None):
+    """Los seis tiles de las gotas —arriba y abajo de la raya, en los tres
+    grises— y la paleta donde entran sus colores. Ver OP_CLIMA en eventos.py.
+
+    Es lo mismo que `digitos_del_timer`: los colores van en la primera paleta
+    de personaje con lugar, menos las de líder, y los tiles al final del
+    banco. Si el cronómetro está, en su misma fila de dieciséis, que le sobran
+    cinco lugares; si no, en una fila de bloques propia. El tono `t` arriba es
+    el tile `base + t` y abajo el `base + 16 + t`. Devuelve (tiles, base,
+    número de paleta).
+    """
+    quiere = [c for c in eventos.LLUVIA_COLORES]
+    cual = _primer_lugar(palettes, de_lider, quiere)
+    if cual is None:
+        # No hay lugar: este mapa no dibuja lluvia, y la referencia lo sabe con
+        # la misma regla, `lluvia_cabe`. No se le baja un color a nadie para
+        # hacerle lugar, como al cronómetro: eso cambiaría el reparto, que es
+        # lo que las dos puntas comparten.
+        return bytes(tiles), 0, 0
+    paleta = palettes[cual]
+    tiles = bytearray(tiles)
+    if timer_base:
+        base = timer_base + TIMER_GLIFOS
+    else:
+        base = -(-(len(tiles) // 32) // 64) * 64
+    if (base + 16 + 3) * 32 > len(tiles):
+        tiles += bytes((base + 16 + 3) * 32 - len(tiles))
+    raya = set(eventos.lluvia_pixeles(0, 0))
+    for tono, color in enumerate(quiere):
+        indice = paleta.index(color) + 1
+        for mitad in (0, 1):
+            celda = tuple(tuple(indice if (x, mitad * CELL + y) in raya else 0
+                                for x in range(CELL)) for y in range(CELL))
+            numero = base + mitad * 16 + tono
+            tiles[numero * 32:(numero + 1) * 32] = pack_tile(celda, planes=4)
+    return bytes(tiles), base, cual
+
+
+def _primer_lugar(palettes, de_lider, colores):
+    """La primera paleta —menos las de líder— donde entran `colores` sin
+    fusionar nada, o una nueva si queda ranura; la agrega o la agranda y
+    devuelve su número, o None si no hay lugar."""
+    for numero, existente in enumerate(palettes):
+        if numero in de_lider:
+            continue
+        union = list(existente) + [c for c in colores if c not in existente]
+        if len(union) <= OBJ_COLORS:
+            palettes[numero] = union
+            return numero
+    if len(palettes) < OBJ_PALETTES:
+        palettes.append(list(colores))
+        return len(palettes) - 1
+    return None
+
+
+def lluvia_cabe(paletas, de_lider, timer_colores=()):
+    """Si las gotas entran en las paletas de sprite de un mapa, después de los
+    dígitos del cronómetro: la misma cuenta de `digitos_del_timer` y
+    `gotas_de_lluvia`, sobre una copia. La usa la referencia para saber si en
+    ese mapa se dibuja la lluvia."""
+    copia = [list(p) for p in paletas]
+    if timer_colores and _primer_lugar(copia, de_lider,
+                                       list(timer_colores)) is None:
+        return False
+    return _primer_lugar(copia, de_lider,
+                         list(eventos.LLUVIA_COLORES)) is not None
+
+
+def mapas_por_personaje(renderer, map_ids, game_dir):
+    """En cuántos mapas de la ROM aparece cada (CharSet, índice)."""
+    cuenta = collections.Counter()
+    for otro in map_ids:
+        gm = renderer.cargar_mapa(os.path.join(game_dir, "Map%04d.lmu" % otro))
+        suyos = set()
+        for evento in gm.events:
+            for pagina in evento.pages:
+                nombre = (getattr(pagina, "character_name", "") or "").strip()
+                if nombre:
+                    suyos.add((nombre, pagina.character_index))
+        cuenta.update(suyos)
+    return cuenta
+
+
+def hay_lluvia(map_ids):
+    """Si alguna página de estos mapas pone lluvia: entonces cada mapa de la
+    ROM lleva las gotas, porque el clima sigue al cambiar de mapa."""
+    for map_id in map_ids:
+        game_map = lcf.Map(os.path.join(args_game_dir[0],
+                                        "Map%04d.lmu" % map_id))
+        for evento in game_map.events:
+            for page in evento.pages:
+                for cmd in page.commands:
+                    if (cmd.code == eventos.WEATHER_EFFECTS
+                            and cmd.parameters[:1] == [eventos.CLIMA_LLUVIA]):
+                        return True
+    return False
+
+
 def npc_table(npcs, where, movibles=(), indice_animado=None, anima_quieto=()):
     """Los NPCs listos para la ROM, ya ordenados como los dibuja RM2k.
 
@@ -1952,6 +2050,7 @@ MAPA_ESCALARES = [
     ("NPC_COUNT", "cuántos NPCs con CharSet"),
     ("EV_COUNT", "cuántos eventos tiene el mapa, con o sin gráfico"),
     ("TIMER_BASE", "el primer tile de los dígitos del cronómetro, 0 si no hay"),
+    ("LLUVIA_BASE", "el primer tile de las gotas de lluvia, 0 si no hay"),
     ("ACTOR_COUNT", "cuántos candidatos a líder del grupo"),
     ("PUERTA_COUNT", "cuántas puertas salen de este mapa"),
     ("PAGINA_COUNT", "cuántas páginas de evento hay que resolver"),
@@ -1962,6 +2061,7 @@ MAPA_BYTES = [
     ("BG12NBA_VALUE", "las páginas de tiles de BG1 y BG2"),
     ("ABOVE_FIRST", "en qué entrada de CGRAM arranca la capa de encima"),
     ("TIMER_PAL", "la paleta de sprite de los dígitos del cronómetro"),
+    ("LLUVIA_PAL", "la paleta de sprite de las gotas de lluvia"),
 ]
 MAPA_PUNTEROS = ["map_tiles", "map_cgram", "above_tiles", "above_cgram",
                  "sprite_tiles", "sprite_cgram", "map_celdas", "map_bloques",
@@ -2048,6 +2148,7 @@ def campos_del_mapa(mapa):
         "NPC_COUNT": len(sprite[3]) if sprite else 0,
         "EV_COUNT": len(mapa["ev_pos"]) // EV_STRIDE,
         "TIMER_BASE": sprite[5] if sprite else 0,
+        "LLUVIA_BASE": sprite[10] if sprite else 0,
         "ACTOR_COUNT": len(sprite[4]) if sprite else 0,
         "PUERTA_COUNT": len(mapa["puertas"]) // PUERTA_BYTES,
         "PAGINA_COUNT": len(mapa["paginas"]),
@@ -2057,6 +2158,7 @@ def campos_del_mapa(mapa):
                          | (layout["tiles"][0] // 0x1000),
         "ABOVE_FIRST": above[3] * COLORS_PER_PALETTE,
         "TIMER_PAL": (sprite[6] if sprite and sprite[6] is not None else 0),
+        "LLUVIA_PAL": sprite[11] if sprite else 0,
     }
 
 
@@ -2551,6 +2653,17 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "OP_ITEM     = $%02X\n"
         "OP_ACCESO   = $%02X\n"
         "OP_TIENDA   = $%02X\n"
+        "OP_CLIMA    = $%02X\n"
+        "; La lluvia: ver OP_CLIMA en eventos.py.\n"
+        "LLUVIA_GOTAS_MAX = %d\n"
+        "LLUVIA_GOTAS_0 = %d\n"
+        "LLUVIA_GOTAS_1 = %d\n"
+        "LLUVIA_GOTAS_2 = %d\n"
+        "LLUVIA_VIDA   = %d\n"
+        "LLUVIA_NACE   = %d\n"
+        "LLUVIA_SEMILLA = $%04X\n"
+        "LLUVIA_ALTO   = %d\n"
+        "CLIMA_LLUVIA  = %d\n"
         "; El inventario: un byte por ítem del LDB y el tope de RM2k. Ver\n"
         "; OP_ITEM en eventos.py.\n"
         "ITEMS_N       = %d\n"
@@ -2788,6 +2901,11 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            eventos.OP_ORO, eventos.OP_GUARDAR,
            eventos.OP_VAR, eventos.OP_SI_VAR,
            eventos.OP_ITEM, eventos.OP_ACCESO, eventos.OP_TIENDA,
+           eventos.OP_CLIMA, max(eventos.LLUVIA_GOTAS),
+           eventos.LLUVIA_GOTAS[0], eventos.LLUVIA_GOTAS[1],
+           eventos.LLUVIA_GOTAS[2], eventos.LLUVIA_VIDA,
+           eventos.LLUVIA_NACE, eventos.LLUVIA_SEMILLA, eventos.LLUVIA_ALTO,
+           eventos.CLIMA_LLUVIA,
            eventos.ITEMS_N,
            eventos.ITEM_MAX,
            variables_n(),
@@ -4134,6 +4252,8 @@ def main():
     args_game_dir[0] = args.game_dir
     todos = orden_de_mapas(args)
     args.lideres = lideres_posibles(renderer, todos, grupo, args.con_ventana)
+    # Si algún mapa pone lluvia, todos llevan las gotas: ver `hay_lluvia`.
+    args.con_lluvia = hay_lluvia(todos)
     # Las variables del juego entero, con su ranura, antes de compilar una
     # sola página. La referencia arma el mismo índice.
     eventos.indexar_variables(args.game_dir,
@@ -4146,17 +4266,8 @@ def main():
     # distinto no da una imagen fea sino un `sys.exit` al emitir, que es lo que
     # pasó la primera vez que esto se escribió: `Future1:4` bajaba en un mapa y
     # no en el otro.
-    args.mapas_por_personaje = collections.Counter()
-    for otro in todos:
-        gm = renderer.cargar_mapa(
-            os.path.join(args.game_dir, "Map%04d.lmu" % otro))
-        suyos = set()
-        for evento in gm.events:
-            for pagina in evento.pages:
-                nombre = (getattr(pagina, "character_name", "") or "").strip()
-                if nombre:
-                    suyos.add((nombre, pagina.character_index))
-        args.mapas_por_personaje.update(suyos)
+    args.mapas_por_personaje = mapas_por_personaje(renderer, todos,
+                                                   args.game_dir)
 
     mapas = [convertir(renderer, map_id, args,
                        inicio=args.inicio if map_id == args.map_id else None)
@@ -4801,6 +4912,7 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
         import ventana as ventana_mod
         timer_colores = sorted(colores_del_timer(ventana_mod.skin(
             args.game_dir, renderer.database.system_name)))
+
     npcs, descartados, reparto = npcs_dibujables(renderer, game_map,
                                                  args.lideres, tope_de_paletas,
                                                  graficos_de_ruta,
@@ -4964,6 +5076,14 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
         sys_img = ventana_mod.skin(args.game_dir, renderer.database.system_name)
         tiles, timer_base, timer_pal = digitos_del_timer(
             sys_img, tiles, palettes, reparto[3] if len(reparto) > 3 else ())
+    lluvia_base, lluvia_pal = 0, 0
+    if args.con_lluvia:
+        tiles, lluvia_base, lluvia_pal = gotas_de_lluvia(
+            tiles, palettes, reparto[3] if len(reparto) > 3 else (),
+            timer_base)
+        if not lluvia_base:
+            print("  mapa %d: AVISO, las gotas de lluvia no entran en las "
+                  "paletas de sprite y acá no llueve" % map_id)
     table = npc_table(npcs, where, movibles, indice_animado, anima_quieto)
     # Por cada candidato a líder, su paleta y en qué banco de poses están las
     # doce suyas. La ROM no calcula nada a partir de la pose: busca el puntero
@@ -4987,7 +5107,7 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
                         indice_animado[(a.charset, a.charset_index)],
                         [cgram_word(c) for c in propia]))
     sprite = (tiles, palettes, where, table, actores, timer_base, timer_pal,
-              animados, bancos, ruta_graficos)
+              animados, bancos, ruta_graficos, lluvia_base, lluvia_pal)
 
     # La colisión: un byte por celda de 16x16 con los cuatro bits de dirección
     # ya resueltos. Toda la lógica de RM2k —que la capa alta manda salvo que sea

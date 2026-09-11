@@ -540,6 +540,9 @@ IGNORABLES = {
 # Se acepta porque **es lo único que traba la cinemática de apertura**, que es
 # la puerta a los primeros diez minutos del juego. Sin esto la ROM no arranca la
 # historia; con esto arranca, sin lluvia.
+#
+# **Desde el 2026-09-11 la lluvia se dibuja**: ver OP_CLIMA. La nieve, la
+# niebla y la tormenta de arena siguen sin dibujarse, y apagan la lluvia.
 WEATHER_EFFECTS = 11070
 
 # PlaySound toca un efecto: una puerta, un golpe, el Insta-Shave de Talan. Se
@@ -616,7 +619,6 @@ CALL_EVENT = 12330
 OPEN_SHOP = 10720
 
 ACEPTADOS_SIN_HACER = {
-    WEATHER_EFFECTS,
     # CallEvent llama a la página de otro evento en el lugar. En los mapas 1 a
     # 10 lo usa una sola página, el Tram Officer del mapa 9, para subir al
     # Hover-Tram; taro pidió el 2026-09-10 dejarlo para otra vuelta. Lo que se
@@ -1278,6 +1280,43 @@ OP_ACCESO = 0x1A    # cuál (byte), permitido (byte)
 # cuesta ningún tick: el mapa no corre mientras se ve. Las ramas de "compró"
 # y "no compró" no compilan; ninguna de las 43 tiendas del juego las usa.
 OP_TIENDA = 0x1B    # tipo, juego, cuántos (bytes), y de a dos bytes cada ítem
+# El clima, desde el 2026-09-11: `WeatherEffects` compila a OP_CLIMA con el tipo
+# y la fuerza, y la lluvia se dibuja. Es `Game_Screen::UpdateRain` con la regla
+# de RM2k —cada gota vive doce cuadros, baja cuatro pixeles y corre uno a la
+# izquierda por cuadro, y una apagada nace con un diez por ciento de chance en
+# un lugar al azar— sobre la pantalla de 256x224, con **las gotas escaladas a
+# esa superficie**: RM2k tiene 20, 60 y 100 en 320x240, y acá son 15, 45 y 75,
+# la misma densidad. El azar es un xorshift propio, sembrado cada vez que el
+# clima cambia, igual de los dos lados; el de RM2k no se puede reproducir.
+#
+# Cada gota es una raya de 4x16 con la pendiente de la de RM2k, que es de 6x24:
+# dos objetos de 8x8 con prioridad 2, que la ventana de mensaje tapa con la
+# misma máscara que a los eventos "above". No es semitransparente: es de tres
+# grises opacos según le quede de vida, que es donde RM2k la desvanece. El tono
+# de pantalla la tiñe, como a todo lo demás. Van últimas en OAM, así que
+# cualquier personaje las tapa, y si la OAM se llena se cortan ahí.
+OP_CLIMA = 0x1C     # tipo, fuerza
+CLIMA_LLUVIA = 1
+LLUVIA_GOTAS = (15, 45, 75)
+LLUVIA_VIDA = 12
+LLUVIA_NACE = 10    # por ciento
+LLUVIA_SEMILLA = 0x1D2B
+LLUVIA_ANCHO, LLUVIA_ALTO = 256, 224
+LLUVIA_DX, LLUVIA_DY = -1, 4
+LLUVIA_COLORES = ((16, 16, 18), (11, 11, 13), (6, 6, 7))   # de 5 bits
+
+
+def lluvia_tono(t):
+    """Cuál de los tres grises: más claro recién nacida."""
+    return 0 if t >= 9 else 1 if t >= 5 else 2
+
+
+def lluvia_pixeles(x, y):
+    """Los pixeles de una gota con la esquina en (x, y): una raya de 4x16 que
+    baja hacia la izquierda, un pixel cada cuatro filas."""
+    return [(x + 3 - r // 4, y + r) for r in range(16)]
+
+
 CHANGE_HP = 10460
 CHANGE_CONDITION = 10480
 FULL_HEAL = 10490
@@ -1644,6 +1683,11 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
 
     if cmd.code == END or cmd.code in IGNORABLES:
         return b""
+
+    if cmd.code == WEATHER_EFFECTS:
+        if len(p) < 2:
+            raise NoSePuede("WeatherEffects sin operandos")
+        return bytes([OP_CLIMA, p[0] & 0xFF, min(max(p[1], 0), 2)])
 
     if cmd.code == OPEN_SHOP:
         if len(p) < 4:
@@ -2611,6 +2655,11 @@ class Estado:
         self.timer_dibujado = 0
         # La sacudida de pantalla: dónde está, cuánto le queda y con qué.
         self.sacudida_pos = 0
+        # El clima: el tipo y la fuerza que puso el último WeatherEffects, las
+        # gotas —[x, y, vida]— y su azar. Ver OP_CLIMA.
+        self.clima = (0, 0)
+        self.gotas = []
+        self.lluvia_azar = LLUVIA_SEMILLA
         # La cámara corrida sin el héroe: dónde está y adónde va, las dos en
         # 1/16 de pixel, y cuánto corre por cuadro. Ver `cuadro_de_pan`.
         self.pan_x = self.pan_y = 0
@@ -3009,6 +3058,32 @@ class Estado:
                 self.destello_mostrado = self.destello_pendiente
         self.tinte_cambio = False
 
+    def poner_clima(self, tipo, fuerza):
+        """`SetWeatherEffect`: si no cambia nada no toca nada; si cambia, las
+        gotas arrancan apagadas y el azar vuelve a su semilla."""
+        if (tipo, fuerza) == self.clima:
+            return
+        self.clima = (tipo, fuerza)
+        self.gotas = ([[0, 0, 0] for _ in range(LLUVIA_GOTAS[fuerza])]
+                      if tipo == CLIMA_LLUVIA else [])
+        self.lluvia_azar = LLUVIA_SEMILLA
+
+    def _lluvia_azar(self):
+        self.lluvia_azar = azar_siguiente(self.lluvia_azar)
+        return self.lluvia_azar
+
+    def cuadro_de_lluvia(self):
+        """`Game_Screen::UpdateRain`, un cuadro. La ROM es `lluvia_tick`."""
+        for gota in self.gotas:
+            if gota[2] > 0:
+                gota[2] -= 1
+                gota[0] += LLUVIA_DX
+                gota[1] += LLUVIA_DY
+            elif self._lluvia_azar() % 100 < LLUVIA_NACE:
+                gota[2] = LLUVIA_VIDA
+                gota[0] = self._lluvia_azar() & 0xFF
+                gota[1] = self._lluvia_azar() % LLUVIA_ALTO
+
     def cuadro_de_sacudida(self):
         """Un cuadro de la sacudida: `Shake::Update` sin la continua, que
         este juego no usa. En el último cuadro la pantalla vuelve a cero."""
@@ -3146,6 +3221,7 @@ LARGO_DE_OPCODE = {
     OP_BGM: 2, OP_LUGAR: 6, OP_TRUEQUE: 3, OP_SACUDIR: 5, OP_DESTELLO: 6,
     OP_FUNDIR_BGM: 3, OP_PAN: 8, OP_SI: 7, OP_IR: 3, OP_ORO: 5,
     OP_GUARDAR: 1, OP_VAR: 8, OP_SI_VAR: 8, OP_ITEM: 4, OP_ACCESO: 3,
+    OP_CLIMA: 3,
 }
 
 
@@ -4173,6 +4249,10 @@ def ejecutar(codigo, estado, desde=0):
                 i += 8
             else:
                 i = codigo[i + 6] | (codigo[i + 7] << 8)
+        elif op == OP_CLIMA:
+            # Como `CommandWeatherEffects`: no cuesta ningún tick.
+            estado.poner_clima(codigo[i + 1], codigo[i + 2])
+            i += 3
         elif op == OP_TIENDA:
             # La tienda, como guardar: no cuesta ningún tick y de este lado no
             # hay nada que dibujar. Lo que muestra lo cobran `snes-tienda` y

@@ -639,6 +639,17 @@ especiales, y `ChangeEquipment`. La consola y su evento común quedan afuera: ta
 lo decidió el 2026-09-11, y la idea es un sistema propio del port en vez de
 las imágenes del original.
 
+### La lluvia (2026-09-11)
+
+`WeatherEffects` compila a `OP_CLIMA` y la apertura llueve: la regla de RM2k
+—doce cuadros de vida, cuatro pixeles abajo y uno a la izquierda, un diez
+por ciento de chance de nacer— con la densidad escalada a 256x224, un
+xorshift propio igual de los dos lados, y rayas de 4x16 en tres grises
+opacos. Son objetos de 8x8 con prioridad 2 al final de la OAM, tapados por
+los personajes y por la ventana. Un mapa sin lugar para sus colores no dibuja
+lluvia —en la demo, el 2, el 8 y el 10, que no la usan—. Lo cobra `apertura`.
+Detalle en el README, "La lluvia".
+
 ### Lo próximo, si no se decide otra cosa
 
 Al 2026-09-10, en orden. Los tres primeros son deuda de esta vuelta y están

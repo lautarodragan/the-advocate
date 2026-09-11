@@ -143,6 +143,8 @@ class Mundo:
         self.ids = list(ids)
         self.indices = {map_id: i for i, map_id in enumerate(self.ids)}
         self.cache = {}
+        self.lluvia_cache = {}
+        self.hay_lluvia = None
         self.npcs_cache = {}
         self.paginas_cache = {}
         # Los gráficos a los que las rutas de cada mapa cambian con la orden
@@ -275,6 +277,39 @@ class Mundo:
                 7 if self.con_timer else 8,
                 self.graficos(map_id).pares)
         return self.npcs_cache[map_id][0]
+
+    def lleva_lluvia(self, map_id):
+        """Si en este mapa se dibujan las gotas: la ROM las lleva si alguna
+        página pone lluvia y si entran en las paletas de sprite. Es
+        `snes_convert.lluvia_cabe` sobre el mismo reparto que hace el
+        conversor —con el tope de ocho, los colores del cronómetro y los
+        personajes de un solo mapa—, que no es el que cachea `npcs`."""
+        if map_id in self.lluvia_cache:
+            return self.lluvia_cache[map_id]
+        snes_convert.args_game_dir[0] = self.game_dir
+        if self.hay_lluvia is None:
+            self.hay_lluvia = snes_convert.hay_lluvia(self.ids)
+        cabe = False
+        if self.hay_lluvia:
+            timer_colores = ()
+            if self.con_timer:
+                import ventana as ventana_mod
+                timer_colores = sorted(snes_convert.colores_del_timer(
+                    ventana_mod.skin(self.game_dir,
+                                     self.renderer.database.system_name)))
+            solos = {c for c, n in snes_convert.mapas_por_personaje(
+                self.renderer, self.ids, self.game_dir).items() if n == 1}
+            lideres = snes_convert.lideres_posibles(
+                self.renderer, self.ids, self.grupo,
+                self.mensajes is not None)
+            reparto = snes_convert.npcs_dibujables(
+                self.renderer, self.mapa(map_id)[0], lideres,
+                snes_convert.OBJ_PALETTES, self.graficos(map_id).pares,
+                timer_colores, solos)[2]
+            cabe = snes_convert.lluvia_cabe(reparto[0], reparto[3],
+                                            timer_colores)
+        self.lluvia_cache[map_id] = cabe
+        return cabe
 
     def paleta_de_sprite(self, map_id):
         """Qué (CharSet, índice) entraron en las paletas de sprite del mapa.
@@ -474,6 +509,7 @@ def cuadro_de_eventos(estado, passable, game_map, heroe, paginas=(),
     estado.cuadro_de_sacudida()
     estado.cuadro_de_pan()
     estado.cuadro_de_destello()
+    estado.cuadro_de_lluvia()
 
 
 def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
@@ -689,6 +725,7 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
                         and not estado.refresco \
                         and not estado.paginas_caminando() \
                         and not estado.timer_activo \
+                        and not estado.gotas \
                         and (ultimo_a is None or base + n >= ultimo_a) \
                         and restantes is not None:
                     # Y no se corta antes de la última vez que el jugador
@@ -702,6 +739,11 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
                     # todo se aquiete, y un cronómetro no se aquieta nunca —se
                     # comería las diez mil vueltas del tope—. Acá el presupuesto
                     # es el que manda, así que basta con no cortar antes.
+                    #
+                    # Y la lluvia, por lo mismo: se mueve sola en cada tick y
+                    # no se aquieta nunca. Sin esto la referencia paraba con
+                    # la escena quieta y la ROM seguía lloviendo: el final de
+                    # la apertura salía con las gotas de 26 ticks antes.
                     break
         if salto is None:
             return map_id, x, y
@@ -1128,7 +1170,30 @@ def glifos_del_timer(estado):
     return fuera
 
 
-def draw_actors(view, sprites, encima=None, timer=()):
+def gotas_en_oam(gotas, usados):
+    """Los objetos de 8x8 que la ROM pone por la lluvia: (x, y, mitad, tono).
+
+    Van en el orden de las gotas, arriba y abajo, y se descarta lo que
+    `emit_object` descarta —fuera de pantalla— y lo que ya no entra en los 128
+    de OAM después de los `usados` por los personajes y el cronómetro.
+    """
+    objetos = []
+    libres = 128 - usados
+    for x, y, t in gotas:
+        if t <= 0:
+            continue
+        for mitad in (0, 1):
+            oy = y + 8 * mitad
+            if not (-32 <= x < 256 and -32 <= oy < 224):
+                continue
+            if len(objetos) >= libres:
+                return objetos
+            objetos.append((x, oy, mitad, eventos.lluvia_tono(t)))
+    return objetos
+
+
+def draw_actors(view, sprites, encima=None, timer=(), lluvia=(),
+                ventana=False):
     """Pinta los sprites y avisa en qué líneas la consola no va a poder.
 
     No se intenta reproducir *cuáles* se pierden. La consola arma la lista de
@@ -1150,6 +1215,8 @@ def draw_actors(view, sprites, encima=None, timer=()):
         # contarlos sería una diferencia que sólo aparecería con la pantalla
         # llena, que es donde nadie mira.
         chicos = sum(1 for _g, _m, _sx, sy in timer if sy <= y < sy + 8)
+        # Y las gotas de lluvia, que son objetos de 8x8 como los dígitos.
+        chicos += sum(1 for _x, gy, _m, _t in lluvia if gy <= y < gy + 8)
         if (presentes * OBJ_TILES + chicos > OBJ_TILES_PER_LINE
                 or presentes + chicos > OBJ_PER_LINE):
             excedidas.append(y)
@@ -1166,6 +1233,30 @@ def draw_actors(view, sprites, encima=None, timer=()):
     for image, sx, sy, arriba in reversed(sprites):
         if arriba:
             view.alpha_composite(image, (sx, sy))
+
+    # La lluvia: prioridad 2, así que va por encima de las dos capas, pero es
+    # lo último de OAM y en la consola el objeto de índice más bajo gana, así
+    # que **cualquier pixel de personaje la tapa**, aunque el personaje mismo
+    # quede detrás de la capa de encima. Y la ventana de mensaje la tapa con
+    # la máscara de objetos, en sus líneas.
+    if lluvia:
+        tapado = set()
+        for image, sx, sy, _arriba in sprites:
+            alfa = image.getchannel("A").load()
+            for py in range(image.height):
+                for px in range(image.width):
+                    if alfa[px, py]:
+                        tapado.add((sx + px, sy + py))
+        pix = view.load()
+        tope = SCREEN_H - (snes_convert.VENTANA_FILAS_INC * 8 if ventana
+                           else 0)
+        for x, y, mitad, tono in lluvia:
+            color = tuple(v << 3 for v in eventos.LLUVIA_COLORES[tono]) + (255,)
+            for px, py in eventos.lluvia_pixeles(x, y - 8 * mitad)[
+                    8 * mitad:8 * mitad + 8]:
+                if (0 <= px < SCREEN_W and 0 <= py < tope
+                        and (px, py) not in tapado):
+                    pix[px, py] = color
     return excedidas
 
 
@@ -1718,7 +1809,12 @@ def main():
         encima = encima_todo.crop((cam_x, cam_y,
                                    cam_x + SCREEN_W, cam_y + SCREEN_H))
         glifos = glifos_del_timer(estado)
-        excedidas = draw_actors(view, sprites, encima, glifos)
+        usados = sum(1 for _i, sx, sy, _a in sprites
+                     if -32 <= sx < 256 and -32 <= sy < 224) + len(glifos)
+        gotas = (gotas_en_oam(estado.gotas, usados)
+                 if mundo.lleva_lluvia(map_id) else [])
+        excedidas = draw_actors(view, sprites, encima, glifos, gotas,
+                                estado.mensaje is not None)
         if excedidas:
             print("  %d líneas pasan el límite de sprites de la consola: ahí se"
                   " pierden objetos y no se comparan" % len(excedidas))
