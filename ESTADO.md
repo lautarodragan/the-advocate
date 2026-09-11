@@ -668,6 +668,29 @@ texto, y pidió que el audio ande siempre aunque la imagen se atrase más. La
 música pasó a `irq_musica`, una IRQ vertical por cuadro de hardware; ya no
 depende de cuánto tarda el lazo. README, "La música no espera al lazo".
 
+### Lo que le falta a la intro: medido, sin decidir (2026-09-11)
+
+taro pidió todas las animaciones y los efectos de sonido que faltan en la
+intro, en particular el Emitter Room. Lo medido:
+
+* **Efectos de sonido.** El mapa 2 pide 18 distintos —contando los de sus
+  animaciones de batalla— y el 3 veinte, que a la calidad de hoy (6 kHz, un
+  segundo) son **43 y 55 KB**. Entran 10 KB: la música se lleva 53 de los 64
+  de la ARAM, y es lo que necesitan los instrumentos de los ocho temas juntos
+  —la percusión ya está en el mínimo—. Por tema, en cambio, son de 8 a 32 KB
+  (evilrhys y lufsorr, los dos del Emitter Room, unos 20 KB de instrumentos).
+  O sea que lo que falta es **un banco de audio por mapa** —los temas que ese
+  mapa puede tocar y sus efectos— subido en el fundido de cada salto. Cuesta
+  subir hasta 64 KB por salto, que al ritmo del arranque son unas siete
+  décimas de segundo de negro de más, y hacer que el driver sepa escribir la
+  ARAM con la música andando.
+* **Animaciones de batalla** (`ShowBattleAnimation`, 3 en el mapa 2 y 8 en el
+  3). Son celdas de 96x96 con zoom de hasta 200% y paleta propia; en el mapa 3
+  todas son de fuego (`Fire1`). Tienen además sus propios sonidos y destellos
+  por cuadro, que sí se pueden hacer con lo que ya hay.
+
+Está planteado a taro con opciones; no se empezó ninguna.
+
 ### El giro hacia el héroe (2026-09-11)
 
 taro lo pidió probando la ROM: los NPCs miran al héroe cuando les habla, y al
