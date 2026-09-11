@@ -679,7 +679,8 @@ README, "Los eventos translúcidos van tramados". Lo cobra `fuego`.
 taro pidió todas las animaciones y los efectos de sonido que faltan en la
 intro, en particular el Emitter Room. Lo medido:
 
-* **Efectos de sonido.** El mapa 2 pide 18 distintos —contando los de sus
+* **Efectos de sonido: hecho**, con el paquete de audio de cada mapa —ver
+  README, "El paquete de audio de cada mapa"—. Lo que había medido: el mapa 2 pide 18 distintos —contando los de sus
   animaciones de batalla— y el 3 veinte, que a la calidad de hoy (6 kHz, un
   segundo) son **43 y 55 KB**. Entran 10 KB: la música se lleva 53 de los 64
   de la ARAM, y es lo que necesitan los instrumentos de los ocho temas juntos

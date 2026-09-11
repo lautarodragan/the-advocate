@@ -66,10 +66,28 @@ DRUM_VOICES = 2
 
 
 # --- el driver del SPC700 ---------------------------------------------------
-# Se queda esperando que el 65816 le deje un par (registro, valor) en los
-# puertos 0 y 1, y lo copia a los del DSP. El testigo del puerto 3 es lo que
-# distingue "hay un dato nuevo" de "el mismo de recién": el 65816 lo incrementa
-# en cada escritura y el driver se lo devuelve como acuse.
+# Se queda esperando que el 65816 cambie el testigo del puerto 3 —lo
+# incrementa en cada escritura, y el driver se lo devuelve como acuse— y mira
+# el puerto 2, que dice qué hacer:
+#
+#   0  un par (registro, valor) del DSP en los puertos 0 y 1: la música
+#   1  un byte del puerto 0 a la ARAM, donde apunta el puntero, que avanza
+#   2  el puntero de la ARAM, de los puertos 0 y 1
+#   3  un bloque: el puerto 0 dice cuántas ternas vienen —hasta 85, para
+#      que el índice Y no pase de un byte—, y después llega una por testigo,
+#      en los puertos 0, 1 y 2, detrás del puntero. El puntero no avanza: el
+#      65816 lo vuelve a poner antes de cada bloque. Son unos 56 ciclos del
+#      SPC700 por terna, unos 55 KB por segundo
+#
+# Los tres de la ARAM existen por el paquete de audio de cada mapa: las
+# muestras se suben mientras la música suena, así que el driver tiene que
+# poder recibirlas sin dejar de atender al DSP. Ver `paquete_cargar` en
+# main.s. El puntero y la cuenta viven en $00-$03 de la página cero, que la
+# ROM de arranque usa y deja libre.
+#
+# La música sigue mandando comandos 0 sin tocar el puerto 2: quien sube a la
+# ARAM lo deja en cero antes de soltar el bus, que es lo que hace que nada del
+# stream haya tenido que cambiar.
 
 DRIVER = """
     mov x, $F7          ; arrancar con el testigo que ya esté, sin disparar
@@ -77,11 +95,53 @@ espera:
     cmp x, $F7
     beq espera
     mov x, $F7
+    mov a, $F6          ; el comando
+    bne no_dsp
     mov a, $F4          ; registro del DSP
     mov $F2, a
     mov a, $F5          ; el valor que va en ese registro
     mov $F3, a
     mov $F7, x          ; acusar recibo devolviendo el testigo
+    bra espera
+no_dsp:
+    cmp a, #$01
+    bne no_byte
+    mov a, $F4
+    mov y, #$00
+    mov [$00]+y, a
+    incw $00
+    mov $F7, x
+    bra espera
+no_byte:
+    cmp a, #$02
+    bne bloque
+    mov a, $F4
+    mov $00, a
+    mov a, $F5
+    mov $01, a
+    mov $F7, x
+    bra espera
+bloque:
+    mov a, $F4
+    mov $02, a
+    mov $F7, x
+    mov y, #$00
+terna:
+    cmp x, $F7
+    beq terna
+    mov x, $F7
+    mov a, $F4
+    mov [$00]+y, a
+    inc y
+    mov a, $F5
+    mov [$00]+y, a
+    inc y
+    mov a, $F6
+    mov [$00]+y, a
+    inc y
+    mov $F7, x
+    dec $02
+    bne terna
     bra espera
 """
 
@@ -123,7 +183,7 @@ def build_samples(voices):
 # el conversor lo dice.
 SE_ARAM = 16 * 1024
 SE_TASA = 6000
-SE_MAX_SEGUNDOS = 1.0
+SE_MAX_SEGUNDOS = 0.75           # desde el paquete por mapa: ver `paquete_cargar`
 SE_LOOP_SEGUNDOS = 0.4
 SE_VOZ = 7                      # la que se le roba a la música
 
@@ -560,7 +620,8 @@ def leer_tema(name, game_dir=GAME_DIR):
 def build_varios(nombres, game_dir=GAME_DIR, efectos=()):
     """Todos los temas de la ROM, compartiendo un solo banco de muestras.
 
-    Devuelve (driver, bloque de muestras, temas, banco, los que no entraron).
+    Devuelve (driver, las voces —las del banco y detrás los efectos, cada una
+    con su número de muestra—, temas, banco, los que no entraron).
     Hay un dict por tema en el orden en que vinieron: los índices son los de
     `Temas`, el bytecode ya los lleva emitidos, así que **no se pueden
     reordenar** —y por eso los que no entran se caen desde el final y no desde
@@ -602,15 +663,14 @@ def build_varios(nombres, game_dir=GAME_DIR, efectos=()):
     # Los efectos, con lo que la música dejó libre. Van detrás del banco en
     # el mismo directorio: su `V_SRCN` es el lugar que les toca después de las
     # muestras de la música.
-    libre = ARAM_LIBRE - ARAM_MARGEN - banco.bytes
-    efectos_hechos = build_efectos(list(efectos), game_dir,
-                                   max(0, min(SE_ARAM, libre)))
+    # Van **todos**: cuáles caben lo decide la ROM mapa por mapa, al armar
+    # su paquete de audio. Ver `paquete_cargar` en main.s.
+    efectos_hechos = build_efectos(list(efectos), game_dir, 1 << 30)
     lista = sorted(efectos_hechos.values(), key=lambda e: list(efectos).index(
         e.name) if e.name in efectos else 0)
     banco.efectos = {e.name: (len(banco.voces) + i, e)
                      for i, e in enumerate(lista)}
-    return (driver, build_samples(list(banco.voces) + lista), temas, banco,
-            afuera)
+    return (driver, list(banco.voces) + lista, temas, banco, afuera)
 
 
 def resumen_del_tema(leido, banco):
@@ -661,22 +721,55 @@ def tabla_de_sonidos(sonidos, banco):
     return filas
 
 
-def emit(path, temas, driver, samples, arranque=0xFF, titulo=0xFF,
-         sonidos=()):
+# El silencio: un bloque BRR con los bits de fin y de loop, y ocho bytes en
+# cero. Es adonde apunta en el directorio toda muestra que no está en la ARAM.
+SILENCIO = bytes([0x03]) + bytes(8)
+# Y hasta dónde se sube: los últimos 64 bytes de la ARAM son los que la ROM de
+# arranque tapa cuando está prendida, y así el tope entra en dieciséis bits.
+ARAM_FIN = 0x10000 - 64
+
+
+def muestras_del_stream(stream):
+    """Qué muestras usa un tema: los valores que su stream escribe en los
+    registros SRCN de las voces. Es lo que la ROM tiene que tener en la ARAM
+    para tocarlo, sacado de lo que el tema hace y no de cómo se armó."""
+    usadas, i = set(), 0
+    while i < len(stream):
+        op = stream[i]
+        if op == OP_END:
+            break
+        if op == OP_WAIT:
+            i += 2
+            continue
+        registro, valor = stream[i + 1], stream[i + 2]
+        if registro & 0x0F == sdsp.V_SRCN:
+            usadas.add(valor)
+        i += 3
+    return sorted(usadas)
+
+
+def emit(path, temas, driver, voces, arranque=0xFF, titulo=0xFF,
+         sonidos=(), paquetes=()):
     """El .inc que arma el ensamblador junto con main.s.
 
     `temas` son los de `build_varios`, en el orden de `Temas`: el bytecode ya
     lleva esos índices emitidos. `arranque` es cuál suena desde el primer
     cuadro, o $FF si la ROM arranca callada y lo prende un `PlayBGM`.
+
+    `voces` son todas las muestras del cartucho, numeradas: las de la música y
+    detrás los efectos. Ninguna se sube al arrancar: van al SPC700 de a
+    **paquetes**, uno por mapa —`paquetes`, en el orden de la tabla de mapas,
+    cada uno con sus temas y las muestras de sus efectos—, y el directorio
+    arranca con todas apuntando al silencio. Ver `paquete_cargar` en main.s.
     """
-    def block(label, data):
-        # Sin `.bloque`: eso es relleno para que un DMA no cruce de banco, y
-        # nada de acá se sube por DMA. El driver y las muestras van byte a byte
-        # por los puertos —`spc_block` hace el salto de banco a mano— y el
-        # stream lo recorre `advance`, que hace el mismo salto. Puesto igual,
-        # un stream de más de 32 KB alineaba a banco **y cruzaba lo mismo**:
-        # eran hasta 32 KB de relleno por bloque a cambio de nada.
-        out = ["%s:" % label]
+    def block(label, data, bloque=False):
+        # Sin `.bloque` salvo en las muestras: eso es relleno para que un DMA
+        # no cruce de banco, y nada de acá se sube por DMA. El driver va byte a
+        # byte por los puertos —`spc_block` hace el salto de banco a mano— y el
+        # stream lo recorre `advance`, que hace el mismo salto. Las muestras sí
+        # lo llevan, y no por el DMA: `subir_a_aram` las recorre con un puntero
+        # de 24 bits que no salta de banco, a cambio de ser más corta.
+        out = ([".bloque %d" % len(data)] if bloque else []) + ["%s:" % label]
         for i in range(0, len(data), 16):
             out.append("    .byte " + ",".join("$%02X" % b for b in data[i:i + 16]))
         return "\n".join(out)
@@ -688,13 +781,46 @@ def emit(path, temas, driver, samples, arranque=0xFF, titulo=0xFF,
         "%s:\n    .byte %s" % (nombre, ", ".join(prefijo + e for e in etiquetas))
         for nombre, prefijo in (("tema_lo", "<"), ("tema_hi", ">"),
                                 ("tema_bk", "^")))
-    # Y los efectos de sonido: siete bytes por entrada de `Temas.sonidos`,
-    # también en el banco 0 porque `op_sonido` los lee con un índice.
+    # Y los efectos de sonido: siete bytes por entrada de `Temas.sonidos`.
+    # Fuera del banco 0: `op_sonido` los lee con `lda f:sonido_tabla, x`.
     filas = list(sonidos) or [(0xFF, 0, 0, 0, 0)]
-    tabla += "\nsonido_tabla:\n" + "\n".join(
+    tabla_se = "sonido_tabla:\n" + "\n".join(
         "    .byte $%02X, <%d, >%d, %d, %d, <%d, >%d" % (
             srcn, altura, altura, izquierda, derecha, cuadros, cuadros)
         for srcn, altura, izquierda, derecha, cuadros in filas)
+
+    # El directorio del SPC700, con todas en el silencio, y el silencio
+    # detrás. Es lo único que sube `spc_upload` además del driver.
+    n = max(1, len(voces))
+    if n > 255:
+        raise SystemExit("hay %d muestras y el SRCN es de un byte" % n)
+    silencio = SAMPLES_ADDR + 4 * n
+    datos = silencio + len(SILENCIO)
+    samples = (silencio.to_bytes(2, "little") * 2) * n + SILENCIO
+    # Cada muestra, suelta, y su fila: el puntero, cuánto mide y dónde vuelve.
+    muestras = [block("muestra_%d" % i, v.data, bloque=True)
+                for i, v in enumerate(voces)] or [block("muestra_0", SILENCIO)]
+    filas_m = []
+    for i, v in enumerate(voces or [None]):
+        largo = len(v.data) if v is not None else len(SILENCIO)
+        loop = v.loop_block * brr.BLOCK_BYTES if v is not None else 0
+        filas_m.append("    .byte <(muestra_%d), >(muestra_%d), ^(muestra_%d), "
+                       "<%d, >%d, <%d, >%d" % (i, i, i, largo, largo, loop, loop))
+    # Qué muestras usa cada tema, y el paquete de cada mapa. Dos bloques con
+    # un índice de desplazamientos adelante, y cada lista cerrada con $FF.
+    def listas(label, grupos):
+        cuerpo, ofs = bytearray(), []
+        for grupo in grupos:
+            ofs.append(2 * len(grupos) + len(cuerpo))
+            for parte in grupo:
+                cuerpo += bytes(parte) + b"\xFF"
+        datos_ = b"".join(o.to_bytes(2, "little") for o in ofs) + bytes(cuerpo)
+        return block(label, datos_ or b"\xFF", bloque=True)
+    tema_muestras = listas("tema_muestras",
+                           [[muestras_del_stream(st)] for st in streams])
+    paquetes = list(paquetes) or [([], [])]
+    bloque_paquetes = listas("paquetes", [[list(t), list(m)]
+                                           for t, m in paquetes])
 
     with open(path, "w") as handle:
         handle.write(
@@ -702,16 +828,14 @@ def emit(path, temas, driver, samples, arranque=0xFF, titulo=0xFF,
             "; Temas: %s\n\n"
             "; Cuántos temas lleva el cartucho y cuál suena desde el arranque.\n"
             "; Los índices son los de `Temas` en eventos.py, o sea los que el\n"
-            "; bytecode de los PlayBGM ya trae emitidos; un índice que no\n"
-            "; entró no suena, que es lo que hacía antes con todos menos uno.\n"
+            "; bytecode de los PlayBGM ya trae emitidos.\n"
             "; $FF en TEMA_ARRANQUE es 'la ROM arranca callada': el tema del\n"
-            "; mapa donde arranca no existe o no entró, así que lo tiene que\n"
-            "; prender un evento.\n"
+            "; mapa donde arranca no existe, así que lo tiene que prender un\n"
+            "; evento.\n"
             "TEMA_TOTAL       = %d\n"
             "TEMA_ARRANQUE    = $%02X\n"
             "; Y el de la pantalla de título, que sale de `title_music` del\n"
-            "; LDB. $FF quiere decir que esta ROM no lleva pantalla de título,\n"
-            "; o que su tema no entró en la ARAM.\n"
+            "; LDB. $FF quiere decir que esta ROM no lleva pantalla de título.\n"
             "TEMA_TITULO      = $%02X\n"
             "; El volumen general con que suena el tema y los dos registros\n"
             "; del DSP donde va. Los emite `sdsp.py`, que es de donde salen:\n"
@@ -725,6 +849,14 @@ def emit(path, temas, driver, samples, arranque=0xFF, titulo=0xFF,
             "SPC_DRIVER_SIZE  = %d\n"
             "SPC_SAMPLES_ADDR = $%04X\n"
             "SPC_SAMPLES_SIZE = %d\n"
+            "; Las muestras van al SPC700 de a paquetes: ver `paquete_cargar`.\n"
+            "; El directorio está en SPC_SAMPLES_ADDR, el silencio detrás, y\n"
+            "; las muestras se acomodan entre ARAM_DATOS y ARAM_FIN.\n"
+            "MUESTRAS_N       = %d\n"
+            "ARAM_SILENCIO    = $%04X\n"
+            "ARAM_DATOS       = $%04X\n"
+            "ARAM_FIN         = $%04X\n"
+            "PAQUETES_N       = %d\n"
             "; Los efectos de sonido: en qué voz suenan y cuántas entradas\n"
             "; tiene `sonido_tabla`. Ver `build_efectos`.\n"
             "SE_VOZ           = %d\n"
@@ -736,16 +868,21 @@ def emit(path, temas, driver, samples, arranque=0xFF, titulo=0xFF,
             "; que la CPU recorre con `lda tabla, x`.\n"
             '.segment "TABLAS"\n%s\n\n'
             '.segment "RODATA"\n%s\n%s\n%s\n'
+            '.bloque %d\nmuestra_tabla:\n%s\n%s\n%s\n%s\n%s\n'
             % (", ".join(t["nombre"] or "sin música" for t in temas)
                or "ninguno",
                len(temas), arranque, titulo,
                sdsp.MASTER, sdsp.MVOL_L, sdsp.MVOL_R,
                DRIVER_ADDR, len(driver),
                SAMPLES_ADDR, len(samples),
+               n, silencio, datos, ARAM_FIN, len(paquetes),
                SE_VOZ, 1 << SE_VOZ, SE_VOZ * 16, len(list(sonidos)),
-               tabla,
+               tabla, tabla_se,
                block("spc_driver", driver),
                block("spc_samples", samples),
+               7 * len(filas_m), "\n".join(filas_m),
+               tema_muestras, bloque_paquetes,
+               "\n".join(muestras),
                "\n".join(block(e, st) for e, st in zip(etiquetas, streams))))
 
 
@@ -774,9 +911,10 @@ def main():
     emit(args.output,
          [{"nombre": name, "stream": stream, "segundos": seconds,
            "resumen": summary}],
-         driver, samples, arranque=0)
+         driver, samples, arranque=0, paquetes=[([0], [])])
     print("  driver %d B, muestras %d B, stream %d B -> %s"
-          % (len(driver), len(samples), len(stream), args.output))
+          % (len(driver), sum(len(v.data) for v in samples), len(stream),
+             args.output))
 
 
 if __name__ == "__main__":

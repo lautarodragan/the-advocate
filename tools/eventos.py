@@ -659,16 +659,32 @@ class Temas:
         # su índice. Viven acá y no aparte porque es lo que el conversor y la
         # referencia ya se pasan de compilación en compilación.
         self.sonidos = []
+        # Y quién pide qué: el conversor pone en `mapa` el índice del mapa que
+        # está compilando, y cada tema y cada efecto quedan anotados en el
+        # suyo, en el orden en que aparecen. Es lo que arma el paquete de
+        # audio de cada mapa: ver `paquete_cargar` en main.s.
+        self.mapa = None
+        self.por_mapa = {}
+
+    def _anotar(self, que, valor):
+        if self.mapa is None:
+            return
+        lista = self.por_mapa.setdefault(
+            self.mapa, {"temas": [], "sonidos": []})[que]
+        if valor not in lista:
+            lista.append(valor)
 
     def indice(self, nombre):
         if nombre not in self.nombres:
             self.nombres.append(nombre)
+        self._anotar("temas", self.nombres.index(nombre))
         return self.nombres.index(nombre)
 
     def sonido(self, nombre, volumen, tempo, balance):
         clave = (nombre, volumen, tempo, balance)
         if clave not in self.sonidos:
             self.sonidos.append(clave)
+        self._anotar("sonidos", nombre)
         return self.sonidos.index(clave)
 
 class Graficos:

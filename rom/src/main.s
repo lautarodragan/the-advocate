@@ -801,6 +801,7 @@ grupo_listo:
     jsr clima_limpiar
     jsr se_limpiar
     jsr giro_limpiar
+    jsr aram_limpiar
     ; El testigo de la pantalla de ranuras también: con $55 el arnés la vería
     ; abierta desde el reset. Es lo que pasó el 2026-09-10 con los dos
     ; contadores que "daban 85": leían la basura del emulador.
@@ -841,6 +842,15 @@ cargar:
     ; siete décimas de segundo, y así el mapa aparece de entrada en vez de
     ; hacerte mirar una pantalla negra hasta que termine.
     jsr spc_upload
+    ; El puerto 2 es el comando del driver, y `spc_upload` lo deja con lo que
+    ; haya mandado último: en cero, el driver lee pares del DSP.
+    stz APUIO2
+    ; Y el paquete de audio del mapa de arranque: `cargar_mapa` no lo pudo
+    ; subir porque el driver todavía no corría. Ver `paquete_cargar`.
+    lda #1
+    sta f:APU_LISTO
+    lda mapa_actual
+    jsr paquete_cargar
     jsr music_boot
 
     ; Y se espera a que el arranque dure lo que dura siempre: BOOT_CUADROS.
@@ -1199,6 +1209,9 @@ cero:
     jsr giro_limpiar            ; las filas van a ser otras
     pla
     sta mapa_actual             ; para saber si el próximo salto cambia de mapa
+    pha
+    jsr paquete_cargar          ; el audio del mapa, en el fundido
+    pla
     rep #$20
 .a16
     and #$00FF
@@ -3936,7 +3949,7 @@ op_tienda_otro:
     tax
     sep #$20
 .a8
-    lda item_k, x
+    lda f:item_k, x
     cmp #$FF
     beq op_tienda_sigue         ; uno que esta ROM no conoce
     pha
@@ -4001,9 +4014,28 @@ op_sonido:
     tax
     sep #$20
 .a8
-    lda sonido_tabla, x
+    lda f:sonido_tabla, x
     cmp #$FF
-    beq op_sonido_listo         ; no entró en la ARAM: no suena
+    beq op_sonido_listo         ; no hay efecto
+    ; Y sólo si su muestra está en la ARAM: el paquete del mapa puede no
+    ; haberla subido. Ver `paquete_cargar`.
+    phx
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    tax
+    lda f:FAR_ARAM_DE, x
+    sep #$20
+.a8
+    plx
+    cmp #0
+    bne op_sonido_esta
+    xba
+    cmp #0
+    bne op_sonido_esta
+    bra op_sonido_listo
+op_sonido_esta:
     ; Sin interrupciones mientras se copia: `irq_musica` lee el pendiente, y
     ; uno a medio escribir arrancaría con la muestra de uno y la altura de
     ; otro. La interrupción no se pierde, se atrasa hasta el `plp`.
@@ -4011,7 +4043,7 @@ op_sonido:
     sei
     ldy #0
 op_sonido_copiar:
-    lda sonido_tabla, x
+    lda f:sonido_tabla, x
     phx
     tyx
     sta f:SE_NUEVO, x
@@ -10968,9 +11000,9 @@ otra:
     tax
 blanco:
     ldy eleg_tabla
-    lda item_glifo_celdas, x
+    lda f:item_glifo_celdas, x
     sta texto_buf, y
-    lda item_glifo_celdas + 2, x
+    lda f:item_glifo_celdas + 2, x
     sta texto_buf + 64, y
     iny
     iny
@@ -11170,7 +11202,7 @@ escribir:
     tax
     sep #$20
 .a8
-    lda item_k, x
+    lda f:item_k, x
     cmp #$FF
     beq ninguno8
     rep #$20
@@ -11399,7 +11431,7 @@ otro:
     stz WMADDH
     lda WMDATA
     beq siguiente
-    lda item_k, x
+    lda f:item_k, x
     cmp #$FF
     beq siguiente
     phx
@@ -13661,6 +13693,742 @@ listo:
     rts
 .endproc
 
+
+; --- el paquete de audio de cada mapa ----------------------------------------
+;
+; La ARAM no alcanza para todas las muestras del cartucho —la música de los
+; temas de la demo son 53 KB y los efectos que piden los mapas 2 y 3, 43 y
+; 55 más—, así que se suben por mapa: al cargar uno, los temas que sus páginas
+; pueden prender y los efectos que piden, en el orden en que aparecen. Es la
+; tabla `paquetes` que arma el conversor. Los que no entran no suenan.
+;
+; Las muestras tienen número fijo en todo el cartucho —el SRCN que el stream
+; de la música ya escribe— y el directorio del SPC700 tiene una entrada por
+; cada una. La que no está en la ARAM apunta al silencio. `FAR_ARAM_DE` dice
+; dónde está cada una, o 0.
+;
+; **Las del tema que está sonando no se mueven**: la música sigue durante el
+; fundido del salto, y pisarle una muestra que está tocando sería ruido. Todo
+; lo demás se vuelve a acomodar desde el principio de la ARAM, saltando esas.
+; Ver "El paquete de audio de cada mapa" en el README.
+FAR_ARAM_DE = $7E3100           ; una palabra por muestra
+FAR_QUIERE  = $7E3300           ; un byte por muestra: 2 las que no se mueven
+APU_LISTO   = $7E30D0           ; si el driver ya corre
+PAQ_EXTRA   = $7E30D1           ; un tema que va primero, o $FF
+PAQ_CURSOR  = $7E30D2           ; dónde se acomoda la que sigue
+PAQ_LARGO   = $7E30D4
+PAQ_DEST    = $7E30D6
+PAQ_S       = $7E30D8           ; la muestra que se acomoda
+PAQ_X7      = $7E30DA           ; su fila en `muestra_tabla`
+PAQ_A       = $7E30DC           ; dónde se prueba ponerla
+PAQ_MAPA    = $7E30DE           ; el mapa del paquete
+INT_N       = $7E30E0           ; cuántos ocupados, en bytes: dos por cada uno
+INT_INI     = $7E3400           ; lo ocupado, en orden: dónde empieza
+INT_FIN     = $7E3500           ; y dónde termina
+
+; Nada en la ARAM. En el reset: el driver todavía no corre.
+.proc aram_limpiar
+.a8
+.i16
+    lda #0
+    sta f:APU_LISTO
+    lda #$FF
+    sta f:PAQ_EXTRA
+    ldx #0
+otra:
+    lda #0
+    sta f:FAR_ARAM_DE, x
+    inx
+    cpx #(2 * MUESTRAS_N)
+    bcc otra
+    rts
+.endproc
+
+; El testigo: el comando ya está en los puertos, y el driver lo toma cuando
+; cambia. Se espera el acuse.
+.proc apu_testigo
+.a8
+.i16
+    inc token
+    lda token
+    sta APUIO3
+espera:
+    cmp APUIO3
+    bne espera
+    rts
+.endproc
+
+; El puntero de la ARAM, a PAQ_DEST. Con las interrupciones cortadas: la
+; música usa los mismos puertos, y el puerto 2 tiene que volver a 0 antes de
+; que ella mande su próximo par.
+.proc aram_apuntar
+.a8
+.i16
+    php
+    sei
+    lda #2
+    sta APUIO2
+    lda f:PAQ_DEST
+    sta APUIO0
+    lda f:PAQ_DEST + 1
+    sta APUIO1
+    jsr apu_testigo
+    stz APUIO2
+    plp
+    rts
+.endproc
+
+; Un byte, el de A, donde apunta el puntero; el puntero avanza.
+.proc aram_byte
+.a8
+.i16
+    php
+    sei
+    sta APUIO0
+    lda #1
+    sta APUIO2
+    jsr apu_testigo
+    stz APUIO2
+    plp
+    rts
+.endproc
+
+; La muestra de la fila PAQ_X7 de `muestra_tabla`, a PAQ_DEST. De a ternas
+; por el comando 3, en tandas de hasta 128 con las interrupciones cortadas
+; —unos cinco milisegundos: la música se atrasa, no se pierde—, y lo que
+; sobra de a un byte.
+.proc subir_muestra
+.a8
+.i16
+    rep #$30
+.a16
+    lda f:PAQ_X7
+    tax
+    lda f:muestra_tabla, x
+    sta comp_glifo
+    lda f:muestra_tabla + 3, x
+    sta f:PAQ_LARGO
+    sep #$20
+.a8
+    lda f:muestra_tabla + 2, x
+    sta comp_glifo + 2
+    ldy #0
+tanda:
+    ; El puntero, a donde va la terna que sigue: el bloque no lo avanza.
+    rep #$20
+.a16
+    tya
+    clc
+    adc f:PAQ_A
+    sta f:PAQ_DEST
+    sty temp
+    lda f:PAQ_LARGO
+    sec
+    sbc temp                    ; lo que falta
+    sta temp + 2
+    sep #$20
+.a8
+    jsr aram_apuntar
+    rep #$20
+.a16
+    lda temp + 2
+    cmp #3
+    bcs hay_ternas
+    jmp resto
+hay_ternas:
+    sta WRDIVL
+    sep #$20
+.a8
+    lda #3
+    sta WRDIVB                  ; arranca: el cociente tarda dieciséis ciclos
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    lda RDDIVL                  ; cuántas ternas quedan, si entran en un byte
+    ldx RDDIVL
+    cpx #85
+    bcc cuantas
+    lda #85                     ; el índice del driver es de un byte
+cuantas:
+    rep #$20
+.a16
+    and #$00FF                  ; la cuenta, en X
+    tax
+    sep #$20
+.a8
+    php
+    sei
+    sta APUIO0
+    lda #3
+    sta APUIO2
+    inc token
+    lda token
+    sta APUIO3
+acuse_bloque:
+    cmp APUIO3
+    bne acuse_bloque
+    ; La primera terna, leída antes; las demás se leen mientras el SPC700
+    ; guarda la anterior, que es lo que más tarda. Nunca una de más: pasado el
+    ; final del bloque puede haber registros que se alteran al leerlos.
+    lda [comp_glifo], y
+    sta temp
+    iny
+    lda [comp_glifo], y
+    sta temp + 1
+    iny
+    lda [comp_glifo], y
+    sta temp + 3
+    iny
+terna:
+    lda temp
+    sta APUIO0
+    lda temp + 1
+    sta APUIO1
+    lda temp + 3
+    sta APUIO2
+    inc token
+    lda token
+    sta APUIO3
+    dex
+    beq ultima
+    lda [comp_glifo], y
+    sta temp
+    iny
+    lda [comp_glifo], y
+    sta temp + 1
+    iny
+    lda [comp_glifo], y
+    sta temp + 3
+    iny
+    lda token
+acuse:
+    cmp APUIO3
+    bne acuse
+    bra terna
+ultima:
+    lda token
+acuse_ultima:
+    cmp APUIO3
+    bne acuse_ultima
+    stz APUIO2
+    plp
+    jmp tanda
+.a16
+resto:
+    sep #$20
+.a8
+    ; Lo que falta, 0, 1 o 2, de a un byte: el puntero ya está donde va.
+    lda temp + 2
+    beq listo
+    sta temp
+un_byte:
+    lda [comp_glifo], y
+    iny
+    jsr aram_byte
+    dec temp
+    bne un_byte
+listo:
+    rts
+.endproc
+
+; La muestra PAQ_S, ya subida a PAQ_A: su entrada del directorio, con dónde
+; empieza y dónde vuelve.
+.proc escribir_directorio
+.a8
+.i16
+    rep #$20
+.a16
+    lda f:PAQ_S
+    and #$00FF
+    asl a
+    asl a
+    clc
+    adc #SPC_SAMPLES_ADDR
+    sta f:PAQ_DEST
+    sep #$20
+.a8
+    jsr aram_apuntar
+    lda f:PAQ_A
+    jsr aram_byte
+    lda f:PAQ_A + 1
+    jsr aram_byte
+    rep #$30
+.a16
+    lda f:PAQ_X7
+    tax
+    lda f:muestra_tabla + 5, x  ; el loop, desde el principio
+    clc
+    adc f:PAQ_A
+    sta temp
+    sep #$20
+.a8
+    lda temp
+    jsr aram_byte
+    lda temp + 1
+    jmp aram_byte
+.endproc
+
+; X7 de la muestra A: A * 7, en PAQ_X7 y en X.
+.proc fila_de_muestra
+.a8
+.i16
+    rep #$20
+.a16
+    and #$00FF
+    sta temp
+    asl a
+    asl a
+    asl a
+    sec
+    sbc temp
+    sta f:PAQ_X7
+    tax
+    sep #$20
+.a8
+    rts
+.endproc
+
+; Acomoda y sube la muestra A, si no está. En el primer lugar desde
+; PAQ_CURSOR que no pise a ninguna de las que no se mueven; si no entra antes
+; de ARAM_FIN, no sube y no suena.
+.proc colocar_muestra
+.a8
+.i16
+    sta f:PAQ_S
+    rep #$30
+.a16
+    and #$00FF
+    asl a
+    tax
+    lda f:FAR_ARAM_DE, x
+    sep #$20
+.a8
+    beq no_esta
+    rts                         ; ya está
+no_esta:
+    lda f:PAQ_S
+    jsr fila_de_muestra
+    rep #$30
+.a16
+    lda f:muestra_tabla + 3, x
+    sta f:PAQ_LARGO
+    ; El primer hueco donde entre: se recorren los ocupados en orden, con
+    ; PAQ_A en el principio del hueco que se mira.
+    lda #ARAM_DATOS
+    sta f:PAQ_A
+    ldx #0
+hueco:
+    txa
+    cmp f:INT_N
+    bcs al_final
+    lda f:INT_INI, x
+    sec
+    sbc f:PAQ_A                 ; cuánto hay antes de este ocupado
+    bcc sigue                   ; empieza antes: no hay hueco
+    cmp f:PAQ_LARGO
+    bcs aca                     ; entra
+sigue:
+    lda f:INT_FIN, x
+    cmp f:PAQ_A
+    bcc no_avanza
+    sta f:PAQ_A                 ; el hueco que sigue empieza detrás
+no_avanza:
+    inx
+    inx
+    bra hueco
+al_final:
+    lda #ARAM_FIN
+    sec
+    sbc f:PAQ_A
+    bcc no_entra
+    cmp f:PAQ_LARGO
+    bcs aca
+no_entra:
+    sep #$20
+.a8
+    rts                         ; no entra: no suena
+.a16
+aca:
+    ; Entra en PAQ_A, delante del ocupado X: se hace lugar en la lista.
+    stx temp
+    lda f:INT_N
+    tax
+correr:
+    cpx temp
+    beq corrido
+    dex
+    dex
+    lda f:INT_INI, x
+    sta f:INT_INI + 2, x
+    lda f:INT_FIN, x
+    sta f:INT_FIN + 2, x
+    bra correr
+corrido:
+    lda f:PAQ_A
+    sta f:INT_INI, x
+    clc
+    adc f:PAQ_LARGO
+    sta f:INT_FIN, x
+    lda f:INT_N
+    clc
+    adc #2
+    sta f:INT_N
+    ; Y se anota, se sube y se pone en el directorio.
+    lda f:PAQ_S
+    and #$00FF
+    asl a
+    tax
+    lda f:PAQ_A
+    sta f:FAR_ARAM_DE, x
+    lda f:PAQ_S
+    sep #$20
+.a8
+    jsr fila_de_muestra
+    jsr subir_muestra
+    jmp escribir_directorio
+.endproc
+
+; Las muestras del tema A: X al principio de su lista en `tema_muestras`.
+.proc lista_del_tema
+.a8
+.i16
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    tax
+    lda f:tema_muestras, x
+    tax
+    sep #$20
+.a8
+    rts
+.endproc
+
+; Acomoda las muestras del tema A.
+.proc colocar_tema
+.a8
+.i16
+    jsr lista_del_tema
+otra:
+    lda f:tema_muestras, x
+    cmp #$FF
+    beq listo
+    phx
+    jsr colocar_muestra
+    plx
+    inx
+    bra otra
+listo:
+    rts
+.endproc
+
+; Calla el efecto de sonido que esté sonando: sus muestras se van a mover.
+.proc se_callar
+.a8
+.i16
+    php
+    sei
+    lda #0
+    sta f:SE_CUADROS
+    sta f:SE_CUADROS + 1
+    sta f:SE_PENDIENTE
+    sta f:SE_BAJAR
+    lda #1
+    sta f:SE_DEVOLVER           ; la música recupera la voz
+    lda #SE_BIT
+    ldx #SE_KOF
+    jsr dsp_par
+    plp
+    rts
+.endproc
+
+; El paquete del mapa A: ver arriba. PAQ_EXTRA es un tema que va antes que
+; los del mapa —el que un `PlayBGM` pide y no estaba—, o $FF.
+.proc paquete_cargar
+.a8
+.i16
+    sta f:PAQ_MAPA
+    lda f:APU_LISTO
+    bne listo_apu
+    rts                         ; en el reset, antes de que corra el driver
+listo_apu:
+    jsr se_callar
+    ldx #0
+limpiar:
+    lda #0
+    sta f:FAR_QUIERE, x
+    inx
+    cpx #MUESTRAS_N
+    bcc limpiar
+    ; Las del tema que suena no se mueven: 2.
+    lda music_apagada
+    bne sin_fijas
+    lda tema_actual
+    cmp #TEMA_TOTAL
+    bcs sin_fijas
+    ldy #2
+    jsr marcar_tema
+sin_fijas:
+    ; Las que el paquete quiere: 1, si no eran ya 2.
+    lda f:PAQ_EXTRA
+    cmp #$FF
+    beq sin_extra
+    ldy #1
+    jsr marcar_tema
+sin_extra:
+    jsr lista_del_paquete
+temas_q:
+    lda f:paquetes, x
+    cmp #$FF
+    beq efectos_q
+    phx
+    ldy #1
+    jsr marcar_tema
+    plx
+    inx
+    bra temas_q
+efectos_q:
+    inx
+otro_q:
+    lda f:paquetes, x
+    cmp #$FF
+    beq marcadas
+    phx
+    ldy #1
+    jsr marcar_muestra
+    plx
+    inx
+    bra otro_q
+marcadas:
+    ; Las que nadie quiere se olvidan, y con las que quedan se arma la lista
+    ; de lo ocupado, en orden: es donde `colocar_muestra` busca los huecos.
+    rep #$20
+.a16
+    lda #0
+    sta f:INT_N
+    sep #$20
+.a8
+    ldx #0
+olvidar:
+    lda f:FAR_QUIERE, x
+    phx
+    rep #$20
+.a16
+    pha
+    txa
+    asl a
+    tax
+    pla
+    and #$00FF
+    bne quiere
+    sta f:FAR_ARAM_DE, x        ; nadie la quiere: afuera
+    bra proxima
+quiere:
+    lda f:FAR_ARAM_DE, x
+    beq proxima                 ; la quieren pero no está: la sube el paso que sigue
+    sta f:PAQ_A
+    txa
+    lsr a
+    sep #$20
+.a8
+    jsr fila_de_muestra
+    rep #$20
+.a16
+    lda f:muestra_tabla + 3, x
+    sta f:PAQ_LARGO
+    jsr intervalo_ordenado
+proxima:
+    sep #$20
+.a8
+    plx
+    inx
+    cpx #MUESTRAS_N
+    bcc olvidar
+    ; Y se acomodan las que faltan, en orden de prioridad: el tema extra, los
+    ; del mapa y sus efectos.
+    lda f:PAQ_EXTRA
+    cmp #$FF
+    beq sin_extra2
+    jsr colocar_tema
+sin_extra2:
+    jsr lista_del_paquete
+temas:
+    lda f:paquetes, x
+    cmp #$FF
+    beq efectos
+    phx
+    jsr colocar_tema
+    plx
+    inx
+    bra temas
+efectos:
+    inx
+otro_efecto:
+    lda f:paquetes, x
+    cmp #$FF
+    beq listo
+    phx
+    jsr colocar_muestra
+    plx
+    inx
+    bra otro_efecto
+listo:
+    rts
+.endproc
+
+; X al principio de la lista del paquete de PAQ_MAPA.
+.proc lista_del_paquete
+.a8
+.i16
+    lda f:PAQ_MAPA
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    tax
+    lda f:paquetes, x
+    tax
+    sep #$20
+.a8
+    rts
+.endproc
+
+; La muestra A, marcada con Y en FAR_QUIERE si no tenía algo mayor.
+.proc marcar_muestra
+.a8
+.i16
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    tya
+    cmp f:FAR_QUIERE, x
+    bcc listo
+    sta f:FAR_QUIERE, x
+listo:
+    rts
+.endproc
+
+; Las muestras del tema A, marcadas con Y.
+.proc marcar_tema
+.a8
+.i16
+    phy
+    jsr lista_del_tema
+    ply
+otra:
+    lda f:tema_muestras, x
+    cmp #$FF
+    beq listo
+    phx
+    jsr marcar_muestra
+    plx
+    inx
+    bra otra
+listo:
+    rts
+.endproc
+
+; Agrega a la lista de lo ocupado el intervalo [PAQ_A, PAQ_A + PAQ_LARGO),
+; en orden. A de dieciséis.
+.proc intervalo_ordenado
+.a16
+.i16
+    ldx #0
+buscar:
+    txa
+    cmp f:INT_N
+    bcs lugar
+    lda f:INT_INI, x
+    cmp f:PAQ_A
+    bcs lugar                   ; éste empieza después: va delante
+    inx
+    inx
+    bra buscar
+lugar:
+    stx temp
+    lda f:INT_N
+    tax
+correr:
+    cpx temp
+    beq corrido
+    dex
+    dex
+    lda f:INT_INI, x
+    sta f:INT_INI + 2, x
+    lda f:INT_FIN, x
+    sta f:INT_FIN + 2, x
+    bra correr
+corrido:
+    lda f:PAQ_A
+    sta f:INT_INI, x
+    clc
+    adc f:PAQ_LARGO
+    sta f:INT_FIN, x
+    lda f:INT_N
+    clc
+    adc #2
+    sta f:INT_N
+    rts
+.endproc
+
+; Antes de prender el tema A: si le falta alguna muestra, se calla la música,
+; se suelta todo y se rearma el paquete del mapa con él adelante. Pasa con un
+; `PlayBGM` de un tema que el mapa no traía —el del título, o uno de un evento
+; común— y congela la imagen lo que tarde en subir.
+.proc tema_asegurar
+.a8
+.i16
+    sta temp + 1
+    lda f:APU_LISTO
+    beq listo
+    lda temp + 1
+    cmp #TEMA_TOTAL
+    bcs listo
+    jsr lista_del_tema
+mirar:
+    lda f:tema_muestras, x
+    cmp #$FF
+    beq listo                   ; están todas
+    phx
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    tax
+    lda f:FAR_ARAM_DE, x
+    plx
+    sep #$20
+.a8
+    beq falta
+    inx
+    bra mirar
+falta:
+    php
+    sei
+    lda #1
+    sta music_apagada
+    lda #$FF
+    ldx #SE_KOF
+    jsr dsp_par                 ; todas las voces sueltan
+    plp
+    lda temp + 1
+    sta f:PAQ_EXTRA
+    lda mapa_actual
+    jsr paquete_cargar
+    lda #$FF
+    sta f:PAQ_EXTRA
+listo:
+    rts
+.endproc
+
 ; --- los efectos de sonido -------------------------------------------------------
 ;
 ; `PlaySound`, en la voz SE_VOZ, que se le roba a la música mientras dura. Ver
@@ -13984,7 +14752,7 @@ otro:
     stz WMADDH
     lda WMDATA
     beq siguiente
-    lda item_k, x
+    lda f:item_k, x
     cmp #$FF
     beq siguiente               ; uno que esta ROM no sabe mostrar
     pha
@@ -14035,13 +14803,13 @@ blanco:
     rep #$20
 .a16
     sty VMADDL
-    lda item_glifo_celdas, x
+    lda f:item_glifo_celdas, x
     sta VMDATAL
     tya
     clc
     adc #32
     sta VMADDL
-    lda item_glifo_celdas + 2, x
+    lda f:item_glifo_celdas + 2, x
     sta VMDATAL
     sep #$20
 .a8
@@ -14112,7 +14880,7 @@ letra:
     adc #ITEM_GLIFOS_GRIS
     tax
 en_blanco:
-    lda item_glifo_celdas, x
+    lda f:item_glifo_celdas, x
     sta VMDATAL                 ; y la VRAM avanza una palabra
     sep #$20
 .a8
@@ -14221,9 +14989,9 @@ letra:
     asl a
     asl a
     tax
-    lda item_glifo_celdas, x
+    lda f:item_glifo_celdas, x
     pha
-    lda item_glifo_celdas + 2, x
+    lda f:item_glifo_celdas + 2, x
     ldx eleg_tabla
     sta texto_buf + 64, x
     pla
@@ -21165,6 +21933,9 @@ listo:
     ; El código principal la llama con la música andando —`PlayBGM`, el
     ; título—, y cambiar el puntero a medias con `irq_musica` leyéndolo sería
     ; tocar un tema desde la mitad de otro.
+    pha
+    jsr tema_asegurar           ; que sus muestras estén en la ARAM
+    pla
     php
     sei
     jsr music_start_ya
@@ -21345,7 +22116,7 @@ run:
     bne mudo
     inc reinicio
     lda tema_actual             ; se terminó: el mismo, de nuevo desde arriba
-    jsr music_start
+    jsr music_start_ya          ; adentro de la IRQ: sin `sei` y sin paquete
     bra run
 mudo:
     ; Un stream vacío: nada que tocar, ni en este cuadro ni en los que vienen.

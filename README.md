@@ -906,13 +906,11 @@ y la duración, y el paneo baja el lado contrario.
 
 Tres decisiones, las tres por la ARAM:
 
-* **Los efectos se quedan con lo que la música deja libre**, hasta 16 KB. El
-  primer intento les reservaba 16 KB y se los sacaba a la percusión, y el
-  banco de la demo bajaba de 44 muestras a 22. La demo pide 38 efectos que
-  suman más de 40 KB; entran los que piden primero los primeros mapas —en la
-  demo, 5: la lluvia y el trueno de la apertura entre ellos—, y **un
-  `PlaySound` cuyo efecto no entró no suena**. El conversor lo dice.
-* **A 6 kHz y a lo sumo un segundo.** Uno más largo repite sus últimos 0,4 s
+* **Van por mapa**, desde la noche del 2026-09-11: ver "El paquete de audio de
+  cada mapa", más abajo. Hasta ahí se quedaban con lo que la música dejaba
+  libre, y de los 38 que pide la demo entraban 5.
+* **A 6 kHz y a lo sumo tres cuartos de segundo** —era uno hasta el paquete,
+  que tiene que subirlos en el fundido de cada salto—. Uno más largo repite sus últimos 0,4 s
   hasta durar lo que dura en RM2k: la lluvia de la apertura son cinco segundos
   de ruido y así se la oye entera.
 * **El efecto le roba la voz 7 a la música**, que es de percusión. La ROM
@@ -929,6 +927,58 @@ salidas son idénticas muestra por muestra. Es decir, la música vuelve entera.
 Si suenan bien lo dice el oído de taro.
 
 `play_sound_effect` en las rutas sigue aceptándose sin hacerse.
+
+### El paquete de audio de cada mapa
+
+La ARAM son 64 KB, y los instrumentos de los ocho temas de la demo son 53: los
+efectos que piden el Linkage Block y el Emitter Room —43 y 55 KB— no entraban
+ni cerca. taro eligió, el 2026-09-11, un paquete por mapa: al cargar uno, se
+suben **los temas que sus páginas pueden prender y los efectos que piden**, en
+el orden en que aparecen, que es la prioridad si no entran todos. Cada tema
+por separado son de 8 a 32 KB, así que en el Emitter Room entran sus dos temas,
+los catorce efectos y el tema del mapa anterior, que sigue sonando.
+
+Cómo está hecho:
+
+* **Las muestras tienen número fijo en todo el cartucho**: las de la música y,
+  detrás, las de los efectos. Es el SRCN que el stream de la música ya
+  escribía, así que ni un byte del stream cambió. El directorio del SPC700
+  tiene una entrada por muestra y **las que no están apuntan al silencio**, un
+  bloque BRR de nueve bytes.
+* **Qué muestras usa un tema** lo dice su stream: los valores que escribe en
+  los registros SRCN (`muestras_del_stream`). El conversor emite esa lista por
+  tema, y por mapa sus temas y las muestras de sus efectos (`paquetes`).
+* **Las del tema que está sonando no se mueven**: la música sigue durante el
+  fundido, y pisarle una muestra que está tocando sería ruido. Las que el
+  paquete nuevo también quiere se quedan donde están, y las demás se sueltan.
+  Lo que falta se acomoda en el primer hueco donde entre, recorriendo la lista
+  de lo ocupado en orden (`paquete_cargar`, `colocar_muestra`).
+* **El driver del SPC700 aprendió a escribir la ARAM**: tres comandos más en
+  el puerto 2 —un byte, el puntero y un bloque de ternas— al lado del par del
+  DSP de siempre. La música sigue mandando pares con el puerto 2 en cero, y la
+  subida va en tandas de 85 ternas con las interrupciones cortadas, así que
+  la música se atrasa un poco y no se pierde. Son unos 55 KB por segundo.
+* **Un `PlayBGM` de un tema que el mapa no traía** —el del título, o uno de un
+  evento común— calla la música, suelta todo y rearma el paquete con ese tema
+  adelante: congela la imagen lo que tarde. Un efecto que no entró no suena.
+
+Lo que cuesta: el fundido de un salto dura lo que tarda la subida. Del mapa 1
+al Emitter Room son 58 cuadros perdidos, de los que unos 14 son la carga del
+mapa de siempre: unas siete décimas de segundo de negro más. El bucle de subida
+del 65816 lee la terna que sigue mientras el SPC700 guarda la anterior, y
+nunca una de más: pasado el final de un bloque puede haber registros que se
+alteran al leerlos.
+
+Cómo se verificó, porque la tanda no mide audio: la ARAM se lee del estado
+guardado del core —`retro_serialize`, ubicando el driver—, y cada muestra que
+la ROM dice tener se compara con la del cartucho byte por byte, con su entrada
+del directorio. Así se revisó el arranque, la apertura entera y un salto del
+mapa 1 al Emitter Room con el tema del mapa 1 sonando —provocado escribiendo
+el pedido de fundido en la WRAM—: todas bien, y la música sin cortarse. Contra
+la ROM anterior, alineadas en el primer sonido, la salida es idéntica muestra
+por muestra durante tres segundos y difiere desde la primera nota de la voz 0,
+con las muestras y los disparos iguales en los dos lados; la sospecha es el
+instante en que cae ese KON dentro del cuadro, que no quedó demostrada.
 
 ### Varios mapas en la ROM
 

@@ -3521,8 +3521,12 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             handle.write("%s:\n    .word %s\n" % (etiqueta, ", ".join(
                 formato % v for v in valores) or "0"))
 
+        # `item_k` va fuera del banco 0 —se lee con `lda f:item_k, x`—: el
+        # banco del código se llenó con el paquete de audio.
+        handle.write('.segment "RODATA"\n')
         bytes_asm("item_k", [k_de.get(n, 0xFF)
                              for n in range(eventos.ITEMS_N)])
+        handle.write('.segment "TABLAS"\n')
         words_asm("item_id", items)
         bytes_asm("item_uso", [
             (1 if T.item_usable(db_items[n]) else 0)
@@ -3630,11 +3634,14 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                T.ITEM_NOMBRE_COL * 2, T.ITEM_DOS_PUNTOS_COL * 2,
                pos(T.ITEM_DESC_Y // T.CELL, T.ITEM_DESC_COL)))
         glifos = ranuras["items_glifos"]
+        # Fuera del banco 0, como `item_k`: se lee con `lda f:`.
+        handle.write('.segment "RODATA"\n')
         words_asm("item_glifo_celdas", [
             entry(celda, False, False) for gris in (0, 1)
             for n in range(T.ITEM_CARACTERES)
             for celda in glifos[gris][chr(T.ITEM_PRIMER_CARACTER + n)]],
             "$%04X")
+        handle.write('.segment "TABLAS"\n')
         handle.write("\n")
         # `fuente_color` va en el banco 0 y no con el resto de la ventana: la
         # ROM la lee con `lda fuente_color, y`, y ese modo direcciona el banco
@@ -4420,8 +4427,10 @@ def main():
         # Un registro de gráficos por mapa: la orden 34 lleva el índice y la
         # tabla `ruta_grafico` del mapa lo resuelve. Ver `eventos.Graficos`.
         graficos = eventos.Graficos()
+        temas.mapa = mapas.index(mapa)      # para su paquete de audio
         paginas = eventos.paginas_del_mapa(mapa["game_map"], indices.get,
                                            mensajes, temas, graficos)
+        temas.mapa = None
         # Un intérprete por evento con alguna página paralela que compile. La
         # ROM los lleva en una lista de tope fijo y **no avisa** si se le pasa
         # —los que sobran no correrían y nada lo diría—, así que el corte va acá.
@@ -4757,15 +4766,30 @@ def main():
         arranque = 0xFF             # el del mapa fue uno de los que no entró
     if tema_titulo != 0xFF and tema_titulo >= len(hechos):
         tema_titulo = 0xFF          # el del título tampoco entró en la ARAM
+    # El paquete de audio de cada mapa, en el orden de la tabla de mapas: los
+    # temas que sus páginas pueden prender —más, en el de arranque, el que
+    # suena desde el principio— y las muestras de sus efectos, en el orden en
+    # que aparecen, que es la prioridad con que la ROM los sube si no entran
+    # todos. Ver `paquete_cargar` en main.s.
+    efectos = getattr(banco, "efectos", {})
+    paquetes = []
+    for i, _mapa in enumerate(mapas):
+        pide = temas.por_mapa.get(i, {"temas": [], "sonidos": []})
+        suyos = [t for t in pide["temas"] if t < len(hechos)]
+        if i == args.inicial and arranque != 0xFF and arranque not in suyos:
+            suyos.insert(0, arranque)
+        paquetes.append((suyos, [efectos[n][0] for n in pide["sonidos"]
+                                 if n in efectos]))
     snes_music.emit(musica, hechos, driver, muestras, arranque, tema_titulo,
-                    snes_music.tabla_de_sonidos(temas.sonidos, banco))
+                    snes_music.tabla_de_sonidos(temas.sonidos, banco),
+                    paquetes)
+    for i, (suyos, suyas) in enumerate(paquetes):
+        if suyos or suyas:
+            print("  paquete de audio del mapa %d: %d tema(s), %d efecto(s)"
+                  % (mapas[i]["id"], len(suyos), len(suyas)))
     if pedidos_se:
-        entraron = getattr(banco, "efectos", {})
-        print("  efectos de sonido: %d de %d en %d B; no entran y no suenan: "
-              "%s" % (len(entraron), len(pedidos_se),
-                      sum(len(e.data) + 4 for _s, e in entraron.values()),
-                      ", ".join(n for n in pedidos_se if n not in entraron)
-                      or "ninguno"))
+        print("  efectos de sonido: %d, %d B en el cartucho"
+              % (len(efectos), sum(len(e.data) for _s, e in efectos.values())))
     print("música -> %s: %s"
           % (musica, ", ".join(t["nombre"] for t in hechos)
              or "ninguna, sale muda"))

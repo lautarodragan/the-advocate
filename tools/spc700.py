@@ -24,6 +24,12 @@ OPCODES = {
     ("mov", "x,dp"):    (0xF8, 1),   # X <- (dp)
     ("mov", "x,imm"):   (0xCD, 1),   # X <- inmediato
     ("mov", "dp,x"):    (0xD8, 1),   # (dp) <- X
+    ("mov", "y,imm"):   (0x8D, 1),   # Y <- inmediato
+    ("mov", "[dp]+y,a"): (0xD7, 1),  # (palabra en dp + Y) <- A
+    ("incw", "dp"):     (0x3A, 1),   # la palabra en dp, más uno
+    ("decw", "dp"):     (0x1A, 1),   # menos uno; Z si llegó a cero
+    ("dec", "dp"):      (0x8B, 1),   # el byte en dp, menos uno
+    ("inc", "y"):       (0xFC, 0),   # Y más uno
     ("cmp", "x,dp"):    (0x3E, 1),   # compara X con (dp)
     ("cmp", "a,imm"):   (0x68, 1),   # compara A con inmediato
     ("beq", "rel"):     (0xF0, 1),   # salta si iguales
@@ -89,14 +95,23 @@ class Assembler:
         if shape == "rel":
             return self.labels.get(operand, self.origin)
 
+        if shape == "y":                    # el registro Y
+            return 0 if operand == "y" else None
+        if shape == "dp":                   # un solo operando de página cero
+            return self._number(operand, "$")
+        if shape == "[dp]+y,a":             # el indirecto indexado
+            if not (operand.startswith("[") and operand.endswith("]+y,a")):
+                return None
+            return self._number(operand[1:-len("]+y,a")], "$")
+
         target, _, source = shape.partition(",")
         if source:                          # formas de dos operandos
             left, _, right = operand.partition(",")
-            if target in ("a", "x") and left != target:
+            if target in ("a", "x", "y") and left != target:
                 return None
-            if source in ("a", "x") and right != source:
+            if source in ("a", "x", "y") and right != source:
                 return None
-            slot = right if target in ("a", "x") else left
+            slot = right if target in ("a", "x", "y") else left
             if source == "imm":
                 return self._number(slot, "#")
             if source == "dp" or target == "dp":

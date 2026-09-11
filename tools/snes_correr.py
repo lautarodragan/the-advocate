@@ -97,7 +97,10 @@ class Reloj:
     """
 
     # Si una vuelta no termina nunca, avanzar por ticks colgaría el arnés.
-    CUADROS_POR_TICK = 60
+    # Cuatro segundos: la vuelta que carga un mapa sube también su paquete de
+    # audio, que en el Emitter Room son unos cincuenta cuadros, y con los 60
+    # de antes quedaba al borde.
+    CUADROS_POR_TICK = 240
 
     # El cuadro N de la referencia es el tick **N+1** de la ROM, y el número no
     # se muestrea: se fija. Medido en los mapas 6 y 7, que no pierden ningún

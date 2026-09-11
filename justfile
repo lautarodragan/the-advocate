@@ -297,13 +297,15 @@ snes-mednafen:
   python3 tools/snes_expect.py --grupo {{grupo}} --map-id 4 --mapas 1 \
       --saltar {{snes_pngs}}/saltar-med-evento.txt \
       -o {{snes_pngs}}/esperado-med-evento.png
-  # Seis segundos y no cinco: el fundido de un teletransporte mide 70 **ticks**
-  # desde el 2026-09-08, así que en un mapa donde la ROM pierde cuadros dura
-  # unos cuadros más de reloj de pared, y a los cinco segundos todavía estaba
-  # en negro. Seis lo deja bien adentro, y lejos del relámpago del mapa 1, que
-  # cae recién a los 7,1 segundos: esta captura es por reloj de pared —mednafen
-  # de verdad, no un core— así que no se puede alinear por tick.
-  rom/mednafen.sh {{snes_rom}} {{snes_pngs}}/med-evento.png 6 ""
+  # Siete segundos, que con el arranque de mednafen son unos cuatro y medio de
+  # emulación: el fundido del teletransporte termina a los 3,8 y el relámpago
+  # del mapa 1 cae a los 7,85, medidos en el core. Eran seis hasta el
+  # 2026-09-11; el paquete de audio del mapa 1 alarga el fundido unas
+  # décimas, y a los seis quedaba a mitad de camino. Antes fueron cinco, y el
+  # fundido de 70 **ticks** los pasó a seis. Esta captura es por reloj de
+  # pared —mednafen de verdad, no un core— así que no se puede alinear por
+  # tick.
+  rom/mednafen.sh {{snes_rom}} {{snes_pngs}}/med-evento.png 7 ""
   python3 tools/snes_compare.py {{snes_pngs}}/med-evento.png \
       {{snes_pngs}}/esperado-med-evento.png \
       --saltar {{snes_pngs}}/saltar-med-evento.txt \
