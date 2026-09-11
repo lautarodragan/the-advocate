@@ -2947,15 +2947,26 @@ class Estado:
     def girar(self, indice, pagina, celda, heroe):
         """El giro hacia el héroe de un evento que él disparó: ver GIRO.
 
-        Gira si su página gira y no tiene una ruta —ésa decide adónde mira—.
+        Gira si su página gira y no tiene una ruta andando —ésa decide adónde
+        mira—. Una que ya terminó no cuenta: la ranura no se suelta hasta el
+        mapa que viene, y con "tiene ruta" el `GangMember1` de Lashe City, al
+        que una escena había movido, no giraba nunca más.
         `celda` es la del evento y `heroe` la del héroe. Queda anotado el
         gráfico de la página, para que un refresco sepa si el giro sigue. La
         ROM es `giro_disparar`.
         """
-        if not pagina.get("gira") or indice in self.rutas_ev:
+        ruta = self.rutas_ev.get(indice)
+        if not pagina.get("gira") or (ruta is not None
+                                      and (ruta.de_pagina or ruta.pendiente)):
             return
         self.giro = {"evento": indice, "dir": direccion_hacia(celda, heroe),
                      "grafico": tuple(pagina["grafico"])}
+
+    def giro_por_ruta(self, indice):
+        """Una ruta que agarra al evento termina su giro: desde ahí mira
+        adonde diga ella. La ROM es `giro_por_ruta`."""
+        if self.giro is not None and self.giro["evento"] == indice:
+            self.giro = None
 
     def revisar_giro(self):
         """Al aplicar las páginas: el giro se termina si el evento se quedó
@@ -3016,6 +3027,7 @@ class Estado:
                     continue
                 if ruta is None:
                     ruta = self.ruta_de_evento(indice)
+                self.giro_por_ruta(indice)
                 ruta.cargar_pagina(propia, pagina)
             elif ruta is not None and ruta.ordenes_pagina:
                 ruta.sin_pagina()
@@ -4443,6 +4455,8 @@ def ejecutar(codigo, estado, desde=0):
             ordenes = list(codigo[i + 4:i + 4 + cuantos])
             ruta = (estado.ruta_heroe if blanco == 0
                     else estado.ruta_de_evento(blanco - 1))
+            if blanco:
+                estado.giro_por_ruta(blanco - 1)
             ruta.reemplazar(ordenes, frecuencia)
             i += 4 + cuantos
         elif op == OP_FLASH:

@@ -1039,17 +1039,20 @@ snes-destello mapa="6" flash="1 31 0 0 31 24" celda="2 10" cuadros="2 12 15 23 2
 # que la página de los caños no queda activa y apretar A no tiene que hacer
 # nada. Es lo único que ejercita que se miren las condiciones: con el 24 puesto
 # se cumplen todas, así que una ROM que las ignorara daría lo mismo.
-snes-hablar mapa="7" celda="3 7" switch="24" apretar="25" cuadros="20 60" arranque="115" nombre="hablar":
+snes-hablar mapa="7" celda="3 7" switch="24" apretar="25" cuadros="20 60" arranque="115" nombre="hablar" ruta="":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
+  ruta="{{ruta}}"
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
       --inicio {{celda}} --con-ventana --switch {{switch}} \
+      ${ruta:+--ruta-de-evento $ruta} \
       -o {{snes_inc}}/mapdata.inc
   just snes-build
   pre={{snes_pngs}}/{{nombre}}
   python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
       --hero-tile {{celda}} --dir down --con-ventana --switch {{switch}} \
+      ${ruta:+--ruta-de-evento $ruta} \
       --cuadros {{cuadros}} --apretar-a {{apretar}} \
       --saltar $pre-{}.saltar.txt -o $pre-{}.esperado.png
   for n in {{cuadros}}; do

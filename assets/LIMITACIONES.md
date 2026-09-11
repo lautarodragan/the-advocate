@@ -118,8 +118,11 @@ destrabó la sección de acá arriba.
 **Desde el 2026-09-11 gira**, de los dos lados, con una ranura de VRAM de giro
 por mapa para los quietos: ver GIRO en `tools/eventos.py`. Lo que queda afuera:
 
-* **Los que caminan solos no giran.** Tienen una ruta siempre, y con ruta
-  adónde mira lo decide ella. En RM2k la página que corre los **pausa**
+* **Los que caminan solos no giran.** Su ruta propia está siempre andando, y
+  con una ruta andando adónde mira lo decide ella. Uno al que una escena ya
+  movió sí gira: la ranura de ruta le queda hasta el mapa que viene, pero
+  vacía —así lo encontró taro con el `GangMember1` de Lashe City, que hasta el
+  2026-09-11 no giraba nunca más—. En RM2k la página que corre los **pausa**
   —`SetPaused(true)`— y entonces sí giran; la pausa no está modelada, así que
   acá siguen caminando mientras hablan, que es la deuda de fondo.
 * **Otro CharSet con la misma pose.** Si un refresco le cambia la página a

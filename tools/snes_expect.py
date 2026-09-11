@@ -1763,15 +1763,16 @@ def main():
                     # tools/eventos.py y `animar_quietos` en main.s.
                     pose = (pose_pagina // 3) * 3 + eventos.columna_animada(
                         tick, npc["velocidad"])
-                # Y si es el que el héroe acaba de disparar, mirándolo: ver
-                # `Estado.girar`.
-                pose = estado.pose_girada(npc["evento"], pose)
             else:
                 altura = eventos.altura_del_salto(ruta)
                 px, py = eventos.pixeles_del_paso(cx, cy, ruta)
                 mira = (ruta.mirando if ruta.mirando is not None
                         else pose_pagina // 3)
                 pose = mira * 3 + ruta.columna()
+            # Y si es el que el héroe acaba de disparar, mirándolo: ver
+            # `Estado.girar`. Vale también con una ranura de ruta, si la ruta
+            # ya terminó.
+            pose = estado.pose_girada(npc["evento"], pose)
             actors.append(((snes_convert.sort_key(capa, py), px,
                             npc["evento"]),
                            charset_npc, index_npc, pose, px, py,

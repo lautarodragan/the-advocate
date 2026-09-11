@@ -2337,6 +2337,10 @@ nueva:
     stz ruta_ev + 22, x
     stz ruta_ev + 23, x
 cargar:
+    phx
+    lda rp_ev
+    jsr giro_por_ruta           ; con ruta, adónde mira lo decide ella
+    plx
     jsr cargar_pagina_en_ranura
     jmp proximo
 sin_ruta:
@@ -15787,7 +15791,9 @@ gira:
     jsr ranura_del_evento
     cpx #$FFFF
     beq sin_ruta
-    rts                         ; tiene una ruta: ella decide adónde mira
+    jsr ruta_ocupada
+    beq sin_ruta                ; la ranura quedó de una ruta que ya terminó
+    rts                         ; una ruta andando: ella decide adónde mira
 sin_ruta:
     lda ev_buscado
     jsr npc_de_evento
@@ -15962,6 +15968,32 @@ quieto:
     bne listo
     jsr giro_deshacer           ; la cola estaba llena: no gira
 listo:
+    rts
+.endproc
+
+; Si la ranura de ruta X tiene algo andando: la ruta propia de su página,
+; órdenes por dar, un paso, una espera o un salto. Z=1 si está libre. Es
+; `Ruta.pendiente or Ruta.de_pagina` en eventos.py. Una ranura no se suelta
+; hasta que se carga otro mapa, así que "tiene ranura" no alcanzaba: el
+; `GangMember1` de Lashe City, al que una escena ya había movido, no giraba
+; nunca más. taro lo encontró jugando.
+.proc ruta_ocupada
+.a8
+.i16
+    lda ruta_ev + 18, x
+    and #$01
+    bne si
+    lda ruta_ev + 5, x
+    cmp ruta_ev + 4, x
+    bcc si
+    lda ruta_ev + 7, x
+    ora ruta_ev + 9, x
+    ora ruta_ev + 13, x
+    bne si
+    lda #0
+    rts
+si:
+    lda #1
     rts
 .endproc
 
@@ -16300,6 +16332,17 @@ puesto:
     bne tiene_dir
     lda npc_buf + 10, y         ; todavía no giró: mira adonde dice su página
 tiene_dir:
+    ; Y si es el que mira al héroe, adonde dice el giro: su ranura está
+    ; libre, porque con una ruta andando no gira. Ver `giro_disparar`.
+    pha
+    lda f:GIRO_EV
+    cmp npc_buf + 8, y
+    bne sin_giro
+    pla
+    lda f:GIRO_DIR
+    pha
+sin_giro:
+    pla
     sta temp
     asl a
     clc
