@@ -3209,11 +3209,14 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             "MENU_ACTOR_FILAS  = %d\n"
             "MENU_FILAS_GRUPO  = %d\n"
             "MENU_ACTORES_N    = %d\n"
+            "OBJETIVO_CURSOR_DESPL = %d\n"
             % (T.MENU_OPCIONES, T.MENU_GUARDAR, bloque_menu_opcion,
                bloque_menu_moneda, T.MENU_OPC_COLS, T.MENU_MONEDA_COLS,
                celda_vram(T.MENU_ORO_Y // T.CELL, T.MENU_MONEDA_COL),
                T.MENU_ACTOR_COLS, T.MENU_ACTOR_FILAS, T.MENU_FILAS_GRUPO,
-               menu_actores_n))
+               menu_actores_n,
+               T.OBJETIVO_CURSOR_FILA * 32
+               + T.OBJETIVO_CURSOR_COL - T.MENU_ACTOR_COL))
         # Qué órdenes hacen algo: 1 sí, 0 no. La de guardar además mira el
         # permiso, en la ROM.
         handle.write("menu_hecha:\n    .byte %s\n" % ", ".join(
@@ -3238,8 +3241,9 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             or "$FF"))
         # La pantalla de ítems. `item_k` va del número de RM2k a su lugar en
         # las tablas de la ROM, $FF si esta ROM no lo conoce; lo demás es por
-        # lugar. `item_uso`: bit 0 si A lo usa —hoy, los de switch—, bit 1 si
-        # usarlo gasta uno. Los textos van de a tres por ítem —el nombre y los
+        # lugar. `item_uso`: bit 0 si va en blanco y A hace algo, bit 1 si
+        # usarlo gasta uno —los de switch con usos—, bit 2 si abre la elección
+        # de actor —las medicinas—. Los textos van de a tres por ítem —el nombre y los
         # dos renglones de la descripción—: el texto `t` es el `3k + campo`.
         items = ranuras["items"]
         db_items = ranuras["items_db"]
@@ -3281,7 +3285,10 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         words_asm("item_id", items)
         bytes_asm("item_uso", [
             (1 if T.item_usable(db_items[n]) else 0)
-            | (2 if T.item_usable(db_items[n]) and db_items[n].uses else 0)
+            | (2 if T.item_usable(db_items[n])
+               and not T.item_pide_actor(db_items[n])
+               and db_items[n].uses else 0)
+            | (4 if T.item_pide_actor(db_items[n]) else 0)
             for n in items])
         words_asm("item_switch", [db_items[n].switch_id for n in items])
         for campo, prefijo in (("lo", "<"), ("hi", ">"), ("bk", "^")):

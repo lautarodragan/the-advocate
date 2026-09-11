@@ -17,7 +17,7 @@ import titulo                                           # noqa: E402
 from consola import TITULO_AIRE
 from test_menu import abrir, tocar
 
-# Una poción de más de diez, un arma y la consola: uno usable y dos en gris.
+# Una poción de más de diez, un arma y la consola: el arma va en gris.
 INVENTARIO = {1: 13, 17: 1, 81: 1}
 # Catorce distintos, para que la lista no entre en las once filas. La primera
 # versión llevaba el texto de cada ítem ya dibujado y éstos no entraban en el
@@ -90,10 +90,42 @@ def test_usar_la_consola_prende_su_switch_y_vuelve_al_mapa(partida):
 
 def test_un_item_en_gris_no_hace_nada(partida):
     una = entrar(partida(items=items_de(INVENTARIO)))
-    tocar(una, "a", 20)                 # la poción, en gris
+    tocar(una, "down")
+    tocar(una, "a", 20)                 # el arma, en gris
     assert una.menu_abierto()
-    assert una.item(1) == 13
-    comparar(una, INVENTARIO, 0, nombre="items-gris")
+    assert una.item(17) == 1
+    comparar(una, INVENTARIO, 1, nombre="items-gris")
+
+
+def test_la_medicina_abre_la_eleccion_de_actor_y_no_se_gasta(partida):
+    """La poción va en blanco y abre `Scene_ActorTarget`. A no tiene efecto
+    —nadie tiene los HP por debajo del máximo fuera de batalla— y la poción
+    no se gasta; B vuelve a la lista con el cursor donde estaba."""
+    import lcf
+    import ventana
+    from render_map import GAME_DIR
+    from snes_compare import quantize
+    una = partida(items=items_de(INVENTARIO))
+    una.correr(5)
+    una.poner_grupo(14, 11)
+    entrar(una)
+    tocar(una, "a", TITULO_AIRE)        # la poción
+    db = lcf.Database(os.path.join(GAME_DIR, "RPG_RT.ldb"))
+    skin = ventana.skin(GAME_DIR, db.system_name)
+    for elegida in (0, 1):
+        captura = una.imagen().convert("RGB")
+        esperada = titulo.render_objetivo(skin, db, 4, (14, 11), elegida,
+                                          db.font_id, None, GAME_DIR)
+        distintos = sum(1 for x, y in zip(quantize(captura),
+                                          quantize(esperada)) if x != y)
+        assert distintos == 0, (
+            "la elección de actor con el cursor en %d difiere de la "
+            "referencia en %d pixeles" % (elegida, distintos))
+        tocar(una, "down")
+    tocar(una, "a", 20)
+    assert una.item(1) == 13, "la poción se gastó sin tener efecto"
+    tocar(una, "b", TITULO_AIRE)
+    comparar(una, INVENTARIO, 0, nombre="items-vuelve")
 
 
 def test_la_lista_se_corre_cuando_el_cursor_se_sale(partida):

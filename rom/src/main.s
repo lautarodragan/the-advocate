@@ -10302,7 +10302,18 @@ otra_opcion:
     sta temp + 2
     jsr ranura_rect_subir
 
-    ; --- el grupo, de a una fila por actor ---
+    jsr menu_grupo_pintar
+    jsr ranura_ppu_prender
+    lda #1
+    sta menu_abierto
+    rts
+.endproc
+
+; El grupo, de a una fila por actor: cara, nombre, nivel, estado y HP. Lo
+; comparten el menú y la elección de actor.
+.proc menu_grupo_pintar
+.a8
+.i16
     lda #0
 otro_miembro:
     cmp grupo_n
@@ -10353,9 +10364,6 @@ sin_bloque:
     inc a
     bra otro_miembro
 grupo_listo:
-    jsr ranura_ppu_prender
-    lda #1
-    sta menu_abierto
     rts
 .endproc
 
@@ -10461,6 +10469,121 @@ mover:
     sta temp + 3
     lda titulo_sel
     jmp menu_cursor_escribir
+.endproc
+
+; --- la elección de actor ----------------------------------------------------
+;
+; `Scene_ActorTarget`, sobre el banco del menú: el panel del grupo y un cursor
+; al costado de la fila marcada. A no hace nada: con una medicina, `UseItem`
+; sólo la gasta si sube algo, y fuera de batalla nadie tiene los HP ni los SP
+; por debajo del máximo ni un estado —ver CHANGE_HP en eventos.py—. B vuelve.
+; `render_objetivo` en titulo.py es la referencia.
+
+; El cursor en la fila A del grupo: `temp + 3` en 1 lo pinta y en 0 lo borra.
+.proc objetivo_cursor_escribir
+.a8
+.i16
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    tax
+    lda menu_fila_vram, x
+    clc
+    adc #OBJETIVO_CURSOR_DESPL
+    tay
+    sep #$20
+.a8
+    lda #$80
+    sta VMAIN
+    sty VMADDL
+    lda temp + 3
+    rep #$20
+.a16
+    beq borra
+    lda menu_cursor_celdas
+    sta VMDATAL
+    tya
+    clc
+    adc #32
+    sta VMADDL
+    lda menu_cursor_celdas + 2
+    sta VMDATAL
+    sep #$20
+.a8
+    rts
+.a16
+borra:
+    stz VMDATAL
+    tya
+    clc
+    adc #32
+    sta VMADDL
+    stz VMDATAL
+    sep #$20
+.a8
+    rts
+.endproc
+
+.proc objetivo_pantalla
+.a8
+.i16
+    lda #$80
+    sta INIDISP
+    stz HDMAEN
+    stz TM
+    jsr ranura_banco_subir
+    jsr menu_grupo_pintar
+    stz titulo_sel
+    lda #1
+    sta temp + 3
+    lda #0
+    jsr objetivo_cursor_escribir
+    jsr ranura_ppu_prender
+espera:
+    jsr wait_vblank
+    jsr read_pad
+    jsr music_tick
+    lda pad
+    eor pad_ant
+    and pad
+    sta titulo_flancos
+    and #PAD_UP
+    beq no_arriba
+    lda titulo_sel
+    beq espera
+    dec a
+    jsr mover
+    bra espera
+no_arriba:
+    lda titulo_flancos
+    and #PAD_DOWN
+    beq no_abajo
+    lda titulo_sel
+    inc a
+    cmp grupo_n
+    bcs espera
+    cmp #MENU_FILAS_GRUPO
+    bcs espera
+    jsr mover
+    bra espera
+no_abajo:
+    lda titulo_flancos
+    and #PAD_B
+    beq espera                  ; A no tiene efecto: ver arriba
+    rts
+
+mover:
+    pha
+    stz temp + 3
+    lda titulo_sel
+    jsr objetivo_cursor_escribir
+    pla
+    sta titulo_sel
+    lda #1
+    sta temp + 3
+    lda titulo_sel
+    jmp objetivo_cursor_escribir
 .endproc
 
 ; --- la pantalla de ítems -------------------------------------------------------
@@ -11093,6 +11216,29 @@ mira_a:
     lda item_uso, x
     and #1
     beq espera                  ; en gris: RM2k suena y no hace nada
+    lda item_uso, x
+    and #4
+    beq de_switch
+    ; Una medicina: la elección de actor, y de vuelta a la lista con el cursor
+    ; donde estaba. La elección usa `titulo_sel`, así que se guarda.
+    lda titulo_sel
+    pha
+    lda eleg_sel
+    pha
+    jsr objetivo_pantalla
+    pla
+    sta eleg_sel
+    pla
+    sta titulo_sel
+    lda #$80
+    sta INIDISP
+    jsr items_banco_subir
+    jsr items_desc_pintar
+    jsr items_desc_subir
+    jsr items_filas_pintar
+    jsr ranura_ppu_prender
+    jmp espera
+de_switch:
     ; Un ítem de switch: `ConsumeItemUse` si tiene usos, el switch prendido y
     ; derecho al mapa. `poner_switch` pide el refresco de páginas, que es el
     ; `SetNeedRefresh(true)` de allá.

@@ -1266,6 +1266,16 @@ ITEM_MAX = 99
 # `FAR_ACCESO`; acá en `Estado`. Guardar desde el save point no lo mira, como
 # `OpenSaveMenu` en RM2k.
 OP_ACCESO = 0x1A    # cuál (byte), permitido (byte)
+# Los HP y los estados, que fuera de batalla **no bajan nunca** en este juego:
+# medido sobre los 328 mapas, los 11 `ChangeHP` suman —siete de a 1 al grupo,
+# cuatro de 300 y 999 a un actor—, los 16 `ChangeCondition` quitan un estado y
+# los 54 `FullHeal` llenan. O sea que fuera de batalla todos tienen siempre los
+# HP y los SP al máximo y ningún estado, y estos tres comandos no cambian nada:
+# compilan a nada, y es exacto, no una aproximación. El que baje HP o ponga un
+# estado no compila, porque ahí sí habría algo que llevar.
+CHANGE_HP = 10460
+CHANGE_CONDITION = 10480
+FULL_HEAL = 10490
 CHANGE_MENU_ACCESS = 11960
 ACCESO_GUARDAR, ACCESO_MENU = 0, 1
 # Las operaciones de ControlVars que compilan: poner, sumar, restar. Multiplicar,
@@ -1628,6 +1638,18 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
     p = cmd.parameters
 
     if cmd.code == END or cmd.code in IGNORABLES:
+        return b""
+
+    if cmd.code == FULL_HEAL:
+        return b""
+    if cmd.code == CHANGE_HP:
+        if len(p) < 3 or p[2] != 0:
+            raise NoSePuede("ChangeHP que resta: los HP dejarían de estar "
+                            "siempre llenos")
+        return b""
+    if cmd.code == CHANGE_CONDITION:
+        if len(p) < 3 or p[2] != 1:
+            raise NoSePuede("ChangeCondition que pone un estado")
         return b""
 
     if cmd.code in (CHANGE_SAVE_ACCESS, CHANGE_MENU_ACCESS):

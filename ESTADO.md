@@ -608,12 +608,19 @@ entraba en el vblank: se compone en `texto_buf` y sube de un DMA por cuadro.
 Dos veces más apareció el `ldx`/`ldy` de un byte con índices de 16 bits, que
 se lleva el de al lado: `grep` antes de dar por bueno un camino nuevo.
 
-Lo cobran `snes-items` y `pruebas/test_items_pantalla.py`, cinco pruebas.
+Lo cobran `snes-items` y `pruebas/test_items_pantalla.py`, seis pruebas.
 
-Lo que falta del sistema de ítems: HP que cambien —`ChangeHP`, `FullHeal`,
-los HP en la partida— y con eso las medicinas con la elección de actor; el
-equipo; la tienda; y los eventos comunes, que es lo que haría que la consola
-abra el menú del juego.
+**Los HP y las medicinas (2026-09-11).** Fuera de batalla, en este juego nadie
+baja nunca de los HP ni de los SP máximos: los 11 `ChangeHP` suman, los 16
+`ChangeCondition` quitan y los 54 `FullHeal` llenan. Así que esos tres compilan
+a nada —es exacto—, las medicinas van en blanco y abren la elección de actor
+—el panel del grupo del menú con un cursor—, y A ahí no tiene efecto ni gasta
+la medicina, como en RM2k. Los HP pasan a ser estado el día que haya batallas.
+
+Lo que falta del sistema de ítems: el equipo, la tienda, y los libros, los
+materiales y los especiales. La consola y su evento común quedan afuera: taro
+lo decidió el 2026-09-11, y la idea es un sistema propio del port en vez de
+las imágenes del original.
 
 ### Lo próximo, si no se decide otra cosa
 

@@ -227,6 +227,8 @@ def main():
                              "grupo del menú")
     parser.add_argument("--items", metavar="ITEM:CUANTOS,...", default=None,
                         help="dibuja la pantalla de ítems con este inventario")
+    parser.add_argument("--objetivo", metavar="ACTOR,ACTOR,...", default=None,
+                        help="dibuja la elección de actor con este grupo")
     parser.add_argument("--arriba", type=int, default=0,
                         help="el primer ítem que se ve en la lista")
     parser.add_argument("--sin-guardar", action="store_true",
@@ -241,6 +243,14 @@ def main():
     db = lcf.Database(os.path.join(args.game_dir, "RPG_RT.ldb"))
     imagen = Image.open(os.path.join(args.game_dir, "Title",
                                      db.title_name + ".png"))
+    if args.objetivo is not None:
+        import ventana as ventana_mod
+        skin = ventana_mod.skin(args.game_dir, db.system_name)
+        grupo = [int(a) for a in args.objetivo.split(",") if a]
+        render_objetivo(skin, db, args.ranuras or 4, grupo, args.elegida,
+                        db.font_id, None, args.game_dir).save(args.output)
+        print("elección de actor con %s -> %s" % (grupo, args.output))
+        return
     if args.items is not None:
         import ventana as ventana_mod
         skin = ventana_mod.skin(args.game_dir, db.system_name)
@@ -660,11 +670,19 @@ ITEM_CARACTERES = 95            # a la tilde, que es lo que usan los ítems
 
 
 def item_usable(item):
-    """Si A hace algo con el ítem en el mapa. Hoy sólo los de switch, que es
-    `Game_Party::IsItemUsable` fuera de batalla con `occasion_field2`: las
-    medicinas piden HP que cambien, y en los mapas de la demo nadie los baja."""
+    """Si el ítem va en blanco y A hace algo con él en el mapa: es
+    `Game_Party::IsItemUsable` fuera de batalla. Los de switch con
+    `occasion_field2`, y las medicinas, que abren la elección de actor. Los
+    libros, los materiales y los especiales todavía no: van en gris."""
     import lcf
-    return item.type == lcf.ITEM_TIPO_SWITCH and item.occasion_field2
+    return ((item.type == lcf.ITEM_TIPO_SWITCH and item.occasion_field2)
+            or item.type == lcf.ITEM_TIPO_MEDICINA)
+
+
+def item_pide_actor(item):
+    """Si usarlo abre `Scene_ActorTarget`: las medicinas."""
+    import lcf
+    return item.type == lcf.ITEM_TIPO_MEDICINA
 
 
 def texto_de_item(texto, ancho):
@@ -1011,6 +1029,36 @@ def render_menu(sys_img, db, ranuras, grupo, oro, elegida=0,
         if actor in menu["actores"]:
             pegar(menu["actores"][actor], fila * MENU_ACTOR_FILAS,
                   MENU_ACTOR_COL, MENU_ACTOR_COLS)
+    return fuera
+
+
+# La elección de actor, `Scene_ActorTarget`: el panel del grupo del menú con un
+# cursor al costado de la fila marcada, a la altura del nivel. La columna de la
+# izquierda, que en RM2k dice el ítem y cuántos hay, queda vacía: el banco de
+# la pantalla es el de las caras y no tiene la fuente. Cosmético y declarado.
+#
+# A **no hace nada** con una medicina, y es lo que hace RM2k: `UseItem` sólo
+# gasta la medicina si sube algo, y fuera de batalla nadie tiene los HP ni los
+# SP por debajo del máximo ni un estado. Ver CHANGE_HP en eventos.py.
+OBJETIVO_CURSOR_COL = MENU_ACTOR_COL - 1
+OBJETIVO_CURSOR_FILA = 2        # adentro de la fila del actor
+
+
+def render_objetivo(sys_img, db, ranuras, grupo, elegida=0, font_id=None,
+                    actores=None, game_dir=None):
+    """La elección de actor como la tiene que mostrar la consola."""
+    from PIL import Image
+    actores = sorted(set(actores if actores is not None else grupo))
+    tiles, paletas, _, _, _, _, menu = pantalla_ranuras(
+        sys_img, db, ranuras, font_id, actores, game_dir)
+    fuera = Image.new("RGB", (ANCHO, ALTO), (0, 0, 0))
+    pegar = _pintor(fuera, tiles, paletas)
+    for fila, actor in enumerate(list(grupo)[:MENU_FILAS_GRUPO]):
+        if actor in menu["actores"]:
+            pegar(menu["actores"][actor], fila * MENU_ACTOR_FILAS,
+                  MENU_ACTOR_COL, MENU_ACTOR_COLS)
+    pegar(menu["cursor"], elegida * MENU_ACTOR_FILAS + OBJETIVO_CURSOR_FILA,
+          OBJETIVO_CURSOR_COL, 1)
     return fuera
 
 

@@ -738,6 +738,17 @@ la vida llena—. El switch 710 dispara el evento común 39, "NewMenuActivated",
 que es el menú propio del juego hecho con imágenes: 568 comandos, y los
 eventos comunes todavía no corren.
 
+**Las medicinas van en blanco y abren la elección de actor**, que es el panel
+del grupo del menú con un cursor al costado —`render_objetivo`—. A no hace
+nada, y es exacto: `UseItem` sólo gasta la medicina si sube algo, y en este
+juego **fuera de batalla nadie baja nunca de los HP ni de los SP máximos**.
+Medido sobre los 328 mapas: los 11 `ChangeHP` suman, los 16 `ChangeCondition`
+quitan un estado y los 54 `FullHeal` llenan. Por eso esos tres comandos
+compilan a nada —el que reste o ponga un estado no compila— y los HP que
+muestra el menú son siempre los del máximo. El día que haya batallas, los HP
+pasan a ser estado del juego y a viajar en la partida. Libros, materiales y
+especiales siguen en gris.
+
 **El texto va de a una letra por celda.** La pantalla tiene su propio banco
 de tiles con cada carácter de la fuente en dos celdas, en blanco y en gris
 —307 tiles, que no dependen de cuántos ítems haya—, y los nombres y las
