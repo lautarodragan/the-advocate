@@ -659,6 +659,13 @@ la apertura entre ellos, y los que no entran no suenan. La tanda no mide
 audio; lo medido fue una grabación A/B de la apertura (README, "Los efectos
 de sonido"). **Falta que taro los escuche.**
 
+### La música en una IRQ (2026-09-11)
+
+taro escuchó el tema arrastrarse en la apertura con lluvia, tinte, trueno y
+texto, y pidió que el audio ande siempre aunque la imagen se atrase más. La
+música pasó a `irq_musica`, una IRQ vertical por cuadro de hardware; ya no
+depende de cuánto tarda el lazo. README, "La música no espera al lazo".
+
 ### Lo próximo, si no se decide otra cosa
 
 Al 2026-09-10, en orden. Los tres primeros son deuda de esta vuelta y están

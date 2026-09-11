@@ -103,6 +103,7 @@ def lorom_address(offset):
 #         el ancho vigente de A o de X/Y
 #   dp    página directa, 1 byte           lda $12
 #   abs   absoluto, 2 bytes                lda $2140
+#   long  absoluto largo, 3 bytes          lda f:$7E30A0
 #   dpil  indirecto largo por página       lda [$12]
 #         directa, 1 byte
 #   dpily indirecto largo indexado por Y   lda [$12],y
@@ -116,23 +117,23 @@ def lorom_address(offset):
 # hay más de uno en la ROM.
 
 OPCODES = {
-    "lda": {"dpx": 0xB5, "absx": 0xBD, "absy": 0xB9, "imm": 0xA9, "dp": 0xA5, "abs": 0xAD, "dpil": 0xA7, "dpily": 0xB7, "dpi": 0xB2, "dpiy": 0xB1},
-    "sta": {"dpx": 0x95, "absx": 0x9D, "absy": 0x99, "dp": 0x85, "abs": 0x8D, "dpil": 0x87, "dpily": 0x97, "dpi": 0x92, "dpiy": 0x91},
+    "lda": {"long": 0xAF, "longx": 0xBF, "dpx": 0xB5, "absx": 0xBD, "absy": 0xB9, "imm": 0xA9, "dp": 0xA5, "abs": 0xAD, "dpil": 0xA7, "dpily": 0xB7, "dpi": 0xB2, "dpiy": 0xB1},
+    "sta": {"long": 0x8F, "longx": 0x9F, "dpx": 0x95, "absx": 0x9D, "absy": 0x99, "dp": 0x85, "abs": 0x8D, "dpil": 0x87, "dpily": 0x97, "dpi": 0x92, "dpiy": 0x91},
     "ldx": {"dpy": 0xB6, "absy": 0xBE, "imm": 0xA2, "dp": 0xA6, "abs": 0xAE},
     "stx": {"dpy": 0x96, "dp": 0x86, "abs": 0x8E},
     "ldy": {"dpx": 0xB4, "absx": 0xBC, "imm": 0xA0, "dp": 0xA4, "abs": 0xAC},
     "sty": {"dpx": 0x94, "dp": 0x84, "abs": 0x8C},
-    "cmp": {"dpx": 0xD5, "absx": 0xDD, "absy": 0xD9, "imm": 0xC9, "dp": 0xC5, "abs": 0xCD},
+    "cmp": {"long": 0xCF, "longx": 0xDF, "dpx": 0xD5, "absx": 0xDD, "absy": 0xD9, "imm": 0xC9, "dp": 0xC5, "abs": 0xCD},
     "cpx": {"imm": 0xE0, "dp": 0xE4, "abs": 0xEC},
     "cpy": {"imm": 0xC0, "dp": 0xC4, "abs": 0xCC},
     "inc": {"dpx": 0xF6, "absx": 0xFE, "acc": 0x1A, "dp": 0xE6, "abs": 0xEE},
     "dec": {"dpx": 0xD6, "absx": 0xDE, "acc": 0x3A, "dp": 0xC6, "abs": 0xCE},
     "stz": {"dpx": 0x74, "absx": 0x9E, "dp": 0x64, "abs": 0x9C},
-    "and": {"dpx": 0x35, "absx": 0x3D, "absy": 0x39, "imm": 0x29, "dp": 0x25, "abs": 0x2D},
-    "ora": {"dpx": 0x15, "absx": 0x1D, "absy": 0x19, "imm": 0x09, "dp": 0x05, "abs": 0x0D},
-    "eor": {"dpx": 0x55, "absx": 0x5D, "absy": 0x59, "imm": 0x49, "dp": 0x45, "abs": 0x4D},
-    "adc": {"dpx": 0x75, "absx": 0x7D, "absy": 0x79, "imm": 0x69, "dp": 0x65, "abs": 0x6D},
-    "sbc": {"dpx": 0xF5, "absx": 0xFD, "absy": 0xF9, "imm": 0xE9, "dp": 0xE5, "abs": 0xED},
+    "and": {"long": 0x2F, "longx": 0x3F, "dpx": 0x35, "absx": 0x3D, "absy": 0x39, "imm": 0x29, "dp": 0x25, "abs": 0x2D},
+    "ora": {"long": 0x0F, "longx": 0x1F, "dpx": 0x15, "absx": 0x1D, "absy": 0x19, "imm": 0x09, "dp": 0x05, "abs": 0x0D},
+    "eor": {"long": 0x4F, "longx": 0x5F, "dpx": 0x55, "absx": 0x5D, "absy": 0x59, "imm": 0x49, "dp": 0x45, "abs": 0x4D},
+    "adc": {"long": 0x6F, "longx": 0x7F, "dpx": 0x75, "absx": 0x7D, "absy": 0x79, "imm": 0x69, "dp": 0x65, "abs": 0x6D},
+    "sbc": {"long": 0xEF, "longx": 0xFF, "dpx": 0xF5, "absx": 0xFD, "absy": 0xF9, "imm": 0xE9, "dp": 0xE5, "abs": 0xED},
     "bit": {"imm": 0x89, "dp": 0x24, "abs": 0x2C},
     "asl": {"dpx": 0x16, "absx": 0x1E, "acc": 0x0A, "dp": 0x06, "abs": 0x0E},
     "lsr": {"dpx": 0x56, "absx": 0x5E, "acc": 0x4A, "dp": 0x46, "abs": 0x4E},
@@ -662,7 +663,8 @@ class Assembler:
             raise Error("%s no acepta el modo %s" % (mnemonic, mode))
         width = {"imp": 0, "acc": 0, "dp": 1, "dpx": 1, "dpy": 1,
                  "dpil": 1, "dpily": 1, "dpi": 1, "dpiy": 1, "imm8": 1,
-                 "abs": 2, "absx": 2, "absy": 2}.get(mode)
+                 "abs": 2, "absx": 2, "absy": 2,
+                 "long": 3, "longx": 3}.get(mode)
         if mode == "imm":
             wide = self.i16 if mnemonic in INDEX_WIDTH else self.a16
             width = 2 if wide else 1
@@ -733,6 +735,15 @@ class Assembler:
             return "dpil" + index, self.target(operand[1:-1])
         if operand.startswith("(") and operand.endswith(")"):
             return "dpi" + index, self.target(operand[1:-1])
+
+        # El largo, con el prefijo de ca65: `lda f:$7E30A0`. La dirección lleva
+        # el banco, así que no depende de B. Existe por la música, que corre
+        # adentro de una interrupción y lee el estado de los efectos en la RAM
+        # lejana: la ventana de WMADD no se puede usar ahí, porque la
+        # interrupción caería en el medio de un recorrido del código principal
+        # y le movería el puntero.
+        if operand[:2].lower() == "f:":
+            return "long" + index, self.target(operand[2:])
 
         expression = self.target(operand)
         # Página directa en dos casos: el símbolo vive en el segmento ZEROPAGE,

@@ -19,6 +19,13 @@
 INIDISP  = $2100        ; brillo y blanking
 NMITIMEN = $4200        ; habilitación de NMI y joypads
 RDNMI    = $4210        ; leerlo baja la bandera de NMI
+TIMEUP   = $4211        ; leerlo baja la bandera de la IRQ
+VTIMEL   = $4209        ; en qué línea cae la IRQ de la música
+VTIMEH   = $420A
+; La línea de la IRQ de la música: lejos del vblank, que es donde el lazo
+; hace sus DMA con el tiempo contado, y en el medio de la parte visible, donde
+; lo que haya corriendo puede esperar lo que tarde un cuadro de música.
+IRQ_LINEA = 112
 HVBJOY   = $4212        ; bit 7: estamos en vblank
 STAT78   = $213F        ; bit 4: 0 = consola NTSC, 1 = PAL
 HDMAEN   = $420C        ; canales de DMA por scanline
@@ -830,6 +837,18 @@ espera_boot:
     sta nmi_visto
     stz cuadros_perdidos
 
+    ; Y desde acá la música corre sola, en `irq_musica`: una vez por cuadro
+    ; en la línea IRQ_LINEA, tarde lo que tarde el lazo. Va después de la
+    ; espera y no antes para que el tema arranque en el mismo cuadro que
+    ; cuando la tocaba el lazo.
+    lda #<IRQ_LINEA
+    sta VTIMEL
+    lda #>IRQ_LINEA
+    sta VTIMEH
+    lda #$A1
+    sta NMITIMEN                ; la NMI, los controles y la IRQ vertical
+    cli
+
     ; La pantalla de título, si esta ROM la lleva. Va **después** de que el
     ; arranque terminó de contar sus BOOT_CUADROS y no antes: así una ROM sin
     ; título llega al lazo exactamente en el cuadro de siempre, y los 96 casos
@@ -880,7 +899,6 @@ loop:
                                 ; componiendo, si hay alguno
     jsr build_oam               ; y se arma el siguiente, ya fuera del vblank
 congelado:
-    jsr music_tick
     rep #$20
 .a16
     inc vueltas
@@ -3949,19 +3967,25 @@ op_sonido:
     lda sonido_tabla, x
     cmp #$FF
     beq op_sonido_listo         ; no entró en la ARAM: no suena
-    lda #5
-    jsr se_apuntar
-    ldy #7
+    ; Sin interrupciones mientras se copia: `irq_musica` lee el pendiente, y
+    ; uno a medio escribir arrancaría con la muestra de uno y la altura de
+    ; otro. La interrupción no se pierde, se atrasa hasta el `plp`.
+    php
+    sei
+    ldy #0
 op_sonido_copiar:
     lda sonido_tabla, x
-    sta WMDATA
+    phx
+    tyx
+    sta f:SE_NUEVO, x
+    plx
     inx
-    dey
-    bne op_sonido_copiar
-    lda #2
-    jsr se_apuntar
+    iny
+    cpy #7
+    bcc op_sonido_copiar
     lda #1
-    sta WMDATA                  ; pendiente
+    sta f:SE_PENDIENTE
+    plp
 op_sonido_listo:
     plb
     ply
@@ -4375,6 +4399,8 @@ otro_tema:
 op_fundir_bgm:
     lda music_apagada
     bne fundir_nada
+    php
+    sei                         ; lo lee `irq_musica`: todo junto o nada
     lda [cod_ptr], y
     sta bgm_paso
     iny
@@ -4386,6 +4412,7 @@ op_fundir_bgm:
     sta bgm_nivel + 1
     lda #1
     sta bgm_fundido
+    plp
     jmp otro
 fundir_nada:
     iny
@@ -9416,7 +9443,6 @@ mudo:
 espera:
     jsr wait_vblank
     jsr read_pad
-    jsr music_tick
 
     lda pad
     eor pad_ant
@@ -9521,11 +9547,14 @@ cargar_el_mapa:
     ; lo hay**, así que el volumen general hay que bajarlo a mano. El
     ; `PlayBGM` que venga lo vuelve a subir: su stream escribe los dos
     ; registros al arrancar.
+    php
+    sei                         ; el SPC700 atiende de a uno: ver `irq_musica`
     stz dsp_valor
     lda #DSP_MVOL_L
     jsr escribir_dsp
     lda #DSP_MVOL_R
     jsr escribir_dsp
+    plp
 listo_musica:
     lda #$0F
     sta INIDISP
@@ -10012,7 +10041,6 @@ pintar_todas:
 espera:
     jsr wait_vblank
     jsr read_pad
-    jsr music_tick
 
     lda pad
     eor pad_ant
@@ -10566,7 +10594,6 @@ armar:
 espera:
     jsr wait_vblank
     jsr read_pad
-    jsr music_tick
     lda pad
     eor pad_ant
     and pad
@@ -10749,7 +10776,6 @@ borra:
 espera:
     jsr wait_vblank
     jsr read_pad
-    jsr music_tick
     lda pad
     eor pad_ant
     and pad
@@ -11865,7 +11891,6 @@ espera:
     ; veces. Con el control leído, el DMA entra igual en el vblank.
     jsr read_pad
     jsr pant_subir
-    jsr music_tick
     lda pad
     eor pad_ant
     and pad
@@ -12982,7 +13007,6 @@ espera:
     jsr wait_vblank
     jsr read_pad                ; el control antes del DMA: ver el equipo
     jsr pant_subir
-    jsr music_tick
     lda pad
     eor pad_ant
     and pad
@@ -13642,50 +13666,44 @@ listo:
 ; `build_efectos` en snes_music.py. El estado vive en la RAM lejana, porque la
 ; página directa y la BSS están llenas:
 ;
-;   FAR_SE + 0   cuántos cuadros le quedan al efecto, dos bytes
-;   FAR_SE + 2   hay uno pendiente de arrancar
-;   FAR_SE + 3   hay que devolverle la voz a la música en este cuadro
-;   FAR_SE + 4   hay que bajar el disparo de KON en este cuadro
-;   FAR_SE + 5   el pendiente: la muestra, la altura (dos), el volumen de
+;   SE_CUADROS   cuántos cuadros le quedan al efecto, dos bytes
+;   SE_PENDIENTE hay uno pendiente de arrancar
+;   SE_DEVOLVER  hay que devolverle la voz a la música en este cuadro
+;   SE_BAJAR     hay que bajar el disparo de KON en este cuadro
+;   SE_NUEVO     el pendiente: la muestra, la altura (dos), el volumen de
 ;                cada lado y los cuadros (dos), siete bytes
-;   FAR_SOMBRA   lo último que la música le escribió a los ocho registros de
+;   SE_SOMBRA    lo último que la música le escribió a los ocho registros de
 ;                la voz, y a KOF en el noveno: con eso se le devuelve la voz
 ;
 ; La música sigue escribiéndole a la voz mientras el efecto suena: se guarda
 ; en la sombra y no se manda, y a sus KON y KOF se les saca el bit de la voz.
-; Todo el acceso a la RAM lejana arma la dirección de a un byte, con A de
-; ocho: `dsp_musica` lleva el valor en la otra mitad del acumulador.
-FAR_SE     = $30A0
-FAR_SOMBRA = $30B0
+;
+; Todo esto corre adentro de `irq_musica`, así que **no usa la ventana de
+; WMADD ni `temp`**: la interrupción cae en cualquier punto del código
+; principal, y si ése estaba recorriendo la RAM lejana o usando `temp`, se lo
+; pisaría. Se llega con el direccionamiento largo, que lleva el banco en la
+; instrucción. Lo único que escribe acá el código principal es el pendiente,
+; en `op_sonido`, y lo hace con las interrupciones cortadas.
+FAR_SE       = $30A0
+SE_CUADROS   = $7E0000 + FAR_SE
+SE_PENDIENTE = SE_CUADROS + 2
+SE_DEVOLVER  = SE_CUADROS + 3
+SE_BAJAR     = SE_CUADROS + 4
+SE_NUEVO     = SE_CUADROS + 5
+SE_SOMBRA    = $7E0000 + $30B0
 ; SE_BIT y SE_REG —el bit de la voz en KON y KOF, y su primer registro— los
 ; emite snes_music.py junto con SE_VOZ.
 SE_KON     = $4C
 SE_KOF     = $5C
 
-; A: un desplazamiento en FAR_SE. Apunta la ventana ahí sin tocar B.
-.proc se_apuntar
-.a8
-.i16
-    clc
-    adc #<FAR_SE
-    sta WMADDL
-    lda #>FAR_SE
-    adc #0
-    sta WMADDM
-    stz WMADDH
-    rts
-.endproc
-
 ; Z=0 si hay un efecto sonando, pendiente o devolviendo la voz. No toca B.
 .proc se_ocupada
 .a8
 .i16
-    lda #0
-    jsr se_apuntar
-    lda WMDATA
-    ora WMDATA
-    ora WMDATA                  ; pendiente
-    ora WMDATA                  ; devolviendo
+    lda f:SE_CUADROS
+    ora f:SE_CUADROS + 1
+    ora f:SE_PENDIENTE
+    ora f:SE_DEVOLVER
     rts
 .endproc
 
@@ -13722,16 +13740,17 @@ espera:
     and #$0F
     cmp #8
     bcs no_voz                  ; ENVX y OUTX no se escriben nunca
-    clc
-    adc #<FAR_SOMBRA
-    sta WMADDL
-    lda #>FAR_SOMBRA
-    adc #0
-    sta WMADDM
-    stz WMADDH
+    phx
+    rep #$20
+.a16
+    and #$000F
+    tax
+    sep #$20
+.a8
     xba
-    sta WMDATA                  ; a la sombra
+    sta f:SE_SOMBRA, x          ; a la sombra
     xba
+    plx
     jsr se_ocupada
     beq enviar
     rts                         ; la voz es del efecto
@@ -13740,13 +13759,8 @@ no_voz:
     cmp #SE_KOF
     bne no_kof
     ; KOF: a la sombra siempre, y sin el bit mientras haya efecto.
-    lda #<(FAR_SOMBRA + 8)
-    sta WMADDL
-    lda #>(FAR_SOMBRA + 8)
-    sta WMADDM
-    stz WMADDH
     xba
-    sta WMDATA
+    sta f:SE_SOMBRA + 8
     xba
     bra mascara
 no_kof:
@@ -13768,50 +13782,29 @@ enviar:
 .proc se_antes
 .a8
 .i16
-    lda #4
-    jsr se_apuntar
-    lda WMDATA
+    lda f:SE_BAJAR
     beq sin_bajar
-    lda #4
-    jsr se_apuntar
-    stz WMDATA
-    ldx #SE_KON
     lda #0
+    sta f:SE_BAJAR
+    ldx #SE_KON
     jsr dsp_par
 sin_bajar:
-    lda #3
-    jsr se_apuntar
-    lda WMDATA
+    lda f:SE_DEVOLVER
     beq listo
-    lda #3
-    jsr se_apuntar
-    stz WMDATA
+    lda #0
+    sta f:SE_DEVOLVER
     ; KOF como lo tenía la música, y los ocho registros de la voz.
-    lda #<(FAR_SOMBRA + 8)
-    sta WMADDL
-    lda #>(FAR_SOMBRA + 8)
-    sta WMADDM
-    stz WMADDH
-    lda WMDATA
+    lda f:SE_SOMBRA + 8
     ldx #SE_KOF
     jsr dsp_par
-    ldx #0
+    ldy #0
 registro:
-    phx
-    rep #$20
-.a16
-    txa
-    clc
-    adc #FAR_SOMBRA
-    sta WMADDL
-    sep #$20
-.a8
-    stz WMADDH
-    lda WMDATA
+    tyx
+    lda f:SE_SOMBRA, x
     pha
     rep #$20
 .a16
-    txa
+    tya
     clc
     adc #SE_REG
     tax
@@ -13819,9 +13812,8 @@ registro:
 .a8
     pla
     jsr dsp_par
-    plx
-    inx
-    cpx #8
+    iny
+    cpy #8
     bcc registro
 listo:
     rts
@@ -13832,55 +13824,31 @@ listo:
 .proc se_despues
 .a8
 .i16
-    lda #2
-    jsr se_apuntar
-    lda WMDATA
+    lda f:SE_PENDIENTE
     bne arrancar
     jmp contar
 arrancar:
-    lda #2
-    jsr se_apuntar
-    stz WMDATA                  ; ya no está pendiente
+    lda #0
+    sta f:SE_PENDIENTE          ; ya no está pendiente
     ; KOF sin el bit de la voz, que la música pudo haber dejado puesto.
-    lda #<(FAR_SOMBRA + 8)
-    sta WMADDL
-    lda #>(FAR_SOMBRA + 8)
-    sta WMADDM
-    stz WMADDH
-    lda WMDATA
+    lda f:SE_SOMBRA + 8
     and #($FF - SE_BIT)
     ldx #SE_KOF
     jsr dsp_par
     ; La muestra, la altura, el volumen y la envolvente, desde el pendiente.
-    lda #5
-    jsr se_apuntar
-    lda WMDATA                  ; la muestra
-    pha
-    lda WMDATA
-    pha                         ; altura baja
-    lda WMDATA
-    pha                         ; altura alta
-    lda WMDATA
-    pha                         ; izquierda
-    lda WMDATA
-    pha                         ; derecha
-    lda WMDATA
-    sta temp                    ; los cuadros
-    lda WMDATA
-    sta temp + 1
-    pla
+    lda f:SE_NUEVO + 4
     ldx #(SE_REG + 1)
     jsr dsp_par                 ; VOLR
-    pla
+    lda f:SE_NUEVO + 3
     ldx #(SE_REG + 0)
     jsr dsp_par                 ; VOLL
-    pla
+    lda f:SE_NUEVO + 2
     ldx #(SE_REG + 3)
     jsr dsp_par                 ; la altura alta
-    pla
+    lda f:SE_NUEVO + 1
     ldx #(SE_REG + 2)
     jsr dsp_par                 ; y la baja
-    pla
+    lda f:SE_NUEVO
     ldx #(SE_REG + 4)
     jsr dsp_par                 ; SRCN
     lda #$FF                    ; ADSR prendido, ataque y caída al máximo
@@ -13892,57 +13860,33 @@ arrancar:
     lda #SE_BIT
     ldx #SE_KON
     jsr dsp_par                 ; y el disparo
-    lda #0
-    jsr se_apuntar
-    lda temp
-    sta WMDATA
-    lda temp + 1
-    sta WMDATA
-    lda #4
-    jsr se_apuntar
-    lda #1
-    sta WMDATA                  ; el cuadro que viene se baja el disparo
-    rts
-contar:
-    lda #0
-    jsr se_apuntar
-    lda WMDATA
-    sta temp
-    lda WMDATA
-    sta temp + 1
     rep #$20
 .a16
-    lda temp
-    beq nada
-    dec a
-    sta temp
+    lda f:SE_NUEVO + 5
+    sta f:SE_CUADROS
     sep #$20
 .a8
-    lda #0
-    jsr se_apuntar
-    lda temp
-    sta WMDATA
-    lda temp + 1
-    sta WMDATA
-    lda temp
-    ora temp + 1
-    bne listo
+    lda #1
+    sta f:SE_BAJAR              ; el cuadro que viene se baja el disparo
+    rts
+contar:
+    rep #$20
+.a16
+    lda f:SE_CUADROS
+    beq nada
+    dec a
+    sta f:SE_CUADROS
+    bne nada
+    sep #$20
+.a8
     ; Terminó: KOF con el bit de la voz, y en el cuadro que viene la música
     ; la recupera.
-    lda #<(FAR_SOMBRA + 8)
-    sta WMADDL
-    lda #>(FAR_SOMBRA + 8)
-    sta WMADDM
-    stz WMADDH
-    lda WMDATA
+    lda f:SE_SOMBRA + 8
     ora #SE_BIT
     ldx #SE_KOF
     jsr dsp_par
-    lda #3
-    jsr se_apuntar
     lda #1
-    sta WMDATA
-listo:
+    sta f:SE_DEVOLVER
     rts
 .a16
 nada:
@@ -13955,13 +13899,13 @@ nada:
 .proc se_limpiar
 .a8
 .i16
+    ldx #0
     lda #0
-    jsr se_apuntar
-    ldx #12
 otro:
-    stz WMDATA
-    dex
-    bne otro
+    sta f:SE_CUADROS, x
+    inx
+    cpx #12
+    bcc otro
     rts
 .endproc
 
@@ -14548,7 +14492,6 @@ espera:
     jsr wait_vblank
     jsr items_desc_subir        ; lo primero del vblank: la descripción
     jsr read_pad
-    jsr music_tick
     lda pad
     eor pad_ant
     and pad
@@ -20862,6 +20805,37 @@ OP_END  = $FF
 
 ; Un cuadro de música por cuadro de video, más uno extra cada cinco si la
 ; consola es PAL: seis cada cinco son exactamente 60 por cada 50.
+.proc irq_musica
+    ; Todo lo que se toca se guarda, B y D incluidos: se cae en el medio de
+    ; cualquier cosa, el intérprete con B apuntando al bytecode entre ellas.
+    rep #$30
+.a16
+.i16
+    pha
+    phx
+    phy
+    phb
+    phd
+    lda #0
+    pha
+    pld                         ; la página directa en cero
+    sep #$20
+.a8
+    phk
+    plb                         ; las tablas de la música, en el banco 0
+    lda TIMEUP                  ; baja la bandera: si no, vuelve a entrar
+    jsr music_tick
+    rep #$30
+.a16
+.i16
+    pld
+    plb
+    ply
+    plx
+    pla
+    rti
+.endproc
+
 .proc music_tick
 .a8
 .i16
@@ -20905,6 +20879,19 @@ listo:
 .proc music_start
 .a8
 .i16
+    ; El código principal la llama con la música andando —`PlayBGM`, el
+    ; título—, y cambiar el puntero a medias con `irq_musica` leyéndolo sería
+    ; tocar un tema desde la mitad de otro.
+    php
+    sei
+    jsr music_start_ya
+    plp
+    rts
+.endproc
+
+.proc music_start_ya
+.a8
+.i16
     sta tema_actual
     stz tema_actual + 1
     ldx tema_actual
@@ -20945,13 +20932,6 @@ baja:
     sta bgm_nivel
     sep #$20
 .a8
-    lda #TEMA_VOLUMEN
-    sta WRMPYA
-    lda bgm_nivel + 1
-    sta WRMPYB                  ; arranca: el producto tarda ocho ciclos
-
-    ; Mientras el multiplicador trabaja se mira si el fundido terminó, que es
-    ; lo que hay que hacer igual y alcanza de sobra para los ocho ciclos.
     lda bgm_nivel
     ora bgm_nivel + 1
     bne sigue
@@ -20959,9 +20939,30 @@ baja:
     lda #1
     sta music_apagada           ; el tema se corta, como `BgmFade`
 sigue:
+    ; TEMA_VOLUMEN por el nivel, entre 256. **No con el multiplicador**: esto
+    ; corre en `irq_musica`, y el código principal lo usa en treinta lugares
+    ; —el divisor comparte el registro del resultado—; una interrupción entre
+    ; su escritura y su lectura le cambiaría la cuenta. Así que a mano, de a
+    ; un bit del nivel, con `dsp_valor` de lugar: es sólo de la música.
+    lda bgm_nivel + 1
+    sta dsp_valor
+    ldx #8
     rep #$20
 .a16
-    lda RDMPYL
+    lda #0
+bit_del_nivel:
+    asl a
+    sep #$20
+.a8
+    asl dsp_valor               ; sep y rep no tocan el carry
+    rep #$20
+.a16
+    bcc sin_sumar
+    clc
+    adc #TEMA_VOLUMEN
+sin_sumar:
+    dex
+    bne bit_del_nivel
     xba                         ; el byte alto del producto, o sea entre 256
     sep #$20
 .a8
@@ -20995,6 +20996,16 @@ espera:
 ; primeros mapas no traen música y la prende un `PlayBGM`—. Callado quiere
 ; decir que al DSP no se le escribe nada, así que no hay nada que silenciar.
 .proc music_boot
+.a8
+.i16
+    php
+    sei
+    jsr music_boot_ya
+    plp
+    rts
+.endproc
+
+.proc music_boot_ya
 .a8
 .i16
     ; Una partida cargada trae su propio tema —el que prendió el `PlayBGM` del
@@ -21145,7 +21156,7 @@ done:
     .word $0000     ; $FFE8  ABORT nativo
     .word nmi_boot  ; $FFEA  NMI nativo: cuenta los cuadros del arranque
     .word $0000     ; $FFEC  sin usar
-    .word $0000     ; $FFEE  IRQ nativo
+    .word irq_musica ; $FFEE  IRQ nativo: la música, ver `irq_musica`
     .word $0000     ; $FFF0  sin usar
     .word $0000     ; $FFF2  sin usar
     .word $0000     ; $FFF4  COP en emulación

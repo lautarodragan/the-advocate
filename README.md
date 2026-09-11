@@ -2743,6 +2743,42 @@ cuántos milisegundos había, ver "El destello de pantalla". Y de paso, con
 `retro.Consola.ram()` y la tabla de símbolos, cualquier variable de la ROM se
 lee por nombre: fue lo que dijo que la tabla de páginas se leía de la WRAM.
 
+#### La música no espera al lazo
+
+Hasta el 2026-09-11 la música avanzaba un cuadro por vuelta del lazo, así
+que una vuelta de dos cuadros la tocaba a la mitad de velocidad. taro lo
+escuchó en la apertura: la lluvia, el tinte, el trueno y el mensaje juntos
+pierden cuadro por medio —71 de 140, medido— y el tema se arrastraba. Pidió
+que el audio ande siempre, aunque cueste más atraso en la imagen y en los
+controles.
+
+Ahora la toca **`irq_musica`, una IRQ vertical en la línea `IRQ_LINEA`**
+(112), una vez por cuadro de hardware, tarde lo que tarde el lazo. Va en el
+medio de la parte visible y no en la NMI porque el vblank es del DMA del
+lazo: el cuadro de música tarda hasta veinte líneas, y en el vblank no sobra
+eso. Ninguna pantalla llama más a `music_tick`.
+
+Una interrupción cae en cualquier punto del código principal, y eso pide tres
+cuidados:
+
+* **Nada de lo que corre adentro usa la ventana de WMADD ni `temp`.** El
+  estado de los efectos de sonido vive en la RAM lejana y se lee con el
+  direccionamiento largo, que `w65.py` aprendió para esto (`lda f:$7E30A0`).
+* **El fundido del tema multiplica a mano.** El multiplicador y el divisor
+  comparten el registro del resultado, y el código principal los usa en
+  treinta lugares: una interrupción entre la escritura y la lectura le
+  cambiaría la cuenta.
+* **Lo que el código principal le escribe a la música va con `sei`**:
+  `music_start`, `music_boot`, el `FadeOutBGM`, el pendiente de `PlaySound` y
+  el volumen que baja el título. La IRQ no se pierde: se atrasa hasta el
+  `plp`.
+
+Lo medido: la demo con un lazo de retardo agregado, que pierde 255 cuadros
+contra 108 en 1500, recorre el stream exactamente igual cuadro por cuadro
+desde que el tema arranca —1307 cuadros, cero distintos—. `snes-check` sobre
+el mapa 67 sigue diciendo que coincide con el MIDI (58 de 60 ventanas). El
+atraso de la imagen sigue siendo el mismo: ver "El costo de la apertura".
+
 ### El personaje
 
 Las poses de RM2k son de 24x32 y la SNES no tiene ese tamaño de objeto: el más
