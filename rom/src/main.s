@@ -55,6 +55,7 @@ BG1HOFS  = $210D        ; scroll horizontal de BG1 (se escribe dos veces)
 BG1VOFS  = $210E        ; scroll vertical
 VMAIN    = $2115        ; cómo avanza el puntero de VRAM tras cada escritura
 VMADDL   = $2116        ; dirección de VRAM, en palabras
+VMDATAL  = $2118        ; y el dato, de a una palabra con VMAIN en $80
 CGADD    = $2121        ; índice de CGRAM
 TM       = $212C        ; qué capas se ven en la pantalla principal
 OBSEL    = $2101        ; tamaño de los sprites y dónde viven sus tiles
@@ -159,6 +160,15 @@ FAR_AZAR       = $25FE
 ; sólo repone la frecuencia al terminar la ruta, `original_move_frequency`; la
 ; velocidad no—. Viaja en la partida. Se lee una vez por paso.
 FAR_HERO_VEL   = $25FD
+; Y los permisos del menú, un byte antes: `ChangeSaveAccess` y
+; `ChangeMainMenuAccess` los apagan y los prenden, y el bit 7 es el pedido de
+; menú de RM2k, `menu_calling`: B lo prende y el héroe lo atiende cuando está
+; quieto. Los bits van en "prohibido" para que el cero del reset sea "todo
+; permitido", que es como arranca RM2k. Viaja en la partida, como allá.
+FAR_ACCESO     = $25FC
+ACCESO_SIN_GUARDAR = $01
+ACCESO_SIN_MENU    = $02
+ACCESO_PEDIDO      = $80
 ; Cursor (2), espera (2), si está corriendo (1) y de qué página (2).
 PAR_BYTES = 7
 WMADDL   = $2181
@@ -844,6 +854,7 @@ loop:
     jsr eventos_tick
     jsr tinte_de_evento
     jsr move_hero
+    jsr pedir_menu              ; B, al final del héroe: ver `pedir_menu`
     jsr animar_quietos          ; los que animan sin moverse, antes que las
                                 ; rutas: si una agarra a uno, gana la ranura
     jsr mover_eventos           ; y las rutas forzadas de los eventos, después
@@ -1778,6 +1789,7 @@ listo:
 .a8
     stz step_left               ; un paso a mitad de camino se corta
     stz moving
+    jsr menu_olvidar            ; y un pedido de menú también: `MoveTo`
     jsr follow_camera
     jsr fill_window             ; la cámara saltó: el tilemap se llena de nuevo
     jsr init_hero_ptr
@@ -3503,6 +3515,9 @@ otro:
 :   cmp #OP_ITEM
     bne :+
     jmp op_item
+:   cmp #OP_ACCESO
+    bne :+
+    jmp op_acceso
 :   cmp #OP_GUARDAR
     bne :+
     jmp op_guardar
@@ -3815,6 +3830,40 @@ item_guardar:
     sta WMDATA
     lda #1
     sta refresco
+    jmp otro
+
+; `ChangeSaveAccess` y `ChangeMainMenuAccess`: cuál —0 guardar, 1 el menú— y
+; si queda permitido. Prende o apaga el bit de "prohibido" de `FAR_ACCESO`.
+op_acceso:
+.a8
+.i16
+    lda [cod_ptr], y            ; cuál: el bit es cuál más uno, $01 o $02
+    inc a
+    sta temp
+    iny
+    lda [cod_ptr], y            ; permitido
+    iny
+    sta temp + 1
+    phy
+    ; El permiso se mira con A de ocho bits y no con Y: con los índices en
+    ; dieciséis, `ldy temp + 1` se llevaba también `temp + 2`, y un permiso
+    ; en cero con basura al lado quedaba permitido.
+    jsr acceso_leer
+    xba                         ; B = los permisos, mientras se mira
+    lda temp + 1
+    beq acceso_prohibir
+    lda temp
+    eor #$FF
+    sta temp
+    xba
+    and temp
+    bra acceso_listo
+acceso_prohibir:
+    xba
+    ora temp
+acceso_listo:
+    jsr acceso_escribir
+    ply
     jmp otro
 
 ; El salto sin condición que el conversor pone donde estaba el `else`, para que
@@ -4643,22 +4692,24 @@ op_teleport:
     rts
 .endproc
 
-; Todas en cero, la semilla del azar puesta, la velocidad del héroe en 4 y el
-; inventario vacío. Corre en el reset, antes de cargar la partida. Los cuatro
-; viven seguidos en la RAM lejana, así que es una sola pasada por el puerto.
+; Todas en cero, la semilla del azar puesta, la velocidad del héroe en 4, el
+; inventario vacío y el menú y guardar permitidos. Corre en el reset, antes de
+; cargar la partida. Viven seguidos en la RAM lejana, así que es una sola
+; pasada por el puerto.
 .proc limpiar_variables
 .a8
 .i16
     rep #$20
 .a16
-    lda #FAR_HERO_VEL
+    lda #FAR_ACCESO
     sta WMADDL
     ; Hasta el final del inventario, con el hueco que haya entre las
     ; variables y él: es una pasada en el reset y no importa.
-    ldx #(FAR_ITEMS + ITEMS_N - FAR_HERO_VEL - 3)
+    ldx #(FAR_ITEMS + ITEMS_N - FAR_ACCESO - 4)
     sep #$20
 .a8
     stz WMADDH
+    stz WMDATA                  ; guardar y el menú, permitidos
     lda #4                      ; la velocidad normal del héroe
     sta WMDATA
     lda #<AZAR_SEMILLA
@@ -4945,6 +4996,12 @@ no_abajo:
     beq mira_a                  ; esta elección no se deja cancelar
     dec a                       ; `choice_result = cancel_type - 1`
     sta eleg_sel
+    ; Y el B se consume acá: en RM2k la ventana procesa la tecla **después**
+    ; del héroe, que la vio con el mensaje abierto y no pidió el menú. Acá la
+    ; elección corre antes que `pedir_menu`, así que se le borra el flanco.
+    lda pad_ant
+    ora #PAD_B
+    sta pad_ant
     bra elige
 mira_a:
     lda pad_a
@@ -8702,13 +8759,14 @@ partida_tabla:
     .word FAR_VARIABLES, VARIABLES_N * 2
     .word FAR_HERO_VEL, 1       ; la velocidad del héroe, que las rutas cambian
     .word FAR_ITEMS, ITEMS_N    ; el inventario
+    .word FAR_ACCESO, 1         ; los permisos de guardar y del menú
     .word 0, 0
 ; Los mismos largos, sumados, para poder recorrer la partida en la SRAM sin
 ; volver a mirar la tabla. Está duplicado a propósito y **la ROM lo comprueba**:
 ; `guardar_partida` compara con lo que le quedó a `partida_copiar` y si no dan
 ; iguales entra en pánico. Duplicar un número que nadie verifica es la forma de
 ; error que este repo ya pagó tres veces.
-PARTIDA_BYTES = 2 + 2 + 1 + 2 + 2 + 1 + 6 + 3 + 1 + 5 + 3 + SWITCH_BYTES + 1 + 2 + VARIABLES_N * 2 + 1 + ITEMS_N
+PARTIDA_BYTES = 2 + 2 + 1 + 2 + 2 + 1 + 6 + 3 + 1 + 5 + 3 + SWITCH_BYTES + 1 + 2 + VARIABLES_N * 2 + 1 + ITEMS_N + 1
 ; Dónde cae el grupo adentro de la partida: después de la posición, la
 ; dirección, la celda y el mapa. Lo lee la pantalla de ranuras desde la SRAM
 ; para poner el nombre del líder y las caras. Es la misma suma que arriba,
@@ -9713,6 +9771,155 @@ actor_del_miembro:
     stz HDMAEN
     stz TM                      ; nada a la vista mientras se arma
 
+    jsr ranura_banco_subir
+
+    ; --- la cabecera, según el modo ---
+    pla
+    pha                         ; el modo, otra vez: decide dónde arranca el cursor
+    rep #$20
+.a16
+    and #$00FF
+    tax                         ; los dos primeros bloques son las cabeceras
+    lda #RANURA_CAB_CELDAS
+    sta temp
+    ldy #(RANURA_MAP + RANURA_CAB_VRAM)
+    sep #$20
+.a8
+    jsr ranura_bloque_subir
+
+    ; --- dónde arranca el cursor ---
+    ; Cargando, en la primera. Guardando, en la ranura que se está usando —de
+    ; la que se cargó, o en la que se guardó la última vez—: es el
+    ; `index = latest_slot` de `Scene_File::Start`, que allá es la de fecha más
+    ; nueva y acá, sin fechas, la que está en uso. Sin partida cargada, la
+    ; primera.
+    pla
+    beq primera
+    lda ranura
+    cmp #$FF
+    bne arranca_ahi
+primera:
+    lda #0
+arranca_ahi:
+    sta titulo_sel
+
+    ; `ranura` a la pila. Pintar una fila la pisa —`ranura_llena` la escribe
+    ; para direccionar la SRAM— y al salir tiene que valer lo que valía, elija
+    ; el jugador o cancele: quien elige la pone después con `poner_ranura`.
+    ; Desde el título daba lo mismo porque valía $FF y se ponía al elegir;
+    ; desde el save point, cancelar dejaría a la partida "cargada" de la última
+    ; fila pintada.
+    lda ranura
+    pha
+
+    ; --- y las cuatro filas ---
+    lda #0
+pintar_todas:
+    pha
+    jsr ranura_pintar
+    pla
+    inc a
+    cmp #SRAM_RANURAS_N
+    bcc pintar_todas
+
+    jsr ranura_ppu_prender
+    lda #1
+    sta menu_abierto
+
+espera:
+    jsr wait_vblank
+    jsr read_pad
+    jsr music_tick
+
+    lda pad
+    eor pad_ant
+    and pad
+    sta titulo_flancos
+    and #PAD_UP
+    beq no_arriba
+    lda titulo_sel
+    bne sube
+    lda #SRAM_RANURAS_N         ; desde la primera, arriba da la vuelta
+sube:
+    dec a
+    jsr mover_cursor
+    bra espera
+no_arriba:
+    lda titulo_flancos
+    and #PAD_DOWN
+    beq no_abajo
+    lda titulo_sel
+    inc a
+    cmp #SRAM_RANURAS_N
+    bcc baja
+    lda #0
+baja:
+    jsr mover_cursor
+    bra espera
+no_abajo:
+    lda titulo_flancos
+    and #PAD_B
+    beq mira_a
+    jsr cerrar
+    lda #$FF                    ; cancelar
+    rts
+mira_a:
+    lda pad_a
+    beq espera
+    lda pad_a_ant
+    bne espera                  ; ya lo tenía apretado: no es un flanco
+    jsr cerrar
+    lda titulo_sel
+    rts
+
+; Lo que las dos salidas tienen en común: `ranura` como estaba, el banco de
+; datos como estaba, el testigo abajo. Y `nmi_visto` al día, para que
+; `contar_perdidos` no cuente como perdidos los cuadros que el jugador pasó
+; eligiendo: desde el save point esto corre adentro de una vuelta del lazo, y
+; sin esto la vuelta mediría cientos de cuadros y saturaría el contador.
+;
+; La pila trae, de arriba abajo: la dirección de vuelta de este `jsr`, `ranura`
+; y el banco. Se saca la de vuelta primero para llegar a los otros dos.
+cerrar:
+    plx                         ; la dirección de vuelta, aparte
+    pla
+    sta ranura
+    plb
+    phx
+    ; Y los flancos de B y de A, consumidos: el que cerró la pantalla es de
+    ; ella. Sin esto, desde el save point, el B de cancelar le llegaba a
+    ; `pedir_menu` en la misma vuelta —si la página terminaba ahí— y abría el
+    ; menú de pausa; y el A de elegir podía hablarle a un evento.
+    lda pad
+    sta pad_ant
+    lda pad_a
+    sta pad_a_ant
+    stz menu_abierto
+    lda boot_cuadros
+    sta nmi_visto
+    rts
+
+; El cursor a la ranura que trae A: se repintan **las dos filas que cambian** y
+; ninguna más. Adentro del vblank, que es donde estamos al salir de
+; `wait_vblank`.
+mover_cursor:
+    sta temp + 3                ; la nueva
+    lda titulo_sel
+    pha                         ; y la vieja, a la pila
+    lda temp + 3
+    sta titulo_sel
+    pla
+    jsr ranura_pintar           ; se despinta el cursor de donde estaba
+    lda titulo_sel
+    jmp ranura_pintar           ; y se pinta donde va
+.endproc
+
+; Sube el banco de tiles de la pantalla de ranuras y del menú, deja el tilemap
+; en blanco y sube sus colores. Con la pantalla apagada. Salió de
+; `ranuras_pantalla` el día que el menú de pausa empezó a usar el mismo banco.
+.proc ranura_banco_subir
+.a8
+.i16
     ; --- los tiles ---
     lda #$80
     sta VMAIN
@@ -9779,55 +9986,13 @@ actor_del_miembro:
     lda #$01
     sta MDMAEN
 
-    ; --- la cabecera, según el modo ---
-    pla
-    pha                         ; el modo, otra vez: decide dónde arranca el cursor
-    rep #$20
-.a16
-    and #$00FF
-    tax                         ; los dos primeros bloques son las cabeceras
-    lda #RANURA_CAB_CELDAS
-    sta temp
-    ldy #(RANURA_MAP + RANURA_CAB_VRAM)
-    sep #$20
+    rts
+.endproc
+
+; BG2 con el tilemap de la pantalla de ranuras, y la pantalla prendida.
+.proc ranura_ppu_prender
 .a8
-    jsr ranura_bloque_subir
-
-    ; --- dónde arranca el cursor ---
-    ; Cargando, en la primera. Guardando, en la ranura que se está usando —de
-    ; la que se cargó, o en la que se guardó la última vez—: es el
-    ; `index = latest_slot` de `Scene_File::Start`, que allá es la de fecha más
-    ; nueva y acá, sin fechas, la que está en uso. Sin partida cargada, la
-    ; primera.
-    pla
-    beq primera
-    lda ranura
-    cmp #$FF
-    bne arranca_ahi
-primera:
-    lda #0
-arranca_ahi:
-    sta titulo_sel
-
-    ; `ranura` a la pila. Pintar una fila la pisa —`ranura_llena` la escribe
-    ; para direccionar la SRAM— y al salir tiene que valer lo que valía, elija
-    ; el jugador o cancele: quien elige la pone después con `poner_ranura`.
-    ; Desde el título daba lo mismo porque valía $FF y se ponía al elegir;
-    ; desde el save point, cancelar dejaría a la partida "cargada" de la última
-    ; fila pintada.
-    lda ranura
-    pha
-
-    ; --- y las cuatro filas ---
-    lda #0
-pintar_todas:
-    pha
-    jsr ranura_pintar
-    pla
-    inc a
-    cmp #SRAM_RANURAS_N
-    bcc pintar_todas
-
+.i16
     ; --- el PPU ---
     lda #(RANURA_MAP / 1024 * 4)
     sta BG2SC
@@ -9842,14 +10007,374 @@ pintar_todas:
     sta TM
     lda #$0F
     sta INIDISP
+    rts
+.endproc
+
+; --- el menú de pausa --------------------------------------------------------
+;
+; `Scene_Menu`, sobre el banco de la pantalla de ranuras: la geometría y los
+; bloques salen de `titulo.py`, y `render_menu` es la referencia. Se abre con
+; B, cuando el héroe está quieto: `pedir_menu` anota el pedido y `move_hero`
+; lo atiende, que es como lo hace RM2k con `menu_calling`. El reloj del juego
+; no corre mientras se ve —como en la pantalla de ranuras— así que para la
+; referencia el menú no cuesta ningún tick.
+;
+; Hoy sólo guardar hace algo: abre la pantalla de ranuras y vuelve al menú.
+; Las otras cuatro se dibujan en gris y A no hace nada con ellas.
+
+; El byte de permisos, en A. Sólo A, y las banderas del `lda`: el bit 7 queda
+; en N.
+.proc acceso_leer
+.a8
+.i16
+    rep #$20
+.a16
+    lda #FAR_ACCESO
+    sta WMADDL
+    sep #$20
+.a8
+    stz WMADDH
+    lda WMDATA
+    rts
+.endproc
+
+; A: el byte de permisos nuevo.
+.proc acceso_escribir
+.a8
+.i16
+    pha
+    rep #$20
+.a16
+    lda #FAR_ACCESO
+    sta WMADDL
+    sep #$20
+.a8
+    stz WMADDH
+    pla
+    sta WMDATA
+    rts
+.endproc
+
+; Se tira el pedido de menú, si había. Sólo A.
+.proc menu_olvidar
+.a8
+.i16
+    jsr acceso_leer
+    bpl listo
+    and #$7F
+    jsr acceso_escribir
+listo:
+    rts
+.endproc
+
+; B recién apretado pide el menú, si está permitido, no hay mensaje y no hay
+; página corriendo: es el final de `Game_Player::Update`. Corre después de
+; `move_hero`, así que el menú se abre en el cuadro que viene —o cuando
+; termine el paso, si se estaba caminando—.
+.proc pedir_menu
+.a8
+.i16
+    lda pad
+    eor pad_ant
+    and pad
+    and #PAD_B
+    beq listo
+    lda msg_abierto
+    bne listo
+    lda ev_activo
+    bne listo
+    jsr acceso_leer
+    bit #ACCESO_SIN_MENU
+    bne listo
+    ora #ACCESO_PEDIDO
+    jsr acceso_escribir
+listo:
+    rts
+.endproc
+
+; ¿La orden A hace algo? Vuelve con A = 1 y Z=0 si sí. Se lleva X.
+.proc menu_habilitada
+.a8
+.i16
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda menu_hecha, x
+    beq listo
+    cpx #MENU_GUARDAR
+    bne listo
+    jsr acceso_leer
+    and #ACCESO_SIN_GUARDAR
+    eor #ACCESO_SIN_GUARDAR     ; 1 si está permitido
+listo:
+    rts
+.endproc
+
+; El cursor en la orden A: `temp + 3` en 1 lo pinta y en 0 lo borra. Son dos
+; celdas, una abajo de la otra, escritas de a una palabra. Con la pantalla
+; apagada o adentro del vblank.
+.proc menu_cursor_escribir
+.a8
+.i16
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    tax
+    lda menu_cursor_vram, x
+    tay
+    sep #$20
+.a8
+    lda #$80
+    sta VMAIN
+    sty VMADDL
+    lda temp + 3
+    rep #$20
+.a16
+    beq borra
+    lda menu_cursor_celdas
+    sta VMDATAL
+    tya
+    clc
+    adc #32
+    sta VMADDL
+    lda menu_cursor_celdas + 2
+    sta VMDATAL
+    sep #$20
+.a8
+    rts
+.a16
+borra:
+    stz VMDATAL
+    tya
+    clc
+    adc #32
+    sta VMADDL
+    stz VMDATAL
+    sep #$20
+.a8
+    rts
+.endproc
+
+; El oro, alineado a la derecha contra la moneda: se divide por diez de a un
+; byte —el divisor del hardware es de 16 por 8, y con el resto de arrastre el
+; dividendo nunca pasa de 2559— y cada resto es una cifra, de derecha a
+; izquierda. El cero se escribe "0".
+.proc menu_oro_escribir
+.a8
+.i16
+    rep #$20
+.a16
+    lda oro
+    sta temp
+    sep #$20
+.a8
+    lda oro + 2
+    sta temp + 2
+    lda #$80
+    sta VMAIN
+    ldy #(MENU_MONEDA_VRAM - 1)
+cifra:
+    stz temp + 3                ; el resto que se arrastra
+    ldx #2
+dividir:
+    lda temp, x
+    sta WRDIVL
+    lda temp + 3
+    sta WRDIVH
+    lda #10
+    sta WRDIVB                  ; arranca: el cociente tarda dieciséis ciclos
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    lda RDDIVL
+    sta temp, x
+    lda RDMPYL                  ; el resto
+    sta temp + 3
+    dex
+    bpl dividir
+    rep #$20
+.a16
+    sty VMADDL
+    lda temp + 3
+    and #$00FF
+    asl a
+    asl a
+    tax
+    lda menu_cifra_celdas, x
+    sta VMDATAL
+    tya
+    clc
+    adc #32
+    sta VMADDL
+    lda menu_cifra_celdas + 2, x
+    sta VMDATAL
+    dey
+    lda temp                    ; ¿queda algo?
+    bne otra
+    sep #$20
+.a8
+    lda temp + 2
+    bne cifra
+    rts
+.a16
+otra:
+    sep #$20
+.a8
+    bra cifra
+.endproc
+
+; La pantalla entera, con la pantalla apagada: el banco, las cinco órdenes, el
+; cursor en `titulo_sel`, el oro y el grupo. Al final la prende.
+.proc menu_subir
+.a8
+.i16
+    lda #$80
+    sta INIDISP
+    stz HDMAEN
+    stz TM
+    jsr ranura_banco_subir
+
+    ; --- las órdenes, cada una en su variante ---
+    lda #0
+otra_opcion:
+    pha
+    jsr menu_habilitada
+    eor #1
+    sta temp + 3                ; 1 si va en gris
+    pla
+    pha
+    asl a
+    ora temp + 3
+    clc
+    adc #MENU_BLQ_OPCION
+    sta temp + 3                ; el bloque
+    pla
+    pha
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    tax
+    lda menu_opcion_vram, x
+    tay
+    lda temp + 3
+    and #$00FF
+    tax
+    lda #(MENU_OPC_COLS * 2)
+    sta temp
+    sep #$20
+.a8
+    lda #2
+    sta temp + 2
+    jsr ranura_rect_subir
+    pla
+    inc a
+    cmp #MENU_OPCIONES
+    bcc otra_opcion
+
+    ; --- el cursor ---
+    lda #1
+    sta temp + 3
+    lda titulo_sel
+    jsr menu_cursor_escribir
+
+    ; --- el oro y la moneda ---
+    jsr menu_oro_escribir
+    rep #$20
+.a16
+    ldx #MENU_BLQ_MONEDA
+    ldy #MENU_MONEDA_VRAM
+    lda #(MENU_MONEDA_COLS * 2)
+    sta temp
+    sep #$20
+.a8
+    lda #2
+    sta temp + 2
+    jsr ranura_rect_subir
+
+    ; --- el grupo, de a una fila por actor ---
+    lda #0
+otro_miembro:
+    cmp grupo_n
+    bcs grupo_listo
+    cmp #MENU_FILAS_GRUPO
+    bcs grupo_listo
+    pha
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda grupo, x                ; el actor
+    cmp #MENU_ACTORES_N
+    bcs sin_bloque              ; uno que esta ROM no conoce
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda menu_actor_bloque, x
+    cmp #$FF
+    beq sin_bloque
+    sta temp + 3
+    pla
+    pha
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    tax
+    lda menu_fila_vram, x
+    tay
+    lda temp + 3
+    and #$00FF
+    tax
+    lda #(MENU_ACTOR_COLS * 2)
+    sta temp
+    sep #$20
+.a8
+    lda #MENU_ACTOR_FILAS
+    sta temp + 2
+    jsr ranura_rect_subir
+sin_bloque:
+    pla
+    inc a
+    bra otro_miembro
+grupo_listo:
+    jsr ranura_ppu_prender
     lda #1
     sta menu_abierto
+    rts
+.endproc
 
+; El menú, hasta que el jugador lo cierra con B. Vuelve al mapa repuesto,
+; como la pantalla de ranuras desde el save point.
+.proc menu_pantalla
+.a8
+.i16
+    phb
+    phk
+    plb
+    sep #$20
+    rep #$10
+    stz titulo_sel              ; RM2k abre con el cursor en la primera
+armar:
+    jsr menu_subir
 espera:
     jsr wait_vblank
     jsr read_pad
     jsr music_tick
-
     lda pad
     eor pad_ant
     and pad
@@ -9858,10 +10383,10 @@ espera:
     beq no_arriba
     lda titulo_sel
     bne sube
-    lda #SRAM_RANURAS_N         ; desde la primera, arriba da la vuelta
+    lda #MENU_OPCIONES          ; desde la primera, arriba da la vuelta
 sube:
     dec a
-    jsr mover_cursor
+    jsr mover
     bra espera
 no_arriba:
     lda titulo_flancos
@@ -9869,60 +10394,62 @@ no_arriba:
     beq no_abajo
     lda titulo_sel
     inc a
-    cmp #SRAM_RANURAS_N
+    cmp #MENU_OPCIONES
     bcc baja
     lda #0
 baja:
-    jsr mover_cursor
+    jsr mover
     bra espera
 no_abajo:
     lda titulo_flancos
     and #PAD_B
-    beq mira_a
-    jsr cerrar
-    lda #$FF                    ; cancelar
-    rts
-mira_a:
+    bne cerrar
     lda pad_a
     beq espera
     lda pad_a_ant
     bne espera                  ; ya lo tenía apretado: no es un flanco
-    jsr cerrar
     lda titulo_sel
-    rts
-
-; Lo que las dos salidas tienen en común: `ranura` como estaba, el banco de
-; datos como estaba, el testigo abajo. Y `nmi_visto` al día, para que
-; `contar_perdidos` no cuente como perdidos los cuadros que el jugador pasó
-; eligiendo: desde el save point esto corre adentro de una vuelta del lazo, y
-; sin esto la vuelta mediría cientos de cuadros y saturaría el contador.
-;
-; La pila trae, de arriba abajo: la dirección de vuelta de este `jsr`, `ranura`
-; y el banco. Se saca la de vuelta primero para llegar a los otros dos.
+    jsr menu_habilitada
+    beq espera                  ; en gris: RM2k suena y no hace nada
+    ; Guardar, que es la única que hace algo: la pantalla de ranuras y, elija
+    ; o cancele, de vuelta al menú con el cursor en "Save", como `Scene_Save`
+    ; cuando vuelve a `Scene_Menu`.
+    lda #1
+    jsr ranuras_pantalla
+    cmp #$FF
+    beq guardar_listo
+    jsr poner_ranura
+    jsr guardar_partida
+guardar_listo:
+    lda #MENU_GUARDAR
+    sta titulo_sel
+    bra armar
 cerrar:
-    plx                         ; la dirección de vuelta, aparte
-    pla
-    sta ranura
-    plb
-    phx
+    ; El B que cierra y el A de antes quedan consumidos: sin esto `pedir_menu`
+    ; vería el flanco en esta misma vuelta y el menú se volvería a abrir.
+    lda pad
+    sta pad_ant
+    lda pad_a
+    sta pad_a_ant
     stz menu_abierto
     lda boot_cuadros
     sta nmi_visto
+    plb
+    jsr volver_al_mapa
     rts
 
-; El cursor a la ranura que trae A: se repintan **las dos filas que cambian** y
-; ninguna más. Adentro del vblank, que es donde estamos al salir de
-; `wait_vblank`.
-mover_cursor:
-    sta temp + 3                ; la nueva
+; El cursor a la orden que trae A: se borra de donde estaba y se pinta ahí.
+mover:
+    pha
+    stz temp + 3
     lda titulo_sel
-    pha                         ; y la vieja, a la pila
-    lda temp + 3
-    sta titulo_sel
+    jsr menu_cursor_escribir
     pla
-    jsr ranura_pintar           ; se despinta el cursor de donde estaba
+    sta titulo_sel
+    lda #1
+    sta temp + 3
     lda titulo_sel
-    jmp ranura_pintar           ; y se pinta donde va
+    jmp menu_cursor_escribir
 .endproc
 
 ; Repone lo que la pantalla de ranuras le pisó al mapa, y nada más. Es para el
@@ -13463,6 +13990,24 @@ quieto:
     jsr paso_de_ruta
     rts
 sin_ruta:
+    ; El pedido de menú, en el orden de `UpdateNextMovementAction`: con una
+    ; página corriendo se tira; con un mensaje abierto espera; y si no, se
+    ; abre el menú y el héroe no camina en este cuadro. Va antes de mirar
+    ; `esperando_n` porque RM2k mira `IsAnyEventStarting` después.
+    lda ev_activo
+    beq menu_sin_pagina
+    jsr menu_olvidar
+    rts
+menu_sin_pagina:
+    lda msg_abierto
+    bne no_derecha
+    jsr acceso_leer
+    bpl menu_sin_pedido         ; el bit 7 es el pedido
+    and #$7F
+    jsr acceso_escribir
+    jsr menu_pantalla
+    rts
+menu_sin_pedido:
     ; Y un mensaje en pantalla manda sobre el pad, igual que la ruta forzada.
     ; Es lo que hace `Game_Player::UpdateNextMovementAction` de easyrpg, que
     ; vuelve sin mirar el input si `Game_Message::IsMessageActive()`. Va acá

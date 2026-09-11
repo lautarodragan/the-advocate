@@ -295,14 +295,24 @@ def main():
         consola.correr(args.arranque)
         reloj = Reloj(consola, args.rom, not args.sin_contador)
         sostenidos = tuple(args.teclas or ())
+        # Y `--apretar-a`, que este camino **ignoraba**: `snes-escena` le pasa
+        # los dos flags cuando la escena tiene toques, y `savepoint-guarda`
+        # nunca apretó el A que abre el save point. Pasaba igual porque
+        # guardar no cambia un pixel, y el B del cuadro 40 caía en el mapa sin
+        # hacer nada; con el menú de pausa, ese B lo abrió y el reloj se paró.
+        # Es la misma regla que `correr_con_a`: A mientras la vuelta que viene
+        # sea una de las pedidas.
+        presiones_a = {n - RETRASO_DE_PANTALLA for n in args.apretar_a or ()}
 
         def antes(n):
             consola.apretar(*(sostenidos + tuple(cuando.get(n, ()))
+                              + (("a",) if n in presiones_a else ())
                               + tuple(cuando_hw.get(reloj.corridos, ()))))
 
         if sostenidos:
             consola.apretar(*sostenidos)
-        reloj.avanzar(args.cuadros, antes if cuando or cuando_hw else None)
+        reloj.avanzar(args.cuadros, antes if cuando or cuando_hw
+                      or presiones_a else None)
         consola.imagen().save(args.output)
         print("captura -> %s: %s, %d cuadros (%d de arranque)%s"
               % (args.output,

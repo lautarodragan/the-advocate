@@ -56,6 +56,7 @@ snes-pagina 74 21 ruta-74
 snes-espera
 # La pantalla de ranuras desde el save point, y el mapa de vuelta al cerrarla.
 snes-guardar
+snes-menu
 snes-anclada
 snes-texto
 snes-ruta-evento

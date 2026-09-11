@@ -544,6 +544,50 @@ tanda no puede apretar una dirección después de una ruta— y guarda y carga l
 velocidad. Tanda: 109 casos en verde sobre la foto `7c6e76a`; `just pruebas`:
 61 pasan y una xfail de siempre.
 
+### El menú de pausa (2026-09-11)
+
+El paso (2) del plan de ítems. B abre `Scene_Menu`: las cinco órdenes con los
+términos del LDB, el oro abajo y el grupo a la derecha —cara, nombre, "L  1",
+"Normal" y los HP del nivel, llenos—, en el banco de tiles y la paleta de la
+pantalla de ranuras. **Sólo guardar hace algo**: abre la pantalla de ranuras y
+vuelve al menú con el cursor en Save. Las otras cuatro van en gris. La
+geometría es nuestra —256x224, sin ventanas, sin título, experiencia ni SP, el
+oro de a una cifra por celda— y está declarada: si se ve bien o no lo dice
+taro jugando. Detalle en el README, "El menú de pausa".
+
+Cuándo se abre es lo de RM2k, pedido y atención: B anota el pedido si el menú
+está permitido, sin mensaje y sin página; el héroe lo atiende quieto, así que
+B a mitad de un paso abre el menú al terminarlo. `ChangeSaveAccess` y
+`ChangeMainMenuAccess` compilan a `OP_ACCESO` y viven en `FAR_ACCESO` ($25FC,
+en la partida). El reloj del juego no corre con el menú abierto.
+
+Dos defectos que aparecieron haciéndolo, los dos de flancos: el B que cancela
+la pantalla de ranuras del save point le llegaba a `pedir_menu` en la misma
+vuelta —si la página terminaba ahí— y abría el menú; lo cobró
+`test_cancelar_no_guarda_ni_cambia_la_ranura`. Ahora la salida común de la
+pantalla de ranuras consume los flancos de B y A, igual que el cierre del
+menú, y la elección cancelada con B consume el suyo. Y en `op_acceso` el
+permiso se leía con `ldy temp + 1`, de dieciséis bits: se llevaba el byte de
+al lado y un "prohibido" con basura quedaba permitido; lo cobró
+`test_los_permisos_viajan_en_la_partida`, que en otra prueba pasaba por suerte.
+
+Lo cobran `snes-menu` en rom/hitos.txt —el menú como se abre, con el cursor
+dos más abajo, y el mapa de los ticks 50 y 120 después de cerrarlo— y
+`pruebas/test_menu.py`, seis pruebas.
+
+Y un caso de la tanda que **pasaba en vacío**: `savepoint-guarda`. Con
+`--toques-hardware`, `snes_correr.py` tomaba un camino que ignoraba
+`--apretar-a`, así que el A que abre el save point nunca se apretó; pasaba
+porque guardar no cambia un pixel. Lo destapó el menú: el B del cuadro 40 caía
+en el mapa, lo abría, y el reloj se paraba. La verificación del 2026-09-10 que
+decía "no es vacío" sacaba el B, y con él los toques, y eso cambiaba de
+camino. Ahora los dos caminos aprietan A y el cuadro de hardware 30 del caso
+es la pantalla de guardar, en cero contra `titulo.py`.
+
+Lo que falta del menú, en orden: usar ítems —pide la lista del inventario y
+los nombres de los 450 ítems en la ROM—, el equipo, las técnicas y terminar
+el juego, que pide volver al título sin reiniciar el SPC700.
+
 ### Lo próximo, si no se decide otra cosa
 
 Al 2026-09-10, en orden. Los tres primeros son deuda de esta vuelta y están
@@ -579,9 +623,10 @@ acotados; del cuarto para abajo es lo de siempre.
      y el uso de medicinas —pide HP, o sea los parámetros de los actores y los
      niveles, que hoy no existen—. (4) El equipo y la tienda. Sin batallas,
      HP, ataque y defensa son cosméticos: se muestran, no se usan.
-   * `ChangeSaveAccess` (70 usos) y `ChangeMainMenuAccess` (4) hay que
-     honrarlos antes de abrir el menú con un botón: hoy la ROM no tiene ningún
-     botón de menú.
+   * `ChangeSaveAccess` (70 usos) y `ChangeMainMenuAccess` (4) se honran
+     desde el 2026-09-11, junto con el menú.
+   * **Hechos**: el (1), el inventario, el 2026-09-10 a la noche; el (2), el
+     menú de pausa con guardar, el 2026-09-11. Sigue el (3).
 
 1. **El menú de guardado desde el save point: hecho** el 2026-09-10 a la
    tarde. Queda el renglón para que nadie lo busque.

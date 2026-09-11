@@ -2548,6 +2548,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "OP_VAR      = $%02X\n"
         "OP_SI_VAR   = $%02X\n"
         "OP_ITEM     = $%02X\n"
+        "OP_ACCESO   = $%02X\n"
         "; El inventario: un byte por ítem del LDB y el tope de RM2k. Ver\n"
         "; OP_ITEM en eventos.py.\n"
         "ITEMS_N       = %d\n"
@@ -2784,7 +2785,8 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            eventos.OP_SI, eventos.OP_IR, eventos.OP_ELEGIR,
            eventos.OP_ORO, eventos.OP_GUARDAR,
            eventos.OP_VAR, eventos.OP_SI_VAR,
-           eventos.OP_ITEM, eventos.ITEMS_N, eventos.ITEM_MAX,
+           eventos.OP_ITEM, eventos.OP_ACCESO, eventos.ITEMS_N,
+           eventos.ITEM_MAX,
            variables_n(),
            eventos.VAR_SUMAR, eventos.VAR_VARIABLE, eventos.VAR_AZAR,
            eventos.VAR_OTRO, eventos.AZAR_SEMILLA, eventos.TIMER_PONER_VAR,
@@ -3086,6 +3088,29 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                          + "\n")
             bloque_de_nombre[actor] = len(bloques_ranura)
             bloques_ranura.append(nombre)
+        # Y los del menú de pausa, que viven en el mismo banco de tiles: cada
+        # orden en sus dos variantes —la 1 es deshabilitada, en la paleta de
+        # lo gris—, la moneda, y un bloque por actor con la cara adentro. El
+        # cursor y las cifras del oro no van como bloques: son dos celdas cada
+        # uno y la ROM las escribe palabra por palabra, ver `menu_cifra_celdas`.
+        menu = ranuras["menu"]
+        bloque_menu_opcion = len(bloques_ranura)
+        for orden, variantes in enumerate(menu["opciones"]):
+            for deshabilitada, celdas in enumerate(variantes):
+                nombre = "menu_opcion_%d_%d" % (orden, deshabilitada)
+                handle.write(bloque(nombre, celdas_asm([celdas])) + "\n")
+                bloques_ranura.append(nombre)
+        bloque_menu_moneda = len(bloques_ranura)
+        handle.write(bloque("menu_moneda", celdas_asm([menu["moneda"]]))
+                     + "\n")
+        bloques_ranura.append("menu_moneda")
+        bloque_de_actor = {}
+        for actor in sorted(menu["actores"]):
+            nombre = "menu_actor_%d" % actor
+            handle.write(bloque(nombre, celdas_asm([menu["actores"][actor]]))
+                         + "\n")
+            bloque_de_actor[actor] = len(bloques_ranura)
+            bloques_ranura.append(nombre)
         if len(bloques_ranura) > 255:
             raise SystemExit("la pantalla de ranuras tiene %d bloques y las "
                              "tablas que los nombran son de un byte"
@@ -3140,6 +3165,55 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             handle.write("%s:\n    .byte %s\n" % (nombre, ", ".join(
                 str(tabla.get(actor, 0xFF)) for actor in range(actores_n))
                 or "$FF"))
+        # El menú de pausa: sus bloques, y a dónde va cada cosa en el tilemap,
+        # en palabras. La geometría es la de `titulo.py` y sale de ahí.
+        T = titulo_mod
+
+        def celda_vram(fila, col):
+            return RANURA_MAP + fila * 32 + col
+
+        filas_opcion = [(T.MENU_OPC_Y + n * T.MENU_OPC_SALTO) // T.CELL
+                        for n in range(T.MENU_OPCIONES)]
+        menu_actores_n = max(list(bloque_de_actor) + [-1]) + 1
+        handle.write(
+            "MENU_OPCIONES     = %d\n"
+            "MENU_GUARDAR      = %d\n"
+            "MENU_BLQ_OPCION   = %d\n"
+            "MENU_BLQ_MONEDA   = %d\n"
+            "MENU_OPC_COLS     = %d\n"
+            "MENU_MONEDA_COLS  = %d\n"
+            "MENU_MONEDA_VRAM  = %d\n"
+            "MENU_ACTOR_COLS   = %d\n"
+            "MENU_ACTOR_FILAS  = %d\n"
+            "MENU_FILAS_GRUPO  = %d\n"
+            "MENU_ACTORES_N    = %d\n"
+            % (T.MENU_OPCIONES, T.MENU_GUARDAR, bloque_menu_opcion,
+               bloque_menu_moneda, T.MENU_OPC_COLS, T.MENU_MONEDA_COLS,
+               celda_vram(T.MENU_ORO_Y // T.CELL, T.MENU_MONEDA_COL),
+               T.MENU_ACTOR_COLS, T.MENU_ACTOR_FILAS, T.MENU_FILAS_GRUPO,
+               menu_actores_n))
+        # Qué órdenes hacen algo: 1 sí, 0 no. La de guardar además mira el
+        # permiso, en la ROM.
+        handle.write("menu_hecha:\n    .byte %s\n" % ", ".join(
+            "1" if n in T.MENU_HECHAS else "0"
+            for n in range(T.MENU_OPCIONES)))
+        handle.write("menu_opcion_vram:\n    .word %s\n" % ", ".join(
+            str(celda_vram(f, T.MENU_OPC_COL)) for f in filas_opcion))
+        handle.write("menu_cursor_vram:\n    .word %s\n" % ", ".join(
+            str(celda_vram(f, T.MENU_CURSOR_COL)) for f in filas_opcion))
+        handle.write("menu_fila_vram:\n    .word %s\n" % ", ".join(
+            str(celda_vram(r * T.MENU_ACTOR_FILAS, T.MENU_ACTOR_COL))
+            for r in range(T.MENU_FILAS_GRUPO)))
+        # Las dos celdas de cada cifra y del cursor, arriba y abajo: la ROM
+        # las escribe de a una palabra.
+        handle.write("menu_cifra_celdas:\n    .word %s\n" % ", ".join(
+            "$%04X" % entry(c, False, False) for cifra in menu["cifras"]
+            for c in cifra))
+        handle.write("menu_cursor_celdas:\n    .word %s\n" % ", ".join(
+            "$%04X" % entry(c, False, False) for c in menu["cursor"]))
+        handle.write("menu_actor_bloque:\n    .byte %s\n" % (", ".join(
+            str(bloque_de_actor.get(a, 0xFF)) for a in range(menu_actores_n))
+            or "$FF"))
         handle.write("\n")
         # `fuente_color` va en el banco 0 y no con el resto de la ventana: la
         # ROM la lee con `lda fuente_color, y`, y ese modo direcciona el banco
@@ -3684,6 +3758,11 @@ def main():
                              "como --rama-de-prueba: prende ADENTRO si la "
                              "variable cumple la comparación con VALOR, y "
                              "DESPUES siempre")
+    parser.add_argument("--acceso-de-prueba", nargs="+", type=int,
+                        default=None, metavar="N",
+                        help="CUAL PERMITIDO, repetible de a dos: la página "
+                             "de prueba cambia el permiso de guardar (0) o "
+                             "del menú (1)")
     parser.add_argument("--items-de-prueba", nargs="+", type=int, default=None,
                         metavar="N",
                         help="ITEM CUANTO, repetible de a dos: la página de "
@@ -3937,7 +4016,7 @@ def main():
         if (args.pagina_de_prueba or args.ruta_de_prueba
                 or args.rama_de_prueba or args.guardar_de_prueba
                 or args.vars_de_prueba or args.rama_var_de_prueba
-                or args.items_de_prueba
+                or args.items_de_prueba or args.acceso_de_prueba
                 or args.ruta_de_evento or args.flash_de_prueba or args.switch
                 or args.destello_de_prueba
                 or args.timer_de_prueba or args.lugar_de_prueba
@@ -3975,7 +4054,8 @@ def main():
                     guardar=args.guardar_de_prueba,
                     variables=tuple(args.vars_de_prueba or ()),
                     rama_var=tuple(args.rama_var_de_prueba or ()),
-                    items=tuple(args.items_de_prueba or ()))}, {
+                    items=tuple(args.items_de_prueba or ()),
+                    acceso=tuple(args.acceso_de_prueba or ()))}, {
                 # Y la que la apaga: misma idea que en la referencia, ver
                 # `PAGINA_DE_PRUEBA_APAGADA`. Sin código, así que en cuanto
                 # gana, el evento inventado deja de tener una automática que
@@ -4156,12 +4236,13 @@ def main():
     # una de menos deja un hueco en el menú.
     miembros = miembros_posibles(todos, grupo)
     (ranura_tiles, ranura_paletas, ranura_cabs, ranura_filas, ranura_caras,
-     ranura_nombres) = titulo_mod.pantalla_ranuras(
+     ranura_nombres, ranura_menu) = titulo_mod.pantalla_ranuras(
         skin, renderer.database, RANURAS, renderer.database.font_id,
         miembros, args.game_dir)
     ranuras_datos = {"tiles": ranura_tiles, "paletas": ranura_paletas,
                      "cabeceras": ranura_cabs, "filas": ranura_filas,
-                     "caras": ranura_caras, "nombres": ranura_nombres}
+                     "caras": ranura_caras, "nombres": ranura_nombres,
+                     "menu": ranura_menu}
     _controlar_ranuras(len(ranura_tiles))
     print("  pantalla de ranuras: %d, %d tiles de 4bpp (%d B) + %d paletas, "
           "%d B de celdas; %d actores con cara: %s"

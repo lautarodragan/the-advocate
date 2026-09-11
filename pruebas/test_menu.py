@@ -1,0 +1,165 @@
+"""El menú de pausa: que se abra con B como en RM2k, que se vea como
+`titulo.render_menu` pixel por pixel, y que guardar ande desde ahí.
+
+La tanda cobra el mapa después de cerrarlo —`snes-menu` en rom/hitos.txt—;
+acá se mira lo que una captura suelta no puede: el menú con un grupo y oro
+puestos, los permisos de `ChangeSaveAccess` y `ChangeMainMenuAccess` puestos
+por la página de prueba, guardar desde el menú, y el pedido de menú hecho a
+mitad de un paso.
+"""
+
+import os
+import sys
+
+import pytest
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__))), "tools"))
+import eventos                                          # noqa: E402
+
+from consola import TITULO_AIRE
+
+ESPERA = 200
+GRUPO = (14, 11)
+ORO = 1234
+
+
+def tocar(una, boton, cuadros=4):
+    """Un toque en cuadros de hardware: el menú no cuenta ticks."""
+    una.consola.apretar(boton)
+    una.consola.correr(2)
+    una.consola.apretar()
+    una.consola.correr(cuadros)
+
+
+def abrir(una, tope=60):
+    tocar(una, "b", 0)
+    for _ in range(tope):
+        if una.menu_abierto():
+            una.consola.correr(3)
+            return una
+        una.consola.correr(1)
+    raise AssertionError("B no abrió el menú en %d cuadros" % tope)
+
+
+def comparar(una, elegida, guardar=True, nombre="menu"):
+    import lcf
+    import titulo
+    import ventana
+    from render_map import GAME_DIR
+    from snes_compare import quantize
+    db = lcf.Database(os.path.join(GAME_DIR, "RPG_RT.ldb"))
+    skin = ventana.skin(GAME_DIR, db.system_name)
+    captura = una.imagen().convert("RGB")
+    esperada = titulo.render_menu(skin, db, una.simbolos["SRAM_RANURAS"],
+                                  GRUPO, ORO, elegida, guardar, db.font_id,
+                                  None, GAME_DIR)
+    distintos = sum(1 for x, y in zip(quantize(captura), quantize(esperada))
+                    if x != y)
+    if distintos:
+        donde = os.path.join(os.path.dirname(os.path.dirname(
+            os.path.abspath(__file__))), "rom", "shots")
+        os.makedirs(donde, exist_ok=True)
+        captura.save(os.path.join(donde, "prueba-%s.png" % nombre))
+        esperada.save(os.path.join(donde, "prueba-%s.esperado.png" % nombre))
+    assert distintos == 0, (
+        "el menú con el cursor en la %d difiere de la referencia en %d "
+        "pixeles; están en rom/shots/prueba-%s*.png"
+        % (elegida, distintos, nombre))
+
+
+def con_grupo(una):
+    una.correr(5)
+    una.poner_grupo(*GRUPO)
+    una.consola.escribir_ram(una.simbolos["oro"],
+                             list(ORO.to_bytes(3, "little")))
+    return una
+
+
+def test_el_menu_se_ve_como_la_referencia_y_no_cuenta_ticks(partida):
+    """Se abre con B, el cursor baja y da la vuelta para arriba, y B lo
+    cierra. Mientras está abierto el reloj del juego no avanza, que es lo
+    que deja a la tanda comparar el mapa después con la referencia del mismo
+    tick."""
+    una = con_grupo(partida())
+    abrir(una)
+    antes = una.palabra("vueltas")
+    comparar(una, 0)
+    tocar(una, "down")
+    tocar(una, "down")
+    comparar(una, 2)
+    for _ in range(3):
+        tocar(una, "up")
+    comparar(una, 4)                    # desde la primera, arriba da la vuelta
+    assert una.palabra("vueltas") == antes, "el reloj corrió con el menú"
+    tocar(una, "b", 10)
+    assert not una.menu_abierto()
+    una.correr(30)
+    assert not una.menu_abierto(), "el B que cerró el menú lo volvió a abrir"
+
+
+def test_guardar_desde_el_menu(partida):
+    """Save abre la pantalla de ranuras; elegir la primera guarda la partida
+    y vuelve al menú con el cursor en Save, como `Scene_Save`."""
+    una = con_grupo(partida())
+    abrir(una)
+    for _ in range(3):                  # hasta Save
+        tocar(una, "down")
+    tocar(una, "a", TITULO_AIRE)        # la pantalla de ranuras
+    tocar(una, "a", TITULO_AIRE)        # la primera ranura
+    assert una.sram(0x100, 4) == b"ABLS", "la partida no se guardó"
+    assert una.menu_abierto(), "después de guardar se cerró el menú"
+    comparar(una, 3, nombre="menu-guardado")
+
+
+def test_guardar_prohibido_va_en_gris_y_no_hace_nada(partida):
+    """`ChangeSaveAccess` en 0, desde el bytecode de la página de prueba: Save
+    va en gris y A no abre la pantalla de ranuras."""
+    una = con_grupo(partida(acceso=(eventos.ACCESO_GUARDAR, 0)))
+    una.correr(30)
+    assert una.acceso() & 1, "la página no prohibió guardar"
+    abrir(una)
+    for _ in range(3):
+        tocar(una, "down")
+    tocar(una, "a", TITULO_AIRE)
+    comparar(una, 3, guardar=False, nombre="menu-sin-guardar")
+    assert una.sram(0x100, 4) != b"ABLS"
+
+
+def test_menu_prohibido_b_no_lo_abre(partida):
+    una = con_grupo(partida(acceso=(eventos.ACCESO_MENU, 0)))
+    una.correr(30)
+    tocar(una, "b", 40)
+    assert not una.menu_abierto(), "el menú se abrió estando prohibido"
+    assert not una.acceso() & 0x80, "quedó un pedido de menú anotado"
+
+
+def test_b_caminando_abre_el_menu_al_terminar_el_paso(partida):
+    """RM2k anota el pedido y lo atiende cuando el héroe está quieto: a
+    mitad de un paso el menú no se abre, y se abre en cuanto el paso termina,
+    con el héroe parado en su celda."""
+    una = con_grupo(partida())
+    una.consola.apretar("up")
+    for _ in range(3):
+        una.consola.correr(1)
+    assert una.byte("step_left"), "el héroe no arrancó a caminar"
+    una.consola.apretar("up", "b")
+    una.consola.correr(1)
+    una.consola.apretar()
+    assert not una.menu_abierto(), "el menú se abrió a mitad del paso"
+    assert una.acceso() & 0x80, "el B a mitad del paso no quedó anotado"
+    for _ in range(20):
+        if una.menu_abierto():
+            break
+        una.consola.correr(1)
+    assert una.menu_abierto(), "el menú no se abrió al terminar el paso"
+    assert una.byte("step_left") == 0
+    assert una.palabra("hero_y") % 16 == 0, "el héroe quedó entre dos celdas"
+
+
+def test_los_permisos_viajan_en_la_partida(partida):
+    una = partida(guardar=ESPERA, acceso=(eventos.ACCESO_GUARDAR, 0))
+    una.guardar_en(0)
+    assert una.acceso() & 1
+    una.reiniciar()
+    assert una.acceso() & 1, "el permiso de guardar no volvió de la SRAM"

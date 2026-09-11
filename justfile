@@ -1080,6 +1080,15 @@ snes-hablar mapa="7" celda="3 7" switch="24" apretar="25" cuadros="20 60" arranq
 # el save point de verdad y no la página de prueba de `snes-guardar`. No es
 # vacío: sin el B la ROM se queda en la pantalla y el arnés no llega al tick 60
 # —"la ROM no llegó al tick 60"—, verificado el 2026-09-10.
+#
+# **Esa verificación engañaba**, y se supo el 2026-09-11: sacar el B sacaba
+# también `--toques-hardware`, y eso cambiaba de camino a `snes_correr.py`.
+# Con toques, el camino ignoraba `--apretar-a`, así que en la tanda el A nunca
+# se apretó, el save point nunca se abrió, y el caso pasaba porque guardar no
+# cambia un pixel. Lo destapó el menú de pausa: el B del cuadro 40 caía en el
+# mapa y lo abría. Ahora los dos caminos aprietan A, y con el A en el tick 10
+# el cuadro de hardware 30 es "Save in which slot?", en cero contra
+# `titulo.py --ranuras 4 --modo 1`.
 snes-escena mapa="2" celda="4 54" ruta="12" dir="up" cuadros="60" arranque="115" nombre="escena" apretar="" switch="" mapas="" toques="":
   #!/usr/bin/env bash
   set -euo pipefail
@@ -1727,6 +1736,54 @@ snes-guardar mapa="73" espera="120" vuelve="122 200" nombre="guardar":
         --toques-hardware down:$abre a:$(( abre + 4 ))
     python3 tools/snes_compare.py $pre-elige-$n.png $pre-vuelve-$n.esperado.png \
         --saltar $pre-vuelve-$n.saltar.txt -o $pre-elige-$n.comparacion.png
+  done
+
+# El menú de pausa, que se abre con B desde el mapa. Tres cosas:
+#
+#   menu            como se abre, contra `titulo.py --menu` con el grupo con el
+#                   que arranca la ROM y cero de oro: las cinco órdenes —cuatro
+#                   en gris, porque sólo guardar hace algo todavía—, el cursor
+#                   en la primera, el oro y el grupo con su cara.
+#   menu-2          el cursor dos órdenes más abajo: los dos pares de palabras
+#                   que `menu_cursor_escribir` escribe en el vblank.
+#   menu-vuelve-N   B lo cierra, y el mapa del tick N contra la referencia sin
+#                   menú: el reloj no corre mientras se ve, así que para la
+#                   referencia el menú no cuesta ningún tick. Cobra que
+#                   `volver_al_mapa` reponga todo y que el B que cerró no lo
+#                   vuelva a abrir.
+#
+# Las dos primeras con `--sin-contador`, como `snes-guardar`: ahí no hay tick
+# que esperar. Los toques van en cuadros de hardware. Lo que la tanda no puede
+# —un grupo y oro puestos, guardar desde el menú, los permisos, B a mitad de
+# un paso— lo mira `pruebas/test_menu.py`.
+snes-menu mapa="73" abre="40" vuelve="50 120" nombre="menu":
+  #!/usr/bin/env bash
+  set -euo pipefail
+  mkdir -p {{snes_pngs}} {{snes_inc}}
+  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
+      -o {{snes_inc}}/mapdata.inc
+  just snes-build
+  pre={{snes_pngs}}/{{nombre}}
+  grupo=$(echo {{grupo}} | tr ' ' ',')
+  python3 tools/titulo.py -o $pre.esperado.png --menu $grupo
+  python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre.png \
+      --toques-hardware b:{{abre}} --cuadros $(( {{abre}} + 12 )) --sin-contador
+  python3 tools/snes_compare.py $pre.png $pre.esperado.png -o $pre.comparacion.png
+  python3 tools/titulo.py -o $pre-2.esperado.png --menu $grupo --elegida 2
+  python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre-2.png \
+      --toques-hardware b:{{abre}} down:$(( {{abre}} + 12 )) down:$(( {{abre}} + 16 )) \
+      --cuadros $(( {{abre}} + 22 )) --sin-contador
+  python3 tools/snes_compare.py $pre-2.png $pre-2.esperado.png \
+      -o $pre-2.comparacion.png
+  for n in {{vuelve}}; do
+    python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
+        --cuadros $n --saltar $pre-vuelve-$n.saltar.txt \
+        -o $pre-vuelve-$n.esperado.png
+    python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} \
+        -o $pre-vuelve-$n.png --cuadros $n \
+        --toques-hardware b:{{abre}} b:$(( {{abre}} + 12 ))
+    python3 tools/snes_compare.py $pre-vuelve-$n.png $pre-vuelve-$n.esperado.png \
+        --saltar $pre-vuelve-$n.saltar.txt -o $pre-vuelve-$n.comparacion.png
   done
 
 # El héroe a mitad de camino: se lo captura con N pixeles andados, en la pose

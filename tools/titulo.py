@@ -216,6 +216,17 @@ def main():
     parser.add_argument("--modo", type=int, default=0,
                         help="0 para la pantalla de cargar y 1 para la de "
                              "guardar; cambia el texto de la cabecera")
+    parser.add_argument("--menu", metavar="ACTOR,ACTOR,...", default=None,
+                        help="dibuja el menú de pausa con este grupo, por ids "
+                             "de actor, en vez de la pantalla de título")
+    parser.add_argument("--oro", type=int, default=0,
+                        help="el oro que muestra el menú de pausa")
+    parser.add_argument("--actores", default=None, metavar="ACTOR,...",
+                        help="los actores que la ROM puede tener en el grupo, "
+                             "que deciden el banco de tiles; sin esto, el "
+                             "grupo del menú")
+    parser.add_argument("--sin-guardar", action="store_true",
+                        help="el menú con 'Save' prohibido")
     parser.add_argument("--sin-menu", action="store_true",
                         help="sólo la imagen, sin las opciones encima")
     parser.add_argument("--informe", action="store_true",
@@ -226,6 +237,18 @@ def main():
     db = lcf.Database(os.path.join(args.game_dir, "RPG_RT.ldb"))
     imagen = Image.open(os.path.join(args.game_dir, "Title",
                                      db.title_name + ".png"))
+    if args.menu is not None:
+        import ventana as ventana_mod
+        skin = ventana_mod.skin(args.game_dir, db.system_name)
+        grupo = [int(a) for a in args.menu.split(",") if a]
+        actores = ([int(a) for a in args.actores.split(",") if a]
+                   if args.actores else None)
+        render_menu(skin, db, args.ranuras or 4, grupo, args.oro,
+                    args.elegida, not args.sin_guardar, db.font_id, actores,
+                    args.game_dir).save(args.output)
+        print("menú con %s y %d de oro -> %s" % (grupo, args.oro,
+                                                   args.output))
+        return
     if args.ranuras:
         import ventana as ventana_mod
         skin = ventana_mod.skin(args.game_dir, db.system_name)
@@ -542,13 +565,84 @@ def _paleta_de_cara(cara):
     return colores, indice
 
 
+# --- el menú de pausa ---------------------------------------------------------
+#
+# Es `Scene_Menu` de RM2k en 256x224 y no en 320x240, así que la geometría es
+# nuestra y no la de allá: la columna de órdenes a la izquierda, el oro abajo
+# a la izquierda y el grupo a la derecha, **sin las ventanas** —fondo negro,
+# como la pantalla de ranuras— y sin lo que no entra: el título del actor, la
+# experiencia y los SP. Del grupo se ve la cara, el nombre, el nivel, el
+# estado y los HP. Es cosmético y está declarado: se ve bien o no se ve bien,
+# y eso lo dice taro jugando.
+#
+# Vive en el **mismo banco de tiles y la misma paleta** que la pantalla de
+# ranuras: las caras son las mismas, y la pantalla de guardar se abre desde
+# el menú. Todo va alineado a celdas de 8 para que los bloques valgan en
+# cualquier fila.
+MENU_OPCIONES = 5
+MENU_OPC_Y = 8                  # la primera orden, en pixeles
+MENU_OPC_SALTO = 16             # y cada cuánto va la siguiente
+MENU_OPC_COL = 3                # el texto de la orden, x = 24
+MENU_OPC_COLS = 9               # hasta x = 96, donde empieza el grupo
+MENU_CURSOR_COL = 1             # el ">", x = 8
+# Qué órdenes hacen algo. Las otras se dibujan en el color de "no se puede",
+# que es el 3 del sistema, como RM2k dibuja "Save" cuando está prohibido:
+# usar ítems, técnicas y equipo son los pasos que siguen, y terminar el juego
+# pide volver al título sin reiniciar el SPC700. La 3, guardar, depende de
+# `ChangeSaveAccess`.
+MENU_GUARDAR = 3
+MENU_HECHAS = (MENU_GUARDAR,)
+# El oro, abajo a la izquierda: hasta seis cifras **de a una celda cada una**
+# —no a los 6 pixeles de la fuente, para que la ROM las escriba de a una sin
+# rearmar tiles— y el término de la moneda detrás, en el color 1.
+MENU_ORO_Y = 200
+MENU_ORO_COL = 3
+MENU_ORO_CIFRAS = 6
+MENU_MONEDA_COL = MENU_ORO_COL + MENU_ORO_CIFRAS    # 9, x = 72
+MENU_MONEDA_COLS = 3
+# El grupo: una fila de siete celdas por actor, con la cara a la izquierda y
+# el texto al lado. Cuatro filas son 224 pixeles justos.
+MENU_ACTOR_COL = 12             # x = 96
+MENU_ACTOR_COLS = COLS - MENU_ACTOR_COL
+MENU_ACTOR_FILAS = 7
+MENU_TEXTO_X = MENU_ACTOR_COL * CELL + CARA + 8     # 152
+MENU_ESTADO_DX = 42             # "Normal" va a 42 del nivel, como en RM2k
+MENU_HP_DX = 12                 # y los números de HP a 12 del "HP"
+MENU_FILAS_GRUPO = 4
+
+
+def _escribir_menu_actor(destino, sys_img, db, actor, font_id):
+    """El texto de un actor en el menú, en la fila de arriba de todo: nombre,
+    nivel y estado, y HP. Los HP son los máximos del nivel, llenos: sin
+    batallas nadie los baja todavía."""
+    import ventana as ventana_mod
+
+    def escribir(x, y, texto, color=0):
+        return ventana_mod.dibujar_linea(destino, sys_img, x, y, texto,
+                                         color=color, font_id=font_id)
+
+    a = db.actors[actor]
+    escribir(MENU_TEXTO_X, 2, a.name)
+    _escribir_nivel(destino, sys_img, MENU_TEXTO_X, 2 + LINEA, db, font_id)
+    escribir(MENU_TEXTO_X + MENU_ESTADO_DX, 2 + LINEA, db.term_normal_status)
+    escribir(MENU_TEXTO_X, 2 + 2 * LINEA, db.term_hp_short, color=1)
+    hp = a.hp_max[NIVEL - 1] if a.hp_max else 0
+    escribir(MENU_TEXTO_X + MENU_HP_DX, 2 + 2 * LINEA, "%3d/%3d" % (hp, hp))
+
+
+def cifras_del_oro(oro):
+    """Las cifras que se escriben, sin ceros adelante: el 0 es "0"."""
+    return [int(c) for c in str(max(0, min(oro, 10 ** MENU_ORO_CIFRAS - 1)))]
+
+
 def pantalla_ranuras(sys_img, db, ranuras, font_id=None, actores=(),
                      game_dir=None):
     """Los tiles de la pantalla de ranuras, sus paletas y sus bloques de celdas.
 
-    Devuelve `(tiles, paletas, cabeceras, filas, caras, nombres)`:
+    Devuelve `(tiles, paletas, cabeceras, filas, caras, nombres, menu)`:
 
-    * `paletas[0]` es la del texto y las que siguen, una por cara.
+    * `paletas[0]` es la del texto, `paletas[1]` la de las órdenes
+      deshabilitadas del menú, y las que siguen, una por cara.
     * `cabeceras[modo]` son las celdas del título de la pantalla, con `modo` 0
       para cargar y 1 para guardar. Los dos textos salen del LDB
       —`load_game_message` y `save_game_message`, que en el ABL dicen "Load
@@ -559,6 +653,10 @@ def pantalla_ranuras(sys_img, db, ranuras, font_id=None, actores=(),
       los `actores` que tienen una; `nombres[actor]` las 14 del nombre. La ROM
       los escribe encima de la fila según el grupo que la partida guardó, y
       `render_ranuras` hace lo mismo.
+
+    * `menu` son los bloques del menú de pausa, que comparte banco y paleta:
+      `opciones[orden][deshabilitada]`, `cursor`, `cifras[d]`, `moneda` y
+      `actores[actor]`, este último con la cara ya puesta.
 
     Todas las variantes se dibujan antes de deduplicar, por lo mismo de siempre:
     el banco de tiles es uno solo.
@@ -597,26 +695,89 @@ def pantalla_ranuras(sys_img, db, ranuras, font_id=None, actores=(),
         una = capa()
         escribir(una, RANURA_X, RANURA_Y + 2 + LINEA, db.actors[actor].name)
         capas.append(("nombre", actor, una))
+    # Las del menú de pausa, en el mismo banco. Todas en la fila de más arriba
+    # que les toca: los bloques valen en cualquier otra porque van alineados.
+    import ventana as ventana_mod
+    for orden, texto in enumerate(db.term_menu):
+        for deshabilitada in (0, 1):
+            una = capa()
+            ventana_mod.dibujar_linea(
+                una, sys_img, MENU_OPC_COL * CELL,
+                MENU_OPC_Y + orden * MENU_OPC_SALTO + 2, texto,
+                color=3 if deshabilitada else 0, font_id=font_id)
+            capas.append(("menu_opcion", (orden, deshabilitada), una))
+    una = capa()
+    escribir(una, MENU_CURSOR_COL * CELL, MENU_OPC_Y + 2, ">")
+    capas.append(("menu_cursor", None, una))
+    for cifra in range(10):
+        una = capa()
+        escribir(una, MENU_ORO_COL * CELL + 1, MENU_ORO_Y + 2, str(cifra))
+        capas.append(("menu_cifra", cifra, una))
+    una = capa()
+    ventana_mod.dibujar_linea(una, sys_img, MENU_MONEDA_COL * CELL,
+                              MENU_ORO_Y + 2, db.term_gold, color=1,
+                              font_id=font_id)
+    capas.append(("menu_moneda", None, una))
+    for actor in actores:
+        una = capa()
+        _escribir_menu_actor(una, sys_img, db, actor, font_id)
+        capas.append(("menu_actor", actor, una))
 
-    vistos = collections.Counter()
-    for _, _, una in capas:
+    # Las órdenes deshabilitadas van en **su propia paleta**, la 1: el color 3
+    # del sistema es un degradé que, sumado a los del texto, da 18 colores, y
+    # en 4bpp entran 15. Le cuesta una paleta a las caras.
+    def gris(clase, clave):
+        return clase == "menu_opcion" and clave[1]
+
+    vistos, vistos_gris = collections.Counter(), collections.Counter()
+    for clase, clave, una in capas:
+        cuenta = vistos_gris if gris(clase, clave) else vistos
         for r, g, b, a in una.get_flattened_data():
             if a:
-                vistos[(r >> 3, g >> 3, b >> 3)] += 1
-    if len(vistos) > 15:
-        raise SystemExit(
-            "la pantalla de ranuras usa %d colores y en 4bpp entran 15"
-            % len(vistos))
+                cuenta[(r >> 3, g >> 3, b >> 3)] += 1
+    for cuantos, que in ((len(vistos), "el texto de las ranuras y el menú"),
+                         (len(vistos_gris), "las órdenes deshabilitadas")):
+        if cuantos > 15:
+            raise SystemExit("%s usa %d colores y en 4bpp entran 15"
+                             % (que, cuantos))
     paleta = [NEGRO] + sorted(vistos, key=lambda c: (-vistos[c], c))
     indice = {color: i for i, color in enumerate(paleta)}
+    paleta_gris = [NEGRO] + sorted(vistos_gris,
+                                   key=lambda c: (-vistos_gris[c], c))
+    indice_gris = {color: i for i, color in enumerate(paleta_gris)}
 
     vacio = tuple(tuple([0] * CELL) for _ in range(CELL))
     tiles, donde = [vacio], {vacio: 0}
     cabeceras = [None, None]
     filas = [[[None, None], [None, None]] for _ in range(ranuras)]
     nombres = {}
+    menu = {"opciones": [[None, None] for _ in range(MENU_OPCIONES)],
+            "cursor": None, "cifras": [None] * 10, "moneda": None,
+            "actores": {}}
     for clase, clave, una in capas:
-        if clase == "cabecera":
+        if clase == "menu_opcion":
+            orden, deshabilitada = clave
+            menu["opciones"][orden][deshabilitada] = _bloque_de_celdas(
+                una, (MENU_OPC_Y + orden * MENU_OPC_SALTO) // CELL, 2, tiles,
+                donde, indice_gris if deshabilitada else indice,
+                MENU_OPC_COL, MENU_OPC_COLS, 1 if deshabilitada else 0)
+        elif clase == "menu_cursor":
+            menu["cursor"] = _bloque_de_celdas(
+                una, MENU_OPC_Y // CELL, 2, tiles, donde, indice,
+                MENU_CURSOR_COL, 1)
+        elif clase == "menu_cifra":
+            menu["cifras"][clave] = _bloque_de_celdas(
+                una, MENU_ORO_Y // CELL, 2, tiles, donde, indice,
+                MENU_ORO_COL, 1)
+        elif clase == "menu_moneda":
+            menu["moneda"] = _bloque_de_celdas(
+                una, MENU_ORO_Y // CELL, 2, tiles, donde, indice,
+                MENU_MONEDA_COL, MENU_MONEDA_COLS)
+        elif clase == "menu_actor":
+            menu["actores"][clave] = _bloque_de_celdas(
+                una, 0, MENU_ACTOR_FILAS, tiles, donde, indice,
+                MENU_ACTOR_COL, MENU_ACTOR_COLS)
+        elif clase == "cabecera":
             cabeceras[clave] = _bloque_de_celdas(
                 una, CABECERA_Y // CELL, CABECERA_FILAS, tiles, donde, indice)
         elif clase == "fila":
@@ -631,7 +792,7 @@ def pantalla_ranuras(sys_img, db, ranuras, font_id=None, actores=(),
 
     # Y las caras, cada una con su paleta, pegadas arriba a la izquierda de la
     # primera fila para cortarlas en celdas con la misma función.
-    paletas, caras = [paleta], {}
+    paletas, caras = [paleta, paleta_gris], {}
     for actor in actores:
         cara = cara_de(db, actor, game_dir)
         if cara is None:
@@ -639,8 +800,8 @@ def pantalla_ranuras(sys_img, db, ranuras, font_id=None, actores=(),
         if len(paletas) > CARAS_PALETAS_MAX:
             raise SystemExit(
                 "más de %d actores con cara pueden entrar al grupo y BG2 "
-                "tiene ocho paletas, una de ellas del texto"
-                % CARAS_PALETAS_MAX)
+                "tiene ocho paletas, dos de ellas del texto"
+                % (CARAS_PALETAS_MAX - 1))
         colores, indice_cara = _paleta_de_cara(cara)
         una = capa()
         una.paste(cara, (CARA_COL * CELL, RANURA_Y))
@@ -648,11 +809,79 @@ def pantalla_ranuras(sys_img, db, ranuras, font_id=None, actores=(),
             una, RANURA_Y // CELL, CARA_CELDAS, tiles, donde, indice_cara,
             CARA_COL, CARA_CELDAS, len(paletas))
         paletas.append(colores)
+    # La cara va adentro del bloque del actor en el menú: son las mismas celdas
+    # de la pantalla de ranuras —la cara está alineada a celdas en las dos—,
+    # así que no suma ni un tile.
+    for actor, celdas in menu["actores"].items():
+        for fila in range(CARA_CELDAS):
+            for col in range(CARA_CELDAS):
+                celdas[fila * MENU_ACTOR_COLS + col] = (
+                    caras[actor][fila * CARA_CELDAS + col] if actor in caras
+                    else 0)
     if len(tiles) > RANURA_TILES_MAX:
         raise SystemExit(
-            "la pantalla de ranuras junta %d tiles y en su banco entran %d"
-            % (len(tiles), RANURA_TILES_MAX))
-    return tiles, paletas, cabeceras, filas, caras, nombres
+            "la pantalla de ranuras y el menú juntan %d tiles y en su banco "
+            "entran %d" % (len(tiles), RANURA_TILES_MAX))
+    return tiles, paletas, cabeceras, filas, caras, nombres, menu
+
+
+def _pintor(fuera, tiles, paletas):
+    """Una función que pega un bloque de celdas sobre `fuera`, como lo hace
+    la ROM: tile y paleta de cada palabra del tilemap."""
+    px = fuera.load()
+
+    def pegar(celdas, fila0, col0=0, cols=COLS):
+        for i, palabra in enumerate(celdas):
+            tx = (col0 + i % cols) * CELL
+            ty = (fila0 + i // cols) * CELL
+            celda = tiles[palabra & 0x3FF]
+            paleta = paletas[(palabra >> 10) & 7]
+            for y in range(CELL):
+                if ty + y >= ALTO:
+                    break
+                for x in range(CELL):
+                    valor = celda[y][x]
+                    if valor:
+                        px[tx + x, ty + y] = tuple(v << 3 for v in paleta[valor])
+    return pegar
+
+
+def render_menu(sys_img, db, ranuras, grupo, oro, elegida=0,
+                guardar_permitido=True, font_id=None, actores=None,
+                game_dir=None):
+    """El menú de pausa como lo tiene que mostrar la consola.
+
+    `grupo` son los actores en orden, `oro` el oro, `elegida` la orden con el
+    cursor y `guardar_permitido` lo que dejó `ChangeSaveAccess`. `actores` es
+    la lista de la ROM —los que pueden entrar al grupo, `miembros_posibles`
+    en el conversor—, que decide el banco de tiles; sin ella, el grupo.
+    Se arma con los mismos bloques que sube la ROM, como `render_ranuras`.
+    """
+    from PIL import Image
+    actores = sorted(set(actores if actores is not None else grupo))
+    tiles, paletas, _, _, _, _, menu = pantalla_ranuras(
+        sys_img, db, ranuras, font_id, actores, game_dir)
+    fuera = Image.new("RGB", (ANCHO, ALTO), (0, 0, 0))
+    pegar = _pintor(fuera, tiles, paletas)
+    for orden in range(MENU_OPCIONES):
+        hecha = orden in MENU_HECHAS and (orden != MENU_GUARDAR
+                                          or guardar_permitido)
+        pegar(menu["opciones"][orden][0 if hecha else 1],
+              (MENU_OPC_Y + orden * MENU_OPC_SALTO) // CELL, MENU_OPC_COL,
+              MENU_OPC_COLS)
+    pegar(menu["cursor"], (MENU_OPC_Y + elegida * MENU_OPC_SALTO) // CELL,
+          MENU_CURSOR_COL, 1)
+    cifras = cifras_del_oro(oro)
+    for n, cifra in enumerate(cifras):
+        pegar(menu["cifras"][cifra], MENU_ORO_Y // CELL,
+              MENU_MONEDA_COL - len(cifras) + n, 1)
+    pegar(menu["moneda"], MENU_ORO_Y // CELL, MENU_MONEDA_COL,
+          MENU_MONEDA_COLS)
+    for fila, actor in enumerate(list(grupo)[:MENU_FILAS_GRUPO]):
+        if actor in menu["actores"]:
+            pegar(menu["actores"][actor], fila * MENU_ACTOR_FILAS,
+                  MENU_ACTOR_COL, MENU_ACTOR_COLS)
+    return fuera
 
 
 def render_ranuras(sys_img, db, ranuras, llenas, elegida, modo=0, font_id=None,
@@ -671,24 +900,10 @@ def render_ranuras(sys_img, db, ranuras, llenas, elegida, modo=0, font_id=None,
     from PIL import Image
     grupos = grupos or {}
     actores = sorted({a for g in grupos.values() for a in g})
-    tiles, paletas, cabeceras, filas, caras, nombres = pantalla_ranuras(
+    tiles, paletas, cabeceras, filas, caras, nombres, _ = pantalla_ranuras(
         sys_img, db, ranuras, font_id, actores, game_dir)
     fuera = Image.new("RGB", (ANCHO, ALTO), (0, 0, 0))
-    px = fuera.load()
-
-    def pegar(celdas, fila0, col0=0, cols=COLS):
-        for i, palabra in enumerate(celdas):
-            tx = (col0 + i % cols) * CELL
-            ty = (fila0 + i // cols) * CELL
-            celda = tiles[palabra & 0x3FF]
-            paleta = paletas[(palabra >> 10) & 7]
-            for y in range(CELL):
-                if ty + y >= ALTO:
-                    break
-                for x in range(CELL):
-                    valor = celda[y][x]
-                    if valor:
-                        px[tx + x, ty + y] = tuple(v << 3 for v in paleta[valor])
+    pegar = _pintor(fuera, tiles, paletas)
 
     pegar(cabeceras[modo], CABECERA_Y // CELL)
     for numero in range(ranuras):

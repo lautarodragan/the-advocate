@@ -212,7 +212,8 @@ class Mundo:
                                               guardar=self.prueba[14],
                                               variables=self.prueba[15],
                                               rama_var=self.prueba[16],
-                                              items=self.prueba[17])),
+                                              items=self.prueba[17],
+                                              acceso=self.prueba[18])),
                                      dict(PAGINA_DE_PRUEBA_APAGADA,
                                           evento=numero)]
             self.paginas_cache[map_id] = paginas
@@ -1256,6 +1257,10 @@ def main():
     parser.add_argument("--rama-var-de-prueba", nargs=5, type=int,
                         default=None,
                         help="el otro lado del mismo flag de snes_convert.py")
+    parser.add_argument("--acceso-de-prueba", nargs="+", type=int,
+                        default=None,
+                        help="CUAL PERMITIDO, repetible de a dos: el mismo "
+                             "flag del conversor")
     parser.add_argument("--items-de-prueba", nargs="+", type=int, default=None,
                         help="ITEM CUANTO, repetible de a dos: el mismo flag "
                              "del conversor")
@@ -1385,7 +1390,7 @@ def main():
                   or args.sacudida_de_prueba or args.fundir_bgm
                 or args.pan_de_prueba or args.rama_de_prueba
                   or args.vars_de_prueba or args.rama_var_de_prueba
-                  or args.items_de_prueba
+                  or args.items_de_prueba or args.acceso_de_prueba
                   or args.mensaje_de_prueba is not None)
     # El bloque de textos, armado igual que en el conversor y en el mismo orden:
     # el mensaje de prueba primero —desplazamiento 0— y después los mapas de la
@@ -1407,7 +1412,8 @@ def main():
                    args.guardar_de_prueba,
                    tuple(args.vars_de_prueba or ()),
                    tuple(args.rama_var_de_prueba or ()),
-                   tuple(args.items_de_prueba or ()))
+                   tuple(args.items_de_prueba or ()),
+                   tuple(args.acceso_de_prueba or ()))
                   if hay_prueba else None, mensajes,
                   graficos_de_prueba=snes_convert.graficos_de_prueba(
                       args.grafico_de_prueba),

@@ -497,7 +497,6 @@ GRUPO_MAX = 4           # `Game_Party::AddActor` no agrega si ya hay cuatro
 MESSAGE_OPTIONS = 10120
 
 IGNORABLES = {
-    CHANGE_SAVE_ACCESS,   # habilita o no el menú de guardar, que no existe
     MESSAGE_OPTIONS,      # dónde y cómo se dibuja la ventana de mensaje, que
                           # sin mensajes no se dibuja en ningún lado
 }
@@ -1262,6 +1261,13 @@ OP_ITEM = 0x19      # ítem (word), delta (byte con signo)
 ITEMS_N = 451       # los 450 ítems del LDB más el 0, que no se usa; lo cobra
                     # test_items.py contra RPG_RT.ldb
 ITEM_MAX = 99
+# `ChangeSaveAccess` y `ChangeMainMenuAccess`, desde que hay menú de pausa: cuál
+# —0 guardar, 1 el menú— y si queda permitido. La ROM lo guarda en
+# `FAR_ACCESO`; acá en `Estado`. Guardar desde el save point no lo mira, como
+# `OpenSaveMenu` en RM2k.
+OP_ACCESO = 0x1A    # cuál (byte), permitido (byte)
+CHANGE_MENU_ACCESS = 11960
+ACCESO_GUARDAR, ACCESO_MENU = 0, 1
 # Las operaciones de ControlVars que compilan: poner, sumar, restar. Multiplicar,
 # dividir y el resto no las usa ninguna página del juego.
 VAR_PONER, VAR_SUMAR, VAR_RESTAR = 0, 1, 2
@@ -1623,6 +1629,13 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
 
     if cmd.code == END or cmd.code in IGNORABLES:
         return b""
+
+    if cmd.code in (CHANGE_SAVE_ACCESS, CHANGE_MENU_ACCESS):
+        if not p:
+            raise NoSePuede("%s sin operandos" % cmd.code)
+        cual = (ACCESO_GUARDAR if cmd.code == CHANGE_SAVE_ACCESS
+                else ACCESO_MENU)
+        return bytes([OP_ACCESO, cual, 1 if p[0] else 0])
 
     if cmd.code == CHANGE_ITEMS:
         # [sumar o quitar, ítem por constante o variable, ítem, cantidad por
@@ -2542,6 +2555,9 @@ class Estado:
         # Y el inventario: cuántos hay de cada ítem, por número de RM2k. Lo
         # que no está es cero. Ver OP_ITEM.
         self.items = {}
+        # Si se puede guardar desde el menú y si se puede abrir el menú. Ver
+        # OP_ACCESO.
+        self.permitido = [True, True]
         # La elección abierta, si hay una. Mientras esté puesta, `mensaje`
         # apunta al cuadro de la opción marcada y la página está bloqueada.
         self.eleccion = None
@@ -3091,7 +3107,7 @@ LARGO_DE_OPCODE = {
     OP_GRUPO: 3, OP_MENSAJE: 3, OP_RUTAS: 1, OP_FLASH: 7, OP_TIMER: 5,
     OP_BGM: 2, OP_LUGAR: 6, OP_TRUEQUE: 3, OP_SACUDIR: 5, OP_DESTELLO: 6,
     OP_FUNDIR_BGM: 3, OP_PAN: 8, OP_SI: 7, OP_IR: 3, OP_ORO: 5,
-    OP_GUARDAR: 1, OP_VAR: 8, OP_SI_VAR: 8, OP_ITEM: 4,
+    OP_GUARDAR: 1, OP_VAR: 8, OP_SI_VAR: 8, OP_ITEM: 4, OP_ACCESO: 3,
 }
 
 
@@ -3307,7 +3323,7 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
                     flash=(), switches=(), timer=(), lugar=(),
                     frecuencia=RUTA_FRECUENCIA, sacudida=(), fundir_bgm=0,
                     pan=(), rama=(), destello=(), guardar=False,
-                    variables=(), rama_var=(), items=()):
+                    variables=(), rama_var=(), items=(), acceso=()):
     """Una página automática inventada: una ruta forzada, una espera, un tinte.
 
     No sale de ningún dato del juego, y ésa es la idea. El intérprete corre
@@ -3493,6 +3509,15 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
             codigo += _compilar(lcf.EventCommand(
                 CHANGE_ITEMS, 0, "", [1 if cuanto < 0 else 0, 0, numero, 0,
                                       abs(cuanto)]), None)
+    if acceso:
+        # ChangeSaveAccess y ChangeMainMenuAccess, de a dos números —cuál, 0
+        # guardar y 1 el menú, y si queda permitido—, por el mismo camino.
+        import lcf
+        for k in range(0, len(acceso), 2):
+            cual, permitido = acceso[k:k + 2]
+            codigo += _compilar(lcf.EventCommand(
+                CHANGE_SAVE_ACCESS if cual == ACCESO_GUARDAR
+                else CHANGE_MENU_ACCESS, 0, "", [permitido]), None)
     if rama_var:
         # (variable, comparación, valor, adentro, después): la rama por
         # variable, como `rama` pero con OP_SI_VAR. Existe porque en los mapas
@@ -3980,6 +4005,9 @@ def ejecutar(codigo, estado, desde=0):
                 i += 7
             else:
                 i = codigo[i + 5] | (codigo[i + 6] << 8)
+        elif op == OP_ACCESO:
+            estado.permitido[codigo[i + 1]] = bool(codigo[i + 2])
+            i += 3
         elif op == OP_ITEM:
             # `Game_Party::AddItem`: suma y recorta a [0, ITEM_MAX], y pide el
             # refresco, como `CommandChangeItems`. La ROM hace lo mismo en

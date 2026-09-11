@@ -453,6 +453,14 @@ class Partida:
         valor = bajo | (alto << 8)
         return valor - 0x10000 if valor & 0x8000 else valor
 
+    def acceso(self):
+        """El byte de permisos: bit 0 guardar prohibido, bit 1 el menú
+        prohibido, bit 7 el menú pedido."""
+        return self.consola.ram(self.simbolos["FAR_ACCESO"], 1)[0]
+
+    def menu_abierto(self):
+        return bool(self.byte("menu_abierto"))
+
     def item(self, numero):
         """Cuántos hay del ítem, leído de la RAM lejana."""
         return self.consola.ram(self.simbolos["FAR_ITEMS"] + numero, 1)[0]
@@ -489,7 +497,7 @@ def huella():
 
 def armar(map_id, mapas=(), con_ventana=True, destino=None, rama=(),
           descartar=False, guardar=0, titulo=False, tema=None, variables=(),
-          rama_var=(), items=()):
+          rama_var=(), items=(), acceso=()):
     """Convierte, ensambla y devuelve (ROM, símbolos, ids de mapa en orden).
 
     Los mismos dos comandos que corre el justfile, para que una ROM de prueba
@@ -527,6 +535,8 @@ def armar(map_id, mapas=(), con_ventana=True, destino=None, rama=(),
         convertir += ["--rama-var-de-prueba"] + [str(n) for n in rama_var]
     if items:
         convertir += ["--items-de-prueba"] + [str(n) for n in items]
+    if acceso:
+        convertir += ["--acceso-de-prueba"] + [str(n) for n in acceso]
     if guardar:
         # La página de prueba espera `guardar` ticks y recién ahí guarda la
         # partida. La espera es lo que le deja a la prueba mover el mundo antes

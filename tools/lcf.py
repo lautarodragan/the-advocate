@@ -202,6 +202,17 @@ TERMS_LEVEL = 0x7B
 # El nivel abreviado —"L" en el ABL— que es lo que el menú de archivos escribe
 # delante del número: `lcf::Data::terms.lvl_short` en `Window_SaveFile`.
 TERMS_LVL_SHORT = 0x80
+# Los del menú de pausa (liblcf: ldb/chunks.h, ChunkTerms). En el ABL dicen
+# 'Use Item', 'Tech Skill', 'Equipment', 'Save', 'End Game', 'Cr', 'Normal'
+# y 'HP'.
+TERMS_GOLD = 0x5F
+TERMS_COMMAND_ITEM = 0x6A
+TERMS_COMMAND_SKILL = 0x6B
+TERMS_MENU_EQUIPMENT = 0x6C
+TERMS_MENU_SAVE = 0x6E
+TERMS_MENU_QUIT = 0x70
+TERMS_NORMAL_STATUS = 0x7E
+TERMS_HP_SHORT = 0x81
 
 # Del esquema de liblcf, igual que todo lo demás de este archivo: los números no
 # se ponen de memoria. Ya pasó una vez con los códigos de comando de las puertas
@@ -214,6 +225,9 @@ ACTOR_CHARSET_INDEX = 0x04
 # `face_index` en ldb/chunks.h de liblcf.
 ACTOR_FACE_NAME = 0x0F
 ACTOR_FACE_INDEX = 0x10
+# Los parámetros por nivel: seis tablas de int16 seguidas —HP máximo, SP
+# máximo, ataque, defensa, espíritu y agilidad—, una entrada por nivel.
+ACTOR_PARAMETERS = 0x1F
 SYSTEM_PARTY = 0x16
 # El System del juego: el PNG con el marco de la ventana, los colores de texto
 # y la sombra. Este juego usa `ablskin`, no el `BLSys` que también trae.
@@ -573,6 +587,12 @@ class Actor:
         self.charset_index = to_int(fields.get(ACTOR_CHARSET_INDEX, b"\x00"))
         self.face_name = to_string(fields.get(ACTOR_FACE_NAME, b""))
         self.face_index = to_int(fields.get(ACTOR_FACE_INDEX, b"\x00"))
+        # Los HP máximos por nivel, desde el 1: la primera de las seis tablas
+        # de `parameters`, que las trae de a una tras otra con el mismo largo.
+        params = fields.get(ACTOR_PARAMETERS, b"")
+        por_tabla = len(params) // 2 // 6
+        self.hp_max = [int.from_bytes(params[2 * i:2 * i + 2], "little",
+                                      signed=True) for i in range(por_tabla)]
 
 
 class Database:
@@ -624,6 +644,13 @@ class Database:
         self.term_file = to_string(terminos.get(TERMS_FILE, b""))
         self.term_level = to_string(terminos.get(TERMS_LEVEL, b""))
         self.term_lvl_short = to_string(terminos.get(TERMS_LVL_SHORT, b""))
+        self.term_gold = to_string(terminos.get(TERMS_GOLD, b""))
+        self.term_menu = [to_string(terminos.get(t, b"")) for t in (
+            TERMS_COMMAND_ITEM, TERMS_COMMAND_SKILL, TERMS_MENU_EQUIPMENT,
+            TERMS_MENU_SAVE, TERMS_MENU_QUIT)]
+        self.term_normal_status = to_string(
+            terminos.get(TERMS_NORMAL_STATUS, b""))
+        self.term_hp_short = to_string(terminos.get(TERMS_HP_SHORT, b""))
 
     def lider(self, party=None):
         """El CharSet del primero del grupo: (nombre, índice).

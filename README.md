@@ -672,6 +672,57 @@ verdad** y mira dónde arranca. La SRAM sobrevive al reset y la WRAM no, así qu
 si la partida vuelve es porque salió del cartucho. Con `guardar_partida`
 cortado a propósito, tres de sus cuatro pruebas dan rojo.
 
+### El menú de pausa
+
+Desde el 2026-09-11 **B abre el menú**, que es `Scene_Menu` de RM2k: las cinco
+órdenes a la izquierda —`Use Item`, `Tech Skill`, `Equipment`, `Save`, `End
+Game`, con los términos del LDB—, el oro abajo y el grupo a la derecha, con la
+cara, el nombre, el nivel —mockeado en 1, como en las ranuras—, el estado y
+los HP del nivel, llenos. Hoy **sólo guardar hace algo**: abre la pantalla de
+ranuras en modo guardar y, elija o cancele, vuelve al menú con el cursor en
+Save, como `Scene_Save` vuelve a `Scene_Menu`. Las otras cuatro van en el
+color 3 del sistema, el de "no se puede", y A no hace nada con ellas: ítems,
+técnicas y equipo son los pasos que siguen, y terminar el juego pide volver al
+título sin reiniciar el SPC700.
+
+**La geometría es nuestra**, no la de RM2k: allá son 320x240 con ventanas, acá
+256x224 sobre fondo negro como la pantalla de ranuras, sin el título del
+actor, la experiencia ni los SP, y el oro con una cifra por celda y no a los 6
+pixeles de la fuente, para que la ROM las escriba de a una sin armar tiles. Es
+cosmético y está declarado. Todo lo demás sale de `titulo.py`: `render_menu`
+es la referencia y el conversor emite **los mismos bloques de celdas**, en el
+mismo banco de tiles y la misma paleta que la pantalla de ranuras —las caras
+son las mismas y guardar se abre desde el menú—. Las órdenes en gris llevan su
+propia paleta de BG2: el color 3 es un degradé y con el del texto sumaban 18
+colores, así que a las caras les quedan seis paletas.
+
+**Cuándo se abre es lo de RM2k.** `Game_Player::Update` anota el pedido
+—`menu_calling`— si B se aprieta con el menú permitido, sin mensaje y sin
+página corriendo; `UpdateNextMovementAction` lo atiende con el héroe quieto:
+con una página corriendo lo tira, con un mensaje lo deja esperando, y si no,
+abre el menú antes de mirar la cruceta. O sea que B a mitad de un paso abre el
+menú al terminarlo. En la ROM el pedido es el bit 7 de `FAR_ACCESO`,
+`pedir_menu` lo anota después de `move_hero` y `move_hero` lo atiende; un
+teletransporte lo tira, como `MoveTo`. Y el B que cancela una elección se
+consume ahí mismo: en RM2k la ventana procesa la tecla después del héroe, y
+acá la elección corre antes que `pedir_menu`. Lo mismo al cerrar el menú y la
+pantalla de ranuras: el B que cerró no le llega a nadie más.
+
+`ChangeSaveAccess` y `ChangeMainMenuAccess` **se honran**: dejaron de estar
+entre los comandos ignorados, compilan a `OP_ACCESO` y apagan o prenden los
+bits 0 y 1 de `FAR_ACCESO`, que viaja en la partida. Guardar prohibido pone
+Save en gris; el menú prohibido hace que B no lo pida. El save point no mira
+el permiso, como `OpenSaveMenu`.
+
+Mientras el menú se ve **el reloj del juego no corre**, igual que con la
+pantalla de ranuras, así que para la referencia el menú no cuesta ningún tick
+y después de cerrarlo los dos lados van por el mismo cuadro. Lo cobra
+`just snes-menu`: el menú como se abre y con el cursor movido contra
+`titulo.py --menu`, y el mapa después de cerrar contra `snes_expect.py`. Lo que
+la tanda no alcanza lo mira `pruebas/test_menu.py`: el menú con un grupo y oro
+puestos, guardar desde el menú, los dos permisos puestos por el bytecode, B a
+mitad de un paso, y que los permisos vuelvan de la SRAM.
+
 ### Varios mapas en la ROM
 
 Un mapa solo no es un juego. Todo lo que antes era una constante del `.inc` —el
