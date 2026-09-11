@@ -876,12 +876,14 @@ acotados; del cuarto para abajo es lo de siempre.
    menú, y que los NPCs de Lashe City vuelvan con sus poses —es lo que se
    rompía con las direcciones viejas de VRAM, y snes9x sí lo cobró, pero sólo
    con el grupo 11—.
-   **Las más nuevas son `/extras/builds/2026-09-11-e6bb4bc/`**: el MSU-1 en
-   `escape_newyork`. Ahí están las dos ROMs y, al lado de cada una, su `.msu`
-   vacío y su `.pcm` de 33 MB —los dos `.pcm` son el mismo audio con distinto
-   nombre, porque el MSU-1 empareja por nombre base—. Borrando esos archivos
-   las ROMs suenan como las de antes; el `LEEME.txt` del directorio lo explica.
-   Antes, `2026-09-11-d150491/`: el paquete
+   **Las más nuevas son `/extras/builds/2026-09-11-ddc82ea/`**: los ocho temas
+   por MSU-1 y los efectos de sonido de vuelta. Son las dos ROMs con su `.msu`
+   vacío y ocho `.pcm` cada una, 195 MB por ROM —las pistas están duplicadas
+   con los dos nombres base porque el MSU-1 empareja por nombre—. Borrando esos
+   archivos las ROMs suenan por el SPC700 como siempre; el `LEEME.txt` del
+   directorio lo explica, con la lista de qué tema es cada número.
+   Antes, `2026-09-11-e6bb4bc/`, con el MSU-1 en `escape_newyork` solo —la que
+   taro escuchó en Mesen—. Antes, `2026-09-11-d150491/`: el paquete
    de audio por mapa, las animaciones con sonido y destellos, y los
    translúcidos tramados, sin probar a mano. Antes, `2026-09-11-9fe396b/`, con
    el giro hacia el héroe. La anterior, `2026-09-11-7d992b6/` —el menú, la tienda, la
