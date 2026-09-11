@@ -668,6 +668,16 @@ texto, y pidió que el audio ande siempre aunque la imagen se atrase más. La
 música pasó a `irq_musica`, una IRQ vertical por cuadro de hardware; ya no
 depende de cuánto tarda el lazo. README, "La música no espera al lazo".
 
+### El atraso de la apertura (2026-09-11)
+
+La apertura perdía 181 cuadros en 3000; ahora 20, sueltos. FastROM —el
+código corre desde el espejo del banco $80—, los glifos del compositor ya
+compuestos por fase —59 KB, y el cartucho pasó a 2 MB—, la lluvia más barata
+y el destello con una tabla de productos. Ni la referencia ni lo que se
+dibuja cambian. README, "El costo de la apertura". **Falta que taro lo
+pruebe en la consola**: FastROM y los 2 MB son justo lo que un emulador
+puede perdonar y el FX Pak no.
+
 ### Lo próximo, si no se decide otra cosa
 
 Al 2026-09-10, en orden. Los tres primeros son deuda de esta vuelta y están

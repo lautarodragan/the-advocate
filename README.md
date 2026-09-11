@@ -2803,7 +2803,41 @@ Lo medido: la demo con un lazo de retardo agregado, que pierde 255 cuadros
 contra 108 en 1500, recorre el stream exactamente igual cuadro por cuadro
 desde que el tema arranca —1307 cuadros, cero distintos—. `snes-check` sobre
 el mapa 67 sigue diciendo que coincide con el MIDI (58 de 60 ventanas). El
-atraso de la imagen sigue siendo el mismo: ver "El costo de la apertura".
+atraso de la imagen se trabajó aparte: ver "El costo de la apertura".
+
+#### El costo de la apertura
+
+La otra mitad del pedido de taro: que la escena con lluvia, tinte, trueno y
+texto no se arrastre. Medido con una sonda de línea de barrido —una copia de
+`main.s` que anota la línea después de cada llamada del lazo—, la apertura
+perdía **181 cuadros en 3000**, casi todos en los tres tramos del trueno y en
+los mensajes. Ahora pierde **20**, todos sueltos: teletransportes y el cambio
+de tinte. Lo que se hizo, en orden de lo que rindió:
+
+* **FastROM.** La cabecera decía `$20`, ROM lenta: cada byte que la CPU saca
+  del cartucho —las instrucciones, para empezar— a 2,68 MHz. El código corre
+  ahora desde el espejo del banco $80 con `MEMSEL` en 1, que va a 3,58. Los
+  bancos $80 a $BF son los mismos que $00 a $3F, así que no se mueve nada: el
+  reset y la IRQ entran con un `jml` (que `w65.py` aprendió) y de ahí cada
+  `jsr` y `rts` se queda donde está. Es lo que se llevó los tramos del trueno.
+* **El compositor de mensajes con los glifos ya compuestos.** Pintaba cada
+  fila del glifo dos veces —la sombra y el glifo— y la corría de a un bit hasta
+  su fase: unas 25 líneas por carácter, 125 por cuadro con `MSG_CHARS` en 5.
+  La x de un carácter es `8 + 6 * columna`, así que cae en cuatro fases y no
+  en ocho, y el conversor emite los 95 glifos ya compuestos en las cuatro
+  —`fuente_prerender`, con la sombra y el glifo combinados en el orden de
+  `Font::Render`—: componer es leer, enmascarar y escribir. El cuadro de un
+  mensaje bajó de 134 líneas a 73. Son 59 KB de tablas, y por eso el cartucho
+  pasó a 2 MB.
+* **La lluvia**: ver "La lluvia", de 58 a 24 líneas en `lluvia_tick` y de 130
+  a 84 en `build_oam`.
+* **El destello lee sus productos de una tabla** (`prod31_tabla`, 1 KB) en vez
+  del multiplicador y el divisor con sus esperas: 20 líneas de 150.
+
+Nada de esto cambia qué se dibuja ni cuándo: la referencia no se tocó, y la
+tanda y las pruebas dan igual. La tanda no mide cuadros perdidos —compara por
+tick, ver `snes_correr.py`—, así que los números de arriba son de la sonda y
+de `cuadros_perdidos`, no de un caso.
 
 ### El personaje
 
@@ -3609,6 +3643,10 @@ Hover-Tram, y esa escena quedó para otra vuelta. Es deuda declarada en
   que es lo que hace `UpdateMoveRoute` con `skippable` apagado. Lo último es
   lo que más cerca está de verse: en la apertura la colisión no frena ningún
   paso, medido, pero el droide del mapa 2 vive de eso.
+* **El cartucho es de 2 MB desde el 2026-09-11**: `ROM_BANKS` es 64 y la
+  cabecera dice `$0B`. Lo pidieron los glifos ya compuestos del compositor de
+  mensajes, 59 KB, que no entraban en la ROM del título. Es LoROM hasta el
+  banco $3F, así que la SRAM de los bancos $70 en adelante no se entera.
 * **Los cuadros que el lazo pierde en sus picos.** Ya no los produce el
   teletransporte —el fundido se come la carga, ver "El fundido de los
   teletransportes"— pero siguen: la primera vuelta de una ROM con muchas

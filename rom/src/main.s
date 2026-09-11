@@ -27,6 +27,18 @@ VTIMEH   = $420A
 ; lo que haya corriendo puede esperar lo que tarde un cuadro de música.
 IRQ_LINEA = 112
 HVBJOY   = $4212        ; bit 7: estamos en vblank
+MEMSEL   = $420D        ; bit 0: la ROM de los bancos $80 en adelante, rápida
+; El código corre desde el espejo del banco $80, no desde el banco 0. Los
+; bancos $80 a $BF son los mismos que $00 a $3F —la RAM baja, los registros y
+; la ROM en los mismos lugares—, pero con MEMSEL en 1 la ROM de allá se lee a
+; 3,58 MHz en vez de 2,68: todo lo que la CPU saca del cartucho, empezando por
+; las instrucciones, va un tercio más rápido. Es el FastROM de la cabecera.
+; Lo único que hay que hacer es entrar: el reset y las interrupciones llegan
+; por vectores de dieciséis bits, o sea al banco 0, y saltan al espejo con un
+; `jml`; de ahí en más cada `jsr` y cada `rts` se quedan en el banco en el que
+; están. Desde el 2026-09-11, porque la apertura con lluvia, trueno y texto
+; perdía un cuadro de cada tres.
+RAPIDO   = $800000
 STAT78   = $213F        ; bit 4: 0 = consola NTSC, 1 = PAL
 HDMAEN   = $420C        ; canales de DMA por scanline
 APUIO0   = $2140        ; los cuatro puertos hacia el SPC700
@@ -600,6 +612,8 @@ comp_or23:   .res 4
     sei
     clc
     xce                         ; a modo nativo del 65816
+    jml f:rapido + RAPIDO       ; al espejo rápido: ver MEMSEL
+rapido:
     rep #$30                    ; A, X e Y de 16 bits
 .a16
 .i16
@@ -619,6 +633,8 @@ comp_or23:   .res 4
     stz pal_tick
 
     jsr ppu_reset               ; la consola no arranca limpia; el emulador sí
+    lda #$01
+    sta MEMSEL                  ; la ROM del espejo, rápida
 
     ; Después del reset, no antes: ppu_reset apaga NMITIMEN junto con todo lo
     ; demás, así que habilitarlo primero no serviría de nada.
@@ -15755,6 +15771,19 @@ apagar:
 .a8
 .i16
     sta dest_hacia
+    ; La fila del nivel en `prod31_tabla`, en temp + 2: temp es el puntero.
+    lda dest_nivel
+    rep #$20
+.a16
+    and #$001F
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a
+    sta temp + 2
+    sep #$20
+.a8
     ldy #0
 valor:
     tya                         ; el valor, de 0 a 31
@@ -15784,32 +15813,19 @@ guardar:
     bne valor
     rts
 
-; A = A * nivel / 31, por el multiplicador y el divisor del hardware.
+; A = A * nivel / 31, de `prod31_tabla`, que el conversor arma con la misma
+; cuenta. Hasta el 2026-09-11 salía del multiplicador y el divisor, con sus
+; esperas, y las 96 entradas de un cuadro impar costaban unas 45 líneas.
 producto_sobre_31:
-    sta WRMPYA
-    lda dest_nivel
-    sta WRMPYB                  ; arranca: el producto tarda ocho ciclos
-    nop
-    nop
-    nop
-    nop
     rep #$20
 .a16
-    lda RDMPYL
-    sta WRDIVL
+    and #$001F
+    clc
+    adc temp + 2
+    tax
     sep #$20
 .a8
-    lda #31
-    sta WRDIVB                  ; arranca: el cociente tarda dieciséis ciclos
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    lda RDDIVL
+    lda f:prod31_tabla, x
     rts
 .endproc
 
@@ -16775,11 +16791,14 @@ tabla_fila_buf:
     .word 0, 2, 4, 6, 8, 10, 12, 14
     .word 960, 962, 964, 966, 968, 970, 972, 974
 
-; Qué planos prende un color, para el par 0-1 y para el par 2-3. El índice son
-; los dos bits que le tocan al par, y el valor es la máscara duplicada que hay
-; que dejar pasar: ninguno, sólo el plano bajo, sólo el alto, o los dos.
-tabla_planos:
-    .word $0000, $00FF, $FF00, $FFFF
+; Dónde empiezan los glifos compuestos de cada fase, indexados por la fase
+; misma —0, 2, 4 o 6—: por eso los bancos van con un byte de relleno entre
+; uno y otro. Ver `componer_char`.
+fuente_pre_lo:
+    .word .loword(fuente_pre0), .loword(fuente_pre1)
+    .word .loword(fuente_pre2), .loword(fuente_pre3)
+fuente_pre_bk:
+    .byte ^fuente_pre0, 0, ^fuente_pre1, 0, ^fuente_pre2, 0, ^fuente_pre3
 
 .segment "CODE"
 
@@ -17223,33 +17242,28 @@ mas:
     rts
 .endproc
 
-; Un caracter: sus doce filas, cada una con su sombra debajo y corrida uno.
+; Un caracter, desde sus datos ya compuestos: `fuente_pre0` a `fuente_pre3`,
+; una tabla por fase, que arma `fuente_prerender` en el conversor. Por cada
+; una de las FUENTE_PRE_FILAS filas y cada una de las dos celdas que puede
+; pisar vienen tres palabras —qué se conserva del buffer, y qué se prende en
+; los planos 0-1 y en los 2-3—, así que pintar es leer, enmascarar y
+; escribir. Una celda que no toca nada viene con la máscara en $FFFF y se
+; saltea.
 ;
-; El orden importa y es el de `Font::Render`: para cada fila se pinta primero la
-; sombra —una fila más abajo y un pixel a la derecha— y después el glifo. Así la
-; fila que sigue le pisa la sombra a la anterior donde se superponen, que es lo
-; que se ve en las diagonales.
+; Hasta el 2026-09-11 esto pintaba cada fila dos veces —la sombra y después
+; el glifo, con una rutina `pintar` que armaba las máscaras en cada llamada—
+; y corría la fila de a un bit hasta su fase: unas 25 líneas por carácter, y
+; con MSG_CHARS en 5 era lo que más costaba del cuadro mientras se armaba un
+; mensaje. taro lo notó en la apertura, con lluvia. El resultado es el mismo
+; byte por byte: el orden de `Font::Render` —la sombra de una fila la pisa el
+; glifo de la siguiente— ya viene resuelto en las tablas.
 .proc componer_char
 .a8
 .i16
-    rep #$20
-.a16
-    ; El puntero al glifo: la fuente son doce filas por caracter.
     lda comp_char
-    sta temp
-    asl a
-    asl a
-    clc
-    adc temp
-    adc temp                    ; por 6
-    asl a                       ; por 12
-    clc
-    adc #.loword(fuente_tabla)
-    sta comp_glifo
-    sep #$20
-.a8
-    lda #^fuente_tabla
-    sta comp_glifo + 2
+    sta WRMPYA
+    lda #FUENTE_PRE_CHAR
+    sta WRMPYB                  ; arranca: lo que sigue le da los ocho ciclos
 
     ; Dónde cae: x = borde + 6 por columna, y de ahí la celda y la fase.
     rep #$20
@@ -17264,7 +17278,7 @@ mas:
     adc #VENTANA_BORDE
     sta temp                    ; x adentro de la ventana
     and #$0007
-    sta comp_fase
+    sta comp_fase               ; 0, 2, 4 o 6
     lda temp
     lsr a
     lsr a
@@ -17277,167 +17291,89 @@ mas:
     asl a
     asl a                       ; por 32 bytes de tile
     sta comp_base
+
+    ; Sus datos: la tabla de su fase, más el carácter por FUENTE_PRE_CHAR.
+    ldx comp_fase
+    lda fuente_pre_lo, x
+    clc
+    adc RDMPYL
+    sta comp_glifo
     sep #$20
 .a8
+    lda fuente_pre_bk, x
+    sta comp_glifo + 2
 
     ldy #0
+    lda #(TEXTO_OFS_Y * 2)
+    sta comp_fila               ; de a dos: es el índice en `tabla_fila_buf`
 fila:
-    lda [comp_glifo], y
-    beq siguiente               ; fila vacía: ni glifo ni sombra
-    rep #$20
-.a16
-    ; La fila viene con el pixel de la izquierda en el bit 7, que es el orden
-    ; del formato de tiles. Subida al byte alto y corrida a la derecha por la
-    ; fase, queda una palabra donde el byte alto es la celda en la que cae el
-    ; caracter y el bajo la de al lado.
-    and #$00FF
-    xba
-    ldx comp_fase
-    beq sin_correr
-correr:
-    lsr a
-    dex
-    bne correr
-sin_correr:
-    sta comp_mask
-    sep #$20
-.a8
-
-    ; La sombra: una fila más abajo y un pixel a la derecha.
-    phy
-    rep #$20
-.a16
-    lsr comp_mask
-    sep #$20
-.a8
-    tya
-    clc
-    adc #(TEXTO_OFS_Y + 1)
-    sta comp_fila
-    lda #FUENTE_SOMBRA
-    sta comp_color
-    jsr pintar
-
-    ; Y el glifo encima, en su fila.
-    ply
-    phy
-    rep #$20
-.a16
-    asl comp_mask
-    sep #$20
-.a8
-    tya
-    clc
-    adc #TEXTO_OFS_Y
-    sta comp_fila
-    lda fuente_color, y
-    sta comp_color
-    jsr pintar
-    ply
-
-siguiente:
-    iny
-    cpy #FUENTE_ALTO
-    bcc fila
-    rts
-.endproc
-
-; Escribe `comp_mask` con el color `comp_color` en la fila `comp_fila` del
-; buffer, desde la columna de celda que dejó `comp_base`.
-;
-; La cuenta por plano es `byte = (byte & ~m) | (m si el bit del color está)`. Lo
-; que la hace barata es que los planos 0 y 1 de una fila son **bytes vecinos**
-; en el formato de la consola, y los 2 y 3 también dieciséis bytes más adelante:
-; duplicando la máscara a los dos bytes de la palabra, cada par de planos sale
-; de una sola escritura de dieciséis bits. Son cuatro por fila y no dieciséis.
-.proc pintar
-.a8
-.i16
     rep #$20
 .a16
     lda comp_fila
     and #$00FF
-    asl a
     tax
     lda tabla_fila_buf, x
     clc
     adc comp_base
     tax                         ; X = el byte del buffer donde arranca la fila
-
-    ; La máscara duplicada a los dos planos, para cada una de las dos columnas
-    ; de celda que puede tocar. El byte **alto** es la primera columna: la
-    ; palabra se lee de izquierda a derecha como los pixeles.
-    lda comp_mask
-    xba
-    and #$00FF
-    sta temp
-    xba
-    ora temp
-    sta comp_dup
-    lda comp_mask
-    and #$00FF
-    sta temp
-    xba
-    ora temp
-    sta comp_dup + 2
-
-    ; Y de ahí las tres combinaciones: lo que hay que borrar y lo que hay que
-    ; prender en cada par de planos. Los `tabla_planos` son 0, $00FF, $FF00 y
-    ; $FFFF según qué bits del color estén.
-    lda comp_color
-    and #$0003
-    asl a
-    tay
-    lda comp_dup
-    and tabla_planos, y
-    sta comp_or01
-    lda comp_dup + 2
-    and tabla_planos, y
-    sta comp_or01 + 2
-    lda comp_color
-    and #$000C
-    lsr a
-    tay
-    lda comp_dup
-    and tabla_planos, y
-    sta comp_or23
-    lda comp_dup + 2
-    and tabla_planos, y
-    sta comp_or23 + 2
-
-    ; Una celda que la máscara no toca se saltea entera. No es una micro
-    ; optimización: un glifo de seis pixeles cae entero adentro de una celda en
-    ; la mitad de las fases —las columnas van de a seis y las celdas de a
-    ; ocho— así que esto se ahorra la mitad de las escrituras y es lo que
-    ; permite componer más caracteres por cuadro sin perder ninguno.
-    lda comp_dup
+    lda [comp_glifo], y
+    cmp #$FFFF
     beq sin_primera
-    eor #$FFFF
     sta comp_and
+    iny
+    iny
     lda texto_buf, x            ; planos 0 y 1 de la primera celda
     and comp_and
-    ora comp_or01
+    ora [comp_glifo], y
     sta texto_buf, x
+    iny
+    iny
     lda texto_buf + 16, x       ; planos 2 y 3
     and comp_and
-    ora comp_or23
+    ora [comp_glifo], y
     sta texto_buf + 16, x
+    iny
+    iny
+    bra segunda
 sin_primera:
-    lda comp_dup + 2
+    tya
+    clc
+    adc #6
+    tay
+segunda:
+    lda [comp_glifo], y
+    cmp #$FFFF
     beq sin_segunda
-    eor #$FFFF
-    sta comp_and + 2
+    sta comp_and
+    iny
+    iny
     lda texto_buf + 32, x       ; la celda de al lado, un tile más adelante
-    and comp_and + 2
-    ora comp_or01 + 2
+    and comp_and
+    ora [comp_glifo], y
     sta texto_buf + 32, x
+    iny
+    iny
     lda texto_buf + 48, x
-    and comp_and + 2
-    ora comp_or23 + 2
+    and comp_and
+    ora [comp_glifo], y
     sta texto_buf + 48, x
+    iny
+    iny
+    bra otra_fila
 sin_segunda:
+    tya
+    clc
+    adc #6
+    tay
+otra_fila:
     sep #$20
 .a8
+    lda comp_fila
+    clc
+    adc #2
+    sta comp_fila
+    cmp #((TEXTO_OFS_Y + FUENTE_PRE_FILAS) * 2)
+    bcc fila
     rts
 .endproc
 
@@ -20750,6 +20686,8 @@ OP_END  = $FF
 ; Un cuadro de música por cuadro de video, más uno extra cada cinco si la
 ; consola es PAL: seis cada cinco son exactamente 60 por cada 50.
 .proc irq_musica
+    jml f:rapida + RAPIDO       ; el vector cae en el banco 0: ver MEMSEL
+rapida:
     ; Todo lo que se toca se guarda, B y D incluidos: se cae en el medio de
     ; cualquier cosa, el intérprete con B apuntando al bytecode entre ellas.
     rep #$30
@@ -21079,9 +21017,9 @@ done:
     ; de ROMs. Decía "ABL SNES MUSIC POC" hasta el 2026-09-09, de cuando esto era
     ; una prueba de audio; en hardware se ve, así que dejó de dar igual.
     .byte "A BLURRED LINE       "  ; 21 caracteres
-    .byte $20                      ; LoROM, velocidad lenta
+    .byte $30                      ; LoROM, FastROM: ver MEMSEL
     .byte $02                      ; ROM y RAM con batería: la partida guardada
-    .byte $0A                      ; tamaño: 1 MB (el byte es log2 de los KB)
+    .byte $0B                      ; tamaño: 2 MB (el byte es log2 de los KB)
     .byte $05                      ; SRAM: 32 KB, y se usan cuatro ranuras de 2048
     .byte $01                      ; región
     .byte $00                      ; desarrollador

@@ -1827,6 +1827,57 @@ def fuente_bytes(font_id):
     return bytes(out)
 
 
+# Los glifos de la ventana ya compuestos, para cada una de las cuatro fases en
+# que puede caer un carácter: la x es `VENTANA_BORDE + 6 * columna`, así que
+# módulo 8 da 0, 6, 4 o 2 y nunca otra cosa. Por glifo y fase van las filas
+# de celda de `FUENTE_PRE_FILAS` que toca —las doce del glifo desde
+# `TEXTO_OFS_Y`, y una más de sombra— y por fila las dos celdas que puede
+# pisar, cada una con tres palabras: qué se conserva del buffer, y qué se
+# prende en los planos 0-1 y en los 2-3. La ROM hace
+# `buf = buf & conservar | prender`, que es lo que antes calculaba en cada
+# fila con `pintar`, dos veces —sombra y glifo— y con un corrimiento de a un
+# bit. Ver `componer_char`.
+#
+# La sombra y el glifo van ya combinados, con la regla del orden de
+# `Font::Render`: en una fila cae el glifo de dos filas más arriba y la sombra
+# del de tres, corrida un pixel, y donde se pisan gana el glifo.
+FUENTE_PRE_FILAS = FUENTE_ALTO + 1
+FUENTE_PRE_CHAR = FUENTE_PRE_FILAS * 2 * 6
+
+
+def fuente_prerender(fuente, colores, sombra):
+    """Las cuatro tablas, una por fase (0, 2, 4 y 6), en ese orden."""
+    n = len(fuente) // FUENTE_ALTO
+    tablas = []
+    for fase in (0, 2, 4, 6):
+        out = bytearray()
+        for c in range(n):
+            filas = fuente[c * FUENTE_ALTO:(c + 1) * FUENTE_ALTO]
+            corrida = [(f << 8) >> fase for f in filas]
+            for k in range(FUENTE_PRE_FILAS):
+                glifo = corrida[k] if k < FUENTE_ALTO else 0
+                color = colores[k] if k < FUENTE_ALTO else 0
+                sombra_m = (corrida[k - 1] >> 1) if k >= 1 else 0
+                sombra_m &= ~glifo & 0xFFFF
+                for celda in (0, 1):
+                    g = (glifo >> (8 if celda == 0 else 0)) & 0xFF
+                    s = (sombra_m >> (8 if celda == 0 else 0)) & 0xFF
+                    conservar = ~((g | s) * 0x0101) & 0xFFFF
+                    prender = []
+                    for bits in (0, 2):
+                        palabra = 0
+                        for m, col in ((g, color), (s, sombra)):
+                            if col >> bits & 1:
+                                palabra |= m
+                            if col >> (bits + 1) & 1:
+                                palabra |= m << 8
+                        prender.append(palabra)
+                    for palabra in [conservar] + prender:
+                        out += bytes([palabra & 0xFF, palabra >> 8])
+        tablas.append(bytes(out))
+    return tablas
+
+
 def build_blocks(tilemap, above_tilemap, passable, width, height):
     """El mapa como índices a bloques de 16x16, con su tabla.
 
@@ -2794,6 +2845,8 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "FUENTE_ALTO    = %d\n"
         "FUENTE_ANCHO   = %d\n"
         "FUENTE_SOMBRA  = %d\n"
+        "FUENTE_PRE_FILAS = %d\n"
+        "FUENTE_PRE_CHAR  = %d\n"
         "; La animación del ChipSet. Cada mapa tiene una entrada en\n"
         "; `anim_tabla` con sus dos corridas y un bloque con los dibujos;\n"
         "; ver `anim_tabla` en snes_convert.py. Las cadencias y el ciclo\n"
@@ -2942,6 +2995,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            VENTANA_TEXTO_COL, VENTANA_TEXTO_COLS, _columnas(),
            FUENTE_ALTO, FUENTE_ANCHO,
            0 if ventana is None else ventana["sombra"],
+           FUENTE_PRE_FILAS, FUENTE_PRE_CHAR,
            len(FAMILIAS), ANIM_STRIDE, ANIM_FAM_STRIDE,
            rm2k.AGUA_CUADROS_LENTO,
            FAMILIAS[0][1],
@@ -3086,7 +3140,19 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             # una máscara de 16x16, pero cada fila es de un solo color, así que
             # doce bytes alcanzan y la ROM no tiene que muestrear nada.
             handle.write(bloque("fuente_tabla", ventana["fuente"]) + "\n")
+            pre = (fuente_prerender(ventana["fuente"], ventana["color"],
+                                    ventana["sombra"]) if con_ventana
+                   else [b"\x00"] * 4)
+            for fase, datos in enumerate(pre):
+                handle.write(bloque("fuente_pre%d" % fase, datos) + "\n")
             handle.write(bloque("mensajes", ventana["mensajes"]) + "\n")
+        # Los productos del destello de pantalla: `d * nivel // 31` para d y
+        # nivel de 0 a 31, en la fila del nivel. Es la cuenta de
+        # `destellar_canal`, y la ROM la leía del multiplicador y el divisor
+        # para cada una de las 96 entradas de sus tablas en cada cuadro
+        # impar: ver `una_tabla_de_destello`.
+        handle.write(bloque("prod31_tabla", bytes(
+            d * n // 31 for n in range(32) for d in range(32))) + "\n")
         # --- la pantalla de título ---
         #
         # Va entera en BG1, que en modo 3 tiene ocho bits por pixel: la imagen

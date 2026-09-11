@@ -48,7 +48,8 @@ import sys
 # Lo que sí paga el precio es el 65816: un puntero de 24 bits no avanza solo de
 # $00FFFF a $018000, hay que ayudarlo. Está en `advance`, en main.s.
 BANK_SIZE = 0x8000
-ROM_BANKS = 32          # 1 MB desde el 2026-09-07; 512 KB desde el 2026-09-05.
+ROM_BANKS = 64          # 2 MB desde el 2026-09-11; 1 MB desde el 2026-09-07;
+                        # 512 KB desde el 2026-09-05.
                         # Ver el README, "El cartucho".
 
 # TABLAS va en el banco 0, junto al código, y no es un detalle de acomodo: el
@@ -129,8 +130,8 @@ OPCODES = {
     "inc": {"dpx": 0xF6, "absx": 0xFE, "acc": 0x1A, "dp": 0xE6, "abs": 0xEE},
     "dec": {"dpx": 0xD6, "absx": 0xDE, "acc": 0x3A, "dp": 0xC6, "abs": 0xCE},
     "stz": {"dpx": 0x74, "absx": 0x9E, "dp": 0x64, "abs": 0x9C},
-    "and": {"long": 0x2F, "longx": 0x3F, "dpx": 0x35, "absx": 0x3D, "absy": 0x39, "imm": 0x29, "dp": 0x25, "abs": 0x2D},
-    "ora": {"long": 0x0F, "longx": 0x1F, "dpx": 0x15, "absx": 0x1D, "absy": 0x19, "imm": 0x09, "dp": 0x05, "abs": 0x0D},
+    "and": {"dpil": 0x27, "dpily": 0x37, "long": 0x2F, "longx": 0x3F, "dpx": 0x35, "absx": 0x3D, "absy": 0x39, "imm": 0x29, "dp": 0x25, "abs": 0x2D},
+    "ora": {"dpil": 0x07, "dpily": 0x17, "long": 0x0F, "longx": 0x1F, "dpx": 0x15, "absx": 0x1D, "absy": 0x19, "imm": 0x09, "dp": 0x05, "abs": 0x0D},
     "eor": {"long": 0x4F, "longx": 0x5F, "dpx": 0x55, "absx": 0x5D, "absy": 0x59, "imm": 0x49, "dp": 0x45, "abs": 0x4D},
     "adc": {"long": 0x6F, "longx": 0x7F, "dpx": 0x75, "absx": 0x7D, "absy": 0x79, "imm": 0x69, "dp": 0x65, "abs": 0x6D},
     "sbc": {"long": 0xEF, "longx": 0xFF, "dpx": 0xF5, "absx": 0xFD, "absy": 0xF9, "imm": 0xE9, "dp": 0xE5, "abs": 0xED},
@@ -141,6 +142,7 @@ OPCODES = {
     "ror": {"dpx": 0x76, "absx": 0x7E, "acc": 0x6A, "dp": 0x66, "abs": 0x6E},
     "jsr": {"abs": 0x20},
     "jmp": {"abs": 0x4C},
+    "jml": {"long": 0x5C},
     # rep y sep llevan siempre un inmediato de un byte, sea cual sea el ancho
     # vigente: su operando son los bits del registro de estado, no un dato.
     "rep": {"imm8": 0xC2},
