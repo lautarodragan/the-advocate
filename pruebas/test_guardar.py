@@ -144,5 +144,5 @@ def test_las_cuatro_ranuras_entran_en_la_sram(partida):
         "una partida ocupa %d bytes y las ranuras van cada %d: la %d pisaría "
         "el final de la anterior" % (largo, stride, ranuras))
     fin = _base(simbolos, ranuras - 1) + stride
-    assert fin <= 0x2000, (
-        "las %d ranuras terminan en $%04X y la SRAM son 8 KB" % (ranuras, fin))
+    assert fin <= 0x8000, (
+        "las %d ranuras terminan en $%04X y la SRAM son 32 KB" % (ranuras, fin))

@@ -1831,6 +1831,55 @@ snes-items mapa="73" abre="40" vuelve="60 120" nombre="items":
         --saltar $pre-vuelve-$n.saltar.txt -o $pre-vuelve-$n.comparacion.png
   done
 
+# La pantalla de equipo, desde el menú: Equipment, A sobre Kersh —el único del
+# grupo con el que arranca la ROM—, y la lista del arma con dos que puede
+# ponerse y que da la página de prueba. Tres cosas:
+#
+#   equipo          las ranuras de Kersh con su equipo inicial del LDB —el
+#                   bláster y el sobretodo— y sus parámetros, contra
+#                   `pantallas.py --equipo`.
+#   equipo-lista    A sobre el arma: la lista con el cursor en el segundo, y
+#                   los parámetros que quedarían con ése.
+#   equipo-vuelve-N B tres veces —de la lista a las ranuras, de ahí al menú y
+#                   del menú al mapa—, y el mapa del tick N contra la
+#                   referencia. Lo que equipar cambia en la RAM lo mira
+#                   `pruebas/test_equipo.py`.
+snes-equipo mapa="73" abre="40" vuelve="60 120" nombre="equipo":
+  #!/usr/bin/env bash
+  set -euo pipefail
+  mkdir -p {{snes_pngs}} {{snes_inc}}
+  dar="17 1 20 1"
+  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
+      --items-de-prueba $dar -o {{snes_inc}}/mapdata.inc
+  just snes-build
+  pre={{snes_pngs}}/{{nombre}}
+  a=$(( {{abre}} + 12 ))
+  python3 tools/pantallas.py -o $pre.esperado.png --equipo 11 --items 17:1,20:1
+  python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre.png \
+      --toques-hardware b:{{abre}} down:$a down:$(( a + 4 )) a:$(( a + 8 )) \
+      a:$(( a + 20 )) --cuadros $(( a + 32 )) --sin-contador
+  python3 tools/snes_compare.py $pre.png $pre.esperado.png -o $pre.comparacion.png
+  python3 tools/pantallas.py -o $pre-lista.esperado.png --equipo 11 \
+      --items 17:1,20:1 --eligiendo --elegido 1
+  python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre-lista.png \
+      --toques-hardware b:{{abre}} down:$a down:$(( a + 4 )) a:$(( a + 8 )) \
+      a:$(( a + 20 )) a:$(( a + 40 )) down:$(( a + 60 )) \
+      --cuadros $(( a + 72 )) --sin-contador
+  python3 tools/snes_compare.py $pre-lista.png $pre-lista.esperado.png \
+      -o $pre-lista.comparacion.png
+  for n in {{vuelve}}; do
+    python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
+        --items-de-prueba $dar --cuadros $n \
+        --saltar $pre-vuelve-$n.saltar.txt -o $pre-vuelve-$n.esperado.png
+    python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} \
+        -o $pre-vuelve-$n.png --cuadros $n \
+        --toques-hardware b:{{abre}} down:$a down:$(( a + 4 )) a:$(( a + 8 )) \
+        a:$(( a + 20 )) a:$(( a + 40 )) b:$(( a + 60 )) b:$(( a + 80 )) \
+        b:$(( a + 100 ))
+    python3 tools/snes_compare.py $pre-vuelve-$n.png $pre-vuelve-$n.esperado.png \
+        --saltar $pre-vuelve-$n.saltar.txt -o $pre-vuelve-$n.comparacion.png
+  done
+
 # El héroe a mitad de camino: se lo captura con N pixeles andados, en la pose
 # de caminata que le toca, y se compara contra la referencia calculada para ese
 # mismo avance.

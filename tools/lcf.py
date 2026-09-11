@@ -213,6 +213,11 @@ TERMS_MENU_SAVE = 0x6E
 TERMS_MENU_QUIT = 0x70
 TERMS_NORMAL_STATUS = 0x7E
 TERMS_HP_SHORT = 0x81
+# Los del equipo: los cuatro parámetros y las cinco ranuras. En el ABL dicen
+# 'Attack', 'Defense', 'Mental', 'Agility' y 'Right Hand', 'Left Hand',
+# 'Body', 'Head', 'Other'.
+TERMS_PARAMS = (0x84, 0x85, 0x86, 0x87)
+TERMS_EQUIPO = (0x88, 0x89, 0x8A, 0x8B, 0x8C)
 
 # Del esquema de liblcf, igual que todo lo demás de este archivo: los números no
 # se ponen de memoria. Ya pasó una vez con los códigos de comando de las puertas
@@ -228,6 +233,7 @@ ACTOR_FACE_INDEX = 0x10
 # Los parámetros por nivel: seis tablas de int16 seguidas —HP máximo, SP
 # máximo, ataque, defensa, espíritu y agilidad—, una entrada por nivel.
 ACTOR_PARAMETERS = 0x1F
+ACTOR_INITIAL_EQUIPMENT = 0x33
 SYSTEM_PARTY = 0x16
 # El System del juego: el PNG con el marco de la ventana, los colores de texto
 # y la sombra. Este juego usa `ablskin`, no el `BLSys` que también trae.
@@ -587,12 +593,17 @@ class Actor:
         self.charset_index = to_int(fields.get(ACTOR_CHARSET_INDEX, b"\x00"))
         self.face_name = to_string(fields.get(ACTOR_FACE_NAME, b""))
         self.face_index = to_int(fields.get(ACTOR_FACE_INDEX, b"\x00"))
-        # Los HP máximos por nivel, desde el 1: la primera de las seis tablas
-        # de `parameters`, que las trae de a una tras otra con el mismo largo.
-        params = fields.get(ACTOR_PARAMETERS, b"")
-        por_tabla = len(params) // 2 // 6
-        self.hp_max = [int.from_bytes(params[2 * i:2 * i + 2], "little",
-                                      signed=True) for i in range(por_tabla)]
+        # Los parámetros por nivel, desde el 1: `maxhp`, `attack`, `defense`,
+        # `spirit`, `agility`, cada uno una lista.
+        self.params = decode_value(fields.get(ACTOR_PARAMETERS, b""),
+                                   "parameters", set())
+        self.hp_max = self.params.get("maxhp", [])
+        # El equipo con el que arranca: arma, escudo, armadura, casco y
+        # accesorio, por número de ítem, 0 si nada.
+        equipo = decode_value(fields.get(ACTOR_INITIAL_EQUIPMENT, b""),
+                              "equipment", set())
+        self.initial_equipment = [equipo.get(k, 0) for k in (
+            "weapon", "shield", "armor", "helmet", "accessory")]
 
 
 # Un ítem de la base (liblcf: ldb/chunks.h, ChunkItem).
@@ -602,6 +613,13 @@ ITEM_TYPE = 0x03
 ITEM_USES = 0x06
 ITEM_SWITCH_ID = 0x37
 ITEM_OCCASION_FIELD2 = 0x39
+ITEM_PRICE = 0x05
+ITEM_ATK = 0x0B
+ITEM_DEF = 0x0C
+ITEM_SPI = 0x0D
+ITEM_AGI = 0x0E
+ITEM_TWO_HANDED = 0x0F
+ITEM_ACTOR_SET = 0x3E
 # Los tipos, en el orden de `rpg::Item::Type`.
 ITEM_TIPO_COMUN, ITEM_TIPO_ARMA, ITEM_TIPO_ESCUDO, ITEM_TIPO_ARMADURA, \
     ITEM_TIPO_CASCO, ITEM_TIPO_ACCESORIO, ITEM_TIPO_MEDICINA, \
@@ -620,6 +638,18 @@ class Item:
         self.switch_id = to_int(fields.get(ITEM_SWITCH_ID, b"\x01"))
         self.occasion_field2 = to_bool(fields.get(ITEM_OCCASION_FIELD2,
                                                   b"\x01"))
+        self.price = to_int(fields.get(ITEM_PRICE, b"\x00"))
+        # Lo que suma al equipárselo: ataque, defensa, espíritu, agilidad.
+        self.puntos = [to_int(fields.get(c, b"\x00"))
+                       for c in (ITEM_ATK, ITEM_DEF, ITEM_SPI, ITEM_AGI)]
+        self.two_handed = to_bool(fields.get(ITEM_TWO_HANDED, b"\x00"))
+        self.actor_set = [bool(b) for b in fields.get(ITEM_ACTOR_SET, b"")]
+
+    def equipable_por(self, actor):
+        """`actor_set`, con los que no alcanza la lista en sí: es lo que
+        hace RM2k con un ítem que se hizo antes de agregar actores."""
+        return self.actor_set[actor - 1] if actor - 1 < len(self.actor_set) \
+            else True
 
 
 class Database:
@@ -679,6 +709,11 @@ class Database:
         self.term_normal_status = to_string(
             terminos.get(TERMS_NORMAL_STATUS, b""))
         self.term_hp_short = to_string(terminos.get(TERMS_HP_SHORT, b""))
+        self.term_params = [to_string(terminos.get(t, b""))
+                            for t in TERMS_PARAMS]
+        self.term_equipo = [to_string(terminos.get(t, b""))
+                            for t in TERMS_EQUIPO]
+        self.terminos = terminos    # crudos, para la tienda
 
     def lider(self, party=None):
         """El CharSet del primero del grupo: (nombre, índice).

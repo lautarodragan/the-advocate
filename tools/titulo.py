@@ -617,8 +617,9 @@ MENU_CURSOR_COL = 1             # el ">", x = 8
 # título sin reiniciar el SPC700. Usar ítems abre la pantalla de ítems desde
 # el 2026-09-11. La 3, guardar, depende de `ChangeSaveAccess`.
 MENU_ITEMS = 0
+MENU_EQUIPO = 2
 MENU_GUARDAR = 3
-MENU_HECHAS = (MENU_ITEMS, MENU_GUARDAR)
+MENU_HECHAS = (MENU_ITEMS, MENU_EQUIPO, MENU_GUARDAR)
 # El oro, abajo a la izquierda: hasta seis cifras **de a una celda cada una**
 # —no a los 6 pixeles de la fuente, para que la ROM las escriba de a una sin
 # rearmar tiles— y el término de la moneda detrás, en el color 1.

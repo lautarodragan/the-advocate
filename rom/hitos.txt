@@ -58,6 +58,7 @@ snes-espera
 snes-guardar
 snes-menu
 snes-items
+snes-equipo
 snes-anclada
 snes-texto
 snes-ruta-evento

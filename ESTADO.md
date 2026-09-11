@@ -617,8 +617,18 @@ a nada —es exacto—, las medicinas van en blanco y abren la elección de acto
 —el panel del grupo del menú con un cursor—, y A ahí no tiene efecto ni gasta
 la medicina, como en RM2k. Los HP pasan a ser estado el día que haya batallas.
 
-Lo que falta del sistema de ítems: el equipo, la tienda, y los libros, los
-materiales y los especiales. La consola y su evento común quedan afuera: taro
+**El equipo (2026-09-11).** "Equipment" elige actor y abre sus ranuras; la
+lista de cada ranura muestra lo que puede ponerse y los parámetros que
+quedarían, y equipar mueve los ítems entre el inventario y `FAR_EQUIPO`, con
+las armas a dos manos y el escudo como en RM2k. El equipo inicial sale del
+LDB y viaja en la partida, que por eso pasó a ranuras de 2048 y la SRAM a 32
+KB. Es la primera **pantalla de texto**: se compone entera en `texto_buf` y
+sube de un DMA por cuadro, después de leer el control —antes perdía la mitad
+de los toques—. `ChangeEquipment` no compila todavía: sólo en los mapas 30 y
+151. Lo cobran `snes-equipo` y `pruebas/test_equipo.py`.
+
+Lo que falta del sistema de ítems: la tienda, y los libros, los materiales y
+los especiales. La consola y su evento común quedan afuera: taro
 lo decidió el 2026-09-11, y la idea es un sistema propio del port en vez de
 las imágenes del original.
 

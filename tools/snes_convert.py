@@ -44,6 +44,7 @@ import lcf
 import rm2k
 import pixeles
 import titulo as titulo_mod
+import pantallas as pantallas_mod
 import snes_music
 from pixeles import CELL, cut_tiles, flips, reduce_colors, tile_colors, to_indices
 from rm2k import collect_npcs, hero_start, passability_map
@@ -3124,13 +3125,30 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             for c in list(paleta) + [(0, 0, 0)] * (titulo_mod.MENU_CGRAM
                                                    - len(paleta)))) + "\n")
         item_textos, item_textos_ofs = bytearray(), []
+
+        def texto_nuevo(texto):
+            texto = titulo_mod.texto_de_item(texto, 255)
+            item_textos_ofs.append((len(item_textos), len(texto)))
+            item_textos.extend(texto.encode("ascii"))
+            return len(item_textos_ofs) - 1
+
         for numero in ranuras["items"]:
             item = ranuras["items_db"][numero]
             for texto in ([titulo_mod.texto_de_item(
                     item.name, titulo_mod.ITEM_NOMBRE_ANCHO)]
                     + titulo_mod.partir_descripcion(item.description)):
-                item_textos_ofs.append((len(item_textos), len(texto)))
-                item_textos += texto.encode("ascii")
+                texto_nuevo(texto)
+        # Y los fijos, detrás: los parámetros y las ranuras del equipo, y el
+        # nombre de cada actor que puede entrar al grupo. Ver pantallas.py.
+        P = pantallas_mod
+        db = ranuras["db"]
+        texto_param = [texto_nuevo(t[:P.EQ_PARAM_VALOR - 1])
+                       for t in db.term_params]
+        texto_ranura = [texto_nuevo(t[:P.EQ_RANURA_NOMBRE_COL
+                                      - P.EQ_RANURA_TERM_COL - 1])
+                        for t in db.term_equipo]
+        texto_actor = {a: texto_nuevo(db.actors[a].name)
+                       for a in ranuras["actores"]}
         handle.write(bloque("item_textos", bytes(item_textos) or b"\x00")
                      + "\n")
         if len(bloques_ranura) > 255:
@@ -3243,7 +3261,8 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # las tablas de la ROM, $FF si esta ROM no lo conoce; lo demás es por
         # lugar. `item_uso`: bit 0 si va en blanco y A hace algo, bit 1 si
         # usarlo gasta uno —los de switch con usos—, bit 2 si abre la elección
-        # de actor —las medicinas—. Los textos van de a tres por ítem —el nombre y los
+        # de actor —las medicinas—, bit 3 si es un arma a dos manos. Los textos
+        # van de a tres por ítem —el nombre y los
         # dos renglones de la descripción—: el texto `t` es el `3k + campo`.
         items = ranuras["items"]
         db_items = ranuras["items_db"]
@@ -3289,6 +3308,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                and not T.item_pide_actor(db_items[n])
                and db_items[n].uses else 0)
             | (4 if T.item_pide_actor(db_items[n]) else 0)
+            | (8 if db_items[n].two_handed else 0)
             for n in items])
         words_asm("item_switch", [db_items[n].switch_id for n in items])
         for campo, prefijo in (("lo", "<"), ("hi", ">"), ("bk", "^")):
@@ -3302,6 +3322,63 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # Las dos celdas de cada carácter, arriba y abajo: primero los 95 en
         # blanco y después en gris. El carácter `c` en la variante `g` está en
         # `g * ITEM_GLIFOS_GRIS + (c - ITEM_PRIMER_CARACTER) * 4`.
+        # --- el equipo ---
+        # Por ítem conocido: su tipo, lo que suma —ataque, defensa, espíritu,
+        # agilidad, con signo— y quién puede ponérselo, un bit por actor. Por
+        # actor, del 0 al último del LDB: sus parámetros del nivel y su equipo
+        # inicial, que la ROM copia a `FAR_EQUIPO` en el reset. Y dónde va
+        # cada cosa en el búfer de la pantalla, en bytes: fila * 64 + col * 2.
+        actores_n = max(db.actors) + 1
+
+        def pos(fila, col):
+            return fila * 64 + col * 2
+
+        bytes_asm("item_tipo", [db_items[n].type for n in items])
+        words_asm("item_puntos", [p & 0xFFFF for n in items
+                                  for p in db_items[n].puntos])
+        bytes_asm("item_actores", [
+            sum(1 << b for b in range(8)
+                if 8 * byte + b + 1 < actores_n
+                and db_items[n].equipable_por(8 * byte + b + 1))
+            for n in items for byte in range(8)])
+        words_asm("actor_params", [
+            (db.actors[a].params.get(k, [0])[titulo_mod.NIVEL - 1]
+             if a in db.actors else 0) & 0xFFFF
+            for a in range(actores_n)
+            for k in ("attack", "defense", "spirit", "agility")])
+        handle.write('\n.segment "RODATA"\n')
+        handle.write("equipo_inicial:\n    .word %s\n" % ", ".join(
+            str(db.actors[a].initial_equipment[r] if a in db.actors else 0)
+            for a in range(actores_n) for r in range(P.RANURAS_EQUIPO)))
+        handle.write('\n.segment "TABLAS"\n')
+        words_asm("actor_txt", [texto_actor.get(a, 0xFFFF)
+                                for a in range(actores_n)], "$%04X")
+        words_asm("eq_param_pos", [pos(f, c) for f, c in P.EQ_PARAMS])
+        handle.write(
+            "ACTORES_N         = %d\n"
+            "EQ_TEXTO_PARAM    = %d\n"
+            "EQ_TEXTO_RANURA   = %d\n"
+            "EQ_ACTOR_POS      = %d\n"
+            "EQ_PARAM_VALOR    = %d\n"
+            "EQ_PARAM_FLECHA   = %d\n"
+            "EQ_RANURA_POS0    = %d\n"
+            "EQ_RANURA_TERM    = %d\n"
+            "EQ_RANURA_NOMBRE  = %d\n"
+            "EQ_RANURA_ANCHO   = %d\n"
+            "EQ_LISTA_POS0     = %d\n"
+            "EQ_LISTA_FILAS    = %d\n"
+            "EQ_CURSOR         = %d\n"
+            "PANT_NOMBRE       = %d\n"
+            "PANT_DOS_PUNTOS   = %d\n"
+            "PANT_DESC_POS     = %d\n"
+            % (actores_n, texto_param[0], texto_ranura[0],
+               pos(P.EQ_ACTOR_FILA, 1), P.EQ_PARAM_VALOR * 2,
+               P.EQ_PARAM_FLECHA * 2, pos(P.EQ_RANURA_FILA0, 0),
+               P.EQ_RANURA_TERM_COL * 2, P.EQ_RANURA_NOMBRE_COL * 2,
+               P.EQ_RANURA_NOMBRE_ANCHO, pos(P.EQ_LISTA_FILA0, 0),
+               P.EQ_LISTA_FILAS, P.EQ_CURSOR_COL * 2,
+               T.ITEM_NOMBRE_COL * 2, T.ITEM_DOS_PUNTOS_COL * 2,
+               pos(T.ITEM_DESC_Y // T.CELL, T.ITEM_DESC_COL)))
         glifos = ranuras["items_glifos"]
         words_asm("item_glifo_celdas", [
             entry(celda, False, False) for gris in (0, 1)
@@ -4331,7 +4408,8 @@ def main():
     miembros = miembros_posibles(todos, grupo)
     # Y los ítems que pueden estar en el inventario, para llevar su nombre y
     # su descripción: ver "la pantalla de ítems" en titulo.py.
-    items_rom = items_posibles(todos, args.items_de_prueba)
+    items_rom = items_posibles(todos, args.items_de_prueba, miembros,
+                               renderer.database)
     (ranura_tiles, ranura_paletas, ranura_cabs, ranura_filas, ranura_caras,
      ranura_nombres, ranura_menu) = titulo_mod.pantalla_ranuras(
         skin, renderer.database, RANURAS, renderer.database.font_id,
@@ -4342,6 +4420,7 @@ def main():
                      "cabeceras": ranura_cabs, "filas": ranura_filas,
                      "caras": ranura_caras, "nombres": ranura_nombres,
                      "menu": ranura_menu, "items": items_rom,
+                     "db": renderer.database, "actores": miembros,
                      "items_db": renderer.database.items,
                      "items_tiles": items_tiles,
                      "items_paletas": items_paletas,
@@ -4572,13 +4651,17 @@ def lideres_posibles(renderer, map_ids, grupo, con_ventana=False):
 args_game_dir = [GAME_DIR]
 
 
-def items_posibles(map_ids, de_prueba=None):
+def items_posibles(map_ids, de_prueba=None, actores=(), db=None):
     """Los ítems que pueden estar en el inventario con estos mapas en la ROM:
-    los que da algún `ChangeItems` de cualquier página, compile o no, más los
+    los que da algún `ChangeItems` de cualquier página, compile o no, los que
+    vende alguna `OpenShop`, el equipo con el que arrancan los `actores` y los
     que da la página de prueba. Es un superconjunto, como `miembros_posibles`,
     y por la misma razón: un ítem de más cuesta su texto en el cartucho, uno
     de menos no se ve en la lista."""
     items = set()
+    for actor in actores:
+        if db is not None and actor in db.actors:
+            items.update(i for i in db.actors[actor].initial_equipment if i)
     for map_id in map_ids:
         game_map = lcf.Map(os.path.join(args_game_dir[0],
                                         "Map%04d.lmu" % map_id))
@@ -4589,6 +4672,8 @@ def items_posibles(map_ids, de_prueba=None):
                     if (cmd.code == eventos.CHANGE_ITEMS and len(p) >= 5
                             and p[0] == 0 and p[1] == 0):
                         items.add(p[2])
+                    elif cmd.code == eventos.OPEN_SHOP:
+                        items.update(p[4:])
     for k in range(0, len(de_prueba or ()), 2):
         items.add(de_prueba[k])
     return sorted(i for i in items if 0 < i < eventos.ITEMS_N)

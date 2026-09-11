@@ -150,6 +150,11 @@ FAR_VARIABLES  = $2600
 ; 0 no se usa— y topado en ITEM_MAX, como `Game_Party::AddItem`. Viaja en la
 ; partida y se limpia con las variables.
 FAR_ITEMS      = $2800
+; Y el equipo de cada actor del LDB, por número de actor: cinco palabras
+; —arma, escudo, armadura, casco, accesorio— con el número de ítem o 0. Arranca
+; con el equipo inicial de la base, que `equipo_inicial_poner` copia en el
+; reset, y viaja en la partida.
+FAR_EQUIPO     = $2C00
 ; Y el estado del azar, dos bytes antes: un xorshift de dieciséis bits, el
 ; mismo que `azar_siguiente` en eventos.py, sembrado en el reset. Va acá y no
 ; en la página directa porque la página directa quedó en 258 de 256 al
@@ -769,6 +774,7 @@ grupo_listo:
     ; La semilla del azar, y las variables en cero: la RAM lejana también
     ; arranca con basura, y una partida cargada las pisa después.
     jsr limpiar_variables
+    jsr equipo_inicial_poner
     ; El testigo de la pantalla de ranuras también: con $55 el arnés la vería
     ; abierta desde el reset. Es lo que pasó el 2026-09-10 con los dos
     ; contadores que "daban 85": leían la basura del emulador.
@@ -4720,6 +4726,34 @@ otra:
     stz WMDATA
     dex
     bne otra
+    rts
+.endproc
+
+; El equipo inicial de todos los actores a `FAR_EQUIPO`: un DMA de la tabla
+; del conversor a la ventana de la WRAM. Corre en el reset, antes de cargar
+; la partida, que lo pisa.
+.proc equipo_inicial_poner
+.a8
+.i16
+    rep #$20
+.a16
+    lda #FAR_EQUIPO
+    sta WMADDL
+    lda #<(equipo_inicial)
+    ora #(>(equipo_inicial) * 256)
+    sta A1T0L
+    lda #(ACTORES_N * 10)
+    sta DAS0L
+    sep #$20
+.a8
+    stz WMADDH
+    lda #^(equipo_inicial)
+    sta A1B0
+    stz DMAP0                   ; de A a B, de a un byte
+    lda #$80                    ; WMDATA
+    sta BBAD0
+    lda #$01
+    sta MDMAEN
     rts
 .endproc
 
@@ -8723,7 +8757,7 @@ SRAM_RANURAS = 4
 ; vez que se agrega un campo a la partida —ya pasó con la música—. El
 ; ensamblador no lo puede cortar, así que lo cuida
 ; `pruebas/test_guardar.py::test_las_cuatro_ranuras_entran_en_la_sram`.
-SRAM_STRIDE = 1024
+SRAM_STRIDE = 2048
 
 ; Y dentro de cada ranura, contando desde su base. `SRAM_MAGIA` sigue siendo
 ; $0100 y no $0000 por lo de siempre: un operando que entra en un byte lo
@@ -8760,13 +8794,14 @@ partida_tabla:
     .word FAR_HERO_VEL, 1       ; la velocidad del héroe, que las rutas cambian
     .word FAR_ITEMS, ITEMS_N    ; el inventario
     .word FAR_ACCESO, 1         ; los permisos de guardar y del menú
+    .word FAR_EQUIPO, ACTORES_N * 10    ; el equipo de cada actor
     .word 0, 0
 ; Los mismos largos, sumados, para poder recorrer la partida en la SRAM sin
 ; volver a mirar la tabla. Está duplicado a propósito y **la ROM lo comprueba**:
 ; `guardar_partida` compara con lo que le quedó a `partida_copiar` y si no dan
 ; iguales entra en pánico. Duplicar un número que nadie verifica es la forma de
 ; error que este repo ya pagó tres veces.
-PARTIDA_BYTES = 2 + 2 + 1 + 2 + 2 + 1 + 6 + 3 + 1 + 5 + 3 + SWITCH_BYTES + 1 + 2 + VARIABLES_N * 2 + 1 + ITEMS_N + 1
+PARTIDA_BYTES = 2 + 2 + 1 + 2 + 2 + 1 + 6 + 3 + 1 + 5 + 3 + SWITCH_BYTES + 1 + 2 + VARIABLES_N * 2 + 1 + ITEMS_N + 1 + ACTORES_N * 10
 ; Dónde cae el grupo adentro de la partida: después de la posición, la
 ; dirección, la celda y el mapa. Lo lee la pantalla de ranuras desde la SRAM
 ; para poner el nombre del líder y las caras. Es la misma suma que arriba,
@@ -8778,12 +8813,14 @@ PARTIDA_GRUPO_N = PARTIDA_GRUPO + 4
 ; Pone la ranura con la que van a trabajar `guardar_partida` y `cargar_partida`,
 ; y calcula su desplazamiento. A trae el número de ranura.
 ;
-; El desplazamiento es la ranura por 1024, o sea un `xba` y dos `asl`: de ahí
-; sale que `SRAM_STRIDE` valga 1024 y no el largo justo de una partida.
+; El desplazamiento es la ranura por 2048, o sea un `xba` y tres `asl`: de ahí
+; sale que `SRAM_STRIDE` valga 2048 y no el largo justo de una partida.
 ; Multiplicar por ese largo pediría el multiplicador del hardware y ocho
 ; ciclos de espera, para ahorrar unos bytes de una SRAM que sobra. Era 256
-; hasta que las 81 variables del juego entraron en la partida, y 512 hasta el
-; inventario; cuatro ranuras son la mitad de los 8 KB.
+; hasta que las 81 variables del juego entraron en la partida, 512 hasta el
+; inventario y 1024 hasta el equipo, que son 610 bytes más. Con 2048 cuatro
+; ranuras no entran en 8 KB, y el cartucho declara 32 KB, que en LoROM es un
+; banco entero de SRAM en $70.
 .proc poner_ranura
 .a8
 .i16
@@ -8794,7 +8831,7 @@ PARTIDA_GRUPO_N = PARTIDA_GRUPO + 4
 ; El desplazamiento de la ranura en la SRAM, en X. **Pide el banco de datos
 ; normal**: lee `ranura`, que vive en la WRAM.
 ;
-; Es la ranura por 1024, o sea un `xba` y dos `asl`: ver `poner_ranura`.
+; Es la ranura por 2048, o sea un `xba` y tres `asl`: ver `poner_ranura`.
 .proc ranura_en_x
 .a8
 .i16
@@ -8804,7 +8841,8 @@ PARTIDA_GRUPO_N = PARTIDA_GRUPO + 4
     and #$00FF
     xba                         ; por 256...
     asl a
-    asl a                       ; ...y por cuatro: SRAM_STRIDE, que es 1024
+    asl a
+    asl a                       ; ...y por ocho: SRAM_STRIDE, que es 2048
     tax
     sep #$20
 .a8
@@ -9724,7 +9762,8 @@ actor_del_miembro:
     lda ranura
     asl a
     asl a
-    xba                         ; C = ranura * 1024 + lugar
+    asl a
+    xba                         ; C = ranura * 2048 + lugar
     rep #$20
 .a16
     tax
@@ -10421,14 +10460,36 @@ no_abajo:
     jsr menu_habilitada
     beq espera                  ; en gris: RM2k suena y no hace nada
     lda titulo_sel
+    cmp #2
+    bne no_equipo
+    ; El equipo: a quién, y su pantalla. Las dos vuelven al menú.
+    lda #1
+    sta eleg_cancel             ; para elegir
+    jsr objetivo_pantalla
+    cmp #$FF
+    beq volver_de_equipo
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda grupo, x
+    jsr equipo_pantalla
+volver_de_equipo:
+    lda #2
+    sta titulo_sel
+    jmp armar
+no_equipo:
+    lda titulo_sel
     bne no_items
     ; Los ítems: B vuelve al menú, y usar uno vuelve derecho al mapa.
     jsr items_pantalla
     beq volver_de_items
-    bra cerrar
+    jmp cerrar
 volver_de_items:
     stz titulo_sel
-    bra armar
+    jmp armar
 no_items:
     ; Guardar: la pantalla de ranuras y, elija
     ; o cancele, de vuelta al menú con el cursor en "Save", como `Scene_Save`
@@ -10442,7 +10503,7 @@ no_items:
 guardar_listo:
     lda #MENU_GUARDAR
     sta titulo_sel
-    bra armar
+    jmp armar
 cerrar:
     ; El B que cierra y el A de antes quedan consumidos: sin esto `pedir_menu`
     ; vería el flanco en esta misma vuelta y el menú se volvería a abrir.
@@ -10474,10 +10535,11 @@ mover:
 ; --- la elección de actor ----------------------------------------------------
 ;
 ; `Scene_ActorTarget`, sobre el banco del menú: el panel del grupo y un cursor
-; al costado de la fila marcada. A no hace nada: con una medicina, `UseItem`
-; sólo la gasta si sube algo, y fuera de batalla nadie tiene los HP ni los SP
-; por debajo del máximo ni un estado —ver CHANGE_HP en eventos.py—. B vuelve.
-; `render_objetivo` en titulo.py es la referencia.
+; al costado de la fila marcada. `eleg_cancel` dice para qué: en 0, para una
+; medicina, y A no hace nada —`UseItem` sólo la gasta si sube algo, y fuera de
+; batalla nadie tiene los HP ni los SP por debajo del máximo ni un estado, ver
+; CHANGE_HP en eventos.py—; en 1, para elegir a quién equipar, y A vuelve con
+; la fila. B vuelve con $FF. `render_objetivo` en titulo.py es la referencia.
 
 ; El cursor en la fila A del grupo: `temp + 3` en 1 lo pinta y en 0 lo borra.
 .proc objetivo_cursor_escribir
@@ -10570,7 +10632,17 @@ no_arriba:
 no_abajo:
     lda titulo_flancos
     and #PAD_B
-    beq espera                  ; A no tiene efecto: ver arriba
+    beq mira_a
+    lda #$FF                    ; B: sin elegir
+    rts
+mira_a:
+    lda eleg_cancel
+    beq espera                  ; con una medicina A no tiene efecto: ver arriba
+    lda pad_a
+    beq espera
+    lda pad_a_ant
+    bne espera                  ; ya lo tenía apretado: no es un flanco
+    lda titulo_sel              ; eligiendo: la fila elegida
     rts
 
 mover:
@@ -10584,6 +10656,1156 @@ mover:
     sta temp + 3
     lda titulo_sel
     jmp objetivo_cursor_escribir
+.endproc
+
+; --- las pantallas de texto -----------------------------------------------------
+;
+; El equipo y la tienda son pantallas de puro texto sobre la fuente de la
+; pantalla de ítems. Se componen **enteras** en `texto_buf` —el tilemap de 32
+; por 28 celdas, 1792 bytes— y suben de un DMA al empezar cada vblank, así que
+; componer no tiene apuro de tiempo. `pantallas.py` es la referencia. Una
+; posición es un byte del búfer: fila * 64 + columna * 2; la celda de abajo de
+; cada letra está 64 bytes más adelante.
+;
+; El escritorio son variables prestadas: las del compositor de mensajes,
+; `comp_*`, que se recalculan con cada carácter y con el menú abierto no hay
+; mensaje; y `eleg_tabla`, que es la posición donde se escribe.
+PANT_BYTES = 32 * 28 * 2
+;   pant_valor   es comp_dup       ; el número que se escribe, dos bytes
+;   pant_ancho   es comp_dup + 2   ; en cuántas cifras
+;   pant_tope    es comp_dup + 3   ; cuántas letras de un texto, a lo sumo
+
+; El búfer en blanco.
+.proc pant_limpiar
+.a8
+.i16
+    rep #$20
+.a16
+    ldx #0
+otra:
+    stz texto_buf, x
+    inx
+    inx
+    cpx #PANT_BYTES
+    bcc otra
+    sep #$20
+.a8
+    rts
+.endproc
+
+; El búfer al tilemap: un DMA, en el vblank.
+.proc pant_subir
+.a8
+.i16
+    lda #$80
+    sta VMAIN
+    rep #$20
+.a16
+    lda #RANURA_MAP
+    sta VMADDL
+    lda #.loword(texto_buf)
+    sta A1T0L
+    lda #PANT_BYTES
+    sta DAS0L
+    sep #$20
+.a8
+    stz A1B0                    ; el búfer vive en el banco 0
+    lda #$01
+    sta DMAP0
+    lda #$18
+    sta BBAD0
+    lda #$01
+    sta MDMAEN
+    rts
+.endproc
+
+; Una letra: A el carácter, `temp + 1` la variante —0 blanco, 1 gris—. Va en
+; `eleg_tabla`, que avanza una celda. Se lleva X e Y.
+.proc pant_glifo
+.a8
+.i16
+    rep #$20
+.a16
+    and #$00FF
+    sec
+    sbc #ITEM_PRIMER_CARACTER
+    asl a
+    asl a
+    tax
+    lda temp + 1
+    and #$00FF
+    beq blanco
+    txa
+    clc
+    adc #ITEM_GLIFOS_GRIS
+    tax
+blanco:
+    ldy eleg_tabla
+    lda item_glifo_celdas, x
+    sta texto_buf, y
+    lda item_glifo_celdas + 2, x
+    sta texto_buf + 64, y
+    iny
+    iny
+    sty eleg_tabla
+    sep #$20
+.a8
+    rts
+.endproc
+
+; Un texto: X su número —ver `item_txt_*`—, en `eleg_tabla` y con la variante
+; de `temp + 1`, y no más de `pant_tope` letras.
+.proc pant_texto
+.a8
+.i16
+    lda item_txt_lo, x
+    sta msg_ptr
+    lda item_txt_hi, x
+    sta msg_ptr + 1
+    lda item_txt_bk, x
+    sta msg_ptr + 2
+    lda item_txt_n, x
+    cmp comp_dup + 3
+    bcc cabe
+    lda comp_dup + 3
+cabe:
+    sta temp                    ; cuántas letras
+    stz temp + 2                ; por cuál va
+letra:
+    lda temp + 2
+    cmp temp
+    bcs listo
+    rep #$20
+.a16
+    and #$00FF
+    tay
+    sep #$20
+.a8
+    lda [msg_ptr], y
+    jsr pant_glifo
+    inc temp + 2
+    bra letra
+listo:
+    lda #255
+    sta comp_dup + 3               ; el tope es de un texto solo
+    rts
+.endproc
+
+; Un número de `pant_valor`, de 0 a 999, en `pant_ancho` cifras —2 o 3— con
+; espacios adelante, en `eleg_tabla` y con la variante de `temp + 1`.
+.proc pant_numero
+.a8
+.i16
+    stz temp + 3                ; ya salió una cifra
+    lda comp_dup + 2
+    cmp #3
+    bcc decenas
+    rep #$20
+.a16
+    ldx #0
+cien:
+    lda comp_dup
+    cmp #100
+    bcc cien_listo
+    sbc #100
+    sta comp_dup
+    inx
+    bra cien
+cien_listo:
+    sep #$20
+.a8
+    jsr cifra
+decenas:
+    rep #$20
+.a16
+    ldx #0
+diez:
+    lda comp_dup
+    cmp #10
+    bcc diez_listo
+    sbc #10
+    sta comp_dup
+    inx
+    bra diez
+diez_listo:
+    sep #$20
+.a8
+    jsr cifra
+    lda comp_dup              ; las unidades, siempre
+    clc
+    adc #$30
+    jmp pant_glifo
+
+; X: la cifra. Un cero adelante de todo va como espacio.
+cifra:
+    txa
+    bne escribir
+    lda temp + 3
+    bne escribir_cero
+    lda #$20
+    jmp pant_glifo
+escribir_cero:
+    lda #0
+escribir:
+    clc
+    adc #$30
+    pha
+    lda #1
+    sta temp + 3
+    pla
+    jmp pant_glifo
+.endproc
+
+; --- el equipo -----------------------------------------------------------------
+;
+; `Scene_Equip`: el actor, sus cuatro parámetros, las cinco ranuras con lo que
+; tiene puesto; A sobre una ranura muestra la lista de lo que puede ponerse
+; ahí —reemplaza a las ranuras mientras dura— con los parámetros que
+; quedarían. La línea vacía del final es sacarse lo de la ranura. B vuelve.
+; `pantallas.pantalla_equipo` es la referencia, y `pantallas.equipar` la regla.
+;   eq_actor     es comp_char      ; el número de actor
+;   eq_ranura    es comp_col       ; la ranura marcada, 0 a 4
+;   eq_eligiendo es comp_col + 1   ; si se muestra la lista
+;   eq_elegido   es comp_fase      ; el lugar del cursor en la lista
+;   eq_arriba    es comp_fase + 1  ; y el primero que se ve
+;   eq_n         es comp_base      ; cuántos hay en la lista, con la vacía
+;   eq_cand      es comp_mask      ; el ítem que marca el cursor, 0 si ninguno
+;   eq_suma      es comp_or01      ; un parámetro, mientras se suma
+;   eq_param     es comp_or01 + 2  ; cuál
+;   eq_s         es comp_or01 + 3  ; la ranura que se mira
+;   eq_id        es comp_or23      ; un ítem, dos bytes
+;   eq_tmp       es comp_and       ; escritorio de `eq_apuntar`, cuatro bytes
+
+; A: la ranura. Deja apuntada la ventana de la WRAM a esa ranura del actor:
+; `FAR_EQUIPO` + actor * 10 + ranura * 2.
+.proc eq_apuntar
+.a8
+.i16
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    sta comp_and                  ; la ranura por dos
+    lda comp_char
+    and #$00FF
+    asl a
+    sta comp_and + 2              ; el actor por dos
+    asl a
+    asl a                       ; por ocho
+    clc
+    adc comp_and + 2
+    clc
+    adc comp_and
+    clc
+    adc #FAR_EQUIPO
+    sta WMADDL
+    sep #$20
+.a8
+    stz WMADDH
+    rts
+.endproc
+
+; A: la ranura. Vuelve con el ítem en `eq_id`.
+.proc eq_leer
+.a8
+.i16
+    jsr eq_apuntar
+    lda WMDATA
+    sta comp_or23
+    lda WMDATA
+    sta comp_or23 + 1
+    rts
+.endproc
+
+; A: la ranura; `eq_id`: el ítem nuevo.
+.proc eq_escribir
+.a8
+.i16
+    jsr eq_apuntar
+    lda comp_or23
+    sta WMDATA
+    lda comp_or23 + 1
+    sta WMDATA
+    rts
+.endproc
+
+; El `k` del ítem de `eq_id`, en X, y Z=1 si es ninguno o uno que la ROM no
+; conoce.
+.proc eq_k
+.a8
+.i16
+    rep #$20
+.a16
+    lda comp_or23
+    beq ninguno
+    cmp #ITEMS_N
+    bcs ninguno
+    tax
+    sep #$20
+.a8
+    lda item_k, x
+    cmp #$FF
+    beq ninguno8
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda #1                      ; Z=0
+    rts
+.a16
+ninguno:
+    sep #$20
+.a8
+ninguno8:
+    lda #0                      ; Z=1
+    rts
+.endproc
+
+; Cuántos hay en el inventario del ítem `eq_id`, en A.
+.proc eq_inv_apuntar
+.a8
+.i16
+    rep #$20
+.a16
+    lda comp_or23
+    clc
+    adc #FAR_ITEMS
+    sta WMADDL
+    sep #$20
+.a8
+    stz WMADDH
+    rts
+.endproc
+
+; Uno más —topado en 99— o uno menos del ítem `eq_id`. A: 1 suma, 0 resta.
+.proc eq_inv_mover
+.a8
+.i16
+    pha
+    jsr eq_inv_apuntar
+    lda WMDATA
+    sta comp_and
+    jsr eq_inv_apuntar
+    pla
+    beq resta
+    lda comp_and
+    cmp #ITEM_MAX
+    bcs listo
+    inc a
+    bra escribir
+resta:
+    lda comp_and
+    beq listo
+    dec a
+escribir:
+    sta WMDATA
+listo:
+    rts
+.endproc
+
+; ¿El ítem `eq_id` es un arma a dos manos? Z=0 si sí.
+.proc eq_dos_manos
+.a8
+.i16
+    jsr eq_k
+    beq no
+    lda item_uso, x
+    and #8
+    rts
+no:
+    lda #0
+    rts
+.endproc
+
+; El ítem que tendría la ranura A: el que tiene, o —eligiendo— el que marca
+; el cursor si es la ranura elegida, y ninguno en la otra si el arma es a dos
+; manos. Es `pantallas.equipar` sin tocar nada. Vuelve en `eq_id`.
+.proc eq_efectivo
+.a8
+.i16
+    sta comp_or01 + 3
+    lda comp_col + 1
+    beq tiene
+    lda comp_or01 + 3
+    cmp comp_col
+    bne otra
+    rep #$20
+.a16
+    lda comp_mask
+    sta comp_or23
+    sep #$20
+.a8
+    rts
+otra:
+    ; Un arma a dos manos saca el escudo; un escudo saca el arma a dos manos.
+    rep #$20
+.a16
+    lda comp_mask
+    sta comp_or23
+    sep #$20
+.a8
+    lda comp_or01 + 3
+    cmp #1
+    bne no_escudo
+    lda comp_col
+    bne tiene                   ; no se está eligiendo el arma
+    jsr eq_dos_manos
+    bne ninguno
+    bra tiene
+no_escudo:
+    lda comp_or01 + 3
+    bne tiene                   ; ni escudo ni arma: la de siempre
+    lda comp_col
+    cmp #1
+    bne tiene                   ; no se está eligiendo el escudo
+    rep #$20
+.a16
+    lda comp_mask
+    sep #$20
+.a8
+    beq tiene                   ; sacarse el escudo no toca el arma
+    lda #0
+    jsr eq_leer
+    jsr eq_dos_manos
+    bne ninguno
+    rts                         ; `eq_id` ya es el arma
+tiene:
+    lda comp_or01 + 3
+    jmp eq_leer
+ninguno:
+    stz comp_or23
+    stz comp_or23 + 1
+    rts
+.endproc
+
+; El parámetro `eq_param` —0 ataque, 1 defensa, 2 espíritu, 3 agilidad— con el
+; equipo que dice `eq_efectivo`, en `pant_valor`, topado en [1, 999].
+.proc eq_parametro
+.a8
+.i16
+    ; El del nivel: `actor_params`, cuatro palabras por actor.
+    rep #$20
+.a16
+    lda comp_char
+    and #$00FF
+    asl a
+    asl a
+    asl a
+    sta comp_or01
+    lda comp_or01 + 2
+    and #$00FF
+    asl a
+    clc
+    adc comp_or01
+    tax
+    lda actor_params, x
+    sta comp_or01
+    sep #$20
+.a8
+    lda #0
+ranura:
+    pha
+    jsr eq_efectivo
+    jsr eq_k
+    beq sin_puntos
+    rep #$20
+.a16
+    txa
+    asl a
+    asl a
+    asl a                       ; ocho bytes por ítem
+    sta comp_and
+    lda comp_or01 + 2
+    and #$00FF
+    asl a
+    clc
+    adc comp_and
+    tax
+    lda item_puntos, x
+    clc
+    adc comp_or01
+    sta comp_or01
+    sep #$20
+.a8
+sin_puntos:
+    pla
+    inc a
+    cmp #5
+    bcc ranura
+    rep #$20
+.a16
+    lda comp_or01
+    bmi uno                     ; con signo: el equipo puede restar
+    beq uno
+    cmp #1000
+    bcc listo
+    lda #999
+    bra listo
+uno:
+    lda #1
+listo:
+    sta comp_dup
+    sep #$20
+.a8
+    rts
+.endproc
+
+; La lista de lo que el actor puede ponerse en `eq_ranura`, como `k` en
+; `FAR_ITEM_LISTA`, y al final un $FF que es la línea vacía. Cuántos en
+; `eq_n`. Es `pantallas.candidatos`.
+.proc eq_lista_armar
+.a8
+.i16
+    stz comp_base
+    ldx #1
+otro:
+    rep #$20
+.a16
+    txa
+    clc
+    adc #FAR_ITEMS
+    sta WMADDL
+    sep #$20
+.a8
+    stz WMADDH
+    lda WMDATA
+    beq siguiente
+    lda item_k, x
+    cmp #$FF
+    beq siguiente
+    phx
+    rep #$20
+.a16
+    and #$00FF
+    tax                         ; X = k
+    sep #$20
+.a8
+    lda comp_col
+    inc a
+    cmp item_tipo, x
+    bne no_va
+    ; ¿Lo puede usar el actor? Un bit por actor, ocho bytes por ítem.
+    rep #$20
+.a16
+    txa
+    asl a
+    asl a
+    asl a
+    sta comp_and
+    lda comp_char
+    and #$00FF
+    dec a
+    pha
+    lsr a
+    lsr a
+    lsr a
+    clc
+    adc comp_and
+    tay                         ; el byte
+    pla
+    and #$0007
+    sta comp_and + 2              ; y el bit
+    sep #$20
+.a8
+    lda item_actores, y
+    ldy comp_and + 2
+    beq bit_listo
+correr:
+    lsr a
+    dey
+    bne correr
+bit_listo:
+    and #1
+    beq no_va
+    txa                         ; el k, que entra en un byte
+    pha
+    rep #$20
+.a16
+    lda comp_base
+    and #$00FF
+    clc
+    adc #FAR_ITEM_LISTA
+    sta WMADDL
+    sep #$20
+.a8
+    stz WMADDH
+    pla
+    sta WMDATA
+    inc comp_base
+no_va:
+    plx
+siguiente:
+    inx
+    cpx #ITEMS_N
+    bcc otro
+    rep #$20
+.a16
+    lda comp_base
+    and #$00FF
+    clc
+    adc #FAR_ITEM_LISTA
+    sta WMADDL
+    sep #$20
+.a8
+    stz WMADDH
+    lda #$FF                    ; la línea vacía
+    sta WMDATA
+    inc comp_base
+    rts
+.endproc
+
+; El ítem del lugar A de la lista, en `eq_id`: 0 si es la línea vacía.
+.proc eq_de_lista
+.a8
+.i16
+    jsr item_de_lista
+    cmp #$FF
+    beq vacia
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    tax
+    lda item_id, x
+    sta comp_or23
+    sep #$20
+.a8
+    rts
+vacia:
+    stz comp_or23
+    stz comp_or23 + 1
+    rts
+.endproc
+
+; Escribe en `eleg_tabla` el nombre del ítem `eq_id`, si la ROM lo conoce, con
+; no más de A letras.
+.proc eq_nombre
+.a8
+.i16
+    sta comp_dup + 3
+    jsr eq_k
+    beq nada
+    rep #$20
+.a16
+    txa
+    sta comp_and
+    asl a
+    clc
+    adc comp_and
+    tax                         ; 3k, el nombre
+    sep #$20
+.a8
+    stz temp + 1
+    jmp pant_texto
+nada:
+    lda #255
+    sta comp_dup + 3
+    rts
+.endproc
+
+; La descripción del ítem `eq_id`, en los dos renglones de arriba.
+.proc eq_desc
+.a8
+.i16
+    jsr eq_k
+    beq nada
+    rep #$20
+.a16
+    txa
+    sta comp_and
+    asl a
+    clc
+    adc comp_and
+    inc a                       ; 3k + 1
+    pha
+    lda #PANT_DESC_POS
+    sta eleg_tabla
+    plx
+    phx
+    sep #$20
+.a8
+    stz temp + 1
+    jsr pant_texto
+    rep #$20
+.a16
+    lda #(PANT_DESC_POS + 128)
+    sta eleg_tabla
+    plx
+    inx
+    sep #$20
+.a8
+    stz temp + 1
+    jmp pant_texto
+nada:
+    rts
+.endproc
+
+; La pantalla entera, en el búfer: `pantallas.pantalla_equipo`.
+.proc eq_componer
+.a8
+.i16
+    lda #255
+    sta comp_dup + 3
+    jsr pant_limpiar
+    stz temp + 1
+    ; --- el nombre del actor ---
+    rep #$20
+.a16
+    lda #EQ_ACTOR_POS
+    sta eleg_tabla
+    lda comp_char
+    and #$00FF
+    asl a
+    tax
+    lda actor_txt, x
+    tax
+    cmp #$FFFF                  ; un actor sin nombre en esta ROM
+    sep #$20                    ; `sep` no toca Z
+.a8
+    beq sin_nombre
+    jsr pant_texto
+sin_nombre:
+    ; --- la descripción ---
+    lda comp_col + 1
+    beq la_puesta
+    lda comp_fase
+    jsr eq_de_lista
+    rep #$20
+.a16
+    lda comp_or23
+    sta comp_mask
+    sep #$20
+.a8
+    bra desc
+la_puesta:
+    lda comp_col
+    jsr eq_leer
+desc:
+    jsr eq_desc
+    ; --- los parámetros: ahora y, eligiendo, después ---
+    stz comp_or01 + 2
+param:
+    lda comp_or01 + 2
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    tax
+    lda eq_param_pos, x
+    sta eleg_tabla
+    lda comp_or01 + 2
+    and #$00FF
+    clc
+    adc #EQ_TEXTO_PARAM
+    tax
+    sep #$20
+.a8
+    stz temp + 1
+    jsr pant_texto
+    lda comp_col + 1
+    pha
+    stz comp_col + 1            ; ahora: lo puesto
+    jsr eq_parametro
+    pla
+    sta comp_col + 1
+    jsr param_pos
+    rep #$20
+.a16
+    clc
+    adc #EQ_PARAM_VALOR
+    sta eleg_tabla
+    sep #$20
+.a8
+    lda #3
+    sta comp_dup + 2
+    jsr pant_numero
+    lda comp_col + 1
+    beq sin_flecha
+    jsr param_pos
+    rep #$20
+.a16
+    clc
+    adc #EQ_PARAM_FLECHA
+    sta eleg_tabla
+    sep #$20
+.a8
+    lda #$3E                    ; '>'
+    jsr pant_glifo
+    jsr eq_parametro            ; después: con lo que marca el cursor
+    lda #3
+    sta comp_dup + 2
+    jsr pant_numero
+sin_flecha:
+    inc comp_or01 + 2
+    lda comp_or01 + 2
+    cmp #4
+    bcc param
+    lda comp_col + 1
+    bne lista
+    ; --- las ranuras ---
+    lda #0
+ranura:
+    pha
+    cmp comp_col
+    bne sin_cursor
+    jsr fila_pos
+    rep #$20
+.a16
+    clc
+    adc #EQ_CURSOR
+    sta eleg_tabla
+    sep #$20
+.a8
+    lda #$3E
+    jsr pant_glifo
+sin_cursor:
+    pla
+    pha
+    jsr fila_pos
+    rep #$20
+.a16
+    clc
+    adc #EQ_RANURA_TERM
+    sta eleg_tabla
+    sep #$20
+.a8
+    pla
+    pha
+    rep #$20
+.a16
+    and #$00FF
+    clc
+    adc #EQ_TEXTO_RANURA
+    tax
+    sep #$20
+.a8
+    jsr pant_texto
+    pla
+    pha
+    jsr fila_pos
+    rep #$20
+.a16
+    clc
+    adc #EQ_RANURA_NOMBRE
+    sta eleg_tabla
+    sep #$20
+.a8
+    pla
+    pha
+    jsr eq_leer
+    lda #EQ_RANURA_ANCHO
+    jsr eq_nombre
+    pla
+    inc a
+    cmp #5
+    bcc ranura
+    rts
+
+    ; --- la lista ---
+lista:
+    lda #0
+lista_fila:
+    pha
+    clc
+    adc comp_fase + 1
+    cmp comp_base
+    bcs lista_listo
+    pla
+    pha
+    jsr fila_pos_lista
+    rep #$20
+.a16
+    clc
+    adc #EQ_CURSOR
+    sta eleg_tabla
+    sep #$20
+.a8
+    pla
+    pha
+    clc
+    adc comp_fase + 1
+    cmp comp_fase
+    bne sin_cursor_lista
+    lda #$3E
+    jsr pant_glifo
+sin_cursor_lista:
+    pla
+    pha
+    clc
+    adc comp_fase + 1
+    jsr eq_de_lista
+    rep #$20
+.a16
+    lda comp_or23
+    sep #$20
+.a8
+    beq lista_siguiente         ; la línea vacía
+    pla
+    pha
+    jsr fila_pos_lista
+    rep #$20
+.a16
+    clc
+    adc #PANT_NOMBRE
+    sta eleg_tabla
+    sep #$20
+.a8
+    lda #255
+    jsr eq_nombre
+    pla
+    pha
+    jsr fila_pos_lista
+    rep #$20
+.a16
+    clc
+    adc #PANT_DOS_PUNTOS
+    sta eleg_tabla
+    sep #$20
+.a8
+    stz temp + 1
+    lda #$3A                    ; ':'
+    jsr pant_glifo
+    jsr eq_inv_apuntar
+    lda WMDATA
+    sta comp_dup
+    stz comp_dup + 1
+    lda #2
+    sta comp_dup + 2
+    jsr pant_numero
+lista_siguiente:
+    pla
+    inc a
+    cmp #EQ_LISTA_FILAS
+    bcc lista_fila
+    rts
+lista_listo:
+    pla
+    rts
+
+; A16 = la posición del parámetro `eq_param`.
+param_pos:
+    lda comp_or01 + 2
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    tax
+    lda eq_param_pos, x
+    rts
+.a8
+
+; A: la ranura. A16 = la posición de su fila.
+fila_pos:
+    rep #$20
+.a16
+    and #$00FF
+    xba
+    lsr a                       ; por 128: dos filas de celdas
+    clc
+    adc #EQ_RANURA_POS0
+    rts
+.a8
+
+; A: la fila de la lista. A16 = la posición de su fila.
+fila_pos_lista:
+    rep #$20
+.a16
+    and #$00FF
+    xba
+    lsr a
+    clc
+    adc #EQ_LISTA_POS0
+    rts
+.a8
+.endproc
+
+; A sobre la lista: `pantallas.equipar` con lo que marca el cursor.
+.proc eq_equipar
+.a8
+.i16
+    lda comp_fase
+    jsr eq_de_lista
+    rep #$20
+.a16
+    lda comp_or23
+    sta comp_mask
+    sep #$20
+.a8
+    lda comp_col
+    jsr sacar
+    rep #$20
+.a16
+    lda comp_mask
+    sep #$20
+.a8
+    beq listo
+    rep #$20
+.a16
+    lda comp_mask
+    sta comp_or23
+    sep #$20
+.a8
+    lda #0
+    jsr eq_inv_mover            ; uno menos en el inventario
+    rep #$20
+.a16
+    lda comp_mask
+    sta comp_or23
+    sep #$20
+.a8
+    lda comp_col
+    jsr eq_escribir
+    ; Las dos manos.
+    lda comp_col
+    bne no_arma
+    jsr eq_dos_manos            ; `eq_id` es el arma nueva
+    beq listo
+    lda #1
+    jmp sacar
+no_arma:
+    cmp #1
+    bne listo
+    lda #0
+    jsr eq_leer
+    jsr eq_dos_manos
+    beq listo
+    lda #0
+    jmp sacar
+listo:
+    rts
+
+; A: la ranura. Lo que tiene vuelve al inventario y queda vacía.
+sacar:
+    pha
+    jsr eq_leer
+    rep #$20
+.a16
+    lda comp_or23
+    sep #$20
+.a8
+    beq vacia
+    lda #1
+    jsr eq_inv_mover
+    stz comp_or23
+    stz comp_or23 + 1
+    pla
+    jmp eq_escribir
+vacia:
+    pla
+    rts
+.endproc
+
+; La pantalla de equipo del actor A, hasta que el jugador vuelve con B.
+.proc equipo_pantalla
+.a8
+.i16
+    sta comp_char
+    stz comp_col
+    stz comp_col + 1
+    lda #$80
+    sta INIDISP
+    stz HDMAEN
+    stz TM
+    jsr items_banco_subir
+    jsr eq_componer
+    jsr pant_subir
+    jsr ranura_ppu_prender
+espera:
+    jsr wait_vblank
+    ; El control primero y el DMA después. Al revés, los 1792 bytes duran
+    ; unas diez líneas y `read_pad` llegaba con la lectura automática del
+    ; control ya terminada: esperaba la del cuadro siguiente, cada vuelta
+    ; duraba dos cuadros, y un toque de un cuadro se perdía la mitad de las
+    ; veces. Con el control leído, el DMA entra igual en el vblank.
+    jsr read_pad
+    jsr pant_subir
+    jsr music_tick
+    lda pad
+    eor pad_ant
+    and pad
+    sta titulo_flancos
+    lda comp_col + 1
+    beq en_ranuras
+    jmp en_lista
+en_ranuras:
+    lda titulo_flancos
+    and #PAD_UP
+    beq r_no_arriba
+    lda comp_col
+    beq espera
+    dec comp_col
+    jmp recomponer
+r_no_arriba:
+    lda titulo_flancos
+    and #PAD_DOWN
+    beq r_no_abajo
+    lda comp_col
+    cmp #4
+    bcs espera
+    inc comp_col
+    jmp recomponer
+r_no_abajo:
+    lda titulo_flancos
+    and #PAD_B
+    beq r_mira_a
+    rts
+r_mira_a:
+    lda pad_a
+    beq espera
+    lda pad_a_ant
+    bne espera
+    jsr eq_lista_armar
+    stz comp_fase
+    stz comp_fase + 1
+    lda #1
+    sta comp_col + 1
+    jmp recomponer
+en_lista:
+    lda titulo_flancos
+    and #PAD_UP
+    beq l_no_arriba
+    lda comp_fase
+    beq espera2
+    dec comp_fase
+    lda comp_fase
+    cmp comp_fase + 1
+    bcs recomponer
+    sta comp_fase + 1
+    bra recomponer
+l_no_arriba:
+    lda titulo_flancos
+    and #PAD_DOWN
+    beq l_no_abajo
+    lda comp_fase
+    inc a
+    cmp comp_base
+    bcs espera2
+    sta comp_fase
+    sec
+    sbc comp_fase + 1
+    cmp #EQ_LISTA_FILAS
+    bcc recomponer
+    inc comp_fase + 1
+    bra recomponer
+l_no_abajo:
+    lda titulo_flancos
+    and #PAD_B
+    beq l_mira_a
+    stz comp_col + 1
+    bra recomponer
+l_mira_a:
+    lda pad_a
+    beq espera2
+    lda pad_a_ant
+    bne espera2
+    jsr eq_equipar
+    stz comp_col + 1
+recomponer:
+    jsr eq_componer
+espera2:
+    jmp espera
 .endproc
 
 ; --- la pantalla de ítems -------------------------------------------------------
@@ -11225,6 +12447,7 @@ mira_a:
     pha
     lda eleg_sel
     pha
+    stz eleg_cancel             ; para una medicina
     jsr objetivo_pantalla
     pla
     sta eleg_sel
@@ -17744,7 +18967,7 @@ done:
     .byte $20                      ; LoROM, velocidad lenta
     .byte $02                      ; ROM y RAM con batería: la partida guardada
     .byte $0A                      ; tamaño: 1 MB (el byte es log2 de los KB)
-    .byte $03                      ; SRAM: 8 KB, y se usan cuatro ranuras de 1024
+    .byte $05                      ; SRAM: 32 KB, y se usan cuatro ranuras de 2048
     .byte $01                      ; región
     .byte $00                      ; desarrollador
     .byte $00                      ; versión

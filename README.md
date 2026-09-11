@@ -774,6 +774,40 @@ la consola contra `titulo.py --items`, y el mapa después de usarla contra
 y no se gasta, un ítem en gris no hace nada, catorce ítems en once filas se
 corren y vuelven, y la lista vacía.
 
+### El equipo, y las pantallas de texto
+
+"Equipment" abre la elección de actor en modo elegir y después `Scene_Equip`
+de ése, desde el 2026-09-11: su nombre, los cuatro parámetros —los del nivel,
+mockeado en 1, más lo que suma lo puesto—, y las cinco ranuras. A sobre una
+ranura muestra la lista de lo que el actor puede ponerse ahí, con los
+parámetros que quedarían; la línea vacía del final es sacarse lo que tiene. Lo
+que se saca vuelve al inventario y lo nuevo sale de ahí; un arma a dos manos
+saca el escudo y un escudo saca el arma a dos manos, que es
+`Game_Actor::ChangeEquipment`. En RM2k la lista y las ranuras se ven a la vez;
+acá la lista las reemplaza mientras se elige. Cosmético y declarado.
+
+El equipo es estado: cinco palabras por actor del LDB en `FAR_EQUIPO`, que
+arranca con el equipo inicial de la base —un DMA de la tabla del conversor en
+el reset— y viaja en la partida. Son 610 bytes más, y con ellos la partida
+pasó de los 1024 de la ranura: **la SRAM es de 32 KB** desde el 2026-09-11 y
+las ranuras van cada 2048. `ChangeEquipment` no compila todavía: el juego lo
+usa en dos mapas que no están en la demo.
+
+La pantalla de equipo —y la tienda, que sigue— son **pantallas de texto**: no
+llevan bloques dibujados sino la fuente de la pantalla de ítems, y se componen
+enteras en `texto_buf` —el tilemap de 32 por 28 celdas, 1792 bytes— que sube
+de un DMA por cuadro. Componer no tiene apuro, y `pantallas.py` es la
+referencia con el mismo compositor de celdas. El DMA va **después** de leer el
+control: al revés, sus diez líneas hacían que `read_pad` llegara con la
+lectura automática terminada, cada vuelta duraba dos cuadros y la mitad de los
+toques se perdía. Lo cobró `snes-equipo`.
+
+Lo cobran `just snes-equipo` —las ranuras de Kersh con su equipo inicial, la
+lista del arma con los parámetros que quedarían, y el mapa después de volver—
+y `pruebas/test_equipo.py`: el equipo inicial en la RAM, equipar desde el
+menú, la lanza a dos manos que saca el escudo, la línea vacía, y el equipo en
+la partida.
+
 ### Varios mapas en la ROM
 
 Un mapa solo no es un juego. Todo lo que antes era una constante del `.inc` —el
