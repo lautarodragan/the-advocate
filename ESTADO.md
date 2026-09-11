@@ -627,8 +627,15 @@ sube de un DMA por cuadro, después de leer el control —antes perdía la mitad
 de los toques—. `ChangeEquipment` no compila todavía: sólo en los mapas 30 y
 151. Lo cobran `snes-equipo` y `pruebas/test_equipo.py`.
 
-Lo que falta del sistema de ítems: la tienda, y los libros, los materiales y
-los especiales. La consola y su evento común quedan afuera: taro
+**La tienda (2026-09-11).** `OpenShop` compila a `OP_TIENDA` y abre
+`Scene_Shop` como pantalla de texto: la principal, comprar con precios y el
+oro, la cantidad, el "listo" de un segundo, y vender a mitad de precio. No
+cuesta ticks, como guardar. El caso `tienda` de la tanda ahora entra —con el
+A que antes sólo cerraba el mensaje— y sale con un B por cuadros de hardware.
+Lo cobra `pruebas/test_tienda.py`, que la recorre entera en el mapa 10.
+
+Lo que falta del sistema de ítems: los libros, los materiales y los
+especiales, y `ChangeEquipment`. La consola y su evento común quedan afuera: taro
 lo decidió el 2026-09-11, y la idea es un sistema propio del port en vez de
 las imágenes del original.
 

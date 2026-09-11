@@ -2550,6 +2550,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "OP_SI_VAR   = $%02X\n"
         "OP_ITEM     = $%02X\n"
         "OP_ACCESO   = $%02X\n"
+        "OP_TIENDA   = $%02X\n"
         "; El inventario: un byte por ítem del LDB y el tope de RM2k. Ver\n"
         "; OP_ITEM en eventos.py.\n"
         "ITEMS_N       = %d\n"
@@ -2786,7 +2787,8 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            eventos.OP_SI, eventos.OP_IR, eventos.OP_ELEGIR,
            eventos.OP_ORO, eventos.OP_GUARDAR,
            eventos.OP_VAR, eventos.OP_SI_VAR,
-           eventos.OP_ITEM, eventos.OP_ACCESO, eventos.ITEMS_N,
+           eventos.OP_ITEM, eventos.OP_ACCESO, eventos.OP_TIENDA,
+           eventos.ITEMS_N,
            eventos.ITEM_MAX,
            variables_n(),
            eventos.VAR_SUMAR, eventos.VAR_VARIABLE, eventos.VAR_AZAR,
@@ -3149,6 +3151,20 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                         for t in db.term_equipo]
         texto_actor = {a: texto_nuevo(db.actors[a].name)
                        for a in ranuras["actores"]}
+        # Los de la tienda: los once mensajes de cada uno de los tres juegos,
+        # de a dos renglones —`partir_descripcion`, como en pantallas.py—, y
+        # "Owned Items", "Equipped Items" y la moneda.
+        texto_tienda = None
+        for juego in range(3):
+            term = P.terminos_tienda(db, juego)
+            for nombre in P.TI_TERMINOS:
+                for renglon in titulo_mod.partir_descripcion(term[nombre]):
+                    t = texto_nuevo(renglon)
+                    if texto_tienda is None:
+                        texto_tienda = t
+        texto_tengo = texto_nuevo(P.lcf_termino(db, P.TI_TERMINO_TENGO))
+        texto_llevo = texto_nuevo(P.lcf_termino(db, P.TI_TERMINO_LLEVO))
+        texto_moneda = texto_nuevo(db.term_gold)
         handle.write(bloque("item_textos", bytes(item_textos) or b"\x00")
                      + "\n")
         if len(bloques_ranura) > 255:
@@ -3354,6 +3370,34 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         words_asm("actor_txt", [texto_actor.get(a, 0xFFFF)
                                 for a in range(actores_n)], "$%04X")
         words_asm("eq_param_pos", [pos(f, c) for f, c in P.EQ_PARAMS])
+        words_asm("item_precio", [db_items[n].price for n in items])
+        handle.write(
+            "TI_TEXTO          = %d\n"
+            "TI_TEXTO_TENGO    = %d\n"
+            "TI_TEXTO_LLEVO    = %d\n"
+            "TI_TEXTO_MONEDA   = %d\n"
+            "TI_SEGUNDO        = %d\n"
+            "TI_ORDEN_POS0     = %d\n"
+            "TI_ORO_POS        = %d\n"
+            "TI_TENGO_POS      = %d\n"
+            "TI_TENGO_NUM      = %d\n"
+            "TI_LLEVO_POS      = %d\n"
+            "TI_LLEVO_NUM      = %d\n"
+            "TI_LISTA_POS0     = %d\n"
+            "TI_LISTA_FILAS    = %d\n"
+            "TI_PRECIO         = %d\n"
+            "TI_CUANTOS        = %d\n"
+            "TI_TOTAL_POS      = %d\n"
+            % (texto_tienda, texto_tengo, texto_llevo, texto_moneda,
+               P.TI_SEGUNDO, pos(P.TI_ORDEN_FILA0, 0),
+               pos(P.TI_ORO_FILA, P.TI_ORO_COL),
+               pos(P.TI_TENGO_FILA, P.TI_ESTADO_COL),
+               pos(P.TI_TENGO_FILA, P.TI_ESTADO_NUM),
+               pos(P.TI_LLEVO_FILA, P.TI_ESTADO_COL),
+               pos(P.TI_LLEVO_FILA, P.TI_ESTADO_NUM),
+               pos(P.TI_LISTA_FILA0, 0), P.TI_LISTA_FILAS,
+               P.TI_PRECIO_COL * 2, P.TI_CUANTOS_COL * 2,
+               pos(P.TI_TOTAL_FILA, P.TI_ORO_COL)))
         handle.write(
             "ACTORES_N         = %d\n"
             "EQ_TEXTO_PARAM    = %d\n"

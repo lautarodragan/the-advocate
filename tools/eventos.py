@@ -610,10 +610,9 @@ ERASE_PICTURE = 11130
 CONTROL_VARS = 10220
 CALL_EVENT = 12330
 # Y la tienda: `OpenShop`. Cuarenta y tres en el juego, ninguna con las ramas
-# de "compró"/"no compró", así que aceptarla sin abrir nada deja pasar el
-# diálogo de antes y el de después. Los dos vendedores de Lashe City Interiors
-# —EV0021 y EV0023— no contestaban por esto: taro lo vio jugando el 2026-09-10
-# a la noche. La tienda de verdad es del sistema de ítems, que todavía no hay.
+# de "compró"/"no compró". Del 2026-09-10 a la noche al 11 se aceptó sin abrir
+# nada, para que los vendedores de Lashe City Interiors —EV0021 y EV0023—
+# contestaran; desde el 11 abre la tienda de verdad: ver OP_TIENDA.
 OPEN_SHOP = 10720
 
 ACEPTADOS_SIN_HACER = {
@@ -624,7 +623,6 @@ ACEPTADOS_SIN_HACER = {
     # pierde: la escena del tram no corre y el jugador se queda parado con el
     # "It's here!" dicho. Es deuda declarada, no equivalencia.
     CALL_EVENT,
-    OPEN_SHOP,
     PLAY_SOUND,
     SHOW_BATTLE_ANIMATION,
     SHOW_PICTURE,
@@ -1273,6 +1271,13 @@ OP_ACCESO = 0x1A    # cuál (byte), permitido (byte)
 # HP y los SP al máximo y ningún estado, y estos tres comandos no cambian nada:
 # compilan a nada, y es exacto, no una aproximación. El que baje HP o ponga un
 # estado no compila, porque ahí sí habría algo que llevar.
+# La tienda, desde el 2026-09-11: `OpenShop` compila a OP_TIENDA con el tipo
+# —0 compra y vende, 1 sólo compra, 2 sólo vende—, el juego de mensajes y la
+# lista de lo que vende, por número de ítem. Es de largo variable, como
+# OP_ELEGIR. Como guardar, la pantalla se abre adentro del intérprete y no
+# cuesta ningún tick: el mapa no corre mientras se ve. Las ramas de "compró"
+# y "no compró" no compilan; ninguna de las 43 tiendas del juego las usa.
+OP_TIENDA = 0x1B    # tipo, juego, cuántos (bytes), y de a dos bytes cada ítem
 CHANGE_HP = 10460
 CHANGE_CONDITION = 10480
 FULL_HEAL = 10490
@@ -1639,6 +1644,17 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
 
     if cmd.code == END or cmd.code in IGNORABLES:
         return b""
+
+    if cmd.code == OPEN_SHOP:
+        if len(p) < 4:
+            raise NoSePuede("OpenShop sin operandos")
+        if p[2]:
+            raise NoSePuede("OpenShop con las ramas de compró y no compró")
+        vende = [i for i in p[4:] if 0 < i < ITEMS_N]
+        if len(vende) > 255 or not 0 <= p[0] <= 2 or not 0 <= p[1] <= 2:
+            raise NoSePuede("OpenShop que no entra en OP_TIENDA")
+        return bytes([OP_TIENDA, p[0], p[1], len(vende)]) + b"".join(
+            bytes([i & 0xFF, i >> 8]) for i in vende)
 
     if cmd.code == FULL_HEAL:
         return b""
@@ -3166,6 +3182,8 @@ def largo_de_opcode(codigo, i):
         return 4 + codigo[i + 3]
     if op == OP_ELEGIR:
         return 3 + 4 * codigo[i + 1]
+    if op == OP_TIENDA:
+        return 4 + 2 * codigo[i + 3]
     largo = LARGO_DE_OPCODE.get(op)
     if largo is None:
         raise ValueError("opcode %d que no sé medir" % op)
@@ -4155,6 +4173,11 @@ def ejecutar(codigo, estado, desde=0):
                 i += 8
             else:
                 i = codigo[i + 6] | (codigo[i + 7] << 8)
+        elif op == OP_TIENDA:
+            # La tienda, como guardar: no cuesta ningún tick y de este lado no
+            # hay nada que dibujar. Lo que muestra lo cobran `snes-tienda` y
+            # `pruebas/test_tienda.py`.
+            i += 4 + 2 * codigo[i + 3]
         elif op == OP_GUARDAR:
             # La pantalla de ranuras, y guardar en la que se elija. De este
             # lado no hay nada que guardar —la referencia es un modelo, no una

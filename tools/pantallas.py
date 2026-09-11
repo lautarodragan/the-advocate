@@ -15,6 +15,7 @@ pantallas en 320x240 con ventanas y la fuente a 6 pixeles; acá van en
 """
 
 import titulo
+from eventos import ITEM_MAX
 
 FILAS, COLS = 28, 32
 
@@ -171,6 +172,160 @@ def pantalla_equipo(db, actor, equipo, inventario, ranura, eligiendo=False,
     return t
 
 
+# --- la tienda ----------------------------------------------------------------
+#
+# `Scene_Shop`. Arriba el mensaje del tendero, del juego de términos que pide
+# `OpenShop`; en la principal, las órdenes. Comprar muestra lo que vende con su
+# precio —en gris lo que no alcanza el oro o ya se tiene 99— y el oro, cuántos
+# se tienen y cuántos lleva puestos el grupo; vender, el inventario a mitad de
+# precio —en gris lo que vale 0—. Elegido uno, la cantidad: derecha e
+# izquierda de a uno, arriba y abajo de a diez, entre 1 y lo que se puede.
+# Después de cada compra o venta el mensaje dice "listo" un segundo.
+TI_PRINCIPAL, TI_COMPRAR, TI_CUANTOS_COMPRA, TI_COMPRADO, TI_VENDER, \
+    TI_CUANTOS_VENTA, TI_VENDIDO = range(7)
+TI_SEGUNDO = 60                 # cuadros que dura el "listo": DEFAULT_FPS
+TI_ORDEN_FILA0 = 6
+TI_ORO_FILA = 6
+TI_ORO_COL = 28                 # la última cifra del oro
+TI_TENGO_FILA = 8
+TI_LLEVO_FILA = 10
+TI_ESTADO_COL = 14
+TI_ESTADO_NUM = 29              # dos cifras
+TI_LISTA_FILA0 = 12
+TI_LISTA_FILAS = 8
+TI_PRECIO_COL = 29              # la última cifra del precio
+TI_CUANTOS_COL = 25             # "x" y dos cifras
+TI_TOTAL_FILA = 14
+# Los términos de un juego de mensajes: son trece seguidos desde 0x29.
+TI_TERMINOS = ("saludo", "resaludo", "comprar", "vender", "salir",
+               "que_compra", "cuantos_compra", "comprado", "que_vende",
+               "cuantos_vende", "vendido")
+TI_TERMINO_TENGO, TI_TERMINO_LLEVO = 0x5C, 0x5D
+
+
+def terminos_tienda(db, juego):
+    import lcf
+    base = 0x29 + 13 * juego
+    return {n: lcf.to_string(db.terminos.get(base + k, b""))
+            for k, n in enumerate(TI_TERMINOS)}
+
+
+def ordenes_tienda(tipo):
+    """Qué órdenes hay: `OpenShop` 0 compra y vende, 1 sólo compra, 2 sólo
+    vende. Con una sola no hay pantalla principal: se entra derecho."""
+    return {0: ("comprar", "vender", "salir"), 1: ("comprar",),
+            2: ("vender",)}[tipo]
+
+
+def puede_comprar(db, numero, oro, inventario):
+    """`Window_ShopBuy::CheckEnable`: que alcance y que no tenga 99."""
+    precio = db.items[numero].price
+    return precio <= oro and inventario.get(numero, 0) < ITEM_MAX
+
+
+def maximo_compra(db, numero, oro, inventario):
+    precio = db.items[numero].price
+    tope = ITEM_MAX - inventario.get(numero, 0)
+    return min(tope, oro // precio) if precio else tope
+
+
+def llevados(equipos, numero):
+    """Cuántos lleva puestos el grupo: `GetEquippedItemCount`."""
+    return sum(1 for eq in equipos for i in eq if i == numero)
+
+
+def lista_venta(items_rom, inventario):
+    return [i for i in sorted(inventario)
+            if inventario[i] > 0 and i in items_rom]
+
+
+def pantalla_tienda(db, tipo, juego, vende, oro, inventario, equipos, modo,
+                    elegido=0, arriba=0, cuantos=1, resaludo=False,
+                    items_rom=None):
+    """La tienda en `modo`. `vende` son los ítems de `OpenShop`, `equipos`
+    el equipo de cada uno del grupo, `elegido` el cursor —de la principal o
+    de la lista— y `cuantos` la cantidad que se está eligiendo."""
+    t = Texto()
+    term = terminos_tienda(db, juego)
+    items_rom = set(items_rom if items_rom is not None else
+                    list(vende) + list(inventario))
+    mensaje = {TI_PRINCIPAL: "resaludo" if resaludo else "saludo",
+               TI_COMPRAR: "que_compra", TI_CUANTOS_COMPRA: "cuantos_compra",
+               TI_COMPRADO: "comprado", TI_VENDER: "que_vende",
+               TI_CUANTOS_VENTA: "cuantos_vende", TI_VENDIDO: "vendido"}[modo]
+    descripcion(t, term[mensaje])
+    if modo == TI_PRINCIPAL:
+        for n, orden in enumerate(ordenes_tienda(tipo)):
+            fila = TI_ORDEN_FILA0 + 2 * n
+            if n == elegido:
+                t.escribir(fila, EQ_CURSOR_COL, ">")
+            # Del primer renglón, como la ROM, que los guarda partidos: el
+            # juego 0 los trae con un espacio adelante —" Buy"— y partir los
+            # renglones lo come.
+            t.escribir(fila, titulo.ITEM_NOMBRE_COL,
+                       titulo.partir_descripcion(term[orden])[0])
+        return t
+    comprando = modo in (TI_COMPRAR, TI_CUANTOS_COMPRA, TI_COMPRADO)
+    lista = ([i for i in vende if i in items_rom] if comprando
+             else lista_venta(items_rom, inventario))
+    if modo != TI_VENDER:
+        # El oro, y cuántos tiene y lleva puestos del que marca el cursor.
+        cifras = str(min(oro, 999999))
+        t.escribir(TI_ORO_FILA, TI_ORO_COL + 1 - len(cifras), cifras)
+        t.escribir(TI_ORO_FILA, TI_ORO_COL + 1, db.term_gold, 0)
+        if lista:
+            numero = lista[elegido]
+            t.escribir(TI_TENGO_FILA, TI_ESTADO_COL,
+                       lcf_termino(db, TI_TERMINO_TENGO))
+            t.numero(TI_TENGO_FILA, TI_ESTADO_NUM,
+                     inventario.get(numero, 0), 2)
+            t.escribir(TI_LLEVO_FILA, TI_ESTADO_COL,
+                       lcf_termino(db, TI_TERMINO_LLEVO))
+            t.numero(TI_LLEVO_FILA, TI_ESTADO_NUM, llevados(equipos, numero),
+                     2)
+    if modo in (TI_CUANTOS_COMPRA, TI_CUANTOS_VENTA):
+        numero = lista[elegido]
+        precio = db.items[numero].price
+        if modo == TI_CUANTOS_VENTA:
+            precio //= 2
+        fila = TI_LISTA_FILA0
+        t.escribir(fila, titulo.ITEM_NOMBRE_COL, titulo.texto_de_item(
+            db.items[numero].name, titulo.ITEM_NOMBRE_ANCHO))
+        t.escribir(fila, TI_CUANTOS_COL, "x")
+        t.numero(fila, TI_CUANTOS_COL + 1, cuantos, 2)
+        total = str(precio * cuantos)
+        t.escribir(TI_TOTAL_FILA, TI_ORO_COL + 1 - len(total), total)
+        t.escribir(TI_TOTAL_FILA, TI_ORO_COL + 1, db.term_gold)
+        return t
+    for f in range(TI_LISTA_FILAS):
+        k = arriba + f
+        if k >= len(lista):
+            break
+        numero = lista[k]
+        item = db.items[numero]
+        fila = TI_LISTA_FILA0 + 2 * f
+        if comprando:
+            gris = 0 if puede_comprar(db, numero, oro, inventario) else 1
+        else:
+            gris = 0 if item.price > 0 else 1
+        if k == elegido and modo in (TI_COMPRAR, TI_VENDER):
+            t.escribir(fila, EQ_CURSOR_COL, ">")
+        t.escribir(fila, titulo.ITEM_NOMBRE_COL, titulo.texto_de_item(
+            item.name, titulo.ITEM_NOMBRE_ANCHO), gris)
+        if comprando:
+            precio = str(item.price)
+            t.escribir(fila, TI_PRECIO_COL + 1 - len(precio), precio, gris)
+        else:
+            t.escribir(fila, titulo.ITEM_DOS_PUNTOS_COL,
+                       ":%2d" % min(inventario[numero], 99), gris)
+    return t
+
+
+def lcf_termino(db, chunk):
+    import lcf
+    return lcf.to_string(db.terminos.get(chunk, b""))
+
+
 def main():
     import argparse
     import os
@@ -192,6 +347,14 @@ def main():
     parser.add_argument("--eligiendo", action="store_true")
     parser.add_argument("--elegido", type=int, default=0)
     parser.add_argument("--arriba", type=int, default=0)
+    parser.add_argument("--tienda", default=None, metavar="TIPO:JUEGO:I,I,...",
+                        help="la tienda de `OpenShop` con estos ítems")
+    parser.add_argument("--modo", type=int, default=0)
+    parser.add_argument("--oro", type=int, default=0)
+    parser.add_argument("--cuantos", type=int, default=1)
+    parser.add_argument("--resaludo", action="store_true")
+    parser.add_argument("--grupo", default="", metavar="ACTOR,...",
+                        help="el grupo, para contar lo que lleva puesto")
     args = parser.parse_args()
     db = lcf.Database(os.path.join(args.game_dir, "RPG_RT.ldb"))
     skin = ventana.skin(args.game_dir, db.system_name)
@@ -200,6 +363,17 @@ def main():
         if par:
             n, _, c = par.partition(":")
             inventario[int(n)] = int(c or 1)
+    if args.tienda is not None:
+        tipo, juego, lista = args.tienda.split(":")
+        vende = [int(x) for x in lista.split(",") if x]
+        equipos = [list(db.actors[int(a)].initial_equipment)
+                   for a in args.grupo.split(",") if a]
+        pantalla_tienda(db, int(tipo), int(juego), vende, args.oro,
+                        inventario, equipos, args.modo, args.elegido,
+                        args.arriba, args.cuantos, args.resaludo).render(
+            skin, db.font_id).save(args.output)
+        print("tienda -> %s" % args.output)
+        return
     equipo = ([int(x) for x in args.puesto.split(",")] if args.puesto
               else list(db.actors[args.equipo].initial_equipment))
     pantalla_equipo(db, args.equipo, equipo, inventario, args.ranura,
