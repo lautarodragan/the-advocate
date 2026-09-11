@@ -776,6 +776,7 @@ grupo_listo:
     jsr limpiar_variables
     jsr equipo_inicial_poner
     jsr clima_limpiar
+    jsr se_limpiar
     ; El testigo de la pantalla de ranuras también: con $55 el arnés la vería
     ; abierta desde el reset. Es lo que pasó el 2026-09-10 con los dos
     ; contadores que "daban 85": leían la basura del emulador.
@@ -3532,6 +3533,9 @@ otro:
 :   cmp #OP_CLIMA
     bne :+
     jmp op_clima
+:   cmp #OP_SONIDO
+    bne :+
+    jmp op_sonido
 :   cmp #OP_GUARDAR
     bne :+
     jmp op_guardar
@@ -3911,6 +3915,56 @@ op_tienda_listo:
     jsr volver_al_mapa
     ply
     plb
+    jmp otro
+
+; `OP_SONIDO`: el índice en `sonido_tabla`. Queda pendiente y arranca al
+; final de `music_tick`, detrás de lo que la música escriba en el cuadro.
+op_sonido:
+.a8
+.i16
+    rep #$20
+.a16
+    lda [cod_ptr], y            ; el índice
+    iny
+    iny
+    phy
+    phb
+    pha
+    sep #$20
+.a8
+    phk
+    plb                         ; la tabla vive en el banco del código
+    rep #$20
+.a16
+    pla
+    sta temp
+    asl a
+    asl a
+    asl a
+    sec
+    sbc temp                    ; por siete
+    tax
+    sep #$20
+.a8
+    lda sonido_tabla, x
+    cmp #$FF
+    beq op_sonido_listo         ; no entró en la ARAM: no suena
+    lda #5
+    jsr se_apuntar
+    ldy #7
+op_sonido_copiar:
+    lda sonido_tabla, x
+    sta WMDATA
+    inx
+    dey
+    bne op_sonido_copiar
+    lda #2
+    jsr se_apuntar
+    lda #1
+    sta WMDATA                  ; pendiente
+op_sonido_listo:
+    plb
+    ply
     jmp otro
 
 ; `WeatherEffects`: el tipo y la fuerza. No cuesta ningún tick.
@@ -13582,6 +13636,335 @@ listo:
     rts
 .endproc
 
+; --- los efectos de sonido -------------------------------------------------------
+;
+; `PlaySound`, en la voz SE_VOZ, que se le roba a la música mientras dura. Ver
+; `build_efectos` en snes_music.py. El estado vive en la RAM lejana, porque la
+; página directa y la BSS están llenas:
+;
+;   FAR_SE + 0   cuántos cuadros le quedan al efecto, dos bytes
+;   FAR_SE + 2   hay uno pendiente de arrancar
+;   FAR_SE + 3   hay que devolverle la voz a la música en este cuadro
+;   FAR_SE + 4   hay que bajar el disparo de KON en este cuadro
+;   FAR_SE + 5   el pendiente: la muestra, la altura (dos), el volumen de
+;                cada lado y los cuadros (dos), siete bytes
+;   FAR_SOMBRA   lo último que la música le escribió a los ocho registros de
+;                la voz, y a KOF en el noveno: con eso se le devuelve la voz
+;
+; La música sigue escribiéndole a la voz mientras el efecto suena: se guarda
+; en la sombra y no se manda, y a sus KON y KOF se les saca el bit de la voz.
+; Todo el acceso a la RAM lejana arma la dirección de a un byte, con A de
+; ocho: `dsp_musica` lleva el valor en la otra mitad del acumulador.
+FAR_SE     = $30A0
+FAR_SOMBRA = $30B0
+; SE_BIT y SE_REG —el bit de la voz en KON y KOF, y su primer registro— los
+; emite snes_music.py junto con SE_VOZ.
+SE_KON     = $4C
+SE_KOF     = $5C
+
+; A: un desplazamiento en FAR_SE. Apunta la ventana ahí sin tocar B.
+.proc se_apuntar
+.a8
+.i16
+    clc
+    adc #<FAR_SE
+    sta WMADDL
+    lda #>FAR_SE
+    adc #0
+    sta WMADDM
+    stz WMADDH
+    rts
+.endproc
+
+; Z=0 si hay un efecto sonando, pendiente o devolviendo la voz. No toca B.
+.proc se_ocupada
+.a8
+.i16
+    lda #0
+    jsr se_apuntar
+    lda WMDATA
+    ora WMDATA
+    ora WMDATA                  ; pendiente
+    ora WMDATA                  ; devolviendo
+    rts
+.endproc
+
+; Un par al DSP: X el registro, A el valor. Es lo que hace `write_dsp`.
+.proc dsp_par
+.a8
+.i16
+    xba
+    txa
+    sta APUIO0
+    xba
+    sta APUIO1
+    inc token
+    lda token
+    sta APUIO3
+espera:
+    cmp APUIO3
+    bne espera
+    rts
+.endproc
+
+; Una escritura del stream de la música: X el registro, A el valor. Si es de
+; la voz del efecto, va a la sombra, y si hay un efecto no se manda; KON y KOF
+; salen sin el bit de la voz mientras dure.
+.proc dsp_musica
+.a8
+.i16
+    xba                         ; B = el valor
+    txa
+    and #$F0
+    cmp #SE_REG
+    bne no_voz
+    txa
+    and #$0F
+    cmp #8
+    bcs no_voz                  ; ENVX y OUTX no se escriben nunca
+    clc
+    adc #<FAR_SOMBRA
+    sta WMADDL
+    lda #>FAR_SOMBRA
+    adc #0
+    sta WMADDM
+    stz WMADDH
+    xba
+    sta WMDATA                  ; a la sombra
+    xba
+    jsr se_ocupada
+    beq enviar
+    rts                         ; la voz es del efecto
+no_voz:
+    txa
+    cmp #SE_KOF
+    bne no_kof
+    ; KOF: a la sombra siempre, y sin el bit mientras haya efecto.
+    lda #<(FAR_SOMBRA + 8)
+    sta WMADDL
+    lda #>(FAR_SOMBRA + 8)
+    sta WMADDM
+    stz WMADDH
+    xba
+    sta WMDATA
+    xba
+    bra mascara
+no_kof:
+    cmp #SE_KON
+    bne enviar
+mascara:
+    jsr se_ocupada
+    beq enviar
+    xba
+    and #($FF - SE_BIT)
+    xba
+enviar:
+    xba                         ; A = el valor, y X sigue con el registro
+    jmp dsp_par
+.endproc
+
+; Antes de la música, en cada cuadro: bajar el disparo que dejó el efecto, y
+; devolverle la voz a la música si terminó en el cuadro anterior.
+.proc se_antes
+.a8
+.i16
+    lda #4
+    jsr se_apuntar
+    lda WMDATA
+    beq sin_bajar
+    lda #4
+    jsr se_apuntar
+    stz WMDATA
+    ldx #SE_KON
+    lda #0
+    jsr dsp_par
+sin_bajar:
+    lda #3
+    jsr se_apuntar
+    lda WMDATA
+    beq listo
+    lda #3
+    jsr se_apuntar
+    stz WMDATA
+    ; KOF como lo tenía la música, y los ocho registros de la voz.
+    lda #<(FAR_SOMBRA + 8)
+    sta WMADDL
+    lda #>(FAR_SOMBRA + 8)
+    sta WMADDM
+    stz WMADDH
+    lda WMDATA
+    ldx #SE_KOF
+    jsr dsp_par
+    ldx #0
+registro:
+    phx
+    rep #$20
+.a16
+    txa
+    clc
+    adc #FAR_SOMBRA
+    sta WMADDL
+    sep #$20
+.a8
+    stz WMADDH
+    lda WMDATA
+    pha
+    rep #$20
+.a16
+    txa
+    clc
+    adc #SE_REG
+    tax
+    sep #$20
+.a8
+    pla
+    jsr dsp_par
+    plx
+    inx
+    cpx #8
+    bcc registro
+listo:
+    rts
+.endproc
+
+; Después de la música: arrancar el pendiente, o contar el que suena y
+; apagarlo cuando termina.
+.proc se_despues
+.a8
+.i16
+    lda #2
+    jsr se_apuntar
+    lda WMDATA
+    bne arrancar
+    jmp contar
+arrancar:
+    lda #2
+    jsr se_apuntar
+    stz WMDATA                  ; ya no está pendiente
+    ; KOF sin el bit de la voz, que la música pudo haber dejado puesto.
+    lda #<(FAR_SOMBRA + 8)
+    sta WMADDL
+    lda #>(FAR_SOMBRA + 8)
+    sta WMADDM
+    stz WMADDH
+    lda WMDATA
+    and #($FF - SE_BIT)
+    ldx #SE_KOF
+    jsr dsp_par
+    ; La muestra, la altura, el volumen y la envolvente, desde el pendiente.
+    lda #5
+    jsr se_apuntar
+    lda WMDATA                  ; la muestra
+    pha
+    lda WMDATA
+    pha                         ; altura baja
+    lda WMDATA
+    pha                         ; altura alta
+    lda WMDATA
+    pha                         ; izquierda
+    lda WMDATA
+    pha                         ; derecha
+    lda WMDATA
+    sta temp                    ; los cuadros
+    lda WMDATA
+    sta temp + 1
+    pla
+    ldx #(SE_REG + 1)
+    jsr dsp_par                 ; VOLR
+    pla
+    ldx #(SE_REG + 0)
+    jsr dsp_par                 ; VOLL
+    pla
+    ldx #(SE_REG + 3)
+    jsr dsp_par                 ; la altura alta
+    pla
+    ldx #(SE_REG + 2)
+    jsr dsp_par                 ; y la baja
+    pla
+    ldx #(SE_REG + 4)
+    jsr dsp_par                 ; SRCN
+    lda #$FF                    ; ADSR prendido, ataque y caída al máximo
+    ldx #(SE_REG + 5)
+    jsr dsp_par
+    lda #$E0                    ; sostenido al máximo y sin caer
+    ldx #(SE_REG + 6)
+    jsr dsp_par
+    lda #SE_BIT
+    ldx #SE_KON
+    jsr dsp_par                 ; y el disparo
+    lda #0
+    jsr se_apuntar
+    lda temp
+    sta WMDATA
+    lda temp + 1
+    sta WMDATA
+    lda #4
+    jsr se_apuntar
+    lda #1
+    sta WMDATA                  ; el cuadro que viene se baja el disparo
+    rts
+contar:
+    lda #0
+    jsr se_apuntar
+    lda WMDATA
+    sta temp
+    lda WMDATA
+    sta temp + 1
+    rep #$20
+.a16
+    lda temp
+    beq nada
+    dec a
+    sta temp
+    sep #$20
+.a8
+    lda #0
+    jsr se_apuntar
+    lda temp
+    sta WMDATA
+    lda temp + 1
+    sta WMDATA
+    lda temp
+    ora temp + 1
+    bne listo
+    ; Terminó: KOF con el bit de la voz, y en el cuadro que viene la música
+    ; la recupera.
+    lda #<(FAR_SOMBRA + 8)
+    sta WMADDL
+    lda #>(FAR_SOMBRA + 8)
+    sta WMADDM
+    stz WMADDH
+    lda WMDATA
+    ora #SE_BIT
+    ldx #SE_KOF
+    jsr dsp_par
+    lda #3
+    jsr se_apuntar
+    lda #1
+    sta WMDATA
+listo:
+    rts
+.a16
+nada:
+    sep #$20
+.a8
+    rts
+.endproc
+
+; El estado en cero: nada sonando. En el reset.
+.proc se_limpiar
+.a8
+.i16
+    lda #0
+    jsr se_apuntar
+    ldx #12
+otro:
+    stz WMDATA
+    dex
+    bne otro
+    rts
+.endproc
+
 ; --- la pantalla de ítems -------------------------------------------------------
 ;
 ; `Scene_Item`: arriba la descripción del ítem marcado, abajo la lista del
@@ -20488,10 +20871,11 @@ OP_END  = $FF
     beq sin_fundido
     jsr bgm_fundido_tick
 sin_fundido:
+    ; Los efectos de sonido rodean a la música, y corren aunque esté callada:
+    ; ver "los efectos de sonido".
+    jsr se_antes
     lda music_apagada
-    beq suena
-    rts
-suena:
+    bne listo
     jsr music_frame
     lda es_pal
     beq listo
@@ -20502,7 +20886,7 @@ suena:
     stz pal_tick
     jsr music_frame             ; el cuadro que le falta a PAL
 listo:
-    rts
+    jmp se_despues
 .endproc
 
 ; Arranca desde el principio el tema cuyo índice trae A. El comienzo del stream
@@ -20694,19 +21078,20 @@ check_wait:
     rts
 
 write_dsp:
+    ; El registro y el valor, y los manda `dsp_musica`, que es la que sabe
+    ; que la voz del efecto de sonido puede no ser de la música ahora.
     lda [music]                 ; registro del DSP
     jsr advance
-    sta APUIO0
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
     lda [music]                 ; valor
     jsr advance
-    sta APUIO1
-    inc token                   ; el testigo le avisa al SPC700 que hay algo
-    lda token
-    sta APUIO3
-wait_ack:
-    cmp APUIO3
-    bne wait_ack
-    bra run
+    jsr dsp_musica
+    jmp run
 .endproc
 
 ; Avanza el puntero de música un byte, devolviendo en A lo que ya se leyó.

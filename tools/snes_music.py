@@ -108,6 +108,127 @@ def build_samples(voices):
     return bytes(directory) + b"".join(v.data for v in voices)
 
 
+# --- los efectos de sonido -------------------------------------------------
+#
+# Los WAV de `PlaySound` —del juego o del RTP—, en la misma ARAM que el banco
+# de la música, con **lo que la música deja libre** y hasta `SE_ARAM`: la
+# música va primero. El primer intento les reservaba 16 KB y se los sacaba a
+# la percusión, que es la que se queda con lo que sobra, y el banco de la
+# demo bajó de 44 muestras a 22. La demo pide 38 efectos que suman más de 40
+# segundos, y eso no entra a ninguna calidad razonable, así que se eligen:
+# primero los que piden los primeros mapas de la ROM, a `SE_TASA`, recortados a
+# `SE_MAX_SEGUNDOS`; uno más largo repite sus últimos `SE_LOOP_SEGUNDOS`
+# hasta durar lo que dura en RM2k —la lluvia de la apertura son cinco
+# segundos de ruido, y así se la oye entera—. Los que no entran no suenan, y
+# el conversor lo dice.
+SE_ARAM = 16 * 1024
+SE_TASA = 6000
+SE_MAX_SEGUNDOS = 1.0
+SE_LOOP_SEGUNDOS = 0.4
+SE_VOZ = 7                      # la que se le roba a la música
+
+
+class Efecto:
+    """Un efecto listo para el SPC700: `data` en BRR, a `rate`, que vuelve al
+    bloque `loop_block` si repite, y dura `segundos` en RM2k."""
+
+    def __init__(self, name, data, rate, loop_block, segundos):
+        self.name = name
+        self.data = data
+        self.rate = rate
+        self.loop_block = loop_block or 0
+        self.repite = loop_block is not None
+        self.segundos = segundos
+
+
+def leer_wav(nombre, game_dir=GAME_DIR):
+    """Las muestras de un WAV mono como enteros de 16 bits con signo, y su
+    tasa. None si no está o no es un WAV que se entienda."""
+    import wave
+    from render_map import RTP_DIR
+    ruta = find_resource([game_dir, RTP_DIR], "Sound", nombre,
+                         (".wav", ".WAV"))
+    if not ruta:
+        return None
+    try:
+        w = wave.open(ruta)
+    except Exception:
+        return None
+    ancho, canales, tasa = w.getsampwidth(), w.getnchannels(), w.getframerate()
+    datos = w.readframes(w.getnframes())
+    if ancho == 1:
+        crudo = [(b - 128) << 8 for b in datos]
+    elif ancho == 2:
+        crudo = [int.from_bytes(datos[i:i + 2], "little", signed=True)
+                 for i in range(0, len(datos), 2)]
+    else:
+        return None
+    if canales > 1:
+        crudo = [sum(crudo[i:i + canales]) // canales
+                 for i in range(0, len(crudo), canales)]
+    return crudo, tasa
+
+
+def build_efecto(nombre, game_dir=GAME_DIR, tasa=SE_TASA):
+    leido = leer_wav(nombre, game_dir)
+    if not leido or not leido[0]:
+        return None
+    crudo, fuente = leido
+    segundos = len(crudo) / float(fuente)
+    guardar = min(len(crudo), int(SE_MAX_SEGUNDOS * fuente))
+    salen = max(brr.BLOCK_SAMPLES,
+                int(round(guardar * tasa / float(fuente)))
+                // brr.BLOCK_SAMPLES * brr.BLOCK_SAMPLES)
+    audio = snes_samples.normalize(snes_samples.resample(crudo[:guardar],
+                                                         salen))
+    loop = None
+    if guardar < len(crudo):
+        largo_loop = int(SE_LOOP_SEGUNDOS * tasa) // brr.BLOCK_SAMPLES
+        loop = max(0, salen // brr.BLOCK_SAMPLES - max(1, largo_loop))
+    return Efecto(nombre, brr.encode(audio, loop_block=loop), tasa, loop,
+                  segundos)
+
+
+def build_efectos(pedidos, game_dir=GAME_DIR, budget=SE_ARAM):
+    """Los efectos que entran en `budget`, por prioridad: `pedidos` es una
+    lista de nombres ya ordenada de más a menos pedido. Devuelve {nombre:
+    Efecto} con los que entraron."""
+    hechos, usado = {}, 0
+    for nombre in pedidos:
+        if nombre in hechos:
+            continue
+        efecto = build_efecto(nombre, game_dir)
+        if efecto is None:
+            continue
+        costo = len(efecto.data) + 4          # la muestra y su entrada
+        if usado + costo > budget:
+            continue
+        hechos[nombre] = efecto
+        usado += costo
+    return hechos
+
+
+def altura_de_efecto(efecto, tempo):
+    """El registro de altura del DSP: 4096 es la tasa de 32 kHz, y el tempo
+    de RM2k —de 50 a 150— la estira."""
+    return min(0x3FFF, int(round(efecto.rate * 4096 / 32000.0 * tempo / 100.0)))
+
+
+def cuadros_de_efecto(efecto, tempo):
+    """Cuánto dura, en cuadros de 60 Hz, con el tempo aplicado."""
+    return max(1, int(round(efecto.segundos * 60 * 100.0 / max(1, tempo))))
+
+
+def volumen_de_efecto(volumen, balance):
+    """Izquierda y derecha del DSP, de 0 a 127, desde el volumen y el paneo
+    de RM2k: el paneo en 50 es el centro, y a cada lado baja el otro."""
+    tope = sdsp.MASTER if hasattr(sdsp, "MASTER") else 0x7F
+    v = max(0, min(100, volumen)) * 0x60 // 100
+    izquierda = v * min(50, 100 - balance) // 50
+    derecha = v * min(50, balance) // 50
+    return max(0, min(0x7F, izquierda)), max(0, min(0x7F, derecha))
+
+
 # --- reparto de voces -------------------------------------------------------
 
 def assign(notes):
@@ -173,7 +294,7 @@ class Banco:
     anotada en "Lo que falta" del README.
     """
 
-    def __init__(self, programas, golpes):
+    def __init__(self, programas, golpes, reserva=0):
         melodicas = snes_samples.build_bank(sorted(programas))
         # A la percusión se le da **lo que sobre**, y no los 16 KB fijos de
         # `DRUM_BUDGET`. Con un tema solo daba igual; compartiendo, no: los
@@ -184,7 +305,7 @@ class Banco:
         # subiendo `DRUM_BUDGET` a secas.
         golpes = sorted(golpes)
         libre = (ARAM_LIBRE - ARAM_MARGEN - 4 * (len(melodicas) + len(golpes))
-                 - sum(len(v.data) for v in melodicas))
+                 - sum(len(v.data) for v in melodicas) - reserva)
         percusion = []
         while golpes and libre > 0:
             percusion = snes_samples.build_drum_bank({n: 1 for n in golpes},
@@ -436,7 +557,7 @@ def leer_tema(name, game_dir=GAME_DIR):
     }
 
 
-def build_varios(nombres, game_dir=GAME_DIR):
+def build_varios(nombres, game_dir=GAME_DIR, efectos=()):
     """Todos los temas de la ROM, compartiendo un solo banco de muestras.
 
     Devuelve (driver, bloque de muestras, temas, banco, los que no entraron).
@@ -478,7 +599,18 @@ def build_varios(nombres, game_dir=GAME_DIR):
         temas.append({"nombre": nombre, "stream": stream,
                       "segundos": leido["largo"] / TICKS_PER_SECOND,
                       "resumen": resumen_del_tema(leido, banco)})
-    return driver, build_samples(banco.voces), temas, banco, afuera
+    # Los efectos, con lo que la música dejó libre. Van detrás del banco en
+    # el mismo directorio: su `V_SRCN` es el lugar que les toca después de las
+    # muestras de la música.
+    libre = ARAM_LIBRE - ARAM_MARGEN - banco.bytes
+    efectos_hechos = build_efectos(list(efectos), game_dir,
+                                   max(0, min(SE_ARAM, libre)))
+    lista = sorted(efectos_hechos.values(), key=lambda e: list(efectos).index(
+        e.name) if e.name in efectos else 0)
+    banco.efectos = {e.name: (len(banco.voces) + i, e)
+                     for i, e in enumerate(lista)}
+    return (driver, build_samples(list(banco.voces) + lista), temas, banco,
+            afuera)
 
 
 def resumen_del_tema(leido, banco):
@@ -512,7 +644,25 @@ def build_nombre(name, game_dir=GAME_DIR):
             tema["resumen"])
 
 
-def emit(path, temas, driver, samples, arranque=0xFF, titulo=0xFF):
+def tabla_de_sonidos(sonidos, banco):
+    """Una fila por entrada de `Temas.sonidos`: la muestra —$FF si no entró—,
+    la altura, el volumen de cada lado y cuántos cuadros dura."""
+    filas = []
+    efectos = getattr(banco, "efectos", {}) if banco is not None else {}
+    for nombre, volumen, tempo, balance in sonidos:
+        hecho = efectos.get(nombre)
+        if hecho is None:
+            filas.append((0xFF, 0, 0, 0, 0))
+            continue
+        srcn, efecto = hecho
+        izquierda, derecha = volumen_de_efecto(volumen, balance)
+        filas.append((srcn, altura_de_efecto(efecto, tempo), izquierda,
+                      derecha, cuadros_de_efecto(efecto, tempo)))
+    return filas
+
+
+def emit(path, temas, driver, samples, arranque=0xFF, titulo=0xFF,
+         sonidos=()):
     """El .inc que arma el ensamblador junto con main.s.
 
     `temas` son los de `build_varios`, en el orden de `Temas`: el bytecode ya
@@ -538,6 +688,13 @@ def emit(path, temas, driver, samples, arranque=0xFF, titulo=0xFF):
         "%s:\n    .byte %s" % (nombre, ", ".join(prefijo + e for e in etiquetas))
         for nombre, prefijo in (("tema_lo", "<"), ("tema_hi", ">"),
                                 ("tema_bk", "^")))
+    # Y los efectos de sonido: siete bytes por entrada de `Temas.sonidos`,
+    # también en el banco 0 porque `op_sonido` los lee con un índice.
+    filas = list(sonidos) or [(0xFF, 0, 0, 0, 0)]
+    tabla += "\nsonido_tabla:\n" + "\n".join(
+        "    .byte $%02X, <%d, >%d, %d, %d, <%d, >%d" % (
+            srcn, altura, altura, izquierda, derecha, cuadros, cuadros)
+        for srcn, altura, izquierda, derecha, cuadros in filas)
 
     with open(path, "w") as handle:
         handle.write(
@@ -567,7 +724,13 @@ def emit(path, temas, driver, samples, arranque=0xFF, titulo=0xFF):
             "SPC_DRIVER_ADDR  = $%04X\n"
             "SPC_DRIVER_SIZE  = %d\n"
             "SPC_SAMPLES_ADDR = $%04X\n"
-            "SPC_SAMPLES_SIZE = %d\n\n"
+            "SPC_SAMPLES_SIZE = %d\n"
+            "; Los efectos de sonido: en qué voz suenan y cuántas entradas\n"
+            "; tiene `sonido_tabla`. Ver `build_efectos`.\n"
+            "SE_VOZ           = %d\n"
+            "SE_BIT           = $%02X\n"
+            "SE_REG           = $%02X\n"
+            "SONIDOS_N        = %d\n\n"
             "; Dónde arranca el stream de cada tema, partido en tres tablas\n"
             "; porque se leen con un índice: van en el banco 0 como todo lo\n"
             "; que la CPU recorre con `lda tabla, x`.\n"
@@ -579,6 +742,7 @@ def emit(path, temas, driver, samples, arranque=0xFF, titulo=0xFF):
                sdsp.MASTER, sdsp.MVOL_L, sdsp.MVOL_R,
                DRIVER_ADDR, len(driver),
                SAMPLES_ADDR, len(samples),
+               SE_VOZ, 1 << SE_VOZ, SE_VOZ * 16, len(list(sonidos)),
                tabla,
                block("spc_driver", driver),
                block("spc_samples", samples),

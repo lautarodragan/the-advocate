@@ -871,6 +871,39 @@ secuencia de estados de la lluvia de los dos lados, actualización por
 actualización: las primeras 2626 eran idénticas. Lo cobra `apertura` en la
 tanda, que desde ahora compara con lluvia.
 
+### Los efectos de sonido
+
+`PlaySound` suena desde el 2026-09-11. Compila a `OP_SONIDO` con el índice del
+efecto en `sonido_tabla`, que lleva por efecto la muestra, la altura, el
+volumen de cada lado y cuántos cuadros dura: el tempo de RM2k estira la altura
+y la duración, y el paneo baja el lado contrario.
+
+Tres decisiones, las tres por la ARAM:
+
+* **Los efectos se quedan con lo que la música deja libre**, hasta 16 KB. El
+  primer intento les reservaba 16 KB y se los sacaba a la percusión, y el
+  banco de la demo bajaba de 44 muestras a 22. La demo pide 38 efectos que
+  suman más de 40 KB; entran los que piden primero los primeros mapas —en la
+  demo, 5: la lluvia y el trueno de la apertura entre ellos—, y **un
+  `PlaySound` cuyo efecto no entró no suena**. El conversor lo dice.
+* **A 6 kHz y a lo sumo un segundo.** Uno más largo repite sus últimos 0,4 s
+  hasta durar lo que dura en RM2k: la lluvia de la apertura son cinco segundos
+  de ruido y así se la oye entera.
+* **El efecto le roba la voz 7 a la música**, que es de percusión. La ROM
+  guarda una sombra de los registros de esa voz que la música escribe
+  (`dsp_musica`), y al terminar el efecto la devuelve tal cual; mientras suena,
+  la música no la toca.
+
+La tanda no mide audio: compara imágenes, y `OP_SONIDO` no cuesta tiempo en
+la referencia. Lo que se corrió fue una grabación de la apertura de
+`demo-ciudad` con el núcleo de libretro, contra la misma ROM con el volumen de
+los efectos en cero: los disparos caen en los cuadros 191, 433 y 576, y en el
+hueco entre el fin del tercero y el siguiente (cuadros 890 a 920) las dos
+salidas son idénticas muestra por muestra. Es decir, la música vuelve entera.
+Si suenan bien lo dice el oído de taro.
+
+`play_sound_effect` en las rutas sigue aceptándose sin hacerse.
+
 ### Varios mapas en la ROM
 
 Un mapa solo no es un juego. Todo lo que antes era una constante del `.inc` —el
@@ -3436,8 +3469,7 @@ página con azar se compara pixel por pixel: el Tram Officer del mapa 9 tira un
 número de 0 a 100 y dice "It's here!" si sale 90 o más; los dos lados sacan 97.
 No hay entropía, y a los efectos de la comparación tampoco la hay en RPG_RT.
 
-`CallEvent` —la página de otro evento, en el lugar— se acepta sin hacer, como
-`PlaySound`: en los mapas 1 a 10 lo usa sólo el Tram Officer para subir al
+`CallEvent` —la página de otro evento, en el lugar— se acepta sin hacer: en los mapas 1 a 10 lo usa sólo el Tram Officer para subir al
 Hover-Tram, y esa escena quedó para otra vuelta. Es deuda declarada en
 `ACEPTADOS_SIN_HACER`.
 
@@ -3446,7 +3478,7 @@ Hover-Tram, y esa escena quedó para otra vuelta. Es deuda declarada en
 * **Las órdenes de ruta que faltan.** Son quince las que la ROM entiende
   —mover en los cuatro sentidos, girar en los cuatro, esperar, saltar,
   atravesar paredes y parar o seguir la animación— y `play_sound_effect` se
-  acepta sin hacerlo, como PlaySound, y la **transparencia** también, desde
+  acepta sin hacerlo, y la **transparencia** también, desde
   el 2026-09-05: subirla y bajarla de a un octavo son las órdenes 40 y 41, y
   las ocho rutas del juego que las usan son las cuatro pantallas del mapa 2
   atenuándose mientras Manta hackea, que sin eso dejaban afuera la escena

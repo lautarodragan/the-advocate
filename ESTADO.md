@@ -650,6 +650,15 @@ los personajes y por la ventana. Un mapa sin lugar para sus colores no dibuja
 lluvia —en la demo, el 2, el 8 y el 10, que no la usan—. Lo cobra `apertura`.
 Detalle en el README, "La lluvia".
 
+### Los efectos de sonido (2026-09-11)
+
+`PlaySound` suena: `OP_SONIDO` dispara el efecto en la voz 7, robada a la
+percusión y devuelta intacta al terminar. Los efectos se quedan con la ARAM
+que la música deja libre; en la demo entran 5 de 38, la lluvia y el trueno de
+la apertura entre ellos, y los que no entran no suenan. La tanda no mide
+audio; lo medido fue una grabación A/B de la apertura (README, "Los efectos
+de sonido"). **Falta que taro los escuche.**
+
 ### Lo próximo, si no se decide otra cosa
 
 Al 2026-09-10, en orden. Los tres primeros son deuda de esta vuelta y están

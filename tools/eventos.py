@@ -282,8 +282,8 @@ def columna_animada(tick, velocidad):
     paso = (tick & rm2k.TICK_MASCARA) // ANIM_CONTINUA[velocidad - 1]
     return rm2k.CICLO_TRES[paso % len(rm2k.CICLO_TRES)]
 
-# El sonido va adentro de la ruta y se acepta sin hacerlo, igual que PlaySound:
-# no se ve. Se tira al compilar, así que el bytecode sigue siendo un byte por
+# El sonido va adentro de la ruta y se acepta sin hacerlo —PlaySound sí suena
+# desde el 2026-09-11, pero la ruta no tiene cómo pedirlo—: no se ve. Se tira al compilar, así que el bytecode sigue siendo un byte por
 # orden y no cuesta ni un cuadro, que es lo que hace RM2k —no toca el contador
 # de parada—.
 RUTA_SONIDO_SE_TIRA = True
@@ -545,16 +545,17 @@ IGNORABLES = {
 # niebla y la tormenta de arena siguen sin dibujarse, y apagan la lluvia.
 WEATHER_EFFECTS = 11070
 
-# PlaySound toca un efecto: una puerta, un golpe, el Insta-Shave de Talan. Se
-# acepta sin tocarlo, y es la deuda más barata de todas las que hay acá: **no se
+# PlaySound toca un efecto: una puerta, un golpe, el Insta-Shave de Talan.
+# Suena desde el 2026-09-11 (ver OP_SONIDO); hasta ahí se aceptaba sin
+# tocarlo, y era la deuda más barata de todas las que hay acá: **no se
 # ve**. La pantalla que se compara es exactamente la misma con y sin sonido, y
 # el audio que sí se compara —`snes-check`, contra el MIDI del mapa— tampoco
 # cambia, porque el tema de fondo sigue sonando igual.
 #
-# Lo que costaría hacerlo: la ROM sube **un solo banco de muestras** al SPC700 al
-# arrancar, y son las del tema del mapa. Un efecto pide muestras más en el
-# cartucho y subirlas en caliente, que es la misma feature de audio que bloquea
-# a PlayBGM. Este juego usa 116 efectos distintos.
+# Lo que costaba hacerlo era la ARAM: la ROM sube **un solo banco de muestras**
+# al SPC700 al arrancar. Se resolvió metiendo los efectos en ese mismo banco,
+# con lo que la música deja libre; este juego usa 116 efectos distintos y en
+# la demo entran 5, así que el resto se sigue aceptando callado.
 #
 # Cuánto destraba, medido y no supuesto: **+10 páginas de tecla de acción y +6
 # automáticas**. Es mucho menos de lo que parece: `PlaySound` es el comando que
@@ -564,6 +565,8 @@ WEATHER_EFFECTS = 11070
 #
 # Lo que sí destraba es concreto: el Insta-Shave del pad de Talan toca cuatro
 # efectos antes de su mensaje, así que sin esto esa rama no corre.
+#
+# **Desde el 2026-09-11 suenan**: ver OP_SONIDO.
 PLAY_SOUND = 11550
 
 # `ShowBattleAnimation` sobre el mapa —`CommandShowBattleAnimation`, 11210—:
@@ -625,7 +628,6 @@ ACEPTADOS_SIN_HACER = {
     # pierde: la escena del tram no corre y el jugador se queda parado con el
     # "It's here!" dicho. Es deuda declarada, no equivalencia.
     CALL_EVENT,
-    PLAY_SOUND,
     SHOW_BATTLE_ANIMATION,
     SHOW_PICTURE,
     MOVE_PICTURE,
@@ -652,11 +654,22 @@ class Temas:
 
     def __init__(self):
         self.nombres = []
+        # Y los efectos de `PlaySound`, de la misma manera: cada combinación
+        # de efecto, volumen, tempo y paneo es una entrada, y el bytecode lleva
+        # su índice. Viven acá y no aparte porque es lo que el conversor y la
+        # referencia ya se pasan de compilación en compilación.
+        self.sonidos = []
 
     def indice(self, nombre):
         if nombre not in self.nombres:
             self.nombres.append(nombre)
         return self.nombres.index(nombre)
+
+    def sonido(self, nombre, volumen, tempo, balance):
+        clave = (nombre, volumen, tempo, balance)
+        if clave not in self.sonidos:
+            self.sonidos.append(clave)
+        return self.sonidos.index(clave)
 
 class Graficos:
     """Los gráficos a los que las rutas cambian con la orden 34, numerados en
@@ -1317,6 +1330,14 @@ def lluvia_pixeles(x, y):
     return [(x + 3 - r // 4, y + r) for r in range(16)]
 
 
+# Los efectos de sonido, desde el 2026-09-11: `PlaySound` compila a OP_SONIDO
+# con el índice de su entrada en `Temas.sonidos`, y la tabla de la ROM dice
+# con qué muestra, qué altura, qué volumen de cada lado y cuántos cuadros. Las
+# muestras van en la ARAM junto al banco de la música, con un presupuesto
+# propio: ver `build_efectos` en snes_music.py. Suenan en la voz 7, que se le
+# roba a la música mientras duran. No se ven, así que la referencia sólo los
+# salta: no cuestan ningún tick, como en RM2k.
+OP_SONIDO = 0x1D    # índice (word)
 CHANGE_HP = 10460
 CHANGE_CONDITION = 10480
 FULL_HEAL = 10490
@@ -1684,6 +1705,14 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
     if cmd.code == END or cmd.code in IGNORABLES:
         return b""
 
+    if cmd.code == PLAY_SOUND:
+        # Sin registro de temas se acepta y no se hace, como antes. Un nombre
+        # vacío es "(OFF)": no toca nada.
+        if temas is None or not cmd.string or len(p) < 3:
+            return b""
+        k = temas.sonido(cmd.string, p[0], p[1], p[2])
+        return bytes([OP_SONIDO, k & 0xFF, k >> 8])
+
     if cmd.code == WEATHER_EFFECTS:
         if len(p) < 2:
             raise NoSePuede("WeatherEffects sin operandos")
@@ -1924,7 +1953,7 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         for orden, extras in ordenes:
 
             if orden == RUTA_SONIDO or orden in RUTA_TRANSPARENCIA:
-                # Se acepta y se tira, igual que PlaySound: no se ve y no
+                # Se acepta y se tira: no se ve y no
                 # cuesta cuadros —RM2k no le toca el contador de parada—. Así
                 # el bytecode sigue siendo un byte por orden. La
                 # transparencia, ver RUTA_TRANSPARENCIA.
@@ -3221,7 +3250,7 @@ LARGO_DE_OPCODE = {
     OP_BGM: 2, OP_LUGAR: 6, OP_TRUEQUE: 3, OP_SACUDIR: 5, OP_DESTELLO: 6,
     OP_FUNDIR_BGM: 3, OP_PAN: 8, OP_SI: 7, OP_IR: 3, OP_ORO: 5,
     OP_GUARDAR: 1, OP_VAR: 8, OP_SI_VAR: 8, OP_ITEM: 4, OP_ACCESO: 3,
-    OP_CLIMA: 3,
+    OP_CLIMA: 3, OP_SONIDO: 3,
 }
 
 
@@ -4249,6 +4278,8 @@ def ejecutar(codigo, estado, desde=0):
                 i += 8
             else:
                 i = codigo[i + 6] | (codigo[i + 7] << 8)
+        elif op == OP_SONIDO:
+            i += 3                  # no se ve y no cuesta ningún tick
         elif op == OP_CLIMA:
             # Como `CommandWeatherEffects`: no cuesta ningún tick.
             estado.poner_clima(codigo[i + 1], codigo[i + 2])

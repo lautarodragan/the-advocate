@@ -2654,6 +2654,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "OP_ACCESO   = $%02X\n"
         "OP_TIENDA   = $%02X\n"
         "OP_CLIMA    = $%02X\n"
+        "OP_SONIDO   = $%02X\n"
         "; La lluvia: ver OP_CLIMA en eventos.py.\n"
         "LLUVIA_GOTAS_MAX = %d\n"
         "LLUVIA_GOTAS_0 = %d\n"
@@ -2901,7 +2902,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            eventos.OP_ORO, eventos.OP_GUARDAR,
            eventos.OP_VAR, eventos.OP_SI_VAR,
            eventos.OP_ITEM, eventos.OP_ACCESO, eventos.OP_TIENDA,
-           eventos.OP_CLIMA, max(eventos.LLUVIA_GOTAS),
+           eventos.OP_CLIMA, eventos.OP_SONIDO, max(eventos.LLUVIA_GOTAS),
            eventos.LLUVIA_GOTAS[0], eventos.LLUVIA_GOTAS[1],
            eventos.LLUVIA_GOTAS[2], eventos.LLUVIA_VIDA,
            eventos.LLUVIA_NACE, eventos.LLUVIA_SEMILLA, eventos.LLUVIA_ALTO,
@@ -4636,13 +4637,28 @@ def main():
         mapas[args.inicial]["id"], temas, args.game_dir,
         args.tema_de_arranque,
         renderer.database.title_music if args.con_titulo else None)
+    # Los efectos, en el orden en que los piden las páginas compiladas: los
+    # mapas se compilan en el orden de la ROM, así que los del mapa donde
+    # arranca van primero —en la demo, la lluvia y el trueno de la apertura—.
+    pedidos_se = []
+    for nombre, _v, _t, _b in temas.sonidos:
+        if nombre not in pedidos_se:
+            pedidos_se.append(nombre)
     driver, muestras, hechos, banco, afuera = snes_music.build_varios(
-        pedidos, args.game_dir)
+        pedidos, args.game_dir, pedidos_se)
     if arranque != 0xFF and arranque >= len(hechos):
         arranque = 0xFF             # el del mapa fue uno de los que no entró
     if tema_titulo != 0xFF and tema_titulo >= len(hechos):
         tema_titulo = 0xFF          # el del título tampoco entró en la ARAM
-    snes_music.emit(musica, hechos, driver, muestras, arranque, tema_titulo)
+    snes_music.emit(musica, hechos, driver, muestras, arranque, tema_titulo,
+                    snes_music.tabla_de_sonidos(temas.sonidos, banco))
+    if pedidos_se:
+        entraron = getattr(banco, "efectos", {})
+        print("  efectos de sonido: %d de %d en %d B; no entran y no suenan: "
+              "%s" % (len(entraron), len(pedidos_se),
+                      sum(len(e.data) + 4 for _s, e in entraron.values()),
+                      ", ".join(n for n in pedidos_se if n not in entraron)
+                      or "ninguno"))
     print("música -> %s: %s"
           % (musica, ", ".join(t["nombre"] for t in hechos)
              or "ninguna, sale muda"))
