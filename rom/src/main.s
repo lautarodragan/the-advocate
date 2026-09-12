@@ -215,6 +215,13 @@ ACCESO_PEDIDO      = $80
 ; equipo, y el reset los pone llenos.
 FAR_HP = $3700
 
+; Y los SP, que son estado por lo mismo que los HP desde que las habilidades
+; se pueden usar: cada una cuesta su `sp_cost` y `Scene_Battle` se lo descuenta
+; al que la usa. Arrancan llenos desde `actor_spmax` y viajan en la partida,
+; detrás de los HP. `FAR_HP` son ACTORES_N palabras —61 actores, 122 bytes— o
+; sea que llega hasta $3779; esto arranca en $3780 y termina antes de $3800.
+FAR_SP = $3780
+
 ; Y el estado de la pelea, que **no** viaja en la partida: una batalla no se
 ; puede guardar en RM2k tampoco.
 FAR_BATALLA = $3800
@@ -9629,13 +9636,15 @@ partida_tabla:
     .word FAR_EQUIPO, ACTORES_N * 10    ; el equipo de cada actor
     ; Y los HP de cada actor, que desde que hay batallas son estado de verdad.
     .word FAR_HP, ACTORES_N * 2
+    ; Y los SP, por lo mismo desde que hay habilidades que gastarlos.
+    .word FAR_SP, ACTORES_N * 2
     .word 0, 0
 ; Los mismos largos, sumados, para poder recorrer la partida en la SRAM sin
 ; volver a mirar la tabla. Está duplicado a propósito y **la ROM lo comprueba**:
 ; `guardar_partida` compara con lo que le quedó a `partida_copiar` y si no dan
 ; iguales entra en pánico. Duplicar un número que nadie verifica es la forma de
 ; error que este repo ya pagó tres veces.
-PARTIDA_BYTES = 2 + 2 + 1 + 2 + 2 + 2 + 6 + 3 + 1 + 5 + 3 + SWITCH_BYTES + 1 + 2 + VARIABLES_N * 2 + 1 + ITEMS_N + 1 + ACTORES_N * 10 + ACTORES_N * 2
+PARTIDA_BYTES = 2 + 2 + 1 + 2 + 2 + 2 + 6 + 3 + 1 + 5 + 3 + SWITCH_BYTES + 1 + 2 + VARIABLES_N * 2 + 1 + ITEMS_N + 1 + ACTORES_N * 10 + ACTORES_N * 2 + ACTORES_N * 2
 ; Dónde cae el grupo adentro de la partida: después de la posición, la
 ; dirección, la celda y el mapa. Lo lee la pantalla de ranuras desde la SRAM
 ; para poner el nombre del líder y las caras. Es la misma suma que arriba,
@@ -24269,6 +24278,11 @@ done:
 ; menú los mostraba llenos siempre y `ChangeHP` compilaba a nada— y ahora una
 ; pelea los baja, así que tienen que arrancar en algún lado y viajar en la
 ; partida. Que arranquen llenos es RM2k: `Game_Actor::Setup`.
+;
+; Desde el 2026-09-13 hace lo mismo con los SP, que son estado por el mismo
+; motivo: una habilidad cuesta su `sp_cost`. Son dos DMA iguales y no un lazo
+; porque escribirlo dos veces cuesta menos que un lazo con tabla, y esto vive
+; en RODATA, donde el cartucho sobra.
 .proc hp_inicial_poner
 .a8
 .i16
@@ -24290,6 +24304,28 @@ done:
     lda #0
     sta f:DMAP0                 ; de A a B, de a un byte
     lda #$80                    ; WMDATA
+    sta f:BBAD0
+    lda #$01
+    sta f:MDMAEN
+    ; y los SP, desde `actor_spmax`
+    rep #$20
+.a16
+    lda #FAR_SP
+    sta f:WMADDL
+    lda #<(actor_spmax)
+    ora #(>(actor_spmax) * 256)
+    sta f:A1T0L
+    lda #(ACTORES_N * 2)
+    sta f:DAS0L
+    sep #$20
+.a8
+    lda #0
+    sta f:WMADDH
+    lda #^(actor_spmax)
+    sta f:A1B0
+    lda #0
+    sta f:DMAP0
+    lda #$80
     sta f:BBAD0
     lda #$01
     sta f:MDMAEN

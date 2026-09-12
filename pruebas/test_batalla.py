@@ -97,6 +97,9 @@ class Pelea:
     def hp_guardado(self, actor):
         return self.palabra(self.s["FAR_HP"] + 2 * actor)
 
+    def sp_guardado(self, actor):
+        return self.palabra(self.s["FAR_SP"] + 2 * actor)
+
     def modo(self):
         return self.byte("BA_MODO")
 
@@ -202,6 +205,58 @@ def test_los_hp_viajan_en_la_partida(partida):
     assert pelea.hp_guardado(GRUPO[0]) == 7, \
         "los HP no volvieron de la SRAM: quedaron en %d" \
         % pelea.hp_guardado(GRUPO[0])
+
+
+# --- los SP como estado ----------------------------------------------------
+
+def test_los_sp_arrancan_llenos(partida):
+    """Lo mismo que los HP, y por el mismo `Game_Actor::Setup`.
+
+    Los SP son estado desde que una habilidad cuesta su `sp_cost`: sin esto
+    todas saldrían gratis siempre.
+
+    **Se miran todos los actores del LDB y no sólo los tres del grupo**, y el
+    caso lo exige: los tres de la intro tienen los mismos HP que SP —Kersh
+    168/168, Core y Manta 127/127— así que llenar `FAR_SP` desde `actor_hpmax`
+    pasaría desapercibido. Comprobado en rojo con ese defecto puesto: con el
+    grupo solo daba verde. Los que sí distinguen son los otros, como el actor 2
+    —52 HP y 0 SP— o el 38, 193 contra 79.
+    """
+    una = partida()
+    base = db()
+    pelea = Pelea(una)
+    distintos = 0
+    for actor in sorted(base.actors):
+        esperado = titulo.parametro_de(base.actors[actor], "maxsp")
+        distintos += (esperado
+                      != titulo.parametro_de(base.actors[actor], "maxhp"))
+        assert pelea.sp_guardado(actor) == esperado, \
+            "el actor %d no arranca con los SP de su nivel" % actor
+    assert distintos > 10, (
+        "si ningún actor tuviera SP distintos de sus HP este caso no "
+        "distinguiría de qué tabla se llenó FAR_SP")
+    for actor in GRUPO:
+        assert titulo.parametro_de(base.actors[actor], "maxsp") > 40, (
+            "el actor %d tendría que tener los SP de su nivel inicial: con "
+            "los del 1 no alcanzan para ninguna habilidad" % actor)
+
+
+def test_los_sp_viajan_en_la_partida(partida):
+    """`FAR_SP` en `partida_tabla`, como `FAR_HP`.
+
+    Gastar SP en una pelea y guardar tiene que devolver los mismos al cargar;
+    sin el renglón de la tabla volverían llenos. Resetea la consola de verdad
+    —la SRAM sobrevive— y pisa la RAM antes, porque snes9x no la borra.
+    """
+    una = partida(guardar=200)
+    pelea = Pelea(una)
+    una.consola.escribir_ram(una.simbolos["FAR_SP"] + 2 * GRUPO[0], [7, 0])
+    una.guardar_en()
+    una.consola.escribir_ram(una.simbolos["FAR_SP"] + 2 * GRUPO[0], [99, 0])
+    una.reiniciar()
+    assert pelea.sp_guardado(GRUPO[0]) == 7, \
+        "los SP no volvieron de la SRAM: quedaron en %d" \
+        % pelea.sp_guardado(GRUPO[0])
 
 
 # --- la pelea del droide ---------------------------------------------------
