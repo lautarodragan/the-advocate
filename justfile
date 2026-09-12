@@ -1537,6 +1537,14 @@ snes-batalla tropa="86" grupo="11 12 13" espera="20" cuadros="200" toques="" nom
 #
 # Se corre después de cada feature nueva: el orden cambia a medida que las
 # páginas se van destrabando entre ellas.
+#
+# Al final imprime aparte **qué órdenes de `MoveCommand` faltan**, sobre todas
+# las páginas del juego. Es la pregunta de adentro de `MoveEvent`, y está acá
+# porque la respuesta cambió de signo en un día: el 2026-09-12 faltaban diez
+# órdenes y la 9 sola valía +33 páginas; hecha ésa, las nueve que quedan valen
+# +0 y una sola aparece —la 10, una vez, en una página que ni siquiera se
+# dispara—. Un número viejo de esta pregunta mandó a hacer trabajo que no
+# existía; ahora se vuelve a sacar en un segundo.
 snes-destraba:
   python3 tools/destraba.py
 

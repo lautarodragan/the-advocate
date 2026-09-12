@@ -34,6 +34,10 @@ Tres trampas que costaron una medición mal hecha cada una:
   no existen: vehículos, y eventos que el mapa no tiene. Con las órdenes que la
   ROM ya hace son +16, y con todas +31. De ahí salió el filtro.
 
+Y al final imprime **qué órdenes de ruta faltan**, sobre todas las páginas del
+juego y no sólo las automáticas: es la otra pregunta, la de adentro de
+`MoveEvent`. Ver `ordenes_de_ruta`, que cuenta por qué está.
+
 Uso:
     python3 tools/destraba.py
 """
@@ -287,6 +291,62 @@ def main():
     print("\ny lo que seguiría cortando después de todas ésas:")
     for code, n in corta.most_common(8):
         print("  %-24s %4d" % (NOMBRES.get(code, str(code)), n))
+
+    ordenes_de_ruta(args.game_dir)
+
+
+def ordenes_de_ruta(game_dir):
+    """Qué órdenes de `MoveCommand` no sabemos caminar, y cuánto valen.
+
+    Va aparte de la tabla de arriba y **sobre todas las páginas del juego**, no
+    sólo las automáticas, porque es otra pregunta: la tabla dice qué comando
+    conviene hacer y esto dice, adentro de `MoveEvent`, qué orden conviene
+    aprender.
+
+    Existe porque la respuesta cambió de signo en un día y nadie lo podía ver
+    sin volver a medir. El 2026-09-12 faltaban diez órdenes; se midió que la 9
+    sola valía +33 páginas y las otras nueve +1 entre todas, se hizo la 9, y al
+    día siguiente un encargo pedía "la orden 10, 104 veces" sobre un número que
+    ya no existía. Con esto acá, el número se vuelve a sacar en un segundo y no
+    hay que acordarse de cuál medición era de cuándo.
+    """
+    conocidas = ORDENES
+    todas = collections.Counter()
+    paginas_con = collections.Counter()
+    disparables_con = collections.Counter()
+    for nombre in sorted(os.listdir(game_dir)):
+        if not (nombre.startswith("Map") and nombre.endswith(".lmu")):
+            continue
+        game_map = lcf.Map(os.path.join(game_dir, nombre))
+        for evento in game_map.events:
+            for page in evento.pages:
+                disparable = (page.trigger in eventos.TRIGGERS
+                              and eventos.puede_dispararse(page))
+                vistas = set()
+                for cmd in page.commands:
+                    q = list(cmd.parameters)
+                    if cmd.code != MOVE_EVENT or len(q) < 4:
+                        continue
+                    try:
+                        ordenes = eventos.decodificar_ruta(q[4:])
+                    except eventos.NoSePuede:
+                        continue
+                    for orden, _extras in ordenes:
+                        if orden not in conocidas:
+                            todas[orden] += 1
+                            vistas.add(orden)
+                for orden in vistas:
+                    paginas_con[orden] += 1
+                    if disparable:
+                        disparables_con[orden] += 1
+
+    print("\nlas órdenes de ruta que no sabemos caminar, en todo el juego:")
+    if not todas:
+        print("  ninguna: las rutas forzadas del juego se caminan enteras")
+        return
+    for orden, n in todas.most_common():
+        print("  orden %-3d %4d apariciones en %3d páginas, %3d disparables"
+              % (orden, n, paginas_con[orden], disparables_con[orden]))
 
 
 if __name__ == "__main__":
