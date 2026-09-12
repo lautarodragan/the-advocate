@@ -917,7 +917,7 @@ grupo_listo:
     ; arranca con basura, y una partida cargada las pisa después.
     jsr limpiar_variables
     jsr equipo_inicial_poner
-    jsr hp_inicial_poner
+    jsl f:hp_inicial_poner
     jsr clima_limpiar
     jsr se_limpiar
     jsr giro_limpiar
@@ -5249,38 +5249,6 @@ otra:
     rts
 .endproc
 
-; Los HP de todos los actores llenos, a `FAR_HP`: el mismo DMA que el equipo,
-; desde `actor_hpmax`. Corre en el reset, antes de cargar la partida, que lo
-; pisa.
-;
-; Existe desde que hay batallas. Hasta el 2026-09-12 los HP no eran estado —el
-; menú los mostraba llenos siempre y `ChangeHP` compilaba a nada— y ahora una
-; pelea los baja, así que tienen que arrancar en algún lado y viajar en la
-; partida. Que arranquen llenos es RM2k: `Game_Actor::Setup`.
-.proc hp_inicial_poner
-.a8
-.i16
-    rep #$20
-.a16
-    lda #FAR_HP
-    sta WMADDL
-    lda #<(actor_hpmax)
-    ora #(>(actor_hpmax) * 256)
-    sta A1T0L
-    lda #(ACTORES_N * 2)
-    sta DAS0L
-    sep #$20
-.a8
-    stz WMADDH
-    lda #^(actor_hpmax)
-    sta A1B0
-    stz DMAP0                   ; de A a B, de a un byte
-    lda #$80                    ; WMDATA
-    sta BBAD0
-    lda #$01
-    sta MDMAEN
-    rts
-.endproc
 
 ; La velocidad del héroe, en A. Sólo A: quien la pide está en medio de un paso
 ; con X e Y ocupados.
@@ -13722,19 +13690,6 @@ ba_t_param:
     phk
     plb
     jsr eq_parametro
-    plb
-    rtl
-; Y éste no es un puente sino una rutina: apagar la pantalla son tres
-; registros del PPU, y con el banco de datos en $7E sus direcciones caerían en
-; la RAM. Acá el banco es el 0 y se escriben como siempre.
-ba_t_apagar:
-    phb
-    phk
-    plb
-    lda #$80
-    sta INIDISP
-    stz HDMAEN
-    stz TM
     plb
     rtl
 
@@ -23364,6 +23319,45 @@ done:
 .segment "RODATA"
 .bloque 4096
 
+; Los HP de todos los actores llenos, a `FAR_HP`: el mismo DMA que el equipo,
+; desde `actor_hpmax`. Corre en el reset, antes de cargar la partida, que lo
+; pisa.
+;
+; Vive **fuera del banco 0** —se la llama con `jsl`— y por eso sus registros
+; van con `f:`: en el banco 0 quedaban setenta bytes libres y ésta son
+; cuarenta. Es el mismo motivo por el que la batalla entera vive allá.
+;
+; Existe desde que hay batallas. Hasta el 2026-09-12 los HP no eran estado —el
+; menú los mostraba llenos siempre y `ChangeHP` compilaba a nada— y ahora una
+; pelea los baja, así que tienen que arrancar en algún lado y viajar en la
+; partida. Que arranquen llenos es RM2k: `Game_Actor::Setup`.
+.proc hp_inicial_poner
+.a8
+.i16
+    rep #$20
+.a16
+    lda #FAR_HP
+    sta f:WMADDL
+    lda #<(actor_hpmax)
+    ora #(>(actor_hpmax) * 256)
+    sta f:A1T0L
+    lda #(ACTORES_N * 2)
+    sta f:DAS0L
+    sep #$20
+.a8
+    lda #0
+    sta f:WMADDH
+    lda #^(actor_hpmax)
+    sta f:A1B0
+    lda #0
+    sta f:DMAP0                 ; de A a B, de a un byte
+    lda #$80                    ; WMDATA
+    sta f:BBAD0
+    lda #$01
+    sta f:MDMAEN
+    rtl
+.endproc
+
 ; El xorshift de la pelea, el mismo que `eventos.azar_siguiente` y que
 ; `lluvia_azar`, pero sobre `BA_SEM`, que tiene **semilla propia**: pelear no
 ; le corre el azar del mapa, que es lo que la referencia de pixeles supone
@@ -25095,7 +25089,13 @@ hay_tropa:
     rtl
 hay_grupo:
     jsr ba_chance_huir
-    jsl f:ba_t_apagar
+    ; Apagar la pantalla, desde acá: los tres registros van con `f:` porque el
+    ; banco de datos es $7E y absolutos caerían en la RAM.
+    lda #$80
+    sta f:INIDISP
+    lda #0
+    sta f:HDMAEN
+    sta f:TM
     jsl f:ba_t_banco
     lda #BA_M_ORDEN
     sta BA_MODO

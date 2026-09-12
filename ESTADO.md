@@ -112,6 +112,11 @@ que hay que saber para tocarla:
   `partida_tabla` creció `ACTORES_N * 2` y hubo que corregir la resta de
   `test_titulo.py::test_la_musica_viaja_en_la_partida`, que es un duplicado de
   la tabla y lo dice.
+* **El banco 0 quedó en 133 bytes libres**, medido sobre `demo-ciudad`: eran
+  295 antes de la batalla. Los puentes y `op_batalla` son lo único suyo que
+  vive ahí; `hp_inicial_poner` se mudó a RODATA por eso mismo. **Cada mapa
+  nuevo hace crecer las tablas del banco 0**, así que el siguiente que agregue
+  mapas conviene que mire este número antes.
 * **La pelea del mapa 9 no se alcanza jugando**, y no es culpa de la batalla:
   su página la corta un `MoveEvent` con la orden de ruta 9 —"hacia el héroe"—.
   La tropa de cuatro enemigos la ejercita `just snes-batalla` con
