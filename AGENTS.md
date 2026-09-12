@@ -129,8 +129,22 @@ borrando el worktree, así que una segunda tanda le borra el árbol a la primera
 mientras corre y la deja con casos en rojo que no lo están. Con más de un
 agente, cada uno con el suyo: `just snes-hitos-foto 4 /extras/hitos-foto-<quien>`.
 
-**Las tareas en segundo plano las mata taro.** Se pueden dejar corriendo; lo
-que no hay que hacer es matarlas por cuenta propia. Si estorban, preguntar.
+**Las tareas en segundo plano que lanzamos nosotros las podemos matar
+nosotros.** Desde el 2026-09-13: taro dio libertad de matar lo que uno o sus
+sub-agentes hayan lanzado. Lo que sigue sin tocarse es lo que lanzó él.
+
+Lo que más se acumula son las **esperas armadas por los agentes** —`until !
+pgrep -f "snes-hitos-paralelo"; do sleep 30; done`— y tienen dos vicios:
+
+* **Nunca terminan solas**, porque su propia línea de comando contiene el texto
+  que el `pgrep` busca, así que se encuentran a sí mismas.
+* Cuando por fin despiertan, imprimen resultados de tandas que cerraron horas
+  antes, y eso ya mandó a mirar números viejos más de una vez.
+
+Al matarlas, ojo con el `pkill`: si el patrón aparece en la línea de comando
+propia, se mata a sí mismo —código 144— y deja la mitad del trabajo hecho.
+Partir el patrón alcanza: `pgrep -f 'un[t]il ! pgrep'`, y después `kill` uno
+por uno salteando el `$$`.
 
 ## Sub-agentes
 
