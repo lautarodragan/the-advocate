@@ -4230,12 +4230,18 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # `batalla.item_usable_en_batalla`, o sea `Game_Party::IsItemUsable`
         # con la pelea abierta más lo que este port sabe hacer; la cuenta de
         # cuánto cura es `Game_BattleAlgorithm::Item::vExecute`.
+        # **Fuera del banco 0**, como `item_k` y por lo mismo: con los mapas de
+        # `demo-ciudad` el área de código quedó en 32775 de 32704 al ponerlas
+        # acá. La pelea las lee con `lda f:item_batalla, x`.
+        handle.write('.segment "RODATA"\n')
         bytes_asm("item_batalla", [
-            1 if B.item_usable_en_batalla(db_items[n]) else 0 for n in items])
+            1 if B.item_usable_en_batalla(db_items[n]) else 0 for n in items],
+            declarar=True)
         bytes_asm("item_cura_rate", [db_items[n].recover_hp_rate
-                                     for n in items])
+                                     for n in items], declarar=True)
         words_asm("item_cura_hp", [min(db_items[n].recover_hp, 0xFFFF)
-                                   for n in items])
+                                   for n in items], declarar=True)
+        handle.write('.segment "TABLAS"\n')
         # Las cuatro de los textos van **fuera del banco 0**, como `item_k` y
         # por lo mismo: ahí no entran. Con los diez mapas de `demo-ciudad` el
         # área de código quedaba en 32622 de 32704 —ochenta y dos bytes

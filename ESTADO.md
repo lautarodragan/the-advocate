@@ -54,6 +54,13 @@ fondo y los monstruos" y "La música y los efectos de la pelea"—.
   El orden para retomarlo, si se retoma, es: niveles y experiencia, después SP,
   y recién ahí las habilidades. Lo último es lo barato.
 
+* **El banco 0 se llena y la tanda no lo ve.** Las tres tablas nuevas de los
+  ítems entraron primero en TABLAS, que es bank 0, y ninguno de los 138 casos
+  lo notó: sus ROMs llevan un mapa o dos. Lo cobró `just snes-demo
+  demo-ciudad`, que es el único build grande, con "el área no entra: 32775
+  bytes en 32704". **Una tabla nueva va a RODATA salvo que la ROM la lea con
+  `lda tabla, x`**, y conviene armar la demo antes de dar algo por terminado.
+
 * **Lo que `Use Item` dejó afuera**: las medicinas de SP y las de revivir. Las
   primeras porque los SP no son estado; las segundas porque revivir es sacar el
   estado de muerto y los estados no existen. Son 10 de las 22 medicinas del
