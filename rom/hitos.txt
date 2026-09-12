@@ -287,6 +287,14 @@ snes-hablar 9 "24 6" 24 "25 65 105 145 185 225 265 305 345 385 425 465 505 545 5
 snes-hablar 9 "8 14" 24 900 "2 20 60 120 240" 115 autos9
 snes-cerrar
 snes-cerrar 7 200 cerrar-right right
+# Los dos escapes de texto: `\|` pausa y `\^` cierra el cuadro sin que nadie
+# apriete nada. Los cuadros están pegados al cierre a propósito, para que 61 y
+# 60 no den lo mismo: con una pausa cierra en el 63 y con tres en el 185, así
+# que el primero de cada par mira la ventana todavía abierta y el segundo el
+# tinte que va detrás del mensaje. Verificado en rojo con la referencia
+# contando 60: 4122 pixeles en el 62 y los mismos en el 184.
+snes-autocierre
+snes-autocierre 3 "184 185" autocierre-3
 snes-ventana 1 ventana-1
 snes-ventana 7 ventana-7-y-269 269
 snes-ventana 348 ventana-348

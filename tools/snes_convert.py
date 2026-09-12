@@ -3314,6 +3314,14 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "OP_GRUPO    = $%02X\n"
         "OP_RUTA     = $%02X\n"
         "OP_MENSAJE  = $%02X\n"
+        "; La cabecera de un cuadro de texto, que es el primer byte del que\n"
+        "; `OP_MENSAJE` nombra: los renglones en los tres bits de abajo, el\n"
+        "; autocierre del `\\^` en el bit 3 y cuantas pausas de `\\|` lleva en\n"
+        "; el nibble de arriba. Y cuanto dura cada pausa, que son 61 cuadros y\n"
+        "; no 60: ver CUADROS_DE_PAUSA en eventos.py.\n"
+        "CABECERA_LINEAS     = $%02X\n"
+        "CABECERA_AUTOCIERRE = $%02X\n"
+        "CUADROS_DE_PAUSA    = %d\n"
         "OP_RUTAS    = $%02X\n"
         "OP_FLASH    = $%02X\n"
         "OP_TIMER    = $%02X\n"
@@ -3610,7 +3618,9 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            PUERTA_BYTES, PAGINA_BYTES, GIRO_NINGUNO, RUTA_GRAF_MAX,
            eventos.OP_FIN, eventos.OP_SWITCH, eventos.OP_TELEPORT,
            eventos.OP_ESPERAR, eventos.OP_TINTE, eventos.OP_GRUPO,
-           eventos.OP_RUTA, eventos.OP_MENSAJE, eventos.OP_RUTAS,
+           eventos.OP_RUTA, eventos.OP_MENSAJE,
+           eventos.CABECERA_LINEAS, eventos.CABECERA_AUTOCIERRE,
+           eventos.CUADROS_DE_PAUSA, eventos.OP_RUTAS,
            eventos.OP_FLASH, eventos.OP_TIMER, eventos.OP_BGM,
            eventos.OP_LUGAR, eventos.OP_TRUEQUE, eventos.OP_SACUDIR,
            eventos.OP_DESTELLO, eventos.OP_FUNDIR_BGM, eventos.OP_PAN,

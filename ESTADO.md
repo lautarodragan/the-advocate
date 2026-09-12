@@ -227,6 +227,76 @@ el `skill_name`, la pantalla en dos columnas y el efecto; entró todo, y las dos
 que mueven parámetros —Agency Badge y Mental Hack— también, que eran las que
 pedían estado nuevo por combatiente.
 
+### Los dos escapes de texto: `\|` y `\^` (2026-09-13)
+
+Hasta ese día una página con un escape de texto no compilaba, y estaba bien que
+no compilara: borrarlos calladito habría dejado a la ROM esperando un A que
+RM2k nunca pide. Ahora se hacen los dos:
+
+* **`\|` es una pausa de 61 cuadros**, no de 60 y no de un segundo. El número
+  sale de `window_message.cpp` de easyrpg, que lo tiene comentado: *"Despite
+  documentation saying 1 second, RPG_RT waits for 61 frames"*.
+* **`\^` cierra el cuadro sin esperar a nadie**, y —como allá— no corta donde
+  aparece: marca el cuadro entero.
+
+**Dónde viajan**: en el byte de cabecera del cuadro de texto, que contaba los
+renglones y le sobraban cinco bits. Los renglones quedan en los bits 0-2, el
+autocierre en el 3 y cuántas pausas en el nibble de arriba. Un operando más en
+`OP_MENSAJE` habría costado un byte en cada uno de los 2895 cuadros del juego
+para los 2855 que no llevan ninguna cola.
+
+Lo que hay que saber para tocarlo:
+
+* **La cola se saca en `Mensajes.agregar`**, o sea en el único lugar por donde
+  pasan todos los cuadros —los `ShowMessage`, las opciones de un `ShowChoice` y
+  el `--mensaje-de-prueba` de las recetas—, y **antes** de recortar el renglón a
+  lo que entra: al revés, un renglón de 39 caracteres se comería su propio
+  `\|\^`. La clave de la deduplicación lleva la cola, porque dos cuadros con el
+  mismo texto y distinta cola no son el mismo cuadro.
+* **Sólo se acepta como cola al final de la última línea**, que es medido: los
+  40 cuadros del juego con escapes son así, y ni uno tiene un escape en el
+  medio. El único con espacios entre medio —`\| \| \| \^`, el
+  `RunDirectorScene` del mapa 98— se los come, porque un espacio al final de un
+  renglón no dibuja un pixel.
+* **La pausa se cuenta desde que la página pide el mensaje**, no desde que la
+  ventana termina de componerse. Es lo único que hace coincidir los dos lados
+  cuadro a cuadro: la referencia dibuja la ventana de golpe y la ROM tarda entre
+  nueve y diecinueve cuadros. Con 61 la composición termina mucho antes.
+* **A no saltea la pausa**, igual que en `Window_Message::Update`, donde el
+  `if (wait_count > 0)` va antes de `WaitForInput()`.
+* **El estado vive en la RAM lejana**, `$7E30FB` y `$7E30FD`, entre el cartel
+  —que termina en `$30FA`— y `FAR_ARAM_DE`. No es gusto: la BSS del banco 0
+  estaba en 7679 de 7680 y hacían falta tres bytes.
+* **`msg_lineas` guarda la cabecera entera** y la enmascara quien la lea, por lo
+  mismo: un byte más en el banco 0 es justo lo que no hay.
+
+**`just snes-demo demo-ciudad` no arma, y no es de esta vuelta.** El área del
+banco 0 —`CODE` más `TABLAS`, 32704 bytes— se pasa. Medido el 2026-09-13 con el
+mismo `mapdata.inc` de los 29 mapas:
+
+    f38b87c, sin nada de esto      32719 B, 15 de más
+    con los escapes puestos        32834 B, 130 de más
+
+O sea que **ya no entraba antes**, y los escapes le agregan 115 bytes de código
+—decodificar la cabecera, la cuenta de la pausa y el autocierre—. El conversor
+no aporta ni un byte al banco 0: `f38b87c` con el `mapdata.inc` nuevo da los
+mismos 32719. Las demás recetas arman, porque llevan menos mapas y `TABLAS` les
+sale más chica. Lo que hay que decidir es de dónde salen esos 130 bytes; es el
+mismo aviso que ya estaba escrito para la BSS —"lo que siga pidiendo RAM del
+banco 0 va a tener que aflojar algo"— pero del lado del cartucho.
+
+Lo que queda abierto:
+
+* **`\^` sin ninguna pausa aborta la composición.** Son dos cuadros en todo el
+  juego (`Map0157`, `EV0013`, la línea de puros espacios). Los dos lados lo
+  resuelven en el mismo cuadro —la página sigue igual— pero la ROM no llega a
+  mostrar la ventana y la referencia la dibuja un cuadro. Es la divergencia ya
+  declarada de "los primeros veinte cuadros de un mensaje", y ningún caso de la
+  tanda cae ahí.
+* **Cualquier otro escape sigue sin compilar**, y los tres `\V` de los eventos
+  comunes con él: meter el valor de una variable en el texto pide componerlo al
+  abrirlo, que es otra cosa.
+
 ### Los quince colores de un sprite: elegidos de nuevo (2026-09-12)
 
 taro reportó tres síntomas —las caras de Talan y Core grises, Talan gris, y el
