@@ -642,6 +642,60 @@ CALL_EVENT = 12330
 # contestaran; desde el 11 abre la tienda de verdad: ver OP_TIENDA.
 OPEN_SHOP = 10720
 
+# `ChangeSystemBGM` (10660): cambia el tema que el sistema usa para pelear,
+# para ganar, para la posada. El juego lo usa **130 veces en 25 mapas** y
+# siempre de a pares —el 0 y el 1, o sea `battle_music` y `battle_end_music`—:
+# cada zona tiene su música de pelea.
+#
+# Se acepta sin hacerlo, y la deuda es concreta: **una pelea en esos mapas
+# suena con el tema del LDB en vez del de la zona**. No es "no suena": suena el
+# que `AUDIO_BATALLA` trae de la base, que es el que el paquete de audio del
+# mapa ya lleva, así que nada queda mudo y nada pide una muestra que no esté.
+# Y no cambia un pixel, así que la tanda mide lo mismo con esto y sin esto.
+#
+# Cuánto destraba, medido sobre las 5603 páginas disparables del juego:
+# **+24**. Hacerlo de verdad no es este comando sino una feature de audio: el
+# tema del sistema pasaría a ser estado que viaja en la partida, y los temas
+# que nombran esas 130 apariciones tendrían que entrar en el paquete de audio
+# de sus mapas. Hoy el peor paquete son 54945 de 63831 B de ARAM; agregarle un
+# tema de pelea a veinticinco mapas es exactamente lo que "presupuestar por
+# paquete" —en "Lo que falta" del README— tiene que resolver antes.
+CHANGE_SYSTEM_BGM = 10660
+
+# `ChangeEncounterSteps` (11740): cada cuántos pasos hay un encuentro al azar.
+# Diecinueve apariciones en nueve mapas, y trece de ellas lo ponen en **cero**,
+# que en RM2k es apagarlos.
+#
+# Se acepta sin hacerlo porque **no hay encuentros al azar**: el juego los ata
+# al mapa y a las *áreas* —nodos del árbol sin `.lmu`, con un rectángulo y su
+# propia lista de tropas— y este port no lee ni una cosa ni la otra. O sea que
+# acá no hay una deuda parcial: el número que el comando guarda no lo lee
+# nadie, y el día que los encuentros existan este renglón tiene que salir de
+# esta lista **junto con** ellos, no antes.
+#
+# Cuánto destraba, medido: **+14 páginas**. Y **no se acepta**, que es la parte
+# que hay que leer entera, porque el número solo diría lo contrario:
+#
+# * Las trece que lo ponen en cero están **apagando algo que todavía no pasa**.
+#   Lo que se ganaría es lo que esas páginas hacen además.
+# * Está en nueve mapas —el 66, el 81, el 121, del 152 al 156 y el 165— y
+#   **ninguno está cerca de los primeros diez minutos**, que es el objetivo.
+# * Y se midió lo que cuesta: aceptándolo, la automática
+#   `DaliaGoingToTasgarde` del mapa 66 pasa a compilar, y esa página desarma el
+#   grupo y le fuerza al héroe una ruta de sesenta pasos. El mapa 66 es el
+#   **único mapa sin ventana** de las pruebas de estado —`SIN_VENTANA` en
+#   `pruebas/conftest.py`, elegido porque no le entra la ventana de mensaje— así
+#   que con la cinemática despierta se cayeron dos casos de
+#   `test_condicional.py`: la página de prueba dejó de ser la única que corre
+#   ahí. Arreglarlo es mudar esa ROM de prueba a otro mapa que tampoco acepte la
+#   ventana, y eso vale más que estas catorce páginas.
+#
+# O sea: este renglón entra el día que los encuentros al azar existan, **junto
+# con** ellos y no antes. Ver ESTADO.md: el juego los ata al mapa y a las
+# *áreas*, que son nodos del árbol sin `.lmu`, con un rectángulo y su propia
+# lista de tropas, y este port no lee ni una cosa ni la otra.
+CHANGE_ENCOUNTER_STEPS = 11740
+
 ACEPTADOS_SIN_HACER = {
     # CallEvent **ya no está acá**: desde el 2026-09-12 se compila en línea,
     # ver `_compilar_llamada`. Lo que quedó de aquello es que una llamada cuyo
@@ -650,6 +704,7 @@ ACEPTADOS_SIN_HACER = {
     SHOW_PICTURE,
     MOVE_PICTURE,
     ERASE_PICTURE,
+    CHANGE_SYSTEM_BGM,
 }
 
 
