@@ -156,11 +156,10 @@ Lo que queda abierto:
 
 Al 2026-09-12, en orden.
 
-1. **Cerrar las tres vueltas que están en el aire**, cada una en su worktree:
-   el pre-horneado de los translúcidos (rama `prehorneado-translucidos`, que va
-   a quedar), el save point opaco con su paleta, y el cartel de "One year
-   previous". Las tres tocan `snes_convert.py`, así que hay conflictos de git
-   que resolver al mergear.
+1. **Las tres vueltas paralelas están mergeadas** (`75f0b41`), y el árbol
+   combinado da **124 casos en verde** más `just pruebas` en 83 y el xfail. Era
+   lo único que ninguna rama podía medir sola. La demo con todo junto está en
+   `pruebas-manuales/2026-09-12-75f0b41/`.
 
 2. **El gris de los personajes.** taro lo reportó el 2026-09-12: las caras de
    Talan y Core, y el save point, se ven grises. Una paleta de sprite guarda 15
