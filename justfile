@@ -2639,6 +2639,45 @@ snes-demo nombre="demo-ciudad" titulo="":
       -o rom/build/{{nombre}}/{{nombre}}.sfc \
       --simbolos rom/build/{{nombre}}/{{nombre}}.sfc.sym
 
+# La persecución en auto, que no entra en `demo-ciudad` y no hace falta que
+# entre: **arranca en el mapa 49**, que es donde empieza la carrera, así que se
+# juega desde el primer cuadro sin tener que recorrer Lashe City.
+#
+# Los siete mapas son los de la escena: el 49, el 52 y el 54 son las tres
+# vueltas —500x40 celdas cada una—, el 50 es la sala de choque con el "vamos de
+# nuevo", el 51 el puente levantado, y el 53 el final.
+#
+# **Con `--grupo 10`, el de verdad.** No es un detalle de banco de pruebas: al
+# entrar al 49, `RaceController1` saca del grupo a todo el mundo y mete a
+# `CarRED` o a `CarBLUE` según el switch que él mismo prende, así que el héroe
+# **es el auto**. Con el grupo de pruebas puesto, Kersh quedaría adentro y el
+# gráfico saldría mal.
+#
+# **`--switch 171` es lo que la hace arrancar**, y hay que saber por qué. El
+# evento 1 del mapa 49 tiene dos páginas automáticas: la 0 pide el switch 171 y
+# es la que arma el auto, y la 1 pide el 170. Con los dos apagados **ninguna es
+# la activa** y el evento no hace nada, así que el héroe se queda siendo
+# `DummyHero`, cuyo sprite es una celda vacía a propósito: pantalla sin auto.
+#
+# Quien prende el 171 en el juego es `RaceControllerZERO`, la intro de Talan
+# con el cartel de los controles, y esa página **no compila**: termina en un
+# `KeyInputProc` que espera cualquier tecla, que es una de las dos formas que
+# este port no hace. Ver `KEY_INPUT_PROC` en eventos.py. Así que la demo entra
+# a la carrera ya empezada, que es lo que hay hasta que esa forma se pueda.
+#
+# Aparte de `snes-demo` porque el mapa inicial es otro y porque no comparte un
+# solo mapa con ella: juntarlas sería un `if` en el medio de una receta que ya
+# tiene la lista escrita a mano.
+snes-demo-carrera nombre="demo-carrera":
+  mkdir -p rom/build/{{nombre}}
+  python3 tools/snes_convert.py --grupo 10 --map-id 49 \
+      --mapas 50 51 52 53 54 \
+      --con-ventana --con-timer --switch 171 \
+      -o rom/build/{{nombre}}/mapdata.inc
+  python3 tools/w65.py rom/src/main.s -I rom/build/{{nombre}} \
+      -o rom/build/{{nombre}}/{{nombre}}.sfc \
+      --simbolos rom/build/{{nombre}}/{{nombre}}.sfc.sym
+
 # Las dos de una vez.
 snes-demos:
   just snes-demo demo-ciudad

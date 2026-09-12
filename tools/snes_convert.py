@@ -5357,11 +5357,18 @@ def main():
     # alguien que después camina por el mapa B.
     args_game_dir[0] = args.game_dir
     todos = orden_de_mapas(args)
-    args.lideres = lideres_posibles(renderer, todos, grupo, args.con_ventana)
-    # Si algún mapa pone lluvia, todos llevan las gotas: ver `hay_lluvia`.
-    args.con_lluvia = hay_lluvia(todos) or args.lluvia_de_prueba is not None
-    # Las variables del juego entero, con su ranura, antes de compilar una
-    # sola página. La referencia arma el mismo índice.
+    # **Los índices van antes que todo lo que compile una página**, y
+    # `lideres_posibles` compila páginas. Estaban después, y el precio era
+    # concreto: sin `indexar_variables`, ninguna `ControlVars` compila, así que
+    # `RaceController1` del mapa 49 —que arranca con un `PlayBGM` y sigue con
+    # dos `ControlVars`— no compilaba **en esa pasada** y sí en la de verdad.
+    # Los actores que mete al grupo se perdían: `CarRED` no entraba en la tabla
+    # de actores del mapa y el héroe de la persecución se dibujaba **sin
+    # gráfico**, o sea que el auto no se veía. Es el mismo agujero que ESTADO.md
+    # ya tenía anotado para las cuentas de páginas, en otro lugar.
+    #
+    # Las variables del juego entero, con su ranura. La referencia arma el
+    # mismo índice.
     eventos.indexar_variables(args.game_dir,
                               variables_de_prueba(args.vars_de_prueba,
                                                   args.rama_var_de_prueba,
@@ -5373,6 +5380,9 @@ def main():
     # los dos lados tienen que mirar la misma base.
     eventos.indexar_comunes(args.game_dir)
     eventos.indexar_audio_de_batalla(args.game_dir)
+    args.lideres = lideres_posibles(renderer, todos, grupo, args.con_ventana)
+    # Si algún mapa pone lluvia, todos llevan las gotas: ver `hay_lluvia`.
+    args.con_lluvia = hay_lluvia(todos) or args.lluvia_de_prueba is not None
     # En cuántos mapas de esta ROM aparece cada personaje. Lo usa el reparto de
     # paletas para elegir a quién puede bajarle un color sin romper nada: el
     # banco de poses es **de la ROM entera**, así que un personaje que está en
@@ -6060,10 +6070,21 @@ def lideres_posibles(renderer, map_ids, grupo, con_ventana=False):
                 # se pierden: la cinemática de apertura suma a Kersh al grupo
                 # justo después de mandar a caminar al evento 8, así que el héroe
                 # se quedaba sin tabla de poses y no se dibujaba.
+                # **Con el mismo contexto que la compilación de verdad**, y
+                # no sólo con el bloque de textos. Faltaban `Temas`,
+                # `Graficos` e `Imagenes`, y sin ellos una página que empieza
+                # con un `PlayBGM` no compila **acá** y sí compila allá: los
+                # actores que meta al grupo se pierden. Es exactamente lo que
+                # le pasaba al auto de la persecución —`RaceController1` del
+                # mapa 49 arranca con `PlayBGM` y después mete a `CarRED`—, y
+                # el síntoma era que el héroe no se dibujaba: `hero_poses` en
+                # cero porque el actor no estaba en la tabla del mapa.
                 if eventos.compilar_pagina(
                         page, indices.get,
                         eventos.Mensajes() if con_ventana else None,
-                        del_mapa.para(evento.id)) is None:
+                        del_mapa.para(evento.id), eventos.Temas(),
+                        eventos.Graficos(), eventos.Imagenes(
+                            args_game_dir[0])) is None:
                     continue
                 for cmd in page.commands:
                     if cmd.code != eventos.CHANGE_PARTY_MEMBERS:
