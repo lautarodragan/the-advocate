@@ -17,6 +17,11 @@ easyrpg-player, que está clonado en `/extras/ref`, y cada uno dice de dónde:
     src/game_enemy.cpp          GetHitChance, GetCriticalHitChance
     src/game_actor.cpp          GetHitChance, GetCriticalHitChance
     src/rand.cpp                PercentChance
+    src/algo.cpp                CalcSkillEffect, CalcSkillToHit, CalcSkillCost,
+                                VarianceAdjustEffect
+    src/game_battlealgorithm.cpp  Skill::vStart, Skill::vExecute
+    src/game_battler.cpp        CanChangeAtkModifier y sus hermanas, AdjustParam
+    src/game_actor.cpp          LearnSkill, LearnLevelSkills
 
 Tres cosas **no** son de RM2k, y las tres son a propósito:
 
@@ -33,10 +38,10 @@ Tres cosas **no** son de RM2k, y las tres son a propósito:
   mismo que restarle el techo de `x`, así que la cuenta entera da exactamente
   lo mismo que la flotante. Ver `acierto_por_agilidad`.
 
-* **Lo que no está.** Habilidades, ítems, estados, atributos, filas, el ataque
-  doble, los battlers dibujados y las páginas de evento de la tropa. Está todo
-  en el informe de "lo que falta" del README; acá lo que importa es que las
-  fórmulas que sí están son las de verdad y no una aproximación.
+* **Lo que no está.** Estados, atributos, filas, el ataque doble y las páginas
+  de evento de la tropa. Está todo en el informe de "lo que falta" del README;
+  acá lo que importa es que las fórmulas que sí están son las de verdad y no
+  una aproximación.
 """
 
 import eventos
@@ -68,6 +73,10 @@ ORDEN_ATACAR, ORDEN_DEFENDER, ORDEN_HUIR = 0, 1, 2
 # Y usar un ítem, desde el 2026-09-13: `Game_BattleAlgorithm::Item`. Va como
 # cuarta y no entre las otras para no renumerar lo que ya estaba.
 ORDEN_ITEM = 3
+# Y una habilidad, `Game_BattleAlgorithm::Skill`. Va quinta por lo mismo: en la
+# pantalla aparece segunda —el original la pone entre Attack y Defend— pero el
+# número es el de la orden y no el de la columna.
+ORDEN_HABILIDAD = 4
 
 
 def item_usable_en_batalla(item):
@@ -80,7 +89,9 @@ def item_usable_en_batalla(item):
     Y de esas, este port ofrece **sólo las que recuperan HP y no son
     `ko_only`**. Lo que queda afuera y por qué:
 
-    * las de SP, porque los SP no son estado todavía;
+    * las de SP: **los SP ya son estado desde el 2026-09-13**, así que esto
+      pasó de imposible a deuda —falta el `recover_sp` del lado del ítem, que
+      es la misma cuenta que la de HP—;
     * las `ko_only` —Phoenix Down, Pungent Elixir, Jumper Cable— porque
       revivir es sacar el estado de muerto y los estados no existen;
     * las que suben un parámetro para siempre, por lo mismo.
@@ -118,6 +129,146 @@ PARAM_MAX = 999
 DANO_MAX = 999
 
 
+def habilidad_usable(skill):
+    """Si esta pelea sabe ofrecer esta habilidad.
+
+    Es el hermano de `item_usable_en_batalla` y, como aquél, **recorta a lo que
+    este port hace** y lo declara en vez de hacerlo mal:
+
+    * el tipo tiene que ser `normal` o `switch`. `teleport` y `escape` no
+      existen acá, y `subskill` es de RM2k3;
+    * el alcance tiene que ser **de a uno**: `enemy` o `ally`. Los de a muchos
+      —`enemies`, `party`, `self`— pedirían repetir el efecto sobre cada
+      blanco, y con eso el orden del azar de los dos lados;
+    * y el costo tiene que entrar en dos cifras, que es lo que la lista
+      escribe. Ninguna del juego llega a 100.
+
+    De las siete que el grupo de la intro sabe **no se cae ninguna**. En un
+    cartucho con más actores sí: `Gamble for Credits`, la única de Arden, tiene
+    alcance `enemies` y queda afuera, y por eso Arden aparece sin ninguna.
+    """
+    import lcf
+    return (skill.type in (lcf.SKILL_TIPO_NORMAL, lcf.SKILL_TIPO_SWITCH)
+            and skill.scope in (lcf.SKILL_SCOPE_ENEMIGO,
+                                lcf.SKILL_SCOPE_ALIADO)
+            and skill.sp_cost <= 99)
+
+
+def habilidades_de(db, numero, nivel=None):
+    """Las habilidades que este actor sabe, en el orden en que el menú las pone.
+
+    `Game_Actor::LearnLevelSkills` recorre la tabla de aprendizaje del LDB y
+    aprende las de nivel menor o igual al suyo; `LearnSkill` las mete en
+    `data.skills` y **ordena la lista por número**, así que ése es el orden que
+    la pantalla muestra —y el que la captura del original confirma: Manta ve
+    Mental Hack, MindShield, MindProbe y MindBlast, o sea 130, 143, 144, 150—.
+
+    El nivel es el `initial_level` del LDB, como todo lo demás desde el
+    2026-09-13: con el 1 que el port tenía mockeado no se sabía ninguna, porque
+    la primera se aprende en el 3.
+
+    Las que este port no sabe ofrecer no entran: ver `habilidad_usable`.
+    """
+    actor = db.actors[numero]
+    if nivel is None:
+        nivel = actor.initial_level
+    return sorted({s for aprende, s in actor.skills
+                   if s and aprende <= nivel
+                   and habilidad_usable(db.skills[s])})
+
+
+def nombre_de_orden_habilidad(db, numero):
+    """Cómo se llama la orden de habilidades de este actor en el menú.
+
+    `Game_Actor::GetSkillName`: el `skill_name` del actor si tiene puesto
+    `rename_skill`, y si no el `command_skill` del LDB —"Tech Skill"—. Los
+    cuatro actores de la intro lo tienen puesto: "AgentTrain", "Telepathy",
+    "Slicing" y "Special".
+    """
+    import pantallas
+    actor = db.actors[numero]
+    if actor.rename_skill and actor.skill_name:
+        return actor.skill_name
+    return pantallas.terminos_batalla(db)["habilidad"]
+
+
+def costo_de(skill):
+    """`Algo::CalcSkillCost`: en RM2k el `sp_cost` a secas.
+
+    El `sp_percent` es de RM2k3 y `half_sp_cost` es un estado, y no hay
+    estados.
+    """
+    return skill.sp_cost
+
+
+def varianza_ajustar(base, var, azar):
+    """`Algo::VarianceAdjustEffect`.
+
+        adj = max(1, var * base / 10); base += rand(0, adj) - adj / 2
+
+    **Sólo tira si `var > 0` y `base > 0`**, que es lo que dice el `if`; sin
+    esa condición los dos lados se irían de fase en el tiro siguiente cada vez
+    que una habilidad de switch o un golpe de cero pasara por acá.
+    """
+    if var > 0 and base > 0:
+        ajuste = max(1, var * base // 10)
+        return base + azar.hasta(ajuste) - ajuste // 2
+    return base
+
+
+def efecto_habilidad(fuente, blanco, skill, critico=False):
+    """`Algo::CalcSkillEffect` **sin la varianza**, que se aplica aparte.
+
+        effect  = power
+        effect += physical_rate * atk / 20
+        effect += magical_rate  * spi / 40
+        si apunta a enemigos y no ignora la defensa:
+            effect -= physical_rate * def / 40
+            effect -= magical_rate  * spi_del_blanco / 80
+        effect = max(0, effect)
+        si es crítico: effect *= 3
+
+    Las filas y los atributos no están —este port no tiene ninguno de los
+    dos—. Todas las divisiones son de números no negativos, así que la entera
+    de Python da lo mismo que la de C++.
+    """
+    efecto = skill.power
+    efecto += skill.physical_rate * fuente.ataque // 20
+    efecto += skill.magical_rate * fuente.espiritu // 40
+    if skill.apunta_a_enemigos and not skill.ignore_defense:
+        efecto -= skill.physical_rate * blanco.defensa // 40
+        efecto -= skill.magical_rate * blanco.espiritu // 80
+    efecto = max(0, efecto)
+    if critico:
+        efecto *= 3
+    return efecto
+
+
+def _mitad(n):
+    """La división por dos de C++, que **trunca hacia cero**.
+
+    Hace falta porque `AdjustDamageForDefend` divide el efecto de una
+    habilidad, que puede ser negativo: en C++ -25/2 es -12 y en Python
+    -25 // 2 es -13. Un punto de daño de diferencia que sólo aparece cuando
+    alguien se defiende de una habilidad, o sea la clase de discrepancia que
+    tarda semanas en verse.
+    """
+    return -((-n) // 2) if n < 0 else n // 2
+
+
+def cambio_de_modificador(mod, base, delta):
+    """`Game_Battler::CanChangeAtkModifier` y sus tres hermanas.
+
+        nuevo = clamp(mod + delta, -base / 2, base)
+
+    y devuelve `nuevo - mod`, o sea cuánto se movió de verdad. El tope de
+    bajada es la mitad del parámetro base: un enemigo no puede quedar con
+    menos de la mitad de su ataque por más habilidades que le tiren.
+    """
+    nuevo = max(-(base // 2), min(base, mod + delta))
+    return nuevo - mod
+
+
 class Azar:
     """El xorshift de la batalla, con su propia semilla.
 
@@ -153,23 +304,60 @@ class Combatiente:
     """
 
     def __init__(self, nombre, hp_max, ataque, defensa, agilidad, acierto,
-                 critico=0, es_actor=True, numero=0):
+                 critico=0, es_actor=True, numero=0, espiritu=0, sp_max=0,
+                 habilidades=()):
         self.nombre = nombre
         self.hp_max = hp_max
         self.hp = hp_max
-        self.ataque = ataque
-        self.defensa = defensa
-        self.agilidad = agilidad
+        # Los cuatro parámetros **base**: lo que una habilidad modifica es el
+        # `*_modificador` de al lado, y lo que las cuentas usan es la suma de
+        # los dos, topada. Ver `Game_Battler::GetAtk` y `AdjustParam`.
+        self.ataque_base = ataque
+        self.defensa_base = defensa
+        self.espiritu_base = espiritu
+        self.agilidad_base = agilidad
+        self.mod_ataque = 0
+        self.mod_defensa = 0
+        self.mod_espiritu = 0
+        self.mod_agilidad = 0
         self.acierto = acierto
         self.critico = critico          # en por ciento, ya entero
         self.es_actor = es_actor
         self.numero = numero            # el actor del LDB, o el lugar en la tropa
+        # Los SP y lo que sabe hacer con ellos. Un enemigo de este port no usa
+        # habilidades —`CreateEnemyActions` sólo le da el ataque básico— así
+        # que su lista va vacía.
+        self.sp_max = sp_max
+        self.sp = sp_max
+        self.habilidades = list(habilidades)
+        # Cómo se llama su orden de habilidades en el menú. Es del actor y no
+        # un término fijo: ver `nombre_de_orden_habilidad`.
+        self.nombre_habilidad = ""
         self.defendiendo = False
         self.orden = 0
 
     @property
     def vivo(self):
         return self.hp > 0
+
+    # Los cuatro parámetros como los ve una cuenta: `AdjustParam` de
+    # game_battler.cpp, o sea `clamp(base + modificador, 1, 999)`. Sin estados
+    # no hay ni mitad ni doble.
+    @property
+    def ataque(self):
+        return max(1, min(PARAM_MAX, self.ataque_base + self.mod_ataque))
+
+    @property
+    def defensa(self):
+        return max(1, min(PARAM_MAX, self.defensa_base + self.mod_defensa))
+
+    @property
+    def espiritu(self):
+        return max(1, min(PARAM_MAX, self.espiritu_base + self.mod_espiritu))
+
+    @property
+    def agilidad(self):
+        return max(1, min(PARAM_MAX, self.agilidad_base + self.mod_agilidad))
 
 
 def actor_de(db, numero, equipo=None):
@@ -193,12 +381,16 @@ def actor_de(db, numero, equipo=None):
     actor = db.actors[numero]
     if equipo is None:
         equipo = list(actor.initial_equipment)
-    ataque, defensa, _espiritu, agilidad = pantallas.parametros(db, numero,
-                                                                equipo)
+    ataque, defensa, espiritu, agilidad = pantallas.parametros(db, numero,
+                                                               equipo)
     critico = (100 // actor_critico_cada(db, numero)) \
         if actor_tiene_critico(db, numero) else 0
-    return Combatiente(actor.name, titulo.parametro_de(actor, "maxhp"),
-                       ataque, defensa, agilidad, 90, critico, True, numero)
+    quien = Combatiente(actor.name, titulo.parametro_de(actor, "maxhp"),
+                        ataque, defensa, agilidad, 90, critico, True, numero,
+                        espiritu, titulo.parametro_de(actor, "maxsp"),
+                        habilidades_de(db, numero))
+    quien.nombre_habilidad = nombre_de_orden_habilidad(db, numero)
+    return quien
 
 
 def actor_tiene_critico(db, numero):
@@ -220,7 +412,7 @@ def enemigo_de(db, enemy_id, lugar):
     e = db.enemies[enemy_id]
     critico = (100 // (e.critical_hit_chance or 30)) if e.critical_hit else 0
     return Combatiente(e.name, e.max_hp, e.attack, e.defense, e.agility,
-                       e.hit, critico, False, lugar)
+                       e.hit, critico, False, lugar, e.spirit, e.max_sp)
 
 
 def acierto_por_agilidad(base, agi_fuente, agi_blanco):
@@ -253,16 +445,13 @@ def dano_normal(fuente, blanco, critico, azar):
     dano = max(0, fuente.ataque // 2 - blanco.defensa // 4)
     if critico:
         dano *= 3
-    if dano > 0:
-        ajuste = max(1, 4 * dano // 10)
-        dano = dano + azar.hasta(ajuste) - ajuste // 2
-    return dano
+    return varianza_ajustar(dano, 4, azar)
 
 
 def ajustar_por_defensa(dano, blanco):
     """`AdjustDamageForDefend`: el que se defiende recibe la mitad. La "defensa
     fuerte" es un estado y no hay estados."""
-    return dano // 2 if blanco.defendiendo else dano
+    return _mitad(dano) if blanco.defendiendo else dano
 
 
 class Batalla:
@@ -295,6 +484,11 @@ class Batalla:
         self.resultado = None
         self.huida_chance = self._chance_de_huir()
         self.registro = []          # lo que pasó, para que una prueba lo cuente
+        # Los switches que una habilidad de tipo `switch` prendió:
+        # `Skill::vExecute` hace `SetAffectedSwitch(skill.switch_id)` y
+        # `Scene_Battle` lo prende de verdad. Acá se junta el número, que es lo
+        # que la prueba compara contra el bit de la ROM.
+        self.switches = []
 
     # --- la huida ---------------------------------------------------------
     def _promedio(self, quienes):
@@ -370,6 +564,69 @@ class Batalla:
         blanco.hp = max(0, blanco.hp - dano)
         return True, critico, dano
 
+    def usar_habilidad(self, fuente, skill, blanco):
+        """`Game_BattleAlgorithm::Skill`, con lo que este port sabe hacer.
+
+        El orden en que consume azar **es el contrato con la ROM**, y sale de
+        `vExecute` leído de arriba abajo:
+
+        1. el costo se descuenta **antes de todo** —`vStart`— y no tira azar;
+        2. una habilidad de tipo `switch` prende su switch y **termina ahí**:
+           `vExecute` devuelve antes de cualquier tiro;
+        3. el crítico: `Rand::PercentChance(crit_chance)`, **siempre**, aunque
+           la chance sea cero. Y para una habilidad del LDB siempre lo es,
+           porque `CalcCriticalHitChance` recibe `easyrpg_critical_hit_chance`,
+           que por defecto vale 0 y no -1;
+        4. la varianza, si el efecto quedó mayor que cero;
+        5. un tiro contra el acierto **por cada cosa que la habilidad afecta**,
+           en el orden HP, SP, ataque, defensa, espíritu, agilidad.
+
+        Lo que no está, y ninguna de las siete que el grupo de la intro sabe lo
+        pide: los estados, los atributos, el absorber, revivir y el `affect_sp`
+        —el tiro está igual, por el orden del azar, pero nadie lo usa—.
+        """
+        import lcf
+        fuente.sp = max(0, fuente.sp - costo_de(skill))
+        if skill.type == lcf.SKILL_TIPO_SWITCH:
+            self.switches.append(skill.switch_id)
+            self.registro.append((self.turno, fuente.nombre, fuente.nombre,
+                                  True, False, 0, fuente.hp))
+            return
+        # `CalcSkillToHit`: el `hit` de la habilidad, que las siete traen en
+        # 100. El camino del `failure_message == 3` no se toma —ninguna lo
+        # tiene— y está declarado como lo que falta.
+        acierto = skill.hit
+        critico = self.azar.porciento(0)
+        efecto = efecto_habilidad(fuente, blanco, skill, critico)
+        efecto = varianza_ajustar(efecto, skill.variance, self.azar)
+        efecto = max(-DANO_MAX, min(DANO_MAX, efecto))
+        positivo = not skill.apunta_a_enemigos
+        if not positivo:
+            efecto = -efecto
+        if skill.affect_hp and self.azar.porciento(acierto):
+            if positivo:
+                # Una cura no mata: `max(-(cur_hp - 1), hp_effect)`.
+                hp = max(-(blanco.hp - 1), efecto)
+            else:
+                hp = ajustar_por_defensa(efecto, blanco)
+            blanco.hp = max(0, min(blanco.hp_max, blanco.hp + hp))
+        if skill.affect_sp and self.azar.porciento(acierto):
+            blanco.sp = max(0, min(blanco.sp_max, blanco.sp + efecto))
+        for afecta, mod, base in (
+                (skill.affect_attack, "mod_ataque", "ataque_base"),
+                (skill.affect_defense, "mod_defensa", "defensa_base"),
+                (skill.affect_spirit, "mod_espiritu", "espiritu_base"),
+                (skill.affect_agility, "mod_agilidad", "agilidad_base")):
+            if not afecta:
+                continue
+            if not self.azar.porciento(acierto):
+                continue
+            delta = cambio_de_modificador(getattr(blanco, mod),
+                                          getattr(blanco, base), efecto)
+            setattr(blanco, mod, getattr(blanco, mod) + delta)
+        self.registro.append((self.turno, fuente.nombre, blanco.nombre,
+                              True, critico, -efecto, blanco.hp))
+
     def jugar_turno(self, ordenes):
         """Un turno entero. `ordenes` es, por actor vivo y en el orden del
         grupo, `(ORDEN_ATACAR, lugar_del_enemigo)` o `(ORDEN_DEFENDER, 0)`.
@@ -387,6 +644,14 @@ class Batalla:
                 item, quien = blanco
                 acciones.append((actor, orden, (item, self.actores[quien])))
                 continue
+            if orden == ORDEN_HABILIDAD:
+                # Y acá `(skill, lugar)`: la habilidad del LDB y el lugar del
+                # blanco, en la lista del lado al que apunta su `scope`.
+                skill, quien = blanco
+                lado = (self.enemigos if skill.apunta_a_enemigos
+                        else self.actores)
+                acciones.append((actor, orden, (skill, lado[quien])))
+                continue
             acciones.append((actor, orden,
                              self.enemigos[blanco] if orden == ORDEN_ATACAR
                              else None))
@@ -402,6 +667,14 @@ class Batalla:
                 quien.defendiendo = True
                 continue
             if orden == ORDEN_HUIR:
+                continue
+            if orden == ORDEN_HABILIDAD:
+                # El blanco muerto **no se reapunta**, como con un ítem: el
+                # `IsTargetValid` de `Skill` lo descarta y la acción se pierde.
+                skill, blanco = blanco
+                if not blanco.vivo:
+                    continue
+                self.usar_habilidad(quien, skill, blanco)
                 continue
             if orden == ORDEN_ITEM:
                 # Un ítem no puede fallar ni lo esquiva nadie: no tira azar.

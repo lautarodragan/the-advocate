@@ -11,7 +11,7 @@ volvió inusable; se borra sin culpa lo que ya esté en esos dos lados.
 
 Se escribe **mientras se trabaja**, no al final.
 
-Última vez que se tocó: 2026-09-12.
+Última vez que se tocó: 2026-09-13.
 
 
 ## El objetivo, y dónde estamos
@@ -19,16 +19,19 @@ Se escribe **mientras se trabaja**, no al final.
 **Los primeros diez minutos jugables**, que es lo que taro viene probando vuelta
 a vuelta.
 
-Al 2026-09-12: `just snes-hitos-foto` son **140 casos, todos en verde** —sobre
-la foto `93fca1c`—, y `just pruebas` **100 en verde y 1 `xfail`**. El `xfail` no
-es adorno: es un defecto medido de guardar con la pantalla de título puesta, y
-está abajo.
+Al 2026-09-13: `just snes-hitos-foto` son **147 casos, todos en verde** —sobre
+la foto `cc68312`—, y `just pruebas` **113 en verde y 1 `xfail`**, más dos en
+rojo que **no son de esta vuelta**: `test_el_golpe_suena_con_el_efecto_que_le_toca`
+y `test_la_pelea_prende_el_tema_de_batalla_del_ldb`, los dos ya en rojo en
+`f38b87c` —comprobado sobre una copia limpia de ese commit— y los dos de audio
+de la pelea. El `xfail` no es adorno: es un defecto medido de guardar con la
+pantalla de título puesta, y está abajo.
 
 **La ROM para probar a mano de esta vuelta** está en
-`pruebas-manuales/vars-y-rutas/`, con las coordenadas de un personaje y el
-teletransporte de dos bytes, y un `LEEME.txt` que dice cómo llegar jugando a lo
-que se destrabó —y por qué la persecución en auto todavía no—. La anterior, con
-las cuatro piezas del mediodía, está en `pruebas-manuales/desbloqueos/`.
+`pruebas-manuales/habilidades/`, con las habilidades de la batalla: dos peleas
+sueltas que se abren solas y la demo entera, y un `LEEME.txt` que dice qué sabe
+cada personaje, qué mirar, y qué falta —empezando por los SP, que no se ven en
+la pantalla de la pelea—.
 
 `demo-ciudad` se juega desde la apertura hasta la calle de Lashe City, con los
 relámpagos, los autos y los NPCs andando, el agua moviéndose, la lluvia, el save
@@ -153,6 +156,49 @@ Y dos deudas que dejaron los agentes, las dos con el número al lado:
   pruebas de estado, no la tanda: sin nada que lo lea, el bit no cambia un
   pixel.
 
+### Las habilidades: entraron las siete (2026-09-13)
+
+Lo último que taro reportó como faltante de la batalla. Los cinco pasos que la
+sección de abajo dejó medidos están hechos, y **de las siete habilidades que el
+grupo de la intro sabe entraron las siete**, incluidas las dos que mueven
+parámetros, que eran las que podían no entrar.
+
+Cómo quedó, que es lo que hay que mirar jugando:
+
+* los SP son estado —`FAR_SP`, al lado de `FAR_HP`— y viajan en la partida;
+* la segunda orden del menú **dice el `skill_name` del actor**: "AgentTrain",
+  "Telepathy", "Slicing", "Special". Y el menú está en el orden del original,
+  Attack / <habilidad> / Defend / Use Item, con Escape quinta;
+* la lista es la de la captura: descripción arriba, dos columnas leídas por
+  filas, costo en SP a la derecha, y en gris la que no se puede pagar;
+* el efecto es `Algo::CalcSkillEffect`, con el costo de `CalcSkillCost`.
+
+Lo que **no** está y conviene saber antes de mirar:
+
+* **los SP no se ven en la pantalla de la pelea.** Los renglones del grupo son
+  nombre, HP y máximo, y en las 32 celdas no entra además "SP nnn" sin achicar
+  la columna del nombre, que hoy la comparten con los enemigos —"GangMember LT"
+  mide trece—. El original los muestra. Es lo primero que conviene arreglar de
+  esto, y pide decidir la columna.
+* **la descripción se corta a 31 caracteres.** El original la escribe entera
+  con una fuente más chica; acá un renglón de texto ocupa dos filas del tilemap
+  y la de abajo no está libre.
+* **el nombre de la habilidad se corta a once.** "Healing Syringe" queda en
+  "Healing Syr". Misma causa: dos columnas en 32 celdas.
+* **las de alcance múltiple no están.** Ver `batalla.habilidad_usable`. En el
+  grupo de la intro no hay ninguna; la primera que aparece en un cartucho más
+  grande es `Gamble for Credits`, la única de Arden, que queda afuera y lo deja
+  sin habilidades.
+* **no hay animación de batalla al usarlas.** El `animation_id` viaja en el
+  LDB y el port ya sabe dibujar animaciones en el mapa; nadie las conecta.
+
+Y una cosa que este trabajo destapó y no era suya: **`just snes-demo
+demo-ciudad` estaba roto desde antes**. El área del banco 0 se pasaba por
+quince bytes en `f38b87c` —"32719 en 32704"—, y ningún caso de la tanda lo ve
+porque sus cartuchos llevan uno o dos mapas. Se arregló mudando `item_actores`
+a RODATA. **Conviene armar la demo después de cada vuelta que agregue código**,
+que es lo que el encargo de esta vuelta pedía y por eso apareció.
+
 ### El nivel estaba mockeado en 1, y no era cosmético (2026-09-13)
 
 Lo que se dijo primero sobre las habilidades estaba mal, **y el error era el
@@ -175,15 +221,11 @@ chance de huir salen de atk/def/agi, y un caso de `test_batalla.py` que ponía a
 todos en 1 HP **pasó a ganar**—, la pantalla de equipo, el HP del menú de pausa,
 el nivel de la ranura de guardado y `actor_hpmax`.
 
-**Lo que falta de las habilidades**, en orden y ya medido: los SP como estado
-(`FAR_SP` al lado de `FAR_HP`, dos bytes por actor); la lista por actor, que ya
-está leída en `lcf.Actor.skills` —Kersh 131 y 146, Core 129 y 150, Manta 130,
-143, 144 y 150—; el menú, cuya segunda orden es el `skill_name` de cada actor
-("AgentTrain", "Telepathy", "Slicing"), en el orden **Attack / habilidad /
-Defend / Use Item**; la pantalla en dos columnas con la descripción arriba y el
-costo a la derecha; y el efecto, que es `Algo::CalcSkillEffect`. De las siete
-habilidades, dos son daño o cura, tres prenden un switch, y **dos son
-modificadores de parámetro** —lo único que pide estado nuevo por combatiente—.
+**Lo que faltaba de las habilidades está hecho**: ver la sección de arriba. El
+plan medido era, en orden, los SP como estado, la lista por actor, el menú con
+el `skill_name`, la pantalla en dos columnas y el efecto; entró todo, y las dos
+que mueven parámetros —Agency Badge y Mental Hack— también, que eran las que
+pedían estado nuevo por combatiente.
 
 ### Los quince colores de un sprite: elegidos de nuevo (2026-09-12)
 

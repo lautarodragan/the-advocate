@@ -186,6 +186,9 @@ def enum_name(names, value):
     return names[value] if 0 <= value < len(names) and names[value] else value
 
 DB_ACTORS = 0x0B
+# Las habilidades, desde el 2026-09-13: la batalla las usa y hasta ahora nadie
+# las había leído. El código es el `skills` de ChunkDatabase de liblcf.
+DB_SKILLS = 0x0C
 DB_ITEMS = 0x0D
 # Los enemigos y las tropas, que es lo que una batalla necesita del LDB. Los
 # códigos salen de `ldb/chunks.h` de liblcf, como todo lo demás de este
@@ -682,6 +685,77 @@ class Actor:
             "weapon", "shield", "armor", "helmet", "accessory")]
 
 
+# Una habilidad de la base (liblcf: ldb/chunks.h, ChunkSkill). Sólo los campos
+# que la batalla de este port mira. Los defaults son los de `rpg::Skill` de
+# liblcf y **no son todos cero**: `magical_rate` vale 3, `variance` 4, `hit`
+# 100 y `switch_id` y `animation_id` 1. Leerlos como cero cambiaría el daño de
+# cualquier habilidad a la que el LDB no le haya escrito el campo.
+SKILL_NAME = 0x01
+SKILL_DESCRIPTION = 0x02
+SKILL_USING_MESSAGE1 = 0x03
+SKILL_USING_MESSAGE2 = 0x04
+SKILL_TYPE = 0x08
+SKILL_SP_COST = 0x0B
+SKILL_SCOPE = 0x0C
+SKILL_SWITCH_ID = 0x0D
+SKILL_ANIMATION_ID = 0x0E
+SKILL_PHYSICAL_RATE = 0x15
+SKILL_MAGICAL_RATE = 0x16
+SKILL_VARIANCE = 0x17
+SKILL_POWER = 0x18
+SKILL_HIT = 0x19
+SKILL_AFFECT_HP = 0x1F
+SKILL_AFFECT_SP = 0x20
+SKILL_AFFECT_ATTACK = 0x21
+SKILL_AFFECT_DEFENSE = 0x22
+SKILL_AFFECT_SPIRIT = 0x23
+SKILL_AFFECT_AGILITY = 0x24
+SKILL_IGNORE_DEFENSE = 0x26
+# Los tipos, en el orden de `rpg::Skill::Type`. Las siete que el grupo de la
+# intro sabe son `normal` o `switch`.
+SKILL_TIPO_NORMAL, SKILL_TIPO_TELEPORT, SKILL_TIPO_ESCAPE, \
+    SKILL_TIPO_SWITCH, SKILL_TIPO_SUBSKILL = range(5)
+# Y los alcances, `rpg::Skill::Scope`. `SkillTargetsEnemies` de algo.h es
+# "enemy o enemies"; todo lo demás apunta al propio bando.
+SKILL_SCOPE_ENEMIGO, SKILL_SCOPE_ENEMIGOS, SKILL_SCOPE_UNO_MISMO, \
+    SKILL_SCOPE_ALIADO, SKILL_SCOPE_GRUPO = range(5)
+
+
+class Skill:
+    """Una habilidad: lo que la pantalla muestra y lo que la cuenta necesita."""
+
+    def __init__(self, fields):
+        self.name = to_string(fields.get(SKILL_NAME, b""))
+        self.description = to_string(fields.get(SKILL_DESCRIPTION, b""))
+        self.using_message1 = to_string(fields.get(SKILL_USING_MESSAGE1, b""))
+        self.using_message2 = to_string(fields.get(SKILL_USING_MESSAGE2, b""))
+        self.type = to_int(fields.get(SKILL_TYPE, b"\x00"))
+        self.sp_cost = to_int(fields.get(SKILL_SP_COST, b"\x00"))
+        self.scope = to_int(fields.get(SKILL_SCOPE, b"\x00"))
+        self.switch_id = to_int(fields.get(SKILL_SWITCH_ID, b"\x01"))
+        self.animation_id = to_int(fields.get(SKILL_ANIMATION_ID, b"\x01"))
+        self.physical_rate = to_int(fields.get(SKILL_PHYSICAL_RATE, b"\x00"))
+        self.magical_rate = to_int(fields.get(SKILL_MAGICAL_RATE, b"\x03"))
+        self.variance = to_int(fields.get(SKILL_VARIANCE, b"\x04"))
+        self.power = to_int(fields.get(SKILL_POWER, b"\x00"))
+        self.hit = to_int(fields.get(SKILL_HIT, b"\x64"))
+        self.affect_hp = to_bool(fields.get(SKILL_AFFECT_HP, b"\x00"))
+        self.affect_sp = to_bool(fields.get(SKILL_AFFECT_SP, b"\x00"))
+        self.affect_attack = to_bool(fields.get(SKILL_AFFECT_ATTACK, b"\x00"))
+        self.affect_defense = to_bool(
+            fields.get(SKILL_AFFECT_DEFENSE, b"\x00"))
+        self.affect_spirit = to_bool(fields.get(SKILL_AFFECT_SPIRIT, b"\x00"))
+        self.affect_agility = to_bool(
+            fields.get(SKILL_AFFECT_AGILITY, b"\x00"))
+        self.ignore_defense = to_bool(
+            fields.get(SKILL_IGNORE_DEFENSE, b"\x00"))
+
+    @property
+    def apunta_a_enemigos(self):
+        """`Algo::SkillTargetsEnemies`."""
+        return self.scope in (SKILL_SCOPE_ENEMIGO, SKILL_SCOPE_ENEMIGOS)
+
+
 # Un ítem de la base (liblcf: ldb/chunks.h, ChunkItem).
 ITEM_NAME = 0x01
 ITEM_DESCRIPTION = 0x02
@@ -845,6 +919,9 @@ class Database:
         # más uno, y test_items.py lo comprueba.
         self.items = {i: Item(f) for i, f in Reader(
             self.fields.get(DB_ITEMS, b"\x00")).read_struct_array().items()}
+        # Las habilidades, que `lcf.Actor.skills` nombra por número.
+        self.skills = {i: Skill(f) for i, f in Reader(
+            self.fields.get(DB_SKILLS, b"\x00")).read_struct_array().items()}
         self.items_max = max(self.items, default=0)
         # Los enemigos y las tropas: lo que una batalla necesita. Ver `Enemy`
         # y `Troop`.

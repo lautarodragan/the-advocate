@@ -930,7 +930,7 @@ Lo que hay, y lo que no:
     huir                            sí, pero es orden de cada actor y no del
                                     grupo, que es una simplificación declarada
     usar un ítem                    sí, desde el 2026-09-13: ver abajo
-    habilidades                     no, y no es que falte el código: ver abajo
+    habilidades                     sí, desde el 2026-09-13: ver abajo
     los estados                     no
     experiencia, oro, subir nivel   no: no hay niveles
     la música y los efectos         sí, desde el 2026-09-13: ver abajo
@@ -953,19 +953,29 @@ mismo recurso que usa `snes-guardar` con la pantalla de ranuras.
 #### El menú: las cinco órdenes del ABL
 
 Hasta el 2026-09-13 eran tres en un renglón —`Attack`, `Defend`, `Escape`— y
-taro pidió el menú del original, que además tiene `Use Item` y `Tech Skill`.
+taro pidió el menú del original, que además tiene `Use Item` y la habilidad.
 Ahora son las cinco, en los dos renglones del mensaje: tres arriba y dos abajo,
-que mientras se elige está libre. Las palabras son las del LDB —`command_item`
-del ABL dice "Use Item" y `command_skill` "Tech Skill"— y el ancho pasó de nueve
-a diez porque "Tech Skill" mide diez justos.
+que mientras se elige está libre. Las palabras son las del LDB, y el ancho es
+diez porque es lo que mide la orden más larga.
 
-**`Tech Skill` va en gris y A no la toma**, como las tres órdenes que el menú de
-pausa todavía no hace. Y no es que falte el código de las habilidades: está
-medido que **a este nivel nadie sabe ninguna**. Kersh aprende la 131 en el nivel
-3, Core la 129 en el 3 y Manta la 130 en el 3, y este port tiene a todos en el
-nivel 1 —`titulo.NIVEL`— porque no hay experiencia ni subida de nivel. La lista
-saldría vacía. Lo que destraba las habilidades no es la pantalla: son los
-niveles, y detrás los SP, que tampoco son estado.
+**El orden es el del original**: Attack, la habilidad, Defend, Use Item. Se ve
+en `pruebas-manuales/capturas-batalla/auto_20260912_123013.png`, donde el menú
+de Manta dice Attack / Slicing / Defend / Use Item. `Escape` no está allá —huir
+es una orden del grupo, de un menú anterior— y acá va quinta, que es la
+simplificación declarada.
+
+**Y la segunda orden no dice "Tech Skill"**: dice el `skill_name` del actor que
+está ordenando —"AgentTrain" con Kersh, "Telepathy" con Core, "Slicing" con
+Manta, "Special" con Talan—, que es `Game_Actor::GetSkillName` con
+`rename_skill` puesto. Su texto sale de `actor_hab_txt`, que es por número de
+actor, y no de `ba_orden_txt`, que es fijo como el de las otras cuatro. La
+columna en la que va tiene que dejarle **diez celdas libres**: "AgentTrain" y
+"Tech Skill" miden diez justos y no le dejan lugar al cursor del que sigue, que
+va una celda antes del texto.
+
+Lo que hasta el 2026-09-13 decía acá era que esa orden iba en gris porque a
+este nivel nadie sabía ninguna habilidad, y **eso era falso**: salía de leer los
+parámetros con el nivel mockeado en 1. Ver "Las habilidades", más abajo.
 
 `Use Item` sí anda. Abre la lista de lo que se puede usar **donde va la de los
 enemigos**, porque eligiendo qué usar lo que hace falta ver es el grupo; se
@@ -977,8 +987,9 @@ Qué entra en la lista y cuánto cura sale de easyrpg-player:
 * **Qué entra**: `Game_Party::IsItemUsable` con la pelea abierta, o sea una
   medicina que no esté marcada "sólo fuera de batalla". De ésas, este port
   ofrece las que **recuperan HP y no son `ko_only`**: las de SP quedan afuera
-  porque los SP no son estado, y las de revivir porque revivir es sacar el
-  estado de muerto y los estados no existen. Son 12 de las 22 medicinas del
+  porque la lista todavía sólo sabe curar HP —los SP **sí** son estado desde el
+  2026-09-13, así que eso pasó de imposible a deuda—, y las de revivir porque
+  revivir es sacar el estado de muerto y los estados no existen. Son 12 de las 22 medicinas del
   juego, de la Potion de 50 a la Miracle Drop, que cura todo.
 * **Cuánto cura**: `Game_BattleAlgorithm::Item::vExecute`, o sea
   `recover_hp_rate * GetMaxHp() / 100 + recover_hp`, topado contra lo que le
@@ -996,8 +1007,88 @@ Lo cobran cinco casos. Dos de la tanda —la lista de ítems y la elección del
 blanco, pixel por pixel contra `pantallas.py`— y tres de estado: que la lista
 sea la que corresponde (con un ítem inusable en el inventario, o no mediría
 nada), que la poción deje el HP exacto que dice el modelo topando contra el
-máximo, y que el cursor pase por encima de `Tech Skill` en vez de trabarse.
+máximo, y que el menú recorra las cinco órdenes en el orden del original.
 Todos verificados en rojo con su defecto puesto.
+
+#### Las habilidades
+
+Entraron el 2026-09-13, y lo que las destrabó no fue la pantalla: fue leer el
+`initial_level` del LDB en vez de mockear el nivel en 1. Con los niveles de
+verdad —Kersh 20, Core y Manta 15— los tres saben las suyas desde la primera
+pelea: siete entre los tres, 131 y 146 Kersh, 129 y 150 Core, y 130, 143, 144 y
+150 Manta.
+
+**Qué sabe cada uno**: `Game_Actor::LearnLevelSkills` recorre la tabla de
+aprendizaje del actor y aprende las de nivel menor o igual al suyo, y
+`LearnSkill` las mete en `data.skills` **ordenadas por número**. Ése es el orden
+en que la lista las muestra, y la captura del original lo confirma: las cuatro
+de Manta salen Mental Hack y MindShield arriba, MindProbe y MindBlast abajo, o
+sea 130, 143, 144, 150 leídos **por filas** en dos columnas.
+
+**Los SP son estado**, por lo mismo que los HP desde que hay batallas: cada
+habilidad cuesta su `sp_cost` y `Skill::vStart` se lo descuenta al que la usa.
+Viven en `FAR_SP`, arrancan llenos desde `actor_spmax` y viajan en la partida,
+detrás de los HP.
+
+**La pantalla** es la de la captura `auto_20260912_123023.png`: donde va la
+lista de enemigos, la descripción de la que marca el cursor arriba de todo y
+abajo dos columnas con el nombre a la izquierda y el costo en SP a la derecha,
+con un guión delante. En gris la que no se alcanza a pagar, y la lista entera
+en gris mientras se elige el blanco, que es lo que la de ítems ya hacía.
+
+**Qué hace cada una**, de `Game_BattleAlgorithm::Skill::vExecute`:
+
+* una de tipo `switch` prende su `switch_id` y **termina ahí**, sin tirar
+  ningún dado. Tres de las siete son de ésas —MindShield, MindProbe y
+  MindBlast— y en el juego original son las que abren rama de trama más
+  adelante: acá prenden el switch y falta el evento que lo mire.
+* las demás calculan `Algo::CalcSkillEffect`:
+  `power + physical_rate * atk / 20 + magical_rate * spi / 40`, menos
+  `physical_rate * def / 40 + magical_rate * spi / 80` del blanco cuando apunta
+  a enemigos, y después la varianza con el `variance` de la habilidad.
+* y lo aplican a lo que la habilidad marque: HP —Fury Punch y Healing Syringe—
+  o **los modificadores de parámetro** del blanco —Agency Badge le baja ataque,
+  defensa y agilidad; Mental Hack, defensa y espíritu—.
+
+Los modificadores son lo único que pidió estado nuevo por combatiente, y no es
+el modificador solo: `CanChangeAtkModifier` topa la bajada en la mitad del
+parámetro **base**, así que hacen falta el base y el modificador por separado
+—de la resta no se despeja un modificador que sobrevivió al recorte—. Por eso
+`BA_BYTES` pasó de 18 a 40, con los cuatro bases, los cuatro modificadores y
+los SP; el efectivo que las cuentas leen es `clamp(base + mod, 1, 999)`, que es
+`AdjustParam` de game_battler.cpp.
+
+**El orden en que consume azar es el contrato con `batalla.py`**, y sale de
+leer `vExecute` de arriba abajo: el switch vuelve antes de cualquier tiro; el
+crítico se tira **siempre**, aunque la chance sea cero —y para una habilidad
+del LDB siempre lo es, porque `CalcCriticalHitChance` recibe
+`easyrpg_critical_hit_chance`, que por defecto vale 0 y no -1—; después la
+varianza; y después un tiro contra el acierto por cada cosa que la habilidad
+afecta, en el orden HP, SP, ataque, defensa, espíritu, agilidad.
+
+Lo que **no** está, declarado en `batalla.habilidad_usable`: los alcances de a
+muchos —`enemies`, `party`, `self`—, que pedirían repetir el efecto sobre cada
+blanco y con eso el orden del azar de los dos lados. En el grupo de la intro no
+hay ninguna; en un cartucho con más actores cae `Gamble for Credits`, la única
+de Arden, y Arden aparece sin habilidades. Tampoco hay animación de batalla al
+usarlas: el `animation_id` viaja en el LDB y el port ya sabe dibujar
+animaciones, pero nadie las conectó.
+
+**Y los SP no se ven en la pantalla de la pelea.** Los renglones del grupo son
+nombre, HP y máximo, y en las 32 celdas no entra además "SP nnn" sin achicar la
+columna del nombre, que la comparten con los enemigos —"GangMember LT" mide
+trece—. El original los muestra. Hoy lo único que avisa de que uno se quedó sin
+SP es que la habilidad se pone en gris.
+
+Lo cobran diez casos. Tres de la tanda —la lista, la lista con el cursor en
+otra habilidad y la lista en gris mientras se elige a quién curar, pixel por
+pixel contra `pantallas.py`— y siete de estado, que comparan contra
+`batalla.Batalla.usar_habilidad` exigiendo el número exacto: los HP y los SP
+turno por turno con Fury Punch, el switch que prende MindShield —y que el azar
+**no** se haya movido—, la cura de Healing Syringe sobre un aliado lastimado,
+los tres parámetros que Agency Badge le baja al droide, que la lista de cada
+actor sea la que el LDB dice, que el menú recorra las cinco órdenes, y que un
+actor sin ninguna —Talan, que es de nivel 1— no abra la lista.
 
 #### El fondo y los monstruos: una sola imagen
 

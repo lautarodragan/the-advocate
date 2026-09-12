@@ -4062,6 +4062,30 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                                for e in db.troops[numero].members})
         texto_enemigo = {e: texto_nuevo(titulo_mod.texto_de_item(
             db.enemies[e].name, P.BA_NOMBRE_ANCHO)) for e in enemigos_rom}
+        # Y los de las habilidades: las que sabe algún actor que puede entrar
+        # al grupo, **a su nivel del LDB** —ver `batalla.habilidades_de`—,
+        # ordenadas por número, que es el orden en que el menú las pone. Con el
+        # grupo de la intro son siete: 129, 130, 131, 143, 144, 146 y 150.
+        habilidades_rom = sorted({h for a in ranuras["actores"]
+                                  for h in B.habilidades_de(db, a)})
+        texto_hab = {h: texto_nuevo(titulo_mod.texto_de_item(
+            db.skills[h].name, P.BA_HAB_NOMBRE_ANCHO))
+            for h in habilidades_rom}
+        texto_hab_desc = {h: texto_nuevo(titulo_mod.texto_de_item(
+            db.skills[h].description, P.BA_HAB_DESC_ANCHO))
+            for h in habilidades_rom}
+        # Los dos renglones que RM2k dice al usarla: `using_message1` va detrás
+        # del nombre del que la usa y `using_message2` solo, en el renglón de
+        # abajo. `GetSkillFirstStartMessage2k` y su hermana.
+        texto_hab_msg1 = {h: texto_nuevo(db.skills[h].using_message1)
+                          for h in habilidades_rom}
+        texto_hab_msg2 = {h: texto_nuevo(db.skills[h].using_message2)
+                          for h in habilidades_rom}
+        # Y cómo se llama la orden de cada actor: `Game_Actor::GetSkillName`,
+        # o sea su `skill_name` —"AgentTrain", "Telepathy", "Slicing"— y no el
+        # `command_skill` del LDB. Va recortada como las otras cuatro órdenes.
+        texto_hab_orden = {a: texto_nuevo(P.texto_de_orden(
+            B.nombre_de_orden_habilidad(db, a))) for a in ranuras["actores"]}
         handle.write(bloque("item_textos", bytes(item_textos) or b"\x00")
                      + "\n")
         if len(bloques_ranura) > 255:
@@ -4288,11 +4312,17 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                                   for p in db_items[n].puntos],
                   declarar=True)
         handle.write('.segment "TABLAS"\n')
+        # **Fuera del banco 0**, como `item_k` y por lo mismo: son 496 bytes con
+        # los 62 ítems de `demo-ciudad` y el área de código se pasó por
+        # diecinueve al entrar las habilidades. La pantalla de equipo la lee con
+        # `lda f:item_actores, y`, una vez por ítem al abrirse.
+        handle.write('.segment "RODATA"\n')
         bytes_asm("item_actores", [
             sum(1 << b for b in range(8)
                 if 8 * byte + b + 1 < actores_n
                 and db_items[n].equipable_por(8 * byte + b + 1))
-            for n in items for byte in range(8)])
+            for n in items for byte in range(8)], declarar=True)
+        handle.write('.segment "TABLAS"\n')
         # `actor_params` va fuera del banco 0 —se lee con
         # `lda f:actor_params, x`, una sola vez por pantalla de equipo— por lo
         # mismo que `item_k`: son 488 bytes y el banco del código se llenó, y
@@ -4377,11 +4407,97 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
              if a in db.actors else 0) & 0xFFFF
             for a in range(actores_n)])
         # Y los SP, que son estado desde el 2026-09-13 por lo mismo que los HP:
-        # las habilidades los gastan. Ver `sp_inicial_poner` en main.s.
+        # las habilidades los gastan. Ver `hp_inicial_poner` en main.s.
         words_asm("actor_spmax", [
             (titulo_mod.parametro_de(db.actors[a], "maxsp")
              if a in db.actors else 0) & 0xFFFF
             for a in range(actores_n)])
+        # --- las habilidades ---
+        #
+        # Una fila por habilidad que el cartucho lleva, en el orden de
+        # `habilidades_rom`, que es por número de RM2k. Los campos son los de
+        # `lcf.Skill` y las cuentas que los usan están en `batalla.py`:
+        # `efecto_habilidad` es `Algo::CalcSkillEffect` y `costo_de` es
+        # `CalcSkillCost`.
+        #
+        # Van **fuera del banco 0** y declaradas con `.bloque`, como todo lo
+        # que la pelea lee con `lda f:`: el banco del código está lleno, y una
+        # tabla partida entre dos bancos se leería mal desde la mitad.
+        lugar_hab = {h: k for k, h in enumerate(habilidades_rom)}
+        # Que todas las que llegan acá sean de las que la pelea sabe ofrecer lo
+        # garantiza `batalla.habilidad_usable`, que es el filtro que
+        # `habilidades_de` aplica de los dos lados. Se vuelve a comprobar por
+        # si alguna vez se emitieran desde otro lado: un alcance de a muchos o
+        # un costo de tres cifras se dibujarían mal en silencio.
+        for h in habilidades_rom:
+            if not B.habilidad_usable(db.skills[h]):
+                raise SystemExit(
+                    "la habilidad %d —tipo %d, alcance %d, %d SP— no es de las "
+                    "que esta pelea sabe ofrecer" % (h, db.skills[h].type,
+                                                     db.skills[h].scope,
+                                                     db.skills[h].sp_cost))
+        words_asm("hab_id", habilidades_rom, declarar=True)
+        words_asm("hab_txt", [texto_hab[h] for h in habilidades_rom],
+                  declarar=True)
+        words_asm("hab_desc", [texto_hab_desc[h] for h in habilidades_rom],
+                  declarar=True)
+        words_asm("hab_msg1", [texto_hab_msg1[h] for h in habilidades_rom],
+                  declarar=True)
+        words_asm("hab_msg2", [texto_hab_msg2[h] for h in habilidades_rom],
+                  declarar=True)
+        words_asm("hab_power", [db.skills[h].power for h in habilidades_rom],
+                  declarar=True)
+        words_asm("hab_switch", [db.skills[h].switch_id
+                                 for h in habilidades_rom], declarar=True)
+        bytes_asm("hab_sp", [db.skills[h].sp_cost for h in habilidades_rom],
+                  declarar=True)
+        # El tipo: 0 es `normal` y 3 es `switch`, que es la que prende un
+        # switch y no hace nada más. Ver `Skill::vExecute`.
+        bytes_asm("hab_tipo", [db.skills[h].type for h in habilidades_rom],
+                  declarar=True)
+        bytes_asm("hab_fis", [db.skills[h].physical_rate
+                              for h in habilidades_rom], declarar=True)
+        bytes_asm("hab_mag", [db.skills[h].magical_rate
+                              for h in habilidades_rom], declarar=True)
+        bytes_asm("hab_var", [db.skills[h].variance
+                              for h in habilidades_rom], declarar=True)
+        bytes_asm("hab_hit", [db.skills[h].hit for h in habilidades_rom],
+                  declarar=True)
+        # Qué toca, un bit por cosa, en el orden en que `Skill::vExecute` las
+        # mira —que es el orden en que consume azar y por eso importa—: HP, SP,
+        # ataque, defensa, espíritu y agilidad. El bit 6 dice si apunta a
+        # enemigos —`Algo::SkillTargetsEnemies`— y el 7 si ignora la defensa.
+        bytes_asm("hab_afecta", [
+            (1 if db.skills[h].affect_hp else 0)
+            | (2 if db.skills[h].affect_sp else 0)
+            | (4 if db.skills[h].affect_attack else 0)
+            | (8 if db.skills[h].affect_defense else 0)
+            | (16 if db.skills[h].affect_spirit else 0)
+            | (32 if db.skills[h].affect_agility else 0)
+            | (64 if db.skills[h].apunta_a_enemigos else 0)
+            | (128 if db.skills[h].ignore_defense else 0)
+            for h in habilidades_rom], "$%02X", declarar=True)
+        # Y por actor: dónde arranca su lista en `actor_hab`, cuántas tiene, y
+        # cómo se llama su orden en el menú. Un actor que no puede entrar al
+        # grupo no tiene ninguna: la lista se arma con `ranuras["actores"]`.
+        actor_hab, actor_hab_ini, actor_hab_n = [], [], []
+        for a in range(actores_n):
+            suyas = (B.habilidades_de(db, a)
+                     if a in ranuras["actores"] else [])
+            actor_hab_ini.append(len(actor_hab))
+            actor_hab_n.append(len(suyas))
+            actor_hab += [lugar_hab[h] for h in suyas]
+        if len(actor_hab) > 255 or len(habilidades_rom) > 255:
+            raise SystemExit("las habilidades del cartucho no entran en las "
+                             "tablas de un byte: %d habilidades, %d "
+                             "aprendidas" % (len(habilidades_rom),
+                                             len(actor_hab)))
+        bytes_asm("actor_hab", actor_hab, declarar=True)
+        bytes_asm("actor_hab_ini", actor_hab_ini, declarar=True)
+        bytes_asm("actor_hab_n", actor_hab_n, declarar=True)
+        words_asm("actor_hab_txt", [texto_hab_orden.get(a, 0xFFFF)
+                                    for a in range(actores_n)], "$%04X",
+                  declarar=True)
         # Las tropas que alguna pelea del cartucho pide, y los enemigos que las
         # forman. El bytecode lleva el **número de RM2k** de la tropa, así que
         # `tropa_id` es lo que la ROM busca; que la lista sea sólo la de las
@@ -4407,6 +4523,11 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         words_asm("enemigo_atk", [db.enemies[e].attack for e in enemigos_rom])
         words_asm("enemigo_def", [db.enemies[e].defense for e in enemigos_rom])
         words_asm("enemigo_agi", [db.enemies[e].agility for e in enemigos_rom])
+        # El espíritu y los SP: los pide `CalcSkillEffect`, que le resta al
+        # efecto `magical_rate * spi_del_blanco / 80`. Hasta el 2026-09-13 no
+        # los leía nadie porque ninguna cuenta de la pelea los usaba.
+        words_asm("enemigo_spi", [db.enemies[e].spirit for e in enemigos_rom])
+        words_asm("enemigo_sp", [db.enemies[e].max_sp for e in enemigos_rom])
         bytes_asm("enemigo_hit", [db.enemies[e].hit for e in enemigos_rom])
         # El crítico, ya en por ciento entero: `CalcCriticalHitChance` lo
         # calcula como `1 / critical_hit_chance` por cien y lo trunca.
@@ -4503,6 +4624,28 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         handle.write("BA_ORDEN_HUIR     = %d\n" % P.BA_ORDEN_HUIR)
         handle.write("BA_ORDEN_ATACAR   = %d\n" % P.BA_ORDEN_ATACAR)
         handle.write("BA_ORDEN_DEFENDER = %d\n" % P.BA_ORDEN_DEFENDER)
+        handle.write("BA_ORDEN_HABILIDAD= %d\n" % P.BA_ORDEN_HABILIDAD)
+        # La pantalla de habilidades: dos columnas con el nombre y el costo, y
+        # la descripción de la que marca el cursor arriba de todo. La geometría
+        # sale de `pantallas.py`, como la de la lista de ítems.
+        handle.write(
+            "HABILIDADES_N     = %d\n"
+            "BA_HAB_DESC_POS   = %d\n"
+            "BA_HAB_POS0       = %d\n"
+            "BA_HAB_FILAS      = %d\n"
+            "BA_HAB_COLUMNAS   = %d\n"
+            "BA_HAB_COLUMNA_DX = %d\n"
+            "BA_HAB_NOMBRE_DX  = %d\n"
+            "BA_HAB_NOMBRE_ANCHO = %d\n"
+            "BA_HAB_GUION_DX   = %d\n"
+            "BA_HAB_COSTO_DX   = %d\n"
+            "BA_HAB_COSTO_CIFRAS = %d\n"
+            % (len(habilidades_rom),
+               pos(P.BA_HAB_DESC_FILA, P.BA_HAB_DESC_COL),
+               pos(P.BA_HAB_FILA0, 0), P.BA_HAB_FILAS, P.BA_HAB_COLUMNAS,
+               P.BA_HAB_COLUMNA_DX * 2, P.BA_HAB_NOMBRE_COL * 2,
+               P.BA_HAB_NOMBRE_ANCHO, P.BA_HAB_GUION_COL * 2,
+               P.BA_HAB_COSTO_COL * 2, P.BA_HAB_COSTO_CIFRAS))
         handle.write('.segment "RODATA"\n')
         words_asm("ba_orden_fila", [
             pos((P.BA_MSG_FILA1, P.BA_MSG_FILA2)[f], 0)

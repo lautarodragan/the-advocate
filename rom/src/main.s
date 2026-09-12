@@ -215,6 +215,13 @@ ACCESO_PEDIDO      = $80
 ; equipo, y el reset los pone llenos.
 FAR_HP = $3700
 
+; Y los SP, que son estado por lo mismo que los HP desde que las habilidades
+; se pueden usar: cada una cuesta su `sp_cost` y `Scene_Battle` se lo descuenta
+; al que la usa. Arrancan llenos desde `actor_spmax` y viajan en la partida,
+; detrás de los HP. `FAR_HP` son ACTORES_N palabras —61 actores, 122 bytes— o
+; sea que llega hasta $3779; esto arranca en $3780 y termina antes de $3800.
+FAR_SP = $3780
+
 ; Y el estado de la pelea, que **no** viaja en la partida: una batalla no se
 ; puede guardar en RM2k tampoco.
 FAR_BATALLA = $3800
@@ -275,18 +282,33 @@ BA_ESCENA   = FAR_BATALLA + 44
 ; `escena_de` indexa. $FF: el cartucho no la lleva.
 BA_TROPA_K  = FAR_BATALLA + 45
 ; Y el ítem que se está usando, desde el 2026-09-13. Va **detrás de
-; `BA_UNO`**, que termina en +312, porque entre +40 y +48 ya no queda nada y
+; `BA_UNO`**, que termina en +575, porque entre +40 y +48 ya no queda nada y
 ; correr `BA_ACC` sería mover todo lo demás.
-BA_ITEM_N    = FAR_BATALLA + 320   ; cuántos hay en la lista
-BA_ITEM_SEL  = FAR_BATALLA + 321   ; cuál marca el cursor
-BA_ITEM_ARR  = FAR_BATALLA + 322   ; el primero que se ve
-BA_ITEM_BLA  = FAR_BATALLA + 323   ; a qué actor se le da
-BA_MITEM     = FAR_BATALLA + 324   ; el `k` del ítem del mensaje en curso
-BA_ACTOR2    = FAR_BATALLA + 325   ; un contador de actores que `BA_S0` no puede
-BA_MCURA     = FAR_BATALLA + 326   ; palabra: cuánto curó
-BA_ACC_ITEM  = FAR_BATALLA + 328   ; el `k` que eligió cada actor, uno por byte
-BA_ITEM_LISTA = FAR_BATALLA + 336  ; la lista, un `k` por byte
+;
+; Estaba en +320 hasta que `BA_BYTES` pasó de 18 a 40 —los SP y los cuatro
+; modificadores de parámetro de las habilidades— y `BA_UNO` se le vino encima.
+BA_ITEM_N    = FAR_BATALLA + 576   ; cuántos hay en la lista
+BA_ITEM_SEL  = FAR_BATALLA + 577   ; cuál marca el cursor
+BA_ITEM_ARR  = FAR_BATALLA + 578   ; el primero que se ve
+BA_ITEM_BLA  = FAR_BATALLA + 579   ; a qué actor se le da; desde el 2026-09-13
+                                   ; también el blanco de una habilidad que
+                                   ; cura, que elige con el mismo modo
+BA_MITEM     = FAR_BATALLA + 580   ; el `k` del ítem del mensaje en curso
+BA_ACTOR2    = FAR_BATALLA + 581   ; un contador de actores que `BA_S0` no puede
+BA_MCURA     = FAR_BATALLA + 582   ; palabra: cuánto curó
+BA_ACC_ITEM  = FAR_BATALLA + 584   ; el `k` que eligió cada actor, uno por byte
+BA_ITEM_LISTA = FAR_BATALLA + 592  ; la lista, un `k` por byte
 BA_ITEM_MAX = 64
+; --- las habilidades, desde el 2026-09-13 ---------------------------------
+;
+; Detrás de `BA_ITEM_LISTA`, que termina en +656.
+BA_HAB_N     = FAR_BATALLA + 656   ; cuántas sabe el que está ordenando
+BA_HAB_SEL   = FAR_BATALLA + 657   ; cuál marca el cursor
+BA_MHAB      = FAR_BATALLA + 658   ; el `k` de la del mensaje en curso
+BA_ACC_HAB   = FAR_BATALLA + 660   ; el `k` que eligió cada actor, uno por byte
+BA_HAB_LISTA = FAR_BATALLA + 672   ; su lista, un `k` por byte
+BA_HAB_MAX   = 16                  ; BA_HAB_FILAS por BA_HAB_COLUMNAS, y sobra
+BA_MEFECTO   = FAR_BATALLA + 688   ; palabra con signo: cuánto hizo la última
 BA_ACC     = FAR_BATALLA + 48     ; dos bytes por combatiente: orden y blanco
 BA_EJEC    = FAR_BATALLA + 72     ; el orden de ejecución, un combatiente por byte
 BA_CAND    = FAR_BATALLA + 88     ; los vivos de un lado, para elegir blanco
@@ -298,9 +320,17 @@ BA_UNO     = FAR_BATALLA + 96     ; los combatientes, BA_BYTES cada uno
 BA_GRUPO_MAX = 4
 BA_ENEMIGOS_MAX = 8
 BA_COMB_MAX = BA_GRUPO_MAX + BA_ENEMIGOS_MAX
-BA_BYTES  = 18
+; Eran 18 hasta el 2026-09-13, que es cuando entraron los SP y los cuatro
+; modificadores de parámetro que dos de las siete habilidades del grupo
+; mueven. 40 además es cómodo: el desplazamiento sale con cinco `asl` y una
+; suma, ver `ba_x`.
+BA_BYTES  = 40
 BA_HP     = 0               ; palabra
 BA_HPMAX  = 2
+; **Los cuatro parámetros de acá son los efectivos**, o sea `AdjustParam` de
+; game_battler.cpp: `clamp(base + modificador, 1, 999)`. El base y el
+; modificador viven más abajo y se guardan enteros porque un modificador que
+; sobreviva al recorte no se puede despejar de la resta; `ba_mod` los rehace.
 BA_ATK    = 4
 BA_DEF    = 6
 BA_AGI    = 8
@@ -310,6 +340,17 @@ BA_HIT    = 14              ; byte
 BA_CRIT   = 15
 BA_FLAGS  = 16
 BA_NUMERO = 17              ; el actor del LDB, o el lugar en la tropa
+BA_SP     = 18              ; palabra: los SP que le quedan
+BA_SPMAX  = 20
+BA_MATK   = 22              ; los cuatro modificadores, con signo
+BA_MDEF   = 24
+BA_MSPI   = 26
+BA_MAGI   = 28
+BA_BATK   = 30              ; y los cuatro bases
+BA_BDEF   = 32
+BA_BSPI   = 34
+BA_BAGI   = 36
+BA_SPI    = 38              ; el espíritu efectivo, que `CalcSkillEffect` pide
 BAF_DEF   = $01             ; se está defendiendo
 BAF_ACTOR = $02             ; es del grupo
 BAF_HAY   = $04             ; la ranura está ocupada
@@ -322,6 +363,7 @@ BA_ATACAR   = 0
 BA_DEFENDER = 1
 BA_HUIR     = 2
 BA_ITEM     = 3
+BA_HABILIDAD = 4
 ; Los modos de la pantalla, como `pantallas.BA_ELIGE_ORDEN` y compañía. **El
 ; orden importa**: más de un lugar pregunta `cmp #BA_M_MENSAJE / bcs` para
 ; decir "mensaje o fin", así que los que eligen algo van todos antes.
@@ -329,8 +371,9 @@ BA_M_ORDEN  = 0
 BA_M_BLANCO = 1
 BA_M_ITEM   = 2
 BA_M_ACTOR  = 3
-BA_M_MENSAJE = 4
-BA_M_FIN    = 5
+BA_M_HAB    = 4
+BA_M_MENSAJE = 5
+BA_M_FIN    = 6
 ; Qué dice el mensaje.
 BA_MSG_ATAQUE = 0
 BA_MSG_DEFIENDE = 1
@@ -339,6 +382,7 @@ BA_MSG_HUYO = 3
 BA_MSG_VICTORIA = 4
 BA_MSG_DERROTA = 5
 BA_MSG_ITEM = 6
+BA_MSG_HAB = 7
 ; Cuántos cuadros se queda un mensaje si nadie aprieta A. Son dos segundos, que
 ; es lo que tarda en leerse un renglón, y A lo saltea.
 BA_MSG_CUADROS = 120
@@ -356,6 +400,13 @@ BA_ACIERTO_ACTOR = 90
 ; entrar en dieciséis bits, y el enemigo más ágil del juego tiene 300.
 BA_DANO_MAX = 999
 BA_AGI_TOPE = 320
+; El tope de un parámetro efectivo: `Game_Actor::GetAtk` y sus hermanas, o sea
+; el `MaxStatBattleValue` de RM2k.
+BA_PARAM_MAX = 999
+; `rpg::Skill::Type_switch`, la que prende un switch y no hace nada más. Es el
+; único tipo que este port distingue del normal: las siete que el grupo de la
+; intro sabe son o `normal` o `switch`.
+BA_HAB_TIPO_SWITCH = 3
 
 ; Cursor (2), espera (2), si está corriendo (1) y de qué página (2).
 PAR_BYTES = 7
@@ -9629,13 +9680,15 @@ partida_tabla:
     .word FAR_EQUIPO, ACTORES_N * 10    ; el equipo de cada actor
     ; Y los HP de cada actor, que desde que hay batallas son estado de verdad.
     .word FAR_HP, ACTORES_N * 2
+    ; Y los SP, por lo mismo desde que hay habilidades que gastarlos.
+    .word FAR_SP, ACTORES_N * 2
     .word 0, 0
 ; Los mismos largos, sumados, para poder recorrer la partida en la SRAM sin
 ; volver a mirar la tabla. Está duplicado a propósito y **la ROM lo comprueba**:
 ; `guardar_partida` compara con lo que le quedó a `partida_copiar` y si no dan
 ; iguales entra en pánico. Duplicar un número que nadie verifica es la forma de
 ; error que este repo ya pagó tres veces.
-PARTIDA_BYTES = 2 + 2 + 1 + 2 + 2 + 2 + 6 + 3 + 1 + 5 + 3 + SWITCH_BYTES + 1 + 2 + VARIABLES_N * 2 + 1 + ITEMS_N + 1 + ACTORES_N * 10 + ACTORES_N * 2
+PARTIDA_BYTES = 2 + 2 + 1 + 2 + 2 + 2 + 6 + 3 + 1 + 5 + 3 + SWITCH_BYTES + 1 + 2 + VARIABLES_N * 2 + 1 + ITEMS_N + 1 + ACTORES_N * 10 + ACTORES_N * 2 + ACTORES_N * 2
 ; Dónde cae el grupo adentro de la partida: después de la posición, la
 ; dirección, la celda y el mapa. Lo lee la pantalla de ranuras desde la SRAM
 ; para poner el nombre del líder y las caras. Es la misma suma que arriba,
@@ -12054,7 +12107,18 @@ otro:
     sta comp_and + 2              ; y el bit
     sep #$20
 .a8
-    lda item_actores, y
+    ; Con `f:` porque `item_actores` se mudó a RODATA el 2026-09-13: son 496
+    ; bytes y el área del banco 0 ya se pasaba por quince antes de las
+    ; habilidades. Cuesta un byte y un ciclo por lectura, y esto corre una vez
+    ; por ítem al abrir la pantalla de equipo.
+    ;
+    ; **Por X y no por Y**: el 65816 no tiene `lda long, y`, sólo `long, x`. X
+    ; trae el `k` del ítem y lo necesita más abajo, así que va y vuelve por la
+    ; pila. El `plx` no deja ninguna bandera mirada: lo que sigue es un `and`.
+    phx
+    tyx
+    lda f:item_actores, x
+    plx
     ldy comp_and + 2
     beq bit_listo
 correr:
@@ -24255,7 +24319,15 @@ done:
 ;   ba_divr   es comp_and    ; el resto
 ;   ba_mulp   es comp_or23   ; el parcial bajo del producto
 .segment "RODATA"
-.bloque 4096
+; **Tiene que ser al menos lo que mide todo lo que sigue hasta `batalla_correr`
+; inclusive**, que hoy son 7025 bytes: adentro se llaman entre sí con `jsr`, y
+; un `jsr` no cruza de banco. Con 4096 —lo que decía acá— la pelea ya se pasaba
+; antes de las habilidades, y lo que se veía era
+; `el operando no entra en 2 byte(s)` sobre `jsr ba_blanco_arriba` **en algunos
+; cartuchos y no en otros**: depende de dónde caiga el bloque, y los casos de
+; la tanda con un solo mapa lo dejaban entrar justo. Lo cobra `snes-escena` con
+; dos mapas —los hitos 77 y 78—.
+.bloque 8192
 
 ; Los HP de todos los actores llenos, a `FAR_HP`: el mismo DMA que el equipo,
 ; desde `actor_hpmax`. Corre en el reset, antes de cargar la partida, que lo
@@ -24269,6 +24341,11 @@ done:
 ; menú los mostraba llenos siempre y `ChangeHP` compilaba a nada— y ahora una
 ; pelea los baja, así que tienen que arrancar en algún lado y viajar en la
 ; partida. Que arranquen llenos es RM2k: `Game_Actor::Setup`.
+;
+; Desde el 2026-09-13 hace lo mismo con los SP, que son estado por el mismo
+; motivo: una habilidad cuesta su `sp_cost`. Son dos DMA iguales y no un lazo
+; porque escribirlo dos veces cuesta menos que un lazo con tabla, y esto vive
+; en RODATA, donde el cartucho sobra.
 .proc hp_inicial_poner
 .a8
 .i16
@@ -24290,6 +24367,28 @@ done:
     lda #0
     sta f:DMAP0                 ; de A a B, de a un byte
     lda #$80                    ; WMDATA
+    sta f:BBAD0
+    lda #$01
+    sta f:MDMAEN
+    ; y los SP, desde `actor_spmax`
+    rep #$20
+.a16
+    lda #FAR_SP
+    sta f:WMADDL
+    lda #<(actor_spmax)
+    ora #(>(actor_spmax) * 256)
+    sta f:A1T0L
+    lda #(ACTORES_N * 2)
+    sta f:DAS0L
+    sep #$20
+.a8
+    lda #0
+    sta f:WMADDH
+    lda #^(actor_spmax)
+    sta f:A1B0
+    lda #0
+    sta f:DMAP0
+    lda #$80
     sta f:BBAD0
     lda #$01
     sta f:MDMAEN
@@ -24463,20 +24562,20 @@ no:
     rts
 .endproc
 
-; A8 = el combatiente; X = su desplazamiento adentro de `BA_UNO`. Son 18 bytes,
-; o sea dieciséis más dos: dos desplazamientos y una suma, sin tabla.
+; A8 = el combatiente; X = su desplazamiento adentro de `BA_UNO`. Son 40 bytes,
+; o sea treinta y dos más ocho: dos desplazamientos y una suma, sin tabla.
 .proc ba_x
 .a8
 .i16
     rep #$20
 .a16
     and #$00FF
-    sta temp
-    asl a
-    sta temp + 2                ; por dos
     asl a
     asl a
-    asl a                       ; por dieciséis
+    asl a                       ; por ocho
+    sta temp + 2
+    asl a
+    asl a                       ; por treinta y dos
     clc
     adc temp + 2
     tax
@@ -24654,6 +24753,48 @@ con_actor:
     sta BA_UNO + BA_NUMERO, x
     lda #(BAF_HAY | BAF_ACTOR)
     sta BA_UNO + BA_FLAGS, x
+    ; Y lo que las habilidades necesitan: los SP —que vienen de la partida,
+    ; como los HP— y el espíritu, que hasta el 2026-09-13 no se leía porque
+    ; ninguna cuenta lo pedía. Va en un segundo paso porque `ba_param` se
+    ; lleva X y hay que volver a ponerlo.
+    lda #2
+    jsr ba_param                ; el espíritu, `eq_parametro` como los otros
+    rep #$20
+.a16
+    lda BA_S0
+    and #$00FF
+    asl a
+    tax
+    lda f:actor_spmax, x
+    sta BA_S3
+    lda FAR_SP, x
+    sta BA_S4
+    sep #$20
+.a8
+    lda BA_S1
+    jsr ba_x
+    rep #$20
+.a16
+    lda BA_S4
+    sta BA_UNO + BA_SP, x
+    lda BA_S3
+    sta BA_UNO + BA_SPMAX, x
+    lda BA_T2
+    sta BA_UNO + BA_SPI, x
+    sta BA_UNO + BA_BSPI, x
+    lda BA_S5
+    sta BA_UNO + BA_BATK, x
+    lda BA_S6
+    sta BA_UNO + BA_BDEF, x
+    lda BA_T0
+    sta BA_UNO + BA_BAGI, x
+    lda #0                      ; sin modificadores: la pelea recién empieza
+    sta BA_UNO + BA_MATK, x
+    sta BA_UNO + BA_MDEF, x
+    sta BA_UNO + BA_MSPI, x
+    sta BA_UNO + BA_MAGI, x
+    sep #$20
+.a8
     inc BA_NACT
 siguiente_actor:
     inc BA_S1
@@ -24782,6 +24923,41 @@ hay_ranura_ene:
     sta BA_UNO + BA_NUMERO, x
     lda #BAF_HAY
     sta BA_UNO + BA_FLAGS, x
+    ; Lo de las habilidades: los SP, el espíritu y las cuatro bases. Un enemigo
+    ; de este port no usa ninguna —`CreateEnemyActions` sólo le da el ataque
+    ; básico— pero **las recibe**: Mental Hack le baja la defensa y el
+    ; espíritu, y para eso hacen falta la base y el modificador.
+    rep #$20
+.a16
+    lda BA_S0
+    and #$00FF
+    asl a
+    phx
+    tax
+    lda f:enemigo_sp, x
+    sta BA_T0
+    lda f:enemigo_spi, x
+    sta BA_T1
+    plx
+    lda BA_T0
+    sta BA_UNO + BA_SP, x
+    sta BA_UNO + BA_SPMAX, x
+    lda BA_T1
+    sta BA_UNO + BA_SPI, x
+    sta BA_UNO + BA_BSPI, x
+    lda BA_UNO + BA_ATK, x
+    sta BA_UNO + BA_BATK, x
+    lda BA_UNO + BA_DEF, x
+    sta BA_UNO + BA_BDEF, x
+    lda BA_UNO + BA_AGI, x
+    sta BA_UNO + BA_BAGI, x
+    lda #0
+    sta BA_UNO + BA_MATK, x
+    sta BA_UNO + BA_MDEF, x
+    sta BA_UNO + BA_MSPI, x
+    sta BA_UNO + BA_MAGI, x
+    sep #$20
+.a8
     inc BA_NENE
     inc BA_S1
     jmp otro_enemigo
@@ -25524,6 +25700,623 @@ topado:
     rts
 .endproc
 
+; --- ejecutar una habilidad -----------------------------------------------
+;
+; `Game_BattleAlgorithm::Skill::vStart` y `vExecute`. **El orden en que consume
+; azar es el contrato con `batalla.Batalla.usar_habilidad`**: una de switch
+; termina antes de cualquier tiro; después va el crítico, que se tira siempre
+; aunque la chance sea cero; después la varianza; y después un tiro contra el
+; acierto por cada cosa que la habilidad afecta, en el orden HP, SP, ataque,
+; defensa, espíritu y agilidad.
+
+; `Algo::VarianceAdjustEffect`: A16 = el efecto, `BA_S5` = la varianza.
+;
+;     adj = max(1, var * efecto / 10); efecto += rand(0, adj) - adj / 2
+;
+; **Sólo tira si la varianza y el efecto son mayores que cero**, que es el `if`
+; de easyrpg: sin esa condición los dos lados se irían de fase en el tiro
+; siguiente cada vez que pasara por acá una habilidad que no hace daño.
+;
+; El golpe normal tiene la suya escrita adentro de `ba_atacar` con la varianza
+; en cuatro; ésta salió para las habilidades, que traen la suya en el LDB.
+.proc ba_varianza
+.a16
+.i16
+    sta BA_T0
+    bmi sin_tirar
+    beq sin_tirar
+    sep #$20
+.a8
+    lda BA_S5
+    beq sin_varianza
+    sta BA_T2
+    rep #$20
+.a16
+    lda BA_T0
+    jsr ba_mul                  ; la varianza por el efecto
+    sta temp
+    lda #10
+    sta temp + 2
+    jsr ba_div
+    bne ajuste_listo
+    lda #1                      ; `max(1, ...)`
+ajuste_listo:
+    sta BA_T1
+    jsr ba_hasta                ; A16 sigue siendo el ajuste
+    clc
+    adc BA_T0
+    sta BA_T0
+    lda BA_T1
+    lsr a
+    sta BA_T1
+    lda BA_T0
+    sec
+    sbc BA_T1
+    sta BA_T0
+sin_tirar:
+    lda BA_T0
+    rts
+sin_varianza:
+.a8
+.i16
+    rep #$20
+.a16
+    lda BA_T0
+    rts
+.endproc
+
+; Un modificador de parámetro se mueve `BA_MEFECTO` y el parámetro efectivo se
+; rehace: `CanChangeAtkModifier` y sus hermanas, más `AdjustParam`.
+;
+;   BA_S4 = el desplazamiento del blanco adentro de `BA_UNO`
+;   BA_S5 = el del modificador, BA_S6 = el del base, BA_T1 = el del efectivo
+.proc ba_mod
+.a8
+.i16
+    rep #$20
+.a16
+    lda BA_S4
+    clc
+    adc BA_S5
+    tax
+    lda BA_UNO, x
+    clc
+    adc BA_MEFECTO
+    sta temp                    ; el modificador que se pide
+    lda BA_S4
+    clc
+    adc BA_S6
+    tax
+    lda BA_UNO, x
+    sta BA_T0                   ; el parámetro base. **Las dos de paso son
+                                ; `BA_T0` y `BA_T2` y no `BA_S2` y `BA_S3`**:
+                                ; el que llama lleva en `BA_S3` qué toca la
+                                ; habilidad y en `BA_S0` su acierto, y los
+                                ; necesita en las cuatro vueltas
+    ; El tope de arriba es el base, y el de abajo su mitad con signo menos.
+    ; Los números de este juego andan en centenas, así que el `bmi` sobre la
+    ; resta alcanza: nada se acerca a los 32768 donde se daría vuelta.
+    lda temp
+    sec
+    sbc BA_T0
+    bmi arriba_ok
+    lda BA_T0
+    sta temp
+arriba_ok:
+    lda BA_T0
+    lsr a
+    eor #$FFFF
+    inc a
+    sta BA_T2                   ; -(base / 2)
+    lda temp
+    sec
+    sbc BA_T2
+    bpl abajo_ok
+    lda BA_T2
+    sta temp
+abajo_ok:
+    lda BA_S4
+    clc
+    adc BA_S5
+    tax
+    lda temp
+    sta BA_UNO, x               ; el modificador nuevo
+    clc
+    adc BA_T0                   ; base + modificador
+    bmi al_uno
+    cmp #1
+    bcs no_es_cero
+al_uno:
+    lda #1
+    bra efectivo_listo
+no_es_cero:
+    cmp #(BA_PARAM_MAX + 1)
+    bcc efectivo_listo
+    lda #BA_PARAM_MAX
+efectivo_listo:
+    sta BA_T2
+    lda BA_S4
+    clc
+    adc BA_T1
+    tax
+    lda BA_T2
+    sta BA_UNO, x
+    sep #$20
+.a8
+    rts
+.endproc
+
+; Prende el switch de `BA_T0`, que es el `switch_id` del LDB tal cual, como
+; hace `item_switch` con el suyo. No se llama a `poner_switch`: vive en el
+; banco 0 y la pelea corre con el banco de datos en $7E, así que la máscara se
+; arma acá con un corrimiento en vez de leerse de una tabla del cartucho.
+.proc ba_switch
+.a8
+.i16
+    rep #$20
+.a16
+    lda BA_T0
+    lsr a
+    lsr a
+    lsr a
+    tax                         ; qué byte del bitmap
+    lda BA_T0
+    and #$0007
+    tay                         ; y qué bit
+    sep #$20
+.a8
+    lda #1
+corre:
+    cpy #0
+    beq mascara_lista
+    asl a
+    dey
+    bra corre
+mascara_lista:
+    ora switches, x
+    sta switches, x
+    lda #1
+    sta refresco                ; las páginas que lo piden pueden cambiar
+    rts
+.endproc
+
+; El efecto de la habilidad `BA_MHAB` de `BA_MQUIEN` sobre `BA_MBLA`, **sin la
+; varianza**: `Algo::CalcSkillEffect`. Deja el resultado en `BA_MEFECTO`, ya
+; recortado por abajo en cero.
+.proc ba_hab_efecto
+.a8
+.i16
+    lda BA_MQUIEN
+    jsr ba_x
+    rep #$20
+.a16
+    txa
+    sta BA_S0                   ; el desplazamiento de la fuente
+    sep #$20
+.a8
+    lda BA_MBLA
+    jsr ba_x
+    rep #$20
+.a16
+    txa
+    sta BA_S1                   ; y el del blanco
+    ; el `k` de la habilidad, por dos para las tablas de palabra
+    lda BA_MHAB
+    and #$00FF
+    asl a
+    tax
+    lda f:hab_power, x
+    sta BA_S2                   ; el acumulador del efecto
+    sep #$20
+.a8
+    ; + physical_rate * atk / 20
+    lda BA_MHAB
+    jsr ba_ax
+    lda f:hab_fis, x
+    sta BA_T2
+    beq sin_fisico
+    ldx BA_S0
+    rep #$20
+.a16
+    lda BA_UNO + BA_ATK, x
+    jsr ba_mul
+    sta temp
+    lda #20
+    sta temp + 2
+    jsr ba_div
+    clc
+    adc BA_S2
+    sta BA_S2
+    sep #$20
+.a8
+sin_fisico:
+    ; + magical_rate * spi / 40
+    lda BA_MHAB
+    jsr ba_ax
+    lda f:hab_mag, x
+    sta BA_T2
+    beq sin_magico
+    ldx BA_S0
+    rep #$20
+.a16
+    lda BA_UNO + BA_SPI, x
+    jsr ba_mul
+    sta temp
+    lda #40
+    sta temp + 2
+    jsr ba_div
+    clc
+    adc BA_S2
+    sta BA_S2
+    sep #$20
+.a8
+sin_magico:
+    ; Contra un enemigo y sin `ignore_defense`, se le restan su defensa y su
+    ; espíritu. `SkillTargetsEnemies` es el bit 6 de `hab_afecta` y el bit 7 es
+    ; `ignore_defense`.
+    lda BA_MHAB
+    jsr ba_ax
+    lda f:hab_afecta, x
+    sta BA_S3
+    and #$40
+    beq sin_resta
+    lda BA_S3
+    and #$80
+    bne sin_resta
+    lda BA_MHAB
+    jsr ba_ax
+    lda f:hab_fis, x
+    sta BA_T2
+    beq sin_resta_fis
+    ldx BA_S1
+    rep #$20
+.a16
+    lda BA_UNO + BA_DEF, x
+    jsr ba_mul
+    sta temp
+    lda #40
+    sta temp + 2
+    jsr ba_div
+    sta BA_T0
+    lda BA_S2
+    sec
+    sbc BA_T0
+    sta BA_S2
+    sep #$20
+.a8
+sin_resta_fis:
+    lda BA_MHAB
+    jsr ba_ax
+    lda f:hab_mag, x
+    sta BA_T2
+    beq sin_resta
+    ldx BA_S1
+    rep #$20
+.a16
+    lda BA_UNO + BA_SPI, x
+    jsr ba_mul
+    sta temp
+    lda #80
+    sta temp + 2
+    jsr ba_div
+    sta BA_T0
+    lda BA_S2
+    sec
+    sbc BA_T0
+    sta BA_S2
+    sep #$20
+.a8
+sin_resta:
+    rep #$20
+.a16
+    lda BA_S2
+    bpl no_negativo
+    lda #0                      ; `max(0, effect)`
+no_negativo:
+    sta BA_MEFECTO
+    sep #$20
+.a8
+    ; El crítico, que para una habilidad del LDB **siempre da que no**: la
+    ; chance que `CalcCriticalHitChance` recibe es
+    ; `easyrpg_critical_hit_chance`, que vale 0 y no -1. El tiro se hace igual,
+    ; porque si no los dos lados se irían de fase.
+    lda #0
+    jsr ba_pct
+    beq sin_critico
+    rep #$20
+.a16
+    lda BA_MEFECTO
+    sta temp
+    asl a
+    clc
+    adc temp                    ; por tres
+    sta BA_MEFECTO
+    sep #$20
+.a8
+sin_critico:
+    rts
+.endproc
+
+; Los HP del blanco se mueven `BA_MEFECTO`. Curar no mata —el
+; `max(-(cur_hp - 1), hp_effect)` de `vExecute`— y el daño lo parte al medio el
+; que se está defendiendo, con la división de C++, que **trunca hacia cero**.
+.proc ba_hab_hp
+.a8
+.i16
+    lda BA_MBLA
+    jsr ba_x
+    rep #$20
+.a16
+    txa
+    sta BA_S4
+    lda BA_MEFECTO
+    bmi hace_dano
+    sta BA_T0
+    bra aplica
+hace_dano:
+    sep #$20
+.a8
+    ldx BA_S4
+    lda BA_UNO + BA_FLAGS, x
+    and #BAF_DEF
+    beq sin_defensa
+    rep #$20
+.a16
+    lda BA_MEFECTO
+    eor #$FFFF
+    inc a
+    lsr a
+    eor #$FFFF
+    inc a                       ; la mitad truncada hacia cero
+    sta BA_T0
+    bra aplica
+sin_defensa:
+.a8
+.i16
+    rep #$20
+.a16
+    lda BA_MEFECTO
+    sta BA_T0
+aplica:
+.a16
+.i16
+    ldx BA_S4
+    lda BA_UNO + BA_HP, x
+    clc
+    adc BA_T0
+    bmi en_cero
+    cmp BA_UNO + BA_HPMAX, x
+    bcc cabe
+    lda BA_UNO + BA_HPMAX, x
+    bra cabe
+en_cero:
+    lda #0
+cabe:
+    sta BA_UNO + BA_HP, x
+    sep #$20
+.a8
+    rts
+.endproc
+
+; Y los SP, igual pero sin defensa que valga. Ninguna de las siete lo usa; está
+; porque `vExecute` lo hace y porque el tiro que lo precede ya se hizo.
+.proc ba_hab_sp
+.a8
+.i16
+    lda BA_MBLA
+    jsr ba_x
+    rep #$20
+.a16
+    lda BA_UNO + BA_SP, x
+    clc
+    adc BA_MEFECTO
+    bmi sp_en_cero
+    cmp BA_UNO + BA_SPMAX, x
+    bcc sp_cabe
+    lda BA_UNO + BA_SPMAX, x
+    bra sp_cabe
+sp_en_cero:
+    lda #0
+sp_cabe:
+    sta BA_UNO + BA_SP, x
+    sep #$20
+.a8
+    rts
+.endproc
+
+; La habilidad que eligió `BA_MQUIEN`, sobre `BA_MBLA`. Deja el mensaje listo.
+.proc ba_hab_usar
+.a8
+.i16
+    lda BA_MQUIEN
+    jsr ba_ax
+    lda BA_ACC_HAB, x
+    sta BA_MHAB
+    ; --- `vStart`: el costo, antes que nada y sin tirar azar ---
+    jsr ba_hab_costo
+    sta BA_T2
+    stz BA_T2 + 1               ; la resta de abajo es de dieciséis bits y
+                                ; `hab_sp` es de ocho: sin esto el byte de
+                                ; arriba es el que dejó el que pasó por acá
+                                ; antes, y los SP quedaban en cero
+    lda BA_MQUIEN
+    jsr ba_x
+    rep #$20
+.a16
+    lda BA_UNO + BA_SP, x
+    sec
+    sbc BA_T2
+    bpl sp_ok
+    lda #0                      ; no puede pasar: sin SP no se elige
+sp_ok:
+    sta BA_UNO + BA_SP, x
+    sep #$20
+.a8
+    ; --- una de switch prende su switch y no hace nada más ---
+    lda BA_MHAB
+    jsr ba_ax
+    lda f:hab_tipo, x
+    cmp #BA_HAB_TIPO_SWITCH
+    bne no_es_switch
+    rep #$20
+.a16
+    lda BA_MHAB
+    and #$00FF
+    asl a
+    tax
+    lda f:hab_switch, x
+    sta BA_T0
+    lda #0
+    sta BA_MEFECTO
+    sep #$20
+.a8
+    jmp ba_switch
+no_es_switch:
+    jsr ba_hab_efecto
+    ; la varianza, con el `variance` de la habilidad
+    lda BA_MHAB
+    jsr ba_ax
+    lda f:hab_var, x
+    sta BA_S5
+    rep #$20
+.a16
+    lda BA_MEFECTO
+    jsr ba_varianza
+    ; el tope del daño, que es el mismo de un golpe
+    cmp #(BA_DANO_MAX + 1)
+    bcc efecto_cabe
+    lda #BA_DANO_MAX
+efecto_cabe:
+    sta BA_MEFECTO
+    sep #$20
+.a8
+    ; Si apunta a enemigos el efecto es negativo: `SetIsPositive` es
+    ; `SkillTargetsAllies`, y `vExecute` da vuelta el signo cuando no lo es.
+    lda BA_MHAB
+    jsr ba_ax
+    lda f:hab_afecta, x
+    sta BA_S3                   ; qué toca, que ya no se vuelve a leer
+    and #$40
+    beq es_positivo
+    rep #$20
+.a16
+    lda BA_MEFECTO
+    eor #$FFFF
+    inc a
+    sta BA_MEFECTO
+    sep #$20
+.a8
+es_positivo:
+    ; el acierto, que las siete traen en 100
+    lda BA_MHAB
+    jsr ba_ax
+    lda f:hab_hit, x
+    sta BA_S0                   ; el acierto, que sobrevive a los `jsr`
+    ; --- los HP ---
+    lda BA_S3
+    and #$01
+    beq sin_hp
+    lda BA_S0
+    jsr ba_pct
+    beq sin_hp
+    jsr ba_hab_hp
+sin_hp:
+    ; --- los SP ---
+    ;
+    ; Ninguna de las siete que el grupo de la intro sabe los toca, **pero el
+    ; tiro va igual**: `vExecute` lo hace y sacarlo desfasaría el azar.
+    lda BA_S3
+    and #$02
+    beq sin_sp
+    lda BA_S0
+    jsr ba_pct
+    beq sin_sp
+    jsr ba_hab_sp
+sin_sp:
+    ; --- los cuatro parámetros, en el orden de `vExecute` ---
+    lda BA_MBLA
+    jsr ba_x
+    rep #$20
+.a16
+    txa
+    sta BA_S4
+    sep #$20
+.a8
+    lda BA_S3
+    and #$04
+    beq sin_atk
+    lda BA_S0
+    jsr ba_pct
+    beq sin_atk
+    rep #$20
+.a16
+    lda #BA_MATK
+    sta BA_S5
+    lda #BA_BATK
+    sta BA_S6
+    lda #BA_ATK
+    sta BA_T1
+    sep #$20
+.a8
+    jsr ba_mod
+sin_atk:
+    lda BA_S3
+    and #$08
+    beq sin_def
+    lda BA_S0
+    jsr ba_pct
+    beq sin_def
+    rep #$20
+.a16
+    lda #BA_MDEF
+    sta BA_S5
+    lda #BA_BDEF
+    sta BA_S6
+    lda #BA_DEF
+    sta BA_T1
+    sep #$20
+.a8
+    jsr ba_mod
+sin_def:
+    lda BA_S3
+    and #$10
+    beq sin_spi
+    lda BA_S0
+    jsr ba_pct
+    beq sin_spi
+    rep #$20
+.a16
+    lda #BA_MSPI
+    sta BA_S5
+    lda #BA_BSPI
+    sta BA_S6
+    lda #BA_SPI
+    sta BA_T1
+    sep #$20
+.a8
+    jsr ba_mod
+sin_spi:
+    lda BA_S3
+    and #$20
+    beq sin_agi
+    lda BA_S0
+    jsr ba_pct
+    beq sin_agi
+    rep #$20
+.a16
+    lda #BA_MAGI
+    sta BA_S5
+    lda #BA_BAGI
+    sta BA_S6
+    lda #BA_AGI
+    sta BA_T1
+    sep #$20
+.a8
+    jsr ba_mod
+sin_agi:
+    rts
+.endproc
+
 .proc ba_mensaje
 .a8
 .i16
@@ -25550,8 +26343,12 @@ topado:
     beq victoria
     cmp #BA_MSG_ITEM
     beq usa_item
+    cmp #BA_MSG_HAB
+    beq usa_hab
     ldx #BA_TXT_DERROTA
     jmp solo
+usa_hab:
+    jmp habilidad
 usa_item:
     jmp item
 victoria:
@@ -25668,6 +26465,42 @@ item:
     ldx #BA_TXT_RECUPERO
     jsr ba_termino
     rts
+habilidad:
+    ; `<quien><using_message1>` arriba y `<using_message2>` abajo, que es
+    ; `GetSkillFirstStartMessage2k` y su hermana. Los dos renglones son del
+    ; LDB, como todo lo que esta pantalla escribe.
+    lda BA_MQUIEN
+    jsr ba_nombre
+    lda #255
+    sta comp_dup + 3
+    stz temp + 1
+    rep #$20
+.a16
+    lda BA_MHAB
+    and #$00FF
+    asl a
+    tax
+    lda f:hab_msg1, x
+    tax
+    sep #$20
+.a8
+    jsl f:ba_t_texto
+    rep #$20
+.a16
+    lda #BA_MSG_POS2
+    sta BA_T1
+    lda #BA_MSG_DX
+    jsr ba_ir
+    lda BA_MHAB
+    and #$00FF
+    asl a
+    tax
+    lda f:hab_msg2, x
+    tax
+    sep #$20
+.a8
+    jsr ba_termino
+    rts
 fallo:
     lda BA_MBLA
     cmp #BA_GRUPO_MAX
@@ -25678,6 +26511,110 @@ falla_enemigo:
     ldx #BA_TXT_SIN_DANO_ENEMIGO
 falla_dice:
     jsr ba_termino
+    rts
+.endproc
+
+; --- las habilidades en la pelea -------------------------------------------
+;
+; `Game_BattleAlgorithm::Skill` con lo que este port sabe hacer. Qué sabe cada
+; actor, cuánto cuesta y cuánto hace **no se decide acá**: sale de
+; `batalla.habilidades_de`, `batalla.costo_de` y `batalla.efecto_habilidad`,
+; que es el modelo con el que `pruebas/test_batalla.py` predice el número
+; exacto, y el conversor lo emite en `actor_hab*` y `hab_*`.
+
+; A8 = el número de actor del LDB del combatiente `BA_ACTOR`. Es lo que indexa
+; `actor_hab_ini`, `actor_hab_n` y `actor_hab_txt`, que son por número de
+; actor y no por lugar en el grupo.
+.proc ba_actor_ldb
+.a8
+.i16
+    lda BA_ACTOR
+    jsr ba_x
+    lda BA_UNO + BA_NUMERO, x
+    rts
+.endproc
+
+; La lista de habilidades del actor que está ordenando, a `BA_HAB_LISTA`, con
+; cuántas en `BA_HAB_N`. Son los `k` de `actor_hab`, que el conversor ya dejó
+; ordenados por número de RM2k: ver `batalla.habilidades_de`.
+.proc ba_hab_lista
+.a8
+.i16
+    lda #0
+    sta BA_HAB_N
+    jsr ba_actor_ldb
+    jsr ba_ax
+    lda f:actor_hab_n, x
+    beq listo
+    sta BA_S1                   ; cuántas
+    lda f:actor_hab_ini, x
+    sta BA_S2                   ; dónde arrancan
+    lda #0
+    sta BA_S3
+otra:
+    lda BA_S3
+    cmp BA_S1
+    bcs listo
+    cmp #BA_HAB_MAX
+    bcs listo
+    clc
+    adc BA_S2
+    jsr ba_ax
+    lda f:actor_hab, x
+    pha
+    lda BA_S3
+    jsr ba_ax
+    pla
+    sta BA_HAB_LISTA, x
+    inc BA_S3
+    inc BA_HAB_N
+    bra otra
+listo:
+    rts
+.endproc
+
+; El `k` del lugar A8 de la lista. Sólo A y X.
+.proc ba_hab_de_lista
+.a8
+.i16
+    jsr ba_ax
+    lda BA_HAB_LISTA, x
+    rts
+.endproc
+
+; El costo en SP del `k` de A8, en A8. `Algo::CalcSkillCost`: el `sp_cost` a
+; secas, que es lo que RM2k hace.
+.proc ba_hab_costo
+.a8
+.i16
+    jsr ba_ax
+    lda f:hab_sp, x
+    rts
+.endproc
+
+; Si el combatiente `BA_ACTOR` puede pagar el `k` de A8: Z=0 si sí. **No usa el
+; flag que deja un `pl*`**: la trampa de siempre.
+.proc ba_hab_alcanza
+.a8
+.i16
+    jsr ba_hab_costo
+    sta BA_T2
+    lda BA_ACTOR
+    jsr ba_x
+    rep #$20
+.a16
+    lda BA_T2
+    and #$00FF
+    cmp BA_UNO + BA_SP, x
+    sep #$20
+.a8
+    beq si                      ; justo los que tiene alcanza
+    bcs no
+si:
+    lda #1
+    rts
+no:
+    lda #0
     rts
 .endproc
 
@@ -25692,6 +26629,20 @@ falla_dice:
     ;
     ; Van en los mismos renglones a propósito: eligiendo qué usar lo que hace
     ; falta ver es el grupo, que es a quién se cura, y no los enemigos.
+    ; **Eligiendo a quién se le da, arriba va la lista de la orden en curso**:
+    ; la de ítems o la de habilidades, en gris las dos. Cuál de las dos lo dice
+    ; `BA_ORDEN`, que sigue puesto mientras se elige el blanco.
+    lda BA_MODO
+    cmp #BA_M_HAB
+    beq a_la_lista_hab
+    cmp #BA_M_ACTOR
+    bne no_es_hab
+    lda BA_ORDEN
+    cmp #BA_ORDEN_HABILIDAD
+    bne no_es_hab
+a_la_lista_hab:
+    jmp la_lista_hab
+no_es_hab:
     lda BA_MODO
     cmp #BA_M_ITEM
     beq a_la_lista
@@ -25799,6 +26750,18 @@ hay_orden:
     jsr ba_ax
     lda f:ba_orden_gris, x
     bne en_gris
+    ; Y la habilidad de un actor que no sabe ninguna —Talan, que es de nivel
+    ; 1— también va en gris, como el menú de pausa con lo que no lleva a
+    ; ningún lado.
+    lda BA_S0
+    cmp #BA_ORDEN_HABILIDAD
+    bne sin_gris_orden
+    jsr ba_actor_ldb
+    jsr ba_ax
+    lda f:actor_hab_n, x
+    cmp #0
+    beq en_gris
+sin_gris_orden:
     lda #0
     bra pone_variante
 en_gris:
@@ -25843,6 +26806,13 @@ sin_cursor_orden:
     sta temp + 1
     lda #255
     sta comp_dup + 3
+    ; **La segunda orden no dice "Tech Skill"**: dice el `skill_name` del actor
+    ; que está ordenando —"AgentTrain", "Telepathy", "Slicing"—, que es
+    ; `Game_Actor::GetSkillName`. Por eso su texto sale de `actor_hab_txt`, que
+    ; es por número de actor, y no de `ba_orden_txt`, que es fijo.
+    lda BA_S0
+    cmp #BA_ORDEN_HABILIDAD
+    beq texto_de_la_habilidad
     lda BA_S0
     jsr ba_ax
     lda f:ba_orden_txt, x
@@ -25850,6 +26820,20 @@ sin_cursor_orden:
 .a16
     and #$00FF
     tax
+    bra texto_puesto
+texto_de_la_habilidad:
+.a8
+.i16
+    jsr ba_actor_ldb
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    tax
+    lda f:actor_hab_txt, x
+    tax
+texto_puesto:
+.a16
     sep #$20
 .a8
     jsl f:ba_t_texto
@@ -25960,6 +26944,179 @@ cuenta_variante:
     inc BA_S0
     jmp fila_item
 items_listos:
+    jmp enemigos_listos
+
+    ; --- la lista de habilidades, donde van los enemigos ---
+    ;
+    ; La forma es la del original —ver
+    ; `pruebas-manuales/capturas-batalla/auto_20260912_123023.png`—: la
+    ; descripción de la que marca el cursor arriba de todo, y abajo dos
+    ; columnas con el nombre a la izquierda y el costo en SP a la derecha, con
+    ; un guión delante. Se lee **por filas**, que es lo que la captura muestra.
+la_lista_hab:
+    jsr ba_hab_lista
+    lda BA_HAB_N
+    bne hay_alguna
+    jmp hab_listas
+hay_alguna:
+    lda BA_MODO
+    cmp #BA_M_HAB
+    bne hab_en_gris             ; eligiendo el blanco: sin descripción
+    ; la descripción de la que marca el cursor
+    rep #$20
+.a16
+    lda #BA_HAB_DESC_POS
+    sta eleg_tabla
+    sep #$20
+.a8
+    stz temp + 1
+    lda #255
+    sta comp_dup + 3
+    lda BA_HAB_SEL
+    jsr ba_hab_de_lista
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    tax
+    lda f:hab_desc, x
+    tax
+    sep #$20
+.a8
+    jsl f:ba_t_texto
+hab_en_gris:
+    lda #0
+    sta BA_S3                   ; el lugar en la lista
+fila_hab:
+    lda BA_S3
+    cmp BA_HAB_N
+    bcc hay_hab
+    jmp hab_listas
+hay_hab:
+    cmp #(BA_HAB_FILAS * BA_HAB_COLUMNAS)
+    bcc hay_lugar_hab
+    jmp hab_listas
+hay_lugar_hab:
+    ; Fila y columna: con dos columnas son un `lsr` y el bit 0. Si alguna vez
+    ; fueran otras, esto es lo que hay que cambiar; el conversor emite
+    ; `BA_HAB_COLUMNAS` para que se vea desde acá que son dos.
+    lda BA_S3
+    lsr a
+    sta BA_S0
+    lda BA_S3
+    and #$01
+    sta BA_S4
+    rep #$20
+.a16
+    lda #BA_HAB_POS0
+    jsr ba_fila
+    lda BA_S4
+    and #$00FF
+    beq columna_cero
+    lda #BA_HAB_COLUMNA_DX
+    bra columna_puesta
+columna_cero:
+    lda #0
+columna_puesta:
+    sta BA_S5                   ; el desplazamiento de la columna
+    sep #$20
+.a8
+    ; El `k` de esta habilidad, y si se puede pagar: la que no alcanza va en
+    ; gris, que es lo que RM2k hace con una que no se puede usar.
+    lda BA_S3
+    jsr ba_hab_de_lista
+    sta BA_S6
+    lda BA_MODO
+    cmp #BA_M_HAB
+    bne gris_hab                ; eligiendo el blanco, la lista entera en gris
+    lda BA_S6
+    jsr ba_hab_alcanza
+    bne se_puede
+gris_hab:
+    lda #1
+    bra variante_hab
+se_puede:
+    lda #0
+variante_hab:
+    sta BA_S2
+    ; el cursor, sólo mientras se elige la habilidad
+    lda BA_MODO
+    cmp #BA_M_HAB
+    bne sin_cursor_hab
+    lda BA_S3
+    cmp BA_HAB_SEL
+    bne sin_cursor_hab
+    stz temp + 1
+    rep #$20
+.a16
+    lda BA_S5
+    jsr ba_ir
+    sep #$20
+.a8
+    lda #$3E
+    jsl f:ba_t_glifo
+sin_cursor_hab:
+    ; el nombre
+    lda BA_S2
+    sta temp + 1
+    rep #$20
+.a16
+    lda BA_S5
+    clc
+    adc #BA_HAB_NOMBRE_DX
+    jsr ba_ir
+    sep #$20
+.a8
+    lda #BA_HAB_NOMBRE_ANCHO
+    sta comp_dup + 3
+    rep #$20
+.a16
+    lda BA_S6
+    and #$00FF
+    asl a
+    tax
+    lda f:hab_txt, x
+    tax
+    sep #$20
+.a8
+    jsl f:ba_t_texto
+    ; el guión y el costo
+    rep #$20
+.a16
+    lda BA_S5
+    clc
+    adc #BA_HAB_GUION_DX
+    jsr ba_ir
+    sep #$20
+.a8
+    lda BA_S2
+    sta temp + 1
+    lda #$2D                    ; el guión
+    jsl f:ba_t_glifo
+    rep #$20
+.a16
+    lda BA_S5
+    clc
+    adc #BA_HAB_COSTO_DX
+    jsr ba_ir
+    sep #$20
+.a8
+    lda BA_S6
+    jsr ba_hab_costo
+    rep #$20
+.a16
+    and #$00FF
+    sta comp_dup
+    sep #$20
+.a8
+    lda #BA_HAB_COSTO_CIFRAS
+    sta comp_dup + 2
+    lda BA_S2
+    sta temp + 1
+    jsl f:ba_t_numero
+    inc BA_S3
+    jmp fila_hab
+hab_listas:
     jmp enemigos_listos
 .endproc
 
@@ -26393,11 +27550,19 @@ hay:
     sta BA_MBLA                 ; y el blanco
     lda BA_S1
     cmp #BA_DEFENDER
-    beq defiende
+    beq a_defiende
     cmp #BA_HUIR
-    beq no_huyo
+    beq a_no_huyo
     cmp #BA_ITEM
     beq usa_un_item
+    cmp #BA_HABILIDAD
+    beq usa_una_habilidad
+    bra ataca
+a_defiende:
+    jmp defiende
+a_no_huyo:
+    jmp no_huyo
+ataca:
     ; Atacar. Si el blanco murió antes de que le tocara, se reapunta al primero
     ; vivo de ese lado, como hace `Game_BattleAlgorithm`.
     lda BA_MBLA
@@ -26426,6 +27591,25 @@ pega:
     sta BA_MTIPO
     jsr ba_mostrar              ; que limpia el pendiente, así que va antes
     jmp ba_sonido_del_golpe
+usa_una_habilidad:
+    ; El blanco muerto **no se reapunta**, como con un ítem: `IsTargetValid`
+    ; de `Skill` lo descarta y la acción se pierde. Con una que apunta al
+    ; grupo eso es lo que pasa si al que se iba a curar lo mataron antes.
+    lda BA_MBLA
+    jsr ba_vivo
+    beq otra_hab
+    jsr ba_hab_usar
+    lda #BA_MSG_HAB
+    sta BA_MTIPO
+    jsr ba_mostrar
+    rep #$20
+.a16
+    lda #BA_SE_ITEM             ; el mismo que un ítem: RM2k no tiene otro
+    jsl f:ba_t_sonido
+.a8
+    rts
+otra_hab:
+    jmp otra
 usa_un_item:
     ; El ítem no falla ni lo esquiva nadie, así que no tira azar; y el blanco
     ; muerto **no se reapunta**, que es lo contrario de un ataque.
@@ -26751,6 +27935,9 @@ espera:
 :   cmp #BA_M_ACTOR
     bne :+
     jmp modo_actor
+:   cmp #BA_M_HAB
+    bne :+
+    jmp modo_hab
 :   cmp #BA_M_MENSAJE
     bne :+
     jmp modo_mensaje
@@ -26813,9 +28000,23 @@ o_no_defiende:
     sta BA_MODO
     jmp recomponer
 o_no_usa:
+    cmp #BA_ORDEN_HABILIDAD
+    bne o_no_habilidad
+    ; La lista de habilidades del que ordena. Vacía —Talan, que es de nivel
+    ; 1— no pasa nada, que es lo que el menú hace con una orden que no lleva a
+    ; ningún lado.
+    jsr ba_hab_lista
+    lda BA_HAB_N
+    beq espera5
+    lda #0
+    sta BA_HAB_SEL
+    lda #BA_M_HAB
+    sta BA_MODO
+    jmp recomponer
+o_no_habilidad:
     cmp #BA_ORDEN_HUIR
     beq o_huye
-    jmp espera                  ; `Tech Skill`: en gris y no hace nada
+    jmp espera
 o_huye:
     jsr ba_huir
     beq o_no_huyo
@@ -26868,7 +28069,16 @@ b_mira_a:
     clc
     adc #BA_GRUPO_MAX
     sta BA_T0
+    ; El modo del blanco lo comparten atacar y una habilidad que apunta a los
+    ; enemigos; cuál de las dos es lo dice `BA_ORDEN`, que sigue puesto.
+    lda BA_ORDEN
+    cmp #BA_ORDEN_HABILIDAD
+    bne b_ataca
+    lda #BA_HABILIDAD
+    bra b_anota
+b_ataca:
     lda #BA_ATACAR
+b_anota:
     jsr ba_anotar
     jmp siguiente_actor         ; los dos modos de abajo quedaron en el medio
 
@@ -26940,12 +28150,29 @@ a_no_abajo:
     lda titulo_flancos
     and #PAD_B
     beq a_mira_a
+    ; B vuelve a la lista de la que se vino: la de ítems o la de habilidades.
+    lda BA_ORDEN
+    cmp #BA_ORDEN_HABILIDAD
+    bne a_vuelve_a_items
+    lda #BA_M_HAB
+    sta BA_MODO
+    jmp recomponer
+a_vuelve_a_items:
     lda #BA_M_ITEM
     sta BA_MODO
     jmp recomponer
 a_mira_a:
     jsr ba_flanco_a
     beq espera4
+    lda BA_ORDEN
+    cmp #BA_ORDEN_HABILIDAD
+    bne a_es_item
+    lda BA_ITEM_BLA
+    sta BA_T0
+    lda #BA_HABILIDAD
+    jsr ba_anotar
+    jmp siguiente_actor
+a_es_item:
     ; Se anota la orden y **se gasta el ítem ya**, que es lo que hace RM2k al
     ; elegirlo: si no, el último de un ítem se podría repartir entre dos
     ; actores en el mismo turno.
@@ -26962,6 +28189,111 @@ a_mira_a:
     lda #BA_ITEM
     jsr ba_anotar
     jmp siguiente_actor
+
+    ; --- eligiendo qué habilidad ---
+    ;
+    ; La lista es de dos columnas y se lee por filas, así que izquierda y
+    ; derecha se mueven de a uno y arriba y abajo de a dos.
+modo_hab:
+    lda titulo_flancos
+    and #PAD_LEFT
+    bne h_izq
+    jmp h_no_izq
+h_izq:
+    lda BA_HAB_SEL
+    beq espera6
+    dec BA_HAB_SEL
+    jmp recomponer
+h_no_izq:
+    lda titulo_flancos
+    and #PAD_RIGHT
+    beq h_no_der
+    lda BA_HAB_SEL
+    inc a
+    cmp BA_HAB_N
+    bcs espera6
+    sta BA_HAB_SEL
+    jmp recomponer
+h_no_der:
+    lda titulo_flancos
+    and #PAD_UP
+    beq h_no_arriba
+    lda BA_HAB_SEL
+    cmp #BA_HAB_COLUMNAS
+    bcc espera6
+    sec
+    sbc #BA_HAB_COLUMNAS
+    sta BA_HAB_SEL
+    jmp recomponer
+h_no_arriba:
+    lda titulo_flancos
+    and #PAD_DOWN
+    beq h_no_abajo
+    lda BA_HAB_SEL
+    clc
+    adc #BA_HAB_COLUMNAS
+    cmp BA_HAB_N
+    bcs espera6
+    sta BA_HAB_SEL
+    jmp recomponer
+espera6:
+    jmp espera
+h_no_abajo:
+    lda titulo_flancos
+    and #PAD_B
+    beq h_mira_a
+    lda #BA_M_ORDEN
+    sta BA_MODO
+    jmp recomponer
+h_mira_a:
+    jsr ba_flanco_a
+    beq espera7
+    ; La que no se puede pagar no se elige, que es lo que RM2k hace con una
+    ; habilidad en gris. El costo se descuenta **al ejecutarla** y no acá:
+    ; `Skill::vStart` corre cuando le toca el turno.
+    lda BA_HAB_SEL
+    jsr ba_hab_de_lista
+    sta BA_S0
+    jsr ba_hab_alcanza
+    beq espera6
+    lda BA_ACTOR
+    jsr ba_ax
+    lda BA_S0
+    sta BA_ACC_HAB, x
+    ; A quién apunta: el bit 6 de `hab_afecta` es `SkillTargetsEnemies`.
+    lda BA_S0
+    jsr ba_ax
+    lda f:hab_afecta, x
+    and #$40
+    beq h_a_un_aliado
+    jsr ba_enemigo_vivo
+    cmp #$FF
+    beq espera7
+    sta BA_BLANCO
+    lda #BA_M_BLANCO
+    sta BA_MODO
+    jmp recomponer
+h_a_un_aliado:
+    ; Al primero vivo del grupo, como con un ítem.
+    lda #0
+    sta BA_ACTOR2
+h_busca_vivo:
+    lda BA_ACTOR2
+    cmp BA_NACT
+    bcs espera7                 ; no puede pasar: el que ordena está vivo
+    lda BA_ACTOR2
+    jsr ba_vivo
+    bne h_hay_blanco
+    inc BA_ACTOR2
+    bra h_busca_vivo
+espera7:
+    jmp espera
+h_hay_blanco:
+    lda BA_ACTOR2
+    sta BA_ITEM_BLA
+    lda #BA_M_ACTOR
+    sta BA_MODO
+    jmp recomponer
 
 siguiente_actor:
     ; Al que sigue; si no queda ninguno, empieza el turno.
@@ -27007,8 +28339,8 @@ espera3:
 modo_fin:
     jsr ba_flanco_a
     beq espera3
-    ; Los HP del grupo vuelven a la partida: desde que hay batallas son estado
-    ; de verdad y viajan en la ranura de SRAM.
+    ; Los HP y los SP del grupo vuelven a la partida: desde que hay batallas
+    ; son estado de verdad y viajan en la ranura de SRAM.
     lda #0
     sta BA_S0
 guarda:
@@ -27021,6 +28353,8 @@ guarda:
 .a16
     lda BA_UNO + BA_HP, x
     sta BA_T0
+    lda BA_UNO + BA_SP, x
+    sta BA_T1
     sep #$20
 .a8
     lda BA_UNO + BA_NUMERO, x
@@ -27032,6 +28366,8 @@ guarda:
     tax
     lda BA_T0
     sta FAR_HP, x
+    lda BA_T1
+    sta FAR_SP, x
     sep #$20
 .a8
     inc BA_S0
