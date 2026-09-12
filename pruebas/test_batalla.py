@@ -45,9 +45,14 @@ TROPA_DROIDE = 82
 GRUPO = (11, 12, 13)
 
 # Los modos de la pantalla, como `pantallas.BA_ELIGE_ORDEN` y compañía.
-ORDEN, BLANCO, ITEM, ACTOR, MENSAJE, FIN = range(6)
-# Las cinco órdenes, como `pantallas.BA_ORDENES`.
-(O_ATACAR, O_DEFENDER, O_USAR, O_HABILIDAD, O_HUIR) = range(5)
+ORDEN, BLANCO, ITEM, ACTOR, HAB, MENSAJE, FIN = range(7)
+# Las cinco órdenes, como `pantallas.BA_ORDENES`. **El orden cambió el
+# 2026-09-13**: es el del original —Attack / <habilidad> / Defend / Use Item—
+# y `Escape` va quinta, que es la simplificación que `batalla.py` declara.
+(O_ATACAR, O_HABILIDAD, O_DEFENDER, O_USAR, O_HUIR) = range(5)
+# Las habilidades que el grupo de la intro sabe, por si alguna prueba quiere
+# nombrarlas. Salen de `batalla.habilidades_de`, que es lo que decide el orden.
+FURY_PUNCH, MINDSHIELD, HEALING_SYRINGE, AGENCY_BADGE = 129, 143, 131, 146
 # La Potion del LDB: cincuenta HP planos, que es el ítem de curar más barato
 # y el único que hace falta para cobrar la cuenta.
 POCION = 1
@@ -94,6 +99,10 @@ class Pelea:
     def hp(self, k):
         return self.palabra(self.s["BA_UNO"] + k * self.s["BA_BYTES"])
 
+    def sp(self, k):
+        return self.palabra(self.s["BA_UNO"] + k * self.s["BA_BYTES"]
+                            + self.s["BA_SP"])
+
     def hp_guardado(self, actor):
         return self.palabra(self.s["FAR_HP"] + 2 * actor)
 
@@ -123,6 +132,76 @@ class Pelea:
             else:
                 self.una.consola.correr(1)
         raise AssertionError("la batalla no se abrió")
+
+    def switch(self, numero):
+        """Si el switch `numero` está prendido. El bitmap es el mismo que usan
+        los eventos: un bit por switch, en el orden del `switch_id` del LDB."""
+        byte = self.una.consola.ram(
+            en_la_wram(self.s["switches"] + numero // 8), 1)[0]
+        return bool(byte & (1 << (numero % 8)))
+
+    def esperar(self, modo, tope=400):
+        for _ in range(tope):
+            if self.modo() == modo:
+                return self
+            self.una.consola.correr(1)
+        raise AssertionError("la pelea no llegó al modo %d, quedó en %d"
+                             % (modo, self.modo()))
+
+    def ordenar(self, que, tope=400):
+        """Le da a un actor la orden `que` y deja el cursor en el que sigue.
+
+        `que` es `("atacar", enemigo)`, `("defender",)` o
+        `("habilidad", k, blanco)`, donde `k` es el lugar en la lista de
+        habilidades del actor —la misma que `batalla.habilidades_de` arma— y
+        `blanco` el lugar del enemigo o del actor al que apunta, según su
+        `scope`.
+        """
+        self.esperar(ORDEN, tope)
+        cual = que[0]
+        pasos = {"atacar": O_ATACAR, "defender": O_DEFENDER,
+                 "habilidad": O_HABILIDAD}[cual]
+        # El cursor primero a la izquierda del todo: volver de la lista de
+        # habilidades con B lo deja donde estaba, así que contar derechas desde
+        # donde quedó elegiría otra orden.
+        for _ in range(5):
+            self.tocar("left")
+        for _ in range(pasos):
+            self.tocar("right")
+        assert self.byte("BA_ORDEN") == pasos, (
+            "el cursor tenía que quedar en la orden %d y quedó en %d"
+            % (pasos, self.byte("BA_ORDEN")))
+        self.tocar()
+        if cual == "defender":
+            return self
+        if cual == "habilidad":
+            self.esperar(HAB, tope)
+            for _ in range(que[1]):
+                self.tocar("right")
+            assert self.byte("BA_HAB_SEL") == que[1]
+            self.tocar()
+        # El blanco: los enemigos se eligen con el cursor hacia abajo desde el
+        # primero vivo, y el grupo igual.
+        for _ in range(tope):
+            if self.modo() in (BLANCO, ACTOR):
+                break
+            self.una.consola.correr(1)
+        else:
+            raise AssertionError("la orden no pidió blanco")
+        destino = que[-1]
+        for _ in range(destino):
+            self.tocar("down")
+        self.tocar()
+        return self
+
+    def correr_turno(self, tope=600):
+        """Con las órdenes ya dadas, pasa los mensajes hasta que el turno
+        termina."""
+        for _ in range(tope):
+            if self.modo() in (ORDEN, FIN):
+                return self
+            self.tocar()
+        raise AssertionError("el turno no terminó")
 
     def turno(self, cuantos, tope=400):
         """Un turno entero con `cuantos` actores atacando al primer enemigo."""
@@ -328,6 +407,227 @@ def test_la_pelea_entera_da_los_mismos_hp_que_el_modelo(partida):
     assert pelea.byte("BA_RESULT") == modelo.VICTORIA
 
 
+# --- las habilidades ---------------------------------------------------------
+#
+# Todas comparan contra `batalla.Batalla.usar_habilidad`, que es
+# `Game_BattleAlgorithm::Skill` de easyrpg. Lo que hace fuerte a esta tanda es
+# lo mismo que al resto del archivo: no se conforma con "bajó", exige **el
+# número exacto**, y el número sale de un modelo que consume el azar en el
+# mismo orden que la ROM. Si la ROM tirara un dado de más o de menos, el primer
+# turno ya no coincidiría.
+
+
+def habilidades(base, actor):
+    return modelo.habilidades_de(base, actor)
+
+
+def hab_id(una, k):
+    """El número de RM2k de la habilidad `k` del cartucho.
+
+    Se lee de la tabla que emitió el conversor y no se recalcula, por lo mismo
+    que `sonido_muestra`: recalcularlo sería una segunda manera de contestar la
+    pregunta, y las dos se pueden equivocar igual.
+    """
+    with open(una.sfc, "rb") as archivo:
+        rom = archivo.read()
+    donde = en_la_rom(una.simbolos["hab_id"]) + 2 * k
+    return rom[donde] | (rom[donde + 1] << 8)
+
+
+def test_cada_actor_sabe_las_habilidades_de_su_nivel(partida):
+    """`actor_hab`, contra `batalla.habilidades_de`.
+
+    Kersh 131 y 146, Core 129 y 150, Manta 130, 143, 144 y 150: las que el LDB
+    dice que se aprenden en un nivel menor o igual al suyo. Con el nivel 1 que
+    el port tenía mockeado hasta el 2026-09-13 **las tres listas estarían
+    vacías**, porque la primera se aprende en el 3; el caso lo exige para no
+    pasar mirando ceros.
+    """
+    una = en_el_droide(partida)
+    pelea = Pelea(una).abrir()
+    base = db()
+    esperado = {11: [131, 146], 12: [129, 150], 13: [130, 143, 144, 150]}
+    for actor, cuales in esperado.items():
+        assert habilidades(base, actor) == cuales, (
+            "el modelo dice que el actor %d sabe %r y el LDB %r"
+            % (actor, habilidades(base, actor), cuales))
+    # Y la ROM, que arma la lista al entrar al menú de cada actor.
+    for k, actor in enumerate(GRUPO):
+        pelea.esperar(ORDEN)
+        assert pelea.byte("BA_ACTOR") == k
+        pelea.tocar("right")
+        pelea.tocar()
+        pelea.esperar(HAB)
+        assert pelea.byte("BA_HAB_N") == len(esperado[actor]), (
+            "la ROM le dio %d habilidades al actor %d y sabe %d"
+            % (pelea.byte("BA_HAB_N"), actor, len(esperado[actor])))
+        # Y que sean **las mismas y en el mismo orden**: `BA_HAB_LISTA` lleva
+        # el `k` del cartucho y `hab_id` lo traduce al número de RM2k.
+        lista = una.consola.ram(una.simbolos["BA_HAB_LISTA"],
+                                pelea.byte("BA_HAB_N"))
+        numeros = [hab_id(una, n) for n in lista]
+        assert numeros == esperado[actor], (
+            "la ROM le dio %r al actor %d" % (numeros, actor))
+        pelea.tocar("b")
+        pelea.ordenar(("defender",))    # para pasar al que sigue
+    pelea.correr_turno()
+
+
+def test_una_habilidad_de_dano_da_el_mismo_hp_y_los_mismos_sp(partida):
+    """Fury Punch de Core contra el droide, turno por turno.
+
+    Es el caso central de las habilidades: adentro están `CalcSkillEffect`
+    —`power + physical_rate * atk / 20 + magical_rate * spi / 40` menos la
+    defensa y el espíritu del blanco—, el tiro del crítico que se hace aunque
+    la chance sea cero, la varianza con el `variance` de la habilidad y el
+    costo en SP, que se descuenta al ejecutarla y no al elegirla.
+
+    Los otros dos se defienden, así que lo único que le pega al droide es la
+    habilidad: si la cuenta se separara en un punto, el HP del droide lo dice.
+    """
+    una = en_el_droide(partida)
+    pelea = Pelea(una).abrir()
+    base = db()
+    esperado = modelo_de(base)
+    fury = base.skills[FURY_PUNCH]
+    assert habilidades(base, GRUPO[1])[0] == FURY_PUNCH
+    for turno in range(1, 4):
+        pelea.ordenar(("defender",))
+        pelea.ordenar(("habilidad", 0, 0))
+        pelea.ordenar(("defender",))
+        pelea.correr_turno()
+        esperado.jugar_turno([(modelo.ORDEN_DEFENDER, 0),
+                              (modelo.ORDEN_HABILIDAD, (fury, 0)),
+                              (modelo.ORDEN_DEFENDER, 0)])
+        de_la_rom = [pelea.hp(k) for k in range(3)] + [pelea.hp(4)]
+        del_modelo = [c.hp for c in esperado.actores] + [
+            esperado.enemigos[0].hp]
+        assert de_la_rom == del_modelo, \
+            "turno %d: la consola dejó %r y el modelo %r" % (
+                turno, de_la_rom, del_modelo)
+        assert pelea.sp(1) == esperado.actores[1].sp, \
+            "turno %d: los SP de Core, %d contra %d" % (
+                turno, pelea.sp(1), esperado.actores[1].sp)
+        if esperado.resultado is not None:
+            break
+    assert esperado.actores[1].sp < esperado.actores[1].sp_max, \
+        "si la habilidad no costara SP este caso no distinguiría el costo"
+
+
+def test_una_habilidad_de_switch_prende_su_switch(partida):
+    """`Skill::vExecute` con `type == switch`: `SetAffectedSwitch(switch_id)`.
+
+    MindShield, la segunda de Manta, prende el switch 136 y no hace nada más
+    —ni daño, ni tiros de azar—. Es lo que hace que tres de las siete
+    habilidades del grupo sean baratas de portar.
+    """
+    una = en_el_droide(partida)
+    pelea = Pelea(una).abrir()
+    base = db()
+    assert habilidades(base, GRUPO[2])[1] == MINDSHIELD
+    switch = base.skills[MINDSHIELD].switch_id
+    assert not pelea.switch(switch), \
+        "el switch tenía que arrancar apagado: si ya estuviera prendido el " \
+        "caso no distinguiría nada"
+    pelea.ordenar(("defender",))
+    pelea.ordenar(("defender",))
+    pelea.ordenar(("habilidad", 1, 0))
+    pelea.correr_turno()
+    assert pelea.switch(switch), \
+        "MindShield tenía que prender el switch %d" % switch
+    esperado = modelo_de(base)
+    esperado.jugar_turno([(modelo.ORDEN_DEFENDER, 0),
+                          (modelo.ORDEN_DEFENDER, 0),
+                          (modelo.ORDEN_HABILIDAD,
+                           (base.skills[MINDSHIELD], 0))])
+    assert esperado.switches == [switch]
+    assert pelea.sp(2) == esperado.actores[2].sp, \
+        "los SP de Manta, %d contra %d" % (pelea.sp(2),
+                                           esperado.actores[2].sp)
+    # Y el azar **no se movió**: una de switch vuelve antes de cualquier tiro.
+    # Si la ROM tirara un dado de más, los HP del turno siguiente no darían.
+    de_la_rom = [pelea.hp(k) for k in range(3)] + [pelea.hp(4)]
+    del_modelo = [c.hp for c in esperado.actores] + [esperado.enemigos[0].hp]
+    assert de_la_rom == del_modelo, \
+        "la consola dejó %r y el modelo %r" % (de_la_rom, del_modelo)
+
+
+def test_una_habilidad_que_cura_apunta_al_grupo(partida):
+    """Healing Syringe, la primera de Kersh: `scope` 3, o sea un aliado.
+
+    Se le da a Core, que arranca con la mitad de los HP para que la cura tenga
+    dónde entrar; sin eso `ChangeHp` la topa contra el máximo y el caso no
+    distinguiría entre curar bien y no curar nada.
+    """
+    una = en_el_droide(partida)
+    base = db()
+    assert habilidades(base, GRUPO[0])[0] == HEALING_SYRINGE
+    lastimado = titulo.parametro_de(base.actors[GRUPO[1]], "maxhp") // 2
+    una.consola.escribir_ram(una.simbolos["FAR_HP"] + 2 * GRUPO[1],
+                             [lastimado & 0xFF, lastimado >> 8])
+    pelea = Pelea(una).abrir()
+    esperado = modelo_de(base)
+    esperado.actores[1].hp = lastimado
+    assert pelea.hp(1) == lastimado, \
+        "la pelea tenía que arrancar con Core lastimado"
+    pelea.ordenar(("habilidad", 0, 1))
+    pelea.ordenar(("defender",))
+    pelea.ordenar(("defender",))
+    pelea.correr_turno()
+    esperado.jugar_turno([(modelo.ORDEN_HABILIDAD,
+                           (base.skills[HEALING_SYRINGE], 1)),
+                          (modelo.ORDEN_DEFENDER, 0),
+                          (modelo.ORDEN_DEFENDER, 0)])
+    assert pelea.hp(1) == esperado.actores[1].hp, \
+        "los HP de Core: la consola %d y el modelo %d" % (
+            pelea.hp(1), esperado.actores[1].hp)
+    assert esperado.actores[1].hp > lastimado, \
+        "si la habilidad no curara nada el caso no distinguiría"
+    assert pelea.sp(0) == esperado.actores[0].sp
+
+
+def test_una_habilidad_modifica_los_parametros_del_blanco(partida):
+    """Agency Badge, la segunda de Kersh: baja ataque, defensa y agilidad.
+
+    Es lo único de las siete que pide estado nuevo por combatiente —el
+    modificador de cada parámetro y su base, que es lo que
+    `CanChangeAtkModifier` necesita para topar la bajada en la mitad del base—
+    y por eso `BA_BYTES` pasó de 18 a 40.
+
+    Se compara el parámetro **efectivo** del droide contra el del modelo, que
+    es `AdjustParam`: `clamp(base + modificador, 1, 999)`.
+    """
+    una = en_el_droide(partida)
+    pelea = Pelea(una).abrir()
+    base = db()
+    assert habilidades(base, GRUPO[0])[1] == AGENCY_BADGE
+    esperado = modelo_de(base)
+    antes = pelea.palabra(una.simbolos["BA_UNO"]
+                          + 4 * una.simbolos["BA_BYTES"]
+                          + una.simbolos["BA_ATK"])
+    pelea.ordenar(("habilidad", 1, 0))
+    pelea.ordenar(("defender",))
+    pelea.ordenar(("defender",))
+    pelea.correr_turno()
+    esperado.jugar_turno([(modelo.ORDEN_HABILIDAD,
+                           (base.skills[AGENCY_BADGE], 0)),
+                          (modelo.ORDEN_DEFENDER, 0),
+                          (modelo.ORDEN_DEFENDER, 0)])
+    droide = esperado.enemigos[0]
+    for nombre, campo, valor in (("ataque", "BA_ATK", droide.ataque),
+                                 ("defensa", "BA_DEF", droide.defensa),
+                                 ("agilidad", "BA_AGI", droide.agilidad)):
+        de_la_rom = pelea.palabra(una.simbolos["BA_UNO"]
+                                  + 4 * una.simbolos["BA_BYTES"]
+                                  + una.simbolos[campo])
+        assert de_la_rom == valor, \
+            "el %s del droide: la consola %d y el modelo %d" % (
+                nombre, de_la_rom, valor)
+    assert droide.ataque < antes, \
+        "Agency Badge tiene que bajarle el ataque: si no, el caso no " \
+        "distingue entre aplicar el modificador y no aplicarlo"
+
+
 def test_ganar_sigue_por_el_victory_handler(partida):
     """`VictoryHandler`: los dos cuadros de texto de CORE y KERSH.
 
@@ -382,6 +682,9 @@ def test_perder_sigue_por_el_defeat_handler(partida):
             for _ in range(400):
                 if pelea.modo() != ORDEN:
                     break
+                # **Dos derechas y no una desde el 2026-09-13**: el menú tiene
+                # el orden del original y `Defend` es la tercera orden.
+                pelea.tocar("right")
                 pelea.tocar("right")
                 pelea.tocar()
         for _ in range(400):
@@ -759,28 +1062,59 @@ def test_usar_una_pocion_cura_lo_que_dice_el_modelo(partida):
         "la poción cura cincuenta sobre cuarenta de máximo: tiene que topar")
 
 
-def test_tech_skill_no_hace_nada_y_escape_sigue_donde_va(partida):
-    """Las dos órdenes del final del menú.
+def test_el_menu_va_en_el_orden_del_original(partida):
+    """Las cinco órdenes, en el orden de la captura del juego de verdad.
 
-    `Tech Skill` está en gris y A no la toma —a este nivel nadie sabe ninguna
-    habilidad: las de los cuatro actores se aprenden en el nivel 3 y este port
-    tiene a todos en el 1— y `Escape` quedó quinta, que es donde va en el menú
-    del ABL. Lo que este caso cobra es que el cursor **pase por encima** de la
-    que no hace nada en vez de quedarse trabado ahí.
+    `pruebas-manuales/capturas-batalla/auto_20260912_123013.png` muestra el
+    menú de Manta: Attack / Slicing / Defend / Use Item. La habilidad va
+    **segunda**, y hasta el 2026-09-13 acá iba cuarta y en gris. `Escape` no
+    está en el original —huir es una orden del grupo— y acá va quinta, que es
+    la simplificación que `batalla.py` declara.
+
+    Lo que se cobra es el recorrido del cursor: que llegue hasta la quinta, que
+    vuelva, y que A sobre la segunda abra la lista de habilidades y B la
+    cierre.
     """
     una = en_el_droide(partida)
     pelea = Pelea(una).abrir()
     for _ in range(4):
         pelea.tocar("right")
     assert pelea.byte("BA_ORDEN") == O_HUIR, \
-        "el cursor tiene que llegar hasta `Escape`, que ahora es la quinta"
+        "el cursor tiene que llegar hasta `Escape`, que es la quinta"
+    pelea.tocar("right")
+    assert pelea.byte("BA_ORDEN") == O_HUIR, "y no pasarse de la quinta"
     for _ in range(3):
         pelea.tocar("left")
-    assert pelea.byte("BA_ORDEN") == O_DEFENDER
-    pelea.tocar("right")
-    assert pelea.byte("BA_ORDEN") == O_USAR
+    assert pelea.byte("BA_ORDEN") == O_HABILIDAD
+    pelea.tocar()
+    assert pelea.modo() == HAB, \
+        "A sobre la habilidad tiene que abrir su lista"
+    pelea.tocar("b")
+    assert pelea.modo() == ORDEN, "y B tiene que volver al menú"
+    assert pelea.byte("BA_ORDEN") == O_HABILIDAD, \
+        "volviendo con B el cursor se queda donde estaba"
+
+
+def test_un_actor_sin_habilidades_no_abre_la_lista(partida):
+    """Talan es de nivel 1 y no aprendió ninguna: la suya se queda en gris.
+
+    Es el mismo trato que el menú de pausa le da a una orden que no lleva a
+    ningún lado, y el camino que los otros tres no ejercitan. El caso pide que
+    Talan siga sin saber ninguna, porque si algún día aprendiera una dejaría de
+    probar lo que dice probar.
+    """
+    base = db()
+    assert not modelo.habilidades_de(base, 14), \
+        "Talan tenía que no saber ninguna: si supiera, este caso no distingue"
+    una = partida(mapas=LINKAGE)
+    una.poner_grupo(14, 12, 13)
+    una.ir_al_mapa(2, *DROIDE)
+    una.poner_byte("hero_dir", una.simbolos["DIR_UP"])
+    pelea = Pelea(una).abrir()
+    assert pelea.byte("BA_ACTOR") == 0
     pelea.tocar("right")
     assert pelea.byte("BA_ORDEN") == O_HABILIDAD
     pelea.tocar()
     assert pelea.modo() == ORDEN, \
-        "A sobre `Tech Skill` no tiene que llevar a ningún lado"
+        "sin ninguna habilidad, A no tiene que llevar a ningún lado"
+    assert pelea.byte("BA_HAB_N") == 0

@@ -143,8 +143,30 @@ snes-batalla 86 "11 12 13" 20 200 "" batalla-segunda ABLBackdropSJ03 2
 # la referencia arma la lista con la misma regla que la ROM. Verificado que
 # dan rojo corriendo dos celdas la columna de la cuenta sólo del lado de la
 # ROM: 142 pixeles.
-snes-batalla 86 "11 12 13" 20 220 "right:130 right:140 a:150" batalla-item ABLBackdropSJ03 "" "1 3 97 2" "--modo 2 --item 0"
-snes-batalla 86 "11 12 13" 20 240 "right:130 right:140 a:150 a:160 down:170" batalla-item-blanco ABLBackdropSJ03 "" "1 3 97 2" "--modo 3 --item 0 --blanco 1"
+#
+# **Son tres derechas y no dos desde el 2026-09-13**: el menú pasó a tener el
+# orden del original —Attack / <habilidad> / Defend / Use Item— y `Use Item`
+# quedó cuarta.
+snes-batalla 86 "11 12 13" 20 220 "right:130 right:140 right:150 a:160" batalla-item ABLBackdropSJ03 "" "1 3 97 2" "--modo 2 --item 0"
+snes-batalla 86 "11 12 13" 20 250 "right:130 right:140 right:150 a:160 a:170 down:180" batalla-item-blanco ABLBackdropSJ03 "" "1 3 97 2" "--modo 3 --item 0 --blanco 1"
+# Y los tres modos de las habilidades, que es lo nuevo del 2026-09-13. Una
+# derecha lleva el cursor a la segunda orden, que **no dice "Tech Skill"** sino
+# el `skill_name` del actor: con Kersh primero, "AgentTrain".
+#
+#   batalla-hab        la lista de las dos de Kersh, con la descripción de la
+#                      primera arriba y el costo en SP a la derecha de cada
+#                      nombre. Es la forma de la captura del original.
+#   batalla-hab-dos    la misma lista con el cursor en la segunda, o sea con
+#                      otra descripción arriba: sin esto, el renglón de arriba
+#                      podría estar escrito con la habilidad equivocada y los
+#                      dos lados darían igual igual.
+#   batalla-hab-blanco Healing Syringe apunta al grupo —`scope` 3— así que
+#                      después de elegirla el cursor se va a los actores, con
+#                      la lista de habilidades en gris. Es el camino que la de
+#                      ítems ya tenía y que una habilidad de enemigo no toca.
+snes-batalla 86 "11 12 13" 20 220 "right:130 a:140" batalla-hab ABLBackdropSJ03 "" "" "--modo 4 --habilidad 0"
+snes-batalla 86 "11 12 13" 20 240 "right:130 a:140 right:150" batalla-hab-dos ABLBackdropSJ03 "" "" "--modo 4 --habilidad 1"
+snes-batalla 86 "11 12 13" 20 240 "right:130 a:140 a:150" batalla-hab-blanco ABLBackdropSJ03 "" "" "--modo 3 --blanco 0 --orden 1"
 snes-pisar
 snes-escena 2 "7 76" "0 0 0 0" up "40 60 100" 115 bloqueo ""
 snes-escena 2 "7 74" 14 down "3 8 25 60 106 200" 115 droide ""

@@ -362,44 +362,78 @@ BA_HP_MAX_NUM = 25              # y las tres del máximo, en el grupo
 #
 # Hasta el 2026-09-13 eran tres en un renglón —`Attack`, `Defend`, `Escape`— y
 # taro pidió el menú del original, que tiene además `Use Item` y `Tech Skill`.
-# El ancho pasó de nueve a diez porque `Tech Skill` mide diez justos, y tres
-# columnas de diez en 1, 11 y 21 terminan en la celda 30 de las 32.
+# El ancho es diez porque es lo que mide la orden más larga: `Tech Skill`, y
+# `AgentTrain`, que es como se llama la de Kersh.
 BA_ORDEN_ANCHO = 10
-(BA_ORDEN_ATACAR, BA_ORDEN_DEFENDER, BA_ORDEN_USAR, BA_ORDEN_HABILIDAD,
+# **El orden es el del original**: Attack, la habilidad, Defend, Use Item. Se
+# ve en la captura `pruebas-manuales/capturas-batalla/auto_20260912_123013.png`,
+# donde el menú de Manta dice Attack / Slicing / Defend / Use Item. `Escape` no
+# está allá —huir es una orden del grupo, de otro menú— y acá va quinta; es la
+# simplificación que `batalla.py` declara.
+(BA_ORDEN_ATACAR, BA_ORDEN_HABILIDAD, BA_ORDEN_DEFENDER, BA_ORDEN_USAR,
  BA_ORDEN_HUIR) = range(5)
 # Por orden: qué término la nombra, en qué renglón va y en qué columna.
 #
-# Las columnas del segundo renglón **no son las del primero**: `Tech Skill`
-# mide diez justos y llena su ancho sin dejarle lugar al cursor del que sigue,
-# que va una celda antes del texto. Arriba eso no pasa porque las tres palabras
-# son más cortas que el ancho y el relleno son espacios.
+# **La columna de la habilidad tiene que dejar diez celdas libres**: su texto es
+# el `skill_name` del actor, y `AgentTrain` y `Tech Skill` miden diez justos,
+# sin dejarle lugar al cursor del que sigue —que va una celda antes del texto—.
+# Por eso el renglón de arriba es 1 / 11 / 22 y no 1 / 11 / 21: la habilidad va
+# en el medio y Defend arranca una celda más allá. Las otras cuatro palabras
+# del ABL miden ocho o menos.
 BA_ORDENES = (
     ("atacar", 0, 1),
-    ("defender", 0, 11),
-    ("usar", 0, 21),
-    ("habilidad", 1, 1),
+    ("habilidad", 0, 11),
+    ("defender", 0, 22),
+    ("usar", 1, 1),
     ("huir", 1, 13),
 )
 
-# **`Tech Skill` va siempre en gris y A no hace nada con ella**, que es lo que
-# el menú de pausa ya hace con las tres órdenes que no están.
+# Ninguna orden está sin hacer desde el 2026-09-13: la habilidad era la única y
+# ahora se puede elegir. Queda la tupla porque la pantalla la consulta y porque
+# es donde va la próxima que se agregue a medias.
 #
-# **Y el motivo que decía acá era falso.** Decía que a este nivel nadie sabe
-# ninguna habilidad, y salía de leer los parámetros con un nivel 1 mockeado.
-# Desde que el nivel sale del `initial_level` del LDB —Kersh 20, Core y Manta
-# 15— los tres saben las suyas desde la primera pelea. Lo que falta es el
-# trabajo, medido y en orden en ESTADO.md.
-#
-# Cuando eso entre, esta orden deja de estar en gris **y deja de llamarse
-# "Tech Skill"**: el original la nombra con el `skill_name` de cada actor
-# —"AgentTrain", "Telepathy", "Slicing"— y va segunda, antes de Defend.
-BA_ORDEN_SIN_HACER = (BA_ORDEN_HABILIDAD,)
+# Lo que sí se pone en gris es la habilidad **de un actor que no sabe ninguna**
+# —Talan, que es de nivel 1 y no aprendió ni la primera— igual que el menú de
+# pausa con lo que no lleva a ningún lado.
+BA_ORDEN_SIN_HACER = ()
 
 # Los modos de la pantalla, que la ROM lleva en `ba_modo`. **El orden importa**:
 # la ROM pregunta `cmp #BA_M_MENSAJE / bcs` para decir "mensaje o fin", así que
 # los que eligen algo van todos antes.
 (BA_ELIGE_ORDEN, BA_ELIGE_BLANCO, BA_ELIGE_ITEM, BA_ELIGE_ACTOR,
- BA_MENSAJE, BA_FIN) = range(6)
+ BA_ELIGE_HAB, BA_MENSAJE, BA_FIN) = range(7)
+
+# La lista de habilidades, que ocupa los mismos renglones que la de ítems y por
+# lo mismo. Es la forma del original —ver la captura
+# `capturas-batalla/auto_20260912_123023.png`—: la descripción de la que marca
+# el cursor arriba de todo, y abajo dos columnas con el nombre a la izquierda y
+# el costo en SP a la derecha, con un guión delante.
+#
+# Se lee **por filas**: en la captura, la lista de Manta ordenada por número
+# —130, 143, 144, 150— sale Mental Hack y MindShield arriba y MindProbe y
+# MindBlast abajo.
+#
+# La descripción va en un solo renglón y **se corta a treinta y un caracteres**:
+# el original la escribe entera con una fuente más chica, y acá un renglón de
+# texto ocupa dos filas del tilemap, así que la de abajo no está libre. Es
+# deuda declarada.
+BA_HAB_DESC_FILA = 0
+BA_HAB_DESC_COL = 1
+BA_HAB_DESC_ANCHO = 31
+BA_HAB_FILA0 = 2
+BA_HAB_FILAS = 7
+BA_HAB_COLUMNAS = 2
+BA_HAB_COLUMNA_DX = 16          # de una columna a la de al lado
+BA_HAB_NOMBRE_COL = 2           # relativas al principio de la columna
+BA_HAB_NOMBRE_ANCHO = 11
+BA_HAB_GUION_COL = 13
+# El costo va en **dos cifras y no tres**, que es lo que deja que las dos
+# columnas entren en las 32 celdas: la segunda arranca en la 16 y su número
+# termina en la 31 justo. Con tres se pasaba de la pantalla. Ningún `sp_cost`
+# del ABL llega a 100 —el más caro de las siete que el grupo sabe es 20— y el
+# conversor **corta si alguna vez lo hiciera**, en vez de dibujar mal.
+BA_HAB_COSTO_COL = 14
+BA_HAB_COSTO_CIFRAS = 2
 
 # La lista de ítems ocupa los renglones de los enemigos: mientras se elige qué
 # usar, los enemigos no hacen falta y el grupo sí, que es a quién se cura.
@@ -452,7 +486,8 @@ def texto_de_orden(termino):
 
 
 def pantalla_batalla(db, combate, modo=BA_ELIGE_ORDEN, actor=0, orden=0,
-                     blanco=0, mensaje=("", ""), items=(), item=0, arriba=0):
+                     blanco=0, mensaje=("", ""), items=(), item=0, arriba=0,
+                     habilidad=0):
     """La pantalla como la compone la ROM.
 
     `combate` es una `batalla.Batalla`. `modo` dice qué se está eligiendo:
@@ -470,8 +505,44 @@ def pantalla_batalla(db, combate, modo=BA_ELIGE_ORDEN, actor=0, orden=0,
     de un turno.
     """
     t = Texto()
-    eligiendo_item = modo in (BA_ELIGE_ITEM, BA_ELIGE_ACTOR)
-    if eligiendo_item:
+    # **Eligiendo a quién se le da, la lista de arriba es la de la orden que se
+    # está usando**: la de ítems si es `Use Item` y la de habilidades si es la
+    # habilidad, en gris las dos. Cuál de las dos lo dice `orden`, que sigue
+    # puesto mientras se elige el blanco, igual que en la ROM.
+    eligiendo_hab = (modo == BA_ELIGE_HAB
+                     or (modo == BA_ELIGE_ACTOR
+                         and orden == BA_ORDEN_HABILIDAD))
+    eligiendo_item = not eligiendo_hab and modo in (BA_ELIGE_ITEM,
+                                                    BA_ELIGE_ACTOR)
+    if eligiendo_hab:
+        # La lista de habilidades del que está ordenando, con la descripción de
+        # la que marca el cursor arriba. Va donde iban los enemigos, como la de
+        # ítems.
+        import batalla as batalla_mod
+        quien = combate.actores[actor]
+        lista = list(quien.habilidades)
+        if lista and modo == BA_ELIGE_HAB:
+            desc = db.skills[lista[habilidad]].description
+            t.escribir(BA_HAB_DESC_FILA, BA_HAB_DESC_COL,
+                       titulo.texto_de_item(desc, BA_HAB_DESC_ANCHO))
+        for k, numero in enumerate(lista[:BA_HAB_FILAS * BA_HAB_COLUMNAS]):
+            skill = db.skills[numero]
+            fila = BA_HAB_FILA0 + 2 * (k // BA_HAB_COLUMNAS)
+            col = BA_HAB_COLUMNA_DX * (k % BA_HAB_COLUMNAS)
+            # En gris la que no se puede pagar —los SP, que es lo único que
+            # este port chequea de `CanUseSkill`— y toda la lista mientras se
+            # elige el blanco, que es lo que la de ítems ya hace.
+            gris = 0 if (modo == BA_ELIGE_HAB
+                         and quien.sp >= batalla_mod.costo_de(skill)) else 1
+            if modo == BA_ELIGE_HAB and k == habilidad:
+                t.escribir(fila, col, ELEGIR_CURSOR)
+            t.escribir(fila, col + BA_HAB_NOMBRE_COL, titulo.texto_de_item(
+                skill.name, BA_HAB_NOMBRE_ANCHO), gris)
+            t.escribir(fila, col + BA_HAB_GUION_COL, "-", gris)
+            t.numero(fila, col + BA_HAB_COSTO_COL,
+                     min(batalla_mod.costo_de(skill), 99),
+                     BA_HAB_COSTO_CIFRAS, gris)
+    elif eligiendo_item:
         # La lista de ítems, donde iban los enemigos: mientras se elige qué
         # usar lo que hace falta ver es el grupo, que es a quién se cura.
         lista = list(items)
@@ -502,8 +573,8 @@ def pantalla_batalla(db, combate, modo=BA_ELIGE_ORDEN, actor=0, orden=0,
         fila = BA_GRUPO_FILA0 + 2 * n
         gris = 0 if quien.vivo else 1
         marcado = blanco if modo == BA_ELIGE_ACTOR else actor
-        if modo in (BA_ELIGE_ORDEN, BA_ELIGE_BLANCO,
-                    BA_ELIGE_ITEM, BA_ELIGE_ACTOR) and n == marcado:
+        if modo in (BA_ELIGE_ORDEN, BA_ELIGE_BLANCO, BA_ELIGE_ITEM,
+                    BA_ELIGE_ACTOR, BA_ELIGE_HAB) and n == marcado:
             t.escribir(fila, BA_CURSOR_COL, ELEGIR_CURSOR)
         t.escribir(fila, BA_NOMBRE_COL, titulo.texto_de_item(
             quien.nombre, BA_NOMBRE_ANCHO), gris)
@@ -513,15 +584,25 @@ def pantalla_batalla(db, combate, modo=BA_ELIGE_ORDEN, actor=0, orden=0,
         t.numero(fila, BA_HP_MAX_NUM, min(quien.hp_max, 999), 3, gris)
     if modo < BA_MENSAJE:
         term = terminos_batalla(db)
+        quien = combate.actores[actor] if combate.actores else None
         for n, (nombre, renglon, col) in enumerate(BA_ORDENES):
             fila = (BA_MSG_FILA1, BA_MSG_FILA2)[renglon]
             # En blanco sólo la que se puede elegir ahora, y nunca la que no
             # está hecha: es lo mismo que hace el menú de pausa.
             gris = 0 if (modo == BA_ELIGE_ORDEN
                          and n not in BA_ORDEN_SIN_HACER) else 1
+            texto = term[nombre]
+            if n == BA_ORDEN_HABILIDAD and quien is not None:
+                # **No dice "Tech Skill"**: dice el `skill_name` del actor que
+                # está ordenando, que es `Game_Actor::GetSkillName`. Y va en
+                # gris si no sabe ninguna, como el menú de pausa con lo que no
+                # lleva a ningún lado.
+                texto = quien.nombre_habilidad or texto
+                if not quien.habilidades:
+                    gris = 1
             if modo == BA_ELIGE_ORDEN and n == orden:
                 t.escribir(fila, col - 1, ELEGIR_CURSOR)
-            t.escribir(fila, col, texto_de_orden(term[nombre]), gris)
+            t.escribir(fila, col, texto_de_orden(texto), gris)
     else:
         escribir_corrido(t, BA_MSG_FILA1, 1, mensaje[0])
         escribir_corrido(t, BA_MSG_FILA2, 1, mensaje[1])
@@ -608,6 +689,8 @@ def main():
     parser.add_argument("--blanco", type=int, default=0)
     parser.add_argument("--actor", type=int, default=0)
     parser.add_argument("--orden", type=int, default=0)
+    parser.add_argument("--habilidad", type=int, default=0,
+                        help="qué habilidad de la lista marca el cursor")
     args = parser.parse_args()
     db = lcf.Database(os.path.join(args.game_dir, "RPG_RT.ldb"))
     skin = ventana.skin(args.game_dir, db.system_name)
@@ -641,9 +724,9 @@ def main():
                                     args.game_dir)
             escena_img = escena.render(info) if info else None
         pantalla_batalla(db, combate, args.modo, args.actor, args.orden,
-                         args.blanco, items=usables,
-                         item=args.item).render(skin, db.font_id,
-                                                escena_img).save(args.output)
+                         args.blanco, items=usables, item=args.item,
+                         habilidad=args.habilidad).render(
+            skin, db.font_id, escena_img).save(args.output)
         print("batalla %d sobre %r -> %s"
               % (args.batalla, args.fondo, args.output))
         return

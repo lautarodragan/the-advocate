@@ -127,6 +127,31 @@ PARAM_MAX = 999
 DANO_MAX = 999
 
 
+def habilidad_usable(skill):
+    """Si esta pelea sabe ofrecer esta habilidad.
+
+    Es el hermano de `item_usable_en_batalla` y, como aquél, **recorta a lo que
+    este port hace** y lo declara en vez de hacerlo mal:
+
+    * el tipo tiene que ser `normal` o `switch`. `teleport` y `escape` no
+      existen acá, y `subskill` es de RM2k3;
+    * el alcance tiene que ser **de a uno**: `enemy` o `ally`. Los de a muchos
+      —`enemies`, `party`, `self`— pedirían repetir el efecto sobre cada
+      blanco, y con eso el orden del azar de los dos lados;
+    * y el costo tiene que entrar en dos cifras, que es lo que la lista
+      escribe. Ninguna del juego llega a 100.
+
+    De las siete que el grupo de la intro sabe **no se cae ninguna**. En un
+    cartucho con más actores sí: `Gamble for Credits`, la única de Arden, tiene
+    alcance `enemies` y queda afuera, y por eso Arden aparece sin ninguna.
+    """
+    import lcf
+    return (skill.type in (lcf.SKILL_TIPO_NORMAL, lcf.SKILL_TIPO_SWITCH)
+            and skill.scope in (lcf.SKILL_SCOPE_ENEMIGO,
+                                lcf.SKILL_SCOPE_ALIADO)
+            and skill.sp_cost <= 99)
+
+
 def habilidades_de(db, numero, nivel=None):
     """Las habilidades que este actor sabe, en el orden en que el menú las pone.
 
@@ -139,12 +164,15 @@ def habilidades_de(db, numero, nivel=None):
     El nivel es el `initial_level` del LDB, como todo lo demás desde el
     2026-09-13: con el 1 que el port tenía mockeado no se sabía ninguna, porque
     la primera se aprende en el 3.
+
+    Las que este port no sabe ofrecer no entran: ver `habilidad_usable`.
     """
     actor = db.actors[numero]
     if nivel is None:
         nivel = actor.initial_level
     return sorted({s for aprende, s in actor.skills
-                   if s and aprende <= nivel})
+                   if s and aprende <= nivel
+                   and habilidad_usable(db.skills[s])})
 
 
 def nombre_de_orden_habilidad(db, numero):
@@ -300,6 +328,9 @@ class Combatiente:
         self.sp_max = sp_max
         self.sp = sp_max
         self.habilidades = list(habilidades)
+        # Cómo se llama su orden de habilidades en el menú. Es del actor y no
+        # un término fijo: ver `nombre_de_orden_habilidad`.
+        self.nombre_habilidad = ""
         self.defendiendo = False
         self.orden = 0
 
@@ -352,10 +383,12 @@ def actor_de(db, numero, equipo=None):
                                                                equipo)
     critico = (100 // actor_critico_cada(db, numero)) \
         if actor_tiene_critico(db, numero) else 0
-    return Combatiente(actor.name, titulo.parametro_de(actor, "maxhp"),
-                       ataque, defensa, agilidad, 90, critico, True, numero,
-                       espiritu, titulo.parametro_de(actor, "maxsp"),
-                       habilidades_de(db, numero))
+    quien = Combatiente(actor.name, titulo.parametro_de(actor, "maxhp"),
+                        ataque, defensa, agilidad, 90, critico, True, numero,
+                        espiritu, titulo.parametro_de(actor, "maxsp"),
+                        habilidades_de(db, numero))
+    quien.nombre_habilidad = nombre_de_orden_habilidad(db, numero)
+    return quien
 
 
 def actor_tiene_critico(db, numero):
