@@ -50,9 +50,10 @@ point animado y guardando, el menú de pausa, los ítems, el equipo y la tienda.
 efectos por el SPC700.
 
 Las páginas automáticas que compilan enteras son **332 de 489** —`just
-snes-destraba`—, y del juego entero **5156 de 5603 disparables (92,0%)**, que
-eran 5135 antes de la rama por objeto y de `HaltAllMovement`, y 5016 antes de
-la clase 6 de `ControlVars`.
+snes-destraba`—, y del juego entero **5198 de 5603 disparables (92,8%)**, que
+eran 5170 antes de las dos preguntas de actor de una rama, y 5016 antes de la
+clase 6 de `ControlVars`. El 5156 que decía acá era de antes del merge
+`f336b63`; medido de nuevo el 2026-09-13 sobre `5461d6d`, la base es 5170.
 
 **Cómo se cuenta, porque es fácil contarlo mal**: cada página de los 328 mapas
 cuyo trigger la ROM soporta y que pasa `puede_dispararse`, por
@@ -209,6 +210,52 @@ quince bytes en `f38b87c` —"32719 en 32704"—, y ningún caso de la tanda lo 
 porque sus cartuchos llevan uno o dos mapas. Se arregló mudando `item_actores`
 a RODATA. **Conviene armar la demo después de cada vuelta que agregue código**,
 que es lo que el encargo de esta vuelta pedía y por eso apareció.
+
+### Las ramas de actor, y las dos clases que no valen nada (2026-09-13)
+
+`ConditionalBranch` era lo que más páginas trababa de lo que quedaba libre.
+Hecho: las preguntas 4 y 5 de la clase 5 —"sabe esta habilidad" y "tiene puesto
+este objeto"—, **+28 páginas**, de 5170 a 5198. El porqué durable y el opcode
+nuevo están en el README, "Las dos preguntas de actor de una rama". Lo cubren
+cuatro casos de la tanda: `rama-equipo`, `rama-equipo-no`, `rama-hab` y
+`rama-hab-no`.
+
+Lo medido, y esto es lo que conviene no volver a medir:
+
+* **La "clase 6" no es lo que su nombre sugería y no vale nada.** Según el
+  `switch` de `CommandConditionalBranch` en easyrpg-player, la clase 6 es **la
+  orientación de un personaje**. Son 124 comandos en 31 páginas, y destraba
+  **cero** —medido dos veces, sola y con las dos de actor ya puestas—: esas 31
+  páginas están frenadas por otra cosa igual. La clase 2 es el **cronómetro 1**:
+  un comando, una página, también cero.
+* **Las dos de actor van juntas.** Las 10 páginas que preguntan por una
+  habilidad preguntan además por el equipo, así que "sabe la habilidad" sola da
+  +0 y "tiene puesto el objeto" sola da +18. Juntas, +28.
+* **Lo que queda de `ConditionalBranch` son 32 páginas**, todas de la clase 6 y
+  del cronómetro, o sea todas sin valor. La clase de rama dejó de ser lo que
+  traba el juego.
+
+Lo que **no** se hizo, con su número:
+
+* **`EnemyEncounter` con Game Over al perder: 3 páginas cortadas —los mapas 21,
+  179 y 255— y destraba cero.** El 21 son los Rat Tracks B1, que es lo próximo
+  que taro quiere jugar, así que el número importa: **hacerlo no los destraba**.
+  Medido desactivando el `raise`: la página del 21 se cae enseguida en "una
+  batalla sin cerrar", porque con `defeat_mode` 0 RM2k no emite bloque de
+  manejadores y la pelea no tiene `EndBattle`. O sea que además de la pantalla
+  de Game Over —que este port no tiene— hay que modelar la pelea sin
+  manejadores. Dos trabajos para +0 páginas hoy.
+* **La elección con rama de cancelar: 1 página, la del mapa 348, y también
+  destraba cero**: con el `raise` desactivado se cae en el `ControlSwitches`
+  que invierte un switch, que tampoco compila.
+
+Y una deuda declarada que conviene tener a mano: **`ChangeSkills` no compila**
+—20 comandos en el juego— así que la respuesta de "sabe esta habilidad" es hoy
+la del LDB y nada la mueve. Uno de esos 20 le enseña la habilidad 152 a Arden,
+que es justo la que preguntan los mapas 47 y 48. No hay media implementación
+corriendo —las páginas que enseñan tampoco compilan— pero el día que
+`ChangeSkills` entre, `sabe_hab` tiene que pasar de tabla del cartucho a estado
+de la RAM lejana.
 
 ### El nivel estaba mockeado en 1, y no era cosmético (2026-09-13)
 
@@ -540,6 +587,11 @@ que hoy no compilan:
     FlashSprite               51     ChangeSystemBGM                     39
     KeyInputProc              31     ShowMessage (los escapes)           18
 
+Las dos columnas de `ConditionalBranch` **ya no valen**: desde el 2026-09-13
+"del héroe" es **cero** —las tres preguntas que el juego usa están hechas— y
+"condición rara" son **32**, todas de la orientación de un personaje y del
+cronómetro, o sea todas sin valor. Ver "Las ramas de actor" arriba.
+
 Lo que queda abierto de la primera:
 
 * **Las coordenadas en pantalla** —los sub-operandos 4 y 5 de la clase 6— no se
@@ -680,7 +732,13 @@ de cada una está en `README.md`.
   ruta para siempre. Su evento es el primer índice libre del mapa y no un
   número alto: los barridos de la ROM van de cero a `ev_total`.
 
-* **`ConditionalBranch` sólo con condiciones de switch.** Son 21 páginas de
+* **`ConditionalBranch`: cinco de las doce clases.** Switch, variable, oro,
+   objeto y actor, y de la de actor tres de sus siete preguntas —está en el
+   grupo, sabe la habilidad, tiene puesto el objeto—. El renglón de abajo es
+   de cuando sólo había switch y se deja porque el porqué sigue valiendo; los
+   números de hoy están arriba.
+
+   Lo viejo: **sólo con condiciones de switch.** Son 21 páginas de
    las 24 que el comando destraba; las tres que faltan preguntan por el héroe
    en el grupo, y sin grupo variable esa rama daría siempre lo mismo: modelarla
    sin nada que la ejercite es inventarse una diferencia. Las variables suman

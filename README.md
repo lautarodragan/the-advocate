@@ -4624,6 +4624,56 @@ sin una rama de más; lee el byte de `FAR_ITEMS` por el mismo camino que
 más tiempo del que hacía falta: figuraba como "pide inventario, que no hay" en
 un comentario que quedó viejo el día que el inventario apareció.
 
+### Las dos preguntas de actor de una rama
+
+`ConditionalBranch` clase 5 es "el héroe", y adentro lleva siete preguntas
+distintas —el `switch (com.parameters[2])` del caso 5 de
+`Game_Interpreter::CommandConditionalBranch`—. La ROM contesta tres desde el
+2026-09-13: **está en el grupo** (la 0, que ya estaba), **sabe esta
+habilidad** (la 4) y **tiene puesto este objeto** (la 5). Son **+28 páginas
+del juego entero**, de 5170 a 5198 de las 5603 disparables, y van juntas
+porque van juntas en el juego: las 10 páginas que preguntan por una habilidad
+preguntan además por el equipo, así que la 4 sola destraba cero y la 5 sola
++18.
+
+Las dos nuevas no entran en `OP_SI`, que tiene un solo operando: llevan el
+actor **y** el ítem o la habilidad. Por eso hay un opcode aparte, `OP_SI_ACTOR`
+—sub, actor en un byte, dato en una palabra, destino— con el destino último,
+como todos, porque es lo que el conversor parchea al cerrar la rama. Ninguna de
+las dos tiene polaridad: RM2k no se la da, la rama de abajo es el `else`.
+
+El **equipo** es estado de verdad: `FAR_EQUIPO`, cinco palabras por actor, que
+arranca del `initial_equipment` del LDB, que la pantalla de equipo escribe y
+que viaja en la partida. La ROM lee las cinco ranuras por el puerto de la WRAM
+y se da por cumplida con que el ítem esté en cualquiera, que es el `||` de los
+cinco `Get*Id()` de easyrpg.
+
+La **habilidad** no lo es, y conviene saberlo antes de apoyarse en ella: sale
+de una tabla del cartucho —`sabe_hab`, 81 entradas para los 60 actores del
+LDB— que arma `batalla.aprendidas_de`, la misma función con la que contesta la
+referencia. Es `Game_Actor::LearnLevelSkills` a secas: las de nivel menor o
+igual al `initial_level`. **Va aparte de `actor_hab`**, que es la lista del
+menú de la pelea: ésa lleva sólo las que este port sabe ejecutar y sólo de los
+actores que pueden entrar al grupo, y `IsSkillLearned` no filtra ninguna de las
+dos cosas. Lo que falta para que sea estado es `ChangeSkills` —20 comandos en
+el juego, y uno de ellos le enseña la 152 a Arden, que es justo la que
+preguntan los mapas 47 y 48—; mientras no compile, la respuesta es la del LDB y
+nada la mueve. Las páginas que enseñan no compilan, así que no hay media
+implementación corriendo: hay una deuda con su número.
+
+Lo cubren cuatro casos de la tanda —`rama-equipo`, `rama-equipo-no`,
+`rama-hab` y `rama-hab-no`—, que son la página de prueba tiñendo la pantalla
+sólo si la rama se cumple. Existen porque **ninguna página del juego que
+compile las usa**: las 36 del equipo y las 10 de la habilidad viven en los
+mapas 20, 38, 47, 48, 151, 278, 279, 343 y 344, y ninguna demo los lleva.
+
+Las otras cuatro preguntas de actor —el nombre, el nivel, los HP y el estado—
+no las usa ninguna página del juego. Y de las otras clases de condición que
+faltan, las dos que aparecen están medidas y **no valen nada**: la 6, la
+orientación de un personaje, son 124 comandos en 31 páginas y destraba **cero**
+—esas páginas están frenadas por otra cosa igual— y la 2, el cronómetro, es un
+comando en una página y también cero.
+
 **La condición por variable se evalúa** desde el 2026-09-10 a la noche: la
 página lleva la ranura, la comparación y el valor (+24 a +27, `PAGINA_BYTES`
 28), `condiciones_ok` los lee de la tabla y los compara con `comparar_var`,

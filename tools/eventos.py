@@ -1493,6 +1493,21 @@ COND_FIN = 22011
 #     objeto                  24           pide inventario, que no hay
 #     oro                     10           hecho
 #     cronómetro               1           destraba cero
+#
+# Vuelto a medir el 2026-09-13 sobre las 5603 páginas disparables del juego, ya
+# con el inventario y las variables hechos, contando **las que pasan a compilar
+# enteras** y no los comandos que se rechazan:
+#
+#     actor, "tiene puesto el objeto"   36 páginas lo usan,  +18 destraba
+#     actor, "sabe la habilidad"        10 páginas lo usan,  +10 **encima** de
+#                                       la anterior: son las mismas páginas y
+#                                       necesitan las dos, así que sola da +0
+#     orientación de un personaje       31 páginas lo usan,   +0, medido otra
+#                                       vez y con las dos de arriba puestas
+#     cronómetro                         1 página,            +0
+#
+# O sea que de las 433 páginas que no compilaban, las dos preguntas de actor
+# valen **+28** y las otras dos clases no valen nada.
 COND_SWITCH = 0
 COND_ORO = 3
 # El inventario **ya existe** —`OP_ITEM` y `FAR_ITEMS`, desde el 2026-09-10— así
@@ -1503,11 +1518,33 @@ COND_ORO = 3
 COND_ITEM = 4
 COND_ACTOR = 5
 
-# Y del "héroe" sólo la primera de sus siete preguntas. Las otras —nivel, HP,
-# habilidad, equipo, estado— piden estadísticas de actor que este port no lleva.
-# De los 155 comandos del juego que preguntan por un héroe, 57 son de ésta; 78
-# preguntan por el equipo y 20 por una habilidad.
+# Y del "héroe", tres de sus siete preguntas. Los números son los de
+# `com.parameters[2]` de RM2k tal cual, y salen del `switch` de
+# `Game_Interpreter::CommandConditionalBranch` caso 5 en easyrpg-player: 0 está
+# en el grupo, 1 se llama así, 2 nivel >=, 3 HP >=, 4 sabe la habilidad, 5
+# tiene puesto ese objeto, 6 tiene ese estado.
+#
+# Las que quedan afuera —el nombre, el nivel, los HP y el estado— piden
+# estadísticas que este port no lleva o que no cambian nunca; medido sobre el
+# juego entero, las cuatro juntas cortan **cero** páginas.
 COND_ACTOR_EN_GRUPO = 0
+# `actor->IsSkillLearned(p[3])`. Lo contesta una tabla del cartucho
+# —`sabe_hab`— que sale de `batalla.aprendidas_de`, la misma función con la que
+# la referencia contesta: las dos leen el LDB y no puede haber dos respuestas.
+#
+# **Lo que este port todavía no tiene es cómo cambiarla**: `ChangeSkills` no
+# compila —20 comandos del juego, y uno de ellos le enseña la 152 a Arden, que
+# es justo la que dos mapas preguntan—. Así que la respuesta es hoy la del
+# LDB y nada la mueve. Es una deuda declarada y no un camino a medias: las
+# páginas que la enseñan no compilan, así que ninguna de las dos partes corre
+# a medias.
+COND_ACTOR_HABILIDAD = 4
+# Los cinco `Get*Id()` de easyrpg comparados contra `p[3]`: arma, escudo,
+# armadura, casco y accesorio. Esto **sí** es estado de verdad —`FAR_EQUIPO`,
+# que la pantalla de equipo escribe y que viaja en la partida— y arranca del
+# `initial_equipment` del LDB. Preguntar por el ítem 0 da que sí en cuanto haya
+# una ranura vacía, que es lo que hace RM2k; ninguna página del juego lo hace.
+COND_ACTOR_EQUIPO = 5
 # La rama por variable: `[1, variable, clase del valor, valor, comparación,
 # hay else]`. La clase es 0 para una constante y 1 para otra variable; la
 # comparación, `==`, `>=`, `<=`, `>`, `<` y `!=`, en ese orden, que es el de
@@ -1741,6 +1778,17 @@ OP_BATALLA = 0x22   # tropa (word), victoria (word), huida (word), derrota (word
 # agarren.
 OP_PARAR_RUTAS = 0x23   # sin operandos
 
+# Las dos preguntas de actor que no entran en `OP_SI`, desde el 2026-09-13:
+# "¿tiene puesto este objeto?" y "¿sabe esta habilidad?". No entran porque
+# llevan **dos** operandos —el actor y el ítem o la habilidad— y `OP_SI` tiene
+# uno solo; el actor entra en un byte porque el LDB tiene 60 y `ACTORES_N` los
+# cuenta, y el dato no, porque los ítems llegan a 450.
+#
+# No lleva polaridad: RM2k no le da ninguna a estas dos —la rama de abajo es el
+# `else`— igual que a "está en el grupo". El destino va último, como en todos,
+# porque es lo que `con_destino` parchea al cerrar la rama.
+OP_SI_ACTOR = 0x24  # sub (byte), actor (byte), dato (word), destino (word)
+
 HALT_ALL_MOVEMENT = 11350
 
 # `ChangePBG`, el fondo parallax. **Se acepta y se tira**, que es lo mismo que
@@ -1776,7 +1824,12 @@ CHANGE_PBG = 11720
 # acá el blanco es el héroe, y un héroe invisible por un mapa donde el CharSet
 # no entró es peor que un héroe con el gráfico viejo. Los dos lados hacen lo
 # mismo con la misma función.
-OP_ACTOR_GRAF = 0x23    # actor (byte), gráfico (byte)
+# **El número se elige mirando los que ya están, no el último que uno
+# recuerde.** El 2026-09-13 tres ramas de sub-agente eligieron "el siguiente
+# libre" a la vez y sin verse: salieron $23 dos veces y $24 dos veces, git las
+# mergeó sin un solo conflicto —cada una en su línea— y lo que se rompía era el
+# recorrido del bytecode. Lo cuida `test_ningun_opcode_comparte_numero_con_otro`.
+OP_ACTOR_GRAF = 0x25    # actor (byte), gráfico (byte)
 
 # `KeyInputProc`: ranura de variable (byte) y qué teclas mira (byte).
 #
@@ -1802,7 +1855,7 @@ OP_ACTOR_GRAF = 0x23    # actor (byte), gráfico (byte)
 # porque el intérprete no tiene dónde guardarlo: el que espera **rebobina su
 # propio cursor** y se vuelve a ejecutar cuadro a cuadro, así que no puede
 # distinguir la primera vuelta de las otras.
-OP_TECLA = 0x24
+OP_TECLA = 0x26
 TECLA_ESPERA   = 0x01
 TECLA_DIRS     = 0x02
 TECLA_DECISION = 0x04
@@ -2222,6 +2275,38 @@ def indexar_comunes(game_dir):
     return COMUNES
 
 
+# Lo que las dos preguntas de actor de `ConditionalBranch` necesitan saber del
+# LDB: qué tiene puesto cada uno al empezar y qué habilidades sabe. Van en un
+# índice de módulo, como `COMUNES` y `VARIABLE_SLOT`, y por lo mismo: el
+# conversor y la referencia lo arman con la misma función antes de compilar
+# nada, así que no hay dos lecturas del LDB que puedan discrepar.
+ACTOR_EQUIPO = {}       # actor de RM2k -> sus cinco ranuras, en el orden de
+                        # `pantallas.RANURAS_EQUIPO`
+ACTOR_SABE = {}         # actor de RM2k -> las habilidades que sabe
+_ACTORES_INDEXADOS = []
+
+
+def indexar_actores(game_dir):
+    """Deja en `ACTOR_EQUIPO` y `ACTOR_SABE` lo que el LDB dice de cada actor.
+
+    Sin esto el intérprete contestaría que nadie tiene nada puesto y que nadie
+    sabe nada, **en silencio y de un solo lado**, que es la forma de falla que
+    `AGENTS.md` nombra. Por eso hay una lista que dice si se llamó y `OP_SI_ACTOR`
+    la mira.
+    """
+    import lcf
+    import batalla
+    db = lcf.Database(os.path.join(game_dir, "RPG_RT.ldb"))
+    ACTOR_EQUIPO.clear()
+    ACTOR_SABE.clear()
+    ACTOR_EQUIPO.update({a: tuple(act.initial_equipment)
+                         for a, act in db.actors.items()})
+    ACTOR_SABE.update({a: batalla.aprendidas_de(db, a)
+                       for a in db.actors})
+    _ACTORES_INDEXADOS[:] = [True]
+    return dict(ACTOR_EQUIPO)
+
+
 def indexar_variables(game_dir, extra=()):
     """Deja en `VARIABLE_SLOT` el índice del juego entero. Lo llaman el
     conversor y la referencia antes de compilar nada; tarda un tercio de
@@ -2323,10 +2408,14 @@ def cuadros_de_eleccion(opciones, mensajes):
 def bytes_de_rama(cmd):
     """Un `ConditionalBranch` de las clases que sabemos, con el destino en blanco.
 
-    Cinco de las doce: switch, variable, oro, objeto y "el actor está en el
-    grupo". Las que faltan piden estado que este port no lleva —estadísticas de
-    actor, equipo, el cronómetro— y una rama sobre cualquiera de ésas daría
-    siempre la misma respuesta, así que ni siquiera se podría probar.
+    Cinco de las doce clases: switch, variable, oro, objeto y actor; y de la de
+    actor, tres de sus siete preguntas —está en el grupo, sabe la habilidad y
+    tiene puesto el objeto—. Las que faltan piden estado que este port no lleva
+    —el nivel, los HP y el estado de un actor, la orientación de un personaje,
+    el cronómetro, el vehículo— y una rama sobre cualquiera de ésas daría
+    siempre la misma respuesta, así que ni siquiera se podría probar. Las dos
+    que más valdrían están medidas arriba, donde las constantes: **ninguna
+    destraba una sola página**.
 
     La polaridad se copia tal cual de RM2k y quiere decir cosas distintas según
     la clase: en un switch, 0 es "tiene que estar prendido"; en el objeto, 0 es
@@ -2353,13 +2442,38 @@ def bytes_de_rama(cmd):
         if not 0 <= numero < ITEMS_N:
             raise NoSePuede("el ítem %d no está en el LDB" % numero)
     elif p[0] == COND_ACTOR:
-        if p[2] != COND_ACTOR_EN_GRUPO:
-            raise NoSePuede("del héroe sólo sabemos si está en el grupo")
         numero = p[1]
         if not 0 <= numero <= 0xFFFF:
             raise NoSePuede("actor %d fuera de rango" % numero)
-        # "Está en el grupo" no tiene polaridad: la rama de abajo es el `else`.
-        return bytes([OP_SI, COND_ACTOR, numero & 0xFF, numero >> 8, 0, 0, 0])
+        if p[2] == COND_ACTOR_EN_GRUPO:
+            # "Está en el grupo" no tiene polaridad: la rama de abajo es el
+            # `else`.
+            return bytes([OP_SI, COND_ACTOR, numero & 0xFF, numero >> 8,
+                          0, 0, 0])
+        if p[2] in (COND_ACTOR_HABILIDAD, COND_ACTOR_EQUIPO):
+            if len(p) < 4:
+                raise NoSePuede("una rama de actor sin el objeto ni la "
+                                "habilidad")
+            if not 0 <= numero <= 0xFF:
+                # El actor viaja en un byte: ver OP_SI_ACTOR. El LDB tiene 60.
+                raise NoSePuede("actor %d, que no entra en un byte" % numero)
+            if _ACTORES_INDEXADOS and numero not in ACTOR_EQUIPO:
+                # Las tablas de la ROM van del 0 al último actor del LDB, así
+                # que un número de más se leería fuera de la tabla. RM2k avisa
+                # y se va por el `else`; acá no compila, que es lo que este
+                # port hace con todo lo que no puede contestar. Ninguna página
+                # del juego lo hace: se comprueba sólo cuando el índice está
+                # cargado, para no cambiarle la respuesta a quien compile sin
+                # llamar a `indexar_actores`.
+                raise NoSePuede("el actor %d no está en el LDB" % numero)
+            dato = p[3]
+            if not 0 <= dato <= 0xFFFF:
+                raise NoSePuede("una rama de actor contra %d, que no entra en "
+                                "una palabra" % dato)
+            return bytes([OP_SI_ACTOR, p[2], numero,
+                          dato & 0xFF, dato >> 8, 0, 0])
+        raise NoSePuede("del héroe sabemos si está en el grupo, si sabe una "
+                        "habilidad y qué tiene puesto, y no la %d" % p[2])
     elif p[0] == COND_VARIABLE:
         if len(p) < 5:
             raise NoSePuede("una rama por variable sin operandos")
@@ -4006,6 +4120,9 @@ class Estado:
         # Y el inventario: cuántos hay de cada ítem, por número de RM2k. Lo
         # que no está es cero. Ver OP_ITEM.
         self.items = {}
+        # Y lo que cada actor tiene puesto, por número de RM2k: es `FAR_EQUIPO`
+        # del otro lado. Se llena solo al preguntar; ver `equipo_de`.
+        self.equipo = {}
         # Si se puede guardar desde el menú, si se puede abrir el menú y si se
         # puede huir de una batalla, por bit de `FAR_ACCESO`. Ver OP_ACCESO: la
         # clave es el bit y no el número del permiso, porque eso es lo que
@@ -4079,6 +4196,23 @@ class Estado:
 
     def item(self, numero):
         return self.items.get(numero, 0)
+
+    def equipo_de(self, actor):
+        """Las cinco ranuras de este actor, como las tiene ahora.
+
+        Es `FAR_EQUIPO` del otro lado: arranca del `initial_equipment` del LDB
+        —que la ROM copia en el reset— y **nadie las mueve todavía desde el
+        intérprete**, porque `ChangeEquipment` no compila. La pantalla de
+        equipo sí las mueve en la ROM, pero el menú no se abre en ninguna
+        comparación de la tanda; el día que se abra, esto es lo que hay que
+        hacerle seguir.
+
+        Se copia en vez de devolver la tupla del índice para que nadie le
+        escriba encima al LDB sin querer.
+        """
+        if actor not in self.equipo:
+            self.equipo[actor] = list(ACTOR_EQUIPO.get(actor, (0,) * 5))
+        return self.equipo[actor]
 
     def poner_heroe(self, x, y):
         """La celda del héroe, que en la ROM son `tile_x` y `tile_y`."""
@@ -4819,6 +4953,7 @@ LARGO_DE_OPCODE = {
     OP_CLIMA: 3, OP_SONIDO: 3,
     OP_IMAGEN: 5, OP_IMAGEN_MOVER: 6, OP_IMAGEN_BORRAR: 1,
     OP_BATALLA: 9, OP_PARAR_RUTAS: 1, OP_ACTOR_GRAF: 3, OP_TECLA: 3,
+    OP_SI_ACTOR: 7,
 }
 
 
@@ -5041,7 +5176,7 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
                     variables=(), rama_var=(), items=(), acceso=(),
                     lluvia=None, animacion=(), eventos_mapa=None,
                     batalla=0, temas=None, parar=None, rama_item=(),
-                    sprite=(), graficos=None, tecla=()):
+                    sprite=(), graficos=None, tecla=(), rama_actor=()):
     """Una página automática inventada: una ruta forzada, una espera, un tinte.
 
     No sale de ningún dato del juego, y ésa es la idea. El intérprete corre
@@ -5306,6 +5441,29 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
         destino = len(codigo) + LARGO_DE_OPCODE[OP_SI] + LARGO_DE_OPCODE[OP_TINTE]
         codigo += con_destino(bytes_de_rama(lcf.EventCommand(
             COND_RAMA, 0, "", [COND_ITEM, numero, 0, 0, 0, 0])), destino)
+        codigo += bytes([OP_TINTE]) + bytes(color)
+    if rama_actor:
+        # (sub, actor, dato, r, g, b, saturación): la rama por **actor** con
+        # dos operandos —la 4, "sabe la habilidad", y la 5, "tiene puesto este
+        # objeto"— y el mismo observable que `rama_item`: tiñe sólo si se
+        # cumple, porque lo que hay que poder distinguir son las dos respuestas.
+        #
+        # Existe porque ninguna página del juego que compile las usa: las 36
+        # que preguntan por el equipo y las 10 que preguntan por una habilidad
+        # están en mapas que ninguna demo lleva —el 20, el 38, el 47, el 48, el
+        # 151 y cuatro más—. Sin esto, el opcode nuevo sería un camino que no
+        # ejercita nadie, que es como sobrevivieron los tres errores del
+        # intérprete.
+        #
+        # Compila por el mismo camino que el juego —`bytes_de_rama` con un
+        # `ConditionalBranch` de clase 5 armado a mano— y el destino se parchea
+        # acá porque esta página no pasa por `compilar_pagina`.
+        import lcf
+        sub, actor, dato, *color = rama_actor
+        destino = (len(codigo) + LARGO_DE_OPCODE[OP_SI_ACTOR]
+                   + LARGO_DE_OPCODE[OP_TINTE])
+        codigo += con_destino(bytes_de_rama(lcf.EventCommand(
+            COND_RAMA, 0, "", [COND_ACTOR, actor, sub, dato, 0, 0])), destino)
         codigo += bytes([OP_TINTE]) + bytes(color)
     if rama_var:
         # (variable, comparación, valor, adentro, después): la rama por
@@ -5870,6 +6028,28 @@ def ejecutar(codigo, estado, desde=0):
                 vale = operando in estado.grupo
             else:
                 raise ValueError("condición %d que no conozco" % tipo)
+            if vale:
+                i += 7
+            else:
+                i = codigo[i + 5] | (codigo[i + 6] << 8)
+        elif op == OP_SI_ACTOR:
+            # Las dos preguntas de actor que llevan dos operandos. Salta igual
+            # que `OP_SI` —el destino es absoluto dentro de la página— y no
+            # tiene polaridad: ver OP_SI_ACTOR.
+            if not _ACTORES_INDEXADOS:
+                raise ValueError("una rama de actor sin `indexar_actores`: "
+                                 "contestaría que no sin decirlo")
+            sub = codigo[i + 1]
+            actor = codigo[i + 2]
+            dato = codigo[i + 3] | (codigo[i + 4] << 8)
+            if sub == COND_ACTOR_EQUIPO:
+                # Los cinco `Get*Id()` comparados contra el ítem, que es el
+                # `||` de easyrpg: alcanza con que esté en una ranura.
+                vale = dato in estado.equipo_de(actor)
+            elif sub == COND_ACTOR_HABILIDAD:
+                vale = dato in ACTOR_SABE.get(actor, ())
+            else:
+                raise ValueError("pregunta de actor %d que no conozco" % sub)
             if vale:
                 i += 7
             else:

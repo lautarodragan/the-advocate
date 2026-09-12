@@ -75,6 +75,31 @@ def paginas_del_juego():
 
 @pytest.mark.skipif(not os.path.isdir(GAME_DIR),
                     reason="hace falta el juego original en GAME_DIR")
+def test_ningun_opcode_comparte_numero_con_otro():
+    """Dos `OP_*` con el mismo valor son dos programas distintos.
+
+    No es una precaución abstracta: el 2026-09-13 tres ramas de sub-agente
+    eligieron el siguiente número libre a la vez, sin verse, y salieron dos
+    colisiones —`OP_PARAR_RUTAS` con `OP_ACTOR_GRAF` en $23, `OP_SI_ACTOR` con
+    `OP_TECLA` en $24—. Git las mergeó **sin un solo conflicto**, porque cada
+    una está en su línea, y lo que se rompía era el recorrido del bytecode: el
+    intérprete leía un opcode de tres bytes creyendo que medía siete.
+
+    Lo cazó `test_los_largos_de_opcode_cuadran_en_todo_el_juego`, pero de
+    rebote y sólo porque alguna página del juego usaba los dos. Esto lo dice
+    directamente y sin depender de que el juego los ejercite.
+    """
+    numeros = {}
+    for nombre, valor in sorted(vars(eventos).items()):
+        if not nombre.startswith("OP_") or not isinstance(valor, int):
+            continue
+        assert valor not in numeros, (
+            "%s y %s son los dos $%02X: el bytecode no se puede recorrer"
+            % (numeros[valor], nombre, valor))
+        numeros[valor] = nombre
+    assert len(numeros) > 30, "no se miró ni un opcode"
+
+
 def test_los_largos_de_opcode_cuadran_en_todo_el_juego():
     cuantas = 0
     for nombre, evento, numero, codigo in paginas_del_juego():

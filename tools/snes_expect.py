@@ -202,6 +202,9 @@ class Mundo:
         # los dos lados tienen que mirar la misma base.
         eventos.indexar_comunes(game_dir)
         eventos.indexar_audio_de_batalla(game_dir)
+        # Y lo que el LDB dice del equipo y de las habilidades de cada actor,
+        # que es lo que contestan las dos ramas de actor con dos operandos.
+        eventos.indexar_actores(game_dir)
         if mensajes is not None:
             # Con ventana los mapas se compilan **todos y en el orden de la
             # tabla**, acá y no cuando el héroe pise cada uno. El bloque de
@@ -264,7 +267,8 @@ class Mundo:
                                               sprite=self.prueba[24],
                                               graficos=self.graficos_cache[
                                                   map_id],
-                                              tecla=self.prueba[25])),
+                                              tecla=self.prueba[25],
+                                              rama_actor=self.prueba[26])),
                                      dict(PAGINA_DE_PRUEBA_APAGADA,
                                           evento=numero)]
             self.paginas_cache[map_id] = paginas
@@ -1662,6 +1666,11 @@ def main():
                         metavar=("ITEM", "R", "G", "B", "SAT"),
                         help="ITEM R G B SAT: el otro lado del mismo flag del "
                              "conversor")
+    parser.add_argument("--rama-actor-de-prueba", nargs=7, type=int,
+                        default=None,
+                        metavar=("SUB", "ACTOR", "DATO", "R", "G", "B", "SAT"),
+                        help="SUB ACTOR DATO R G B SAT: el otro lado del mismo "
+                             "flag del conversor")
     parser.add_argument("--parar-de-prueba", type=int, default=None,
                         metavar="CUADROS",
                         help="HaltAllMovement después de esos cuadros: el otro "
@@ -1746,6 +1755,7 @@ def main():
                   or args.timer_de_prueba or args.lugar_de_prueba
                   or args.parar_de_prueba
                   or args.rama_item_de_prueba
+                  or args.rama_actor_de_prueba
                   or args.sacudida_de_prueba or args.fundir_bgm
                 or args.pan_de_prueba or args.rama_de_prueba
                   or args.vars_de_prueba or args.rama_var_de_prueba
@@ -1783,7 +1793,8 @@ def main():
                    args.parar_de_prueba,
                    tuple(args.rama_item_de_prueba or ()),
                    snes_convert.sprite_de_prueba(args.sprite_de_prueba),
-                   tuple(args.tecla_de_prueba or ()))
+                   tuple(args.tecla_de_prueba or ()),
+                   tuple(args.rama_actor_de_prueba or ()))
                   if hay_prueba else None, mensajes,
                   graficos_de_prueba=snes_convert.graficos_de_prueba(
                       args.grafico_de_prueba),
