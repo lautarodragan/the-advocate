@@ -88,8 +88,7 @@ def tipo_de_ranura(ranura):
 def parametros(db, actor, equipo):
     """Ataque, defensa, espíritu y agilidad: los del nivel más lo que suma el
     equipo, topados en [1, 999] como `Game_Actor::GetAtk` y sus hermanas."""
-    params = db.actors[actor].params
-    base = [params.get(k, [0])[titulo.NIVEL - 1]
+    base = [titulo.parametro_de(db.actors[actor], k)
             for k in ("attack", "defense", "spirit", "agility")]
     for item in equipo:
         if item:
@@ -383,11 +382,17 @@ BA_ORDENES = (
 )
 
 # **`Tech Skill` va siempre en gris y A no hace nada con ella**, que es lo que
-# el menú de pausa ya hace con las tres órdenes que no están. Y no es que falte
-# el código: está medido que **a este nivel nadie sabe ninguna habilidad**. Las
-# de los cuatro actores de la intro se aprenden en el nivel 3 o más arriba
-# —Kersh la 131 en el 3, Core la 129 en el 3, Manta la 130 en el 3— y este port
-# tiene a todos en el nivel 1: ver `titulo.NIVEL`. La lista saldría vacía.
+# el menú de pausa ya hace con las tres órdenes que no están.
+#
+# **Y el motivo que decía acá era falso.** Decía que a este nivel nadie sabe
+# ninguna habilidad, y salía de leer los parámetros con un nivel 1 mockeado.
+# Desde que el nivel sale del `initial_level` del LDB —Kersh 20, Core y Manta
+# 15— los tres saben las suyas desde la primera pelea. Lo que falta es el
+# trabajo, medido y en orden en ESTADO.md.
+#
+# Cuando eso entre, esta orden deja de estar en gris **y deja de llamarse
+# "Tech Skill"**: el original la nombra con el `skill_name` de cada actor
+# —"AgentTrain", "Telepathy", "Slicing"— y va segunda, antes de Defend.
 BA_ORDEN_SIN_HACER = (BA_ORDEN_HABILIDAD,)
 
 # Los modos de la pantalla, que la ROM lleva en `ba_modo`. **El orden importa**:

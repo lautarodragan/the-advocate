@@ -240,6 +240,13 @@ ACTOR_FACE_INDEX = 0x10
 # máximo, ataque, defensa, espíritu y agilidad—, una entrada por nivel.
 ACTOR_PARAMETERS = 0x1F
 ACTOR_INITIAL_EQUIPMENT = 0x33
+ACTOR_INITIAL_LEVEL = 0x07
+ACTOR_SKILLS = 0x3F
+ACTOR_RENAME_SKILL = 0x42
+ACTOR_SKILL_NAME = 0x43
+# Una entrada de la tabla de aprendizaje (liblcf: ChunkLearning).
+LEARNING_LEVEL = 0x01
+LEARNING_SKILL_ID = 0x02
 SYSTEM_PARTY = 0x16
 # El System del juego: el PNG con el marco de la ventana, los colores de texto
 # y la sombra. Este juego usa `ablskin`, no el `BLSys` que también trae.
@@ -645,6 +652,28 @@ class Actor:
         self.params = decode_value(fields.get(ACTOR_PARAMETERS, b""),
                                    "parameters", set())
         self.hp_max = self.params.get("maxhp", [])
+        self.sp_max = self.params.get("maxsp", [])
+        # **El nivel con el que arranca**, que en el ABL no es el 1: Kersh
+        # arranca en 20 y Core y Manta en 15. Un actor sin el campo arranca en
+        # 1, que es el default de RM2k. Hasta el 2026-09-13 este port tenía a
+        # todos en 1 —una constante `titulo.NIVEL`— y de ahí salían los HP,
+        # los parámetros y la conclusión de que nadie sabía ninguna habilidad.
+        self.initial_level = to_int(fields.get(ACTOR_INITIAL_LEVEL,
+                                               b"\x01")) or 1
+        # Qué habilidad aprende en cada nivel, en el orden del LDB:
+        # `Game_Actor::LearnLevelSkills` las recorre así.
+        self.skills = [(to_int(f.get(LEARNING_LEVEL, b"\x01")),
+                        to_int(f.get(LEARNING_SKILL_ID, b"\x00")))
+                       for _, f in sorted(Reader(
+                           fields.get(ACTOR_SKILLS, b"\x00")
+                       ).read_struct_array().items())]
+        # Cómo se llama su orden de habilidades en el menú de batalla:
+        # `Game_Actor::GetSkillName` devuelve `skill_name` si `rename_skill`
+        # está puesto y si no el `command_skill` del LDB. Los cuatro actores de
+        # la intro lo tienen puesto: "AgentTrain", "Telepathy", "Slicing" y
+        # "Special".
+        self.rename_skill = to_bool(fields.get(ACTOR_RENAME_SKILL, b"\x00"))
+        self.skill_name = to_string(fields.get(ACTOR_SKILL_NAME, b""))
         # El equipo con el que arranca: arma, escudo, armadura, casco y
         # accesorio, por número de ítem, 0 si nada.
         equipo = decode_value(fields.get(ACTOR_INITIAL_EQUIPMENT, b""),

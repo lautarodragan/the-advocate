@@ -4291,7 +4291,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # esta vez con el dibujo de las animaciones de batalla.
         handle.write('.segment "RODATA"\n')
         words_asm("actor_params", [
-            (db.actors[a].params.get(k, [0])[titulo_mod.NIVEL - 1]
+            (titulo_mod.parametro_de(db.actors[a], k)
              if a in db.actors else 0) & 0xFFFF
             for a in range(actores_n)
             for k in ("attack", "defense", "spirit", "agility")],
@@ -4365,8 +4365,14 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # equipo muestra; los HP no los toca el equipo, como en RM2k.
         handle.write('.segment "RODATA"\n')
         words_asm("actor_hpmax", [
-            (db.actors[a].hp_max[titulo_mod.NIVEL - 1]
-             if a in db.actors and db.actors[a].hp_max else 0) & 0xFFFF
+            (titulo_mod.parametro_de(db.actors[a], "maxhp")
+             if a in db.actors else 0) & 0xFFFF
+            for a in range(actores_n)])
+        # Y los SP, que son estado desde el 2026-09-13 por lo mismo que los HP:
+        # las habilidades los gastan. Ver `sp_inicial_poner` en main.s.
+        words_asm("actor_spmax", [
+            (titulo_mod.parametro_de(db.actors[a], "maxsp")
+             if a in db.actors else 0) & 0xFFFF
             for a in range(actores_n)])
         # Las tropas que alguna pelea del cartucho pide, y los enemigos que las
         # forman. El bytecode lleva el **número de RM2k** de la tropa, así que
@@ -4415,8 +4421,8 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # actores de este juego andan en 40. Un actor más gordo desbordaría sin
         # avisar, así que se corta acá.
         for a in range(actores_n):
-            maximo = (db.actors[a].hp_max[titulo_mod.NIVEL - 1]
-                      if a in db.actors and db.actors[a].hp_max else 0)
+            maximo = (titulo_mod.parametro_de(db.actors[a], "maxhp")
+                      if a in db.actors else 0)
             if maximo * 100 > 0xFFFF:
                 raise SystemExit(
                     "el actor %d tiene %d HP y la cuenta de la curación de la "

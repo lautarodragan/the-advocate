@@ -468,7 +468,11 @@ CARAS_MAX = 3
 NOMBRE_COL = RANURA_X // CELL   # 7
 NOMBRE_COLS = 7
 NOMBRE_FILA = LINEA // CELL     # 2: la segunda línea arranca en y+16
-NOMBRE_FILAS = 2
+# Cuatro y no dos desde el 2026-09-13: el bloque del actor lleva **su nombre y
+# su nivel**, que son dos renglones seguidos. El nivel dejó de ser el mismo
+# para todos cuando pasó a salir de `initial_level`, así que no puede vivir en
+# la capa de la fila, que es una sola para las cuatro ranuras.
+NOMBRE_FILAS = 4
 # Y con qué paleta van las caras: la 0 es del texto, y cada cara lleva la suya
 # desde la 1. Son las paletas de BG2 a 4bpp, que en la consola son ocho.
 CARAS_PALETAS_MAX = 7
@@ -515,11 +519,38 @@ def _bloque_de_celdas(capa, fila0, filas, tiles, donde, indice, col0=0,
     return celdas
 
 
-# El nivel está **mockeado en 1**: la partida guarda la posición, el mapa, el
-# grupo, los switches y el oro, pero todavía no hay actores con nivel. Es una
-# decisión tomada con taro y no un olvido; el día que exista, sale de la
-# partida.
-NIVEL = 1
+# El nivel de cada actor sale del LDB desde el 2026-09-13: es su
+# `initial_level`, que en el ABL no es 1 —Kersh arranca en 20, Core y Manta en
+# 15— y de él salen los HP, los SP y los cuatro parámetros.
+#
+# Hasta ese día acá había un `NIVEL = 1` mockeado, y **no era sólo cosmético**:
+# con él Kersh mostraba 40 HP en vez de 168 y peleaba con ataque 17 en vez de
+# 80, así que el balance entero de la pelea era otro. Y de ahí salió además la
+# conclusión equivocada de que nadie sabía ninguna habilidad: todas se aprenden
+# en el nivel 3 o más arriba, y con el nivel inicial de verdad los tres las
+# saben desde la primera pelea.
+#
+# Subir de nivel sigue sin existir, y eso sí es una decisión: no hay
+# experiencia. El nivel es un dato estático del LDB.
+
+
+def nivel_de(actor):
+    """El nivel con el que arranca un actor: `Game_Actor::Setup`, que llama a
+    `ChangeLevel(initial_level)` cuando el campo está."""
+    return actor.initial_level
+
+
+def parametro_de(actor, cual):
+    """Un parámetro del actor a su nivel: `maxhp`, `maxsp`, `attack`,
+    `defense`, `spirit` o `agility`.
+
+    La tabla del LDB va desde el nivel 1, así que el índice es el nivel menos
+    uno. Un actor sin la tabla —o con una más corta que su nivel, que no pasa
+    en este juego— da cero, que es lo que hacía el código de antes.
+    """
+    valores = actor.params.get(cual) or []
+    nivel = nivel_de(actor)
+    return valores[nivel - 1] if nivel - 1 < len(valores) else 0
 
 
 def _texto_de_ranura(numero, db, llena):
@@ -532,7 +563,7 @@ def _texto_de_ranura(numero, db, llena):
     return ["%s %d" % (db.term_file, numero + 1), ""]
 
 
-def _escribir_nivel(destino, sys_img, x, y, db, font_id):
+def _escribir_nivel(destino, sys_img, x, y, db, font_id, actor):
     """La tercera línea de una ranura llena, como `Window_SaveFile::Refresh`:
     `lvl_short` completado a dos caracteres y en el color 1 del sistema, y el
     número a dos cifras en el color normal. En el ABL es "L  1". Los puntos de
@@ -540,12 +571,17 @@ def _escribir_nivel(destino, sys_img, x, y, db, font_id):
 
     Está copiado de la captura de EasyRPG del 2026-09-10, no del código solo:
     ver `rom/easyrpg.sh`.
+
+    **El número es el del actor y no una constante**, desde el 2026-09-13: con
+    Kersh de líder dice 20 y con Core 15. Por eso este renglón se dibuja en la
+    capa del actor y no en la de la fila, igual que su nombre.
     """
     import ventana as ventana_mod
     corto = (db.term_lvl_short or "")[:2].ljust(2)
     fin = ventana_mod.dibujar_linea(destino, sys_img, x, y, corto, color=1,
                                     font_id=font_id)
-    ventana_mod.dibujar_linea(destino, sys_img, fin, y, "%2d" % NIVEL,
+    ventana_mod.dibujar_linea(destino, sys_img, fin, y,
+                              "%2d" % nivel_de(db.actors[actor]),
                               font_id=font_id)
 
 
@@ -814,10 +850,11 @@ def _escribir_menu_actor(destino, sys_img, db, actor, font_id):
 
     a = db.actors[actor]
     escribir(MENU_TEXTO_X, 2, a.name)
-    _escribir_nivel(destino, sys_img, MENU_TEXTO_X, 2 + LINEA, db, font_id)
+    _escribir_nivel(destino, sys_img, MENU_TEXTO_X, 2 + LINEA, db, font_id,
+                    actor)
     escribir(MENU_TEXTO_X + MENU_ESTADO_DX, 2 + LINEA, db.term_normal_status)
     escribir(MENU_TEXTO_X, 2 + 2 * LINEA, db.term_hp_short, color=1)
-    hp = a.hp_max[NIVEL - 1] if a.hp_max else 0
+    hp = parametro_de(a, "maxhp")
     escribir(MENU_TEXTO_X + MENU_HP_DX, 2 + 2 * LINEA, "%3d/%3d" % (hp, hp))
 
 
@@ -878,13 +915,12 @@ def pantalla_ranuras(sys_img, db, ranuras, font_id=None, actores=(),
                     escribir(una, RANURA_X - 16, y + 2, ">")
                 for n, linea in enumerate(_texto_de_ranura(numero, db, llena)):
                     escribir(una, RANURA_X, y + 2 + n * LINEA, linea)
-                if llena:
-                    _escribir_nivel(una, sys_img, RANURA_X, y + 2 + 2 * LINEA,
-                                    db, font_id)
                 capas.append(("fila", (numero, llena, cursor), una))
     for actor in actores:
         una = capa()
         escribir(una, RANURA_X, RANURA_Y + 2 + LINEA, db.actors[actor].name)
+        _escribir_nivel(una, sys_img, RANURA_X, RANURA_Y + 2 + 2 * LINEA,
+                        db, font_id, actor)
         capas.append(("nombre", actor, una))
     # Las del menú de pausa, en el mismo banco. Todas en la fila de más arriba
     # que les toca: los bloques valen en cualquier otra porque van alineados.

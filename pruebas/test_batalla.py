@@ -31,6 +31,7 @@ sys.path.insert(0, os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "tools"))
 
 import lcf                                                  # noqa: E402
+import titulo                                               # noqa: E402
 import batalla as modelo                                    # noqa: E402
 from render_map import GAME_DIR                             # noqa: E402
 
@@ -172,8 +173,12 @@ def test_los_hp_arrancan_llenos(partida):
     base = db()
     pelea = Pelea(una)
     for actor in GRUPO:
-        assert pelea.hp_guardado(actor) == base.actors[actor].hp_max[0], \
-            "el actor %d no arranca con los HP del nivel" % actor
+        esperado = titulo.parametro_de(base.actors[actor], "maxhp")
+        assert esperado > 40, (
+            "el actor %d tendría que tener los HP de su nivel inicial y no "
+            "los del 1: si son 40 el caso no distingue nada" % actor)
+        assert pelea.hp_guardado(actor) == esperado, \
+            "el actor %d no arranca con los HP de su nivel" % actor
 
 
 def test_los_hp_viajan_en_la_partida(partida):
@@ -311,11 +316,23 @@ def test_perder_sigue_por_el_defeat_handler(partida):
     for actor in GRUPO:
         una.consola.escribir_ram(una.simbolos["FAR_HP"] + 2 * actor, [1, 0])
     pelea = Pelea(una).abrir()
+    # **Se defienden en vez de atacar**: desde que los actores pelean con su
+    # nivel del LDB —Kersh con ataque 280 y no 17— tres golpes matan al droide
+    # antes de que él mate a nadie, y la pelea terminaba en victoria. Con
+    # `Defend` el único que actúa es él.
     for _ in range(12):
-        vivos = sum(1 for k in range(3) if pelea.hp(k))
         if pelea.modo() == FIN:
             break
-        pelea.turno(vivos)
+        for _ in range(3):
+            for _ in range(400):
+                if pelea.modo() != ORDEN:
+                    break
+                pelea.tocar("right")
+                pelea.tocar()
+        for _ in range(400):
+            if pelea.modo() in (ORDEN, FIN):
+                break
+            pelea.tocar()
     assert pelea.byte("BA_RESULT") == modelo.DERROTA, \
         "con un HP cada uno la pelea se pierde"
     pelea.cerrar()
@@ -598,8 +615,15 @@ def en_el_droide_con_pocion(partida, cuantas=3):
     una.poner_grupo(*GRUPO)
     una.ir_al_mapa(2, *DROIDE)
     una.poner_byte("hero_dir", una.simbolos["DIR_UP"])
+    # Heridos en **veinte**, que es menos de lo que cura una poción: es lo que
+    # hace que el tope contra el máximo se vea. Con un HP no se vería: desde
+    # que el nivel sale del LDB, Kersh tiene 168 de máximo y cincuenta no lo
+    # llenan.
     for actor in GRUPO:
-        una.consola.escribir_ram(una.simbolos["FAR_HP"] + 2 * actor, [1, 0])
+        maximo = titulo.parametro_de(db().actors[actor], "maxhp")
+        falta = maximo - 20
+        una.consola.escribir_ram(una.simbolos["FAR_HP"] + 2 * actor,
+                                 [falta & 0xFF, falta >> 8])
     return una
 
 
@@ -645,7 +669,7 @@ def test_usar_una_pocion_cura_lo_que_dice_el_modelo(partida):
     base = db()
     esperado = modelo_de(base)
     for quien in esperado.actores:
-        quien.hp = 1
+        quien.hp = quien.hp_max - 20
     antes = una.item(POCION)
     # El primer actor usa la poción sobre sí mismo; los otros dos atacan.
     for _ in range(O_USAR):

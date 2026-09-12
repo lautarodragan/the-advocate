@@ -183,8 +183,13 @@ def actor_de(db, numero, equipo=None):
     El acierto es 90: `Game_Actor::GetHitChance` con un arma sin `hit` propio.
     **El `hit` del arma no se lee**, y es deuda declarada: ningún arma del ABL
     lo baja, pero el día que una lo haga esto se equivoca en silencio.
+
+    El nivel es el `initial_level` del LDB y no el 1: ver `titulo.nivel_de`.
+    Hasta el 2026-09-13 era el 1 y Kersh peleaba con 40 HP y ataque 17 en vez
+    de 168 y 80.
     """
     import pantallas
+    import titulo
     actor = db.actors[numero]
     if equipo is None:
         equipo = list(actor.initial_equipment)
@@ -192,8 +197,8 @@ def actor_de(db, numero, equipo=None):
                                                                 equipo)
     critico = (100 // actor_critico_cada(db, numero)) \
         if actor_tiene_critico(db, numero) else 0
-    return Combatiente(actor.name, actor.hp_max[0], ataque, defensa, agilidad,
-                       90, critico, True, numero)
+    return Combatiente(actor.name, titulo.parametro_de(actor, "maxhp"),
+                       ataque, defensa, agilidad, 90, critico, True, numero)
 
 
 def actor_tiene_critico(db, numero):

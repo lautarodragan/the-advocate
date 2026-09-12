@@ -20,7 +20,7 @@ Se escribe **mientras se trabaja**, no al final.
 a vuelta.
 
 Al 2026-09-12: `just snes-hitos-foto` son **138 casos, todos en verde** —sobre
-la foto `01d5509`—, y `just pruebas` **97 en verde y 1 `xfail`**. El `xfail` no
+la foto `01d5509`—, y `just pruebas` **104 en verde y 1 `xfail`**. El `xfail` no
 es adorno: es un defecto medido de guardar con la pantalla de título puesta, y
 está abajo.
 
@@ -45,6 +45,89 @@ teletransportes resolubles —o sea el techo de una ROM con la ventana puesta—
 con **`eventos.indexar_variables` llamado antes**. Sin eso último ninguna
 `ControlVars` compila y el total sale 300 páginas por debajo; pasó el
 2026-09-12 y los números de los dos primeros commits de ese día son ésos.
+
+### El nivel estaba mockeado en 1, y no era cosmético (2026-09-13)
+
+**Lo que dije el 2026-09-13 sobre las habilidades estaba mal, y el error era el
+dato de entrada.** Medí `hp_max[NIVEL - 1]` con `titulo.NIVEL = 1` y concluí que
+nadie sabía ninguna habilidad, porque todas se aprenden en el nivel 3 o más
+arriba. El LDB dice otra cosa: **`initial_level`**, que este port no leía.
+
+    Kersh   nivel 20   HP 168  SP 168  atk 80   def 47  spi 85  agi 85
+    Core    nivel 15   HP 127  SP 127  atk 117  def 37  spi 64  agi 64
+    Manta   nivel 15   HP 127  SP 127  atk 37   def 37  spi 64  agi 64
+    con el equipo puesto: Kersh 280/147, Core 237/112, Manta 187/77
+
+Contra los 40 HP y los 15 a 20 de parámetros que salían del nivel 1. Los HP
+coinciden con las capturas de EasyRPG que dejó taro en
+`pruebas-manuales/capturas-batalla/`.
+
+**Qué más se apoyaba en el mock**, que es la parte que conviene no volver a
+descubrir:
+
+* **El balance entero de la pelea.** Daño, acierto, orden de turnos y chance de
+  huir salen de atk/def/agi. Con el nivel de verdad el grupo mata al droide de
+  450 HP en un par de turnos; con el mock tardaba mucho más. Un caso de
+  `test_batalla.py` —el de la derrota, que ponía a todos en 1 HP— pasó a
+  **ganar**, y hubo que hacer que el grupo se defienda en vez de atacar.
+* **La pantalla de equipo** mostraba los cuatro parámetros del nivel 1.
+* **El menú de pausa** mostraba 40/40 de HP.
+* **El nivel de la ranura de guardado** decía `L  1` para todos. Ahora depende
+  del líder, así que se mudó al bloque por actor —el mismo que lleva su
+  nombre— y `NOMBRE_FILAS` pasó de 2 a 4.
+* **Los HP máximos de la batalla** (`actor_hpmax`).
+
+Subir de nivel sigue sin existir, y eso sí es una decisión: no hay experiencia.
+El nivel es un dato estático del LDB.
+
+### Lo que falta de las habilidades, todo medido (2026-09-13)
+
+Con el nivel de verdad, **los tres saben sus habilidades desde la primera
+pelea**. `Game_Actor::LearnLevelSkills(1, initial_level)`, ordenadas por id:
+
+    Kersh (20)   131 Healing Syringe (nivel 3), 146 Agency Badge (7)
+    Core  (15)   129 Fury Punch (3), 150 MindBlast (15)
+    Manta (15)   130 Mental Hack (3), 143 MindShield (5),
+                 144 MindProbe (10), 150 MindBlast (8)
+
+Manta sabe **cuatro**, y así se ven en la captura `auto_20260912_123023.png`:
+dos columnas, fila por fila y ordenadas por id —Mental Hack, MindShield /
+MindProbe, MindBlast— con el costo en SP a la derecha de cada una y la
+descripción de la marcada arriba de todo.
+
+Lo que falta hacer, en orden:
+
+1. **Los SP como estado**, igual que los HP: `FAR_SP` al lado de `FAR_HP`,
+   lleno en el reset desde `actor_spmax` —que el conversor **ya emite**— y
+   viajando en la partida. Son dos bytes por actor, lo mismo que los HP.
+2. **La lista por actor en el cartucho**: qué skills sabe con su
+   `initial_level`, ordenadas por id. El dato ya está leído, en
+   `lcf.Actor.skills` —pares (nivel, skill_id)— y en `initial_level`.
+3. **El menú**: la segunda orden es **el nombre propio de la habilidad de cada
+   actor**, `skill_name` con `rename_skill` —"AgentTrain", "Telepathy",
+   "Slicing", "Special"—, así que el texto depende de `BA_ACTOR`. Y el orden
+   del original es **Attack / <habilidad> / Defend / Use Item**: Escape no está
+   ahí porque en RM2k es una orden del grupo. Hoy están las cinco con `Tech
+   Skill` en gris, y eso es lo que hay que reemplazar.
+4. **La pantalla**: dos columnas, descripción arriba, costo en SP a la derecha.
+   Es la misma que la de ítems con otra tabla.
+5. **El efecto.** De las siete habilidades del grupo:
+   * `Fury Punch` (129): daño a un enemigo. `power` 500, `physical_rate` 3.
+   * `Healing Syringe` (131): cura a un aliado. `scope` 3, `power` 75.
+   * `Agency Badge` (146) y `Mental Hack` (130): **modificadores de parámetro**
+     sobre un enemigo. Piden estado nuevo por combatiente
+     —`CanChangeAtkModifier` y compañía—, que es lo único de esta lista que no
+     existe todavía.
+   * `MindBlast` (150), `MindShield` (143), `MindProbe` (144): **de tipo
+     switch**. `Skill::vExecute` les prende el `switch_id` y listo; lo que
+     reacciona en RM2k es una página de evento de tropa, que este port no
+     tiene.
+
+   La fórmula es `Algo::CalcSkillEffect`: `power + physical_rate * atk / 20 +
+   magical_rate * spi / 40`, y contra un enemigo se le restan `physical_rate *
+   def / 40` y `magical_rate * spi / 80`. El costo es `skill.sp_cost` a secas
+   en RM2k (`Algo::CalcSkillCost`). Todo eso va escrito dos veces, como el
+   resto de la pelea.
 
 ### El dibujo de las animaciones de batalla: medido, sin empezar
 
