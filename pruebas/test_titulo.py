@@ -179,8 +179,10 @@ def test_la_musica_viaja_en_la_partida(partida):
     # en cero. Están al final de la partida, **antes de las variables**, que
     # desde el 2026-09-10 siguen con VARIABLES_N palabras, de la velocidad
     # del héroe, un byte, del inventario, ITEMS_N bytes, de los permisos del
-    # menú, un byte, del equipo, diez bytes por actor, y desde el 2026-09-12
-    # de los HP, dos bytes por actor, que cierra la tabla.
+    # menú, un byte, del equipo, diez bytes por actor, de los HP, dos bytes por
+    # actor desde el 2026-09-12, y desde el 2026-09-13 del gráfico que un
+    # `ChangeSpriteAssociation` le haya puesto a cada actor, un byte, que cierra
+    # la tabla.
     #
     # Esta resta es un duplicado de `partida_tabla` y lo sabe: agregarle un
     # campo a la partida la deja mal, y lo que se ve es este caso en rojo. Es
@@ -188,7 +190,8 @@ def test_la_musica_viaja_en_la_partida(partida):
     largo = (una.simbolos["PARTIDA_BYTES"] - 2 * una.simbolos["VARIABLES_N"]
              - 1 - una.simbolos["ITEMS_N"] - 1
              - 10 * una.simbolos["ACTORES_N"]
-             - 2 * una.simbolos["ACTORES_N"])
+             - 2 * una.simbolos["ACTORES_N"]
+             - una.simbolos["ACTORES_N"])
     cola = una.sram(0x106 + largo - 3, 3)
     assert cola[0] == una.byte("music_apagada"), (
         "la SRAM guardó music_apagada = %d y la consola lo tenía en %d"

@@ -1034,6 +1034,52 @@ snes-relampago mapa="1" destello="31 31 31 31 12" celda="22 56" cuadros="2 5 9" 
         --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
   done
 
+# `ChangeSpriteAssociation`: el CharSet de un **actor**, cambiado en caliente.
+#
+# Es lo que traba la persecución en auto: 102 de las 134 páginas disparables de
+# los mapas 49, 52 y 54 se caen en este comando, y con él compilan 130. En el
+# juego el héroe *es* el auto —los mapas de la carrera sacan a todo el grupo y
+# meten a `CarRED` o `CarBLUE`, cuyo CharSet es `BLVehicles:2`— y cada choque lo
+# devuelve a `Future3:0` justo antes de teletransportar al 50.
+#
+# Acá la página de prueba le cambia el CharSet al actor que lidera **después de
+# la espera**, así que los cuadros de antes lo miran con el gráfico del LDB y
+# los de después con el nuevo. El líder de estas ROMs es Kersh, `Future1:5`; se
+# le pone `Future1:0`, que es el de Core.
+#
+# `--grafico-de-prueba` va junto y no es redundante: el `--sprite-de-prueba`
+# reserva la ranura de la tabla de gráficos en **todos** los mapas —es lo que
+# hace que el índice signifique lo mismo después de un salto— y el otro es el
+# que le mete las doce poses al banco de sprites del mapa.
+#
+# Lo que este caso **no** mira, y hay que decirlo con todas las letras: que el
+# cambio sobreviva al teletransporte. Lo que sí mira es la mitad que importa,
+# porque es la misma función: el que decide con qué se dibuja el héroe es
+# `elegir_grafico_heroe`, y lo llaman los dos —el opcode acá y `cargar_mapa`
+# allá—. Que el byte sobreviva al salto y a guardar lo cobra
+# `pruebas/test_sprite_actor.py`.
+snes-sprite-actor mapa="6" sprite="11 Future1 0" grafico="Future1 0" celda="22 12" cuadros="10 30" tinte="20 100 100 100" arranque="115" nombre="sprite-actor":
+  #!/usr/bin/env bash
+  set -euo pipefail
+  mkdir -p {{snes_pngs}} {{snes_inc}}
+  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
+      --inicio {{celda}} --sprite-de-prueba {{sprite}} \
+      --grafico-de-prueba {{grafico}} \
+      --pagina-de-prueba {{tinte}} -o {{snes_inc}}/mapdata.inc
+  just snes-build
+  pre={{snes_pngs}}/{{nombre}}
+  python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
+      --hero-tile {{celda}} --sprite-de-prueba {{sprite}} \
+      --grafico-de-prueba {{grafico}} \
+      --pagina-de-prueba {{tinte}} --cuadros {{cuadros}} \
+      --saltar $pre-{}.saltar.txt -o $pre-{}.esperado.png
+  for n in {{cuadros}}; do
+    python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre-$n.png \
+        --walk none --cuadros $n --arranque {{arranque}}
+    python3 tools/snes_compare.py $pre-$n.png $pre-$n.esperado.png \
+        --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
+  done
+
 snes-destello mapa="6" flash="1 31 0 0 31 24" celda="2 10" cuadros="2 12 15 23 25" tinte="12 0 0 50" arranque="115" nombre="destello":
   #!/usr/bin/env bash
   set -euo pipefail

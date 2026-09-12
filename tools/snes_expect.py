@@ -183,6 +183,15 @@ class Mundo:
         # `eventos.Imagenes`.
         self.imagenes = eventos.Imagenes(game_dir)
         self.imagenes.elegir(self.mapa(i)[0] for i in self.ids)
+        # Y las ranuras reservadas de la tabla de gráficos, por lo mismo que el
+        # cartel: si un lado numerara distinto que el otro, los dos leerían el
+        # mismo índice y dibujarían otro CharSet. Ver `eventos.asociaciones_de`.
+        self.asociaciones = eventos.asociaciones_de(
+            self.mapa(i)[0] for i in self.ids)
+        # Y el de `--sprite-de-prueba`, con la misma regla que en el conversor.
+        if prueba is not None and prueba[22] and (
+                prueba[22][1], prueba[22][2]) not in self.asociaciones:
+            self.asociaciones.append((prueba[22][1], prueba[22][2]))
         # El mismo índice de variables que el conversor: el del juego entero.
         eventos.indexar_variables(game_dir, (
             snes_convert.variables_de_prueba(prueba[15], prueba[16])
@@ -206,7 +215,7 @@ class Mundo:
     def paginas(self, map_id):
         """Las páginas de evento del mapa, compiladas como las compiló la ROM."""
         if map_id not in self.paginas_cache:
-            self.graficos_cache[map_id] = eventos.Graficos()
+            self.graficos_cache[map_id] = eventos.Graficos(self.asociaciones)
             paginas = eventos.paginas_del_mapa(self.mapa(map_id)[0],
                                                self.indices.get, self.mensajes,
                                                self.temas,
@@ -248,7 +257,10 @@ class Mundo:
                                               eventos_mapa=eventos.Eventos(
                                                   self.mapa(map_id)[0]),
                                               batalla=self.prueba[21],
-                                              temas=self.temas)),
+                                              temas=self.temas,
+                                              sprite=self.prueba[22],
+                                              graficos=self.graficos_cache[
+                                                  map_id])),
                                      dict(PAGINA_DE_PRUEBA_APAGADA,
                                           evento=numero)]
             self.paginas_cache[map_id] = paginas
@@ -1586,6 +1598,19 @@ def main():
                              "prueba: el blanco es 0 para el héroe o el índice "
                              "del evento más uno, el color va de 0 a 31 y los "
                              "cuadros son cuántos dura")
+    parser.add_argument("--sprite-de-prueba", nargs=3, default=None,
+                        metavar=("ACTOR", "CHARSET", "INDICE"),
+                        help="el mismo de snes_convert.py: agrega a la\n"
+                             "ChangeSpriteAssociation: le cambia el\n"
+                             "CharSet a ese actor **después de la\n"
+                             "espera**, y si es el que lidera, el\n"
+                             "héroe pasa a dibujarse con él. El\n"
+                             "gráfico tiene que ir además en\n"
+                             "--grafico-de-prueba, que es lo que le\n"
+                             "pone las poses en el banco de sprites\n"
+                             "del mapa. Las 212 apariciones del\n"
+                             "comando en el juego están en los cuatro\n"
+                             "mapas de la persecución en auto")
     parser.add_argument("--grafico-de-prueba", nargs=2, action="append",
                         default=None, metavar=("CHARSET", "INDICE"),
                         help="el mismo de snes_convert.py: registra un gráfico\n"
@@ -1701,6 +1726,7 @@ def main():
                   or args.items_de_prueba or args.acceso_de_prueba
                   or args.lluvia_de_prueba is not None
                   or args.animacion_de_prueba or args.batalla_de_prueba
+                  or args.sprite_de_prueba
                   or args.mensaje_de_prueba is not None)
     # El bloque de textos, armado igual que en el conversor y en el mismo orden:
     # el mensaje de prueba primero —desplazamiento 0— y después los mapas de la
@@ -1726,7 +1752,8 @@ def main():
                    tuple(args.acceso_de_prueba or ()),
                    args.lluvia_de_prueba,
                    tuple(args.animacion_de_prueba or ()),
-                   args.batalla_de_prueba)
+                   args.batalla_de_prueba,
+                   snes_convert.sprite_de_prueba(args.sprite_de_prueba))
                   if hay_prueba else None, mensajes,
                   graficos_de_prueba=snes_convert.graficos_de_prueba(
                       args.grafico_de_prueba),
@@ -1876,10 +1903,31 @@ def main():
         # llaman los dos a `ResetGraphic`—. La página del mapa 121 hace
         # exactamente eso: saca al 10 y mete al 14, así que el héroe pasa de
         # `DummyHero`, que es una celda vacía, a Talan.
+        def en_el_banco(par):
+            """Si el gráfico tiene tiles y paleta en este mapa.
+
+            Es la misma pregunta que del lado de la ROM contesta la tabla
+            `ruta_grafico` del mapa, con $FF para "no está": ver
+            `grafico_se_ve` en snes_convert.py, que es quien la emite.
+            """
+            return (bool(snes_convert.sprite_colors(charset_image(par[0]),
+                                                    par[1]))
+                    and par in mundo.paleta_de_sprite(map_id))
+
         if args.charset is not None:
             charset, charset_index = args.charset, args.charset_index or 0
         else:
             charset, charset_index = renderer.database.lider(estado.grupo)
+            # Y encima del LDB, el `ChangeSpriteAssociation` que le hayan hecho
+            # al líder, que **sí** cruza el teletransporte: en RM2k el gráfico
+            # vive en el actor. Si el CharSet no está en el banco de sprites de
+            # este mapa se queda con el del LDB, que es lo mismo que hace la
+            # ROM en `elegir_grafico_heroe`. Ver OP_ACTOR_GRAF.
+            lider = estado.grupo[0] if estado.grupo else None
+            if lider in estado.actor_graf:
+                par = mundo.graficos(map_id).pares[estado.actor_graf[lider]]
+                if en_el_banco(par):
+                    charset, charset_index = par
 
         # Y encima de eso, la orden 34 de una ruta forzada sobre el héroe, que
         # gana sobre el líder: es `SetSpriteGraphic` sobre `Game_Player`, el
@@ -1892,10 +1940,7 @@ def main():
         if estado.ruta_heroe.grafico is not None:
             charset, charset_index = mundo.graficos(map_id).pares[
                 estado.ruta_heroe.grafico]
-            if (not snes_convert.sprite_colors(charset_image(charset),
-                                               charset_index)
-                    or (charset, charset_index)
-                    not in mundo.paleta_de_sprite(map_id)):
+            if not en_el_banco((charset, charset_index)):
                 # Un CharSet sin un solo pixel opaco, o uno que no entró en las
                 # ocho paletas de sprite: el héroe deja de dibujarse, igual que
                 # un evento al que la 34 le esconde la fila.

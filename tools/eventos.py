@@ -717,16 +717,72 @@ class Graficos:
     El bytecode lleva el índice y no el nombre, como con los temas y los
     mapas: quien lo resuelve es el conversor, y la ROM no vuelve a mirar el
     LCF.
+
+    `asociaciones` rompe a medias lo de "por mapa", y hay que entender por qué:
+    son los gráficos que `ChangeSpriteAssociation` le puede poner a un actor, y
+    ése **sobrevive al cambio de mapa** —todas las veces que el juego lo usa,
+    el comando va pegado a un teletransporte y lo que se ve es el gráfico del
+    otro lado—. O sea que su índice no puede significar una cosa acá y otra
+    allá. Se resuelve reservándoles las primeras ranuras de la tabla de
+    **todos** los mapas de la ROM, en el mismo orden: ver `asociaciones_de`,
+    que es la pasada previa que las junta, y `Imagenes.elegir`, que es el
+    mismo patrón.
     """
 
-    def __init__(self):
-        self.pares = []
+    def __init__(self, asociaciones=()):
+        self.pares = list(asociaciones)
 
     def indice(self, charset, index):
         par = (charset, index)
         if par not in self.pares:
             self.pares.append(par)
         return self.pares.index(par)
+
+
+# `ChangeSpriteAssociation`: le cambia el CharSet a un **actor**, no a un
+# evento. En RM2k es `actor->SetSprite(...)` más un `ResetGraphic()` sobre
+# `Game_Player`, así que se ve enseguida si ese actor está liderando y queda
+# guardado para cuando lidere.
+#
+# Los parámetros son [actor, índice dentro del CharSet, transparente] y el
+# nombre va en `string`. Un cuarto parámetro es el bitfield que dice cuáles de
+# los tres salen de una variable —`ValueOrVariableBitfield(com, 3, ...)`—: este
+# juego no lo usa en ninguna de sus 212 apariciones y acá se rechaza, que es lo
+# de siempre.
+CHANGE_SPRITE_ASSOCIATION = 10630
+
+
+def asociaciones_de(game_maps):
+    """Los (CharSet, índice) que algún `ChangeSpriteAssociation` nombra.
+
+    Es la pasada previa de `Graficos`: le reserva a cada uno la misma ranura en
+    la tabla de gráficos de todos los mapas de la ROM, porque el gráfico que el
+    comando le pone a un actor **cruza el teletransporte** y su índice tiene que
+    querer decir lo mismo de los dos lados del salto.
+
+    Se miran **todas** las páginas y no sólo las que compilan, a propósito: si
+    dependiera de qué compila, la lista dependería de si la ROM lleva ventana de
+    mensaje —igual que `lideres_posibles`— y las dos pasadas del conversor
+    numerarían distinto. Reservar una ranura de más cuesta las doce poses de un
+    CharSet en el banco de sprites y nada más.
+
+    En este juego son dos pares —`Future3:0` y `BLVehicles:2`— y sólo si la ROM
+    lleva alguno de los mapas 49, 50, 52 o 54, que son la persecución en auto.
+    """
+    pares = []
+    for game_map in game_maps:
+        for evento in game_map.events:
+            for page in evento.pages:
+                for cmd in page.commands:
+                    if cmd.code != CHANGE_SPRITE_ASSOCIATION:
+                        continue
+                    p = list(cmd.parameters)
+                    if len(p) != 3 or p[2]:
+                        continue        # los que `_compilar` va a rechazar
+                    par = (cmd.string, p[1])
+                    if par not in pares:
+                        pares.append(par)
+    return pares
 
 
 # --- los opcodes que emitimos -----------------------------------------------
@@ -1498,6 +1554,26 @@ IMAGEN_CUADROS_MAX = 255
 # Un manejador que la página no tenga apunta al final del bloque, o sea al
 # `EndBattle`, que es lo que hace RM2k cuando el sub-índice no tiene rama.
 OP_BATALLA = 0x22   # tropa (word), victoria (word), huida (word), derrota (word)
+
+# `ChangeSpriteAssociation`: actor (byte) y qué gráfico de la tabla del mapa
+# (byte). Es lo mismo que la orden 34 de una ruta pero sobre un **actor**, y de
+# ahí salen las dos diferencias:
+#
+# * **Sobrevive al cambio de mapa**, porque en RM2k es del actor y no del
+#   `Game_Player`. Por eso su índice sale de las ranuras reservadas de
+#   `Graficos` —ver `asociaciones_de`— y no de la numeración libre del mapa.
+# * **Se guarda por actor y se ve sólo si ese actor lidera.** El que no lidera
+#   no se dibuja, así que el cambio queda esperando; la ROM lo resuelve en
+#   `elegir_grafico_heroe`, que es el único que decide con qué se dibuja el
+#   héroe.
+#
+# Y una cosa que **no** se hace: si el gráfico no está en el banco de sprites
+# del mapa, el actor se queda con el suyo del LDB en vez de dejar de dibujarse.
+# Es la diferencia con la orden 34, que ahí esconde la fila, y está elegida:
+# acá el blanco es el héroe, y un héroe invisible por un mapa donde el CharSet
+# no entró es peor que un héroe con el gráfico viejo. Los dos lados hacen lo
+# mismo con la misma función.
+OP_ACTOR_GRAF = 0x23    # actor (byte), gráfico (byte)
 
 ENEMY_ENCOUNTER = 10710
 VICTORY_HANDLER = 20710
@@ -2479,6 +2555,25 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         if len(p) < 3 or p[2] != 1:
             raise NoSePuede("ChangeCondition que pone un estado")
         return b""
+
+    if cmd.code == CHANGE_SPRITE_ASSOCIATION:
+        # [actor, índice del CharSet, transparente]. Ver OP_ACTOR_GRAF.
+        if len(p) != 3:
+            # Con cuatro es el bitfield de "esto sale de una variable", que
+            # este juego no usa nunca.
+            raise NoSePuede("ChangeSpriteAssociation con operandos que no "
+                            "sabemos leer")
+        if p[2]:
+            raise NoSePuede("ChangeSpriteAssociation transparente: la consola "
+                            "no atenúa un sprite sin color math")
+        if not 0 < p[0] < 256:
+            raise NoSePuede("ChangeSpriteAssociation sobre el actor %d" % p[0])
+        if graficos is None:
+            raise NoSePuede("ChangeSpriteAssociation sin tabla de gráficos")
+        elegido = graficos.indice(cmd.string, p[1])
+        if elegido > 0xFF:
+            raise NoSePuede("demasiados gráficos en el mapa")
+        return bytes([OP_ACTOR_GRAF, p[0], elegido])
 
     if cmd.code in (CHANGE_SAVE_ACCESS, CHANGE_MENU_ACCESS,
                     CHANGE_ESCAPE_ACCESS):
@@ -3478,6 +3573,14 @@ class Estado:
         # `cuadros_moviendose`— siguen valiendo y son ésta.
         self.ruta_heroe = Ruta()
         self.rutas_ev = {}
+        # A qué gráfico le cambió un `ChangeSpriteAssociation` el sprite a cada
+        # actor: {número de actor: índice en la tabla de gráficos}. **No se
+        # limpia al cambiar de mapa** —a diferencia de `ruta_heroe.grafico`—
+        # porque en RM2k vive en el actor y no en el `Game_Player`, y porque es
+        # justamente lo que este juego necesita: las 102 páginas de la
+        # persecución en auto lo cambian y se teletransportan en el comando
+        # siguiente. Ver OP_ACTOR_GRAF.
+        self.actor_graf = {}
         # La animación de batalla en curso: ver OP_ANIMACION.
         self.animacion = None
         # Y su dibujo, que va por su cuenta y dura más: la línea de tiempo se
@@ -4325,7 +4428,7 @@ LARGO_DE_OPCODE = {
     OP_GUARDAR: 1, OP_VAR: 8, OP_SI_VAR: 8, OP_ITEM: 4, OP_ACCESO: 3,
     OP_CLIMA: 3, OP_SONIDO: 3,
     OP_IMAGEN: 5, OP_IMAGEN_MOVER: 6, OP_IMAGEN_BORRAR: 1,
-    OP_BATALLA: 9,
+    OP_BATALLA: 9, OP_ACTOR_GRAF: 3,
 }
 
 
@@ -4547,7 +4650,7 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
                     pan=(), rama=(), destello=(), guardar=False,
                     variables=(), rama_var=(), items=(), acceso=(),
                     lluvia=None, animacion=(), eventos_mapa=None,
-                    batalla=0, temas=None):
+                    batalla=0, temas=None, sprite=(), graficos=None):
     """Una página automática inventada: una ruta forzada, una espera, un tinte.
 
     No sale de ningún dato del juego, y ésa es la idea. El intérprete corre
@@ -4778,6 +4881,28 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
             destino)
         codigo += bytes([OP_SWITCH, adentro & 0xFF, adentro >> 8, 1])
         codigo += bytes([OP_SWITCH, despues & 0xFF, despues >> 8, 1])
+    if sprite:
+        # `ChangeSpriteAssociation`: (actor, CharSet, índice). Existe por lo
+        # mismo que `guardar` y que la batalla: las 212 apariciones del comando
+        # en el juego están todas en los cuatro mapas de la persecución en auto
+        # —el 49, el 50, el 52 y el 54— y ninguno de ésos entra en una ROM de
+        # prueba, así que sin esto `OP_ACTOR_GRAF` sería un camino que no
+        # ejercita nada.
+        #
+        # Va **después de la espera**, como guardar: así los cuadros de antes
+        # miran al héroe con el gráfico del LDB y los de después con el nuevo, y
+        # el cuadro en que cambia es el cuadro en que la página llegó hasta acá.
+        # Puesto antes, los dos lados dibujarían lo mismo desde el principio y
+        # el caso no separaría "cambió" de "arrancó así".
+        #
+        # El gráfico tiene que estar además en el banco de sprites del mapa, o
+        # la ROM se queda con el del LDB: eso lo pide `--grafico-de-prueba`, que
+        # va junto en la receta.
+        import lcf
+        actor, charset, indice = sprite
+        codigo += _compilar(lcf.EventCommand(
+            CHANGE_SPRITE_ASSOCIATION, 0, charset, [actor, indice, 0]), None,
+            graficos=graficos)
     if guardar:
         # Guardar la partida. El save point del mapa 8 es el único evento del
         # juego que lo pide, y está en un mapa que las pruebas no llevan; sin
@@ -5285,6 +5410,14 @@ def ejecutar(codigo, estado, desde=0):
                 i = codigo[i + 5] | (codigo[i + 6] << 8)
         elif op == OP_ACCESO:
             estado.permitido[codigo[i + 1]] = bool(codigo[i + 2])
+            i += 3
+        elif op == OP_ACTOR_GRAF:
+            # `actor->SetSprite` más el `ResetGraphic()` del `Game_Player`: si
+            # el actor está liderando se ve en el mismo cuadro, y si no queda
+            # guardado. Quién lo mira es el que dibuja al héroe —acá
+            # `snes_expect`, allá `elegir_grafico_heroe`—, así que esto es sólo
+            # anotarlo.
+            estado.actor_graf[codigo[i + 1]] = codigo[i + 2]
             i += 3
         elif op == OP_ITEM:
             # `Game_Party::AddItem`: suma y recorta a [0, ITEM_MAX], y pide el
