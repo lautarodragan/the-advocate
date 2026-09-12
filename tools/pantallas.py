@@ -443,11 +443,42 @@ def pantalla_batalla(db, combate, modo=BA_ELIGE_ORDEN, actor=0, orden=0,
             t.escribir(BA_MSG_FILA1, col, texto_de_orden(term[nombre]),
                        0 if modo == BA_ELIGE_ORDEN else 1)
     else:
-        t.escribir(BA_MSG_FILA1, 1,
-                   titulo.texto_de_item(mensaje[0], COLS - 1))
-        t.escribir(BA_MSG_FILA2, 1,
-                   titulo.texto_de_item(mensaje[1], COLS - 1))
+        escribir_corrido(t, BA_MSG_FILA1, 1, mensaje[0])
+        escribir_corrido(t, BA_MSG_FILA2, 1, mensaje[1])
     return t
+
+
+def escribir_corrido(pantalla, fila, col, texto):
+    """Un texto que **sigue en el renglón de abajo** cuando no entra.
+
+    No es una decisión de diseño: es lo que hace `pant_glifo` en la ROM, que
+    avanza dos bytes por carácter dentro de un búfer de 32 celdas de ancho y
+    al pasarse cae en la fila siguiente. La referencia lo copia en vez de
+    cortar el texto porque los dos lados tienen que dibujar lo mismo, y el
+    mensaje de escapar del ABL —"You extricate yourself from the fray!"— mide
+    36 caracteres y se pasa.
+
+    El corte no queda en un espacio, como no queda en la ROM.
+
+    **Lo que esto modela no lo compara nada**, y conviene decirlo: la tanda
+    sólo mira la pantalla con el menú de órdenes, no con un mensaje puesto.
+    Medido contra una captura de la consola del mensaje de escapar —el más
+    largo, el único que se pasa de renglón— quedan 66 pixeles de diferencia en
+    la fila donde los dos textos se enciman. Es deuda declarada y no un camino
+    a medias: el día que un caso compare un mensaje, hay que cerrarla.
+    """
+    for c in titulo.texto_de_item(texto, 255):
+        if col >= COLS:
+            # **Una fila y no dos**: la ROM avanza 64 bytes, que es una fila
+            # del tilemap, no un renglón de texto. El carácter que sigue queda
+            # medio renglón más abajo, encimado con la mitad de abajo del
+            # anterior. Se ve raro y es lo que hace la ROM; corregirlo sería
+            # corregir los dos lados.
+            fila, col = fila + 1, 0
+        if fila >= FILAS:
+            return
+        pantalla.escribir(fila, col, c)
+        col += 1
 
 
 def lcf_termino(db, chunk):

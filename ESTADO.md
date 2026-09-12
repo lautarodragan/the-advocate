@@ -122,6 +122,21 @@ que hay que saber para tocarla:
   La tropa de cuatro enemigos la ejercita `just snes-batalla` con
   `--batalla-de-prueba`.
 
+**Lo más barato que queda, y por lejos**: de las **40 páginas del juego con un
+`EnemyEncounter`, hoy compila una sola** —la del droide del mapa 2—. Lo que
+corta a las otras 39, medido el 2026-09-12:
+
+    30  ChangeEscapeAccess    permitir o prohibir el ítem de escape
+     5  MoveEvent             órdenes de ruta que la ROM no camina
+     3  ChangeSystemBGM
+     1  ChangeSkills
+
+O sea que **aceptar `ChangeEscapeAccess` destraba 30 de 39 peleas**, y es un
+bit más al lado de los dos que `FAR_ACCESO` ya lleva. No se hizo en esta
+vuelta a propósito: cambia qué compila en todo el juego —no sólo en las
+peleas— y hay otro agente agregando justo los mapas donde caen. Conviene
+hacerlo con la tanda tranquila y volver a correrla entera.
+
 Lo que queda abierto, en orden de lo que más se nota jugando:
 
 1. **Los battlers dibujados.** Hoy la pantalla es texto sobre negro. Lo caro no
@@ -525,6 +540,20 @@ ya nadie discute no necesita renglón.
   y no al que destella**: el blanco se decide corriendo y el héroe es el único
   que se puede saber al convertir, así que un destello sobre otro evento
   filtraría igual.
+
+* **La pantalla de batalla con un mensaje puesto.** Los dos casos de
+  `snes-batalla` comparan la pantalla con el menú de órdenes; con un mensaje
+  no la compara nada. Medido el 2026-09-12 contra una captura del mensaje de
+  escapar —el más largo, y el único que se pasa de renglón— quedan **66
+  pixeles** de diferencia en la fila donde el texto que se pasa se encima con
+  el de arriba. El resto de esa pantalla da cero. Está declarado en
+  `pantallas.escribir_corrido`.
+
+* **Huir, perder y el `EscapeHandler`.** `pruebas/test_batalla.py` cubre ganar
+  y perder; escapar se probó a mano con `pruebas-manuales/batalla` y anda,
+  pero no lo corre ninguna prueba: llegar a una pelea que se pueda escapar
+  pide una tropa lenta, y la única del cartucho que lo es no se alcanza
+  jugando.
 
 * **El cursor de `ShowChoice`.** La tanda sólo aprieta A, así que arriba, abajo
   y B no los toca nadie de ese lado; por eso la referencia tampoco los modela.
