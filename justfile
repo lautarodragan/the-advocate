@@ -453,6 +453,56 @@ snes-cerrar mapa="7" apretar="200" nombre="cerrar" direccion="none" arranque="11
         --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
   done
 
+# Los dos escapes de texto de RM2k: `\|`, que pausa el cuadro, y `\^`, que lo
+# cierra sin que el jugador apriete nada. Es `snes-cerrar` sin la A.
+#
+# Lo que compara, y por qué son estos dos cuadros:
+#
+#   antes    la ventana en pantalla y la página frenada, con la pausa corriendo:
+#            el tinte que va detrás del mensaje todavía no se aplicó
+#   después  la ventana cerrada **sola** y el tinte puesto
+#
+# El segundo es el que no existía: hasta el 2026-09-13 la única forma de cerrar
+# un mensaje era el flanco de A, así que una página con `\^` habría quedado
+# esperando para siempre. Y la elección de los cuadros no es cosmética: el de
+# "antes" va pegado al cierre para que **61 y 60 no den lo mismo** —con 60 la
+# ventana ya se cerró ahí y la comparación se dispara—, que es el número que
+# easyrpg tiene comentado como distinto de lo que dice la documentación.
+#
+# La cuenta de los dos lados arranca en el cuadro en que la página pide el
+# mensaje y no en el que la ventana termina de componerse: la referencia dibuja
+# la ventana de golpe y la ROM tarda entre nueve y diecinueve cuadros, así que
+# contar desde el final de la composición dejaría a la ROM cerrando tarde para
+# siempre. Con la pausa de 61 la composición termina mucho antes y en pantalla
+# se ve lo mismo.
+#
+# `pausas` son cuántos `\|` lleva la cola, que es lo que el juego varía: 25
+# cuadros usan `\|\^`, diez `\|\|\^` y dos `\|\|\|\^`.
+snes-autocierre pausas="1" cuadros="62 63" nombre="autocierre" mapa="7" arranque="115":
+  #!/usr/bin/env bash
+  set -euo pipefail
+  mkdir -p {{snes_pngs}} {{snes_inc}}
+  linea1="SEWELL"
+  linea2="There you are, Talan. Ready for"
+  cola=""
+  for _ in $(seq 1 {{pausas}}); do cola="$cola\\|"; done
+  linea3="the big night?$cola\\^"
+  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
+      --mensaje-de-prueba "$linea1" "$linea2" "$linea3" \
+      --pagina-de-prueba 0 0 0 50 -o {{snes_inc}}/mapdata.inc
+  just snes-build
+  pre={{snes_pngs}}/{{nombre}}
+  python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
+      --mensaje-de-prueba "$linea1" "$linea2" "$linea3" \
+      --pagina-de-prueba 0 0 0 50 --cuadros {{cuadros}} \
+      --saltar $pre-{}.saltar.txt -o $pre-{}.esperado.png
+  for n in {{cuadros}}; do
+    python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre-$n.png \
+        --walk none --cuadros $n --arranque {{arranque}}
+    python3 tools/snes_compare.py $pre-$n.png $pre-$n.esperado.png \
+        --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
+  done
+
 # Un evento caminando su ruta forzada, y la página esperándolo.
 #
 # Es lo que agrega `MoveEvent` sobre otro evento: hasta acá la única ruta

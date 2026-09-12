@@ -120,17 +120,78 @@ LUGAR_CONSTANTE = 0         # p[1]: 0 es la celda escrita, 1 la lee de variables
 SHOW_MESSAGE = 10110
 SHOW_MESSAGE_2 = 20110
 
-# Los códigos de escape que el texto de este juego usa: `\|` es una pausa de un
-# segundo y `\^` cierra el cuadro sin esperar a que el jugador apriete nada.
-# Los dos son tiempo, no texto, y no los hacemos.
+# Los códigos de escape que el texto de este juego usa: `\|` es una pausa y `\^`
+# cierra el cuadro sin esperar a que el jugador apriete nada. Los dos son
+# tiempo y no texto, y desde el 2026-09-13 los dos se hacen: viajan en la
+# cabecera del cuadro —ver `mensaje_bytes`— y los leen igual el intérprete de
+# la ROM y el de acá abajo.
 #
-# Una página que los use no compila, y eso es a propósito. Dibujarlos como dos
-# letras se vería —son 35 líneas del juego—, y borrarlos calladito sería peor:
+# Se hacen de verdad y no borrándolos calladito, que era la tentación barata:
 # con `\^` el cuadro se cierra solo, así que la ROM quedaría esperando un A que
 # RM2k nunca pidió y la página entera pasaría a durar lo que tarde el jugador.
-# Son 17 páginas de las 279 con texto; cuando el compositor sepa pausar y
-# autocerrar, esto se cae solo.
+#
+# **Cualquier otro escape sigue sin compilar**, y eso es a propósito: los tres
+# `\V` de los eventos comunes —el valor de una variable metido en el texto—
+# piden componer el texto al abrirlo, que es otra cosa. Dibujarlos como dos
+# letras se vería.
 ESCAPE = "\\"
+ESCAPE_PAUSA = "|"
+ESCAPE_CERRAR = "^"
+
+# Lo que cuesta un `\|`. **No es un segundo**: es el `SetWaitForNonPrintable(61)`
+# de `window_message.cpp`, con su comentario al lado —"Despite documentation
+# saying 1 second, RPG_RT waits for 61 frames"—. Son 61 y no 60, y esa
+# diferencia es exactamente la clase de número que no se puede poner de
+# memoria.
+CUADROS_DE_PAUSA = 61
+
+# Cuántas pausas entran en la cabecera del cuadro. El máximo que usa el juego
+# son tres seguidas (`\|\|\|\^`, dos veces, en el mapa 108); más que quince no
+# entra en el nibble alto y la página no compila en vez de durar de menos.
+PAUSAS_MAX = 15
+
+
+def cola_de_escapes(lineas):
+    """Las líneas sin su cola de escapes, cuántas pausas trae y si se cierra sola.
+
+    En los 328 mapas los dos escapes aparecen **siempre como una cola al final
+    de la última línea del cuadro** —medido: 40 cuadros, y ni uno con un escape
+    en el medio ni en una línea que no sea la última—, así que eso es lo único
+    que se acepta. Uno en el medio sigue sin compilar, que es lo honesto: con la
+    ventana dibujándose de golpe, una pausa a mitad del texto no se puede
+    modelar sin inventar cuánto texto había dibujado.
+
+    La cola puede llevar espacios entre medio —pasa una sola vez, en el
+    `RunDirectorScene` del mapa 98, que escribe `\| \| \| \^`— y se los come:
+    un espacio al final de un renglón no dibuja un solo pixel, así que sacarlo
+    da la misma pantalla de los dos lados.
+    """
+    lineas = list(lineas)
+    pausas = 0
+    autocierre = False
+    if lineas:
+        texto = lineas[-1]
+        i = corte = len(texto)
+        escapes = 0
+        while i > 0:
+            if i >= 2 and texto[i - 2] == ESCAPE \
+                    and texto[i - 1] in (ESCAPE_PAUSA, ESCAPE_CERRAR):
+                i -= 2
+                corte = i
+                escapes += 1
+            elif texto[i - 1] == " ":
+                i -= 1
+            else:
+                break
+        if escapes:
+            cola = texto[corte:]
+            pausas = cola.count(ESCAPE + ESCAPE_PAUSA)
+            autocierre = ESCAPE + ESCAPE_CERRAR in cola
+            lineas[-1] = texto[:corte]
+    if any(ESCAPE in t for t in lineas) or pausas > PAUSAS_MAX:
+        raise NoSePuede()
+    return tuple(lineas), pausas, autocierre
+
 
 # Una ruta forzada de MoveEvent. Los parámetros son (a quién, frecuencia, un
 # bitmask de repetición, si es salteable) y de ahí en adelante los comandos de
@@ -1126,29 +1187,55 @@ class Mensajes:
     def agregar(self, lineas):
         """El desplazamiento de este cuadro, guardándolo si es la primera vez.
 
-        El recorte a lo que entra en un renglón se hace **acá**, antes de
-        deduplicar: dos textos que sólo difieran en lo que se corta son el
-        mismo cuadro en pantalla, y darles dos desplazamientos distintos sería
-        emitir dos veces los mismos bytes.
+        La cola de escapes se saca **acá** —ver `cola_de_escapes`— y no en el
+        compilador, para que todo el que arme un cuadro pase por el mismo lugar:
+        los `ShowMessage` del juego, las opciones de un `ShowChoice` y el
+        `--mensaje-de-prueba` de las recetas, que es como se prueba esto.
+
+        El recorte a lo que entra en un renglón se hace después de la cola y
+        antes de deduplicar: dos textos que sólo difieran en lo que se corta son
+        el mismo cuadro en pantalla, y darles dos desplazamientos distintos
+        sería emitir dos veces los mismos bytes. Al revés —recortar primero— un
+        renglón de 39 caracteres se comería su propio `\|\^` y el cuadro
+        quedaría esperando un A que RM2k no pide.
+
+        **La clave de la deduplicación lleva la cola**, y no es un detalle: dos
+        cuadros con el mismo texto y distinta cola son dos cuadros distintos
+        —uno espera al jugador y el otro no— y compartir desplazamiento los
+        haría durar lo mismo en la ROM y en la referencia a la vez, o sea que la
+        comparación daría cero con el error puesto.
         """
         import ventana as ventana_mod
+        lineas, pausas, autocierre = cola_de_escapes(lineas)
         lineas = tuple(t[:ventana_mod.COLUMNAS]
                        for t in list(lineas)[:ventana_mod.LINEAS])
-        if lineas not in self.donde:
+        clave = (lineas, pausas, autocierre)
+        if clave not in self.donde:
             donde = len(self.datos)
-            self.datos += mensaje_bytes(lineas)
+            self.datos += mensaje_bytes(lineas, pausas, autocierre)
             if len(self.datos) > 0x10000:
                 raise SystemExit(
                     "los mensajes de esta ROM son %d bytes y el operando de "
                     "OP_MENSAJE es de 16 bits" % len(self.datos))
-            self.donde[lineas] = donde
+            self.donde[clave] = donde
             self.textos[donde] = lineas
-        return self.donde[lineas]
+        return self.donde[clave]
 
     def lineas(self, donde):
         """Las líneas que hay en ese desplazamiento. Es lo que dibuja la
         referencia: la ROM lee los mismos bytes del cartucho."""
         return self.textos[donde]
+
+    def cola(self, donde):
+        """Cuántas pausas lleva ese cuadro y si se cierra solo.
+
+        Sale de **los mismos bytes que lee la ROM** y no de un diccionario
+        paralelo: `msg_empezar` decodifica ese byte de cabecera con las mismas
+        máscaras. Un formato leído de dos maneras distintas es justo la forma
+        de falla que este repo ya pagó dos veces.
+        """
+        cabecera = self.datos[donde]
+        return (cabecera >> 4, bool(cabecera & CABECERA_AUTOCIERRE))
 
     def marca(self):
         return len(self.datos)
@@ -1171,8 +1258,26 @@ class Mensajes:
         return bytes(self.datos) or b"\x00"
 
 
-def mensaje_bytes(lineas):
-    """Un cuadro de texto como lo lee la ROM: cuántas líneas, y cada una con su
+# La cabecera de un cuadro de texto. Los escapes entran acá y no en un operando
+# más de `OP_MENSAJE` porque acá salen gratis: los renglones de una ventana son
+# cuatro como mucho, así que el byte que los cuenta tenía cinco bits sin usar.
+# Un operando más costaría un byte por cada uno de los 2895 cuadros del juego y
+# habría que emitirlo igual en los 2855 que no llevan ninguna cola.
+#
+#     bits 0-2   cuántos renglones trae, de 0 a 4
+#     bit  3     se cierra solo: el `\^`
+#     bits 4-7   cuántas pausas, de 0 a 15: los `\|`
+#
+# El orden no es arbitrario: los renglones van abajo porque es lo que la ROM lee
+# en el lazo del compositor —`and #CABECERA_LINEAS` y listo— y las pausas
+# arriba porque se leen una sola vez, al abrir, donde un `lsr` de más no se
+# nota.
+CABECERA_LINEAS = 0x07
+CABECERA_AUTOCIERRE = 0x08
+
+
+def mensaje_bytes(lineas, pausas=0, autocierre=False):
+    """Un cuadro de texto como lo lee la ROM: la cabecera, y cada renglón con su
     largo.
 
     Los caracteres van como índice en la tabla de la fuente, o sea el ASCII
@@ -1180,7 +1285,10 @@ def mensaje_bytes(lineas):
     sola letra acentuada.
     """
     import ventana as ventana_mod
-    out = bytearray([min(len(lineas), ventana_mod.LINEAS)])
+    assert 0 <= pausas <= PAUSAS_MAX
+    out = bytearray([min(len(lineas), ventana_mod.LINEAS)
+                     | (CABECERA_AUTOCIERRE if autocierre else 0)
+                     | (pausas << 4)])
     for texto in list(lineas)[:ventana_mod.LINEAS]:
         texto = texto[:ventana_mod.COLUMNAS]
         out.append(len(texto))
@@ -2939,8 +3047,9 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         if mensajes is None:
             raise NoSePuede()   # esta ROM no lleva ventana: no hay dónde
         lineas = [cmd.string] + list(extra)
-        if any(ESCAPE in t for t in lineas):
-            raise NoSePuede()   # ver ESCAPE, arriba
+        # La cola de escapes la saca `Mensajes.agregar`, que es por donde pasan
+        # todos los cuadros; lo que no sea `\|` ni `\^` sigue cortando la
+        # página desde ahí. Ver `cola_de_escapes`.
         donde = mensajes.agregar(lineas)
         return bytes([OP_MENSAJE, donde & 0xFF, donde >> 8])
 
@@ -3530,6 +3639,16 @@ class Estado:
         # mapas. Todo lo que pregunte por esto tiene que preguntar `is not
         # None`.
         self.mensaje = None
+        # El bloque de textos de la ROM, que el intérprete necesita para leer
+        # la cabecera del cuadro que abre —cuántas pausas y si se cierra solo—.
+        # Lo pone quien lo tenga: el conversor y `snes_expect`, que lo arman
+        # antes de compilar nada. Sin él no hay cuadros que abrir.
+        self.mensajes = None
+        # Los cuadros que le quedan a la pausa del `\|`, y si el cuadro se
+        # cierra solo cuando se termine —el `\^`—. Ver `cola_de_escapes` y
+        # `Interprete.cuadro`.
+        self.msg_pausa = 0
+        self.msg_autocierre = False
         # El oro del grupo. No se muestra en ningún lado —el menú no existe—
         # pero la rama de oro de `ConditionalBranch` lo pregunta.
         self.oro = 0
@@ -5069,7 +5188,21 @@ class Interprete:
         # `Estado.refresco_frena`.
         self.estado.refresco_de_paralelo = self.estado.refresco and not antes
         if self.estado.mensaje is not None:
-            if not apreto_a:
+            if self.estado.msg_pausa:
+                # La pausa del `\|`, y **A no la saltea**: en
+                # `Window_Message::Update` el `if (wait_count > 0) { --wait_count;
+                # return; }` va antes de `WaitForInput()`, así que mientras
+                # corre el botón no se mira. La cuenta arranca en el cuadro que
+                # sigue al que abrió el mensaje, de los dos lados.
+                self.estado.msg_pausa -= 1
+                return False
+            if self.estado.msg_autocierre:
+                # El `\^`: se cierra sin que nadie apriete nada. No es "el
+                # mensaje no se muestra": se mostró todos los cuadros que
+                # duraron las pausas, y las 40 veces que este juego lo usa
+                # llevan por lo menos una.
+                self.estado.msg_autocierre = False
+            elif not apreto_a:
                 return False
             # Se cierra y la página sigue **en el mismo cuadro**, que es lo que
             # hace la ROM: `eventos_tick` limpia `msg_abierto` y cae en el
@@ -5591,6 +5724,18 @@ def ejecutar(codigo, estado, desde=0):
             # que alguien apriete A: la página queda bloqueada, que es lo que
             # hace `Game_Message` en RM2k.
             estado.mensaje = codigo[i + 1] | (codigo[i + 2] << 8)
+            # Y su cola de escapes, leída de la cabecera del cuadro: los mismos
+            # bytes y las mismas máscaras que `msg_empezar` en la ROM. Sin
+            # bloque de textos no hay cola que leer, que es el caso de las
+            # pruebas de estado que arman un `Estado` pelado; un cuadro con
+            # cola no puede llegar por ahí, porque el desplazamiento sale del
+            # bloque.
+            estado.msg_pausa = 0
+            estado.msg_autocierre = False
+            if estado.mensajes is not None:
+                pausas, estado.msg_autocierre = \
+                    estado.mensajes.cola(estado.mensaje)
+                estado.msg_pausa = pausas * CUADROS_DE_PAUSA
             return (i + 3, 0, False)
         elif op == OP_GRUPO:
             estado.cambiar_grupo(codigo[i + 1], codigo[i + 2])

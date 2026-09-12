@@ -905,6 +905,17 @@ grupo_listo:
     stz eleg_activo
     stz msg_estado
     stz msg_subir
+    ; Y su cola de escapes, por lo mismo: una pausa en basura frenaría la
+    ; página igual que `msg_abierto`. Hoy no se leen sin que `msg_empezar` las
+    ; haya escrito, pero eso vale mientras el guard de arriba siga siendo
+    ; `msg_abierto | msg_estado`.
+    rep #$20
+.a16
+    lda #0
+    sta f:FAR_MSG_PAUSA         ; `stz` no tiene modo largo
+    sep #$20
+.a8
+    sta f:FAR_MSG_AUTO
     ; Los dos del pad son por las dudas y no por un error visto: `read_pad`
     ; los reescribe antes de que nadie los mire. Cuestan dos instrucciones.
     stz pad_a
@@ -1706,6 +1717,42 @@ sin_eleccion:
     lda msg_abierto
     ora msg_estado              ; también mientras se está componiendo
     beq sin_mensaje
+    ; La pausa del `\|`, si el cuadro trae alguna. Se cuenta **desde que la
+    ; página pidió el mensaje** y no desde que la ventana terminó de
+    ; componerse, que es lo único que la hace coincidir cuadro a cuadro con la
+    ; referencia: allá la ventana se dibuja de golpe y acá tarda entre nueve y
+    ; diecinueve cuadros en componerse. Con una pausa de 61 la composición
+    ; termina mucho antes, así que en pantalla se ve lo mismo.
+    ;
+    ; **A no la saltea**: en `Window_Message::Update` el `if (wait_count > 0)`
+    ; va antes de `WaitForInput()`, así que mientras la pausa corre el botón no
+    ; se mira. Por eso va arriba de todo y no después del flanco.
+    rep #$20
+.a16
+    lda f:FAR_MSG_PAUSA
+    beq sin_pausa
+    dec a
+    sta f:FAR_MSG_PAUSA
+    sep #$20
+.a8
+    rts
+.a16
+sin_pausa:
+    sep #$20
+.a8
+    lda f:FAR_MSG_AUTO
+    beq espera_boton
+    ; El `\^`: el cuadro se cierra solo, sin que nadie apriete nada. Se apaga
+    ; también el compositor, y no es teórico: un cuadro con `\^` y ninguna
+    ; pausa se cierra antes de que termine de componerse, y sin esto
+    ; `flush_video` prendería la ventana de un mensaje ya cerrado.
+    lda #0
+    sta f:FAR_MSG_AUTO
+    stz msg_estado
+    stz msg_subir
+    stz msg_abierto
+    bra sigue
+espera_boton:
     lda msg_abierto
     beq no_avanza               ; todavía no terminó de componerse
     lda pad_a
@@ -1714,6 +1761,7 @@ sin_eleccion:
     bne no_avanza               ; ya lo tenía apretado: no es un flanco
     stz msg_abierto             ; y con eso `flush_video` apaga el HDMA: cerrar
                                 ; la ventana no escribe un solo byte de VRAM
+sigue:
     ; Y la página sigue **en este mismo cuadro**, cayendo en el `jsr
     ; correr_codigo` de siempre. Cerrar acá y retomar el cuadro siguiente
     ; sería un cuadro de diferencia contra la referencia.
@@ -16890,6 +16938,19 @@ CARTEL_LISTO  = FAR_CARTEL + 12 ; hay una paleta nueva esperando el vblank
 CARTEL_I      = FAR_CARTEL + 13
 CARTEL_CAMBIO = FAR_CARTEL + 14
 
+; Y la cola de escapes del cuadro de texto que esté abierto: cuántos cuadros le
+; quedan a la pausa del `\|` y si al terminarse se cierra solo —el `\^`—. Los
+; pone `msg_empezar` leyendo la cabecera del cuadro y los gasta `eventos_tick`.
+;
+; **Van en la RAM lejana por la misma razón que el cartel**: el banco 0 no
+; tiene lugar. Los 7680 bytes de BSS estaban en 7679 cuando esto se escribió,
+; o sea que entraba un byte y hacen falta tres. Acá sobran los cinco que
+; quedaron entre el cartel —que termina en $30FA— y `FAR_ARAM_DE`, en $3100.
+; Se leen una vez por cuadro y nunca indexados, así que el direccionamiento
+; largo no se nota.
+FAR_MSG_PAUSA = $7E30FB         ; palabra: hasta PAUSAS_MAX por CUADROS_DE_PAUSA
+FAR_MSG_AUTO  = $7E30FD
+
 .proc animacion_limpiar
 .a8
 .i16
@@ -20097,13 +20158,51 @@ TEXTO_OFS_Y = 2
 .a8
     lda #^mensajes
     sta msg_ptr + 2
+    ; La cola de escapes arranca limpia, y **antes** del `rts` de abajo: una ROM
+    ; sin ventana no lee ninguna cabecera, y una pausa de basura ahí dejaría la
+    ; página frenada para siempre.
+    rep #$20
+.a16
+    lda #0
+    sta f:FAR_MSG_PAUSA         ; `stz` no tiene modo largo
+    sep #$20
+.a8
+    sta f:FAR_MSG_AUTO
     lda #VENTANA_TILES
     bne hay
     rts                         ; esta ROM no lleva ventana
 hay:
     ldy #0
-    lda [msg_ptr], y            ; cuántos renglones trae
-    sta msg_lineas
+    lda [msg_ptr], y            ; la cabecera: los renglones en los tres bits
+    sta msg_lineas              ; de abajo, el autocierre en el 3 y las pausas
+                                ; en el nibble de arriba. Se guarda entera y la
+                                ; enmascara quien la lea; un byte más en el
+                                ; banco 0 es justo lo que no hay.
+    and #CABECERA_AUTOCIERRE
+    sta f:FAR_MSG_AUTO
+    lda msg_lineas
+    lsr
+    lsr
+    lsr
+    lsr                         ; cuántas pausas trae
+    beq sin_pausa
+    ; Y cuánto duran: `CUADROS_DE_PAUSA` cada una, que son 61 y no 60. El
+    ; producto va en 16 bits porque quince pausas son 915 cuadros, así que lo
+    ; hace el hardware, como el tinte.
+    sta WRMPYA
+    lda #CUADROS_DE_PAUSA
+    sta WRMPYB                  ; arranca: el producto tarda ocho ciclos
+    nop
+    nop
+    nop
+    nop
+    rep #$20
+.a16
+    lda RDMPYL
+    sta f:FAR_MSG_PAUSA
+    sep #$20
+.a8
+sin_pausa:
     rep #$20
 .a16
     inc msg_ptr
@@ -20138,8 +20237,11 @@ sin_subir:
     ; mensaje anterior y hay que taparlo.
     jsr cebar_linea
     stz msg_largo
+    lda msg_lineas
+    and #CABECERA_LINEAS        ; la cabecera trae además la cola de escapes
+    sta temp
     lda msg_linea
-    cmp msg_lineas
+    cmp temp
     bcs vacio
     ldy #0
     lda [msg_ptr], y

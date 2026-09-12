@@ -1842,6 +1842,11 @@ def main():
         # partida nueva de RM2k, y cada dirección arranca de cero: el estado lo
         # mueven los eventos y no puede filtrarse de una caminata a la otra.
         estado = eventos.Estado(grupo)
+        # El bloque de textos, que el intérprete lee para saber si el cuadro
+        # que abre trae pausas o se cierra solo. Es el mismo objeto que el que
+        # dibuja la ventana más abajo, y los mismos bytes que la ROM tiene en
+        # el cartucho.
+        estado.mensajes = mensajes
         # Hacia dónde mira al arrancar, si se pidió. Es el estado y no un
         # arreglo al final: si una página lo gira después con un `face_*`
         # —la puerta del mapa 2 lo hace mirar abajo— gana la página, que es
