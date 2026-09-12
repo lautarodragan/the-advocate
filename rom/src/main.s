@@ -12048,13 +12048,19 @@ otro:
     lsr a
     clc
     adc comp_and
-    tay                         ; el byte
+    sta comp_and                ; el byte; `comp_and` ya no lleva k por ocho
     pla
     and #$0007
     sta comp_and + 2              ; y el bit
     sep #$20
 .a8
-    lda item_actores, y
+    ; `item_actores` vive fuera del banco 0 —no entraba: ver `bytes_asm` en
+    ; snes_convert.py— así que se lee larga, y larga sólo indexa por X. X trae
+    ; el `k` del ítem y hace falta abajo, de ahí el `phx`/`plx`.
+    phx
+    ldx comp_and
+    lda f:item_actores, x
+    plx
     ldy comp_and + 2
     beq bit_listo
 correr:
@@ -12084,7 +12090,10 @@ no_va:
 siguiente:
     inx
     cpx #ITEMS_N
-    bcc otro
+    bcs lista_lista
+    jmp otro                    ; los 127 bytes de un `bcc` se quedaron cortos
+                                ; al leer `item_actores` larga
+lista_lista:
     rep #$20
 .a16
     lda comp_base

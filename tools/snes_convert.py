@@ -4287,12 +4287,18 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         words_asm("item_puntos", [p & 0xFFFF for n in items
                                   for p in db_items[n].puntos],
                   declarar=True)
-        handle.write('.segment "TABLAS"\n')
+        # `item_actores` va también fuera del banco 0 —se lee con
+        # `lda f:item_actores, x`—: son 496 bytes, los más gordos que le
+        # quedaban a `TABLAS`, y el banco 0 se pasó. No es una previsión: el
+        # 2026-09-13 `just snes-demo demo-ciudad` cortaba con "el área no
+        # entra: 32719 bytes en 32704" y ningún caso de la tanda lo veía.
+        # Se lee una vez por ítem al armar la lista de la pantalla de equipo,
+        # así que el ciclo de más del direccionamiento largo no se nota.
         bytes_asm("item_actores", [
             sum(1 << b for b in range(8)
                 if 8 * byte + b + 1 < actores_n
                 and db_items[n].equipable_por(8 * byte + b + 1))
-            for n in items for byte in range(8)])
+            for n in items for byte in range(8)], declarar=True)
         # `actor_params` va fuera del banco 0 —se lee con
         # `lda f:actor_params, x`, una sola vez por pantalla de equipo— por lo
         # mismo que `item_k`: son 488 bytes y el banco del código se llenó, y
