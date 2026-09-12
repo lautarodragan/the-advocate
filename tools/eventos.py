@@ -703,6 +703,60 @@ CALL_EVENT = 12330
 # contestaran; desde el 11 abre la tienda de verdad: ver OP_TIENDA.
 OPEN_SHOP = 10720
 
+# `ChangeSystemBGM` (10660): cambia el tema que el sistema usa para pelear,
+# para ganar, para la posada. El juego lo usa **130 veces en 25 mapas** y
+# siempre de a pares —el 0 y el 1, o sea `battle_music` y `battle_end_music`—:
+# cada zona tiene su música de pelea.
+#
+# Se acepta sin hacerlo, y la deuda es concreta: **una pelea en esos mapas
+# suena con el tema del LDB en vez del de la zona**. No es "no suena": suena el
+# que `AUDIO_BATALLA` trae de la base, que es el que el paquete de audio del
+# mapa ya lleva, así que nada queda mudo y nada pide una muestra que no esté.
+# Y no cambia un pixel, así que la tanda mide lo mismo con esto y sin esto.
+#
+# Cuánto destraba, medido sobre las 5603 páginas disparables del juego:
+# **+24**. Hacerlo de verdad no es este comando sino una feature de audio: el
+# tema del sistema pasaría a ser estado que viaja en la partida, y los temas
+# que nombran esas 130 apariciones tendrían que entrar en el paquete de audio
+# de sus mapas. Hoy el peor paquete son 54945 de 63831 B de ARAM; agregarle un
+# tema de pelea a veinticinco mapas es exactamente lo que "presupuestar por
+# paquete" —en "Lo que falta" del README— tiene que resolver antes.
+CHANGE_SYSTEM_BGM = 10660
+
+# `ChangeEncounterSteps` (11740): cada cuántos pasos hay un encuentro al azar.
+# Diecinueve apariciones en nueve mapas, y trece de ellas lo ponen en **cero**,
+# que en RM2k es apagarlos.
+#
+# Se acepta sin hacerlo porque **no hay encuentros al azar**: el juego los ata
+# al mapa y a las *áreas* —nodos del árbol sin `.lmu`, con un rectángulo y su
+# propia lista de tropas— y este port no lee ni una cosa ni la otra. O sea que
+# acá no hay una deuda parcial: el número que el comando guarda no lo lee
+# nadie, y el día que los encuentros existan este renglón tiene que salir de
+# esta lista **junto con** ellos, no antes.
+#
+# Cuánto destraba, medido: **+14 páginas**. Y **no se acepta**, que es la parte
+# que hay que leer entera, porque el número solo diría lo contrario:
+#
+# * Las trece que lo ponen en cero están **apagando algo que todavía no pasa**.
+#   Lo que se ganaría es lo que esas páginas hacen además.
+# * Está en nueve mapas —el 66, el 81, el 121, del 152 al 156 y el 165— y
+#   **ninguno está cerca de los primeros diez minutos**, que es el objetivo.
+# * Y se midió lo que cuesta: aceptándolo, la automática
+#   `DaliaGoingToTasgarde` del mapa 66 pasa a compilar, y esa página desarma el
+#   grupo y le fuerza al héroe una ruta de sesenta pasos. El mapa 66 es el
+#   **único mapa sin ventana** de las pruebas de estado —`SIN_VENTANA` en
+#   `pruebas/conftest.py`, elegido porque no le entra la ventana de mensaje— así
+#   que con la cinemática despierta se cayeron dos casos de
+#   `test_condicional.py`: la página de prueba dejó de ser la única que corre
+#   ahí. Arreglarlo es mudar esa ROM de prueba a otro mapa que tampoco acepte la
+#   ventana, y eso vale más que estas catorce páginas.
+#
+# O sea: este renglón entra el día que los encuentros al azar existan, **junto
+# con** ellos y no antes. Ver ESTADO.md: el juego los ata al mapa y a las
+# *áreas*, que son nodos del árbol sin `.lmu`, con un rectángulo y su propia
+# lista de tropas, y este port no lee ni una cosa ni la otra.
+CHANGE_ENCOUNTER_STEPS = 11740
+
 ACEPTADOS_SIN_HACER = {
     # CallEvent **ya no está acá**: desde el 2026-09-12 se compila en línea,
     # ver `_compilar_llamada`. Lo que quedó de aquello es que una llamada cuyo
@@ -711,6 +765,7 @@ ACEPTADOS_SIN_HACER = {
     SHOW_PICTURE,
     MOVE_PICTURE,
     ERASE_PICTURE,
+    CHANGE_SYSTEM_BGM,
 }
 
 
@@ -778,16 +833,72 @@ class Graficos:
     El bytecode lleva el índice y no el nombre, como con los temas y los
     mapas: quien lo resuelve es el conversor, y la ROM no vuelve a mirar el
     LCF.
+
+    `asociaciones` rompe a medias lo de "por mapa", y hay que entender por qué:
+    son los gráficos que `ChangeSpriteAssociation` le puede poner a un actor, y
+    ése **sobrevive al cambio de mapa** —todas las veces que el juego lo usa,
+    el comando va pegado a un teletransporte y lo que se ve es el gráfico del
+    otro lado—. O sea que su índice no puede significar una cosa acá y otra
+    allá. Se resuelve reservándoles las primeras ranuras de la tabla de
+    **todos** los mapas de la ROM, en el mismo orden: ver `asociaciones_de`,
+    que es la pasada previa que las junta, y `Imagenes.elegir`, que es el
+    mismo patrón.
     """
 
-    def __init__(self):
-        self.pares = []
+    def __init__(self, asociaciones=()):
+        self.pares = list(asociaciones)
 
     def indice(self, charset, index):
         par = (charset, index)
         if par not in self.pares:
             self.pares.append(par)
         return self.pares.index(par)
+
+
+# `ChangeSpriteAssociation`: le cambia el CharSet a un **actor**, no a un
+# evento. En RM2k es `actor->SetSprite(...)` más un `ResetGraphic()` sobre
+# `Game_Player`, así que se ve enseguida si ese actor está liderando y queda
+# guardado para cuando lidere.
+#
+# Los parámetros son [actor, índice dentro del CharSet, transparente] y el
+# nombre va en `string`. Un cuarto parámetro es el bitfield que dice cuáles de
+# los tres salen de una variable —`ValueOrVariableBitfield(com, 3, ...)`—: este
+# juego no lo usa en ninguna de sus 212 apariciones y acá se rechaza, que es lo
+# de siempre.
+CHANGE_SPRITE_ASSOCIATION = 10630
+
+
+def asociaciones_de(game_maps):
+    """Los (CharSet, índice) que algún `ChangeSpriteAssociation` nombra.
+
+    Es la pasada previa de `Graficos`: le reserva a cada uno la misma ranura en
+    la tabla de gráficos de todos los mapas de la ROM, porque el gráfico que el
+    comando le pone a un actor **cruza el teletransporte** y su índice tiene que
+    querer decir lo mismo de los dos lados del salto.
+
+    Se miran **todas** las páginas y no sólo las que compilan, a propósito: si
+    dependiera de qué compila, la lista dependería de si la ROM lleva ventana de
+    mensaje —igual que `lideres_posibles`— y las dos pasadas del conversor
+    numerarían distinto. Reservar una ranura de más cuesta las doce poses de un
+    CharSet en el banco de sprites y nada más.
+
+    En este juego son dos pares —`Future3:0` y `BLVehicles:2`— y sólo si la ROM
+    lleva alguno de los mapas 49, 50, 52 o 54, que son la persecución en auto.
+    """
+    pares = []
+    for game_map in game_maps:
+        for evento in game_map.events:
+            for page in evento.pages:
+                for cmd in page.commands:
+                    if cmd.code != CHANGE_SPRITE_ASSOCIATION:
+                        continue
+                    p = list(cmd.parameters)
+                    if len(p) != 3 or p[2]:
+                        continue        # los que `_compilar` va a rechazar
+                    par = (cmd.string, p[1])
+                    if par not in pares:
+                        pares.append(par)
+    return pares
 
 
 # --- los opcodes que emitimos -----------------------------------------------
@@ -1646,6 +1757,84 @@ HALT_ALL_MOVEMENT = 11350
 # que traba ese mapa, así que la deuda que se declara acá es exactamente "el
 # tranvía se viaja sin paisaje de fondo".
 CHANGE_PBG = 11720
+
+# `ChangeSpriteAssociation`: actor (byte) y qué gráfico de la tabla del mapa
+# (byte). Es lo mismo que la orden 34 de una ruta pero sobre un **actor**, y de
+# ahí salen las dos diferencias:
+#
+# * **Sobrevive al cambio de mapa**, porque en RM2k es del actor y no del
+#   `Game_Player`. Por eso su índice sale de las ranuras reservadas de
+#   `Graficos` —ver `asociaciones_de`— y no de la numeración libre del mapa.
+# * **Se guarda por actor y se ve sólo si ese actor lidera.** El que no lidera
+#   no se dibuja, así que el cambio queda esperando; la ROM lo resuelve en
+#   `elegir_grafico_heroe`, que es el único que decide con qué se dibuja el
+#   héroe.
+#
+# Y una cosa que **no** se hace: si el gráfico no está en el banco de sprites
+# del mapa, el actor se queda con el suyo del LDB en vez de dejar de dibujarse.
+# Es la diferencia con la orden 34, que ahí esconde la fila, y está elegida:
+# acá el blanco es el héroe, y un héroe invisible por un mapa donde el CharSet
+# no entró es peor que un héroe con el gráfico viejo. Los dos lados hacen lo
+# mismo con la misma función.
+OP_ACTOR_GRAF = 0x23    # actor (byte), gráfico (byte)
+
+# `KeyInputProc`: ranura de variable (byte) y qué teclas mira (byte).
+#
+# En RM2k es `CommandKeyInputProc` más el pedazo de `Game_Interpreter::Update`
+# que lo atiende mientras espera, y el valor que guarda sale de `CheckInput`:
+# 1 abajo, 2 izquierda, 3 derecha, 4 arriba, 5 la tecla de acción, 6 cancelar.
+# Se miran de mayor a menor, que es lo que dice el comentario "RPG processes
+# keys from highest variable value to lowest".
+#
+# Las dos formas son programas distintos y por eso llevan bandera:
+#
+#   sin espera   lee lo que está apretado **ahora** —`Input::IsPressed`— y la
+#                página sigue en el mismo cuadro. Es la del volante del auto.
+#   con espera   la página se para acá hasta que haya un **flanco**
+#                —`IsTriggered`— de alguna de las teclas pedidas.
+#
+# La de espera se emite **dos veces**, la primera con `TECLA_ARRANCA`: ésa pone
+# la variable en cero, se come el flanco que hubiera y devuelve el control sin
+# mirar nada. Es el `Input::ResetTriggerKeys()` de RPG_RT, que existe para que
+# el comando no se coma la misma tecla que acaba de cerrar un mensaje —y en
+# este juego las 23 esperas vienen justo detrás de un `ShowMessage`, así que
+# sin eso el cartel pasaría de largo—. Dos opcodes y no un byte de estado
+# porque el intérprete no tiene dónde guardarlo: el que espera **rebobina su
+# propio cursor** y se vuelve a ejecutar cuadro a cuadro, así que no puede
+# distinguir la primera vuelta de las otras.
+OP_TECLA = 0x24
+TECLA_ESPERA   = 0x01
+TECLA_DIRS     = 0x02
+TECLA_DECISION = 0x04
+TECLA_CANCELAR = 0x08
+TECLA_ARRANCA  = 0x10
+
+KEY_INPUT_PROC = 11610
+
+# El valor que RM2k le guarda a cada tecla, y de acá sale también el orden en
+# que se las mira: de mayor a menor.
+TECLA_VALOR_CANCELAR = 6
+TECLA_VALOR_DECISION = 5
+# Por dirección de la ROM: 0 arriba, 1 derecha, 2 abajo, 3 izquierda.
+TECLA_VALOR_DIR = {0: 4, 1: 3, 3: 2, 2: 1}
+
+
+def tecla_de(banderas, apretadas):
+    """Qué valor le toca a la variable con estas teclas apretadas.
+
+    `apretadas` es el conjunto de lo que el jugador tiene puesto: los enteros
+    0 a 3 para las direcciones, "a" y "b" para las dos teclas. La usan los dos
+    lados —acá la referencia, allá `op_tecla`— y el orden es el de `CheckInput`.
+    """
+    if banderas & TECLA_CANCELAR and "b" in apretadas:
+        return TECLA_VALOR_CANCELAR
+    if banderas & TECLA_DECISION and "a" in apretadas:
+        return TECLA_VALOR_DECISION
+    if banderas & TECLA_DIRS:
+        for direccion in (0, 1, 3, 2):          # arriba, derecha, izq, abajo
+            if direccion in apretadas:
+                return TECLA_VALOR_DIR[direccion]
+    return 0
 
 ENEMY_ENCOUNTER = 10710
 VICTORY_HANDLER = 20710
@@ -2632,6 +2821,85 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         if len(p) < 3 or p[2] != 1:
             raise NoSePuede("ChangeCondition que pone un estado")
         return b""
+
+    if cmd.code == KEY_INPUT_PROC:
+        # [variable, esperar, las cuatro direcciones, la de acción, cancelar].
+        # Las 32 apariciones del juego tienen los cinco y ninguna más: con seis
+        # o más RM2k 1.50 pasa a mirar cada dirección por separado, que es otro
+        # programa, así que el largo se exige en vez de suponerse.
+        if len(p) != 5:
+            raise NoSePuede("KeyInputProc con %d operandos" % len(p))
+        banderas = ((TECLA_ESPERA if p[1] else 0)
+                    | (TECLA_DIRS if p[2] else 0)
+                    | (TECLA_DECISION if p[3] else 0)
+                    | (TECLA_CANCELAR if p[4] else 0))
+        if not banderas & (TECLA_DIRS | TECLA_DECISION | TECLA_CANCELAR):
+            # Sin ninguna tecla pedida, la forma que espera no sale nunca.
+            raise NoSePuede("KeyInputProc sin ninguna tecla")
+        if not p[1]:
+            # **La forma que no espera —leer el pad y seguir— está hecha de los
+            # dos lados y no se acepta**, y el número está medido: vale +5
+            # páginas del juego entero y 3 de la persecución en auto.
+            #
+            # Lo que la traba no es este comando sino con qué viene: las 4
+            # páginas que la usan son el volante del auto —`RaceController2` de
+            # los mapas 49, 51, 52 y 54— y cada una, además de leer el pad,
+            # **le fuerza la ruta al héroe en todos los cuadros**. Ahí aparece
+            # una divergencia que es anterior a todo esto y que ninguna página
+            # compilada había ejercitado nunca: en la ROM una ruta forzada
+            # manda sobre el pad —el `lda ruta_i / cmp ruta_n` de `move_hero`—
+            # y en la referencia la caminata del arnés no la mira: camina por
+            # celdas enteras y sólo se frena con un mensaje abierto.
+            #
+            # Medido: con esta forma aceptada, `just snes-heroe 52` da **55,42%
+            # de pixeles distintos** caminando a la izquierda, desde el cuadro
+            # 60; las otras cuatro direcciones dan cero, y es exactamente la
+            # única que pelea contra el empujón hacia la derecha que la página
+            # le da al héroe todos los cuadros.
+            #
+            # Arreglarlo es hacer que la caminata del arnés avance **cuadro a
+            # cuadro** en vez de celda a celda, y que corra la ruta forzada del
+            # héroe mientras camina. Es el pedazo más delicado de
+            # `snes_expect.py` y no entra en esta vuelta.
+            raise NoSePuede("KeyInputProc sin espera: la ruta forzada del "
+                            "héroe no manda sobre el pad en la referencia")
+        if banderas != (TECLA_ESPERA | TECLA_DECISION):
+            # **La espera se hace sólo con la tecla de acción**, y el número
+            # está medido: de las +30 páginas que este comando destraba en el
+            # juego entero, esta forma vale 23 y las dos que se pierden son las
+            # únicas que esperan una dirección o cancelar.
+            #
+            # El corte no es de la ROM —leer el flanco de la cruceta le sale
+            # igual de barato— sino del **arnés**: la tanda sostiene una
+            # dirección desde el arranque y aprieta A en cuadros anotados, así
+            # que un flanco de cruceta a mitad de una escena no lo puede
+            # producir ningún caso. Modelarlo igual sería escribir de los dos
+            # lados un camino que nada ejecuta, que es exactamente cómo
+            # sobrevivieron los tres errores del intérprete.
+            raise NoSePuede("KeyInputProc que espera algo que no sea la tecla "
+                            "de acción")
+        ranura = ranura_de_variable(p[0])
+        return bytes([OP_TECLA, ranura, banderas | TECLA_ARRANCA,
+                      OP_TECLA, ranura, banderas])
+
+    if cmd.code == CHANGE_SPRITE_ASSOCIATION:
+        # [actor, índice del CharSet, transparente]. Ver OP_ACTOR_GRAF.
+        if len(p) != 3:
+            # Con cuatro es el bitfield de "esto sale de una variable", que
+            # este juego no usa nunca.
+            raise NoSePuede("ChangeSpriteAssociation con operandos que no "
+                            "sabemos leer")
+        if p[2]:
+            raise NoSePuede("ChangeSpriteAssociation transparente: la consola "
+                            "no atenúa un sprite sin color math")
+        if not 0 < p[0] < 256:
+            raise NoSePuede("ChangeSpriteAssociation sobre el actor %d" % p[0])
+        if graficos is None:
+            raise NoSePuede("ChangeSpriteAssociation sin tabla de gráficos")
+        elegido = graficos.indice(cmd.string, p[1])
+        if elegido > 0xFF:
+            raise NoSePuede("demasiados gráficos en el mapa")
+        return bytes([OP_ACTOR_GRAF, p[0], elegido])
 
     if cmd.code in (CHANGE_SAVE_ACCESS, CHANGE_MENU_ACCESS,
                     CHANGE_ESCAPE_ACCESS):
@@ -3662,6 +3930,14 @@ class Estado:
         # `cuadros_moviendose`— siguen valiendo y son ésta.
         self.ruta_heroe = Ruta()
         self.rutas_ev = {}
+        # A qué gráfico le cambió un `ChangeSpriteAssociation` el sprite a cada
+        # actor: {número de actor: índice en la tabla de gráficos}. **No se
+        # limpia al cambiar de mapa** —a diferencia de `ruta_heroe.grafico`—
+        # porque en RM2k vive en el actor y no en el `Game_Player`, y porque es
+        # justamente lo que este juego necesita: las 102 páginas de la
+        # persecución en auto lo cambian y se teletransportan en el comando
+        # siguiente. Ver OP_ACTOR_GRAF.
+        self.actor_graf = {}
         # La animación de batalla en curso: ver OP_ANIMACION.
         self.animacion = None
         # Y su dibujo, que va por su cuenta y dura más: la línea de tiempo se
@@ -3785,6 +4061,18 @@ class Estado:
         # en la partida guardada; el azar no, que RM2k tampoco lo guarda.
         self.variables = {}
         self.azar_estado = AZAR_SEMILLA
+        # Lo que el jugador tiene apretado en este cuadro: 0 a 3 las cuatro
+        # direcciones —el mismo índice que el resto del modelo— y "a" y "b" las
+        # dos teclas. Lo escribe el lazo que es dueño del tiempo, antes de
+        # correr el intérprete, y lo lee `KeyInputProc` y nadie más: el héroe
+        # camina por otro lado, porque el arnés le pasa la dirección directo.
+        #
+        # **Es lo que el arnés puede producir y nada más**: una dirección
+        # sostenida desde el arranque —`--walk`— y la tecla de acción en los
+        # cuadros de `--apretar-a`. B no lo aprieta ningún caso de la tanda, así
+        # que una forma de `KeyInputProc` que dependa de él leería siempre cero
+        # de este lado; ver el corte de `_compilar`.
+        self.pad = frozenset()
 
     def variable(self, ranura):
         return self.variables.get(ranura, 0)
@@ -4530,7 +4818,7 @@ LARGO_DE_OPCODE = {
     OP_GUARDAR: 1, OP_VAR: 8, OP_SI_VAR: 8, OP_ITEM: 4, OP_ACCESO: 3,
     OP_CLIMA: 3, OP_SONIDO: 3,
     OP_IMAGEN: 5, OP_IMAGEN_MOVER: 6, OP_IMAGEN_BORRAR: 1,
-    OP_BATALLA: 9, OP_PARAR_RUTAS: 1,
+    OP_BATALLA: 9, OP_PARAR_RUTAS: 1, OP_ACTOR_GRAF: 3, OP_TECLA: 3,
 }
 
 
@@ -4752,7 +5040,8 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
                     pan=(), rama=(), destello=(), guardar=False,
                     variables=(), rama_var=(), items=(), acceso=(),
                     lluvia=None, animacion=(), eventos_mapa=None,
-                    batalla=0, temas=None, parar=None, rama_item=()):
+                    batalla=0, temas=None, parar=None, rama_item=(),
+                    sprite=(), graficos=None, tecla=()):
     """Una página automática inventada: una ruta forzada, una espera, un tinte.
 
     No sale de ningún dato del juego, y ésa es la idea. El intérprete corre
@@ -4946,6 +5235,20 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
         codigo += bytes([OP_MENSAJE, mensaje & 0xFF, mensaje >> 8])
     if espera:
         codigo += bytes([OP_ESPERAR, espera & 0xFF, espera >> 8])
+    if tecla:
+        # `KeyInputProc`: (variable, esperar, direcciones, acción, cancelar),
+        # los cinco parámetros de RM2k tal cual. Va **antes** de `variables` a
+        # propósito, que es lo que deja encadenarlo con la operación 9 de
+        # `--vars-de-prueba` —el cronómetro desde una variable— y con eso ver
+        # en la pantalla qué tecla leyó: un número en la esquina es lo único
+        # que este comando puede mostrar sin inventarle un dibujo.
+        #
+        # Y antes del tinte, que va último: con la forma que espera, el cuadro
+        # en que la pantalla cambia de color es el cuadro en que el jugador
+        # apretó.
+        import lcf
+        codigo += _compilar(lcf.EventCommand(
+            KEY_INPUT_PROC, 0, "", list(tecla)), None)
     if variables:
         # ControlVars, de a cinco números —variable, operación, clase, a, b—
         # con los mismos números de RM2k, y compilados por el mismo camino que
@@ -5017,6 +5320,28 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
             destino)
         codigo += bytes([OP_SWITCH, adentro & 0xFF, adentro >> 8, 1])
         codigo += bytes([OP_SWITCH, despues & 0xFF, despues >> 8, 1])
+    if sprite:
+        # `ChangeSpriteAssociation`: (actor, CharSet, índice). Existe por lo
+        # mismo que `guardar` y que la batalla: las 212 apariciones del comando
+        # en el juego están todas en los cuatro mapas de la persecución en auto
+        # —el 49, el 50, el 52 y el 54— y ninguno de ésos entra en una ROM de
+        # prueba, así que sin esto `OP_ACTOR_GRAF` sería un camino que no
+        # ejercita nada.
+        #
+        # Va **después de la espera**, como guardar: así los cuadros de antes
+        # miran al héroe con el gráfico del LDB y los de después con el nuevo, y
+        # el cuadro en que cambia es el cuadro en que la página llegó hasta acá.
+        # Puesto antes, los dos lados dibujarían lo mismo desde el principio y
+        # el caso no separaría "cambió" de "arrancó así".
+        #
+        # El gráfico tiene que estar además en el banco de sprites del mapa, o
+        # la ROM se queda con el del LDB: eso lo pide `--grafico-de-prueba`, que
+        # va junto en la receta.
+        import lcf
+        actor, charset, indice = sprite
+        codigo += _compilar(lcf.EventCommand(
+            CHANGE_SPRITE_ASSOCIATION, 0, charset, [actor, indice, 0]), None,
+            graficos=graficos)
     if guardar:
         # Guardar la partida. El save point del mapa 8 es el único evento del
         # juego que lo pide, y está en un mapa que las pruebas no llevan; sin
@@ -5269,7 +5594,7 @@ class Interprete:
         return (self.codigo is None and not self.esperando_ev
                 and not self.estado.refresco_frena() and not self.automaticos())
 
-    def cuadro(self, apreto_a=False, mover_evento=None):
+    def cuadro(self, apreto_a=False, mover_evento=None, direccion=None):
         """Avanza un cuadro. Devuelve True si en éste se pidió un salto.
 
         `apreto_a` es que el jugador **acaba de** apretar A en este cuadro, no
@@ -5283,6 +5608,14 @@ class Interprete:
         página activa quedaba sin rehacer y nadie se enteraba porque se
         calculaba viva. Un solo lugar es lo que hace que no vuelva a pasar.
         """
+        # Lo que el jugador tiene apretado este cuadro, para `KeyInputProc` y
+        # para nadie más. `direccion` es la que el arnés sostiene desde el
+        # arranque —`--walk`—, que es lo único que sabe sostener; A es un toque
+        # de un cuadro, así que su estado y su flanco son lo mismo. Ver
+        # `Estado.pad`.
+        self.estado.pad = frozenset(
+            ({"a"} if apreto_a else set())
+            | ({direccion} if direccion is not None else set()))
         self.refrescar_y_remarcar(eligiendo=False)
         # `Game_Event::CheckEventAutostart`, cada cuadro y para todos. Que
         # corra **también mientras la página de ese evento está corriendo** es
@@ -5543,6 +5876,33 @@ def ejecutar(codigo, estado, desde=0):
                 i = codigo[i + 5] | (codigo[i + 6] << 8)
         elif op == OP_ACCESO:
             estado.permitido[codigo[i + 1]] = bool(codigo[i + 2])
+            i += 3
+        elif op == OP_TECLA:
+            # Ver OP_TECLA. La de arrancar pone la variable en cero y devuelve
+            # el control sin mirar nada; la que espera se **rebobina a sí
+            # misma** hasta que haya tecla, así que se la vuelve a ejecutar
+            # cuadro a cuadro. `(i, 0, None)` es exactamente eso: el cursor
+            # queda en este opcode y no hay cuadros que esperar, que es lo
+            # mismo que hace `op_tecla` en la ROM con `sty ev_cur`.
+            ranura, banderas = codigo[i + 1], codigo[i + 2]
+            if banderas & TECLA_ARRANCA:
+                estado.poner_variable(ranura, 0)
+                estado.refresco = True
+                return (i + 3, 0, None)
+            valor = tecla_de(banderas, estado.pad)
+            if banderas & TECLA_ESPERA and not valor:
+                return (i, 0, None)
+            estado.poner_variable(ranura, valor)
+            # Como cualquier escritura de variable: `SetNeedRefreshForVarChange`.
+            estado.refresco = True
+            i += 3
+        elif op == OP_ACTOR_GRAF:
+            # `actor->SetSprite` más el `ResetGraphic()` del `Game_Player`: si
+            # el actor está liderando se ve en el mismo cuadro, y si no queda
+            # guardado. Quién lo mira es el que dibuja al héroe —acá
+            # `snes_expect`, allá `elegir_grafico_heroe`—, así que esto es sólo
+            # anotarlo.
+            estado.actor_graf[codigo[i + 1]] = codigo[i + 2]
             i += 3
         elif op == OP_ITEM:
             # `Game_Party::AddItem`: suma y recorta a [0, ITEM_MAX], y pide el

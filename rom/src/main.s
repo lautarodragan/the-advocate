@@ -222,9 +222,23 @@ FAR_HP = $3700
 ; sea que llega hasta $3779; esto arranca en $3780 y termina antes de $3800.
 FAR_SP = $3780
 
+; Y a qué gráfico le cambió el sprite un `ChangeSpriteAssociation` a cada actor
+; del LDB, un byte por número de actor: el índice en la tabla de gráficos del
+; mapa —la misma que resuelve la orden 34 de una ruta— o $FF si conserva el del
+; LDB. Viaja en la partida, como en RM2k, y **cruza el teletransporte**: es lo
+; que lo diferencia de la orden 34 sobre el héroe, que se repone al cargar.
+;
+; Va en $3800 y la pelea se corre a $3A00. Podría haber ido pegado a `FAR_HP`
+; —hoy sobra lugar de sobra hasta $37FF— pero entonces su dirección dependería
+; de `ACTORES_N`, que lo emite el conversor, y el mapa de la RAM lejana quedaría
+; a merced de un número que no está escrito acá. Ver arriba: este mapa ya se
+; pisó una vez y la música quedó muda un día entero.
+FAR_ACTOR_GRAF = $3800
+ACTOR_GRAF_NINGUNO = $FF
+
 ; Y el estado de la pelea, que **no** viaja en la partida: una batalla no se
 ; puede guardar en RM2k tampoco.
-FAR_BATALLA = $3800
+FAR_BATALLA = $3A00
 ; La misma dirección pero larga, para los pocos que la tocan desde afuera de
 ; la pelea: `op_batalla` corre con el banco de datos del bytecode.
 BAT_LARGO = $7E0000
@@ -1033,6 +1047,7 @@ grupo_listo:
     jsr limpiar_variables
     jsr equipo_inicial_poner
     jsl f:hp_inicial_poner
+    jsr actor_graf_limpiar
     jsr clima_limpiar
     jsr se_limpiar
     jsr giro_limpiar
@@ -3905,6 +3920,12 @@ otro:
 :   cmp #OP_ACCESO
     bne :+
     jmp op_acceso
+:   cmp #OP_ACTOR_GRAF
+    bne :+
+    jmp op_actor_graf
+:   cmp #OP_TECLA
+    bne :+
+    jmp op_tecla
 :   cmp #OP_TIENDA
     bne :+
     jmp op_tienda
@@ -5379,6 +5400,95 @@ op_grupo:
     jsr cambiar_grupo
     ply
     jmp otro                    ; `bra` no llega: el lazo quedó lejos
+
+; `ChangeSpriteAssociation`: el actor y el índice del gráfico en la tabla del
+; mapa, la misma que resuelve la orden 34 de una ruta. Ver OP_ACTOR_GRAF en
+; eventos.py.
+;
+; El `ResetGraphic()` que RM2k le hace al `Game_Player` es el `jsr
+; elegir_grafico_heroe` de acá abajo, y va sólo si el que cambió es el que
+; lidera: el que no lidera no se dibuja, y lo guardado lo va a leer
+; `elegir_grafico_heroe` cuando le toque —al cambiar el grupo o al cargar otro
+; mapa—.
+;
+; `aplicar_tinte` detrás por lo mismo que en `cambiar_grupo`: la fila de CGRAM
+; que el líder tenía prestada queda con sus quince colores encima de los del
+; mapa, y hay que reponerla desde el cartucho.
+op_actor_graf:
+.a8
+.i16
+    lda [cod_ptr], y            ; el actor
+    iny
+    sta temp
+    lda [cod_ptr], y            ; el gráfico
+    iny
+    sta temp + 1
+    phy
+    lda temp
+    jsr actor_graf_escribir
+    lda temp
+    cmp grupo                   ; ¿es el líder?
+    bne graf_no_lidera
+    jsr elegir_grafico_heroe
+    jsr aplicar_tinte
+graf_no_lidera:
+    ply
+    jmp otro
+
+; `KeyInputProc`: qué tecla apretó el jugador, guardada en una variable. Ver
+; OP_TECLA en eventos.py, que es donde está el porqué de que la forma que
+; espera se emita dos veces.
+;
+; La que **espera** y no encuentra nada rebobina su propio cursor a este mismo
+; opcode y devuelve el control: el cuadro que viene se la vuelve a ejecutar. Es
+; lo mismo que hace la referencia devolviendo `(i, 0, None)`, y es lo que evita
+; tener que guardar "estoy esperando" en algún lado —el intérprete de un evento
+; paralelo son siete bytes y no le sobra ninguno—.
+op_tecla:
+.a8
+.i16
+    lda [cod_ptr], y            ; la ranura de la variable
+    iny
+    sta temp
+    lda [cod_ptr], y            ; las banderas
+    iny
+    sta temp + 1
+    and #TECLA_ARRANCA
+    beq tecla_mirar
+    ; La primera de las dos: la variable en cero y el control de vuelta sin
+    ; mirar nada. Es el `Input::ResetTriggerKeys()` de RPG_RT, que acá sale
+    ; gratis: el flanco se calcula contra el pad del cuadro anterior, así que
+    ; dejar pasar un cuadro es exactamente perderlo.
+    stz temp + 2
+    stz temp + 3
+    lda temp
+    jsr var_escribir
+    lda #1
+    sta refresco
+    sty ev_cur
+    rts
+tecla_mirar:
+    phy
+    jsr tecla_valor
+    ply
+    sta temp + 2                ; el valor, que es de donde lo saca var_escribir
+    stz temp + 3
+    lda temp + 1
+    and #TECLA_ESPERA
+    beq tecla_guardar           ; sin espera se guarda lo que haya, cero incluido
+    lda temp + 2
+    bne tecla_guardar
+    dey                         ; todavía nada: el cursor vuelve a este opcode
+    dey
+    dey
+    sty ev_cur
+    rts
+tecla_guardar:
+    lda temp
+    jsr var_escribir
+    lda #1
+    sta refresco                ; `SetNeedRefreshForVarChange`, como ControlVars
+    jmp otro
 
 op_esperar:
     ; Y acá se devuelve el control. Antes se salteaba, y el comentario decía
@@ -6879,6 +6989,75 @@ listo:
     rts
 .endproc
 
+; A: un índice de la tabla de gráficos del mapa —la que arma `ruta_grafico` y
+; que `load_ruta_graficos` copia a `ruta_graf_buf`—. Deja `hero_poses`,
+; `hero_pal` y `hero_cgram` apuntando a ese gráfico y vuelve con C=1; si el
+; gráfico no está en el banco de sprites de este mapa vuelve con C=0 y sin
+; tocar nada.
+;
+; Sale barata porque las dos tablas de poses tienen la misma forma: una entrada
+; de `npc_poses` son doce punteros de tres bytes a las poses del personaje, y
+; los doce que la tabla de actores le da al líder están escritos igual. O sea
+; que alcanza con apuntar `hero_poses` treinta y seis bytes adentro de
+; `npc_poses` y `place_hero` sigue sin enterarse.
+;
+; `hero_cgram` se apaga: los quince colores del líder los sube `aplicar_tinte`
+; **en la fila que dice `hero_pal`**, así que dejarlo puesto con la paleta nueva
+; le escribiría los colores de Talan encima a la paleta del gráfico al que se
+; cambió. Mientras el cambio está puesto, el héroe se dibuja con la paleta del
+; gráfico nuevo, que ya vive en CGRAM con el resto de los sprites del mapa.
+;
+; La usan los dos que le cambian el gráfico al héroe: la orden 34 de una ruta
+; —`grafico_heroe`— y el `ChangeSpriteAssociation` sobre el actor que lidera
+; —`elegir_grafico_heroe`—. Lo que cada uno hace con el C=0 es distinto y por
+; eso queda afuera: la orden 34 esconde al héroe y el cambio de actor lo deja
+; con el gráfico del LDB.
+.proc hero_poses_de_grafico
+.a8
+.i16
+    asl a                       ; dos bytes por entrada en `ruta_graf_buf`
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda ruta_graf_buf, x        ; su entrada en `npc_poses`, o $FF
+    cmp #$FF
+    beq no_esta
+    sta temp
+    lda ruta_graf_buf + 1, x
+    asl a
+    and #$0E                    ; la paleta, corrida a su lugar en vhoopppN
+    sta hero_pal
+    rep #$20
+.a16
+    lda temp
+    and #$00FF
+    asl a
+    asl a                       ; k por cuatro
+    sta temp + 2
+    asl a
+    asl a
+    asl a                       ; k por treinta y dos
+    clc
+    adc temp + 2                ; treinta y seis por personaje: doce punteros
+    clc                         ; de tres bytes, como la tabla del actor
+    adc poses_ptr
+    sta hero_poses
+    sep #$20
+.a8
+    lda poses_ptr + 2
+    adc #0
+    sta hero_poses + 2
+    stz hero_cgram + 2          ; ver arriba: nadie sube colores encima
+    sec
+    rts
+no_esta:
+    clc
+    rts
+.endproc
+
 ; Con qué se dibuja el héroe: se busca al primero del grupo en la tabla de
 ; actores del mapa y se guardan sus doce poses y su paleta.
 ;
@@ -6936,6 +7115,22 @@ cada_actor:
     bra sin_lider
 
 lo_encontre:
+    ; Antes que el LDB, el `ChangeSpriteAssociation` que le hayan hecho a este
+    ; actor: es el `actor->SetSprite` de RM2k, y vive en el actor, así que
+    ; **cruza el teletransporte**. Si su gráfico no está en el banco de sprites
+    ; de este mapa se cae al del LDB, que es a lo que apunta el camino de
+    ; abajo; la referencia hace lo mismo. Ver OP_ACTOR_GRAF en eventos.py.
+    phy                         ; la entrada del actor, por si no hay cambio
+    lda temp                    ; el líder
+    jsr actor_graf_leer
+    cmp #ACTOR_GRAF_NINGUNO
+    beq sin_cambio_de_sprite
+    jsr hero_poses_de_grafico
+    bcc sin_cambio_de_sprite
+    ply
+    rts
+sin_cambio_de_sprite:
+    ply
     iny
     lda [act_ptr], y            ; su paleta, ya corrida a su lugar en vhoopppN
     asl a
@@ -7156,6 +7351,8 @@ giro_espera:
 ;   `Crown7` justo antes de teletransportarse y vuelve a `Future1` justo
 ;   después, así que en el juego no se nota.
 grafico_heroe:
+    lda #$FF
+    sta hero_pose_vram          ; la pose que hay en VRAM ya no es la suya
     rep #$20
 .a16
     lda ruta_i
@@ -7165,44 +7362,8 @@ grafico_heroe:
 .a8
     lda ruta, x
     inc ruta_i                  ; el operando ya está consumido
-    asl a                       ; dos bytes por entrada en `ruta_graf_buf`
-    rep #$20
-.a16
-    and #$00FF
-    tax
-    sep #$20
-.a8
-    lda #$FF
-    sta hero_pose_vram          ; la pose que hay en VRAM ya no es la suya
-    lda ruta_graf_buf, x        ; su entrada en `npc_poses`, o $FF
-    cmp #$FF
-    beq heroe_sin_grafico
-    sta temp
-    lda ruta_graf_buf + 1, x
-    asl a
-    and #$0E                    ; la paleta, corrida a su lugar en vhoopppN
-    sta hero_pal
-    rep #$20
-.a16
-    lda temp
-    and #$00FF
-    asl a
-    asl a                       ; k por cuatro
-    sta temp + 2
-    asl a
-    asl a
-    asl a                       ; k por treinta y dos
-    clc
-    adc temp + 2                ; treinta y seis por personaje: doce punteros
-    clc                         ; de tres bytes, como la tabla del actor
-    adc poses_ptr
-    sta hero_poses
-    sep #$20
-.a8
-    lda poses_ptr + 2
-    adc #0
-    sta hero_poses + 2
-    stz hero_cgram + 2          ; ver arriba: nadie sube colores encima
+    jsr hero_poses_de_grafico
+    bcc heroe_sin_grafico
     jmp otra_orden
 heroe_sin_grafico:
     ; Un CharSet sin un solo pixel opaco —`nobodyhere`— o uno que no entró en
@@ -9766,7 +9927,7 @@ SRAM_DATOS = $0106
 ; `guardar_partida` compara con lo que le quedó a `partida_copiar` y si no dan
 ; iguales entra en pánico. Duplicar un número que nadie verifica es la forma de
 ; error que este repo ya pagó tres veces.
-PARTIDA_BYTES = 2 + 2 + 1 + 2 + 2 + 2 + 6 + 3 + 1 + 5 + 3 + SWITCH_BYTES + 1 + 2 + VARIABLES_N * 2 + 1 + ITEMS_N + 1 + ACTORES_N * 10 + ACTORES_N * 2 + ACTORES_N * 2
+PARTIDA_BYTES = 2 + 2 + 1 + 2 + 2 + 2 + 6 + 3 + 1 + 5 + 3 + SWITCH_BYTES + 1 + 2 + VARIABLES_N * 2 + 1 + ITEMS_N + 1 + ACTORES_N * 10 + ACTORES_N * 2 + ACTORES_N * 2 + ACTORES_N
 ; Dónde cae el grupo adentro de la partida: después de la posición, la
 ; dirección, la celda y el mapa. Lo lee la pantalla de ranuras desde la SRAM
 ; para poner el nombre del líder y las caras. Es la misma suma que arriba,
@@ -11056,6 +11217,96 @@ mover_cursor:
     rts
 .endproc
 
+; --- el sprite que un `ChangeSpriteAssociation` le puso a un actor -----------
+;
+; Un byte por número de actor en `FAR_ACTOR_GRAF`, con el índice en la tabla de
+; gráficos del mapa o `ACTOR_GRAF_NINGUNO`. Vive lejos, así que se apunta WMADD
+; y se pasa por el puerto, como las variables.
+
+; A: el actor. Deja WMADD apuntando a su byte.
+.proc actor_graf_apuntar
+.a8
+.i16
+    rep #$20
+.a16
+    and #$00FF
+    clc
+    adc #FAR_ACTOR_GRAF
+    sta WMADDL
+    sep #$20
+.a8
+    stz WMADDH
+    rts
+.endproc
+
+; A: el actor. Vuelve con su gráfico en A, o `ACTOR_GRAF_NINGUNO`.
+.proc actor_graf_leer
+.a8
+.i16
+    jsr actor_graf_apuntar
+    lda WMDATA
+    rts
+.endproc
+
+; A: el actor; `temp + 1`: el gráfico.
+.proc actor_graf_escribir
+.a8
+.i16
+    jsr actor_graf_apuntar
+    lda temp + 1
+    sta WMDATA
+    rts
+.endproc
+
+; Ningún actor con el sprite cambiado. Corre en el reset, antes de cargar la
+; partida, que lo pisa.
+.proc actor_graf_limpiar
+.a8
+.i16
+    rep #$20
+.a16
+    lda #FAR_ACTOR_GRAF
+    sta WMADDL
+    ldx #ACTORES_N
+    sep #$20
+.a8
+    stz WMADDH
+    lda #ACTOR_GRAF_NINGUNO
+otro:
+    sta WMDATA
+    dex
+    bne otro
+    rts
+.endproc
+
+; El valor que `KeyInputProc` le guarda a la variable, en A, o 0 si todavía no
+; hay tecla. `temp + 1` trae las banderas.
+;
+; **Sólo la tecla de acción, y sólo por flanco.** No es una simplificación
+; escondida: es la única forma del comando que compila, ver `KEY_INPUT_PROC` en
+; `eventos.py`, que tiene el número y el porqué. Las otras —la cruceta,
+; cancelar, y leer sin esperar— están escritas del lado del modelo, en
+; `eventos.tecla_de`, y acá **no**: escribirlas sería poner en el banco 0
+; sesenta bytes que ninguna página puede alcanzar y que por lo tanto no prueba
+; nada. El día que la caminata del arnés avance cuadro a cuadro, vuelven, y el
+; orden en que se miran ya está en `tecla_de`.
+;
+; El flanco es `Input::IsTriggered`: `pad_a` contra `pad_a_ant`, lo mismo con
+; lo que se cierra un mensaje.
+.proc tecla_valor
+.a8
+.i16
+    lda pad_a
+    eor pad_a_ant
+    and pad_a
+    beq ninguna
+    lda #TECLA_VALOR_DECISION
+    rts
+ninguna:
+    lda #0
+    rts
+.endproc
+
 ; A: el byte de permisos nuevo.
 .proc acceso_escribir
 .a8
@@ -12179,7 +12430,7 @@ otro:
     lsr a
     clc
     adc comp_and
-    tay                         ; el byte
+    sta comp_and                ; el byte; `comp_and` ya no lleva k por ocho
     pla
     and #$0007
     sta comp_and + 2              ; y el bit
@@ -12193,8 +12444,14 @@ otro:
     ; **Por X y no por Y**: el 65816 no tiene `lda long, y`, sólo `long, x`. X
     ; trae el `k` del ítem y lo necesita más abajo, así que va y vuelve por la
     ; pila. El `plx` no deja ninguna bandera mirada: lo que sigue es un `and`.
+    ;
+    ; El índice sale de `comp_and` y no de Y, y eso no es indistinto: dos ramas
+    ; mudaron este mismo código a RODATA por separado, una dejando el byte en Y
+    ; —`tay`— y la otra en `comp_and`. En el merge git se quedó con el `sta
+    ; comp_and` de una y dejó el `tyx` de la otra en conflicto: juntas
+    ; ensamblaban y leían un registro que ya nadie cargaba.
     phx
-    tyx
+    ldx comp_and
     lda f:item_actores, x
     plx
     ldy comp_and + 2
@@ -12226,7 +12483,10 @@ no_va:
 siguiente:
     inx
     cpx #ITEMS_N
-    bcc otro
+    bcs lista_lista
+    jmp otro                    ; los 127 bytes de un `bcc` se quedaron cortos
+                                ; al leer `item_actores` larga
+lista_lista:
     rep #$20
 .a16
     lda comp_base
@@ -24529,6 +24789,9 @@ partida_tabla:
     .word FAR_HP, ACTORES_N * 2
     ; Y los SP, por lo mismo desde que hay habilidades que gastarlos.
     .word FAR_SP, ACTORES_N * 2
+    ; Y a qué gráfico le cambió el sprite un `ChangeSpriteAssociation`: un byte
+    ; por actor. Viaja en la partida como en RM2k, y cruza el teletransporte.
+    .word FAR_ACTOR_GRAF, ACTORES_N
     .word 0, 0
 
 ; Hacia dónde mira cada pose, de 0 a 11: la dirección es la pose entre tres.

@@ -3358,6 +3358,19 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "OP_IMAGEN_BORRAR = $%02X\n"
         "OP_BATALLA  = $%02X\n"
         "OP_PARAR_RUTAS = $%02X\n"
+        "; `ChangeSpriteAssociation`: a qué gráfico de la tabla del mapa\n"
+        "; le cambia el sprite a un actor. Ver OP_ACTOR_GRAF en\n"
+        "; eventos.py y `op_actor_graf` en main.s.\n"
+        "OP_ACTOR_GRAF = $%02X\n"
+        "; `KeyInputProc`: la ranura de la variable y qué teclas mira.\n"
+        "; Ver OP_TECLA en eventos.py y `op_tecla` en main.s.\n"
+        "OP_TECLA      = $%02X\n"
+        "TECLA_ESPERA   = $%02X\n"
+        "TECLA_DIRS     = $%02X\n"
+        "TECLA_DECISION = $%02X\n"
+        "TECLA_CANCELAR = $%02X\n"
+        "TECLA_ARRANCA  = $%02X\n"
+        "TECLA_VALOR_DECISION = %d\n"
         "; En qué tile de su banco de sprites arranca y con qué paleta.\n"
         "; Van de globales y no en el registro del mapa porque el cartel es\n"
         "; **uno solo por ROM** y vive en un solo mapa: los dos campos\n"
@@ -3635,6 +3648,11 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            eventos.OP_IMAGEN, eventos.OP_IMAGEN_MOVER,
            eventos.OP_IMAGEN_BORRAR, eventos.OP_BATALLA,
            eventos.OP_PARAR_RUTAS,
+           eventos.OP_ACTOR_GRAF,
+           eventos.OP_TECLA, eventos.TECLA_ESPERA,
+           eventos.TECLA_DIRS, eventos.TECLA_DECISION,
+           eventos.TECLA_CANCELAR, eventos.TECLA_ARRANCA,
+           eventos.TECLA_VALOR_DECISION,
            cartel_base, cartel_pal,
            cartel["x"] if cartel else 0, cartel["y"] if cartel else 0,
            cartel["objetos"] if cartel else 0,
@@ -4325,18 +4343,18 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         words_asm("item_puntos", [p & 0xFFFF for n in items
                                   for p in db_items[n].puntos],
                   declarar=True)
-        handle.write('.segment "TABLAS"\n')
-        # **Fuera del banco 0**, como `item_k` y por lo mismo: son 496 bytes con
-        # los 62 ítems de `demo-ciudad` y el área de código se pasó por
-        # diecinueve al entrar las habilidades. La pantalla de equipo la lee con
-        # `lda f:item_actores, y`, una vez por ítem al abrirse.
-        handle.write('.segment "RODATA"\n')
+        # `item_actores` va también fuera del banco 0 —se lee con
+        # `lda f:item_actores, x`—: son 496 bytes, los más gordos que le
+        # quedaban a `TABLAS`, y el banco 0 se pasó. No es una previsión: el
+        # 2026-09-13 `just snes-demo demo-ciudad` cortaba con "el área no
+        # entra: 32719 bytes en 32704" y ningún caso de la tanda lo veía.
+        # Se lee una vez por ítem al armar la lista de la pantalla de equipo,
+        # así que el ciclo de más del direccionamiento largo no se nota.
         bytes_asm("item_actores", [
             sum(1 << b for b in range(8)
                 if 8 * byte + b + 1 < actores_n
                 and db_items[n].equipable_por(8 * byte + b + 1))
             for n in items for byte in range(8)], declarar=True)
-        handle.write('.segment "TABLAS"\n')
         # `actor_params` va fuera del banco 0 —se lee con
         # `lda f:actor_params, x`, una sola vez por pantalla de equipo— por lo
         # mismo que `item_k`: son 488 bytes y el banco del código se llenó, y
@@ -4785,12 +4803,21 @@ RUTA_EV_MAX = 12
 # el conversor no lo puede comprobar porque depende de qué corra cuándo, y una
 # ranura que falte hace que el destello no se vea.
 FLASH_MAX = 4
-# Cuántos eventos con página paralela puede haber a la vez en un mapa. El más
-# cargado de este juego es el 8 —Lashe City— con **ocho**: los cuatro autos y
-# los cuatro que los reubican. Medido sobre los 328 contando sólo las páginas
-# que compilan; el conversor corta si alguno se pasa. Su estado vive en la RAM
-# del banco 1, así que no le cuesta nada a la BSS.
-PARALELO_MAX = 12
+# Cuántos eventos con página paralela puede haber a la vez en un mapa. Era 12
+# porque el más cargado era el 8 —Lashe City— con ocho: los cuatro autos y los
+# cuatro que los reubican.
+#
+# **Con `ChangeSpriteAssociation` hecho son 40**, y los pone un solo mapa: cada
+# obstáculo de la persecución en auto es un evento con una página paralela que
+# compara la celda del auto con la suya, y los mapas 49, 52 y 54 tienen
+# cuarenta cada uno. Antes no contaban porque ninguna de esas páginas compilaba.
+# Medido sobre los 328 mapas con todo lo que hay hecho hoy; el conversor corta
+# si alguno se pasa.
+#
+# Lo que cuesta: un byte de `FAR_PAR_LISTA` por ranura —RAM lejana, no la BSS—
+# y **una vuelta de intérprete por cuadro por cada uno**. Es lo segundo lo que
+# hay que mirar si la carrera se pone lenta.
+PARALELO_MAX = 48
 # Un NPC en la RAM de la ROM. Eran ocho bytes; los cuatro de más son para los
 # que caminan: a cuál evento corresponden y dónde está su tabla de poses.
 #
@@ -4870,7 +4897,8 @@ def orden_de_mapas(args):
 ANIMA_QUIETO_MAX = 4
 
 
-def eventos_movibles(game_map, indice_de_mapa, con_ventana=False):
+def eventos_movibles(game_map, indice_de_mapa, con_ventana=False,
+                     asociaciones=()):
     """Los eventos con gráfico a los que alguna página compilable manda a
     caminar, y los gráficos a los que alguna ruta cambia con la orden 34.
 
@@ -4901,7 +4929,7 @@ def eventos_movibles(game_map, indice_de_mapa, con_ventana=False):
     pero no es una **regla** repetida: la decisión de qué compila la toma la
     misma función las dos veces.
     """
-    graficos = eventos.Graficos()
+    graficos = eventos.Graficos(asociaciones)
     paginas = eventos.paginas_del_mapa(
         game_map, indice_de_mapa,
         eventos.Mensajes() if con_ventana else None, graficos=graficos)
@@ -4952,6 +4980,19 @@ def graficos_de_prueba(argumento):
     return tuple((charset, int(indice)) for charset, indice in argumento or ())
 
 
+def sprite_de_prueba(argumento):
+    """(actor, CharSet, índice) de `--sprite-de-prueba`, o () si no hay.
+
+    La usan el conversor y la referencia, que es lo que garantiza que los dos
+    lean el mismo flag igual; el actor viene de la línea de comandos como texto
+    y el `int` es lo único que hay que hacerle.
+    """
+    if not argumento:
+        return ()
+    actor, charset, indice = argumento
+    return (int(actor), charset, int(indice))
+
+
 def ruta_de_evento(argumento):
     """(blanco, órdenes) desde el flag, o () si no se pidió ninguna.
 
@@ -4982,9 +5023,13 @@ def variables_n():
     return n
 
 
-def variables_de_prueba(vars_de_prueba, rama_var_de_prueba):
+def variables_de_prueba(vars_de_prueba, rama_var_de_prueba, tecla=None):
     """Las variables que nombra la página de prueba, para darles ranura."""
     ids = set()
+    if tecla:
+        # La de `--tecla-de-prueba`, que es donde `KeyInputProc` guarda lo que
+        # leyó. Sin ranura el comando no compila y la página se cae entera.
+        ids.add(tecla[0])
     if vars_de_prueba:
         if len(vars_de_prueba) % 5:
             sys.exit("--vars-de-prueba pide VARIABLE OPERACION CLASE A B, y se "
@@ -5353,6 +5398,29 @@ def main():
                              "milisegundos. Ninguna página del juego que hoy\n"
                              "compile apaga la música, así que sin esto el\n"
                              "camino no lo corre nada")
+    parser.add_argument("--tecla-de-prueba", nargs=5, type=int,
+                        default=None,
+                        metavar="N",
+                        help="agrega a la página de prueba un\n"
+                             "KeyInputProc con los cinco parámetros de\n"
+                             "RM2k: variable, esperar, las cuatro\n"
+                             "direcciones, la tecla de acción y\n"
+                             "cancelar. Ninguna página del juego que\n"
+                             "hoy compile lo usa, así que sin esto el\n"
+                             "camino no lo corre nada")
+    parser.add_argument("--sprite-de-prueba", nargs=3, default=None,
+                        metavar=("ACTOR", "CHARSET", "INDICE"),
+                        help="agrega a la página de prueba un\n"
+                             "ChangeSpriteAssociation: le cambia el\n"
+                             "CharSet a ese actor **después de la\n"
+                             "espera**, y si es el que lidera, el\n"
+                             "héroe pasa a dibujarse con él. El\n"
+                             "gráfico tiene que ir además en\n"
+                             "--grafico-de-prueba, que es lo que le\n"
+                             "pone las poses en el banco de sprites\n"
+                             "del mapa. Las 212 apariciones del\n"
+                             "comando en el juego están en los cuatro\n"
+                             "mapas de la persecución en auto")
     parser.add_argument("--grafico-de-prueba", nargs=2, action="append",
                         default=None, metavar=("CHARSET", "INDICE"),
                         help="registra un gráfico para que la ruta de\n"
@@ -5459,14 +5527,22 @@ def main():
     # alguien que después camina por el mapa B.
     args_game_dir[0] = args.game_dir
     todos = orden_de_mapas(args)
-    args.lideres = lideres_posibles(renderer, todos, grupo, args.con_ventana)
-    # Si algún mapa pone lluvia, todos llevan las gotas: ver `hay_lluvia`.
-    args.con_lluvia = hay_lluvia(todos) or args.lluvia_de_prueba is not None
-    # Las variables del juego entero, con su ranura, antes de compilar una
-    # sola página. La referencia arma el mismo índice.
+    # **Los índices van antes que todo lo que compile una página**, y
+    # `lideres_posibles` compila páginas. Estaban después, y el precio era
+    # concreto: sin `indexar_variables`, ninguna `ControlVars` compila, así que
+    # `RaceController1` del mapa 49 —que arranca con un `PlayBGM` y sigue con
+    # dos `ControlVars`— no compilaba **en esa pasada** y sí en la de verdad.
+    # Los actores que mete al grupo se perdían: `CarRED` no entraba en la tabla
+    # de actores del mapa y el héroe de la persecución se dibujaba **sin
+    # gráfico**, o sea que el auto no se veía. Es el mismo agujero que ESTADO.md
+    # ya tenía anotado para las cuentas de páginas, en otro lugar.
+    #
+    # Las variables del juego entero, con su ranura. La referencia arma el
+    # mismo índice.
     eventos.indexar_variables(args.game_dir,
                               variables_de_prueba(args.vars_de_prueba,
-                                                  args.rama_var_de_prueba))
+                                                  args.rama_var_de_prueba,
+                                                  args.tecla_de_prueba))
     # Y las animaciones de batalla, que `ShowBattleAnimation` compila con su
     # línea de tiempo adentro: ver OP_ANIMACION.
     eventos.indexar_animaciones(args.game_dir)
@@ -5474,6 +5550,9 @@ def main():
     # los dos lados tienen que mirar la misma base.
     eventos.indexar_comunes(args.game_dir)
     eventos.indexar_audio_de_batalla(args.game_dir)
+    args.lideres = lideres_posibles(renderer, todos, grupo, args.con_ventana)
+    # Si algún mapa pone lluvia, todos llevan las gotas: ver `hay_lluvia`.
+    args.con_lluvia = hay_lluvia(todos) or args.lluvia_de_prueba is not None
     # En cuántos mapas de esta ROM aparece cada personaje. Lo usa el reparto de
     # paletas para elegir a quién puede bajarle un color sin romper nada: el
     # banco de poses es **de la ROM entera**, así que un personaje que está en
@@ -5488,6 +5567,20 @@ def main():
     # `convertir` los recorre; la referencia elige con la misma función.
     args.imagenes = eventos.Imagenes(args.game_dir)
     args.imagenes.mapa = None
+    # Y las ranuras que `ChangeSpriteAssociation` le reserva a la tabla de
+    # gráficos de **todos** los mapas, por la misma razón que el cartel: el
+    # gráfico que le pone a un actor cruza el teletransporte, así que su índice
+    # tiene que valer lo mismo en los dos mapas. Ver `eventos.asociaciones_de`.
+    args.asociaciones = eventos.asociaciones_de(
+        lcf.Map(os.path.join(args.game_dir, "Map%04d.lmu" % m))
+        for m in todos)
+    # Y el de `--sprite-de-prueba`, que es un `ChangeSpriteAssociation` más y
+    # va por la misma puerta: si fuera por `--grafico-de-prueba` tendría índice
+    # sólo en el mapa donde arranca la ROM, y lo que el comando hace —cruzar el
+    # teletransporte— no se podría probar.
+    prueba = sprite_de_prueba(args.sprite_de_prueba)
+    if prueba and (prueba[1], prueba[2]) not in args.asociaciones:
+        args.asociaciones.append((prueba[1], prueba[2]))
 
     mapas = [convertir(renderer, map_id, args,
                        inicio=args.inicio if map_id == args.map_id else None)
@@ -5536,7 +5629,7 @@ def main():
         # de las que se pueden ejecutar, todo seguido en un solo bloque.
         # Un registro de gráficos por mapa: la orden 34 lleva el índice y la
         # tabla `ruta_grafico` del mapa lo resuelve. Ver `eventos.Graficos`.
-        graficos = eventos.Graficos()
+        graficos = eventos.Graficos(args.asociaciones)
         temas.mapa = mapas.index(mapa)      # para su paquete de audio
         paginas = eventos.paginas_del_mapa(mapa["game_map"], indices.get,
                                            mensajes, temas, graficos,
@@ -5588,6 +5681,8 @@ def main():
         if (args.pagina_de_prueba or args.ruta_de_prueba
                 or args.rama_de_prueba or args.guardar_de_prueba
                 or args.batalla_de_prueba
+                or args.sprite_de_prueba
+                or args.tecla_de_prueba
                 or args.vars_de_prueba or args.rama_var_de_prueba
                 or args.items_de_prueba or args.acceso_de_prueba
                 or args.ruta_de_evento or args.flash_de_prueba or args.switch
@@ -5636,7 +5731,10 @@ def main():
                     eventos_mapa=eventos.Eventos(mapa["game_map"]),
                     batalla=args.batalla_de_prueba, temas=temas,
                     parar=args.parar_de_prueba,
-                    rama_item=tuple(args.rama_item_de_prueba or ()))}, {
+                    rama_item=tuple(args.rama_item_de_prueba or ()),
+                    sprite=sprite_de_prueba(args.sprite_de_prueba),
+                    graficos=graficos,
+                    tecla=tuple(args.tecla_de_prueba or ()))}, {
                 # Y la que la apaga: misma idea que en la referencia, ver
                 # `PAGINA_DE_PRUEBA_APAGADA`. Sin código, así que en cuanto
                 # gana, el evento inventado deja de tener una automática que
@@ -6145,10 +6243,21 @@ def lideres_posibles(renderer, map_ids, grupo, con_ventana=False):
                 # se pierden: la cinemática de apertura suma a Kersh al grupo
                 # justo después de mandar a caminar al evento 8, así que el héroe
                 # se quedaba sin tabla de poses y no se dibujaba.
+                # **Con el mismo contexto que la compilación de verdad**, y
+                # no sólo con el bloque de textos. Faltaban `Temas`,
+                # `Graficos` e `Imagenes`, y sin ellos una página que empieza
+                # con un `PlayBGM` no compila **acá** y sí compila allá: los
+                # actores que meta al grupo se pierden. Es exactamente lo que
+                # le pasaba al auto de la persecución —`RaceController1` del
+                # mapa 49 arranca con `PlayBGM` y después mete a `CarRED`—, y
+                # el síntoma era que el héroe no se dibujaba: `hero_poses` en
+                # cero porque el actor no estaba en la tabla del mapa.
                 if eventos.compilar_pagina(
                         page, indices.get,
                         eventos.Mensajes() if con_ventana else None,
-                        del_mapa.para(evento.id)) is None:
+                        del_mapa.para(evento.id), eventos.Temas(),
+                        eventos.Graficos(), eventos.Imagenes(
+                            args_game_dir[0])) is None:
                     continue
                 for cmd in page.commands:
                     if cmd.code != eventos.CHANGE_PARTY_MEMBERS:
@@ -6252,7 +6361,7 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
     orden = orden_de_mapas(args)
     movibles, graficos_de_ruta, anima_quieto, giran = eventos_movibles(
         game_map, {m: i for i, m in enumerate(orden)}.get,
-        con_ventana=args.con_ventana)
+        con_ventana=args.con_ventana, asociaciones=args.asociaciones)
     # Y los de `--grafico-de-prueba`, que van sólo en el mapa donde arranca la
     # ROM, igual que la ruta inventada y por lo mismo: es donde el conversor
     # mete la página de prueba. Se agregan **después** de los del juego, que es

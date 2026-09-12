@@ -63,6 +63,8 @@ snes-grafico
 snes-grafico 6 "4 2 2 34 0 2 2" "nobodyhere 0" "22 12" "10 25 40 70" 115 invisible
 snes-grafico 6 "0 2 2 34 0 2 2" "Future1 0" "22 12" "10 20 25 40" 115 grafico-heroe
 snes-grafico 6 "0 2 2 34 0 2 2" "nobodyhere 0" "22 12" "10 25 40" 115 heroe-invisible
+snes-sprite-actor
+snes-tecla
 snes-pagina 121 10 grupo-121
 snes-pagina 74 21 ruta-74
 snes-espera
