@@ -180,31 +180,6 @@ Al 2026-09-12, en orden.
    2026-09-11: la idea es un sistema propio del port en vez de las imágenes del
    original.
 
-8. **La ráfaga de entrada del mapa 8**: dos cuadros perdidos al entrar,
-   invisibles jugando porque el fundido los absorbe —su reloj son cuadros de
-   hardware—. Medido: las dos primeras vueltas se pasan del presupuesto de 262
-   líneas por 1,45x y de la tercera en adelante sobra la mitad del cuadro; el
-   grueso es crear las ranuras de ruta de los paralelos. Es optimización, no
-   corrección.
-
-9. **Los gráficos: está todo medido y vive en `assets/`.** El titular, para no
-   tener que abrirlo: **el juego entra en 4 MB**. Son unos 2,9 MB entre mapas,
-   sprites, tiles y música, más 2,7 de arte que todavía no dibuja nadie.
-
-10. **Los líderes posibles son una aproximación.** El conversor simula los
-    `ChangePartyMembers` de las páginas que compilan para saber qué actores
-    pueden ir primeros. Si alguna vez un personaje se dibuja sin gráfico, es el
-    primer lugar donde mirar; `pruebas/test_lideres.py` cuida la parte que ya
-    falló.
-
-11. **Las ROMs para probar viven en `pruebas-manuales/<fecha>-<commit>/`**,
-    gitignorado, desde el 2026-09-12: taro las saca desde el host, y sacarlas de
-    `/extras` pedía un `podman cp` cada vez. Lo anterior a esa fecha quedó en
-    `/extras/builds/`. **Cuidado con el disco**: un build con las ocho pistas de
-    MSU-1 son 383 MB, y éste es el disco de taro y no un volumen descartable;
-    conviene dejar el último y borrar los anteriores. **Salen de `just
-    snes-demos` y de ningún otro lado**: la vez que se armó una a mano salió con
-    el grupo equivocado y taro vio a Kersh sobre negro, con la apertura quieta.
 
 ## Decisiones tomadas que siguen valiendo
 
@@ -362,6 +337,22 @@ de cada una está en `README.md`.
   `DemasiadosSaltos`. Un salto descartado en silencio es la forma de falla que
   el CLAUDE.md nombra, y ésta sobrevivió semanas porque la partida seguía
   andando, sólo que en el mapa equivocado.
+
+* **Las ROMs para probar a mano viven en `pruebas-manuales/<fecha>-<commit>/`**,
+  en el repo y gitignorado, desde el 2026-09-12: taro las saca desde el host, y
+  sacarlas de `/extras` pedía un `podman cp` cada vez. Lo anterior a esa fecha
+  quedó en `/extras/builds/`. **Cuidado con el disco**: un build con las ocho
+  pistas de MSU-1 son 383 MB, y éste es el disco de taro y no un volumen
+  descartable; conviene dejar el último y borrar los anteriores.
+
+* **Los gráficos están todos medidos y viven en `assets/`.** El titular, para no
+  tener que abrirlo: **el juego entra en 4 MB**. Son unos 2,9 MB entre mapas,
+  sprites, tiles y música, más 2,7 de arte que todavía no dibuja nadie.
+
+* **Los líderes posibles son una aproximación.** El conversor simula los
+  `ChangePartyMembers` de las páginas que compilan para saber qué actores pueden
+  ir primeros. Si alguna vez un personaje se dibuja sin gráfico, es el primer
+  lugar donde mirar; `pruebas/test_lideres.py` cuida la parte que ya falló.
 
 * **Los builds numerados de `rom/build/` no se arman a mano.** No están en git
   y no los produce ninguna receta salvo el 12. Armar uno a mano es cómo se
@@ -527,6 +518,13 @@ entera del Emitter Room. Lo que la tanda no mira:
   horizontal y hacia el héroe. Son 106 páginas. Y el giro en el lugar.
 * **El fundido de la transparencia de una ruta**: se acepta y se tira, porque
   la SNES no atenúa un sprite por partes sin color math.
+* **La ráfaga de entrada del mapa 8**: dos cuadros perdidos al entrar,
+  invisibles jugando porque el fundido los absorbe —su reloj son cuadros de
+  hardware—. Medido: las dos primeras vueltas se pasan del presupuesto de 262
+  líneas por 1,45x y de la tercera en adelante sobra la mitad del cuadro; el
+  grueso es crear las ranuras de ruta de los paralelos. Es optimización, no
+  corrección, y por eso no se hizo.
+
 * **Los cuadros que el lazo pierde de vez en cuando** —la primera vuelta de una
   ROM con muchas páginas, y la vuelta en que termina un fundido—. No cambian
   ningún pixel comparado, y son lo único que le falta a la escena del ascensor
