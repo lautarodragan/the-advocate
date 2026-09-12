@@ -19,14 +19,16 @@ Se escribe **mientras se trabaja**, no al final.
 **Los primeros diez minutos jugables**, que es lo que taro viene probando vuelta
 a vuelta.
 
-Al 2026-09-12: `just snes-hitos-foto` son **138 casos, todos en verde** —sobre
-la foto `01d5509`—, y `just pruebas` **97 en verde y 1 `xfail`**. El `xfail` no
+Al 2026-09-12: `just snes-hitos-foto` son **140 casos, todos en verde** —sobre
+la foto `93fca1c`—, y `just pruebas` **100 en verde y 1 `xfail`**. El `xfail` no
 es adorno: es un defecto medido de guardar con la pantalla de título puesta, y
 está abajo.
 
 **La ROM para probar a mano de esta vuelta** está en
-`pruebas-manuales/desbloqueos/`, con las cuatro piezas del 2026-09-12 y un
-`LEEME.txt` que dice cómo llegar jugando a cada una.
+`pruebas-manuales/vars-y-rutas/`, con las coordenadas de un personaje y el
+teletransporte de dos bytes, y un `LEEME.txt` que dice cómo llegar jugando a lo
+que se destrabó —y por qué la persecución en auto todavía no—. La anterior, con
+las cuatro piezas del mediodía, está en `pruebas-manuales/desbloqueos/`.
 
 `demo-ciudad` se juega desde la apertura hasta la calle de Lashe City, con los
 relámpagos, los autos y los NPCs andando, el agua moviéndose, la lluvia, el save
@@ -329,6 +331,16 @@ Lo que queda abierto de la primera:
   hacen: la pantalla mide 256x224 y la de RM2k 320x240, así que el número que le
   quedaría a la variable no es el del original. Son cuatro apariciones en todo
   el juego y valen **una** página, medida.
+* **Un lazo de la referencia se colgaba con una página paralela que escribe
+  variables**, y quedó arreglado de paso: un paralelo pide refresco en cada
+  cuadro —`SetNeedRefreshForVarChange`— así que todo lo que esperaba a que no
+  quedara ninguno pendiente esperaba para siempre. Lo destapó el mapa 11, cuyas
+  once páginas paralelas compilan desde la clase 6: el plan de `snes-heroe 11`
+  pasó de 9 ticks a 110008, o sea cuarenta minutos de emulador por dirección.
+  Ahora eso lo decide `Estado.refresco_frena`, con la misma excepción que
+  `asentado` tiene para los autos. **Los cuatro lazos que lo miraban están
+  cambiados**; si aparece uno nuevo, tiene que usar `refresco_frena` y no
+  `refresco`.
 * **La celda del héroe vive ahora en `Estado.heroe`** del lado de la referencia,
   y la escribe `cuadro_de_eventos`. El orden está elegido para copiar al de la
   ROM —el intérprete corre antes que `move_hero`— pero **la tanda no tiene
