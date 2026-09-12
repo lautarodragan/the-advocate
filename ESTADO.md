@@ -228,6 +228,21 @@ Lo que hay que saber para tocarlo:
 * **`msg_lineas` guarda la cabecera entera** y la enmascara quien la lea, por lo
   mismo: un byte más en el banco 0 es justo lo que no hay.
 
+**`just snes-demo demo-ciudad` no arma, y no es de esta vuelta.** El área del
+banco 0 —`CODE` más `TABLAS`, 32704 bytes— se pasa. Medido el 2026-09-13 con el
+mismo `mapdata.inc` de los 29 mapas:
+
+    f38b87c, sin nada de esto      32719 B, 15 de más
+    con los escapes puestos        32834 B, 130 de más
+
+O sea que **ya no entraba antes**, y los escapes le agregan 115 bytes de código
+—decodificar la cabecera, la cuenta de la pausa y el autocierre—. El conversor
+no aporta ni un byte al banco 0: `f38b87c` con el `mapdata.inc` nuevo da los
+mismos 32719. Las demás recetas arman, porque llevan menos mapas y `TABLAS` les
+sale más chica. Lo que hay que decidir es de dónde salen esos 130 bytes; es el
+mismo aviso que ya estaba escrito para la BSS —"lo que siga pidiendo RAM del
+banco 0 va a tener que aflojar algo"— pero del lado del cartucho.
+
 Lo que queda abierto:
 
 * **`\^` sin ninguna pausa aborta la composición.** Son dos cuadros en todo el
