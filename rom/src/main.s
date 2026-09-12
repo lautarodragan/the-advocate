@@ -3739,6 +3739,8 @@ si_actor:
     phy
     jsr en_el_grupo             ; Z=0 si está
     ply
+    cmp #0                      ; la Z de `en_el_grupo`, que `ply` acaba de
+                                ; pisar con el cursor: ver `tema_asegurar`
     beq si_actor_no
     lda #$01
     bra si_actor_listo
@@ -4480,6 +4482,8 @@ no_pone:
     jsr var_leer                ; A de dieciséis bits
 .a16
     ply
+    cmp #0                      ; el signo de la variable, que `ply` pisó con
+                                ; el cursor: ver `tema_asegurar`
     bpl timer_poner_16
     lda #0
     bra timer_poner_16
@@ -4796,6 +4800,8 @@ si_var_contra_constante:
     jsr comparar_var
 .a8
     ply
+    cmp #0                      ; lo que dijo `comparar_var`, que `ply` pisó
+                                ; con el cursor: ver `tema_asegurar`
     bne si_var_sigue
     rep #$20
 .a16
@@ -14612,6 +14618,14 @@ mirar:
     tax
     lda f:FAR_ARAM_DE, x
     plx
+    cmp #0                      ; **la Z de acá la pone `plx`, no el `lda`**:
+                                ; PLX deja N y Z del valor que saca de la pila,
+                                ; que es el índice de la lista y nunca es cero.
+                                ; Sin este `cmp` la respuesta era siempre
+                                ; "están todas" y el tema del título sonaba
+                                ; contra un directorio de silencios. Es de
+                                ; dieciséis bits, como la dirección: el mismo
+                                ; cuidado que `op_sonido` se toma con `xba`.
     sep #$20
 .a8
     beq falta

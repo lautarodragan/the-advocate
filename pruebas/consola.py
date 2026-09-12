@@ -91,6 +91,9 @@ class Partida:
 
     def __init__(self, sfc, simbolos, mapas, switches=(), titulo=None):
         self.simbolos = simbolos
+        # El cartucho, para las tablas que no están en la RAM sino en la ROM:
+        # ver `muestras_del_tema`.
+        self.sfc = sfc
         # Los ids de mapa de RM2k en el orden de la tabla de la ROM, que es lo
         # que `mapa_actual` indexa. Sale del `mapdata.inc` generado y no de
         # rehacer la convención de "el de --map-id primero": ya está escrita
@@ -453,6 +456,61 @@ class Partida:
         valor = bajo | (alto << 8)
         return valor - 0x10000 if valor & 0x8000 else valor
 
+    def quedarse_en_el_titulo(self):
+        """Resetea y **se queda** en la pantalla de título, sin elegir nada.
+
+        `pasar_el_titulo` la atraviesa; acá hace falta lo contrario, porque lo
+        que se quiere mirar es el estado mientras la pantalla está puesta.
+        """
+        self.consola.reset()
+        self.cuadro = 0
+        self.consola.correr(self.simbolos["BOOT_CUADROS"])
+        self.consola.correr(TITULO_AIRE)
+        return self
+
+    def muestras_en_la_aram(self):
+        """Qué muestras dice la ROM tener subidas al SPC700.
+
+        Es `FAR_ARAM_DE`, una palabra por muestra con dónde quedó cada una en
+        la ARAM, o cero si no está: la lee `paquete_cargar` y la escribe
+        `colocar_muestra`. Un número que **no** está acá es una muestra cuya
+        entrada del directorio del SPC700 apunta al silencio, o sea una nota
+        que no suena.
+        """
+        n = self.simbolos["MUESTRAS_N"]
+        crudo = self.consola.ram(en_la_wram(self.simbolos["FAR_ARAM_DE"]),
+                                 2 * n)
+        return {i for i in range(n)
+                if crudo[2 * i] | (crudo[2 * i + 1] << 8)}
+
+    def muestras_del_tema(self, indice):
+        """Qué muestras necesita el tema, leídas de `tema_muestras` **en el
+        cartucho**.
+
+        Es la misma tabla que mira `tema_asegurar`, y se lee de la ROM en vez
+        de recalcularla con `snes_music.muestras_del_stream`: recalcularla
+        sería una segunda manera de contestar la pregunta, y las dos se pueden
+        equivocar igual. Un índice de desplazamientos de dos bytes por tema
+        —`TEMA_TOTAL` de ellos— y detrás una lista por tema cerrada con $FF.
+        """
+        with open(self.sfc, "rb") as archivo:
+            rom = archivo.read()
+        base = en_la_rom(self.simbolos["tema_muestras"])
+        if not 0 <= indice < self.simbolos["TEMA_TOTAL"]:
+            raise AssertionError(
+                "el tema %d no está en esta ROM, que lleva %d"
+                % (indice, self.simbolos["TEMA_TOTAL"]))
+        salto = base + 2 * indice
+        lista = base + (rom[salto] | (rom[salto + 1] << 8))
+        muestras = []
+        while rom[lista] != 0xFF:
+            muestras.append(rom[lista])
+            lista += 1
+        assert muestras, (
+            "el tema %d dice no usar ninguna muestra: o la tabla se leyó mal "
+            "o la ROM no lleva música" % indice)
+        return muestras
+
     def acceso(self):
         """El byte de permisos: bit 0 guardar prohibido, bit 1 el menú
         prohibido, bit 7 el menú pedido."""
@@ -473,6 +531,25 @@ class Partida:
         aserción por sí solo —un teletransporte pierde algunos— pero un salto
         grande dice que algo se volvió caro."""
         return self.byte("cuadros_perdidos")
+
+
+def en_la_wram(direccion):
+    """De una dirección larga del banco $7E al desplazamiento que pide
+    `retro.Consola.ram`.
+
+    Las de la RAM lejana están escritas de las dos maneras en `main.s` —unas
+    con el banco adelante (`$7E3100`) y otras sin él (`$2600`)—, así que el
+    símbolo se enmascara en vez de suponerse.
+    """
+    return direccion & 0x1FFFF
+
+
+def en_la_rom(direccion):
+    """De una dirección larga del cartucho al desplazamiento en el archivo.
+
+    Es el mapeo LoROM y nada más: cada banco expone sus 32 KB desde $8000.
+    """
+    return ((direccion >> 16) * 0x8000) + (direccion & 0x7FFF)
 
 
 def huella():
