@@ -152,7 +152,7 @@ PAUSAS_MAX = 15
 
 
 def cola_de_escapes(lineas):
-    """Las líneas sin su cola de escapes, cuántas pausas trae y si se cierra sola.
+    r"""Las líneas sin su cola de escapes, cuántas pausas trae y si se cierra sola.
 
     En los 328 mapas los dos escapes aparecen **siempre como una cola al final
     de la última línea del cuadro** —medido: 40 cuadros, y ni uno con un escape
@@ -1185,7 +1185,7 @@ class Mensajes:
         self.textos = {}        # y la vuelta, que es lo que usa la referencia
 
     def agregar(self, lineas):
-        """El desplazamiento de este cuadro, guardándolo si es la primera vez.
+        r"""El desplazamiento de este cuadro, guardándolo si es la primera vez.
 
         La cola de escapes se saca **acá** —ver `cola_de_escapes`— y no en el
         compilador, para que todo el que arme un cuadro pase por el mismo lugar:

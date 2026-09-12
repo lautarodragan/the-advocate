@@ -4603,13 +4603,17 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # El paquete de audio de la pelea va detrás de los de los mapas, así
         # que su índice es cuántos mapas lleva la ROM. Lo emite acá y lo
         # comprueba la sección de música, que es la que arma la lista.
+        #
+        # De dieciséis bits, y el "no hay" es $FFFF: con los 328 mapas del
+        # juego entero el índice no entra en un byte, igual que `mapa_actual`.
+        # Ver `batalla_audio_cargar`.
         handle.write(
             "BA_TEMA           = $%02X\n"
             "BA_TEMA_FIN       = $%02X\n"
-            "BA_PAQUETE        = %d\n"
+            "BA_PAQUETE        = $%04X\n"
             % (audio.get("battle_music", 0xFF),
                audio.get("battle_end_music", 0xFF),
-               len(mapas) if audio else 0xFF))
+               len(mapas) if audio else 0xFFFF))
         for nombre, constante in (("dodge_se", "BA_SE_ERRAR"),
                                   ("enemy_attack_se", "BA_SE_ATAQUE"),
                                   ("enemy_damaged_se", "BA_SE_DANO_ENEMIGO"),

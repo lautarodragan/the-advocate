@@ -4379,7 +4379,7 @@ anotado:
     ; Se calla antes de rearmar, como hace `tema_asegurar`: `paquete_cargar`
     ; deja quietas las muestras del tema que suena, y las del mapa no tienen
     ; por qué ocupar lugar adentro de la pelea.
-    lda #BA_PAQUETE
+    ldx #BA_PAQUETE
     jsr batalla_audio_cargar
     lda #BA_TEMA
     jsr batalla_bgm
@@ -4407,7 +4407,7 @@ anotado:
     phb
     phk
     plb                         ; el banco 0, por lo mismo que al entrar
-    lda mapa_actual             ; y el audio del mapa vuelve al SPC700
+    ldx mapa_actual             ; y el audio del mapa vuelve al SPC700
     jsr batalla_audio_cargar
     lda f:BAT_LARGO + BA_TEMA_ANT
     jsr batalla_bgm             ; el tema del mapa, o el silencio que había
@@ -14160,19 +14160,29 @@ ba_t_bgm:
 ; desalojar para hacerle lugar al paquete nuevo. Es lo mismo que hace
 ; `tema_asegurar` antes de rearmar.
 ;
-; Con `BA_PAQUETE` en $FF —una ROM sin peleas— no hay nada que cargar; no
+; El índice viene en **X y de dieciséis bits**, no en A: el paquete de la pelea
+; va detrás de los de los mapas, así que con los 328 del juego entero no entra
+; en un byte —y `mapa_actual`, que es lo que se pasa al salir, tampoco—.
+;
+; Con `BA_PAQUETE` en $FFFF —una ROM sin peleas— no hay nada que cargar; no
 ; puede pasar, porque acá se llega desde `op_batalla`, pero el opcode existe
 ; en el bytecode de todas.
 .proc batalla_audio_cargar
 .a8
 .i16
-    cmp #$FF
+    cpx #$FFFF
     beq listo
-    pha
+    phx
     lda #$FF
     jsr batalla_bgm             ; callar, para que nada quede fijo
-    pla
-    jsr paquete_cargar
+    plx
+    rep #$20
+.a16
+    txa
+    sta f:PAQ_MAPA
+    sep #$20
+.a8
+    jsr paquete_cargar_ya
 listo:
     rts
 .endproc
@@ -15165,6 +15175,23 @@ listo:
     sta f:PAQ_MAPA
     sep #$20
 .a8
+    jmp paquete_cargar_ya
+.endproc
+
+; Y el paquete cuyo índice ya está escrito en `PAQ_MAPA`, que es por donde
+; entra la pelea: el suyo no es el de ningún mapa —va detrás de todos, ver
+; `BA_PAQUETE`— así que no puede salir de `mapa_actual`.
+;
+; Existe porque acá hubo un error que ningún conflicto de git marcó: cuando el
+; índice pasó a dieciséis bits, `paquete_cargar` dejó de leer el paquete de A
+; para leerlo de `mapa_actual`, y `batalla_audio_cargar` —que venía de la otra
+; rama— siguió pasándoselo en A. Las dos ramas mergearon limpio porque tocaban
+; líneas distintas, y desde entonces la pelea cargaba el paquete del mapa: el
+; tema de batalla sonaba con seis muestras sin subir y el golpe erraba con la
+; muestra 0. Lo cobraron las dos pruebas de audio de `test_batalla.py`.
+.proc paquete_cargar_ya
+.a8
+.i16
     lda f:APU_LISTO
     bne listo_apu
     rts                         ; en el reset, antes de que corra el driver
