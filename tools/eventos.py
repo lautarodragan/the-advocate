@@ -5147,7 +5147,27 @@ def paginas_del_mapa(game_map, indice_de_mapa, mensajes=None, temas=None,
                 })
                 continue
             grafico = rm2k.grafico_de_pagina(page, chipset)
-            if page.trigger in TRIGGERS and puede_dispararse(page):
+            # **Una página automática o paralela sin un solo comando no arranca
+            # nada.** Es `Game_Interpreter::Push`, que vuelve en seguida con una
+            # lista vacía: el intérprete no queda corriendo y el jugador camina.
+            # Acá, en cambio, la página vacía se volvía la activa, se ejecutaba
+            # en un tick, terminaba, y como una automática se repite mientras
+            # siga siendo la activa, volvía a arrancar: el mapa quedaba
+            # congelado para siempre y el héroe no daba un paso.
+            #
+            # Es el idioma con el que RM2k desactiva un evento —una página de
+            # abajo prende el switch que activa una de arriba, y ésa está
+            # vacía—, así que no es un caso raro: en Rat Tracks B1 son dos, y el
+            # mapa era injugable. Lo delató `snes-heroe 21` al tardar catorce
+            # minutos, porque la referencia se comía sus 100.000 ticks de
+            # `correr_automaticos` antes de empezar a caminar.
+            #
+            # Se apaga poniéndole el código en None, que es lo que los dos lados
+            # ya miran para decidir si una página automática cuenta
+            # (`eventos_auto` acá, el bit 7 de la página en el conversor).
+            vacia = not page.commands and page.trigger in (TRIGGER_AUTOMATICO,
+                                                           TRIGGER_PARALELO)
+            if page.trigger in TRIGGERS and puede_dispararse(page) and not vacia:
                 codigo = compilar_pagina(page, indice_de_mapa, mensajes,
                                          del_mapa.para(event.id), temas,
                                          graficos, imagenes)

@@ -605,6 +605,34 @@ def _paleta_de_cara(cara):
     return colores, indice
 
 
+def _cara_prestada(colores, indice_cara, paletas):
+    """A qué paleta de las que ya hay se cuelga una cara que no consiguió la
+    suya, y de cada color de la cara a qué índice de esa paleta va.
+
+    Se elige la paleta a la que menos colores le faltan —contando colores
+    distintos y no píxeles, que es lo que se puede saber acá sin volver a
+    recorrer la imagen— y cada color va al más cercano por luma, que es
+    exactamente lo que hace `cabe` en el conversor con los sprites.
+
+    Las dos primeras paletas son las del texto y no se tocan: pintarle la cara
+    encima al texto lo dejaría ilegible, que es peor que una cara con el tono
+    cambiado.
+    """
+    candidatas = list(range(2, len(paletas)))
+    cual = min(candidatas,
+               key=lambda n: (sum(1 for c in colores if c not in paletas[n]), n))
+    destino = paletas[cual]
+    donde = {}
+    for color in colores:
+        if color in destino:
+            donde[color] = destino.index(color)
+        else:
+            donde[color] = destino.index(
+                min(destino, key=lambda p, c=color: (
+                    pixeles_mod.luma_distance(p, c), p)))
+    return cual, {c: donde[colores[k]] for c, k in indice_cara.items()}
+
+
 # --- el menú de pausa ---------------------------------------------------------
 #
 # Es `Scene_Menu` de RM2k en 256x224 y no en 320x240, así que la geometría es
@@ -956,22 +984,39 @@ def pantalla_ranuras(sys_img, db, ranuras, font_id=None, actores=(),
     # Y las caras, cada una con su paleta, pegadas arriba a la izquierda de la
     # primera fila para cortarlas en celdas con la misma función.
     paletas, caras = [paleta, paleta_gris], {}
+    # A qué caras hubo que prestarles paleta: sale en el informe del conversor,
+    # igual que con los sprites.
+    prestadas_cara = set()
     for actor in actores:
         cara = cara_de(db, actor, game_dir)
         if cara is None:
             continue
-        if len(paletas) > CARAS_PALETAS_MAX:
-            raise SystemExit(
-                "más de %d actores con cara pueden entrar al grupo y BG2 "
-                "tiene ocho paletas, dos de ellas del texto"
-                % (CARAS_PALETAS_MAX - 1))
         colores, indice_cara = _paleta_de_cara(cara)
+        if len(paletas) > CARAS_PALETAS_MAX:
+            # No queda paleta de BG2: **se le presta una**, que es la misma
+            # regla que `cabe` corre con los sprites y la misma razón de taro
+            # —si no podemos incluir a todos, el proyecto entero se cae—. Cada
+            # color de la cara va al más cercano por luma de la paleta que menos
+            # le falte, y la cara se ve con colores que no son los suyos.
+            #
+            # Hizo falta al meter Lashe City entera: las caras son una paleta
+            # cada una, quedan seis, y desde el mapa 20 pueden entrar al grupo
+            # Arden, Saldra, el Gang Member de los Rat Tracks y AG7-17, o sea
+            # ocho. La alternativa era dejar afuera los Rat Tracks B2 y toda la
+            # cadena del auto, que son el camino de la historia.
+            cual, indice_cara = _cara_prestada(colores, indice_cara, paletas)
+            prestadas_cara.add(actor)
+        else:
+            cual = len(paletas)
+            paletas.append(colores)
         una = capa()
         una.paste(cara, (CARA_COL * CELL, RANURA_Y))
         caras[actor] = _bloque_de_celdas(
             una, RANURA_Y // CELL, CARA_CELDAS, tiles, donde, indice_cara,
-            CARA_COL, CARA_CELDAS, len(paletas))
-        paletas.append(colores)
+            CARA_COL, CARA_CELDAS, cual)
+    if prestadas_cara:
+        print("  caras sin paleta propia, dibujadas con una ajena: %s"
+              % ", ".join(db.actors[a].name for a in sorted(prestadas_cara)))
     # La cara va adentro del bloque del actor en el menú: son las mismas celdas
     # de la pantalla de ranuras —la cara está alineada a celdas en las dos—,
     # así que no suma ni un tile.

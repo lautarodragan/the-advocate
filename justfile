@@ -2340,12 +2340,37 @@ snes-titulo nombre="titulo" mapa="4" mapas="1 2 3 5 6 7 8":
 # teletransportes que salen del 8 hacia ahí y los que vuelven. El 9 trae a
 # Chara2:0 cuantizado distinto que el 8 —allá con paleta prestada— y por eso
 # el banco de poses dejó de ser uno por ROM y pasó a ser uno por cuantización.
+#
+# Desde el 2026-09-12 lleva **el subárbol entero de "Lashe City" que entra**: el
+# camino a la fábrica (16, 17), el auditorio y el Director (18, 19), Sector 30 y
+# los Rat Tracks (20, 21, 23, 26), Sector 27 con sus dos negocios y el galpón
+# (28, 29, 30, 32), la fuga del 27 y el auto (33, 34, 36), y de paso la misión
+# de los Neon Viper (11, 12, 13, 14). Son 28 mapas contra los 10 de antes.
+#
+# **Lo que quedó afuera, y por qué**, porque acá es donde se va a mirar:
+#
+#   49 52 54 51 50 53 64   la persecución en auto. 42 de las 44 páginas
+#                          automáticas de cada mapa de la carrera no compilan:
+#                          leen la posición del auto con un `ControlVars` de
+#                          clase 6 —coordenadas de un personaje—, que la ROM no
+#                          hace, y el 49 además tiene un `KeyInputProc`. Sin
+#                          eso el auto no dobla y el tráfico no aparece. De
+#                          paso: los tres mapas de 500x40 son 186 KB y el
+#                          cartucho se pasaba de los 2 MB por 88 KB.
+#   37 38 47 48            los sectores con auto, que son a dónde lleva la
+#                          elección del mapa 36. El **38 no entra en ningún
+#                          reparto de VRAM**: 476 tiles de fondo y 347 de
+#                          sprite, y los 64 KB no alcanzan para los dos más la
+#                          ventana. Y la elección del 36 es una sola página:
+#                          o compilan los cuatro destinos o no compila ninguno.
 snes-demo nombre="demo-ciudad" titulo="":
   #!/usr/bin/env bash
   set -euo pipefail
   titulo="{{titulo}}"
   mkdir -p rom/build/{{nombre}}
-  python3 tools/snes_convert.py --grupo 10 --map-id 4 --mapas 1 2 3 5 6 7 8 9 10 \
+  python3 tools/snes_convert.py --grupo 10 --map-id 4 \
+      --mapas 1 2 3 5 6 7 8 9 10 11 12 13 14 16 17 18 19 20 21 23 26 28 29 30 \
+              32 33 34 36 \
       --con-ventana --con-timer ${titulo:+--con-titulo} \
       -o rom/build/{{nombre}}/mapdata.inc
   python3 tools/w65.py rom/src/main.s -I rom/build/{{nombre}} \
