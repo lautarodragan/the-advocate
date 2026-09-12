@@ -922,6 +922,8 @@ loop:
                                 ; es el mismo que el de la referencia
     jsr animacion_tick          ; la animación de batalla, antes que los
                                 ; destellos que dispara
+    jsr animacion_dibujo_tick   ; y su dibujo, pegado: los dos avanzan el
+                                ; mismo reloj de RM2k y el dibujo dura más
     jsr flashes_tick            ; y los destellos, en el mismo lugar
     jsr sacudida_tick           ; y uno de la sacudida de pantalla
     jsr pan_tick                ; y uno de la cámara corrida sin el héroe
@@ -1246,6 +1248,17 @@ cero:
     asl a                       ; por MAPA_STRIDE, que es 128
     sta mapa_ofs
     tax
+
+    ; El reparto de la animación de batalla en este mapa: en qué tile cae su
+    ; caja y con qué paleta, o que acá no se dibuja. Necesita `mapa_actual` y
+    ; `mapa_ofs`, que acaban de quedar puestos.
+    phx
+    sep #$20
+.a8
+    jsr animacion_dibujo_mapa   ; entra y sale con el acumulador en ocho
+    rep #$20
+.a16
+    plx
 
     ; Lo que se mira seguido se copia; lo que se usa una vez se lee en el lugar.
     lda f:mapa_tabla + M_MAP_BW, x
@@ -4117,10 +4130,23 @@ op_imagen_borrar:
     sta f:CARTEL_ACTIVA
     jmp otro
 
-; `OP_ANIMACION`: cuántas entradas y las entradas, que se quedan en el
-; bytecode. Ver OP_ANIMACION en eventos.py y `animacion_tick`. La nueva
-; reemplaza a la que hubiera, y no cuesta ningún tick.
+; `OP_ANIMACION`: el número de animación de RM2k, sobre qué se dibuja, cuántas
+; entradas y las entradas, que se quedan en el bytecode. Ver OP_ANIMACION en
+; eventos.py y `animacion_tick`. La nueva reemplaza a la que hubiera, y no
+; cuesta ningún tick.
+;
+; Los dos primeros bytes son del **dibujo**, que va por su cuenta y dura más
+; que la línea de tiempo: ver `animacion_dibujo_empezar`.
 op_animacion:
+    lda [cod_ptr], y            ; el número de animación de RM2k
+    sta temp
+    iny
+    lda [cod_ptr], y            ; y sobre qué va: $FF es la pantalla
+    sta temp + 1
+    iny
+    phy
+    jsr animacion_dibujo_empezar
+    ply
     lda [cod_ptr], y            ; cuántas
     sta f:ANIM_N
     iny
@@ -11448,7 +11474,7 @@ ninguno:
     clc
     adc comp_or01
     tax
-    lda actor_params, x
+    lda f:actor_params, x       ; fuera del banco 0: ver `actor_params`
     sta comp_or01
     sep #$20
 .a8
@@ -16196,6 +16222,10 @@ CARTEL_CAMBIO = FAR_CARTEL + 14
 .i16
     lda #0
     sta f:ANIM_N
+    sta f:ANIMB_ACTIVA          ; y el dibujo, que va por su cuenta
+    sta f:ANIMB_SUBIR
+    sta f:ANIMB_PAL
+    sta f:ANIMB_HAY             ; hasta que `cargar_mapa` diga lo contrario
     rts
 .endproc
 
@@ -16270,6 +16300,460 @@ listo:
 .a8
     pla
     sta cod_ptr + 2
+    rts
+.endproc
+
+; --- el dibujo de la animación de batalla ------------------------------------
+;
+; Cuatro objetos de 32x32 en una caja de 64x64, con una paleta de sprite para
+; ellos solos, y **los 2 KB del cuadro que toca subidos por DMA cada dos
+; cuadros**. Es la mezcla de los dos precedentes: los objetos y la paleta
+; propia son los del cartel, y subir dibujos nuevos en el vblank es lo que ya
+; hacen los tiles animados del ChipSet.
+;
+; Dónde cae cada pixel y de qué color es está en `tools/animacion.py`, que es
+; lo único que las dos puntas comparten; acá no se decide nada de eso. La caja
+; es una sola para toda la ROM y lo que cambia por mapa —en qué tile queda y
+; con qué paleta— lo trae `anim_batalla_reparto`, un byte por mapa.
+;
+; El estado vive en la RAM lejana, en $3600, bien arriba de lo del MSU-1
+; ($30E8), del cartel ($30EC a $30FA) y de las tablas del paquete de audio
+; ($3100 a $35FF): el 2026-09-12 un agente pisó el MSU-1 por no mirar el mapa
+; de esta RAM.
+ANIMB_HAY    = $7E3600          ; este mapa dibuja animaciones
+ANIMB_TILE   = $7E3601          ; el primer tile de la caja, palabra
+ANIMB_ATTR   = $7E3603          ; vhoopppN ya armado para los cuatro objetos
+ANIMB_VRAM   = $7E3604          ; a dónde va el DMA del cuadro, en palabras
+ANIMB_CGADD  = $7E3606          ; la entrada de CGRAM de su paleta
+ANIMB_SOMBRA = $7E3607          ; y su desplazamiento en `cgram_sombra`, palabra
+ANIMB_ACTIVA = $7E3609          ; hay una dibujándose
+ANIMB_FILA   = $7E360A          ; su fila en `anim_batalla_tabla`, palabra
+ANIMB_BLANCO = $7E360C          ; sobre qué va; $FF es la pantalla
+ANIMB_T      = $7E360D          ; el tick, palabra
+ANIMB_CUADRO = $7E360F          ; el cuadro que toca, palabra
+ANIMB_N      = $7E3611          ; cuántos cuadros tiene, palabra
+ANIMB_SUBIR  = $7E3613          ; hay un cuadro esperando el vblank
+ANIMB_PAL    = $7E3614          ; y una paleta
+ANIMB_I      = $7E3615          ; cuál de los cuatro objetos se está armando
+
+; El reparto de este mapa, al cargarlo. El byte es 0 —"acá no se dibuja"— o el
+; bit 7 prendido con el bloque de 64 tiles y la paleta, de tres bits cada uno.
+; Ver `animaciones_asm` en snes_convert.py.
+.proc animacion_dibujo_mapa
+.a8
+.i16
+    lda #0
+    sta f:ANIMB_ACTIVA
+    sta f:ANIMB_SUBIR
+    sta f:ANIMB_PAL
+    sta f:ANIMB_HAY
+    lda mapa_actual
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda f:anim_batalla_reparto, x
+    bne hay
+    rts
+hay:
+    sta f:ANIMB_HAY
+    and #$07                    ; la paleta
+    sta temp
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a                       ; por 32: su lugar en `cgram_sombra`
+    rep #$20
+.a16
+    and #$00FF
+    clc
+    adc #256                    ; las 128 entradas de abajo, a dos bytes
+    sta f:ANIMB_SOMBRA
+    sep #$20
+.a8
+    lda temp
+    asl a
+    asl a
+    asl a
+    asl a                       ; por 16: su entrada de CGRAM
+    clc
+    adc #128
+    sta f:ANIMB_CGADD
+    lda temp
+    asl a
+    ora #$30                    ; prioridad 3: adelante de las dos capas
+    sta temp + 1
+    lda f:ANIMB_HAY
+    lsr a
+    lsr a
+    lsr a
+    and #$07                    ; el bloque de 64 tiles
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a                       ; por 64
+    sta f:ANIMB_TILE
+    ; El noveno bit del tile va en el atributo, y es el mismo para los cuatro:
+    ; la caja arranca en un múltiplo de 64 y se lleva doce tiles de nombre.
+    xba
+    sep #$20
+.a8
+    and #$01
+    ora temp + 1
+    sta f:ANIMB_ATTR
+    ; Y a dónde va el DMA: la base de sprites del mapa más el tile por dieciséis
+    ; palabras, que es lo que mide un tile de 4bpp.
+    ldx mapa_ofs
+    rep #$20
+.a16
+    lda f:ANIMB_TILE
+    asl a
+    asl a
+    asl a
+    asl a
+    clc
+    adc mapa_tabla + M_VRAM_SPRITE, x
+    sta f:ANIMB_VRAM
+    sep #$20
+.a8
+    rts
+.endproc
+
+; Empieza el dibujo de la animación `temp` sobre `temp + 1`. Lo llama
+; `op_animacion`, y la nueva reemplaza a la que hubiera, como la línea de
+; tiempo. Si este mapa no dibuja, o el número no tiene dibujo, no pasa nada:
+; los sonidos y los destellos siguen igual.
+.proc animacion_dibujo_empezar
+.a8
+.i16
+    lda #0
+    sta f:ANIMB_ACTIVA
+    lda f:ANIMB_HAY
+    beq no
+    lda temp
+    cmp #ANIM_B_MAX
+    bcs no
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda f:anim_batalla_de, x
+    cmp #ANIM_B_SIN
+    beq no
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    asl a
+    asl a                       ; por ANIM_B_STRIDE
+    sta f:ANIMB_FILA
+    tax
+    sep #$20
+.a8
+    lda f:anim_batalla_tabla, x ; cuántos cuadros
+    rep #$20
+.a16
+    and #$00FF
+    sta f:ANIMB_N
+    lda #0
+    sta f:ANIMB_T
+    lda #$FFFF
+    sta f:ANIMB_CUADRO          ; ninguno todavía: el primer tick sube el 0
+    sep #$20
+.a8
+    lda temp + 1
+    sta f:ANIMB_BLANCO
+    lda #1
+    sta f:ANIMB_ACTIVA
+    jmp animacion_dibujo_paleta
+no:
+    rts
+.endproc
+
+; Los dieciséis colores de la animación a la sombra de CGRAM, tal cual salen
+; del cartucho: no se tiñen ni se destellan, que es lo que hace RM2k —el tono
+; del mapa va al tilemap, a los personajes, al panorama y a las sombras, y a
+; las animaciones no—. Los sube `flush_video` en el vblank.
+.proc animacion_dibujo_paleta
+.a8
+.i16
+    rep #$20
+.a16
+    lda f:ANIMB_FILA
+    asl a
+    asl a                       ; por 32: dieciséis palabras por animación
+    tax
+    lda f:ANIMB_SOMBRA
+    tay
+copia:
+    sep #$20
+.a8
+    lda f:anim_batalla_cgram, x
+    sta cgram_sombra, y
+    rep #$20
+.a16
+    inx
+    iny
+    txa
+    and #$001F
+    bne copia
+    sep #$20
+.a8
+    lda #1
+    sta f:ANIMB_PAL
+    rts
+.endproc
+
+; Un cuadro del dibujo. Corre una vez por cuadro, pegado a `animacion_tick`, y
+; **el cuadro que se dibuja sale del tick de antes de avanzarlo**: en el tick 0
+; se dibuja el cuadro 0, que es el mismo en que dispara el `timing` del cuadro
+; 1 de RM2k. Dos cuadros de consola por cada cuadro de animación, que es el
+; `num_frames = GetRealFrames() * 2` de `BattleAnimation`. Es
+; `Estado.cuadro_de_dibujo` en eventos.py.
+.proc animacion_dibujo_tick
+.a8
+.i16
+    lda f:ANIMB_ACTIVA
+    bne hay
+    rts
+hay:
+    rep #$20
+.a16
+    lda f:ANIMB_T
+    lsr a
+    cmp f:ANIMB_N
+    bcc sigue
+    sep #$20
+.a8
+    lda #0
+    sta f:ANIMB_ACTIVA
+    rts
+sigue:
+.a16
+    cmp f:ANIMB_CUADRO
+    beq igual
+    sta f:ANIMB_CUADRO
+    sep #$20
+.a8
+    lda #1
+    sta f:ANIMB_SUBIR           ; el vblank que viene lo manda a la VRAM
+    rep #$20
+.a16
+igual:
+    lda f:ANIMB_T
+    inc a
+    sta f:ANIMB_T
+    sep #$20
+.a8
+    rts
+.endproc
+
+; Los 2 KB del cuadro que toca, a la VRAM. Lo llama `flush_video` adentro del
+; vblank y se le descuenta al presupuesto de poses, igual que un paso de la
+; animación del ChipSet: cuatro poses de las cinco, y sólo en los cuadros
+; pares de la animación.
+.proc animacion_dibujo_dma
+.a8
+.i16
+    ; Qué cuadro: el primero de esta animación más el que toca, y de ahí su
+    ; puntero de 24 bits. Van uno por cuadro y no un bloque seguido por
+    ; animación porque 28 cuadros son 57 KB y un banco tiene 32.
+    rep #$20
+.a16
+    lda f:ANIMB_FILA
+    tax
+    lda f:anim_batalla_tabla + 4, x
+    clc
+    adc f:ANIMB_CUADRO
+    asl a
+    asl a                       ; cuatro bytes por puntero
+    tax
+    lda f:anim_batalla_cuadros, x
+    sta A1T0L
+    lda f:ANIMB_VRAM
+    sta VMADDL
+    lda #ANIM_B_BYTES
+    sta DAS0L
+    sep #$20
+.a8
+    lda f:anim_batalla_cuadros + 2, x
+    sta A1B0
+    lda #$80                    ; de a palabra, incrementando en $2119
+    sta VMAIN
+    lda #$01
+    sta DMAP0
+    lda #$18
+    sta BBAD0
+    lda #$01
+    sta MDMAEN
+    ; Lo que se llevó, en poses de 512 bytes, descontado y no fijado: así se
+    ; suma a lo que ya se hayan llevado el tinte o un renglón de la ventana.
+    lda vq_tope
+    sec
+    sbc #(ANIM_B_BYTES / 512)
+    bcc una
+    bne queda
+una:
+    lda #1                      ; siempre queda para una pose
+queda:
+    sta vq_tope
+    rts
+.endproc
+
+; Los cuatro objetos de la caja, si hay una animación dibujándose.
+;
+; Van **después del cartel y antes de los personajes**, que es el orden de
+; RM2k: `Priority_Timer` es 140, `Priority_PictureOld` 120,
+; `Priority_BattleAnimation` 110 y `Priority_Player` 40. En OAM eso es el orden
+; de la lista, porque gana el índice más bajo.
+;
+; Cuestan **ocho de los treinta y cuatro tiles por línea** en las 64 líneas que
+; ocupan: dos objetos de cuatro tiles de ancho en cada una. La referencia
+; cuenta lo mismo y declara las líneas donde no alcanza.
+.proc animacion_dibujo_oam
+.a8
+.i16
+    lda f:ANIMB_ACTIVA
+    bne hay
+    rts
+hay:
+    lda f:ANIMB_BLANCO
+    cmp #ANIM_B_PANTALLA
+    beq pantalla
+    ; Sobre el objetivo: el centro de su celda y sus pies, que es
+    ; `GetScreenX()` y `GetScreenY(false)`, menos la cámara. El ancla de la
+    ; tabla ya trae horneada la corrida de `Animation::Position`.
+    cmp #0
+    bne evento
+    rep #$20
+.a16
+    lda hero_x
+    sta temp
+    lda hero_y
+    sta temp + 2
+    sep #$20
+.a8
+    bra con_celda
+evento:
+    dec a                       ; el blanco es el índice del evento más uno
+    jsr npc_de_evento
+    cpy #$FFFF
+    beq nada                    ; sin fila no hay dónde dibujarla
+    lda npc_buf + 14, y
+    bne con_fila
+nada:
+    rts                         ; sin fila, o escondido: no se dibuja
+con_fila:
+    rep #$20
+.a16
+    lda npc_buf + 0, y
+    sta temp
+    lda npc_buf + 2, y
+    sta temp + 2
+    sep #$20
+.a8
+con_celda:
+    rep #$20
+.a16
+    lda temp
+    clc
+    adc #8                      ; el centro de la celda
+    sec
+    sbc pantalla_x
+    sta obj_x
+    lda temp + 2
+    clc
+    adc #16                     ; sus pies
+    sec
+    sbc camara_y
+    sta obj_y
+    bra restar_ancla
+pantalla:
+.a8
+    rep #$20
+.a16
+    lda #ANIM_B_CENTRO_X
+    sta obj_x
+    lda #ANIM_B_CENTRO_Y
+    sta obj_y
+restar_ancla:
+    ; El ancla de la tabla, que ya trae horneada la corrida de
+    ; `Animation::Position`. Los dos bytes se leen de a uno: la palabra de +1
+    ; trae la X abajo y la Y arriba.
+    lda f:ANIMB_FILA
+    tax
+    lda f:anim_batalla_tabla + 1, x
+    and #$00FF
+    sta temp
+    lda obj_x
+    sec
+    sbc temp
+    sta temp
+    lda f:anim_batalla_tabla + 2, x
+    and #$00FF
+    sta temp + 2
+    lda obj_y
+    sec
+    sbc temp + 2
+    sta temp + 2
+    sep #$20
+.a8
+    lda #$02
+    sta obj_grande              ; los cuatro objetos son de 32x32
+    lda f:ANIMB_ATTR
+    sta obj_attr
+    lda #0
+    sta f:ANIMB_I
+cada:
+    rep #$20
+.a16
+    lda f:ANIMB_I
+    and #$0001
+    beq sin_x
+    lda temp
+    clc
+    adc #ANIM_B_OBJ
+    bra con_x
+sin_x:
+    lda temp
+con_x:
+    sta obj_x
+    lda f:ANIMB_I
+    and #$0002
+    beq sin_y
+    lda temp + 2
+    clc
+    adc #ANIM_B_OBJ
+    bra con_y
+sin_y:
+    lda temp + 2
+con_y:
+    sta obj_y
+    lda f:ANIMB_I
+    and #$00FF
+    asl a
+    asl a                       ; cuatro tiles de nombre por objeto
+    clc
+    adc f:ANIMB_TILE
+    sep #$20
+.a8
+    sta obj_tile
+    jsr emit_object
+    lda f:ANIMB_I
+    inc a
+    sta f:ANIMB_I
+    cmp #ANIM_B_OBJETOS
+    bne cada
     rts
 .endproc
 
@@ -18030,7 +18514,7 @@ sigue:
     tax
     sep #$20
 .a8
-    lda seno_sacudida, x
+    lda f:seno_sacudida, x      ; fuera del banco 0: ver `tabla_de_senos`
     sta sac_seno
     bpl positivo
     eor #$FF
@@ -19347,6 +19831,18 @@ sin_tira:
     ; descuenta al presupuesto en vez de fijarlo, para que se sume a lo que ya
     ; se hayan llevado el tinte o un renglón de la ventana.
     jsr anim_flush
+    ; Y los 2 KB del cuadro de la animación de batalla, si el tick pidió uno
+    ; nuevo. Es lo más caro que se sube en un vblank —cuatro poses de las
+    ; cinco— y pasa una vez cada dos cuadros. Va **antes** de `vram_drenar` por
+    ; lo mismo que `anim_flush`: lo que se lleva tiene que salir del
+    ; presupuesto de este vblank, y tres líneas más abajo `vq_tope` ya se
+    ; resetea para el que viene. Ver `animacion_dibujo_dma`.
+    lda f:ANIMB_SUBIR
+    beq sin_anim_cuadro
+    lda #0
+    sta f:ANIMB_SUBIR
+    jsr animacion_dibujo_dma
+sin_anim_cuadro:
     jsr vram_drenar             ; las poses que esta OAM ya da por subidas
     lda #VQ_POR_CUADRO
     sta vq_tope                 ; el vblank que viene arranca con todo
@@ -19399,6 +19895,34 @@ sin_flash:
     lda #$01
     sta MDMAEN
 sin_imagen:
+
+    ; Y la paleta de la animación de batalla, si acaba de empezar una. Son los
+    ; mismos treinta y dos bytes que el cartel y por lo mismo: su entrada cae
+    ; arriba de `SPRITE_CGRAM` y `subir_paletas` no la toca.
+    lda f:ANIMB_PAL
+    beq sin_anim_pal
+    lda #0
+    sta f:ANIMB_PAL
+    lda f:ANIMB_CGADD
+    sta CGADD
+    rep #$20
+.a16
+    lda f:ANIMB_SOMBRA
+    clc
+    adc #.loword(cgram_sombra)
+    sta A1T0L
+    lda #32
+    sta DAS0L
+    sep #$20
+.a8
+    stz A1B0
+    lda #$00
+    sta DMAP0
+    lda #$22
+    sta BBAD0
+    lda #$01
+    sta MDMAEN
+sin_anim_pal:
 
     ; Los dos registros de scroll son de escritura doble: primero el byte bajo
     ; y después el alto.
@@ -21042,6 +21566,9 @@ fin:
     sta obj_grande
     jsr timer_oam
     jsr imagen_oam              ; y el cartel detrás de él: ver `imagen_oam`
+    jsr animacion_dibujo_oam    ; y la animación de batalla detrás del cartel:
+                                ; `Priority_BattleAnimation` es 110 contra los
+                                ; 120 de `Priority_PictureOld`
 
 recorrer:
     rep #$20

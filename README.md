@@ -1172,12 +1172,73 @@ página espera lo que dura. Tres cosas son nuestras:
   la ROM entera, y una animación no vale eso. Tampoco a un evento que comparta
   gráfico con otro.
 * **El dibujo no está.** Son celdas de 96x96 con zoom de hasta el doble y su
-  propia paleta; es el siguiente paso, y es un sistema aparte.
+  propia paleta; es el sistema de al lado, y está abajo.
 
 Lo cobra `animacion` en la tanda —la 82 sobre el héroe, que destella la
 pantalla—, por la página de prueba (`--animacion-de-prueba`): la escena del
 Emitter Room no se puede disparar desde una prueba. Los efectos los cobra el
 paquete de audio de cada mapa, que los cuenta como uno más.
+
+### El dibujo de las animaciones de batalla
+
+Desde el 2026-09-12 también se dibujan. El sistema entero está en
+`tools/animacion.py`, que es el único lugar donde se decide dónde cae y de qué
+color es cada pixel; la ROM no decide nada de eso.
+
+**Una caja de 64x64, la misma para toda la ROM.** Son cuatro objetos de 32x32
+en 64 tiles, que es una fila de bloques de la grilla de nombres de OAM: un
+objeto de 32x32 lee cuatro tiles de cuatro filas seguidas, así que en una fila
+entran cuatro objetos y ni uno más. Más que eso tampoco había: la VRAM de
+sprites que le queda libre al mapa 2 son 101 tiles y una caja de 96x96 son 144.
+Que la caja **no dependa del mapa** es lo que deja que los 388
+`ShowBattleAnimation` de los 81 mapas del juego compartan los mismos cuadros ya
+convertidos en el cartucho.
+
+**La animación se achica entera hasta entrar**, con su proporción, y cuánto se
+achicó lo emite el conversor animación por animación. Las de la intro:
+
+| animación | de       | a     | cuadros | en el cartucho |
+|-----------|----------|-------|---------|----------------|
+| 77        | 192x192  | 64x64 | 20      | 40 KB          |
+| 78        | 144x176  | 52x64 | 24      | 48 KB          |
+| 79        | 512x384  | 64x48 | 28      | 56 KB          |
+| 82        | 536x416  | 64x49 | 28      | 56 KB          |
+
+taro aceptó el precio el 2026-09-12 —*"deberíamos poder lograrlo si reducimos
+el tamaño de algunos de los efectos"*— y es lo que hace que las grandes
+existan: al 11% la 82 es un brillo y no un incendio, pero está, y la alternativa
+medida era que no estuviera.
+
+**Los cuadros van prerenderizados en el cartucho y se suben por DMA.** Uno cada
+dos cuadros de consola, que es lo que dura un cuadro de RM2k: 2 KB, o sea
+cuatro de las cinco poses del presupuesto del vblank, y se le **descuentan** a
+`vq_tope` en vez de fijarlo, igual que un paso de la animación del ChipSet. Van
+uno por cuadro y no un bloque seguido por animación porque 28 cuadros son 57 KB
+y un banco tiene 32.
+
+**Una paleta de sprite entera para ella sola**, como el cartel: sus quince
+colores son de la animación y se pisan cuando empieza otra, así que un
+personaje metido ahí cambiaría de color con ella. Los mapas 2 y 3 llenaban las
+ocho, así que en los mapas que muestran animaciones **los personajes se
+reparten siete**; lo que eso fusiona está en `assets/LIMITACIONES.md`. Si con
+siete no entra el cronómetro manda el cronómetro, se vuelve a ocho y ese mapa
+no dibuja: le pasa al mapa 9, y lo dice.
+
+**Dónde cae.** Con alcance "pantalla" va al centro de la de la consola, que es
+`DrawAt(screen_width / 2, screen_height / 2)`; con el otro, sobre el objetivo,
+que es `GetScreenX()` y `GetScreenY(false)` menos medio personaje y la corrida
+de `Animation::Position`. Esa corrida va **horneada en el ancla** que lleva la
+tabla, así que la consola sólo resta. Un objetivo sin fila de NPC, o escondido,
+no tiene de dónde sacar la posición y la animación no se dibuja.
+
+Lo que se pierde está en `assets/LIMITACIONES.md`: la transparencia de una
+celda, el destello sobre la animación y las `global`.
+
+En la tanda lo cobran `animacion-dibujo` —la 78 sobre el héroe, con uno de sus
+cuadros vacíos y los tres más cargados— y `animacion-evento` —la misma sobre
+Manta, pegada al borde izquierdo, donde `emit_object` recorta la caja—. Son dos
+casos y no uno porque en la ROM son dos caminos: el héroe sale de `hero_x` y un
+evento de su fila, por `npc_de_evento`.
 
 ### El cartel de "One year previously"
 
@@ -2311,6 +2372,18 @@ siguiente si no entra, y por eso `msg_empezar` puede sumarle el desplazamiento
 al byte bajo y nada más. Si algún día no entra, lo que hay que agrandar es el
 puntero, no el operando.
 
+**Y lo mismo vale para las tablas que se leen con `lda f:tabla, x`**, aunque el
+modo largo sí sume los 24 bits: en LoROM, lo que sigue a `$15:FFFF` no es la ROM
+del banco 16 sino un espejo de la WRAM, así que una tabla a caballo de dos
+bancos se lee basura de la mitad para adelante. Las nueve que viven fuera del
+banco 0 —`item_k`, las cuatro de `item_txt`, `item_puntos`, `actor_params`,
+`equipo_inicial` y `item_glifo_celdas`— no lo declaraban, y era un error
+**latente que dependía de dónde cayeran**: apareció el 2026-09-12 al entrar los
+cuadros de las animaciones de batalla, que corren 200 KB de RODATA hacia
+adelante y dejaron `item_glifo_celdas` arrancando en `$15:FF0D`. Se veía como la
+pantalla de ítems con las letras cambiadas, y sólo al correr la lista, que es
+cuando el índice pasa de los 243 bytes que quedaban hasta el fin del banco.
+
 **Lo que no compila y por qué.** El texto de este juego usa dos códigos de
 escape de RM2k: `\|`, que es una pausa de un segundo, y `\^`, que cierra el
 cuadro sin esperar a que el jugador apriete nada. Son 35 líneas en 17 páginas, y
@@ -2508,9 +2581,9 @@ receta hacía hasta ahora —las esperas se miraban con margen—:
 cuadros, y un `OP_ESPERAR` detrás si la página espera, como la sacudida. Lo
 pide la escena en que Core rompe la puerta de seguridad del mapa 2 —evento 22,
 página del switch 7, la que abre el pasillo al ascensor—, y era lo que la
-cortaba junto con `ShowBattleAnimation` (11210), que ahora **se acepta y no se
-hace**: la ROM no lleva animaciones de batalla, y lo que se pierde es la
-explosión dibujada sobre Core; el destello rojo que viene detrás sí se ve. El
+cortaba junto con `ShowBattleAnimation` (11210), que desde el 2026-09-11 suena
+y destella y desde el 2026-09-12 **también se dibuja**, achicado a una caja de
+64x64: ver "El dibujo de las animaciones de batalla". El
 juego tiene 62 destellos, 29 de ellos blancos; ninguno dura más de veinte
 décimas.
 
@@ -4424,10 +4497,6 @@ Hover-Tram, y esa escena quedó para otra vuelta. Es deuda declarada en
   grande se enciende. El modo 3 tiene dos capas de fondo y las dos están
   tomadas, el mapa y la capa de encima con la ventana; un panorama pide una
   tercera o el modo 1, que la conversión no usa. No es prioridad.
-* **La animación de batalla sobre el mapa.** `ShowBattleAnimation` se acepta y
-  no se hace desde el 2026-09-05: la explosión con la que Core rompe la puerta
-  de seguridad no se dibuja, y el destello que la sigue sí. Ver "El destello
-  de pantalla".
 * **El ataque y el decaimiento** siguen saliendo de las ocho familias de
   `sdsp.py`, elegidas a ojo cuando el banco era sintético. El SoundFont trae los
   suyos por instrumento y todavía no se leen. (El release ya no: ver arriba.)

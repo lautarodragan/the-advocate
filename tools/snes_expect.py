@@ -31,6 +31,7 @@ from PIL import Image
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+import animacion as animacion_mod
 import eventos
 import lcf
 import rm2k
@@ -144,6 +145,17 @@ class Mundo:
         self.indices = {map_id: i for i, map_id in enumerate(self.ids)}
         self.cache = {}
         self.lluvia_cache = {}
+        # Y si en cada mapa se dibujan las animaciones de batalla: ver
+        # `dibuja_animacion`. Cuesta rehacer el reparto de paletas, así que se
+        # guarda como el de la lluvia.
+        self.anim_cabe_cache = {}
+        # Y cuántas paletas de sprite se reparten los personajes de cada mapa,
+        # que no siempre son las ocho: ver `tope_de_paletas`.
+        self.tope_cache = {}
+        # Y en qué mapa quedó el cartel, que es el que se lleva una paleta de
+        # sprite de más: ver `cartel_de_mapa`.
+        self.cartel_map = None
+        self.cartel_visto = False
         self.hay_lluvia = None
         self.npcs_cache = {}
         self.paginas_cache = {}
@@ -228,7 +240,9 @@ class Mundo:
                                               items=self.prueba[17],
                                               acceso=self.prueba[18],
                                               lluvia=self.prueba[19],
-                                              animacion=self.prueba[20])),
+                                              animacion=self.prueba[20],
+                                              eventos_mapa=eventos.Eventos(
+                                                  self.mapa(map_id)[0]))),
                                      dict(PAGINA_DE_PRUEBA_APAGADA,
                                           evento=numero)]
             self.paginas_cache[map_id] = paginas
@@ -317,7 +331,8 @@ class Mundo:
             # dibujado con un tile podía entrar de este lado y no del otro.
             self.npcs_cache[map_id] = snes_convert.npcs_dibujables(
                 self.renderer, game_map, lideres,
-                7 if self.con_timer else 8,
+                min(7 if self.con_timer else 8,
+                    self.tope_de_paletas(map_id)),
                 self.graficos(map_id).pares,
                 poses=self.poses(map_id))
         return self.npcs_cache[map_id][0]
@@ -348,13 +363,104 @@ class Mundo:
             lideres = snes_convert.lideres_posibles(
                 self.renderer, self.ids, self.grupo,
                 self.mensajes is not None)
+            tope = self.tope_de_paletas(map_id)
             reparto = snes_convert.npcs_dibujables(
-                self.renderer, self.mapa(map_id)[0], lideres,
-                snes_convert.OBJ_PALETTES, self.graficos(map_id).pares,
+                self.renderer, self.mapa(map_id)[0], lideres, tope,
+                self.graficos(map_id).pares,
                 timer_colores, solos, self.poses(map_id))[2]
             cabe = snes_convert.lluvia_cabe(reparto[0], reparto[3],
-                                            timer_colores)
+                                            timer_colores, tope)
         self.lluvia_cache[map_id] = cabe
+        return cabe
+
+    def _timer_colores(self):
+        """Los dos colores del cronómetro, si esta ROM lo lleva."""
+        if not self.con_timer:
+            return ()
+        import ventana as ventana_mod
+        return sorted(snes_convert.colores_del_timer(
+            ventana_mod.skin(self.game_dir,
+                             self.renderer.database.system_name)))
+
+    def _solos(self):
+        return {c for c, n in snes_convert.mapas_por_personaje(
+            self.renderer, self.ids, self.game_dir).items() if n == 1}
+
+    def muestra_animacion(self, map_id):
+        """Si alguna página de este mapa puede mostrar una animación de
+        batalla que se dibuje. Es la misma función que usa el conversor para
+        reservarle la VRAM: `snes_convert.mapa_muestra_animacion`."""
+        snes_convert.args_game_dir[0] = self.game_dir
+        extra = ()
+        if self.prueba is not None and map_id == self.ids[0] and self.prueba[20]:
+            extra = tuple(self.prueba[20])[:1]
+        return snes_convert.mapa_muestra_animacion(
+            self.mapa(map_id)[0], self.renderer, extra)
+
+    def tope_de_paletas(self, map_id):
+        """Cuántas paletas de sprite reparte este mapa entre sus personajes.
+
+        Es `snes_convert.tope_de_paletas_del_mapa`, la misma que usa el
+        conversor: un mapa que muestra animaciones de batalla le deja una a la
+        caja de la animación, y eso cambia cómo se cuantiza a sus personajes.
+        """
+        if map_id not in self.tope_cache:
+            snes_convert.args_game_dir[0] = self.game_dir
+            lideres = snes_convert.lideres_posibles(
+                self.renderer, self.ids, self.grupo, self.mensajes is not None)
+            self.tope_cache[map_id] = snes_convert.tope_de_paletas_del_mapa(
+                self.renderer, self.mapa(map_id)[0], lideres,
+                self.graficos(map_id).pares, self._timer_colores(),
+                self._solos(), self.poses(map_id),
+                self.muestra_animacion(map_id))
+        return self.tope_cache[map_id]
+
+    def cartel_de_mapa(self):
+        """El mapa de la tabla que se llevó los tiles del cartel, o None.
+
+        El conversor lo decide recorriendo los mapas en el orden de la tabla y
+        quedándose con el primero que muestre uno; acá se repite con un
+        registro nuevo, porque el de `self.imagenes` ya está tomado desde el
+        arranque y no dice en cuál fue.
+        """
+        if not self.cartel_visto:
+            self.cartel_visto = True
+            registro = eventos.Imagenes(self.game_dir)
+            for otro in self.ids:
+                if registro.elegir([self.mapa(otro)[0]]) is not None:
+                    self.cartel_map = otro
+                    break
+        return self.cartel_map
+
+    def dibuja_animacion(self, map_id):
+        """Si en este mapa se dibujan las animaciones de batalla.
+
+        Es `snes_convert.animacion_cabe` sobre el mismo reparto que hace el
+        conversor, igual que `lleva_lluvia` con las gotas: la caja necesita una
+        paleta de sprite entera y en un mapa que ya use las ocho no hay. La
+        otra mitad del criterio —que sus 64 tiles entren en el banco— no se
+        repite acá: ahí el conversor **corta**, así que si la ROM se armó, el
+        mapa tiene lugar. Ver `animacion_de_mapa`.
+        """
+        if map_id in self.anim_cabe_cache:
+            return self.anim_cabe_cache[map_id]
+        snes_convert.args_game_dir[0] = self.game_dir
+        if not self.muestra_animacion(map_id):
+            self.anim_cabe_cache[map_id] = False
+            return False
+        timer_colores = self._timer_colores()
+        lideres = snes_convert.lideres_posibles(
+            self.renderer, self.ids, self.grupo, self.mensajes is not None)
+        tope = self.tope_de_paletas(map_id)
+        reparto = snes_convert.npcs_dibujables(
+            self.renderer, self.mapa(map_id)[0], lideres, tope,
+            self.graficos(map_id).pares,
+            timer_colores, self._solos(), self.poses(map_id))[2]
+        cabe = snes_convert.animacion_cabe(
+            reparto[0], reparto[3], timer_colores,
+            self.lleva_lluvia(map_id),
+            self.cartel_de_mapa() == map_id, tope)
+        self.anim_cabe_cache[map_id] = cabe
         return cabe
 
     def paleta_de_sprite(self, map_id):
@@ -551,6 +657,7 @@ def cuadro_de_eventos(estado, passable, game_map, heroe, paginas=(),
     # suelto no cuenta: ya salió más arriba.
     estado.ticks += 1
     estado.cuadro_de_animacion()    # antes que los destellos que dispara
+    estado.cuadro_de_dibujo()       # y su dibujo, que dura más que las entradas
     estado.cuadro_de_flashes()
     estado.cuadro_de_timer()
     estado.cuadro_de_sacudida()
@@ -1247,7 +1354,7 @@ def gotas_en_oam(gotas, usados, pan_x, pan_y):
 
 
 def draw_actors(view, sprites, encima=None, timer=(), lluvia=(),
-                ventana=False, cartel=None):
+                ventana=False, cartel=None, animacion_y=None):
     """Pinta los sprites y avisa en qué líneas la consola no va a poder.
 
     No se intenta reproducir *cuáles* se pierden. La consola arma la lista de
@@ -1281,6 +1388,13 @@ def draw_actors(view, sprites, encima=None, timer=(), lluvia=(),
             cy, cuantos = cartel
             if cy <= y < cy + snes_convert.OBJ_H:
                 presentes += cuantos
+        # Y la animación de batalla: dos objetos de 32x32 en cada una de sus
+        # 64 líneas, porque la caja es de dos por dos. Se cuenta y **no se
+        # pinta acá**: va después del tinte y del destello, que es donde la
+        # pone RM2k.
+        if animacion_y is not None:
+            if animacion_y <= y < animacion_y + animacion_mod.CAJA:
+                presentes += animacion_mod.CAJA // snes_convert.OBJ_W
         if (presentes * OBJ_TILES + chicos > OBJ_TILES_PER_LINE
                 or presentes + chicos > OBJ_PER_LINE):
             excedidas.append(y)
@@ -1767,6 +1881,10 @@ def main():
         # que la consola compara, y después X e id, que allá los resuelve el
         # orden de la tabla. Ver `orden_de_dibujo` en snes_convert.py.
         actors = []
+        # Dónde está cada blanco posible en pixeles del mapa: el héroe es el 0
+        # y un evento su índice más uno, que es la misma numeración de las
+        # rutas y de los destellos. Lo pide la animación de batalla.
+        anclas = {}
         paginas_del_mapa = mundo.paginas(map_id)
         for npc in mundo.npcs(map_id):
             blanco_flash = npc["evento"] + 1
@@ -1830,6 +1948,11 @@ def main():
                            charset_npc, index_npc, pose, px, py,
                            capa == rm2k.LAYER_ABOVE, blanco_flash,
                            altura))
+            # Dónde está, para la animación de batalla que lo tenga de
+            # objetivo. Sólo los que se dibujan: en la consola un evento sin
+            # fila —o con la fila escondida— no tiene de dónde sacar la
+            # posición, y `animacion_dibujo_oam` se saltea la animación.
+            anclas[npc["evento"] + 1] = (px, py)
         # El último campo es si va por encima de la capa de encima. Para el
         # héroe es falso salvo en la ROM de `snes-encima`, donde su prioridad
         # de objeto sube a 2 —el mismo bit que llevan los eventos "above"— y
@@ -1863,6 +1986,7 @@ def main():
                        charset, charset_index,
                        direction * 3 + columna, x, y, args.heroe_encima, 0,
                        eventos.altura_del_salto(estado.ruta_heroe)))
+        anclas[0] = (x, y)      # el héroe es el blanco 0, como en las rutas
 
         # En OAM van del frente hacia el fondo, que es al revés del orden en que
         # se pintan. La consola recorre ese mismo orden para decidir qué entra
@@ -1897,16 +2021,36 @@ def main():
         cartel = (mundo.imagenes.info
                   if estado.imagen is not None and mundo.imagenes.info
                   else None)
+        # Y la animación de batalla, si hay una dibujándose y este mapa la
+        # dibuja. Los cuatro objetos gastan el presupuesto de OAM y el de la
+        # línea como cualquier otro. Ver `animacion_dibujo_oam` en main.s.
+        anim = None
+        if estado.anim_cuadro is not None and mundo.dibuja_animacion(map_id):
+            numero, blanco, _t, _n = estado.anim_dibujo
+            info = animacion_mod.de_numero(renderer, numero)
+            donde = None
+            if info is None:
+                pass
+            elif blanco == eventos.ANIM_BLANCO_PANTALLA:
+                donde = animacion_mod.esquina(info, 0, 0)
+            elif blanco in anclas:
+                ax, ay = animacion_mod.esquina(info, *anclas[blanco])
+                donde = (ax - cam_x, ay - cam_y)
+            if donde is not None:
+                anim = (info, estado.anim_cuadro, donde[0], donde[1])
         usados = sum(1 for _i, sx, sy, _a in sprites
                      if -32 <= sx < 256 and -32 <= sy < 224) + len(glifos)
         if cartel is not None:
             usados += cartel["objetos"]
+        if anim is not None:
+            usados += animacion_mod.OBJETOS
         gotas = (gotas_en_oam(estado.gotas, usados, cam_x, cam_y)
                  if mundo.lleva_lluvia(map_id) else [])
         excedidas = draw_actors(view, sprites, encima, glifos, gotas,
                                 estado.mensaje is not None,
                                 (cartel["y"], cartel["objetos"])
-                                if cartel is not None else None)
+                                if cartel is not None else None,
+                                anim[3] if anim is not None else None)
         if excedidas:
             print("  %d líneas pasan el límite de sprites de la consola: ahí se"
                   " pierden objetos y no se comparan" % len(excedidas))
@@ -1941,6 +2085,18 @@ def main():
         # las imágenes —`affected_by_flash` viene prendido de fábrica— y acá no
         # las toca, por la misma razón por la que el tinte tampoco. Es deuda
         # declarada; ninguna página del juego destella con un cartel puesto.
+
+        # La animación de batalla va entre el destello de pantalla y el
+        # cartel: `Priority_Screen` es 90, `Priority_BattleAnimation` 110 y
+        # `Priority_PictureOld` 120. Que el destello no la toque es lo mismo
+        # que le pasa al cartel y por lo mismo: en la consola su paleta cae
+        # arriba de `SPRITE_CGRAM`. En RM2k sí la tocaría —`SetFlashEffect` en
+        # `BattleAnimation::Update`— y es deuda declarada.
+        if anim is not None:
+            info, cuadro, ax, ay = anim
+            view = view.convert("RGBA")
+            view.alpha_composite(animacion_mod.render(info, cuadro), (ax, ay))
+
         if cartel is not None:
             import imagen as imagen_mod
             pintado = imagen_mod.render(cartel, estado.imagen[0])

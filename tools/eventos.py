@@ -1402,6 +1402,28 @@ ANIM_SONIDO, ANIM_DESTELLO, ANIM_FLASH = 0, 1, 2
 # donde la ROM y la referencia no coinciden: `snes-animacion` lo mostró.
 ANIM_DESTELLO_CUADROS = 10
 ANIMACIONES = {}
+# El **dibujo**, desde el 2026-09-12. El opcode lleva dos bytes más: el número
+# de animación de RM2k tal cual —180 como mucho, así que entra en uno— y sobre
+# qué se dibuja. El número va crudo y no un índice nuestro a propósito: la ROM
+# lo mira en `anim_batalla_de`, una tabla por número, así que ninguna de las dos
+# puntas tiene que llevar un contador que la otra adivine. Ver `animacion.py`.
+#
+# `ANIM_SIN_DIBUJO` es "esta animación no se dibuja", y lo usan las que RM2k
+# repite en tres por tres para tapar la pantalla —`global`—, que no se hacen.
+ANIM_SIN_DIBUJO = 0xFF
+ANIM_BLANCO_PANTALLA = 0xFF     # alcance "pantalla": va al centro, sin objetivo
+
+
+def dibujo_blanco(anim, blanco):
+    """Sobre qué se dibuja esta animación: el objetivo, o la pantalla.
+
+    Con alcance "pantalla" —`Animation::Scope_screen`, que es el 1— RM2k la
+    dibuja en el centro y no le pregunta nada al objetivo; con el otro, sobre
+    el objetivo, que es el mismo byte que ya usan las rutas y los destellos.
+    """
+    if anim.get("alcance", 0) == 1:
+        return ANIM_BLANCO_PANTALLA
+    return blanco
 
 # El cartel de un `ShowPicture`, desde el 2026-09-12. La ROM lleva **uno solo**
 # —ver `Imagenes`— y por eso los tres opcodes no dicen cuál: dicen qué hacerle.
@@ -1556,8 +1578,18 @@ def indexar_animaciones(game_dir):
                         t.get("flash_blue", 31)),
                 "fuerza": t.get("flash_power", 31),
             })
-        ANIMACIONES[numero] = {"cuadros": len(anim.get("frames") or ()),
-                               "timings": timings}
+        # Y lo que hace falta para **dibujarla**, desde el 2026-09-12: la hoja
+        # de `Battle`, las celdas de cada cuadro y dónde va la caja. Lo lee
+        # `animacion.py`, que es el único que sabe qué hacer con esto; acá se
+        # guarda tal cual sale del LDB para que las dos puntas lean lo mismo.
+        cuadros = anim.get("frames") or {}
+        ANIMACIONES[numero] = {"cuadros": [cuadros[k].get("cells") or {}
+                                           for k in sorted(cuadros)],
+                               "timings": timings,
+                               "imagen": anim.get("animation_name", ""),
+                               "grande": bool(anim.get("large")),
+                               "alcance": anim.get("scope", 0),
+                               "posicion": anim.get("position", 1)}
 CHANGE_HP = 10460
 CHANGE_CONDITION = 10480
 FULL_HEAL = 10490
@@ -2386,8 +2418,15 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         entradas.sort(key=lambda e: e[0])   # estable: el orden del LDB
         if len(entradas) > 255:
             raise NoSePuede()
-        out = bytes([OP_ANIMACION, len(entradas)]) + b"".join(entradas)
-        cuadros = 2 * anim["cuadros"]
+        # Una `global` —la que RM2k repite en tres por tres para tapar la
+        # pantalla— se acepta y no se dibuja: se sigue oyendo y destellando,
+        # que es lo que ya hacía. Ninguna de las once de la intro la pide.
+        numero = (p[0] if p[0] <= 255 and not (len(p) > 3 and p[3])
+                  else ANIM_SIN_DIBUJO)
+        out = (bytes([OP_ANIMACION, numero, dibujo_blanco(anim, blanco),
+                      len(entradas)])
+               + b"".join(entradas))
+        cuadros = 2 * len(anim["cuadros"])
         if p[2] and cuadros:
             out += bytes([OP_ESPERAR, cuadros & 0xFF, cuadros >> 8])
         return out
@@ -2973,6 +3012,14 @@ class Estado:
         self.rutas_ev = {}
         # La animación de batalla en curso: ver OP_ANIMACION.
         self.animacion = None
+        # Y su dibujo, que va por su cuenta y dura más: la línea de tiempo se
+        # termina con la última entrada y el dibujo, dos cuadros por cada
+        # cuadro de RM2k. Es (número de RM2k, blanco, tick, cuántos cuadros)
+        # o None. Ver `empezar_dibujo` y `animacion.py`.
+        self.anim_dibujo = None
+        # Y qué cuadro le toca dibujar a este cuadro de consola, que es el
+        # tick de antes de avanzarlo: ver `cuadro_de_animacion`.
+        self.anim_cuadro = None
         # El cartel puesto, o None: (tono de ahora, desde, hasta, paso, pasos).
         # Ver OP_IMAGEN y `cuadro_de_imagen`.
         self.imagen = None
@@ -3118,6 +3165,8 @@ class Estado:
         self.flashes = {}
         self.giro = None            # las filas del mapa nuevo son otras
         self.animacion = None       # y la animación de batalla no sigue
+        self.anim_dibujo = None     # ni su dibujo: sus tiles son de un mapa
+        self.anim_cuadro = None
         # Y el cartel se borra al cambiar de mapa: es el
         # `flags.erase_on_map_change` de `Game_Pictures`, que viene prendido de
         # fábrica y que este juego no apaga en ninguna de sus imágenes.
@@ -3644,6 +3693,37 @@ class Estado:
         if not anim["entradas"]:
             self.animacion = None
 
+    def cuadro_de_dibujo(self):
+        """Qué cuadro de la animación se dibuja en este cuadro de consola.
+
+        Dos cuadros de consola por cada cuadro de RM2k, que es lo que dura
+        `BattleAnimation`: `num_frames = GetRealFrames() * 2`. El que se dibuja
+        sale del tick **antes** de avanzarlo, así que en el tick 0 se dibuja el
+        cuadro 0, que es el mismo en que dispara el `timing` del cuadro 1 de
+        RM2k. Es `animacion_dibujo_tick` en main.s.
+        """
+        self.anim_cuadro = None
+        if self.anim_dibujo is None:
+            return
+        _numero, _blanco, t, cuantos = self.anim_dibujo
+        if t // 2 >= cuantos:
+            self.anim_dibujo = None
+            return
+        self.anim_cuadro = t // 2
+        self.anim_dibujo[2] = t + 1
+
+    def empezar_dibujo(self, numero, blanco):
+        """Arranca el dibujo de la animación `numero` sobre `blanco`.
+
+        La nueva reemplaza a la que hubiera, como la línea de tiempo. Una
+        animación sin cuadros o marcada `ANIM_SIN_DIBUJO` no dibuja nada, y la
+        ROM llega al mismo lugar por su tabla: el $FF de `anim_batalla_de`.
+        """
+        anim = ANIMACIONES.get(numero) if numero != ANIM_SIN_DIBUJO else None
+        cuantos = len(anim["cuadros"]) if anim else 0
+        self.anim_dibujo = ([numero, blanco, 0, cuantos] if cuantos else None)
+        self.anim_cuadro = None
+
     def cuadro_de_flashes(self):
         """Un cuadro de todos los destellos: los que se acabaron se apagan."""
         for blanco in list(self.flashes):
@@ -3748,7 +3828,7 @@ def largo_de_opcode(codigo, i):
     if op == OP_TIENDA:
         return 4 + 2 * codigo[i + 3]
     if op == OP_ANIMACION:
-        return 2 + ANIM_ENTRADA * codigo[i + 1]
+        return 4 + ANIM_ENTRADA * codigo[i + 3]
     largo = LARGO_DE_OPCODE.get(op)
     if largo is None:
         raise ValueError("opcode %d que no sé medir" % op)
@@ -3929,7 +4009,7 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
                     frecuencia=RUTA_FRECUENCIA, sacudida=(), fundir_bgm=0,
                     pan=(), rama=(), destello=(), guardar=False,
                     variables=(), rama_var=(), items=(), acceso=(),
-                    lluvia=None, animacion=()):
+                    lluvia=None, animacion=(), eventos_mapa=None):
     """Una página automática inventada: una ruta forzada, una espera, un tinte.
 
     No sale de ningún dato del juego, y ésa es la idea. El intérprete corre
@@ -4060,11 +4140,17 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
         # (animación, objetivo, esperar): un `ShowBattleAnimation` compilado
         # por el mismo camino que el juego. Existe por lo mismo que el resto:
         # la escena del Emitter Room, que es la que las usa, no se puede
-        # disparar desde una prueba —ver ESTADO—. El objetivo es el héroe:
-        # esta página no tiene eventos a quienes nombrar.
+        # disparar desde una prueba —ver ESTADO—.
+        #
+        # El objetivo puede ser el héroe o **un evento del mapa**, y eso desde
+        # el 2026-09-12, con el dibujo: la animación sobre un evento sale por
+        # otro camino de la ROM —`npc_de_evento`, la fila del NPC— que sobre el
+        # héroe no se toca. Por eso `eventos_mapa`: sin él un objetivo que no
+        # sea el héroe no compila y la prueba no probaría nada.
         import lcf
         codigo += _compilar(lcf.EventCommand(
-            SHOW_BATTLE_ANIMATION, 0, "", list(animacion) + [0]), None)
+            SHOW_BATTLE_ANIMATION, 0, "", list(animacion) + [0]), None,
+            eventos_mapa=eventos_mapa)
     if ruta_ev:
         blanco, ordenes = ruta_ev
         codigo += (bytes([OP_RUTA, blanco, frecuencia, len(ordenes)])
@@ -4834,13 +4920,18 @@ def ejecutar(codigo, estado, desde=0):
         elif op == OP_ANIMACION:
             # La animación nueva reemplaza a la que hubiera; sus entradas las
             # dispara `cuadro_de_animacion`. No cuesta ningún tick.
-            n = codigo[i + 1]
+            n = codigo[i + 3]
             estado.animacion = {
-                "entradas": [codigo[i + 2 + ANIM_ENTRADA * j:
-                                    i + 2 + ANIM_ENTRADA * (j + 1)]
+                "entradas": [codigo[i + 4 + ANIM_ENTRADA * j:
+                                    i + 4 + ANIM_ENTRADA * (j + 1)]
                              for j in range(n)],
                 "t": 0}
-            i += 2 + ANIM_ENTRADA * n
+            # Y su dibujo, que va por su cuenta: la línea de tiempo se termina
+            # con la última entrada y el dibujo dura los dos cuadros por cuadro
+            # de RM2k. Cuántos son no está en el bytecode —la ROM los saca de
+            # su tabla— así que acá salen de la misma tabla, `ANIMACIONES`.
+            estado.empezar_dibujo(codigo[i + 1], codigo[i + 2])
+            i += 4 + ANIM_ENTRADA * n
         elif op == OP_DESTELLO:
             # `FlashOnce`: el nivel arranca en la fuerza y baja cuadro a
             # cuadro. No corta el cuadro: si la página espera, el conversor le
