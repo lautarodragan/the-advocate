@@ -165,6 +165,25 @@ Lo que hay que hacer siempre:
   una tanda: el 2026-09-12 uno dejó cinco armados y siguieron avisando que había
   terminado mucho después de haber entregado.
 
+### Cuando un sub-agente se corta
+
+No se reanuda ni se le puede escribir. Al retomar, en este orden:
+
+1. **Su rama y su worktree**: `git log --oneline worktree-agent-<id>`. Lo
+   commiteado está entero; lo demás no existe.
+2. **Los logs que haya dejado**, antes que su informe: una tanda en segundo
+   plano puede haber terminado después del corte, así que su "quedó pendiente"
+   puede ser viejo.
+3. **Su transcripción**, en
+   `~/.claude/projects/<proyecto>/<sesión>/subagents/agent-<id>.jsonl`. Son
+   megas: se lee **del final hacia atrás, una entrada por vez**, mirando qué
+   herramienta usó última. Nunca entero.
+4. **Lo que dejó corriendo**: `pgrep -af "snes_correr|snes-hitos"` y
+   `git worktree list`.
+
+Y para el agente nuevo que lo reemplace: pasarle lo que el anterior dejó escrito
+—commits y ESTADO.md— para que no vuelva a medir lo mismo.
+
 ## La trampa que más veces mordió
 
 **`plx`, `ply` y `pla` dejan N y Z del valor que sacan de la pila**, y `sep`/`rep`
