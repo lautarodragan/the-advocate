@@ -132,12 +132,15 @@ fuerte que hay hasta ahora para que las pruebas de estado miren el audio.
   los archivos puestos— y la música quedaba muda. Se mudó a `$30EC`, que llega
   hasta `$30FA`; `$3100` en adelante es `FAR_ARAM_DE`. **Al encargar trabajo
   sobre la RAM lejana hay que pasar el mapa**, que es lo que faltó.
-* **La pantalla de título no tiene música desde el paquete de audio por mapa.**
-  Bisect sobre las ROMs de `/extras/builds/`: `9fe396b` suena y `d150491` no.
-  En el título `mapa_actual` vale 0 —todavía no hay mapa— y las cuatro muestras
-  del tema 7 nunca llegan a la ARAM; `tema_asegurar` no las carga. Lo tapaba el
-  MSU-1: con pista, el título suena igual. Está encargado, con la prueba de
-  estado que lo cobre.
+* **La pantalla de título sin música: arreglada.** No era el mapa —`mapa_actual`
+  vale 0 porque el mapa inicial *es* el índice 0—: era que `plx` deja N y Z del
+  valor que saca de la pila, así que el `beq` que pregunta si una muestra está
+  en la ARAM miraba el índice y contestaba siempre que sí. Le tocó al título
+  porque su tema sale de `title_music` del LDB mientras que los paquetes se
+  arman con los `PlayBGM` de los mapas: es el único tema que ningún paquete
+  trae. Lo cobra `test_musica_paquete.py`, comprobado en rojo con el defecto
+  puesto. **Y el mismo patrón estaba en tres lugares más**: ver la trampa de las
+  banderas en `AGENTS.md`.
 
 ### El MSU-1 (2026-09-12)
 
