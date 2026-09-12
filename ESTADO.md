@@ -19,16 +19,18 @@ Se escribe **mientras se trabaja**, no al final.
 **Los primeros diez minutos jugables**, que es lo que taro viene probando vuelta
 a vuelta.
 
-Al 2026-09-13: `just snes-hitos-foto` son **153 casos, todos en verde** —sobre
-la foto `f336b63`, con tres de las cuatro vueltas de esta tanda adentro— y `just
-pruebas` son **123 en verde y 1 `xfail`, sin rojos**. Los
-dos de audio de la pelea que venían en rojo desde el 2026-09-12 no eran
-preexistentes de nadie: los rompió el merge `6c43aa3`, que dejó a la pelea
-cargando el paquete de audio del mapa. Está arreglado y contado abajo. El
-`xfail` no es adorno: es un defecto medido de guardar con la pantalla de título
-puesta, y está abajo.
+Al 2026-09-13: `just snes-hitos-foto` son **159 casos, todos en verde** —sobre
+la foto `f30be91`, con las cuatro vueltas de la tarde adentro— y `just pruebas`
+son **131 en verde y 1 `xfail`, sin rojos**. Los dos de audio de la pelea que
+venían en rojo no eran preexistentes de nadie: los rompió el merge `6c43aa3`,
+que dejó a la pelea cargando el paquete de audio del mapa. El `xfail` no es
+adorno: es un defecto medido de guardar con la pantalla de título puesta, y
+está abajo.
 
-**Las ROMs para probar a mano de esta vuelta** son tres, una por pieza:
+**La ROM para probar a mano** está en `pruebas-manuales/2026-09-13-f30be91/`,
+con las cuatro vueltas juntas: `demo-ciudad.sfc` con las ocho pistas de MSU-1 y
+`demo-carrera.sfc` con la persecución en auto. Su `LEEME.txt` dice qué mirar y
+en qué orden. Las de cada pieza por separado, por si hace falta aislar algo:
 
 * `pruebas-manuales/habilidades/` — las habilidades especiales de la batalla:
   dos peleas sueltas que se abren solas y la demo entera. Su `LEEME.txt` dice
