@@ -19,9 +19,14 @@ Se escribe **mientras se trabaja**, no al final.
 **Los primeros diez minutos jugables**, que es lo que taro viene probando vuelta
 a vuelta.
 
-Al 2026-09-12: `just snes-hitos-foto` son **134 casos, todos en verde**, y `just
-pruebas` **95 en verde y 1 `xfail`**. El `xfail` no es adorno: es un defecto
-medido de guardar con la pantalla de título puesta, y está abajo.
+Al 2026-09-12: `just snes-hitos-foto` son **138 casos, todos en verde** —sobre
+la foto `01d5509`—, y `just pruebas` **97 en verde y 1 `xfail`**. El `xfail` no
+es adorno: es un defecto medido de guardar con la pantalla de título puesta, y
+está abajo.
+
+**La ROM para probar a mano de esta vuelta** está en
+`pruebas-manuales/desbloqueos/`, con las cuatro piezas del 2026-09-12 y un
+`LEEME.txt` que dice cómo llegar jugando a cada una.
 
 `demo-ciudad` se juega desde la apertura hasta la calle de Lashe City, con los
 relámpagos, los autos y los NPCs andando, el agua moviéndose, la lluvia, el save
@@ -456,6 +461,14 @@ de cada una está en `README.md`.
     `Game_Player` se lo lleva. No se nota: la única página del juego que cambia
     el gráfico del héroe y después salta lo vuelve a poner en el comando
     siguiente al teletransporte.
+
+  Y lo que cuesta en el cartucho, medido sobre `demo-ciudad`: el gráfico al que
+  una ruta cambia al héroe entra al **banco de sprites del mapa**, como el de
+  cualquier evento. En el mapa 9 son dos más —`Future2:7` y `Future1:0`— y con
+  ellos un evento dibujado con un tile del chipset pasa a colgarse de una
+  paleta ajena. **Las animaciones de batalla del mapa 9 no se dibujaban ya
+  antes**: el control sin la 34 da el mismo aviso, así que ese mapa llenaba las
+  ocho paletas por su cuenta.
 
   Lo cubren `grafico-heroe` y `heroe-invisible`, uno por rama —el gráfico que
   se ve y el `nobodyhere`, que esconde al héroe como esconde a un evento—.
