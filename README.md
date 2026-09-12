@@ -982,6 +982,17 @@ por muestra durante tres segundos y difiere desde la primera nota de la voz 0,
 con las muestras y los disparos iguales en los dos lados; la sospecha es el
 instante en que cae ese KON dentro del cuadro, que no quedó demostrada.
 
+Y desde el 2026-09-12 hay una prueba de estado que lo cobra sola,
+`pruebas/test_musica_paquete.py`: para el tema que la ROM dice estar tocando,
+que cada muestra de su `tema_muestras` tenga entrada en `FAR_ARAM_DE`. Nació de
+un defecto que **la tanda no podía ver** —el silencio no cambia un pixel— y que
+encima el MSU-1 tapaba: `tema_asegurar` miraba la Z que le dejaba el `plx` en
+vez de la del `lda`, así que contestaba siempre "están todas" y no subía nada.
+El tema de la pantalla de título es el único que ningún paquete trae —sale de
+`title_music` del LDB y los paquetes se arman con los `PlayBGM` de cada mapa—,
+así que era el único que dependía por entero de ese camino, y estuvo mudo un
+día.
+
 ### El MSU-1
 
 La música sintetizada suena fea, y taro lo dijo el 2026-09-11 escuchándola: los

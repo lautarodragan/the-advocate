@@ -14612,6 +14612,14 @@ mirar:
     tax
     lda f:FAR_ARAM_DE, x
     plx
+    cmp #0                      ; **la Z de acá la pone `plx`, no el `lda`**:
+                                ; PLX deja N y Z del valor que saca de la pila,
+                                ; que es el índice de la lista y nunca es cero.
+                                ; Sin este `cmp` la respuesta era siempre
+                                ; "están todas" y el tema del título sonaba
+                                ; contra un directorio de silencios. Es de
+                                ; dieciséis bits, como la dirección: el mismo
+                                ; cuidado que `op_sonido` se toma con `xba`.
     sep #$20
 .a8
     beq falta

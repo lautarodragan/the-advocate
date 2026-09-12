@@ -19,8 +19,8 @@ Se escribe **mientras se trabaja**, no al final.
 **Los primeros diez minutos jugables**, que es lo que taro viene probando vuelta
 a vuelta.
 
-Al 2026-09-12: `just snes-hitos-foto` son **123 casos, todos en verde**, y `just
-pruebas` **83 en verde y 1 `xfail`**. El `xfail` no es adorno: es un defecto
+Al 2026-09-12: `just snes-hitos-foto` son **124 casos, todos en verde**, y `just
+pruebas` **85 en verde y 1 `xfail`**. El `xfail` no es adorno: es un defecto
 medido de guardar con la pantalla de título puesta, y está abajo.
 
 `demo-ciudad` se juega desde la apertura hasta la calle de Lashe City, con los
@@ -140,6 +140,10 @@ el cómo están en el README, "El MSU-1"; lo que hay que saber para trabajar:
   suma clavaba el techo cuando sonaba un efecto. Si algún día hay que moverlo,
   es esa constante y el fundido escala contra ella.
 
+* **Y por eso el MSU-1 tapa lo que rompe el SPC700.** El 2026-09-12 la pantalla
+  de título estuvo muda un día entero y nadie lo vio: con las pistas al lado
+  sonaba. Al probar algo de audio a mano, probarlo **sin** los archivos primero.
+
 Lo que queda abierto:
 
 * **El punto de loop.** El MSU-1 vuelve al principio del archivo, así que un
@@ -157,7 +161,7 @@ Lo que queda abierto:
 Al 2026-09-12, en orden.
 
 1. **Las tres vueltas paralelas están mergeadas** (`75f0b41`), y el árbol
-   combinado da **124 casos en verde** más `just pruebas` en 83 y el xfail. Era
+   combinado da **124 casos en verde** más `just pruebas` en 85 y el xfail. Era
    lo único que ninguna rama podía medir sola. La demo con todo junto está en
    `pruebas-manuales/2026-09-12-75f0b41/`.
 
@@ -417,6 +421,14 @@ ya nadie discute no necesita renglón.
   una línea del header, pero se ve en hardware.
 
 ## Lo que la tanda no cubre
+
+* **Nada de lo que se oye.** El silencio no cambia un pixel, así que la tanda da
+  cero igual con la ROM muda. Eso dejó vivir un día al defecto de
+  `tema_asegurar` —la pantalla de título sin música, 2026-09-12—. Lo mira ahora
+  `pruebas/test_musica_paquete.py`, que le pregunta a la ROM si las muestras del
+  tema que dice estar tocando están de verdad en la ARAM (`FAR_ARAM_DE` contra
+  `tema_muestras`). Lo que **sigue** sin mirar nadie es que lo que sale del DSP
+  suene a lo que tiene que sonar: eso es oído, y es de taro.
 
 * **El destello de un evento sobre la paleta de otro.** En la consola
   `FlashSprite` es un tinte de CGRAM: `pintar_flash` sube la paleta entera del
