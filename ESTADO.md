@@ -19,8 +19,8 @@ Se escribe **mientras se trabaja**, no al final.
 **Los primeros diez minutos jugables**, que es lo que taro viene probando vuelta
 a vuelta.
 
-Al 2026-09-12: `just snes-hitos-foto` son **124 casos, todos en verde**, y `just
-pruebas` **86 en verde y 1 `xfail`**. El `xfail` no es adorno: es un defecto
+Al 2026-09-12: `just snes-hitos-foto` son **134 casos, todos en verde**, y `just
+pruebas` **94 en verde y 1 `xfail`**. El `xfail` no es adorno: es un defecto
 medido de guardar con la pantalla de título puesta, y está abajo.
 
 `demo-ciudad` se juega desde la apertura hasta la calle de Lashe City, con los
@@ -87,6 +87,40 @@ que el orden de prioridades del modo 3 permite. Vive en la rama
 color math, implementado y descartado". Dejó dos cosas aprovechables —el canal
 de HDMA que apaga la mezcla sobre la ventana de mensaje, y que **snes9x redondea
 distinto que bsnes y mesen-s** en la suma de color math—.
+
+### Tres vueltas en paralelo, mergeadas (2026-09-12)
+
+taro pidió tres cosas a la vez y se hicieron en tres worktrees. El árbol
+combinado da **134 casos de la tanda en verde** y **94 pruebas de estado** más
+el `xfail`, sobre la foto `25d1006`.
+
+* **Lashe City hasta la escena del auto**: la demo pasa de 10 mapas a 29 —la
+  fábrica, el auditorio, los Rat Tracks, el Sector 27 y el galpón—. El alcance
+  salió del árbol de mapas, que ABL usa como carpetas y nuestro volcado a JSON
+  no guarda: el subárbol del nodo 15. De paso apareció que **una página
+  automática vacía se repetía para siempre** —45 páginas en 35 mapas— y hacía
+  injugable Rat Tracks B1, con los dos lados equivocados igual.
+* **Las animaciones de batalla se dibujan**, en una caja de 64x64 topada por los
+  64 tiles libres de VRAM de sprites, con los cuadros prerenderizados y subidos
+  por DMA. Achicadas: la 79 al 12% y la 82 al 11%, que **taro tiene que juzgar**.
+* **Hay batalla por turnos** y las dos peleas de la intro se pelean. Las
+  fórmulas están escritas de los dos lados y la prueba exige el HP exacto turno
+  por turno.
+
+**Lo que no entra: las tres cosas juntas en 2 MB.** Con 29 mapas se emiten siete
+animaciones —286 KB— y el área se pasa por **218 KB**. Antes de las animaciones
+quedaban 68 KB libres, así que recortarlas no alcanza. Las salidas medidas:
+subir el cartucho a 4 MB —que **no es cambiar un número**: en LoROM la SRAM vive
+en los bancos `$70`–`$7D`, justo donde aterrizaría la ROM, así que pide tocar el
+mapeo y verificarlo en hardware—, o repartir en dos demos. **Sin decidir.**
+
+Y dos deudas que dejaron los agentes, las dos con el número al lado:
+
+* **El tema del título se cae del banco de muestras** con Lashe City adentro: es
+  el último de la lista y la ARAM se llena. Con pista de MSU-1 suena igual.
+* **De las 40 páginas del juego con batalla compila una sola**, y a 30 de las
+  otras 39 las corta `ChangeEscapeAccess`: un bit al lado de los dos de
+  `FAR_ACCESO`.
 
 ### Los quince colores de un sprite: elegidos de nuevo (2026-09-12)
 
