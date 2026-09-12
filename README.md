@@ -4432,10 +4432,25 @@ Hover-Tram, y esa escena quedó para otra vuelta. Es deuda declarada en
   que es lo que hace `UpdateMoveRoute` con `skippable` apagado. Lo último es
   lo que más cerca está de verse: en la apertura la colisión no frena ningún
   paso, medido, pero el droide del mapa 2 vive de eso.
-* **El cartucho es de 2 MB desde el 2026-09-11**: `ROM_BANKS` es 64 y la
-  cabecera dice `$0B`. Lo pidieron los glifos ya compuestos del compositor de
-  mensajes, 59 KB, que no entraban en la ROM del título. Es LoROM hasta el
-  banco $3F, así que la SRAM de los bancos $70 en adelante no se entera.
+* **El cartucho es de 4 MB desde el 2026-09-13**: `ROM_BANKS` es 128 y la
+  cabecera dice `$0C`. Antes fue de 2 MB, y lo pidieron los glifos ya compuestos
+  del compositor de mensajes; los 4 MB los pidieron las tres vueltas del
+  2026-09-12 juntas —Lashe City, las animaciones dibujadas y la batalla—, que se
+  pasaban por 218 KB.
+
+  **Los dos últimos bancos del archivo no se usan**, y ésa es la parte que hay
+  que entender antes de tocar esto. `lorom_address` le da a cada byte del
+  archivo la dirección `banco:8000`, y en la consola **los bancos $7E y $7F son
+  la WRAM**: un dato ubicado ahí se leería como memoria de trabajo. Se llega a
+  ellos por el espejo $FE/$FF, pero entonces un puntero de 24 bits que cruce de
+  $7D:FFFF al siguiente —lo que hace `advance`— aterrizaría en la WRAM en vez de
+  saltar al espejo, y sería un error silencioso en el peor lugar: un stream de
+  música o una tira de mapa leyendo basura a mitad de camino. Así que el archivo
+  mide 4 MB justos, que es lo que la cabecera declara y lo que el FX Pak espera,
+  y `BANCOS_PROHIBIDOS` hace que el asignador se detenga 64 KB antes.
+
+  La SRAM no se entera de nada: en LoROM vive en la **mitad baja** de los bancos
+  $70 a $7D, y el cartucho usa la alta.
 * **Los cuadros que el lazo pierde en sus picos.** Ya no los produce el
   teletransporte —el fundido se come la carga, ver "El fundido de los
   teletransportes"— pero siguen: la primera vuelta de una ROM con muchas

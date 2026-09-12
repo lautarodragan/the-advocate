@@ -25883,7 +25883,7 @@ nada:
     .byte "A BLURRED LINE       "  ; 21 caracteres
     .byte $30                      ; LoROM, FastROM: ver MEMSEL
     .byte $02                      ; ROM y RAM con batería: la partida guardada
-    .byte $0B                      ; tamaño: 2 MB (el byte es log2 de los KB)
+    .byte $0C                      ; tamaño: 4 MB (el byte es log2 de los KB)
     .byte $05                      ; SRAM: 32 KB, y se usan cuatro ranuras de 2048
     .byte $01                      ; región
     .byte $00                      ; desarrollador

@@ -48,9 +48,22 @@ import sys
 # Lo que sí paga el precio es el 65816: un puntero de 24 bits no avanza solo de
 # $00FFFF a $018000, hay que ayudarlo. Está en `advance`, en main.s.
 BANK_SIZE = 0x8000
-ROM_BANKS = 64          # 2 MB desde el 2026-09-11; 1 MB desde el 2026-09-07;
-                        # 512 KB desde el 2026-09-05.
+ROM_BANKS = 128         # 4 MB desde el 2026-09-13; 2 MB desde el 2026-09-11;
+                        # 1 MB desde el 2026-09-07; 512 KB desde el 2026-09-05.
                         # Ver el README, "El cartucho".
+
+# **Los dos últimos bancos del archivo no se usan, y no es desperdicio por
+# comodidad.** `lorom_address` le da a cada byte la dirección `banco:8000`, y en
+# la consola los bancos $7E y $7F **son la WRAM**: un dato ubicado ahí se leería
+# como memoria de trabajo y no como cartucho. Se llega a ellos por el espejo
+# $FE/$FF, pero entonces un puntero de 24 bits que cruce de $7D:FFFF al
+# siguiente —lo que hace `advance` en main.s— aterrizaría en la WRAM en vez de
+# saltar al espejo, y eso sería un error silencioso en el peor lugar posible: un
+# stream de música o una tira de mapa leyendo basura a mitad de camino.
+#
+# Así que el archivo mide 4 MB justos, que es lo que la cabecera declara y lo
+# que los emuladores y el FX Pak esperan, y el asignador se detiene 64 KB antes.
+BANCOS_PROHIBIDOS = 2
 
 # TABLAS va en el banco 0, junto al código, y no es un detalle de acomodo: el
 # direccionamiento absoluto indexado —`lda tabla, x`— usa el registro de banco
@@ -61,7 +74,8 @@ AREAS = [
     ("ROM",  0x00000, 0x07FC0, ["CODE", "TABLAS"]),
     ("HEAD", 0x07FC0, 0x00020, ["HEADER"]),
     ("VECT", 0x07FE0, 0x00020, ["VECTORS"]),
-    ("DATA", 0x08000, BANK_SIZE * ROM_BANKS - 0x08000, ["RODATA"]),
+    ("DATA", 0x08000,
+     BANK_SIZE * (ROM_BANKS - BANCOS_PROHIBIDOS) - 0x08000, ["RODATA"]),
 ]
 # La RAM no sale en el archivo: se ubica por dirección, no por desplazamiento.
 # La pila arranca en $1FFF y **crece hacia abajo, contra la BSS**: los dos
