@@ -592,8 +592,13 @@ CHANGE_GOLD = 10310
 CHANGE_ITEMS = 10320
 
 # `ShowPicture` (11110), `MovePicture` (11120) y `ErasePicture` (11130): una
-# imagen encima de todo, movida y borrada. Se aceptan sin hacerlas y lo que se
-# pierde es la imagen.
+# imagen encima de todo, movida y borrada.
+#
+# **Desde el 2026-09-12 se hace una**: el cartel del "One year previously", y
+# cualquier otro que entre en el mismo molde. Ver `Imagenes`, OP_IMAGEN y "El
+# cartel de 'One year previously'" en el README. Los que no entran —los 27 de
+# los 34 que el juego tiene— se siguen aceptando sin hacerse, y lo que sigue
+# vale para ésos.
 #
 # En modo 3 las dos capas de fondo están ocupadas por el mapa, así que una
 # imagen encima pide una decisión de video, no un opcode más. Pero hay un
@@ -1398,6 +1403,138 @@ ANIM_SONIDO, ANIM_DESTELLO, ANIM_FLASH = 0, 1, 2
 ANIM_DESTELLO_CUADROS = 10
 ANIMACIONES = {}
 
+# El cartel de un `ShowPicture`, desde el 2026-09-12. La ROM lleva **uno solo**
+# —ver `Imagenes`— y por eso los tres opcodes no dicen cuál: dicen qué hacerle.
+#
+#   OP_IMAGEN        r, g, b, sat (bytes, 100 neutro): lo pone con ese tono.
+#   OP_IMAGEN_MOVER  el tono al que va, y en cuántos cuadros. No corta el
+#                    cuadro: si la página espera, el conversor le pone un
+#                    OP_ESPERAR detrás, como al `FlashScreen` y a la sacudida.
+#   OP_IMAGEN_BORRAR lo saca.
+#
+# **El fundido del cartel es el tono y no la transparencia**, que es lo que
+# había que ir a mirar: los dos `MovePicture` de la página del "1 year earlier"
+# dejan `top_trans` en 0 y mueven (r, g, b) entre 0 y 100 con la saturación
+# quieta en 100. O sea que la imagen aparece **negra**, sube a su color y vuelve
+# a negro; en la consola eso es teñir sus quince entradas de CGRAM, que es
+# exactamente la cuenta que el tinte de pantalla ya hacía.
+OP_IMAGEN = 0x1F        # r, g, b, sat
+OP_IMAGEN_MOVER = 0x20  # r, g, b, sat, cuadros (byte)
+OP_IMAGEN_BORRAR = 0x21
+# Cuántos cuadros puede durar un `MovePicture` para que entre en el byte de
+# `OP_IMAGEN_MOVER`. Los dos de la página duran 210 y 120.
+IMAGEN_CUADROS_MAX = 255
+
+
+def imagen_tono(desde, hasta, paso, pasos):
+    """El tono del cartel en el cuadro `paso` de `pasos`, componente por
+    componente.
+
+    `Game_Pictures::Picture::Update` interpola con `(finish - current) / dt`
+    sobre `double`, con `dt` los cuadros que quedan más uno, que es un
+    "acercarse a la parte que falta" cuyo resultado exacto es lineal:
+    `desde + (hasta - desde) * paso / pasos`. La consola no tiene `double`, así
+    que la cuenta va con enteros; el signo se saca antes de dividir porque el
+    divisor del hardware no lo tiene, y `//` de Python redondearía para el otro
+    lado con negativos. Ver `imagen_tick` en main.s.
+    """
+    if paso >= pasos:
+        return tuple(hasta)
+    salida = []
+    for a, b in zip(desde, hasta):
+        if b >= a:
+            salida.append(a + (b - a) * paso // pasos)
+        else:
+            salida.append(a - (a - b) * paso // pasos)
+    return tuple(salida)
+
+
+class Imagenes:
+    """El único cartel que entra en el cartucho, y qué comandos lo mueven.
+
+    Es el hermano de `Temas` y de `Graficos`: el conversor y la referencia
+    arman uno y los dos deciden lo mismo, porque la decisión está acá y no en
+    ninguno de los dos.
+
+    **Uno solo por ROM**, y ésa es la decisión que acota el alcance. Se lleva
+    una paleta de sprite entera —quince colores que no se pueden fusionar con
+    los de nadie, porque el fundido los tiñe a todos— y dos filas de bloques
+    del banco de sprites. Un segundo cartel pediría decidir cuántos de esos hay
+    para repartir, y para eso primero hay que saber cuántos `ShowPicture` del
+    juego se pueden dibujar; hoy la respuesta está en el informe y no en el
+    código.
+
+    El que no entra se sigue aceptando sin hacerse, como antes: cortar la
+    página le sacaría al juego las ocho que hoy compilan.
+    """
+
+    def __init__(self, game_dir):
+        self.game_dir = game_dir
+        self.nombre = None      # el cartel que se quedó con la ranura
+        self.info = None        # lo que `imagen.convertir` sacó de él
+        self.numero = None      # el número de imagen de RM2k que lo muestra
+        self.donde = None       # dónde lo centró su ShowPicture
+
+    def _leer(self, nombre):
+        import os
+        from PIL import Image
+        ruta = os.path.join(self.game_dir, "Picture", nombre + ".png")
+        if not os.path.exists(ruta):
+            return None
+        return Image.open(ruta)
+
+    def elegir(self, game_maps):
+        """Cuál de los `ShowPicture` de la ROM se queda con la ranura.
+
+        Se decide **antes de compilar una sola página** y mirando todos los
+        mapas del cartucho en el orden de la tabla, y no por orden de llegada.
+        La diferencia importa: la referencia compila los mapas en un orden que
+        depende de si la ROM lleva ventana, y con "el primero que pase" bastaba
+        que dos carteles compitieran para que los dos lados eligieran distinto.
+        Eso no se vería como un cartel equivocado sino como dos streams de
+        bytecode distintos, que es la clase de error que la comparación reporta
+        sin decir dónde.
+        """
+        import imagen as imagen_mod
+        if self.nombre is not None:
+            return self.info    # la ranura ya está tomada
+        for game_map in game_maps:
+            for event in game_map.events:
+                for page in event.pages:
+                    for cmd in page.commands:
+                        if cmd.code != SHOW_PICTURE:
+                            continue
+                        if not imagen_aceptable(cmd.parameters):
+                            continue
+                        if cmd.parameters[7]:
+                            continue    # el color transparente del PNG
+                        im = self._leer(cmd.string)
+                        if im is None:
+                            continue
+                        p = cmd.parameters
+                        info = imagen_mod.convertir(im, p[2], p[3])
+                        if not imagen_mod.cabe(info):
+                            continue
+                        self.nombre, self.info = cmd.string, info
+                        self.numero, self.donde = p[0], (p[2], p[3])
+                        return info
+        return None
+
+    def mostrar(self, numero, nombre, cx, cy):
+        """El cartel de la ranura si este `ShowPicture` es el suyo, o None."""
+        if self.nombre is None:
+            return None
+        return (self.info if (self.nombre, self.numero, self.donde)
+                == (nombre, numero, (cx, cy)) else None)
+
+    def suyo(self, numero, cx, cy):
+        """Si el cartel de la ranura es el que este comando nombra y no se
+        mueve de donde está. Lo preguntan `MovePicture` y `ErasePicture`, que
+        no traen el nombre: en RM2k el número de imagen es todo lo que los liga
+        a su `ShowPicture`."""
+        return (self.nombre is not None and self.numero == numero
+                and (cx is None or self.donde == (cx, cy)))
+
 
 def indexar_animaciones(game_dir):
     """Las animaciones de batalla del LDB, por id: sus cuadros y sus
@@ -1658,7 +1795,7 @@ def con_destino(pieza, destino):
 
 
 def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
-                    temas=None, graficos=None):
+                    temas=None, graficos=None, imagenes=None):
     """Los comandos de una página como bytes, o None si no se puede.
 
     `indice_de_mapa` traduce el id de mapa de RM2k al índice en la tabla de la
@@ -1766,7 +1903,7 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
                 pieza = b""
             else:
                 pieza = _compilar(cmd, indice_de_mapa, mensajes, extra,
-                                  eventos_mapa, temas, graficos)
+                                  eventos_mapa, temas, graficos, imagenes)
             piezas.append(pieza)
             largo += len(pieza)
         if pila:
@@ -1781,8 +1918,68 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
         return None
 
 
+def imagen_aceptable(p):
+    """Si los parámetros de un `ShowPicture` o de un `MovePicture` caen dentro
+    de lo que el cartel de la consola sabe hacer.
+
+    Los índices salen de `CommandShowPicture` y `CommandMovePicture` de
+    easyrpg-player, **no de memoria**: el color y la saturación van en 8..11 y
+    el modo de efecto en 12, que no es lo que uno adivinaría.
+    """
+    return (len(p) >= 14
+            and p[1] == 0               # la posición por variable
+            and p[4] == 0               # pegada al mapa
+            and p[5] == 100             # el zoom
+            and p[6] == 0               # translúcida
+            and p[11] == 100            # la saturación
+            and p[12] == 0              # rotar u ondear
+            and all(0 <= v <= 200 for v in p[8:12]))
+
+
+def _compilar_imagen(cmd, imagenes):
+    """Los tres comandos de `Picture`, o None si este cartel no entra.
+
+    Los índices de los parámetros salen de `CommandShowPicture` y
+    `CommandMovePicture` de easyrpg-player, **no de memoria**: los dos leen
+    catorce y dieciséis, y el orden no es el que uno adivinaría —el color y la
+    saturación van en 8..11 y el modo de efecto en 12—.
+    """
+    p = cmd.parameters
+    if imagenes is None:
+        return None
+    if cmd.code == ERASE_PICTURE:
+        if not p or not imagenes.suyo(p[0], None, None):
+            return None
+        return bytes([OP_IMAGEN_BORRAR])
+    if not imagen_aceptable(p):
+        return None
+    tono = (p[8], p[9], p[10], p[11])
+    if cmd.code == SHOW_PICTURE:
+        # `use_transparent_color`: el índice 0 del PNG se dibuja o no. El
+        # cartel del "1 year earlier" lo tiene apagado, así que es un
+        # rectángulo opaco; hacerlo transparente pediría un color de la paleta
+        # menos y saber cuál era el índice 0 antes de reducir.
+        if p[7] or imagenes.mostrar(p[0], cmd.string, p[2], p[3]) is None:
+            return None
+        return bytes([OP_IMAGEN]) + bytes(tono)
+    # MovePicture: el mismo cartel, en el mismo lugar, con otro tono. La
+    # duración viene en **décimas** —`data.time_left = duration * DEFAULT_FPS /
+    # 10`—, que es lo que había que ir a leer: los 35 del primero son tres
+    # segundos y medio, no medio segundo.
+    if not imagenes.suyo(p[0], p[2], p[3]):
+        return None
+    cuadros = p[14] * CUADROS_POR_DECIMA
+    if not 0 <= cuadros <= IMAGEN_CUADROS_MAX:
+        return None
+    salida = bytes([OP_IMAGEN_MOVER]) + bytes(tono) + bytes([cuadros])
+    if len(p) > 15 and p[15] and cuadros:
+        # `options.wait`: la página espera lo que dura, como el `FlashScreen`.
+        salida += bytes([OP_ESPERAR, cuadros & 0xFF, cuadros >> 8])
+    return salida
+
+
 def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
-              eventos_mapa=None, temas=None, graficos=None):
+              eventos_mapa=None, temas=None, graficos=None, imagenes=None):
     p = cmd.parameters
 
     if cmd.code == END or cmd.code in IGNORABLES:
@@ -1892,6 +2089,13 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
 
     if cmd.code == OPEN_SAVE_MENU:
         return bytes([OP_GUARDAR])
+
+    if cmd.code in (SHOW_PICTURE, MOVE_PICTURE, ERASE_PICTURE):
+        salida = _compilar_imagen(cmd, imagenes)
+        # None es "este cartel no entra en el modelo": se acepta sin hacerlo,
+        # que es lo que hacían los tres hasta el 2026-09-12. Cortar la página
+        # le sacaría al juego las ocho que hoy compilan por eso.
+        return b"" if salida is None else salida
 
     if cmd.code in ACEPTADOS_SIN_HACER:
         return b""     # se acepta con la deuda declarada arriba
@@ -2769,6 +2973,9 @@ class Estado:
         self.rutas_ev = {}
         # La animación de batalla en curso: ver OP_ANIMACION.
         self.animacion = None
+        # El cartel puesto, o None: (tono de ahora, desde, hasta, paso, pasos).
+        # Ver OP_IMAGEN y `cuadro_de_imagen`.
+        self.imagen = None
         # El evento que mira al héroe porque él lo disparó: ver `girar`.
         self.giro = None
         # Qué página tiene activa cada evento, como la dejó el último refresco.
@@ -2911,6 +3118,10 @@ class Estado:
         self.flashes = {}
         self.giro = None            # las filas del mapa nuevo son otras
         self.animacion = None       # y la animación de batalla no sigue
+        # Y el cartel se borra al cambiar de mapa: es el
+        # `flags.erase_on_map_change` de `Game_Pictures`, que viene prendido de
+        # fábrica y que este juego no apaga en ninguna de sus imágenes.
+        self.imagen = None
         # Y la cámara corrida vuelve a cero, de golpe: es lo que hace
         # `PerformTeleport` con `map_changed`, devolviéndole a `pan_current` y a
         # `pan_finish` el valor por omisión. Un salto al mismo mapa no pasa por
@@ -3294,6 +3505,39 @@ class Estado:
         self.lluvia_azar = azar_siguiente(self.lluvia_azar)
         return self.lluvia_azar
 
+    def poner_imagen(self, tono):
+        """`Game_Pictures::Show`: el cartel aparece ya con su tono."""
+        self.imagen = (tuple(tono), tuple(tono), tuple(tono), 0, 0)
+
+    def mover_imagen(self, hasta, cuadros):
+        """`Game_Pictures::Move`: el tono se va hacia `hasta` en `cuadros`.
+
+        Sin cartel puesto no hace nada, como allá: `Move` sobre una imagen que
+        no se mostró le escribe el destino a una que no se dibuja.
+        """
+        if self.imagen is None:
+            return
+        ahora = self.imagen[0]
+        if not cuadros:
+            self.imagen = (tuple(hasta), tuple(hasta), tuple(hasta), 0, 0)
+        else:
+            self.imagen = (ahora, ahora, tuple(hasta), 0, cuadros)
+
+    def cuadro_de_imagen(self):
+        """Un cuadro del fundido del cartel: `Game_Pictures::Picture::Update`.
+
+        El paso avanza primero y el tono sale de `imagen_tono`, que es la misma
+        cuenta que hace `imagen_tick` en main.s.
+        """
+        if self.imagen is None:
+            return
+        _ahora, desde, hasta, paso, pasos = self.imagen
+        if paso >= pasos:
+            return
+        paso += 1
+        self.imagen = (imagen_tono(desde, hasta, paso, pasos),
+                       desde, hasta, paso, pasos)
+
     def cuadro_de_lluvia(self):
         """`Game_Screen::UpdateRain`, un cuadro. La ROM es `lluvia_tick`."""
         for gota in self.gotas:
@@ -3464,6 +3708,7 @@ LARGO_DE_OPCODE = {
     OP_FUNDIR_BGM: 3, OP_PAN: 8, OP_SI: 7, OP_IR: 3, OP_ORO: 5,
     OP_GUARDAR: 1, OP_VAR: 8, OP_SI_VAR: 8, OP_ITEM: 4, OP_ACCESO: 3,
     OP_CLIMA: 3, OP_SONIDO: 3,
+    OP_IMAGEN: 5, OP_IMAGEN_MOVER: 6, OP_IMAGEN_BORRAR: 1,
 }
 
 
@@ -4522,6 +4767,19 @@ def ejecutar(codigo, estado, desde=0):
                 i += 8
             else:
                 i = codigo[i + 6] | (codigo[i + 7] << 8)
+        elif op == OP_IMAGEN:
+            # El cartel se pone con su tono y en el mismo cuadro, como
+            # `Game_Pictures::Show`: `time_left` queda en cero.
+            estado.poner_imagen(tuple(codigo[i + 1:i + 5]))
+            i += 5
+        elif op == OP_IMAGEN_MOVER:
+            # Y `Move`: el tono al que va y en cuántos cuadros. No cuesta
+            # ningún tick; si la página espera, atrás viene un OP_ESPERAR.
+            estado.mover_imagen(tuple(codigo[i + 1:i + 5]), codigo[i + 5])
+            i += 6
+        elif op == OP_IMAGEN_BORRAR:
+            estado.imagen = None
+            i += 1
         elif op == OP_SONIDO:
             i += 3                  # no se ve y no cuesta ningún tick
         elif op == OP_CLIMA:
@@ -4819,17 +5077,28 @@ def destellar(palabra, color, nivel):
     return salida
 
 
-def deudas_de_la_pagina(page):
+def deudas_de_la_pagina(page, imagenes=None):
     """Qué comandos de esta página se aceptan sin hacerlos.
 
     Para que el conversor pueda avisar en vez de que la deuda quede muda.
+
+    Los tres de `Picture` sólo son deuda **si esta página no es la del cartel
+    que la ROM sí dibuja**: avisar igual sería el aviso que nadie lee, que es
+    como una deuda de verdad se pierde entre las que ya no lo son.
     """
-    return sorted({cmd.code for cmd in page.commands
-                   if cmd.code in ACEPTADOS_SIN_HACER})
+    salida = set()
+    for cmd in page.commands:
+        if cmd.code not in ACEPTADOS_SIN_HACER:
+            continue
+        if (cmd.code in (SHOW_PICTURE, MOVE_PICTURE, ERASE_PICTURE)
+                and _compilar_imagen(cmd, imagenes) is not None):
+            continue
+        salida.add(cmd.code)
+    return sorted(salida)
 
 
 def paginas_del_mapa(game_map, indice_de_mapa, mensajes=None, temas=None,
-                     graficos=None):
+                     graficos=None, imagenes=None):
     """Las páginas que la ROM necesita para resolver los eventos del mapa.
 
     Se emiten *todas* las páginas de un evento que tenga alguna disparable, no
@@ -4881,7 +5150,7 @@ def paginas_del_mapa(game_map, indice_de_mapa, mensajes=None, temas=None,
             if page.trigger in TRIGGERS and puede_dispararse(page):
                 codigo = compilar_pagina(page, indice_de_mapa, mensajes,
                                          del_mapa.para(event.id), temas,
-                                         graficos)
+                                         graficos, imagenes)
             grupo.append({
                 "evento": numero_evento,
                 "pagina": numero_pagina,

@@ -45,6 +45,7 @@ import rm2k
 
 # Los eventos translúcidos van tramados: ver `rm2k.TRAMA_SUFIJO`.
 lcf.SUFIJO_TRANSLUCIDO = rm2k.TRAMA_SUFIJO
+import imagen
 import pixeles
 import titulo as titulo_mod
 import pantallas as pantallas_mod
@@ -1023,6 +1024,42 @@ def gotas_de_lluvia(tiles, palettes, de_lider=(), timer_base=None):
                                 for x in range(CELL)) for y in range(CELL))
             numero = base + mitad * 16 + tono
             tiles[numero * 32:(numero + 1) * 32] = pack_tile(celda, planes=4)
+    return bytes(tiles), base, cual
+
+
+def cartel_de_imagen(info, tiles, palettes, base_previa=None):
+    """El cartel del `ShowPicture` al final del banco de sprites: sus tiles y
+    **una paleta entera para él solo**.
+
+    No comparte paleta con nadie, a diferencia del cronómetro y de las gotas, y
+    no es por falta de lugar: el fundido del cartel es un tinte de sus quince
+    entradas de CGRAM cuadro a cuadro, así que un personaje metido en esa
+    paleta se apagaría y se prendería con él.
+
+    Y va **arriba de `SPRITE_CGRAM`**, o sea afuera del rango que recorren
+    `aplicar_tinte` y `subir_paletas`. Eso no es acomodar números: en RM2k las
+    imágenes tienen `affected_by_tint` apagado de fábrica —`Priority_PictureOld`
+    es 120 y `Priority_Screen` 90—, así que el tinte de pantalla no las toca.
+    Quedando fuera del rango, no hay que acordarse de saltearlas.
+
+    Devuelve (tiles, base, número de paleta), o (tiles, 0, 0) si el mapa ya usa
+    las ocho paletas de sprite: ahí este mapa no dibuja el cartel, y la
+    referencia lo sabe con la misma cuenta.
+    """
+    if len(palettes) >= OBJ_PALETTES:
+        return bytes(tiles), 0, 0
+    cual = len(palettes)        # la primera libre, sin agregarla a la lista
+    tiles = bytearray(tiles)
+    if base_previa:
+        base = -(-(base_previa + 2 * 16) // 64) * 64
+    else:
+        base = -(-(len(tiles) // 32) // 64) * 64
+    cuantos = imagen.tiles_reservados(info)
+    if (base + cuantos) * 32 > len(tiles):
+        tiles += bytes((base + cuantos) * 32 - len(tiles))
+    for numero, celda in imagen.celdas(info).items():
+        tiles[(base + numero) * 32:(base + numero + 1) * 32] = pack_tile(
+            celda, planes=4)
     return bytes(tiles), base, cual
 
 
@@ -2651,7 +2688,7 @@ def datos_del_mapa(mapa, numero, indice_global, materiales):
 
 
 def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
-         ventana=None, titulo=None, ranuras=None):
+         ventana=None, titulo=None, ranuras=None, cartel=None):
     """El .inc que arma w65.py junto con main.s.
 
     `titulo` es la pantalla de título —la imagen y su menú— y puede faltar;
@@ -2671,6 +2708,16 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                     "mapa %d: con este reparto de VRAM, %s necesita %d tiles y "
                     "entran %d" % (mapa["id"], nombre, cuantos,
                                    layout[nombre][1]))
+
+    # Dónde quedó el cartel: el mapa de la tabla que se llevó sus tiles, y en
+    # qué tile y con qué paleta. Sale de los mapas ya convertidos y no de una
+    # variable que haya que ir pasando: el que lo tiene es el único con
+    # `imagen_base` distinto de cero.
+    cartel_base, cartel_pal = 0, 0
+    for mapa in mapas:
+        if mapa["sprite"] and mapa["sprite"][13]:
+            cartel_base, cartel_pal = mapa["sprite"][13], mapa["sprite"][14]
+            break
 
     cabecera = (
         "; Generado por tools/snes_convert.py. No editar.\n"
@@ -2732,6 +2779,29 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "ANIM_ENTRADA = %d\n"
         "ANIM_SONIDO  = %d\n"
         "ANIM_DESTELLO = %d\n"
+        "; El cartel del ShowPicture: sus tres opcodes, dónde cae su esquina\n"
+        "; en la pantalla de la consola y cuántos objetos de 32x32 mide.\n"
+        "; Las coordenadas ya vienen escaladas de 320x240 a 256x224 y la X\n"
+        "; puede ser negativa: el cartel del \"1 year earlier\" se sale por la\n"
+        "; izquierda, que es lo que RM2k muestra. Ver tools/imagen.py.\n"
+        "OP_IMAGEN   = $%02X\n"
+        "OP_IMAGEN_MOVER = $%02X\n"
+        "OP_IMAGEN_BORRAR = $%02X\n"
+        "; En qué tile de su banco de sprites arranca y con qué paleta.\n"
+        "; Van de globales y no en el registro del mapa porque el cartel es\n"
+        "; **uno solo por ROM** y vive en un solo mapa: los dos campos\n"
+        "; ocupaban los últimos bytes libres de MAPA_STRIDE, y agrandar el\n"
+        "; registro para eso habría sido caro por nada. Que ningún otro mapa\n"
+        "; lo muestre lo controla el conversor, que corta.\n"
+        "IMAGEN_BASE = %d\n"
+        "IMAGEN_PAL  = %d\n"
+        "IMAGEN_X    = %d\n"
+        "IMAGEN_Y    = %d\n"
+        "IMAGEN_OBJETOS = %d\n"
+        "; Cuántos tiles de la grilla de nombres hay que saltear para pasar\n"
+        "; de un objeto al siguiente, y de una fila de cuatro a la que sigue.\n"
+        "IMAGEN_PASO = %d\n"
+        "IMAGEN_FILA = %d\n"
         "; La lluvia: ver OP_CLIMA en eventos.py.\n"
         "LLUVIA_GOTAS_MAX = %d\n"
         "LLUVIA_GOTAS_0 = %d\n"
@@ -2982,6 +3052,12 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            eventos.OP_ITEM, eventos.OP_ACCESO, eventos.OP_TIENDA,
            eventos.OP_CLIMA, eventos.OP_SONIDO, eventos.OP_ANIMACION,
            eventos.ANIM_ENTRADA, eventos.ANIM_SONIDO, eventos.ANIM_DESTELLO,
+           eventos.OP_IMAGEN, eventos.OP_IMAGEN_MOVER,
+           eventos.OP_IMAGEN_BORRAR,
+           cartel_base, cartel_pal,
+           cartel["x"] if cartel else 0, cartel["y"] if cartel else 0,
+           cartel["objetos"] if cartel else 0,
+           imagen.OBJ_LADO, 4 * imagen.GRILLA,
            max(eventos.LLUVIA_GOTAS),
            eventos.LLUVIA_GOTAS[0], eventos.LLUVIA_GOTAS[1],
            eventos.LLUVIA_GOTAS[2], eventos.LLUVIA_VIDA,
@@ -3174,6 +3250,23 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             for fase, datos in enumerate(pre):
                 handle.write(bloque("fuente_pre%d" % fase, datos) + "\n")
             handle.write(bloque("mensajes", ventana["mensajes"]) + "\n")
+        # --- el cartel del ShowPicture ---
+        #
+        # Sus quince colores tal cual salieron de `imagen.convertir`, en el
+        # orden en que los tiles los indexan. Van en un bloque global y no en
+        # la tabla de mapas porque el cartel es uno solo por ROM; lo que sí es
+        # del mapa es en qué tile y en qué paleta quedó, que va en el registro.
+        #
+        # La entrada 0 va también, en negro, y no porque se dibuje —el índice 0
+        # de un sprite es transparente— sino para que la ROM suba las dieciséis
+        # de una: el DMA arranca en la entrada de la paleta, no una más
+        # adelante, y descontar uno acá es justo la cuenta que se escribe bien
+        # de un lado y mal del otro.
+        handle.write("\n; --- el cartel del ShowPicture ---\n")
+        colores = ([(0, 0, 0)] + list(cartel["paleta"])) if cartel else [(0, 0, 0)]
+        handle.write(bloque("imagen_cgram",
+                            b"".join(cgram_word(c).to_bytes(2, "little")
+                                     for c in colores)) + "\n")
         # Los productos del destello de pantalla: `d * nivel // 31` para d y
         # nivel de 0 a 31, en la fila del nivel. Es la cuenta de
         # `destellar_canal`, y la ROM la leía del multiplicador y el divisor
@@ -3543,11 +3636,19 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             | (8 if db_items[n].two_handed else 0)
             for n in items])
         words_asm("item_switch", [db_items[n].switch_id for n in items])
+        # Las cuatro de los textos van **fuera del banco 0**, como `item_k` y
+        # por lo mismo: ahí no entran. Con los diez mapas de `demo-ciudad` el
+        # área de código quedaba en 32622 de 32704 —ochenta y dos bytes
+        # libres— y el cartel del `ShowPicture` no entraba. Se leen con
+        # `lda f:item_txt_lo, x`, que cuesta un byte y un ciclo por lectura en
+        # trece lugares, ninguno adentro de un lazo por cuadro.
+        handle.write('.segment "RODATA"\n')
         for campo, prefijo in (("lo", "<"), ("hi", ">"), ("bk", "^")):
             handle.write("item_txt_%s:\n    .byte %s\n" % (campo, ", ".join(
                 "%s(item_textos + %d)" % (prefijo, ofs)
                 for ofs, _ in item_textos_ofs) or "0"))
         bytes_asm("item_txt_n", [n for _, n in item_textos_ofs])
+        handle.write('.segment "TABLAS"\n')
         words_asm("item_fila_vram", [
             celda_vram(T.ITEM_LISTA_Y // T.CELL + 2 * f, 0)
             for f in range(T.ITEM_FILAS)])
@@ -3566,8 +3667,10 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             return fila * 64 + col * 2
 
         bytes_asm("item_tipo", [db_items[n].type for n in items])
+        handle.write('.segment "RODATA"\n')     # ídem: ver `item_txt_lo`
         words_asm("item_puntos", [p & 0xFFFF for n in items
                                   for p in db_items[n].puntos])
+        handle.write('.segment "TABLAS"\n')
         bytes_asm("item_actores", [
             sum(1 << b for b in range(8)
                 if 8 * byte + b + 1 < actores_n
@@ -4395,6 +4498,11 @@ def main():
     # no en el otro.
     args.mapas_por_personaje = mapas_por_personaje(renderer, todos,
                                                    args.game_dir)
+    # El cartel del `ShowPicture`, uno por ROM: ver `eventos.Imagenes`. Se lo
+    # queda el primer mapa de la tabla que lo muestre, que es el orden en que
+    # `convertir` los recorre; la referencia elige con la misma función.
+    args.imagenes = eventos.Imagenes(args.game_dir)
+    args.imagenes.mapa = None
 
     mapas = [convertir(renderer, map_id, args,
                        inicio=args.inicio if map_id == args.map_id else None)
@@ -4442,7 +4550,8 @@ def main():
         graficos = eventos.Graficos()
         temas.mapa = mapas.index(mapa)      # para su paquete de audio
         paginas = eventos.paginas_del_mapa(mapa["game_map"], indices.get,
-                                           mensajes, temas, graficos)
+                                           mensajes, temas, graficos,
+                                           args.imagenes)
         temas.mapa = None
         # Un intérprete por evento con alguna página paralela que compile. La
         # ROM los lleva en una lista de tope fijo y **no avisa** si se le pasa
@@ -4460,6 +4569,25 @@ def main():
         if args.grafico_de_prueba and mapa is mapas[args.inicial]:
             for charset, index in graficos_de_prueba(args.grafico_de_prueba):
                 graficos.indice(charset, index)
+        # **Sólo el mapa que se llevó sus tiles puede mostrar el cartel.** El
+        # banco de sprites es de cada mapa, así que desde otro los seis objetos
+        # leerían lo que hubiera en esos tiles. No pasa hoy —el cartel del "1
+        # year earlier" lo muestra una sola página— y por eso esto corta en vez
+        # de elegir: el día que dos mapas muestren el mismo, hay que decidir si
+        # sus tiles van en los dos, y esa decisión no la puede tomar el
+        # conversor solo.
+        if (args.imagenes.nombre is not None
+                and mapa["id"] != args.imagenes.mapa):
+            for pagina in paginas:
+                codigo = pagina["codigo"]
+                if codigo and any(codigo[i] == eventos.OP_IMAGEN
+                                  for i, _c in eventos.recorrer_codigo(codigo)):
+                    sys.exit(
+                        "mapa %d: muestra el cartel %r y sus tiles quedaron en "
+                        "el mapa %d; la ROM lo lleva en uno solo. Ver "
+                        "`cartel_de_imagen`."
+                        % (mapa["id"], args.imagenes.nombre,
+                           args.imagenes.mapa))
         if graficos.pares != mapa["graficos_de_ruta"]:
             # Las dos pasadas compilaron cosas distintas. No puede pasar —las
             # dos usan `paginas_del_mapa` con el mismo `con_ventana`— y si
@@ -4656,7 +4784,8 @@ def main():
                 if eventos.compilar_pagina(page, indices.get,
                                            mensajes) is None:
                     continue
-                deudas |= set(eventos.deudas_de_la_pagina(page))
+                deudas |= set(eventos.deudas_de_la_pagina(page,
+                                                          args.imagenes))
         for codigo_cmd in sorted(deudas):
             print("  mapa %d: AVISO, una página usa %s y la ROM no lo hace; "
                   "ver ACEPTADOS_SIN_HACER en tools/eventos.py"
@@ -4742,7 +4871,8 @@ def main():
               % (", ".join(repr(t) for t in textos), len(menu_tiles),
                  len(menu_tiles) * 32, len(menu_paleta), len(menu_mapas)))
     informe = emit(args.output, mapas, args.inicial, args.heroe_encima, grupo,
-                   ventana_datos, titulo_datos, ranuras_datos)
+                   ventana_datos, titulo_datos, ranuras_datos,
+                   args.imagenes.info)
     print("%d mapa(s) -> %s, arranca en el %d (mapa %d)"
           % (len(mapas), args.output, args.inicial, mapas[args.inicial]["id"]))
     if informe:
@@ -5266,6 +5396,28 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
         if not lluvia_base:
             print("  mapa %d: AVISO, las gotas de lluvia no entran en las "
                   "paletas de sprite y acá no llueve" % map_id)
+    # El cartel del `ShowPicture`, si el suyo es de este mapa. La ranura la
+    # elige `Imagenes.elegir` **en el orden de la tabla de mapas**, que es este
+    # mismo lazo, y la referencia elige igual mirando todos los mapas de una.
+    imagen_base, imagen_pal = 0, 0
+    registro = getattr(args, "imagenes", None)
+    if registro is not None:
+        info = registro.elegir([game_map])
+        if info is not None and registro.mapa is None:
+            registro.mapa = map_id
+        if info is not None and registro.mapa == map_id:
+            tiles, imagen_base, imagen_pal = cartel_de_imagen(
+                info, tiles, palettes, lluvia_base or timer_base)
+            if not imagen_base:
+                sys.exit("mapa %d: el cartel %r no entra: el mapa ya usa las "
+                         "%d paletas de sprite y el fundido necesita una "
+                         "entera. Ver `cartel_de_imagen`."
+                         % (map_id, registro.nombre, OBJ_PALETTES))
+            print("  mapa %d: el cartel %r, %d objetos en %d tiles desde el "
+                  "%d, paleta %d" % (map_id, registro.nombre,
+                                     info["objetos"],
+                                     imagen.tiles_reservados(info),
+                                     imagen_base, imagen_pal))
     table = npc_table(npcs, where, movibles, indice_animado, anima_quieto)
     # Por cada candidato a líder, su paleta y en qué banco de poses están las
     # doce suyas. La ROM no calcula nada a partir de la pose: busca el puntero
@@ -5292,7 +5444,7 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
                  else GIRO_NINGUNO)
     sprite = (tiles, palettes, where, table, actores, timer_base, timer_pal,
               animados, bancos, ruta_graficos, lluvia_base, lluvia_pal,
-              giro_tile)
+              giro_tile, imagen_base, imagen_pal)
 
     # La colisión: un byte por celda de 16x16 con los cuatro bits de dirección
     # ya resueltos. Toda la lógica de RM2k —que la capa alta manda salvo que sea

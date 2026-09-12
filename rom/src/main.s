@@ -804,6 +804,9 @@ grupo_listo:
     jsr giro_limpiar
     jsr aram_limpiar
     jsr animacion_limpiar
+    lda #0                      ; la RAM arranca con basura
+    sta f:CARTEL_ACTIVA
+    sta f:CARTEL_LISTO
     ; El testigo de la pantalla de ranuras también: con $55 el arnés la vería
     ; abierta desde el reset. Es lo que pasó el 2026-09-10 con los dos
     ; contadores que "daban 85": leían la basura del emulador.
@@ -921,6 +924,16 @@ loop:
     jsr flashes_tick            ; y los destellos, en el mismo lugar
     jsr sacudida_tick           ; y uno de la sacudida de pantalla
     jsr pan_tick                ; y uno de la cámara corrida sin el héroe
+    jsr imagen_tick             ; y uno del fundido del cartel. Va **antes**
+                                ; del destello y no después: los dos arman su
+                                ; paleta en `pal_buf`, y el destello deja la
+                                ; suya ahí esperando el vblank. Al revés, el
+                                ; cartel le pisaba los primeros dieciséis
+                                ; colores del fondo en el cuadro en que los
+                                ; dos corren. Del lado de la referencia el
+                                ; orden da igual —son dos estados que no se
+                                ; tocan— y está escrito igual para que se lean
+                                ; en el mismo orden.
     jsr destello_tick           ; y uno del destello de pantalla
     jsr lluvia_tick             ; y uno de la lluvia
     jsr animate_hero
@@ -1212,6 +1225,9 @@ cero:
     pha
     jsr giro_limpiar            ; las filas van a ser otras
     jsr animacion_limpiar       ; y la animación de batalla no sigue
+    lda #0                      ; y el cartel se borra: es el
+    sta f:CARTEL_ACTIVA         ; `erase_on_map_change` de Game_Pictures, y
+    sta f:CARTEL_LISTO          ; además sus tiles son de un solo mapa
     pla
     sta mapa_actual             ; para saber si el próximo salto cambia de mapa
     pha
@@ -3616,6 +3632,15 @@ otro:
 :   cmp #OP_SONIDO
     bne :+
     jmp op_sonido
+:   cmp #OP_IMAGEN
+    bne :+
+    jmp op_imagen
+:   cmp #OP_IMAGEN_MOVER
+    bne :+
+    jmp op_imagen_mover
+:   cmp #OP_IMAGEN_BORRAR
+    bne :+
+    jmp op_imagen_borrar
 :   cmp #OP_GUARDAR
     bne :+
     jmp op_guardar
@@ -4001,6 +4026,85 @@ op_tienda_listo:
 ; final de `music_tick`, detrás de lo que la música escriba en el cuadro.
 op_sonido:
     jsr sonido_de_codigo
+    jmp otro
+
+; Los tres del cartel. `OP_IMAGEN` lo pone ya con su tono —`Game_Pictures::
+; Show` deja `time_left` en cero—, `OP_IMAGEN_MOVER` arranca la rampa hacia
+; otro tono y `OP_IMAGEN_BORRAR` lo saca. Ninguno corta el cuadro: si la página
+; espera lo que dura el fundido, el conversor le pone un OP_ESPERAR detrás,
+; igual que al `FlashScreen` y a la sacudida.
+op_imagen:
+    ldx #$0000
+img_poner:
+    lda [cod_ptr], y
+    cpx #3
+    bcs img_poner_sat           ; el cuarto operando es la saturación, que no
+    sta f:CARTEL_TONO, x        ; se guarda: la del cartel es siempre la neutra
+    sta f:CARTEL_DESDE, x
+    sta f:CARTEL_HASTA, x
+img_poner_sat:
+    iny
+    inx
+    cpx #4
+    bne img_poner
+    lda #1
+    sta f:CARTEL_ACTIVA
+    lda #0
+    sta f:CARTEL_PASO
+    sta f:CARTEL_PASOS
+    jsr imagen_paleta
+    jmp otro
+
+op_imagen_mover:
+    ldx #$0000
+img_mover:
+    lda [cod_ptr], y
+    cpx #3
+    bcs img_mover_sat           ; la saturación, otra vez
+    sta f:CARTEL_HASTA, x
+img_mover_sat:
+    iny
+    inx
+    cpx #4
+    bne img_mover
+    lda [cod_ptr], y
+    sta f:CARTEL_PASOS
+    iny
+    ; Un `Move` sobre una imagen que no se mostró le escribe el destino a algo
+    ; que no se dibuja: los operandos se consumen igual —el stream tiene que
+    ; seguir en el mismo byte de los dos lados— y no pasa nada más.
+    lda f:CARTEL_ACTIVA
+    beq img_mover_fin
+    lda f:CARTEL_PASOS
+    bne img_mover_rampa
+    ldx #$0000
+img_mover_ya:
+    lda f:CARTEL_HASTA, x
+    sta f:CARTEL_TONO, x
+    sta f:CARTEL_DESDE, x
+    inx
+    cpx #3
+    bne img_mover_ya
+    lda #0
+    sta f:CARTEL_PASO
+    jsr imagen_paleta
+    jmp otro
+img_mover_rampa:
+    ldx #$0000
+img_mover_desde:
+    lda f:CARTEL_TONO, x
+    sta f:CARTEL_DESDE, x
+    inx
+    cpx #3
+    bne img_mover_desde
+    lda #0
+    sta f:CARTEL_PASO
+img_mover_fin:
+    jmp otro
+
+op_imagen_borrar:
+    lda #0
+    sta f:CARTEL_ACTIVA
     jmp otro
 
 ; `OP_ANIMACION`: cuántas entradas y las entradas, que se quedan en el
@@ -10988,13 +11092,13 @@ blanco:
 .proc pant_texto
 .a8
 .i16
-    lda item_txt_lo, x
+    lda f:item_txt_lo, x
     sta msg_ptr
-    lda item_txt_hi, x
+    lda f:item_txt_hi, x
     sta msg_ptr + 1
-    lda item_txt_bk, x
+    lda f:item_txt_bk, x
     sta msg_ptr + 2
-    lda item_txt_n, x
+    lda f:item_txt_n, x
     cmp comp_dup + 3
     bcc cabe
     lda comp_dup + 3
@@ -11353,7 +11457,7 @@ ranura:
     clc
     adc comp_and
     tax
-    lda item_puntos, x
+    lda f:item_puntos, x
     clc
     adc comp_or01
     sta comp_or01
@@ -14927,13 +15031,13 @@ blanco:
 .proc texto_escribir
 .a8
 .i16
-    lda item_txt_lo, x
+    lda f:item_txt_lo, x
     sta msg_ptr
-    lda item_txt_hi, x
+    lda f:item_txt_hi, x
     sta msg_ptr + 1
-    lda item_txt_bk, x
+    lda f:item_txt_bk, x
     sta msg_ptr + 2
-    lda item_txt_n, x
+    lda f:item_txt_n, x
     sta temp                    ; cuántas letras
     beq listo
     lda #$80
@@ -15072,13 +15176,13 @@ listo:
 ; El texto X al búfer, desde el byte `eleg_tabla`: la celda de arriba de cada
 ; letra ahí y la de abajo 64 bytes más adelante.
 renglon:
-    lda item_txt_lo, x
+    lda f:item_txt_lo, x
     sta msg_ptr
-    lda item_txt_hi, x
+    lda f:item_txt_hi, x
     sta msg_ptr + 1
-    lda item_txt_bk, x
+    lda f:item_txt_bk, x
     sta msg_ptr + 2
-    lda item_txt_n, x
+    lda f:item_txt_n, x
     sta temp                    ; cuántas letras
     beq fin
     ldy #0
@@ -15773,6 +15877,262 @@ listo:
     rts
 .endproc
 
+; --- el cartel del ShowPicture ----------------------------------------------
+;
+; Seis objetos de 32x32 con una paleta de sprite para ellos solos, y un fundido
+; que es un tinte de esos quince colores cuadro a cuadro. Ver `tools/imagen.py`,
+; que es donde está escrito dónde cae y de qué color es cada pixel, y OP_IMAGEN
+; en eventos.py.
+;
+; El cartel vive en **un solo mapa** de la ROM —el que se llevó sus tiles al
+; banco de sprites; el conversor corta si otro lo muestra— y se borra al
+; cambiar de mapa, que es el
+; `erase_on_map_change` de `Game_Pictures`. Las dos cosas son la misma: sin sus
+; tiles en VRAM no habría qué dibujar.
+
+; Un cuadro de la rampa. `Game_Pictures::Picture::Update` interpola con
+; `(finish - current) / dt` sobre `double`, y el resultado exacto de esa
+; sucesión es lineal: `desde + (hasta - desde) * paso / pasos`. Es la cuenta de
+; `eventos.imagen_tono`, y va con enteros de los dos lados.
+;
+; La paleta se rehace **sólo cuando el tono cambió de verdad**. En la rampa de
+; 210 cuadros del "1 year earlier" el rojo sube de 0 a 100, o sea que cambia
+; uno de cada dos cuadros: rehacerla igual costaba 96 productos y 96 divisiones
+; por cuadro para escribir los mismos treinta y dos bytes.
+.proc imagen_tick
+.a8
+.i16
+    lda f:CARTEL_ACTIVA
+    beq listo
+    lda f:CARTEL_PASOS
+    beq listo                   ; puesto y quieto
+    lda f:CARTEL_PASO
+    cmp f:CARTEL_PASOS
+    bcs listo                   ; la rampa ya llegó
+    lda f:CARTEL_PASO           ; `inc` no tiene forma larga
+    inc a
+    sta f:CARTEL_PASO
+    jsr imagen_tono_ahora
+    beq listo                   ; el mismo tono que el cuadro pasado
+    jmp imagen_paleta
+listo:
+    rts
+.endproc
+
+; El tono de este cuadro, canal por canal. Deja en A si cambió alguno.
+;
+; La resta va siempre del lado positivo, como en `una_tabla_de_destello`: el
+; divisor del hardware no tiene signo, y `//` de Python redondea para el otro
+; lado con negativos. Los dos lados hacen esta misma cuenta partida en dos.
+.proc imagen_tono_ahora
+.a8
+.i16
+    lda #0
+    sta f:CARTEL_CAMBIO
+    ldx #$0000
+canal:
+    lda f:CARTEL_HASTA, x
+    cmp f:CARTEL_DESDE, x
+    bcc baja
+    sec
+    sbc f:CARTEL_DESDE, x
+    jsr imagen_parte
+    clc
+    adc f:CARTEL_DESDE, x
+    bra guardar
+baja:
+    lda f:CARTEL_DESDE, x
+    sec
+    sbc f:CARTEL_HASTA, x
+    jsr imagen_parte
+    eor #$FF                    ; `desde - parte` sin una variable de por medio:
+    sec                         ; el complemento a uno más el acarreo es el menos
+    adc f:CARTEL_DESDE, x
+guardar:
+    cmp f:CARTEL_TONO, x
+    beq igual
+    sta f:CARTEL_TONO, x
+    lda #1
+    sta f:CARTEL_CAMBIO
+igual:
+    inx
+    cpx #3
+    bne canal
+    lda f:CARTEL_CAMBIO
+    rts
+.endproc
+
+; A = A * CARTEL_PASO / CARTEL_PASOS, con el multiplicador y el divisor del
+; hardware. El producto llega a 200 * 255 y entra en dieciséis bits; el
+; cociente no pasa de 200, así que alcanza con el byte bajo.
+.proc imagen_parte
+.a8
+.i16
+    sta WRMPYA
+    lda f:CARTEL_PASO
+    sta WRMPYB
+    nop                         ; ocho ciclos hasta que el producto está
+    nop
+    nop
+    nop
+    rep #$20
+.a16
+    lda RDMPYL
+    sta WRDIVL                  ; el dividendo, de dieciséis bits
+    sep #$20
+.a8
+    lda f:CARTEL_PASOS
+    sta WRDIVB                  ; arranca: el cociente tarda dieciséis ciclos
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    lda RDDIVL
+    rts
+.endproc
+
+; Los dieciséis colores del cartel teñidos con su tono, en su lugar de
+; `cgram_sombra`. Los sube `flush_video` en el vblank con un DMA propio.
+;
+; Se reusan `tabla_canal` y `armar_paleta`, que es lo que el tinte de pantalla
+; ya hacía: la única diferencia es de dónde salen los tres valores y que la
+; saturación del cartel es siempre neutra —`imagen_aceptable` no acepta otra—,
+; así que se le pone la neutra a `tinte_s` mientras dura y se la devuelve.
+; Las tres tablas de trabajo quedan con el tinte del cartel; `restaurar_tablas`
+; las vuelve a dejar como las del tinte de pantalla, copiando `puro`, que es
+; mucho más barato que rehacerlas.
+.proc imagen_paleta
+.a8
+.i16
+    ; **Y se guarda.** `armar_paleta` la usa de cursor de la paleta y la deja
+    ; en 32, y quien llama a esto desde un opcode la tiene apuntando al
+    ; bytecode: sin esto el intérprete seguía leyendo treinta y dos bytes más
+    ; adelante y corría lo que hubiera ahí. Fue el primer rojo de este cartel,
+    ; y de los que no se ven: la página seguía corriendo, sólo que otra.
+    phy
+    lda tinte_s
+    pha
+    lda #TINTE_NEUTRO
+    sta tinte_s
+    lda f:CARTEL_TONO + 0
+    ldx #.loword(tabla_r)
+    jsr tabla_canal
+    lda f:CARTEL_TONO + 1
+    ldx #.loword(tabla_g)
+    jsr tabla_canal
+    lda f:CARTEL_TONO + 2
+    ldx #.loword(tabla_b)
+    jsr tabla_canal
+    rep #$20
+.a16
+    lda #.loword(imagen_cgram)
+    sta tin_ptr
+    lda #16
+    sta tin_count
+    sep #$20
+.a8
+    lda #^imagen_cgram
+    sta tin_ptr + 2
+    jsr armar_paleta            ; los dieciséis, teñidos, en `pal_buf`
+    ; Y de ahí a la sombra, **sin tocar `tinte_listo`**: prenderlo mandaría a
+    ; subir las tres paletas del mapa en cada cuadro de la rampa, y eso le come
+    ; al vblank el presupuesto de poses.
+    ldx #$0000
+copia:
+    lda pal_buf, x
+    sta cgram_sombra + 2 * (128 + 16 * IMAGEN_PAL), x
+    inx
+    cpx #32
+    bne copia
+    pla
+    sta tinte_s
+    lda #1
+    sta f:CARTEL_LISTO
+    jsr restaurar_tablas
+    ply
+    rts
+.endproc
+
+; Los objetos del cartel, si está puesto.
+;
+; Van **después del cronómetro y antes de los personajes**, que es el orden de
+; RM2k: `Priority_Timer` es 140, `Priority_PictureOld` 120 y `Priority_Player`
+; 40. En OAM eso es el orden de la lista, porque gana el índice más bajo; y la
+; prioridad 3 los pone adelante de las dos capas.
+;
+; Cuestan **veinticuatro de los treinta y cuatro tiles por línea** en las
+; veintinueve líneas que ocupan, así que ahí entran dos personajes más y no
+; más. La referencia cuenta lo mismo y declara las líneas donde no alcanza.
+.proc imagen_oam
+.a8
+.i16
+    lda f:CARTEL_ACTIVA
+    bne hay
+    rts
+hay:
+    lda #$02
+    sta obj_grande              ; los objetos del cartel son de 32x32
+    lda #0
+    sta f:CARTEL_I
+cada:
+    rep #$20
+.a16
+    lda f:CARTEL_I
+    and #$00FF
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a                       ; treinta y dos por objeto
+    clc
+    adc #IMAGEN_X
+    sta obj_x
+    lda #IMAGEN_Y
+    sta obj_y
+    ; Y qué tile. Un objeto de 32x32 lee cuatro tiles de cuatro filas seguidas
+    ; de la grilla de nombres, que es de dieciséis: o sea que en una fila de
+    ; bloques entran cuatro objetos y el quinto arranca 64 tiles más adelante.
+    lda f:CARTEL_I
+    and #$0003
+    asl a
+    asl a                       ; los cuatro de ancho del objeto
+    sta temp
+    lda f:CARTEL_I
+    and #$00FC
+    asl a
+    asl a
+    asl a
+    asl a                       ; y la fila de bloques, que son 64 por cada 4
+    clc
+    adc temp
+    clc
+    adc #IMAGEN_BASE
+    sta temp
+    sep #$20
+.a8
+    lda temp
+    sta obj_tile
+    ; vhoopppN: prioridad 3 —adelante de las dos capas—, la paleta del cartel,
+    ; y el noveno bit del tile.
+    lda temp + 1
+    and #$01
+    ora #($30 | (IMAGEN_PAL * 2))
+    sta obj_attr
+    jsr emit_object
+    lda f:CARTEL_I
+    inc a
+    sta f:CARTEL_I
+    cmp #IMAGEN_OBJETOS
+    beq salir
+    jmp cada
+salir:
+    rts
+.endproc
+
 ; --- la animación de batalla ------------------------------------------------
 ;
 ; `OP_ANIMACION` deja acá la línea de tiempo: dónde está la entrada que sigue
@@ -15783,6 +16143,26 @@ listo:
 ANIM_PTR   = $7E30E2            ; tres bytes
 ANIM_N     = $7E30E5
 ANIM_T     = $7E30E6
+
+; Y el estado del cartel, quince bytes en la misma RAM lejana. **No está en el
+; banco 0 porque ahí no entra**: la BSS estaba en 7680 de 7680 y esto son
+; quince bytes más. Vive donde la animación de batalla y por lo mismo: se lee y
+; se escribe unas pocas veces por cuadro, así que el direccionamiento largo no
+; se nota, y no hay que indexarlo con nada que no sea el canal.
+;
+; El tono son **tres** bytes y no cuatro: la saturación de un cartel es siempre
+; la neutra —`imagen_aceptable` no acepta otra— así que no hay nada que
+; interpolar ahí y `imagen_paleta` le pone `TINTE_NEUTRO` a `tinte_s`.
+FAR_CARTEL    = $7E30E8
+CARTEL_ACTIVA = FAR_CARTEL + 0
+CARTEL_TONO   = FAR_CARTEL + 1  ; r, g, b, con 100 neutro como el tinte
+CARTEL_DESDE  = FAR_CARTEL + 4
+CARTEL_HASTA  = FAR_CARTEL + 7
+CARTEL_PASO   = FAR_CARTEL + 10
+CARTEL_PASOS  = FAR_CARTEL + 11
+CARTEL_LISTO  = FAR_CARTEL + 12 ; hay una paleta nueva esperando el vblank
+CARTEL_I      = FAR_CARTEL + 13
+CARTEL_CAMBIO = FAR_CARTEL + 14
 
 .proc animacion_limpiar
 .a8
@@ -18967,6 +19347,32 @@ sin_tira:
     sta MDMAEN
 sin_flash:
 
+    ; Y la paleta del cartel, si la rampa la rehizo este cuadro. Son treinta y
+    ; dos bytes y van aparte de las tres del mapa: la entrada del cartel cae
+    ; arriba de `SPRITE_CGRAM`, o sea afuera de lo que sube `subir_paletas`.
+    lda f:CARTEL_LISTO
+    beq sin_imagen
+    lda #0
+    sta f:CARTEL_LISTO
+    lda #(128 + 16 * IMAGEN_PAL)
+    sta CGADD
+    rep #$20
+.a16
+    lda #.loword(cgram_sombra + 2 * (128 + 16 * IMAGEN_PAL))
+    sta A1T0L
+    lda #32
+    sta DAS0L
+    sep #$20
+.a8
+    stz A1B0
+    lda #$00
+    sta DMAP0
+    lda #$22
+    sta BBAD0
+    lda #$01
+    sta MDMAEN
+sin_imagen:
+
     ; Los dos registros de scroll son de escritura doble: primero el byte bajo
     ; y después el alto.
     ; Cada registro se completa antes de pasar al siguiente. Los de scroll
@@ -20608,6 +21014,7 @@ fin:
     lda #$02
     sta obj_grande
     jsr timer_oam
+    jsr imagen_oam              ; y el cartel detrás de él: ver `imagen_oam`
 
 recorrer:
     rep #$20

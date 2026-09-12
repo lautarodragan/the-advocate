@@ -510,6 +510,50 @@ entera del Emitter Room. Lo que la tanda no mira:
   la lista.
 
 
+### El cartel del "One year previously" (2026-09-12)
+
+taro lo pidió ese día, y con el porqué puesto: es **el caso fácil** del sistema
+de imágenes —aparece una sola vez, entre un fundido y otro, sobre un mapa de un
+solo tile, así que no le pelea VRAM ni colores a ningún ChipSet ni CharSet—.
+Hecho y verificado: `snes-cinematica 4 7 "470 550 660 800 880" 115 cartel 1 ""
+21` está en `rom/hitos.txt` y los cinco cuadros dan **cero**.
+
+El cómo está en el README, "El cartel de 'One year previously'". Lo que conviene
+tener a mano para tocarlo:
+
+* **Un cartel por ROM**, y quién se queda con la ranura lo decide
+  `Imagenes.elegir` mirando todos los mapas en el orden de la tabla, antes de
+  compilar nada. Con "el primero que pase" los dos lados podían elegir
+  distinto, porque la referencia compila los mapas en un orden que depende de
+  si la ROM lleva ventana.
+* **El fundido es de tono y no de transparencia.** Los dos `MovePicture` dejan
+  `top_trans` en cero y mueven (r, g, b). Y **la duración viene en décimas**:
+  los 35 del primero son 210 cuadros. Eso subió la página del "1 year earlier"
+  de 105 décimas a 160, y por eso `test_un_ano_antes.py` pasó de 900 cuadros a
+  1200.
+* **Quince colores de los 226 del PNG**, y el degradé del resplandor se
+  escalona. Es lo cosmético declarado de esta vuelta; falta que taro lo
+  confirme jugando.
+* **El estado vive en `$7E30E8`, en la RAM lejana**, porque en el banco 0 no
+  entraba: la BSS estaba en **7680 de 7680**. Lo que siga pidiendo RAM del
+  banco 0 va a tener que aflojar algo.
+* **`armar_paleta` deja Y en 32.** Llamarla desde un opcode sin `phy` le mueve
+  el cursor al intérprete. Costó el primer rojo y no se veía como un cartel
+  roto: la página seguía corriendo, sólo que otra.
+
+**Lo que no cubre nada**: el cartel sobre una pantalla que destelle. En RM2k las
+imágenes sí reciben el `FlashScreen` —`affected_by_flash` viene prendido— y acá
+no, porque su paleta queda fuera del rango que el destello recorre. Ninguna
+página del juego destella con un cartel puesto, así que es deuda declarada y no
+un camino a medias.
+
+**Lo que costaría el sistema entero** está medido y en el README: 34
+`ShowPicture` en el juego, 20 carteles distintos, 7 comandos de 34 que el
+modelo de hoy sabe hacer, y cinco imágenes de 320x240 exactos que **con objetos
+no se pueden hacer** —serían 56 de los 128 de OAM y 32 de los 34 tiles por
+línea—. Ésas piden prestarle una capa al cartel, y con eso el mapa se recarga
+al borrarlo.
+
 ## Lo que se dejó afuera a propósito
 
 * **El panorama del mapa 2** —los puntitos sobre azul cuando se enciende la
