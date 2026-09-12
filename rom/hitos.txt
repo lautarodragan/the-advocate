@@ -73,6 +73,15 @@ snes-hablar
 snes-cinematica
 snes-cinematica 4 1 "370 770 830 1210 1980 2910" 115 apertura 1 "841 901 961 1021 1474 1595 1776 1897 2018 2078 2259 2380 2489 2683 2743"
 snes-cinematica 5 "3 6" "300 600 1200 1600 2500 2800 3300 3900" 115 manta 1 "212 243 394 515 727 758 789 820 971 1517 1548 1699 1790 1911 1942 2033 2125 2156 2247 2338 2399 2460 2570 2674 2987 3018 3079 3110 3141 3214 3510 3541 3723 3826" 16
+# El cartel de "One year previously", que es lo único que este port dibuja de
+# `ShowPicture`. Arranca con el switch 21 —el que prende el final del recuerdo
+# de CORE y MANTA— así que la página 3 del evento 1 del mapa 4 corre sola, y
+# los cinco cuadros agarran el fundido entero: recién puesto y casi negro
+# (470), a mitad de la rampa de subida (550), a pleno (660), a mitad de la de
+# bajada (800) y ya borrado (880). El de la mitad no es adorno: es el único que
+# cobra la interpolación cuadro a cuadro, que es donde la ROM y la referencia
+# pueden separarse en un valor y no verse.
+snes-cinematica 4 7 "470 550 660 800 880" 115 cartel 1 "" 21
 snes-escena 2 "4 54" 12 up "100 230 600 950" 115 puerta-izq "20 202 323 444 565"
 snes-escena 2 "36 74" 3 left "60 200 450 930 1300 1800" 115 pantalla "161 282 342 584 735 857 948 1008 1099 1159 1219 1430 1490 1732"
 snes-escena 8 "9 55" 0 down "20 30 40 50" 115 savepoint ""

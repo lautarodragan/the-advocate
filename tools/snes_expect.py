@@ -162,6 +162,12 @@ class Mundo:
         # pero el opcode **ocupa dos bytes** en el bytecode, así que si un lado
         # lo emitiera y el otro no, los dos recorrerían streams distintos.
         self.temas = eventos.Temas()
+        # Y el cartel del `ShowPicture`, numerado igual que en el conversor: la
+        # ROM lleva uno solo y el bytecode no dice cuál, así que si un lado lo
+        # aceptara y el otro no, los dos leerían streams distintos. Ver
+        # `eventos.Imagenes`.
+        self.imagenes = eventos.Imagenes(game_dir)
+        self.imagenes.elegir(self.mapa(i)[0] for i in self.ids)
         # El mismo índice de variables que el conversor: el del juego entero.
         eventos.indexar_variables(game_dir, (
             snes_convert.variables_de_prueba(prueba[15], prueba[16])
@@ -185,7 +191,8 @@ class Mundo:
             paginas = eventos.paginas_del_mapa(self.mapa(map_id)[0],
                                                self.indices.get, self.mensajes,
                                                self.temas,
-                                               self.graficos_cache[map_id])
+                                               self.graficos_cache[map_id],
+                                               self.imagenes)
             if self.graficos_de_prueba and map_id == self.ids[0]:
                 for charset, index in self.graficos_de_prueba:
                     self.graficos_cache[map_id].indice(charset, index)
@@ -515,6 +522,7 @@ def cuadro_de_eventos(estado, passable, game_map, heroe, paginas=(),
     estado.cuadro_de_sacudida()
     estado.cuadro_de_pan()
     estado.cuadro_de_destello()
+    estado.cuadro_de_imagen()
     estado.cuadro_de_lluvia()
 
 
@@ -1205,7 +1213,7 @@ def gotas_en_oam(gotas, usados, pan_x, pan_y):
 
 
 def draw_actors(view, sprites, encima=None, timer=(), lluvia=(),
-                ventana=False):
+                ventana=False, cartel=None):
     """Pinta los sprites y avisa en qué líneas la consola no va a poder.
 
     No se intenta reproducir *cuáles* se pierden. La consola arma la lista de
@@ -1229,6 +1237,16 @@ def draw_actors(view, sprites, encima=None, timer=(), lluvia=(),
         chicos = sum(1 for _g, _m, _sx, sy in timer if sy <= y < sy + 8)
         # Y las gotas de lluvia, que son objetos de 8x8 como los dígitos.
         chicos += sum(1 for _x, gy, _m, _t in lluvia if gy <= y < gy + 8)
+        # Y el cartel, que son objetos de 32x32 como los personajes. Se cuenta
+        # y **no se pinta acá**: va después del tinte y del destello, que es
+        # donde lo pone RM2k —`Priority_PictureOld` es 120 contra los 90 de
+        # `Priority_Screen`—. Ocupa sus 32 líneas enteras aunque la imagen mida
+        # 29: las líneas de relleno son transparentes pero el objeto está, y el
+        # presupuesto de la consola cuenta objetos, no pixeles.
+        if cartel is not None:
+            cy, cuantos = cartel
+            if cy <= y < cy + snes_convert.OBJ_H:
+                presentes += cuantos
         if (presentes * OBJ_TILES + chicos > OBJ_TILES_PER_LINE
                 or presentes + chicos > OBJ_PER_LINE):
             excedidas.append(y)
@@ -1837,12 +1855,23 @@ def main():
         encima = encima_todo.crop((cam_x, cam_y,
                                    cam_x + SCREEN_W, cam_y + SCREEN_H))
         glifos = glifos_del_timer(estado)
+        # El cartel del `ShowPicture`, si hay uno puesto: sus objetos gastan el
+        # presupuesto de OAM y el de la línea como cualquier otro. Sólo lo
+        # dibuja el mapa que se llevó sus tiles al banco de sprites, que es el
+        # mismo que lo muestra: ver `cartel_de_imagen` en snes_convert.py.
+        cartel = (mundo.imagenes.info
+                  if estado.imagen is not None and mundo.imagenes.info
+                  else None)
         usados = sum(1 for _i, sx, sy, _a in sprites
                      if -32 <= sx < 256 and -32 <= sy < 224) + len(glifos)
+        if cartel is not None:
+            usados += cartel["objetos"]
         gotas = (gotas_en_oam(estado.gotas, usados, cam_x, cam_y)
                  if mundo.lleva_lluvia(map_id) else [])
         excedidas = draw_actors(view, sprites, encima, glifos, gotas,
-                                estado.mensaje is not None)
+                                estado.mensaje is not None,
+                                (cartel["y"], cartel["objetos"])
+                                if cartel is not None else None)
         if excedidas:
             print("  %d líneas pasan el límite de sprites de la consola: ahí se"
                   " pierden objetos y no se comparan" % len(excedidas))
@@ -1866,6 +1895,22 @@ def main():
         if estado.destello_mostrado > 0:
             view = destellar_pantalla(view, estado.destello,
                                       estado.destello_mostrado)
+
+        # Y el cartel, encima del tinte y del destello y debajo de la ventana
+        # y del cronómetro: `Priority_PictureOld` es 120, contra 90 de la
+        # pantalla, 130 de la ventana y 140 de los dígitos. En la consola sale
+        # de que su paleta cae **arriba** de `SPRITE_CGRAM`, o sea afuera del
+        # rango que `aplicar_tinte` recorre.
+        #
+        # Lo que esto **no** hace y RM2k sí: el destello de pantalla sí toca a
+        # las imágenes —`affected_by_flash` viene prendido de fábrica— y acá no
+        # las toca, por la misma razón por la que el tinte tampoco. Es deuda
+        # declarada; ninguna página del juego destella con un cartel puesto.
+        if cartel is not None:
+            import imagen as imagen_mod
+            pintado = imagen_mod.render(cartel, estado.imagen[0])
+            view = view.convert("RGB")
+            view.paste(pintado.convert("RGB"), (cartel["x"], cartel["y"]))
 
         # La ventana de mensaje va **después** del tinte, sin teñir. Es lo que
         # hace RM2k: en `Spriteset_Map::Update` el tono se le aplica al
