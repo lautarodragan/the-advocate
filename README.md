@@ -2266,6 +2266,20 @@ cancela ahí mismo —ver "Pisar un evento"— y `ProceedWithMovement` no la tie
 que esperar. Un giro como última orden sí deja la ruta puesta los cuadros del
 giro, que es lo que hace RM2k dentro de un cuadro de diferencia.
 
+**`HaltAllMovement` las cancela todas de golpe**, desde el 2026-09-13. Es
+`Game_Map::RemoveAllPendingMoves`: un `CancelMoveRoute` sobre el héroe y sobre
+cada evento del mapa. Lo que cancelar quiere decir está escrito **una sola vez
+de cada lado** —`retomar_pagina` en la ROM y `Ruta.cancelar` en la referencia,
+las dos reusando el camino de "la forzada terminó sola"— para que cancelarla y
+terminarla no se puedan separar, que es justo la clase de diferencia que nadie
+ve hasta que la escena sale distinta. Y lo que **no** toca es lo mismo que allá:
+el paso o el salto en curso se terminan —`IsAnyMovePending` no los mira— y
+hacia dónde mira cada uno queda donde la ruta lo dejó, así que un
+`ProceedWithMovement` pegado atrás todavía espera los cuadros que le falten al
+paso. Hay **un solo** `HaltAllMovement` en todo el juego —la página del mapa 11
+que reordena el escondite de los Lazer Teeth cuando te descubren, y que termina
+teletransportando— así que lo que lo mide es un caso sintético, `parar-rutas`.
+
 `face_hero` es `GetDirectionToCharacter`: manda el eje con más distancia, en
 empate el vertical, y sobre la misma celda se mira abajo. Sólo sobre eventos;
 el héroe encarándose a sí mismo no lo usa ninguna página y no compila. Lo que
@@ -4509,6 +4523,16 @@ aceptaba sin hacer nada y el grupo no tenía ítems jamás; la máquina quedó e
 afuera: no se dibujaba, no frenaba y no disparaba. Son 45 eventos; EV0041 del
 mapa 8 es uno.
 
+**Y la rama por objeto, desde el 2026-09-13.** Es la misma pregunta que la
+condición de página —`GetItemCount(id) > 0`, sin `GetEquippedItemCount` porque
+no hay equipo— pero adentro de un `ConditionalBranch`, la clase 4. Compila al
+mismo `OP_SI` que el switch, con el número de RM2k adelante y la polaridad tal
+cual —0 es "tiene que tenerlo"—, así que la ROM la decide con el mismo `eor` y
+sin una rama de más; lee el byte de `FAR_ITEMS` por el mismo camino que
+`condiciones_ok`. Son **+20 páginas del juego entero**, y estuvo sin hacerse
+más tiempo del que hacía falta: figuraba como "pide inventario, que no hay" en
+un comentario que quedó viejo el día que el inventario apareció.
+
 **La condición por variable se evalúa** desde el 2026-09-10 a la noche: la
 página lleva la ranura, la comparación y el valor (+24 a +27, `PAGINA_BYTES`
 28), `condiciones_ok` los lee de la tabla y los compara con `comparar_var`,
@@ -4839,6 +4863,15 @@ que el port venía haciendo con el comando entero; exigir que compilara costarí
   grande se enciende. El modo 3 tiene dos capas de fondo y las dos están
   tomadas, el mapa y la capa de encima con la ventana; un panorama pide una
   tercera o el modo 1, que la conversión no usa. No es prioridad.
+
+  De ahí sale que **`ChangePBG` se acepte y se tire** desde el 2026-09-13: si
+  no hay panorama, no hay nada que cambiarle. Se tira al compilar, como las
+  órdenes de ruta 26 y 27, así que la referencia tampoco lo modela y los dos
+  lados quedan iguales por construcción. Aparece **una sola vez en todo el
+  juego** —siete comandos en la página del viaje en el Hover-Tram, donde el
+  paisaje de la tarde corre por detrás y cambia de velocidad al arrancar y al
+  frenar— y sin él esa página no compila: o sea que lo que esto compra es el
+  viaje entero, y lo que cuesta es que las ventanillas se vean quietas.
 * **El ataque y el decaimiento** siguen saliendo de las ocho familias de
   `sdsp.py`, elegidas a ojo cuando el banco era sintético. El SoundFont trae los
   suyos por instrumento y todavía no se leen. (El release ya no: ver arriba.)
