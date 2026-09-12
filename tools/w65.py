@@ -143,6 +143,10 @@ OPCODES = {
     "jsr": {"abs": 0x20},
     "jmp": {"abs": 0x4C},
     "jml": {"long": 0x5C},
+    # `jsl` es el `jsr` que cambia de banco: apila el banco de programa además
+    # del cursor y vuelve con `rtl`. Lo pidió la batalla, que no entra en el
+    # banco 0 y se llama desde ahí.
+    "jsl": {"long": 0x22},
     # rep y sep llevan siempre un inmediato de un byte, sea cual sea el ancho
     # vigente: su operando son los bits del registro de estado, no un dato.
     "rep": {"imm8": 0xC2},
@@ -374,9 +378,24 @@ class Instruction:
         # Los negativos entran: `lda #-WALK_SPEED` es complemento a dos y es
         # una forma normal de escribirlo.
         elif not -(1 << (8 * self.width - 1)) <= value < (1 << 8 * self.width):
-            raise Error("el operando no entra en %d byte(s): %d. Si es un modo"
-                        " de página directa, la variable tiene que vivir en el"
-                        " segmento ZEROPAGE" % (self.width, value))
+            # Un `jsr` o un `jmp` a una etiqueta **del mismo banco** es el
+            # caso legítimo: las dos instrucciones cambian sólo el cursor, así
+            # que su operando es la palabra baja y el banco lo pone el que ya
+            # está corriendo. Las etiquetas de este ensamblador llevan siempre
+            # la dirección de 24 bits, que es lo que hace falta para un `jml`
+            # o un `lda f:`, y hasta que la batalla salió del banco 0 ningún
+            # salto tenía que cruzarse con eso porque todo el código vivía en
+            # el banco 0, donde la palabra alta es cero. Es lo que hace un
+            # linker; lo que **no** se acepta es el salto a otro banco, que
+            # sigue siendo un error y es el que rompería sin avisar.
+            if (self.width == 2 and value >= 0
+                    and (value >> 16) == (address >> 16)):
+                value &= 0xFFFF
+            else:
+                raise Error("el operando no entra en %d byte(s): %d. Si es un"
+                            " modo de página directa, la variable tiene que"
+                            " vivir en el segmento ZEROPAGE"
+                            % (self.width, value))
 
         return bytes([self.opcode]) + (value & ((1 << 8 * self.width) - 1)
                                        ).to_bytes(self.width, "little")

@@ -835,6 +835,83 @@ del juego las usa. El caso `tienda` de la tanda entra y sale de la del mapa
 `pantallas.pantalla_tienda`: comprar, el tope del oro, vender, el oro y el
 inventario que quedan.
 
+### La batalla por turnos
+
+`EnemyEncounter` abre una pelea desde el 2026-09-12. Es la primera versión y
+taro la pidió así, con todas las letras: *"podemos ignorar desafíos
+relacionados con la imagen de fondo y usar versiones de menor resolución,
+menor paleta de colores o incluso un color plano y ya, así nos podemos enfocar
+en la mecánica de la batalla por turnos, daño, hp, win condition, etc"*. Así
+que **no hay fondo ni battlers dibujados**: la pantalla es de texto sobre
+negro, la misma grilla de 32 por 28 celdas del equipo y la tienda.
+
+Lo que sí es de RM2k son las palabras —todas del LDB— y **todas las cuentas**,
+que salen de easyrpg-player y están escritas dos veces: en `main.s` y en
+`tools/batalla.py`. Que las dos den lo mismo es lo que le permite a
+`pruebas/test_batalla.py` predecir **el número exacto** que cada HP va a tener
+después de cada turno, en vez de conformarse con "bajó".
+
+    daño            max(0, atk / 2 - def / 4), por 3 si es crítico, varianza
+                    de 4 —`adj = max(1, 4 * dmg / 10)`— y la mitad al que se
+                    defiende                        algo.cpp
+    acierto         90 el actor, 70 u 90 el enemigo, ajustado por agilidad:
+                    100 - (100 - hit) * (agiF + agiB) / (2 * agiF)
+    orden de turnos agi + rand(0, agi / 4 + 3), de mayor a menor y estable
+    huir            recortar(150 - redondear(100 * agiE / agiG), 0, 100), y
+                    sube diez cada vez que falla
+
+Tres tiros por golpe y **en este orden**: acierto, crítico y varianza, con el
+del crítico hecho aunque la probabilidad sea cero, que es lo que hace
+`Normal::vExecute`. Cambiar ese orden de un lado desfasa el azar del otro y no
+se ve hasta que un golpe da distinto.
+
+El azar es el xorshift de siempre —el de `ControlVars`— pero con **semilla
+propia**: pelear no le corre el azar del mapa, que es lo que la referencia de
+pixeles supone cuando dice que una batalla no cuesta ningún tick.
+
+`OP_BATALLA` lleva la tropa y **los tres destinos**: victoria, huida y
+derrota, absolutos dentro de la página y parcheados al cerrar el bloque, igual
+que las opciones de un `ShowChoice`. El manejador que la página no tenga
+apunta al final, que es lo que hace RM2k con un sub-índice sin rama. Como la
+tienda y como guardar, la pantalla bloquea adentro del intérprete y `vueltas`
+no avanza: los dos lados salen del opcode en el mismo tick tarde lo que tarde
+el jugador.
+
+**El código de la pelea no vive en el banco 0.** Son unos tres kilobytes y ahí
+quedaban trescientos bytes, así que vive en RODATA y se entra con `jsl`. De
+allá no se puede volver con `jsr` —no cambia el banco de programa— así que las
+rutinas del banco 0 que necesita se llaman por puentes de siete bytes que
+además **reponen el banco de datos**: adentro de la pelea es $7E, para poder
+usar direccionamiento absoluto sobre su estado, y en el banco 0 tiene que ser
+el 0 o `eq_parametro` leería sus tablas de la WRAM.
+
+**Los HP pasaron a ser estado.** Hasta ese día nadie bajaba de los máximos y
+`ChangeHP` compilaba a nada; ahora viven en `FAR_HP`, arrancan llenos en el
+reset como `Game_Actor::Setup` y **viajan en la partida**, detrás del equipo.
+
+Lo que hay, y lo que no:
+
+    atacar, con blanco elegible     sí
+    defender                        sí, y vale sólo el turno en que le toca
+    huir                            sí, pero es orden de cada actor y no del
+                                    grupo, que es una simplificación declarada
+    habilidades, ítems, estados     no
+    experiencia, oro, subir nivel   no: no hay niveles
+    los battlers dibujados          no
+    las páginas de evento de tropa  no
+    los encuentros aleatorios       no: ver "Lo que falta"
+
+La pantalla muestra los HP de los enemigos, que RM2k no hace. Es a propósito:
+lo que esta vuelta tiene que dejar ver es la mecánica, y sin eso un golpe que
+pega y uno que falla se ven igual.
+
+**De las 51 peleas del juego, la única que el jugador alcanza hoy es la del
+droide del mapa 2.** La de los Lazer Teeth del mapa 9 —la tropa 86, cuatro
+enemigos— no compila, y no por la batalla: la corta un `MoveEvent` con la
+orden de ruta 9, "hacia el héroe", que la ROM no camina. Por eso la tropa de
+cuatro la ejercita `just snes-batalla` con la página de prueba, que es el
+mismo recurso que usa `snes-guardar` con la pantalla de ranuras.
+
 ### La lluvia
 
 `WeatherEffects` dibuja la lluvia desde el 2026-09-11 —la apertura llueve,

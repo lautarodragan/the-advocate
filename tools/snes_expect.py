@@ -228,7 +228,8 @@ class Mundo:
                                               items=self.prueba[17],
                                               acceso=self.prueba[18],
                                               lluvia=self.prueba[19],
-                                              animacion=self.prueba[20])),
+                                              animacion=self.prueba[20],
+                                              batalla=self.prueba[21])),
                                      dict(PAGINA_DE_PRUEBA_APAGADA,
                                           evento=numero)]
             self.paginas_cache[map_id] = paginas
@@ -1388,6 +1389,12 @@ def main():
                              "que cierra un mensaje. Se cuentan desde el "
                              "arranque y a través de los teletransportes. El "
                              "otro lado del mismo flag de snes_correr.py")
+    parser.add_argument("--batalla-de-prueba", type=int, default=0,
+                        metavar="TROPA",
+                        help="una pelea contra esta tropa al final de la "
+                             "página de prueba. De este lado no cuesta ningún "
+                             "tick y no dibuja nada: ver OP_BATALLA en "
+                             "tools/eventos.py")
     parser.add_argument("--guardar-de-prueba", action="store_true",
                         help="la página de prueba guarda la partida en la "
                              "SRAM. El otro lado del mismo flag de "
@@ -1555,7 +1562,7 @@ def main():
                   or args.vars_de_prueba or args.rama_var_de_prueba
                   or args.items_de_prueba or args.acceso_de_prueba
                   or args.lluvia_de_prueba is not None
-                  or args.animacion_de_prueba
+                  or args.animacion_de_prueba or args.batalla_de_prueba
                   or args.mensaje_de_prueba is not None)
     # El bloque de textos, armado igual que en el conversor y en el mismo orden:
     # el mensaje de prueba primero —desplazamiento 0— y después los mapas de la
@@ -1580,7 +1587,8 @@ def main():
                    tuple(args.items_de_prueba or ()),
                    tuple(args.acceso_de_prueba or ()),
                    args.lluvia_de_prueba,
-                   tuple(args.animacion_de_prueba or ()))
+                   tuple(args.animacion_de_prueba or ()),
+                   args.batalla_de_prueba)
                   if hay_prueba else None, mensajes,
                   graficos_de_prueba=snes_convert.graficos_de_prueba(
                       args.grafico_de_prueba),

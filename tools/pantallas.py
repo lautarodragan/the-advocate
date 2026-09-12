@@ -15,7 +15,7 @@ pantallas en 320x240 con ventanas y la fuente a 6 pixeles; acá van en
 """
 
 import titulo
-from eventos import ITEM_MAX
+from eventos import ELEGIR_CURSOR, ITEM_MAX
 
 FILAS, COLS = 28, 32
 
@@ -321,6 +321,135 @@ def pantalla_tienda(db, tipo, juego, vende, oro, inventario, equipos, modo,
     return t
 
 
+# --- la batalla ----------------------------------------------------------------
+#
+# `Scene_Battle_Rpg2k`, pero **de texto y sobre un color plano**. taro lo pidió
+# así el 2026-09-12, con todas las letras: *"podemos ignorar desafíos
+# relacionados con la imagen de fondo ... así nos podemos enfocar en la
+# mecánica de la batalla por turnos"*. Así que no hay fondo, no hay battlers
+# dibujados y no hay ventanas: la misma grilla de 32 por 28 celdas que usan el
+# equipo y la tienda, sobre negro.
+#
+# Lo que **sí** es de RM2k son las palabras —todas del LDB, ninguna inventada—
+# y las cuentas, que viven en `batalla.py`.
+#
+# Dos cosas de esta pantalla no están en RM2k y son decisiones:
+#
+# * **se ven los HP de los enemigos.** RM2k no los muestra. Acá sí, porque lo
+#   que esta vuelta tiene que dejar ver es justamente la mecánica: sin eso, un
+#   golpe que pega y uno que falla se ven igual.
+# * **huir es una orden del actor** y no del grupo. En RM2k "Escape" está en el
+#   menú de arriba, antes de elegir qué hace cada uno; meterlo en la lista de
+#   cada actor ahorra un modo entero de la máquina. Declarado.
+BA_ENEMIGO_FILA0 = 0
+BA_ENEMIGOS_FILAS = 8           # `batalla.ENEMIGOS_MAX`
+BA_GRUPO_FILA0 = 16
+BA_MSG_FILA1 = 24
+BA_MSG_FILA2 = 26
+BA_CURSOR_COL = 0
+BA_NOMBRE_COL = 2
+BA_NOMBRE_ANCHO = 14
+BA_HP_COL = 18
+BA_HP_NUM = 21                  # tres cifras
+BA_BARRA_COL = 24
+BA_HP_MAX_NUM = 25              # y las tres del máximo, en el grupo
+# Las órdenes, en el renglón del mensaje: cursor, texto, cursor, texto...
+BA_ORDEN_COLS = (1, 11, 21)
+BA_ORDEN_ANCHO = 9
+BA_ORDEN_ATACAR, BA_ORDEN_DEFENDER, BA_ORDEN_HUIR = 0, 1, 2
+
+# Los modos de la pantalla, que la ROM lleva en `ba_modo`.
+BA_ELIGE_ORDEN, BA_ELIGE_BLANCO, BA_MENSAJE, BA_FIN = 0, 1, 2, 3
+
+# Los términos del LDB que la pantalla usa, en el orden en que el conversor los
+# emite. Los códigos salen de `ldb/chunks.h` de liblcf —ChunkTerms— y no de
+# memoria: ver data/README.md.
+BA_TERMINOS = (
+    ("atacar", 0x68),           # command_attack: "Attack"
+    ("defender", 0x69),         # command_defend: "Defend"
+    ("huir", 0x67),             # battle_escape: "Escape"
+    ("hp", 0x81),               # hp_short: "HP"
+    ("ataca", 0x0B),            # attacking: " attacks the enemy"
+    ("defiende", 0x0E),         # defending
+    ("critico", 0x0D),          # actor_critical
+    ("dano_enemigo", 0x14),     # enemy_damaged: " health lost."
+    ("sin_dano_enemigo", 0x15),  # enemy_undamaged
+    ("dano_actor", 0x16),       # actor_damaged
+    ("sin_dano_actor", 0x17),   # actor_undamaged
+    ("victoria", 0x05),         # victory
+    ("derrota", 0x06),          # defeat
+    ("huyo", 0x03),             # escape_success
+    ("no_huyo", 0x04),          # escape_failure
+)
+
+
+def terminos_batalla(db):
+    import lcf
+    return {n: lcf.to_string(db.terminos.get(c, b"")) for n, c in BA_TERMINOS}
+
+
+def texto_de_orden(termino):
+    """Una de las tres órdenes como la escribe la pantalla.
+
+    Los términos del LDB traen espacios adelante —`battle_escape` del ABL dice
+    " Escape"— y en el renglón de abajo eso correría el texto de su columna.
+    Va acá y no en la ROM porque el conversor emite el texto **ya recortado**:
+    así los dos lados escriben los mismos bytes sin que la ROM tenga que saber
+    recortar.
+    """
+    return titulo.texto_de_item(termino.strip(), BA_ORDEN_ANCHO)
+
+
+def pantalla_batalla(db, combate, modo=BA_ELIGE_ORDEN, actor=0, orden=0,
+                     blanco=0, mensaje=("", "")):
+    """La pantalla como la compone la ROM.
+
+    `combate` es una `batalla.Batalla`. `modo` dice qué se está eligiendo:
+    `BA_ELIGE_ORDEN` pone el cursor en la orden de `orden` y marca al actor
+    `actor`; `BA_ELIGE_BLANCO` lo pone en el enemigo `blanco`; `BA_MENSAJE` y
+    `BA_FIN` muestran los dos renglones de `mensaje`.
+
+    Un enemigo muerto **se sigue mostrando**, en gris y con los HP en cero, que
+    es lo que hace la ROM: sacarlo de la lista movería a los de abajo en mitad
+    de un turno.
+    """
+    t = Texto()
+    for n, enemigo in enumerate(combate.enemigos[:BA_ENEMIGOS_FILAS]):
+        fila = BA_ENEMIGO_FILA0 + 2 * n
+        gris = 0 if enemigo.vivo else 1
+        if modo == BA_ELIGE_BLANCO and n == blanco:
+            t.escribir(fila, BA_CURSOR_COL, ELEGIR_CURSOR)
+        t.escribir(fila, BA_NOMBRE_COL, titulo.texto_de_item(
+            enemigo.nombre, BA_NOMBRE_ANCHO), gris)
+        t.escribir(fila, BA_HP_COL, db.term_hp_short, gris)
+        t.numero(fila, BA_HP_NUM, min(enemigo.hp, 999), 3, gris)
+    for n, quien in enumerate(combate.actores[:4]):
+        fila = BA_GRUPO_FILA0 + 2 * n
+        gris = 0 if quien.vivo else 1
+        if modo in (BA_ELIGE_ORDEN, BA_ELIGE_BLANCO) and n == actor:
+            t.escribir(fila, BA_CURSOR_COL, ELEGIR_CURSOR)
+        t.escribir(fila, BA_NOMBRE_COL, titulo.texto_de_item(
+            quien.nombre, BA_NOMBRE_ANCHO), gris)
+        t.escribir(fila, BA_HP_COL, db.term_hp_short, gris)
+        t.numero(fila, BA_HP_NUM, min(quien.hp, 999), 3, gris)
+        t.escribir(fila, BA_BARRA_COL, "/", gris)
+        t.numero(fila, BA_HP_MAX_NUM, min(quien.hp_max, 999), 3, gris)
+    if modo in (BA_ELIGE_ORDEN, BA_ELIGE_BLANCO):
+        term = terminos_batalla(db)
+        for n, nombre in enumerate(("atacar", "defender", "huir")):
+            col = BA_ORDEN_COLS[n]
+            if modo == BA_ELIGE_ORDEN and n == orden:
+                t.escribir(BA_MSG_FILA1, col - 1, ELEGIR_CURSOR)
+            t.escribir(BA_MSG_FILA1, col, texto_de_orden(term[nombre]),
+                       0 if modo == BA_ELIGE_ORDEN else 1)
+    else:
+        t.escribir(BA_MSG_FILA1, 1,
+                   titulo.texto_de_item(mensaje[0], COLS - 1))
+        t.escribir(BA_MSG_FILA2, 1,
+                   titulo.texto_de_item(mensaje[1], COLS - 1))
+    return t
+
+
 def lcf_termino(db, chunk):
     import lcf
     return lcf.to_string(db.terminos.get(chunk, b""))
@@ -355,6 +484,14 @@ def main():
     parser.add_argument("--resaludo", action="store_true")
     parser.add_argument("--grupo", default="", metavar="ACTOR,...",
                         help="el grupo, para contar lo que lleva puesto")
+    parser.add_argument("--batalla", type=int, default=None, metavar="TROPA",
+                        help="la pantalla de batalla contra esta tropa")
+    parser.add_argument("--turnos", type=int, default=0,
+                        help="cuántos turnos jugar antes de dibujar, todos "
+                             "atacando al primero que quede vivo")
+    parser.add_argument("--blanco", type=int, default=0)
+    parser.add_argument("--actor", type=int, default=0)
+    parser.add_argument("--orden", type=int, default=0)
     args = parser.parse_args()
     db = lcf.Database(os.path.join(args.game_dir, "RPG_RT.ldb"))
     skin = ventana.skin(args.game_dir, db.system_name)
@@ -363,6 +500,25 @@ def main():
         if par:
             n, _, c = par.partition(":")
             inventario[int(n)] = int(c or 1)
+    if args.batalla is not None:
+        import batalla
+        grupo = [int(a) for a in args.grupo.split(",") if a]
+        combate = batalla.Batalla(
+            [batalla.actor_de(db, a) for a in grupo],
+            [batalla.enemigo_de(db, e, n)
+             for n, e in enumerate(db.troops[args.batalla].members)])
+        for _ in range(args.turnos):
+            if combate.resultado is not None:
+                break
+            vivo = next((n for n, e in enumerate(combate.enemigos) if e.vivo),
+                        0)
+            combate.jugar_turno([(batalla.ORDEN_ATACAR, vivo)]
+                                * len(combate.vivos(combate.actores)))
+        pantalla_batalla(db, combate, args.modo, args.actor, args.orden,
+                         args.blanco).render(skin, db.font_id).save(
+            args.output)
+        print("batalla %d -> %s" % (args.batalla, args.output))
+        return
     if args.tienda is not None:
         tipo, juego, lista = args.tienda.split(":")
         vende = [int(x) for x in lista.split(",") if x]

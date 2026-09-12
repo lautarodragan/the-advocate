@@ -19,8 +19,8 @@ Se escribe **mientras se trabaja**, no al final.
 **Los primeros diez minutos jugables**, que es lo que taro viene probando vuelta
 a vuelta.
 
-Al 2026-09-12: `just snes-hitos-foto` son **123 casos, todos en verde**, y `just
-pruebas` **83 en verde y 1 `xfail`**. El `xfail` no es adorno: es un defecto
+Al 2026-09-12: `just snes-hitos-foto` son **126 casos, todos en verde**, y `just
+pruebas` **91 en verde y 1 `xfail`**. El `xfail` no es adorno: es un defecto
 medido de guardar con la pantalla de título puesta, y está abajo.
 
 `demo-ciudad` se juega desde la apertura hasta la calle de Lashe City, con los
@@ -87,6 +87,76 @@ que el orden de prioridades del modo 3 permite. Vive en la rama
 color math, implementado y descartado". Dejó dos cosas aprovechables —el canal
 de HDMA que apaga la mezcla sobre la ventana de mensaje, y que **snes9x redondea
 distinto que bsnes y mesen-s** en la suma de color math—.
+
+### La batalla por turnos: primera versión (2026-09-12)
+
+Hecha y medida. El porqué largo está en el README, "La batalla por turnos"; lo
+que hay que saber para tocarla:
+
+* **Las cuentas están escritas dos veces**, en `main.s` y en
+  `tools/batalla.py`, y salen de easyrpg-player. Lo que las sostiene es
+  `pruebas/test_batalla.py`, que juega la misma pelea de los dos lados y exige
+  **el mismo número exacto** en cada HP turno por turno. Verificado que da rojo
+  con el defecto puesto: con `def / 4` cambiado a `def / 2` sólo en la ROM, el
+  turno 1 ya difiere —`[40, 36, 40, 309]` contra `[40, 8, 40, 280]`—.
+* **El orden de los tiros de azar es el contrato.** Acierto, crítico y
+  varianza, y el del crítico se tira aunque la chance sea cero. Cambiarlo de un
+  lado desfasa el otro y no se ve hasta que un golpe da distinto.
+* **El código vive en RODATA y se entra con `jsl`**, porque en el banco 0 no
+  entraba. Eso obliga a los puentes `ba_t_*`, que reponen el banco de datos: el
+  de la pelea es $7E. Dos errores de esta clase costaron una tarde cada uno —
+  `eq_parametro` leyendo `actor_params` de la WRAM, y `ba_mul` escribiendo el
+  multiplicador del hardware en la RAM—, y los dos se veían como números
+  absurdos y no como una ROM rota.
+* **Los HP son estado**: `FAR_HP`, llenos en el reset y en la partida. Con eso
+  `partida_tabla` creció `ACTORES_N * 2` y hubo que corregir la resta de
+  `test_titulo.py::test_la_musica_viaja_en_la_partida`, que es un duplicado de
+  la tabla y lo dice.
+* **La pelea del mapa 9 no se alcanza jugando**, y no es culpa de la batalla:
+  su página la corta un `MoveEvent` con la orden de ruta 9 —"hacia el héroe"—.
+  La tropa de cuatro enemigos la ejercita `just snes-batalla` con
+  `--batalla-de-prueba`.
+
+Lo que queda abierto, en orden de lo que más se nota jugando:
+
+1. **Los battlers dibujados.** Hoy la pantalla es texto sobre negro. Lo caro no
+   es el fondo sino los cuatro sprites de enemigo, que en VRAM compiten con lo
+   que el mapa ya tiene puesto; la pelea no recarga el mapa, así que habría que
+   decidir si lo pisa y lo repone como hace `volver_al_mapa`.
+2. **Experiencia, oro y subir de nivel**, que piden que los actores tengan
+   nivel: hoy está mockeado en 1 —`titulo.NIVEL`—.
+3. **Habilidades, ítems y estados en la pelea.** Las tres piden SP, la lista de
+   habilidades por actor y la tabla de estados; ninguna existe todavía.
+4. **Los encuentros aleatorios**, que son por área y no por mapa: ver abajo.
+5. **Las páginas de evento de la tropa**, que son un intérprete más adentro de
+   la pelea. Las dos tropas de la intro tienen cinco cada una y ninguna hace
+   falta para pelearlas.
+
+### Los encuentros aleatorios: medidos, sin empezar (2026-09-12)
+
+No estaban en el encargo de la batalla y aparecieron midiendo. **No están en el
+`.lmu` de cada mapa sino en el `MapInfo` del `RPG_RT.lmt`**, y lo que hace falta
+saber es que **son por área y no por mapa**:
+
+* el mapa lleva `encounter_steps` (campo `0x2C`) y su lista de tropas vacía:
+  `21 Rat Tracks B1` y `26 Rat Tracks B2` cada 70 pasos, `20 Sector 30 Back
+  Alleys` cada 80, `28 Sector 27 Back Alleys` cada 35, `32 Sector 27 Warehouse`
+  cada 75, `66 Lashe Area` cada 65;
+* colgando de él hay **nodos que no son mapas** —no tienen `.lmu`—, con un
+  `area_rect` (campo `0x33`, cuatro enteros de 32 bits) y **su propia lista de
+  tropas** (campo `0x29`). Se llaman "... Monsters" y son los 24, 25, 27, 31,
+  35, 180, 181, 182 y 183.
+
+O sea: "en este rectángulo del mapa, cada N pasos, sale una de estas tropas".
+56 mapas tienen lista y 52 tienen `encounter_steps` distinto de cero, entre 30
+y 85.
+
+Lo que costaría, en tres pedazos separados: **leer las áreas del `.lmt`**
+—`lcf.TreeMap` hoy sólo lee nombres, padres, tipos y música, y el volcado a
+JSON no las guarda—, **contar los pasos y tirar el azar** —el port ya tiene el
+xorshift igual de los dos lados, así que esto es lo barato—, y **saber en qué
+rectángulo está parado el héroe**, que es una comparación por paso contra las
+áreas del mapa. El primero es el grueso.
 
 ### Los quince colores de un sprite: elegidos de nuevo (2026-09-12)
 
@@ -202,6 +272,9 @@ Al 2026-09-12, en orden.
 
 4. **El dibujo de las animaciones de batalla.** El sonido y los destellos están
    hechos; el dibujo no. Lo medido está en su sección, arriba.
+
+4b. **Lo que le falta a la batalla**, que tiene su propia sección arriba: los
+   battlers dibujados primero, y después la experiencia y el nivel.
 
 5. **El tile testigo del mapa 4**, que propuso taro: que un mapa vacío no se
    confunda con una pantalla rota, porque ya pasó más de una vez que una

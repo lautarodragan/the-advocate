@@ -102,6 +102,11 @@ snes-escena 9 "73 47" 1 right "40 120 220" 115 puerta-9-8 "" "" "8"
 # worth a try"— y el héroe salta la reja y se va para arriba. Verificado que
 # sin hablarle la referencia difiere en miles de pixeles en el cuadro 200.
 snes-escena 8 "52 24" 12 up "60 120 200" 115 ev41 "10 40" "24" "10"
+# La pantalla de batalla, contra `pantallas.py --batalla`. La pelea bloquea y
+# no cuesta ningún tick, así que no hay referencia de pixeles del otro lado:
+# lo que se compara es la pantalla. Ver el comentario de `snes-batalla`.
+snes-batalla
+snes-batalla 86 "11 12 13" 20 200 "a:130 down:140 down:150" batalla-blanco
 snes-pisar
 snes-escena 2 "7 76" "0 0 0 0" up "40 60 100" 115 bloqueo ""
 snes-escena 2 "7 74" 14 down "3 8 25 60 106 200" 115 droide ""
