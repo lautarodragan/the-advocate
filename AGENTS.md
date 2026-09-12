@@ -184,10 +184,25 @@ Así que al mergear una rama de sub-agente:
   y correrla en los padres del merge sospechoso. Cuesta veinte minutos.
 * **Mirar a mano las firmas que las dos ramas tocaron**: quién pasa qué a quién
   y con cuántos bits.
+* **Y los números que cada rama eligió sola.** Un opcode nuevo, un índice en una
+  tupla de prueba, una dirección de la RAM lejana: cada agente toma "el
+  siguiente libre" mirando su copia, así que dos ramas eligen el mismo y git no
+  ve nada. Pasó las tres cosas el mismo día. Lo de los opcodes lo cuida ahora
+  `test_ningun_opcode_comparte_numero_con_otro`; lo demás hay que mirarlo.
 
 ### Cuando un sub-agente se corta
 
-No se reanuda ni se le puede escribir. Al retomar, en este orden:
+**Se le puede escribir, y con eso retoma desde su transcripción.** Cuando el
+corte es por límite de sesión —el caso normal— alcanza con mandarle un mensaje
+diciéndole dónde quedó y qué falta: sigue con su contexto entero. Pasarle lo
+que cambió mientras no estaba —si `main` avanzó, si alguien tocó los mismos
+archivos, qué números ya no valen— vale tanto como el pedido.
+
+**Antes de escribirle, mirar si choca con lo que uno está haciendo.** Un agente
+cuya rama se está mergeando en ese momento no se retoma, porque se pisan; uno
+que quedó a mitad de medir o de escribir casos, sí.
+
+Y en cualquier caso, al retomar conviene mirar, en este orden:
 
 1. **Su rama y su worktree**: `git log --oneline worktree-agent-<id>`. Lo
    commiteado está entero; lo demás no existe.
