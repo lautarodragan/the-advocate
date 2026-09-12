@@ -153,6 +153,38 @@ Y dos deudas que dejaron los agentes, las dos con el número al lado:
   pruebas de estado, no la tanda: sin nada que lo lea, el bit no cambia un
   pixel.
 
+### El nivel estaba mockeado en 1, y no era cosmético (2026-09-13)
+
+Lo que se dijo primero sobre las habilidades estaba mal, **y el error era el
+dato de entrada**: se midió `hp_max[NIVEL - 1]` con `titulo.NIVEL = 1` y se
+concluyó que nadie sabía ninguna, porque todas se aprenden en el nivel 3 o más
+arriba. El LDB dice otra cosa —`initial_level`, que el port no leía—:
+
+    Kersh   nivel 20   HP 168  SP 168  atk 80   def 47  spi 85  agi 85
+    Core    nivel 15   HP 127  SP 127  atk 117  def 37  spi 64  agi 64
+    Manta   nivel 15   HP 127  SP 127  atk 37   def 37  spi 64  agi 64
+    con el equipo puesto: Kersh 280/147, Core 237/112, Manta 187/77
+
+Contra 40 HP y parámetros de 15 a 20 que salían del nivel 1. Los HP coinciden
+con las capturas de EasyRPG que dejó taro en `pruebas-manuales/capturas-batalla/`,
+que es lo que destapó todo esto.
+
+**Qué más se apoyaba en el mock**, que es la parte que conviene no volver a
+descubrir: el **balance entero de la pelea** —daño, acierto, orden de turnos y
+chance de huir salen de atk/def/agi, y un caso de `test_batalla.py` que ponía a
+todos en 1 HP **pasó a ganar**—, la pantalla de equipo, el HP del menú de pausa,
+el nivel de la ranura de guardado y `actor_hpmax`.
+
+**Lo que falta de las habilidades**, en orden y ya medido: los SP como estado
+(`FAR_SP` al lado de `FAR_HP`, dos bytes por actor); la lista por actor, que ya
+está leída en `lcf.Actor.skills` —Kersh 131 y 146, Core 129 y 150, Manta 130,
+143, 144 y 150—; el menú, cuya segunda orden es el `skill_name` de cada actor
+("AgentTrain", "Telepathy", "Slicing"), en el orden **Attack / habilidad /
+Defend / Use Item**; la pantalla en dos columnas con la descripción arriba y el
+costo a la derecha; y el efecto, que es `Algo::CalcSkillEffect`. De las siete
+habilidades, dos son daño o cura, tres prenden un switch, y **dos son
+modificadores de parámetro** —lo único que pide estado nuevo por combatiente—.
+
 ### Los quince colores de un sprite: elegidos de nuevo (2026-09-12)
 
 taro reportó tres síntomas —las caras de Talan y Core grises, Talan gris, y el
