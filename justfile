@@ -874,6 +874,83 @@ snes-lugar mapa="6" lugar="4 21 13 12" ruta="4 2 2 2 2" celda="22 12" cuadros="1
         --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
   done
 
+# La rama por objeto: `ConditionalBranch` de clase 4.
+#
+# La página de prueba le da —o no— un ítem al grupo y después pregunta si lo
+# tiene; si sí, tiñe la pantalla. Los dos casos son la misma ROM con y sin el
+# `ChangeItems`, así que la diferencia entre uno y otro **es** la respuesta de
+# la rama: teñida contra sin teñir, que son 50 mil pixeles.
+#
+# Existe porque la clase 4 no la ejercita ninguna otra página que compile: las
+# que preguntan por un objeto son de mapas que las pruebas no llevan, y la del
+# Hover-Tram —la única de los mapas de la demo— pregunta por el Idol después de
+# media hora de juego.
+#
+# El ítem es el 90, el Idol, que es justamente el que pregunta el Hover-Tram.
+snes-rama-item mapa="6" item="90 12 0 0 100" items="90 1" celda="22 12" cuadros="2 30" arranque="115" nombre="rama-item":
+  #!/usr/bin/env bash
+  set -euo pipefail
+  mkdir -p {{snes_pngs}} {{snes_inc}}
+  items="{{items}}"
+  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
+      --inicio {{celda}} ${items:+--items-de-prueba $items} \
+      --rama-item-de-prueba {{item}} -o {{snes_inc}}/mapdata.inc
+  just snes-build
+  pre={{snes_pngs}}/{{nombre}}
+  python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
+      --hero-tile {{celda}} ${items:+--items-de-prueba $items} \
+      --rama-item-de-prueba {{item}} --cuadros {{cuadros}} \
+      --saltar $pre-{}.saltar.txt -o $pre-{}.esperado.png
+  for n in {{cuadros}}; do
+    python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre-$n.png \
+        --walk none --cuadros $n --arranque {{arranque}}
+    python3 tools/snes_compare.py $pre-$n.png $pre-$n.esperado.png \
+        --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
+  done
+
+# `HaltAllMovement`: todas las rutas forzadas se abandonan de golpe.
+#
+# En el mapa 6, con el evento 3 —blanco 4— caminando cuatro celdas para abajo
+# desde (22,9) y el héroe caminando cuatro para abajo desde (22,12). A los
+# `parar` cuadros la página corta las dos, y recién ahí el `ProceedWithMovement`
+# que va detrás la suelta y el tinte se aplica.
+#
+# Existe porque **el único `HaltAllMovement` del juego** está en la página del
+# mapa 11 que reordena el escondite de los Lazer Teeth cuando te descubren, y
+# esa página termina teletransportando: no hay dónde mirar lo que el comando
+# hizo. Acá se ve solo, y es filoso por construcción: sin el comando las dos
+# rutas siguen hasta el final y el tinte llega decenas de cuadros más tarde.
+#
+# Los cuadros: el 20 con las dos caminando, el 26 —la espera de 24 suelta la
+# página en el 26, no en el 24— con las dos ya paradas y el tinte puesto, y el
+# 60 y el 120 de control, donde sin el corte las rutas habrían terminado en
+# otra celda.
+snes-parar mapa="6" parar="24" ruta="4 2 2 2 2" heroe="2 2 2 2" celda="22 12" cuadros="20 26 60 120" arranque="115" nombre="parar-rutas":
+  #!/usr/bin/env bash
+  set -euo pipefail
+  mkdir -p {{snes_pngs}} {{snes_inc}}
+  ruta="{{ruta}}"
+  heroe="{{heroe}}"
+  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
+      --inicio {{celda}} ${ruta:+--ruta-de-evento $ruta} \
+      ${heroe:+--ruta-de-prueba $heroe} \
+      --parar-de-prueba {{parar}} --pagina-de-prueba 0 12 0 0 \
+      -o {{snes_inc}}/mapdata.inc
+  just snes-build
+  pre={{snes_pngs}}/{{nombre}}
+  python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
+      --hero-tile {{celda}} ${ruta:+--ruta-de-evento $ruta} \
+      ${heroe:+--ruta-de-prueba $heroe} \
+      --parar-de-prueba {{parar}} --pagina-de-prueba 0 12 0 0 \
+      --cuadros {{cuadros}} \
+      --saltar $pre-{}.saltar.txt -o $pre-{}.esperado.png
+  for n in {{cuadros}}; do
+    python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre-$n.png \
+        --walk none --cuadros $n --arranque {{arranque}}
+    python3 tools/snes_compare.py $pre-$n.png $pre-$n.esperado.png \
+        --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
+  done
+
 # Un destello sobre un personaje: FlashSprite.
 #
 # RM2k lo hace mezclando el dibujo del personaje hacia un color durante unos

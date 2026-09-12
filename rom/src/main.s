@@ -1279,7 +1279,7 @@ in:
     ; quedan en el medio y necesitan otro tratamiento.
     ldx #$0000
 bajos:
-    lda ppu_bajos, x
+    lda f:ppu_bajos, x
     sta $2101, x
     inx
     cpx #(ppu_bajos_end - ppu_bajos)
@@ -1287,7 +1287,7 @@ bajos:
 
     ldx #$0000
 altos:
-    lda ppu_altos, x
+    lda f:ppu_altos, x
     sta $2115, x
     inx
     cpx #(ppu_altos_end - ppu_altos)
@@ -1388,34 +1388,6 @@ anim_continua:
 mascara:
     .byte $01,$02,$04,$08,$10,$20,$40,$80
 
-ppu_bajos:
-    .byte $00,$00,$00,$00       ; $2101 OBSEL, $2102-3 OAMADD, $2104 OAMDATA
-    .byte $00,$00,$00,$00       ; $2105 BGMODE, $2106 MOSAIC, $2107-8 BG1-2SC
-    .byte $00,$00,$00,$00       ; $2109-A BG3-4SC, $210B-C BGxNBA
-ppu_bajos_end:
-
-; De $2115 a $2133: VRAM, modo 7, CGRAM, ventanas, capas visibles y color math.
-; Los tres que no son cero son los que importan.
-ppu_altos:
-    .byte $80,$00,$00           ; $2115 VMAIN: avanzar tras el byte alto
-    .byte $00,$00               ; $2118-9 VMDATA
-    .byte $00,$00,$00,$00,$00   ; $211A-E modo 7
-    .byte $00,$00               ; $211F-20 modo 7
-    .byte $00,$00               ; $2121 CGADD, $2122 CGDATA
-    .byte $00,$00,$00           ; $2123-5 selección de ventanas: la 1 se le
-                                ; prende a los objetos por HDMA, sólo en las
-                                ; líneas de la ventana de mensaje
-    .byte $00,$FF,$00,$00       ; $2126-9 posiciones de ventanas: la 1 va de
-                                ; punta a punta, para que tape todo objeto
-    .byte $00,$00               ; $212A-B lógica de ventanas
-    .byte $00,$00               ; $212C TM, $212D TS: ninguna capa visible
-    .byte $10,$00               ; $212E TMW: la máscara vale para los objetos
-                                ; de la pantalla principal. $212F TSW
-    .byte $30,$00               ; $2130 CGWSEL: color math apagado. $2131
-    .byte $E0,$00               ; $2132 COLDATA: color fijo negro. $2133
-ppu_altos_end:
-cero:
-    .byte $00,$00
 
 .segment "CODE"
 
@@ -3061,7 +3033,7 @@ con_grafico:
     tax
     sep #$20
 .a8
-    lda dir_de_pose, x
+    lda f:dir_de_pose, x
     sta npc_buf + 10, y
     ; El tile y la paleta sólo si la fila no camina. Si camina, apuntan a su
     ; ranura de doce poses y pisarlos la dejarían quieta; la pose de arriba sí
@@ -3969,6 +3941,9 @@ otro:
 :   cmp #OP_SI_VAR
     bne :+
     jmp op_si_var
+:   cmp #OP_PARAR_RUTAS
+    bne :+
+    jmp op_parar_rutas
 :   stz ev_activo               ; OP_FIN, o algo que no conocemos: se corta
     rts
 
@@ -4020,6 +3995,10 @@ op_si:
     beq si_oro
     cmp #COND_ACTOR
     beq si_actor
+    cmp #COND_ITEM
+    bne :+
+    jmp si_item                 ; el cuerpo está detrás del oro: `beq` no llega
+:
 
     ; --- el switch ---
     rep #$20
@@ -4036,12 +4015,14 @@ si_tengo:
     ply                         ; el cursor de vuelta; `ply` no toca A
     sep #$20
 .a8
-    iny
-    iny                         ; Y -> la polaridad
     ; A vale 1 si el switch está prendido, y la polaridad 0 si tenía que
     ; estarlo: el `eor` da distinto de cero exactamente cuando se cumple, en
     ; los dos sentidos, y sin ninguna rama de más. Va por `temp` porque el
-    ; ensamblador no tiene `eor [dp], y`.
+    ; ensamblador no tiene `eor [dp], y`. El objeto usa el mismo final, con la
+    ; misma polaridad.
+si_polaridad:
+    iny
+    iny                         ; Y -> la polaridad
     sta temp
     lda [cod_ptr], y
     eor temp
@@ -4118,6 +4099,34 @@ si_oro_elige:
     bra si_decide
 si_oro_usa_ge:
     lda temp
+    bra si_decide
+
+    ; --- el objeto: `CommandConditionalBranch` caso 4 ---
+    ; `GetItemCount(id) > 0`, la misma pregunta que la condición de página por
+    ; ítem y leída del mismo lugar: un byte de `FAR_ITEMS` indexado por el
+    ; número de RM2k. `GetEquippedItemCount` no entra porque no hay equipo, que
+    ; es lo que `condiciones_ok` ya da por sentado.
+    ;
+    ; La polaridad es la del switch —0 es "tiene que tenerlo"— así que decide
+    ; con el mismo `eor` y sin una rama de más.
+si_item:
+    rep #$20
+.a16
+    lda [cod_ptr], y            ; el número de ítem, de 16 bits
+    clc
+    adc #FAR_ITEMS
+    sta WMADDL
+    sep #$20
+.a8
+    stz WMADDH
+    lda WMDATA                  ; cuántos hay en el inventario
+    beq si_item_no
+    lda #$01
+    bra si_item_listo
+si_item_no:
+    lda #$00
+si_item_listo:
+    jmp si_polaridad
 
 si_decide:
     beq si_no_cumple
@@ -5038,6 +5047,58 @@ op_rutas:
     sty ev_cur
     rts
 op_rutas_sigue:
+    jmp otro
+
+; `HaltAllMovement`: todas las rutas forzadas del mapa se abandonan de golpe.
+; Es `Game_Map::RemoveAllPendingMoves`, o sea un `CancelMoveRoute` sobre el
+; héroe y sobre cada evento. No cuesta un cuadro: la página sigue en el mismo
+; tick, que es el `return true` de `CommandHaltAllMovement`.
+;
+; Lo que **no** hace, y es lo que lo separa de `MoveTo`: el paso y el salto en
+; curso se terminan, y hacia dónde mira cada uno queda donde la ruta lo dejó.
+; `hay_rutas` los sigue mirando, así que un `ProceedWithMovement` pegado atrás
+; espera los cuadros que le falten al paso; la referencia cuenta igual.
+;
+; Y quien tenía ruta propia de página vuelve a la suya con `retomar_pagina`,
+; que es la misma rutina que corre cuando una forzada termina sola: cancelarla
+; y terminarla no se pueden separar, que es justo la clase de diferencia que
+; nadie ve hasta que la escena sale distinta.
+op_parar_rutas:
+.a8
+.i16
+    ; El héroe. Se le vacían las órdenes y la espera; el paso en curso no.
+    stz ruta_n
+    stz ruta_i
+    stz ruta_espera
+    phy                         ; Y es el cursor del bytecode
+    ldx #$0000
+parar_otra:
+    lda ruta_ev, x
+    cmp #RUTA_EV_LIBRE
+    beq parar_siguiente
+    lda ruta_ev + 18, x
+    and #$01
+    bne parar_siguiente         ; la de la página no es forzada
+    lda ruta_ev + 27, x         ; ¿tiene ruta propia a la que volver?
+    beq parar_sin_pagina
+    jsr retomar_pagina
+    bra parar_siguiente
+parar_sin_pagina:
+    stz ruta_ev + 4, x
+    stz ruta_ev + 5, x
+    stz ruta_ev + 9, x
+parar_siguiente:
+    rep #$20
+.a16
+    txa
+    clc
+    adc #RUTA_EV_STRIDE
+    tax
+    cmp #RUTA_EV_MAX * RUTA_EV_STRIDE
+    sep #$20
+.a8
+    bcc parar_otra
+    ply
     jmp otro
 
 ; `ControlVars`, de a una variable: ranura, operación, clase del operando, y
@@ -9698,39 +9759,8 @@ SRAM_MAGIA = $0100          ; cuatro bytes: "ABLS", $41 $42 $4C $53
 SRAM_SUMA  = $0104          ; la suma de los bytes de la partida
 SRAM_DATOS = $0106
 
-partida_tabla:
-    .word hero_x, 2
-    .word hero_y, 2
-    .word hero_dir, 1
-    .word tile_x, 2
-    .word tile_y, 2
-    .word mapa_actual, 2
-    .word grupo, 6              ; el grupo y cuántos son, que van seguidos
-    .word tinte_r, 3            ; el tinte, menos la saturación, que vive lejos
-    .word tinte_s, 1
-    .word timer_seg, 5          ; segundos, sub, si corre y si se ve
-    .word oro, 3
-    .word switches, SWITCH_BYTES
-    ; Qué tema está sonando y si está callado. Lo prende un `PlayBGM` de un
-    ; evento, así que es estado del mundo como un switch: sin esto una partida
-    ; cargada arranca con el tema del mapa inicial de la ROM en vez de con el
-    ; que sonaba. Van seguidos en la BSS —`music_apagada` y después
-    ; `tema_actual`— pero se piden por separado igual, porque que estén
-    ; pegados es un detalle del orden en que se declararon y no una promesa.
-    .word music_apagada, 1
-    .word tema_actual, 2
-    ; Y las variables, desde la RAM lejana. VARIABLES_N es al menos 1 —el
-    ; conversor lo garantiza— porque un largo cero terminaría la tabla acá.
-    .word FAR_VARIABLES, VARIABLES_N * 2
-    .word FAR_HERO_VEL, 1       ; la velocidad del héroe, que las rutas cambian
-    .word FAR_ITEMS, ITEMS_N    ; el inventario
-    .word FAR_ACCESO, 1         ; los permisos de guardar y del menú
-    .word FAR_EQUIPO, ACTORES_N * 10    ; el equipo de cada actor
-    ; Y los HP de cada actor, que desde que hay batallas son estado de verdad.
-    .word FAR_HP, ACTORES_N * 2
-    ; Y los SP, por lo mismo desde que hay habilidades que gastarlos.
-    .word FAR_SP, ACTORES_N * 2
-    .word 0, 0
+; `partida_tabla` vive en RODATA —ver "lo que no hace falta que viva en el
+; banco 0"— y se lee con `lda f:partida_tabla, x`.
 ; Los mismos largos, sumados, para poder recorrer la partida en la SRAM sin
 ; volver a mirar la tabla. Está duplicado a propósito y **la ROM lo comprueba**:
 ; `guardar_partida` compara con lo que le quedó a `partida_copiar` y si no dan
@@ -9815,7 +9845,7 @@ PARTIDA_GRUPO_N = PARTIDA_GRUPO + 4
 otra:
     rep #$20
 .a16
-    lda partida_tabla + 2, x
+    lda f:partida_tabla + 2, x
     beq listo                   ; largo cero: se terminó la tabla
     sta DAS0L
     lda temp
@@ -9823,7 +9853,7 @@ otra:
     clc
     adc DAS0L
     sta temp
-    lda partida_tabla, x
+    lda f:partida_tabla, x
     sta WMADDL                  ; la WRAM, que va siempre en el banco 0
     sep #$20
 .a8
@@ -19995,10 +20025,6 @@ hdma_mascara:
     .byte (LINEAS - VENTANA_LINEA), $02
     .byte 0
 
-; Hacia dónde mira cada pose, de 0 a 11: la dirección es la pose entre tres.
-dir_de_pose:
-    .byte 0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3
-
 ; De qué byte del buffer arranca cada una de sus dieciséis filas. El buffer son
 ; dos filas de celda, así que la fila Y cae en el tile (Y/8) por 30 columnas de
 ; 32 bytes, más (Y mod 8) por 2 dentro del tile.
@@ -24457,6 +24483,87 @@ done:
 ; la tanda con un solo mapa lo dejaban entrar justo. Lo cobra `snes-escena` con
 ; dos mapas —los hitos 77 y 78—.
 .bloque 8192
+
+; --- lo que no hace falta que viva en el banco 0 ---------------------------
+;
+; Estas tres se leen con `lda f:tabla, x` —absoluto largo indexado, que suma X
+; sobre los 24 bits y no depende del registro de banco de datos—, así que
+; pueden vivir acá afuera. Cuestan un byte y un ciclo por acceso, y ninguna de
+; las tres está en un lazo que se corra por cuadro: los registros del PPU se
+; escriben una vez al encender y `partida_tabla` se recorre al guardar y al
+; cargar.
+;
+; Bajaron del banco 0 el 2026-09-13, cuando `HaltAllMovement` y la rama por
+; objeto lo pasaron por 128 bytes. El banco 0 lleva el código y las tablas que
+; **sí** se indexan con el banco de datos en cero; lo que no, sobra.
+
+partida_tabla:
+    .word hero_x, 2
+    .word hero_y, 2
+    .word hero_dir, 1
+    .word tile_x, 2
+    .word tile_y, 2
+    .word mapa_actual, 2
+    .word grupo, 6              ; el grupo y cuántos son, que van seguidos
+    .word tinte_r, 3            ; el tinte, menos la saturación, que vive lejos
+    .word tinte_s, 1
+    .word timer_seg, 5          ; segundos, sub, si corre y si se ve
+    .word oro, 3
+    .word switches, SWITCH_BYTES
+    ; Qué tema está sonando y si está callado. Lo prende un `PlayBGM` de un
+    ; evento, así que es estado del mundo como un switch: sin esto una partida
+    ; cargada arranca con el tema del mapa inicial de la ROM en vez de con el
+    ; que sonaba. Van seguidos en la BSS —`music_apagada` y después
+    ; `tema_actual`— pero se piden por separado igual, porque que estén
+    ; pegados es un detalle del orden en que se declararon y no una promesa.
+    .word music_apagada, 1
+    .word tema_actual, 2
+    ; Y las variables, desde la RAM lejana. VARIABLES_N es al menos 1 —el
+    ; conversor lo garantiza— porque un largo cero terminaría la tabla acá.
+    .word FAR_VARIABLES, VARIABLES_N * 2
+    .word FAR_HERO_VEL, 1       ; la velocidad del héroe, que las rutas cambian
+    .word FAR_ITEMS, ITEMS_N    ; el inventario
+    .word FAR_ACCESO, 1         ; los permisos de guardar y del menú
+    .word FAR_EQUIPO, ACTORES_N * 10    ; el equipo de cada actor
+    ; Y los HP de cada actor, que desde que hay batallas son estado de verdad.
+    .word FAR_HP, ACTORES_N * 2
+    ; Y los SP, por lo mismo desde que hay habilidades que gastarlos.
+    .word FAR_SP, ACTORES_N * 2
+    .word 0, 0
+
+; Hacia dónde mira cada pose, de 0 a 11: la dirección es la pose entre tres.
+dir_de_pose:
+    .byte 0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3
+
+ppu_bajos:
+    .byte $00,$00,$00,$00       ; $2101 OBSEL, $2102-3 OAMADD, $2104 OAMDATA
+    .byte $00,$00,$00,$00       ; $2105 BGMODE, $2106 MOSAIC, $2107-8 BG1-2SC
+    .byte $00,$00,$00,$00       ; $2109-A BG3-4SC, $210B-C BGxNBA
+ppu_bajos_end:
+
+; De $2115 a $2133: VRAM, modo 7, CGRAM, ventanas, capas visibles y color math.
+; Los tres que no son cero son los que importan.
+ppu_altos:
+    .byte $80,$00,$00           ; $2115 VMAIN: avanzar tras el byte alto
+    .byte $00,$00               ; $2118-9 VMDATA
+    .byte $00,$00,$00,$00,$00   ; $211A-E modo 7
+    .byte $00,$00               ; $211F-20 modo 7
+    .byte $00,$00               ; $2121 CGADD, $2122 CGDATA
+    .byte $00,$00,$00           ; $2123-5 selección de ventanas: la 1 se le
+                                ; prende a los objetos por HDMA, sólo en las
+                                ; líneas de la ventana de mensaje
+    .byte $00,$FF,$00,$00       ; $2126-9 posiciones de ventanas: la 1 va de
+                                ; punta a punta, para que tape todo objeto
+    .byte $00,$00               ; $212A-B lógica de ventanas
+    .byte $00,$00               ; $212C TM, $212D TS: ninguna capa visible
+    .byte $10,$00               ; $212E TMW: la máscara vale para los objetos
+                                ; de la pantalla principal. $212F TSW
+    .byte $30,$00               ; $2130 CGWSEL: color math apagado. $2131
+    .byte $E0,$00               ; $2132 COLDATA: color fijo negro. $2133
+ppu_altos_end:
+cero:
+    .byte $00,$00
+
 
 ; Los HP de todos los actores llenos, a `FAR_HP`: el mismo DMA que el equipo,
 ; desde `actor_hpmax`. Corre en el reset, antes de cargar la partida, que lo

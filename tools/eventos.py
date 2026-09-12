@@ -1384,6 +1384,12 @@ COND_FIN = 22011
 #     cronómetro               1           destraba cero
 COND_SWITCH = 0
 COND_ORO = 3
+# El inventario **ya existe** —`OP_ITEM` y `FAR_ITEMS`, desde el 2026-09-10— así
+# que el renglón de arriba está viejo: la rama por objeto es `GetItemCount(id) >
+# 0`, exactamente la misma pregunta que la condición de página por ítem, que la
+# ROM ya contesta leyendo `FAR_ITEMS`. El equipo no entra en la cuenta, como en
+# `condiciones_ok`: `GetEquippedItemCount` pide equipo, que no hay.
+COND_ITEM = 4
 COND_ACTOR = 5
 
 # Y del "héroe" sólo la primera de sus siete preguntas. Las otras —nivel, HP,
@@ -1606,6 +1612,40 @@ IMAGEN_CUADROS_MAX = 255
 # Un manejador que la página no tenga apunta al final del bloque, o sea al
 # `EndBattle`, que es lo que hace RM2k cuando el sub-índice no tiene rama.
 OP_BATALLA = 0x22   # tropa (word), victoria (word), huida (word), derrota (word)
+
+# `HaltAllMovement`: todas las rutas forzadas del mapa se abandonan de golpe.
+# Es `Game_Map::RemoveAllPendingMoves`, o sea un `CancelMoveRoute` sobre el
+# héroe y sobre cada evento, y lo que cancelar quiere decir está escrito una
+# sola vez de cada lado: es **lo mismo que pasa cuando la ruta termina sola**
+# —quien tenía ruta propia de página vuelve a la suya, quien no, se queda
+# quieto— y por eso la ROM llama a `retomar_pagina` y la referencia a
+# `Ruta.cancelar`, que reusa `cargar_pagina`.
+#
+# Lo que **no** toca, igual que `CancelMoveRoute`: el paso o el salto en curso
+# se terminan, y hacia dónde mira cada uno queda donde la ruta lo dejó.
+#
+# En todo el juego hay **uno solo** —el mapa 11, el evento que reordena el
+# escondite de los Lazer Teeth cuando te descubren— y por eso vale: sin él esa
+# página no compila y el HQ no se puede volver a jugar después de que te
+# agarren.
+OP_PARAR_RUTAS = 0x23   # sin operandos
+
+HALT_ALL_MOVEMENT = 11350
+
+# `ChangePBG`, el fondo parallax. **Se acepta y se tira**, que es lo mismo que
+# el port ya hace con el panorama entero: el modo 3 tiene dos capas de fondo y
+# las dos están tomadas —el mapa y la capa de encima con la ventana—, así que
+# no hay dónde dibujarlo. Ver README, "Lo que falta": "El panorama".
+#
+# Se tira **al compilar**, así que la referencia tampoco lo modela y los dos
+# lados quedan iguales por construcción, como las órdenes de ruta 26 y 27.
+#
+# Aparece **una sola vez en todo el juego**: siete comandos en una sola página,
+# la del viaje en el Hover-Tram del mapa 13, donde el paisaje de la tarde corre
+# por detrás y cambia de velocidad al arrancar y al frenar. Es la única página
+# que traba ese mapa, así que la deuda que se declara acá es exactamente "el
+# tranvía se viaja sin paisaje de fondo".
+CHANGE_PBG = 11720
 
 ENEMY_ENCOUNTER = 10710
 VICTORY_HANDLER = 20710
@@ -2094,14 +2134,15 @@ def cuadros_de_eleccion(opciones, mensajes):
 def bytes_de_rama(cmd):
     """Un `ConditionalBranch` de las clases que sabemos, con el destino en blanco.
 
-    Tres de las doce: switch, oro y "el actor está en el grupo". Las otras piden
-    estado que este port no lleva —variables, inventario, estadísticas de
-    actor— y una rama sobre cualquiera de ésas daría siempre la misma respuesta,
-    así que ni siquiera se podría probar.
+    Cinco de las doce: switch, variable, oro, objeto y "el actor está en el
+    grupo". Las que faltan piden estado que este port no lleva —estadísticas de
+    actor, equipo, el cronómetro— y una rama sobre cualquiera de ésas daría
+    siempre la misma respuesta, así que ni siquiera se podría probar.
 
     La polaridad se copia tal cual de RM2k y quiere decir cosas distintas según
-    la clase: en un switch, 0 es "tiene que estar prendido"; en el oro, 0 es
-    ">=" y 1 es "<=". Es el `com.parameters[2]` de allá, sin traducir.
+    la clase: en un switch, 0 es "tiene que estar prendido"; en el objeto, 0 es
+    "tiene que tenerlo"; en el oro, 0 es ">=" y 1 es "<=". Es el
+    `com.parameters[2]` de allá, sin traducir.
     """
     p = cmd.parameters
     if len(p) < 3:
@@ -2118,6 +2159,10 @@ def bytes_de_rama(cmd):
             # esto lo dice en vez de compararlo mal.
             raise NoSePuede("comparación de oro contra %d, que no entra en una "
                             "palabra" % numero)
+    elif p[0] == COND_ITEM:
+        numero = p[1]
+        if not 0 <= numero < ITEMS_N:
+            raise NoSePuede("el ítem %d no está en el LDB" % numero)
     elif p[0] == COND_ACTOR:
         if p[2] != COND_ACTOR_EN_GRUPO:
             raise NoSePuede("del héroe sólo sabemos si está en el grupo")
@@ -2702,6 +2747,12 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
     if cmd.code == PROCEED_WITH_MOVEMENT:
         return bytes([OP_RUTAS])
 
+    if cmd.code == HALT_ALL_MOVEMENT:
+        return bytes([OP_PARAR_RUTAS])
+
+    if cmd.code == CHANGE_PBG:
+        return b""      # se acepta y se tira: ver CHANGE_PBG
+
     if cmd.code == FLASH_SPRITE:
         if len(p) < 7:
             raise NoSePuede()
@@ -3167,6 +3218,30 @@ class Ruta:
         self.frecuencia = frecuencia
         self.de_pagina = False
         self.saltable = True
+
+    def cancelar(self):
+        """`Game_Character::CancelMoveRoute`: la ruta forzada se abandona.
+
+        Lo que **no** toca es lo que la hace distinta de `MoveTo`: el paso o el
+        salto en curso se terminan —RM2k sólo apaga la marca de ruta forzada, y
+        `Game_Map::IsAnyMovePending` no los mira— y hacia dónde mira queda donde
+        la ruta lo dejó.
+
+        Lo que sí: las órdenes que quedaban se pierden, la espera se corta, y
+        quien tenía ruta propia de página **vuelve a la suya desde el
+        principio**. Eso último no es una decisión nueva: es exactamente lo que
+        pasa cuando una ruta forzada termina sola, escrito una vez y llamado
+        desde los dos lugares, para que cancelarla y terminarla no puedan
+        separarse.
+
+        La de la página no se cancela: no es forzada.
+        """
+        if self.de_pagina:
+            return
+        self.ordenes = []
+        self.espera = 0
+        if self.ordenes_pagina:
+            self.cargar_pagina(self._propia(), self.pagina)
 
     def cortar_paso(self):
         """Deja al personaje sobre su celda: sin paso ni salto en curso.
@@ -4075,6 +4150,17 @@ class Estado:
         return (self.ruta_heroe.pendiente
                 or any(r.pendiente for r in self.rutas_ev.values()))
 
+    def parar_rutas(self):
+        """`Game_Map::RemoveAllPendingMoves`, o sea `HaltAllMovement`.
+
+        Cancela la ruta forzada del héroe y la de cada evento del mapa, sin
+        excepciones: es global igual que `rutas_pendientes`. Los vehículos de
+        RM2k no existen en este port.
+        """
+        self.ruta_heroe.cancelar()
+        for ruta in self.rutas_ev.values():
+            ruta.cancelar()
+
     def asentado(self, paginas):
         """Si el mapa terminó de asentarse, o sea `algo_corriendo` al revés y
         **sin contar lo que mueven los intérpretes paralelos**.
@@ -4444,7 +4530,7 @@ LARGO_DE_OPCODE = {
     OP_GUARDAR: 1, OP_VAR: 8, OP_SI_VAR: 8, OP_ITEM: 4, OP_ACCESO: 3,
     OP_CLIMA: 3, OP_SONIDO: 3,
     OP_IMAGEN: 5, OP_IMAGEN_MOVER: 6, OP_IMAGEN_BORRAR: 1,
-    OP_BATALLA: 9,
+    OP_BATALLA: 9, OP_PARAR_RUTAS: 1,
 }
 
 
@@ -4666,7 +4752,7 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
                     pan=(), rama=(), destello=(), guardar=False,
                     variables=(), rama_var=(), items=(), acceso=(),
                     lluvia=None, animacion=(), eventos_mapa=None,
-                    batalla=0, temas=None):
+                    batalla=0, temas=None, parar=None, rama_item=()):
     """Una página automática inventada: una ruta forzada, una espera, un tinte.
 
     No sale de ningún dato del juego, y ésa es la idea. El intérprete corre
@@ -4695,6 +4781,15 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
     evento y su OP_RUTAS a propósito: con la espera a mitad de un paso, el
     corte del paso que hace `MoveTo` es lo que se ve, y la ruta sigue desde la
     celda nueva.
+
+    `parar` son los cuadros que se esperan antes de un `HaltAllMovement`, que
+    corta las dos rutas —la del héroe y la del evento— por la mitad. Va en el
+    mismo lugar que `lugar` y por lo mismo: entre las rutas y el `OP_RUTAS` que
+    las espera. Existe porque el único `HaltAllMovement` del juego está en una
+    página del mapa 11 que teletransporta al final, así que no hay dónde mirar
+    lo que el comando hace; acá se ve solo. Y es filoso por construcción: con el
+    comando sin hacer las dos rutas siguen caminando y el tinte de abajo llega
+    decenas de cuadros más tarde.
 
     `ruta_ev` es (blanco, órdenes) para mandar a caminar a un evento, y detrás
     va un OP_RUTAS. Existe por lo mismo que el resto: **ninguna página del juego
@@ -4817,6 +4912,11 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
         if cuadros:
             codigo += bytes([OP_ESPERAR, cuadros & 0xFF, cuadros >> 8])
         codigo += bytes([OP_LUGAR, blanco, x & 0xFF, x >> 8, y & 0xFF, y >> 8])
+    if parar:
+        # `HaltAllMovement` a mitad de camino. Antes del `OP_RUTAS` para que se
+        # note: con las rutas canceladas, esperarlas no cuesta nada.
+        codigo += bytes([OP_ESPERAR, parar & 0xFF, parar >> 8])
+        codigo += bytes([OP_PARAR_RUTAS])
     if ruta_ev:
         codigo += bytes([OP_RUTAS])
     if pan:
@@ -4884,6 +4984,26 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
             cual, permitido = acceso[k:k + 2]
             codigo += _compilar(lcf.EventCommand(
                 codigo_de[cual], 0, "", [permitido]), None)
+    if rama_item:
+        # (ítem, r, g, b, saturación): la rama por **objeto**, y tiñe la
+        # pantalla sólo si el
+        # grupo lo tiene. El tinte es el observable a propósito: una rama que
+        # prende un switch no se ve, y lo que hay que poder distinguir son las
+        # dos respuestas.
+        #
+        # Va detrás de `items`, así que `--items-de-prueba` decide cuál rama
+        # corre sin tocar nada más: el mismo caso con y sin el ítem son la ROM
+        # contestando las dos cosas.
+        #
+        # Compila por el mismo camino que el juego —`bytes_de_rama` con un
+        # `ConditionalBranch` de clase 4 armado a mano— y el destino se parchea
+        # acá porque esta página no pasa por `compilar_pagina`.
+        import lcf
+        numero, *color = rama_item
+        destino = len(codigo) + LARGO_DE_OPCODE[OP_SI] + LARGO_DE_OPCODE[OP_TINTE]
+        codigo += con_destino(bytes_de_rama(lcf.EventCommand(
+            COND_RAMA, 0, "", [COND_ITEM, numero, 0, 0, 0, 0])), destino)
+        codigo += bytes([OP_TINTE]) + bytes(color)
     if rama_var:
         # (variable, comparación, valor, adentro, después): la rama por
         # variable, como `rama` pero con OP_SI_VAR. Existe porque en los mapas
@@ -5408,6 +5528,11 @@ def ejecutar(codigo, estado, desde=0):
             elif tipo == COND_ORO:
                 vale = (estado.oro >= operando if not polaridad
                         else estado.oro <= operando)
+            elif tipo == COND_ITEM:
+                # `GetItemCount(id) > 0`, sin `GetEquippedItemCount`: no hay
+                # equipo. La polaridad es la del switch —0 es "tiene que
+                # tenerlo"— y la ROM la resuelve con el mismo `eor`.
+                vale = (estado.item(operando) > 0) == (not polaridad)
             elif tipo == COND_ACTOR:
                 vale = operando in estado.grupo
             else:
@@ -5687,6 +5812,11 @@ def ejecutar(codigo, estado, desde=0):
                 # `StopTimer` apaga las dos cosas, no sólo la cuenta.
                 estado.timer_activo = estado.timer_visible = False
             i += 5
+        elif op == OP_PARAR_RUTAS:
+            # `HaltAllMovement`. No cuesta un cuadro: `CommandHaltAllMovement`
+            # devuelve true, así que la página sigue en el mismo tick.
+            estado.parar_rutas()
+            i += 1
         elif op == OP_RUTAS:
             # "Esperá a que terminen las rutas". Se devuelve el control con una
             # marca en vez de una cuenta de cuadros: no se sabe cuántos van a

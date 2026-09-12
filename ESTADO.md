@@ -19,19 +19,27 @@ Se escribe **mientras se trabaja**, no al final.
 **Los primeros diez minutos jugables**, que es lo que taro viene probando vuelta
 a vuelta.
 
-Al 2026-09-13: `just snes-hitos-foto` son **147 casos, todos en verde** —sobre
-la foto `cc68312`—, y `just pruebas` **113 en verde y 1 `xfail`**, más dos en
-rojo que **no son de esta vuelta**: `test_el_golpe_suena_con_el_efecto_que_le_toca`
-y `test_la_pelea_prende_el_tema_de_batalla_del_ldb`, los dos ya en rojo en
-`f38b87c` —comprobado sobre una copia limpia de ese commit— y los dos de audio
-de la pelea. El `xfail` no es adorno: es un defecto medido de guardar con la
-pantalla de título puesta, y está abajo.
+Al 2026-09-13: `just pruebas` son **123 en verde y 1 `xfail`, sin rojos**. Los
+dos de audio de la pelea que venían en rojo desde el 2026-09-12 no eran
+preexistentes de nadie: los rompió el merge `6c43aa3`, que dejó a la pelea
+cargando el paquete de audio del mapa. Está arreglado y contado abajo. El
+`xfail` no es adorno: es un defecto medido de guardar con la pantalla de título
+puesta, y está abajo.
 
-**La ROM para probar a mano de esta vuelta** está en
-`pruebas-manuales/habilidades/`, con las habilidades de la batalla: dos peleas
-sueltas que se abren solas y la demo entera, y un `LEEME.txt` que dice qué sabe
-cada personaje, qué mirar, y qué falta —empezando por los SP, que no se ven en
-la pantalla de la pelea—.
+**Las ROMs para probar a mano de esta vuelta** son tres, una por pieza:
+
+* `pruebas-manuales/habilidades/` — las habilidades especiales de la batalla:
+  dos peleas sueltas que se abren solas y la demo entera. Su `LEEME.txt` dice
+  qué sabe cada personaje y qué falta, empezando por los SP, que no se ven en
+  la pantalla de la pelea.
+* `pruebas-manuales/tram-y-hq/` — el viaje en el tranvía jugable de punta a
+  punta y la página que reordena el escondite de los Lazer Teeth. Pide
+  **probar guardar**: `partida_tabla` se mudó de banco.
+* `pruebas-manuales/escapes-de-texto/` — un cuadro de texto que se cierra solo.
+
+La de la vuelta anterior está en `pruebas-manuales/vars-y-rutas/`, con las
+coordenadas de un personaje y el teletransporte de dos bytes; y la de antes, con
+las cuatro piezas del mediodía, en `pruebas-manuales/desbloqueos/`.
 
 `demo-ciudad` se juega desde la apertura hasta la calle de Lashe City, con los
 relámpagos, los autos y los NPCs andando, el agua moviéndose, la lluvia, el save
@@ -40,8 +48,9 @@ point animado y guardando, el menú de pausa, los ítems, el equipo y la tienda.
 efectos por el SPC700.
 
 Las páginas automáticas que compilan enteras son **332 de 489** —`just
-snes-destraba`—, y del juego entero **5135 de 5603 disparables (91,6%)**, que
-eran 5016 antes de la clase 6 de `ControlVars`.
+snes-destraba`—, y del juego entero **5156 de 5603 disparables (92,0%)**, que
+eran 5135 antes de la rama por objeto y de `HaltAllMovement`, y 5016 antes de
+la clase 6 de `ControlVars`.
 
 **Cómo se cuenta, porque es fácil contarlo mal**: cada página de los 328 mapas
 cuyo trigger la ROM soporta y que pasa `puede_dispararse`, por
@@ -423,6 +432,66 @@ Lo que queda abierto:
   suenan siempre por el SPC700, y siete de ésos **incompletos**, porque no
   aportan al banco. Los siete son 908 s, unos 160 MB de PCM. Los 35 del juego
   entero que las demos no tocan serían 923 MB.
+
+### El Hover-Tram, el HQ de los Lazer Teeth y los Rat Tracks (2026-09-13)
+
+taro pidió destrabar esos tres lugares, y **la mitad del encargo ya estaba
+hecha**: la clase 6 de `ControlVars` con el blanco 10005 —"este evento"—
+compila desde el merge de la clase 6, y `ChangeEventLocation` y `MoveEvent`
+tampoco trababan nada de esos mapas. Los números del encargo eran anteriores a
+`6c43aa3`. Conviene que quede escrito, porque es la segunda vez que un encargo
+manda a hacer trabajo que ya existía.
+
+Lo que **sí** quedaba, medido con esos ocho mapas adentro de la ventana de la
+ROM, y lo que pasó con cada cosa:
+
+    mapa 13  ChangePBG + la rama por objeto      hecho: 32/32 con el 16 adentro
+    mapa 11  HaltAllMovement                     hecho: 100/101
+    mapa 11  KeyInputProc                        medido, sin hacer (ver abajo)
+    mapa 26  ChangeSystemBGM 3                   del otro agente
+    mapa  9  Teleport 7                          mapas fuera de la ventana
+    mapa 18  Teleport 2                          ídem
+    mapa 20  ShowInn, ChangeSystemBGM, FlashSprite, y una rama "del héroe"
+
+Sobre el juego entero, con `eventos.compilar_pagina` sobre las **5558** páginas
+disparables con comandos —el total de más arriba, 5603, cuenta además las 45
+automáticas vacías, que compilan a nada—:
+
+    base                5090
+    HaltAllMovement     5091   (+1)
+    la rama por objeto  5111   (+20)
+    ChangePBG           5111   (+0 sola)
+
+**`ChangePBG` se acepta y se tira**, como el panorama que el README ya declara:
+el modo 3 tiene dos capas de fondo y las dos están tomadas. Aparece una sola
+vez en todo el juego —siete comandos en la página del viaje en el tranvía— así
+que la deuda que declara es exactamente **"el tranvía se viaja sin el paisaje
+corriendo por detrás"**. Falta que taro diga si eso se nota.
+
+**La rama por objeto era lo que más rendía de todo el encargo, y estaba
+escondida**: la condición por ítem figuraba como "pide inventario, que no hay"
+desde antes de que el inventario existiera (2026-09-10). Es la misma pregunta
+que la condición de página por ítem, que la ROM ya contestaba.
+
+**`KeyInputProc`: medido y sin hacer.** Son 31 páginas disparables y **+30** si
+se acepta entero; de sus 32 apariciones, 23 son la misma forma —esperar la
+tecla de acción y guardar cuál fue—, y sólo ésa vale **+23**. La página del
+mapa 11 no entra en ese subconjunto: usa las dos formas, la que espera A y la
+que lee la cruceta. Las dos razones para no hacerlo ahora, las dos con número:
+es del otro agente que corría en paralelo, y **en el banco 0 quedan unos pocos
+bytes** (ver abajo).
+
+**El banco 0 se pasó por 128 bytes** con estas dos piezas y hubo que bajar
+tablas a RODATA: `partida_tabla`, los registros del PPU con su buffer de ceros,
+y `dir_de_pose`. Ahora se leen con `lda f:tabla, x` —absoluto largo indexado—,
+que no depende del banco de datos y cuesta un byte y un ciclo por acceso;
+ninguna está en un lazo por cuadro. Lo que queda libre es del orden de la
+decena de bytes, así que **lo próximo que pida banco 0 va a tener que bajar
+algo más**. Las candidatas que quedan y lo que costarían: `tabla_fila_buf` (31
+bytes, pero está en el lazo del compositor de texto), `mascara` (7, en
+`switch_encendido`), y las de velocidad de las rutas (30 entre todas, un ciclo
+por paso). **El desborde no lo ve ningún caso de la tanda**: lo cobra sólo
+`just snes-demo demo-ciudad`.
 
 ### Coordenadas, teletransporte de dos bytes, y las rutas que ya no faltan (2026-09-12)
 
