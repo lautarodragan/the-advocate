@@ -19,16 +19,19 @@ Se escribe **mientras se trabaja**, no al final.
 **Los primeros diez minutos jugables**, que es lo que taro viene probando vuelta
 a vuelta.
 
-Al 2026-09-12: `just snes-hitos-foto` son **140 casos, todos en verde** —sobre
-la foto `93fca1c`—, y `just pruebas` **100 en verde y 1 `xfail`**. El `xfail` no
-es adorno: es un defecto medido de guardar con la pantalla de título puesta, y
-está abajo.
+Al 2026-09-13: `just snes-hitos-foto` son **147 casos, todos en verde** —sobre
+la foto `cc68312`—, y `just pruebas` **113 en verde y 1 `xfail`**, más dos en
+rojo que **no son de esta vuelta**: `test_el_golpe_suena_con_el_efecto_que_le_toca`
+y `test_la_pelea_prende_el_tema_de_batalla_del_ldb`, los dos ya en rojo en
+`f38b87c` —comprobado sobre una copia limpia de ese commit— y los dos de audio
+de la pelea. El `xfail` no es adorno: es un defecto medido de guardar con la
+pantalla de título puesta, y está abajo.
 
 **La ROM para probar a mano de esta vuelta** está en
-`pruebas-manuales/vars-y-rutas/`, con las coordenadas de un personaje y el
-teletransporte de dos bytes, y un `LEEME.txt` que dice cómo llegar jugando a lo
-que se destrabó —y por qué la persecución en auto todavía no—. La anterior, con
-las cuatro piezas del mediodía, está en `pruebas-manuales/desbloqueos/`.
+`pruebas-manuales/habilidades/`, con las habilidades de la batalla: dos peleas
+sueltas que se abren solas y la demo entera, y un `LEEME.txt` que dice qué sabe
+cada personaje, qué mirar, y qué falta —empezando por los SP, que no se ven en
+la pantalla de la pelea—.
 
 `demo-ciudad` se juega desde la apertura hasta la calle de Lashe City, con los
 relámpagos, los autos y los NPCs andando, el agua moviéndose, la lluvia, el save
