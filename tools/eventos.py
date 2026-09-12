@@ -1448,6 +1448,46 @@ OP_IMAGEN_BORRAR = 0x21
 IMAGEN_CUADROS_MAX = 255
 
 
+# --- la batalla -------------------------------------------------------------
+#
+# `EnemyEncounter` y sus tres manejadores. Es el hermano de `OP_ELEGIR`: el
+# comando abre una pantalla que bloquea, y **el resultado elige por dónde
+# sigue la página**, así que el opcode lleva los tres destinos y el conversor
+# los parchea al cerrar el bloque, igual que las opciones de una elección.
+#
+# El número de tropa va **tal cual el de RM2k** y no como índice nuestro, a
+# propósito: quién entra en el cartucho lo decide el conversor mirando todas
+# las páginas, y si el bytecode llevara el índice, la referencia y la ROM
+# podrían numerar distinto según qué mapas lleve cada ROM. Con el número de
+# RM2k adentro, el bytecode de una página es el mismo siempre; la ROM lo
+# resuelve buscándolo en `tropa_id`, y una tropa que no esté ahí es una pelea
+# que no se hace y que sale por la rama de victoria.
+#
+# Los destinos son **absolutos dentro de la página**, como los de `OP_SI`.
+# Un manejador que la página no tenga apunta al final del bloque, o sea al
+# `EndBattle`, que es lo que hace RM2k cuando el sub-índice no tiene rama.
+OP_BATALLA = 0x22   # tropa (word), victoria (word), huida (word), derrota (word)
+
+ENEMY_ENCOUNTER = 10710
+VICTORY_HANDLER = 20710
+ESCAPE_HANDLER = 20711
+DEFEAT_HANDLER = 20712
+END_BATTLE = 20713
+
+# Los tres manejadores, en el orden en que sus destinos van en el opcode.
+BATALLA_HANDLERS = (VICTORY_HANDLER, ESCAPE_HANDLER, DEFEAT_HANDLER)
+
+# Los parámetros de `EnemyEncounter`, de `Game_Interpreter_Map::
+# CommandEnemyEncounter`: [tropa por variable, tropa, de dónde sale el fondo,
+# qué pasa al huir, qué pasa al perder, si pega primero]. Este port sólo hace
+# el caso que usan las 51 peleas del juego —tropa por constante— y se planta
+# en los otros, que es lo de siempre: antes emitir nada que emitir algo que la
+# ROM haga distinto.
+BATALLA_ESCAPE_PROHIBIDO = 0
+BATALLA_ESCAPE_CORTA = 1
+BATALLA_DERROTA_GAME_OVER = 0
+
+
 def imagen_tono(desde, hasta, paso, pasos):
     """El tono del cartel en el cuadro `paso` de `pasos`, componente por
     componente.
@@ -1821,13 +1861,68 @@ def bytes_de_rama(cmd):
                   1 if p[2] else 0, 0, 0])
 
 
+class Tropas:
+    """Las tropas que las peleas compiladas piden, para saber qué tablas emitir.
+
+    Hermano de `Temas`, con una diferencia que importa: **el bytecode no
+    depende de él**. `Temas` numera y el opcode lleva el número; acá el opcode
+    lleva el id de RM2k y esto sólo junta la lista, así que un registro con
+    otras tropas adentro no cambia un solo byte de ninguna página. Es lo que
+    permite que la referencia compile sin saber qué tablas tiene el cartucho.
+    """
+
+    def __init__(self):
+        self.ids = []
+
+    def pedir(self, numero):
+        if numero not in self.ids:
+            self.ids.append(numero)
+        return numero
+
+
+def tropa_de_encuentro(cmd):
+    """El número de tropa de un `EnemyEncounter`, o `NoSePuede`.
+
+    Los índices salen de `Game_Interpreter_Map::CommandEnemyEncounter` de
+    easyrpg-player, **no de memoria**: `[0]` dice si la tropa sale de una
+    variable, `[1]` es la tropa, `[2]` de dónde sale el fondo, `[3]` qué pasa
+    al huir, `[4]` qué pasa al perder y `[5]` si el grupo pega primero.
+
+    Lo que este port hace, y por qué lo demás corta la página:
+
+    * **la tropa por constante**: leerla de una variable pediría resolver en la
+      ROM qué tropa es, y ninguna de las 51 peleas del juego lo usa;
+    * **huir prohibido o con manejador**, pero no `escape_mode` 1, que en RM2k
+      corta la página entera al escapar —`abort_on_escape`— y sería un camino
+      sin nada que lo ejercite;
+    * **perder con manejador**: `defeat_mode` 0 es la pantalla de Game Over,
+      que este port no tiene. Emitirla como "no pasa nada" sería mentir sobre
+      lo que el juego hace.
+
+    El fondo no se mira: la pantalla de batalla va sobre un color plano, que es
+    lo que taro pidió para esta vuelta. Ver "la batalla" en README.md.
+    """
+    p = cmd.parameters
+    if len(p) < 6:
+        raise NoSePuede("EnemyEncounter sin operandos")
+    if p[0] != 0:
+        raise NoSePuede("EnemyEncounter con la tropa en una variable")
+    if not 0 < p[1] <= 0xFFFF:
+        raise NoSePuede("EnemyEncounter de la tropa %d" % p[1])
+    if p[3] == BATALLA_ESCAPE_CORTA:
+        raise NoSePuede("EnemyEncounter que corta la página al huir")
+    if p[4] == BATALLA_DERROTA_GAME_OVER:
+        raise NoSePuede("EnemyEncounter con Game Over al perder")
+    return p[1]
+
+
 def con_destino(pieza, destino):
     """La misma pieza con el destino puesto en sus dos últimos bytes."""
     return pieza[:-2] + bytes([destino & 0xFF, destino >> 8])
 
 
 def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
-                    temas=None, graficos=None, imagenes=None):
+                    temas=None, graficos=None, imagenes=None, tropas=None):
     """Los comandos de una página como bytes, o None si no se puede.
 
     `indice_de_mapa` traduce el id de mapa de RM2k al índice en la tabla de la
@@ -1842,6 +1937,11 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
     `eventos_mapa` es el `Eventos` del mapa, ya apuntado al dueño de la página.
     Sin él una ruta forzada sólo puede ser sobre el héroe: no hay con qué
     traducir el id de RM2k al índice de la tabla.
+
+    `tropas` es el registro de las tropas que el cartucho va a tener que
+    llevar. **No cambia el bytecode** —el número de tropa que se emite es el de
+    RM2k— así que una ROM sin registro compila exactamente lo mismo; lo único
+    que se pierde es saber qué tablas hay que emitir.
     """
     marca = mensajes.marca() if mensajes is not None else None
     try:
@@ -1861,8 +1961,49 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
         opciones_de = {id(c): opciones_de_eleccion(comandos, i)
                        for i, c in enumerate(comandos) if c.code == SHOW_CHOICE}
         eleg = []            # las elecciones abiertas
+        bat = []             # y las batallas abiertas, igual que ellas
         for cmd, extra in agrupar(comandos):
-            if cmd.code == SHOW_CHOICE:
+            if cmd.code == ENEMY_ENCOUNTER:
+                tropa = tropa_de_encuentro(cmd)
+                if tropas is not None:
+                    tropas.pedir(tropa)
+                bat.append({"i": len(piezas), "tropa": tropa,
+                            "destinos": [None, None, None],
+                            "vistas": 0, "salidas": []})
+                pieza = bytes(9)      # el lugar, que se llena en el EndBattle
+            elif cmd.code in BATALLA_HANDLERS:
+                if not bat:
+                    raise NoSePuede("un manejador de batalla sin su pelea")
+                actual = bat[-1]
+                n = BATALLA_HANDLERS.index(cmd.code)
+                # El cuerpo del manejador anterior termina acá y se lo saca del
+                # bloque con un salto al final, que se parchea al cerrarlo. Es
+                # lo mismo que hace `ShowChoiceOption`, y por lo mismo: así no
+                # hay que mirar la indentación.
+                pieza = b"" if not actual["vistas"] else bytes([OP_IR, 0, 0])
+                if pieza:
+                    actual["salidas"].append(len(piezas))
+                actual["vistas"] += 1
+                if actual["destinos"][n] is not None:
+                    raise NoSePuede("dos manejadores de batalla iguales")
+                actual["destinos"][n] = largo + len(pieza)
+            elif cmd.code == END_BATTLE:
+                if not bat:
+                    raise NoSePuede("un fin de batalla sin su pelea")
+                actual = bat.pop()
+                tabla = bytes([OP_BATALLA,
+                               actual["tropa"] & 0xFF, actual["tropa"] >> 8])
+                for destino in actual["destinos"]:
+                    # El manejador que la página no tiene cae en el final del
+                    # bloque, que es lo que hace RM2k con un sub-índice sin
+                    # rama: `SetSubcommandIndex` y a seguir.
+                    d = largo if destino is None else destino
+                    tabla += bytes([d & 0xFF, d >> 8])
+                piezas[actual["i"]] = tabla
+                for salida in actual["salidas"]:
+                    piezas[salida] = con_destino(piezas[salida], largo)
+                pieza = b""
+            elif cmd.code == SHOW_CHOICE:
                 if mensajes is None:
                     raise NoSePuede("una elección sin ventana donde ponerla")
                 opciones = opciones_de[id(cmd)]
@@ -1942,6 +2083,8 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
             raise NoSePuede("una rama sin cerrar")
         if eleg:
             raise NoSePuede("una elección sin cerrar")
+        if bat:
+            raise NoSePuede("una batalla sin cerrar")
         codigo = b"".join(piezas) + bytes([OP_FIN])
         return codigo
     except NoSePuede:
@@ -3789,6 +3932,7 @@ LARGO_DE_OPCODE = {
     OP_GUARDAR: 1, OP_VAR: 8, OP_SI_VAR: 8, OP_ITEM: 4, OP_ACCESO: 3,
     OP_CLIMA: 3, OP_SONIDO: 3,
     OP_IMAGEN: 5, OP_IMAGEN_MOVER: 6, OP_IMAGEN_BORRAR: 1,
+    OP_BATALLA: 9,
 }
 
 
@@ -4009,7 +4153,8 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
                     frecuencia=RUTA_FRECUENCIA, sacudida=(), fundir_bgm=0,
                     pan=(), rama=(), destello=(), guardar=False,
                     variables=(), rama_var=(), items=(), acceso=(),
-                    lluvia=None, animacion=(), eventos_mapa=None):
+                    lluvia=None, animacion=(), eventos_mapa=None,
+                    batalla=0):
     """Una página automática inventada: una ruta forzada, una espera, un tinte.
 
     No sale de ningún dato del juego, y ésa es la idea. El intérprete corre
@@ -4248,6 +4393,20 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
         # que se guarda no es el estado del arranque. Guardando el del arranque,
         # cargar y no cargar dan lo mismo y la prueba no prueba nada.
         codigo += bytes([OP_GUARDAR])
+    if batalla:
+        # Una pelea contra esta tropa. Existe por lo mismo que guardar: la
+        # única batalla que el jugador alcanza hoy es la del droide del mapa 2,
+        # y la de los Lazer Teeth del mapa 9 la corta una orden de ruta que la
+        # ROM no camina —la 9, "hacia el héroe"—, así que sin esto la tropa de
+        # cuatro enemigos no la ejercitaría nada.
+        #
+        # Los tres destinos apuntan al final del bloque, o sea al OP_FIN: gane,
+        # pierda o escape, la página sigue por el mismo lado. Lo que se prueba
+        # acá es la pelea, no por dónde sigue la escena.
+        fin = len(codigo) + 9
+        codigo += bytes([OP_BATALLA, batalla & 0xFF, batalla >> 8,
+                         fin & 0xFF, fin >> 8, fin & 0xFF, fin >> 8,
+                         fin & 0xFF, fin >> 8])
     if tinte:
         # (r, g, b) y, si viene, la saturación; si no, la neutra.
         codigo += bytes([OP_TINTE]) + bytes(tinte[:3])
@@ -4872,6 +5031,27 @@ def ejecutar(codigo, estado, desde=0):
             # Como `CommandWeatherEffects`: no cuesta ningún tick.
             estado.poner_clima(codigo[i + 1], codigo[i + 2])
             i += 3
+        elif op == OP_BATALLA:
+            # La pelea, como la tienda y como guardar: bloquea adentro del
+            # intérprete, **no cuesta ningún tick** y de este lado no hay nada
+            # que dibujar. En la ROM `batalla_pantalla` corre su propio lazo de
+            # cuadros sin que `vueltas` avance, así que los dos lados salen del
+            # opcode en el mismo tick tarde lo que tarde el jugador.
+            #
+            # Lo que sí hay que elegir es **por dónde sigue la página**, y acá
+            # no hay nadie peleando: la referencia se va por la rama de
+            # victoria. Es la única de las tres que continúa la escena en el
+            # camino normal —perder y huir son salidas—, y es la que el arnés
+            # de una comparación llevaría a la ROM a sacar.
+            #
+            # **Ninguna prueba de pixeles cruza una batalla**, y eso es a
+            # propósito: ganarla pide muchos toques y el resultado depende del
+            # azar, así que no hay cómo dejar los dos lados en el mismo estado.
+            # Lo que la pantalla muestra lo cobra `just snes-batalla`, y lo que
+            # la pelea le hace a los HP, `pruebas/test_batalla.py`. Dicho de
+            # otra manera: este renglón es un camino que la tanda no ejercita,
+            # y por eso está escrito con todas las letras.
+            i = codigo[i + 3] | (codigo[i + 4] << 8)
         elif op == OP_TIENDA:
             # La tienda, como guardar: no cuesta ningún tick y de este lado no
             # hay nada que dibujar. Lo que muestra lo cobran `snes-tienda` y
@@ -5189,7 +5369,7 @@ def deudas_de_la_pagina(page, imagenes=None):
 
 
 def paginas_del_mapa(game_map, indice_de_mapa, mensajes=None, temas=None,
-                     graficos=None, imagenes=None):
+                     graficos=None, imagenes=None, tropas=None):
     """Las páginas que la ROM necesita para resolver los eventos del mapa.
 
     Se emiten *todas* las páginas de un evento que tenga alguna disparable, no
@@ -5261,7 +5441,7 @@ def paginas_del_mapa(game_map, indice_de_mapa, mensajes=None, temas=None,
             if page.trigger in TRIGGERS and puede_dispararse(page) and not vacia:
                 codigo = compilar_pagina(page, indice_de_mapa, mensajes,
                                          del_mapa.para(event.id), temas,
-                                         graficos, imagenes)
+                                         graficos, imagenes, tropas)
             grupo.append({
                 "evento": numero_evento,
                 "pagina": numero_pagina,

@@ -187,6 +187,11 @@ def enum_name(names, value):
 
 DB_ACTORS = 0x0B
 DB_ITEMS = 0x0D
+# Los enemigos y las tropas, que es lo que una batalla necesita del LDB. Los
+# códigos salen de `ldb/chunks.h` de liblcf, como todo lo demás de este
+# archivo; los nombres de los campos, de `lcf_schema.py`, que se genera de ahí.
+DB_ENEMIES = 0x0E
+DB_TROOPS = 0x0F
 DB_CHIPSETS = 0x14
 DB_SYSTEM = 0x16
 # Los términos del juego: los textos que el motor pone y no un evento. La
@@ -678,6 +683,75 @@ class Item:
             else True
 
 
+# Un enemigo de la base (liblcf: ldb/chunks.h, ChunkEnemy). Sólo los campos
+# que la batalla de este port mira; los que no, se ignoran y quedan en el
+# volcado a JSON, que es el que sirve para leerlos.
+ENEMY_NAME = 0x01
+ENEMY_MAX_HP = 0x04
+ENEMY_MAX_SP = 0x05
+ENEMY_ATTACK = 0x06
+ENEMY_DEFENSE = 0x07
+ENEMY_SPIRIT = 0x08
+ENEMY_AGILITY = 0x09
+ENEMY_EXP = 0x0B
+ENEMY_GOLD = 0x0C
+ENEMY_CRITICAL_HIT = 0x15
+ENEMY_CRITICAL_HIT_CHANCE = 0x16
+ENEMY_MISS = 0x1A
+
+
+class Enemy:
+    """Un enemigo: sus parámetros y con qué acierta.
+
+    `miss` y `critical_hit` salen de `Game_Enemy::GetHitChance` y
+    `Game_Enemy::GetCriticalHitChance` de easyrpg-player: el que falla acierta
+    70 de 100 y el que no, 90, y el crítico es una vez cada
+    `critical_hit_chance`.
+    """
+
+    def __init__(self, fields):
+        self.name = to_string(fields.get(ENEMY_NAME, b""))
+        self.max_hp = to_int(fields.get(ENEMY_MAX_HP, b"\x01"))
+        self.max_sp = to_int(fields.get(ENEMY_MAX_SP, b"\x00"))
+        self.attack = to_int(fields.get(ENEMY_ATTACK, b"\x01"))
+        self.defense = to_int(fields.get(ENEMY_DEFENSE, b"\x01"))
+        self.spirit = to_int(fields.get(ENEMY_SPIRIT, b"\x01"))
+        self.agility = to_int(fields.get(ENEMY_AGILITY, b"\x01"))
+        self.exp = to_int(fields.get(ENEMY_EXP, b"\x00"))
+        self.gold = to_int(fields.get(ENEMY_GOLD, b"\x00"))
+        self.critical_hit = to_bool(fields.get(ENEMY_CRITICAL_HIT, b"\x00"))
+        self.critical_hit_chance = to_int(
+            fields.get(ENEMY_CRITICAL_HIT_CHANCE, b"\x1E")) or 30
+        self.miss = to_bool(fields.get(ENEMY_MISS, b"\x00"))
+
+    @property
+    def hit(self):
+        """`Game_Enemy::GetHitChance`."""
+        return 70 if self.miss else 90
+
+
+TROOP_NAME = 0x01
+TROOP_MEMBERS = 0x02
+TROOP_MEMBER_ENEMY_ID = 0x01
+
+
+class Troop:
+    """Una tropa: qué enemigos la forman, en el orden del LDB.
+
+    Las posiciones (x, y) de cada miembro no se leen: este port no dibuja los
+    battlers, así que dónde iban en la pantalla de 320x240 de RM2k no dice
+    nada. Las páginas de eventos de batalla tampoco: ver "lo que falta" de la
+    batalla en README.md.
+    """
+
+    def __init__(self, fields):
+        self.name = to_string(fields.get(TROOP_NAME, b""))
+        self.members = [to_int(m.get(TROOP_MEMBER_ENEMY_ID, b"\x01"))
+                        for _, m in sorted(Reader(
+                            fields.get(TROOP_MEMBERS, b"\x00")
+                        ).read_struct_array().items())]
+
+
 class Database:
     """RPG_RT.ldb: los chipsets, los personajes y el grupo con el que se arranca."""
 
@@ -697,6 +771,12 @@ class Database:
         self.items = {i: Item(f) for i, f in Reader(
             self.fields.get(DB_ITEMS, b"\x00")).read_struct_array().items()}
         self.items_max = max(self.items, default=0)
+        # Los enemigos y las tropas: lo que una batalla necesita. Ver `Enemy`
+        # y `Troop`.
+        self.enemies = {i: Enemy(f) for i, f in Reader(
+            self.fields.get(DB_ENEMIES, b"\x00")).read_struct_array().items()}
+        self.troops = {i: Troop(f) for i, f in Reader(
+            self.fields.get(DB_TROOPS, b"\x00")).read_struct_array().items()}
 
         # El grupo con el que empieza la partida. En RM2k el gráfico del héroe
         # es el del primero de la lista, así que este dato es el que decide con

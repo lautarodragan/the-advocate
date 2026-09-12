@@ -51,6 +51,7 @@ import imagen
 import pixeles
 import titulo as titulo_mod
 import pantallas as pantallas_mod
+import batalla as batalla_mod
 import snes_music
 from pixeles import CELL, cut_tiles, flips, reduce_colors, tile_colors, to_indices
 from rm2k import collect_npcs, hero_start, passability_map
@@ -3162,7 +3163,7 @@ def datos_del_mapa(mapa, numero, indice_global, materiales):
 
 def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
          ventana=None, titulo=None, ranuras=None, cartel=None,
-         animaciones=None):
+         animaciones=None, tropas=()):
     """El .inc que arma w65.py junto con main.s.
 
     `titulo` es la pantalla de título —la imagen y su menú— y puede faltar;
@@ -3261,6 +3262,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "OP_IMAGEN   = $%02X\n"
         "OP_IMAGEN_MOVER = $%02X\n"
         "OP_IMAGEN_BORRAR = $%02X\n"
+        "OP_BATALLA  = $%02X\n"
         "; En qué tile de su banco de sprites arranca y con qué paleta.\n"
         "; Van de globales y no en el registro del mapa porque el cartel es\n"
         "; **uno solo por ROM** y vive en un solo mapa: los dos campos\n"
@@ -3527,7 +3529,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            eventos.OP_CLIMA, eventos.OP_SONIDO, eventos.OP_ANIMACION,
            eventos.ANIM_ENTRADA, eventos.ANIM_SONIDO, eventos.ANIM_DESTELLO,
            eventos.OP_IMAGEN, eventos.OP_IMAGEN_MOVER,
-           eventos.OP_IMAGEN_BORRAR,
+           eventos.OP_IMAGEN_BORRAR, eventos.OP_BATALLA,
            cartel_base, cartel_pal,
            cartel["x"] if cartel else 0, cartel["y"] if cartel else 0,
            cartel["objetos"] if cartel else 0,
@@ -3923,6 +3925,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # Y los fijos, detrás: los parámetros y las ranuras del equipo, y el
         # nombre de cada actor que puede entrar al grupo. Ver pantallas.py.
         P = pantallas_mod
+        B = batalla_mod
         db = ranuras["db"]
         texto_param = [texto_nuevo(t[:P.EQ_PARAM_VALOR - 1])
                        for t in db.term_params]
@@ -3945,6 +3948,26 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         texto_tengo = texto_nuevo(P.lcf_termino(db, P.TI_TERMINO_TENGO))
         texto_llevo = texto_nuevo(P.lcf_termino(db, P.TI_TERMINO_LLEVO))
         texto_moneda = texto_nuevo(db.term_gold)
+        # Y los de la batalla: los quince términos del LDB que la pantalla usa
+        # —en el orden de `pantallas.BA_TERMINOS`, que es el que la ROM
+        # indexa— y el nombre de cada enemigo que alguna tropa del cartucho
+        # traiga. Las tres órdenes van **ya recortadas**, por
+        # `pantallas.texto_de_orden`: el LDB las trae con espacios adelante y
+        # eso correría el texto de su columna.
+        term_batalla = P.terminos_batalla(db)
+        texto_batalla = None
+        for nombre, _chunk in P.BA_TERMINOS:
+            texto = term_batalla[nombre]
+            if nombre in ("atacar", "defender", "huir"):
+                texto = P.texto_de_orden(texto)
+            t = texto_nuevo(texto)
+            if texto_batalla is None:
+                texto_batalla = t
+        enemigos_rom = sorted({e for numero in tropas
+                               if numero in db.troops
+                               for e in db.troops[numero].members})
+        texto_enemigo = {e: texto_nuevo(titulo_mod.texto_de_item(
+            db.enemies[e].name, P.BA_NOMBRE_ANCHO)) for e in enemigos_rom}
         handle.write(bloque("item_textos", bytes(item_textos) or b"\x00")
                      + "\n")
         if len(bloques_ranura) > 255:
@@ -4233,6 +4256,91 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                P.EQ_LISTA_FILAS, P.EQ_CURSOR_COL * 2,
                T.ITEM_NOMBRE_COL * 2, T.ITEM_DOS_PUNTOS_COL * 2,
                pos(T.ITEM_DESC_Y // T.CELL, T.ITEM_DESC_COL)))
+        # --- la batalla ---
+        # Los HP máximos de cada actor a su nivel, por número de actor. Van
+        # aparte de `actor_params`, que lleva los cuatro que la pantalla de
+        # equipo muestra; los HP no los toca el equipo, como en RM2k.
+        handle.write('.segment "RODATA"\n')
+        words_asm("actor_hpmax", [
+            (db.actors[a].hp_max[titulo_mod.NIVEL - 1]
+             if a in db.actors and db.actors[a].hp_max else 0) & 0xFFFF
+            for a in range(actores_n)])
+        # Las tropas que alguna pelea del cartucho pide, y los enemigos que las
+        # forman. El bytecode lleva el **número de RM2k** de la tropa, así que
+        # `tropa_id` es lo que la ROM busca; que la lista sea sólo la de las
+        # tropas usadas no cambia un byte de ninguna página. Ver
+        # `eventos.Tropas`.
+        usadas = [n for n in tropas if n in db.troops]
+        lugar_de = {e: k for k, e in enumerate(enemigos_rom)}
+        miembros, inicios = [], []
+        for numero in usadas:
+            lista = db.troops[numero].members[:B.ENEMIGOS_MAX]
+            inicios.append(len(miembros))
+            miembros += [lugar_de[e] for e in lista]
+        if len(miembros) > 255 or len(usadas) > 255:
+            raise SystemExit("las tropas del cartucho no entran en las tablas "
+                             "de un byte: %d tropas, %d miembros"
+                             % (len(usadas), len(miembros)))
+        words_asm("tropa_id", usadas)
+        bytes_asm("tropa_ini", inicios)
+        bytes_asm("tropa_n", [len(db.troops[n].members[:B.ENEMIGOS_MAX])
+                              for n in usadas])
+        bytes_asm("tropa_miembro", miembros)
+        words_asm("enemigo_hp", [db.enemies[e].max_hp for e in enemigos_rom])
+        words_asm("enemigo_atk", [db.enemies[e].attack for e in enemigos_rom])
+        words_asm("enemigo_def", [db.enemies[e].defense for e in enemigos_rom])
+        words_asm("enemigo_agi", [db.enemies[e].agility for e in enemigos_rom])
+        bytes_asm("enemigo_hit", [db.enemies[e].hit for e in enemigos_rom])
+        # El crítico, ya en por ciento entero: `CalcCriticalHitChance` lo
+        # calcula como `1 / critical_hit_chance` por cien y lo trunca.
+        bytes_asm("enemigo_crit", [
+            (100 // (db.enemies[e].critical_hit_chance or 30))
+            if db.enemies[e].critical_hit else 0 for e in enemigos_rom])
+        words_asm("enemigo_txt", [texto_enemigo[e] for e in enemigos_rom])
+        handle.write('.segment "TABLAS"\n')
+        # El producto de la cuenta del acierto tiene que entrar en dieciséis
+        # bits: (100 - acierto) por la suma de las dos agilidades. Con el
+        # acierto mínimo de 70 son 30 por 1998, y el tope de agilidad lo cuida
+        # `BA_AGI_TOPE`; un enemigo que acertara menos lo desbordaría sin
+        # avisar, así que se corta acá.
+        for e in enemigos_rom:
+            if db.enemies[e].hit < 70:
+                raise SystemExit("el enemigo %d acierta %d, y la cuenta del "
+                                 "acierto de la ROM está dimensionada para 70"
+                                 % (e, db.enemies[e].hit))
+        handle.write(
+            "TROPAS_N          = %d\n"
+            "BATALLA_SEMILLA   = $%04X\n"
+            "BA_TXT_BASE       = %d\n"
+            "BA_ENEMIGO_POS0   = %d\n"
+            "BA_GRUPO_POS0     = %d\n"
+            "BA_MSG_POS1       = %d\n"
+            "BA_MSG_POS2       = %d\n"
+            "BA_FILA_BYTES     = %d\n"
+            "BA_CURSOR_DX      = %d\n"
+            "BA_NOMBRE_DX      = %d\n"
+            "BA_NOMBRE_ANCHO   = %d\n"
+            "BA_HP_DX          = %d\n"
+            "BA_HP_NUM_DX      = %d\n"
+            "BA_BARRA_DX       = %d\n"
+            "BA_HPMAX_DX       = %d\n"
+            "BA_MSG_DX         = %d\n"
+            "BA_ORDEN_DX0      = %d\n"
+            "BA_ORDEN_DX1      = %d\n"
+            "BA_ORDEN_DX2      = %d\n"
+            % (len(usadas), B.BATALLA_SEMILLA, texto_batalla,
+               pos(P.BA_ENEMIGO_FILA0, 0), pos(P.BA_GRUPO_FILA0, 0),
+               pos(P.BA_MSG_FILA1, 0), pos(P.BA_MSG_FILA2, 0), 2 * 64,
+               P.BA_CURSOR_COL * 2, P.BA_NOMBRE_COL * 2, P.BA_NOMBRE_ANCHO,
+               P.BA_HP_COL * 2, P.BA_HP_NUM * 2, P.BA_BARRA_COL * 2,
+               P.BA_HP_MAX_NUM * 2, 1 * 2,
+               P.BA_ORDEN_COLS[0] * 2, P.BA_ORDEN_COLS[1] * 2,
+               P.BA_ORDEN_COLS[2] * 2))
+        # Los términos, por su lugar en `pantallas.BA_TERMINOS`.
+        for k, (nombre, _chunk) in enumerate(P.BA_TERMINOS):
+            handle.write("BA_TXT_%-11s= BA_TXT_BASE + %d\n"
+                         % (nombre.upper(), k))
+
         glifos = ranuras["items_glifos"]
         # Fuera del banco 0, como `item_k`: se lee con `lda f:`.
         handle.write('.segment "RODATA"\n')
@@ -4759,6 +4867,12 @@ def main():
                              "que los ShowMessage del juego compilen, y lo "
                              "que se lo cobra a los tiles del mapa —tres "
                              "mapas del juego no pueden llevarla—")
+    parser.add_argument("--batalla-de-prueba", type=int, default=0,
+                        metavar="TROPA",
+                        help="una pelea contra esta tropa al final de la "
+                             "página de prueba. Es lo que le da banco a la "
+                             "tropa de cuatro enemigos del mapa 9, cuya "
+                             "página no compila por una orden de ruta")
     parser.add_argument("--guardar-de-prueba", action="store_true",
                         help="la página de prueba guarda la partida en la "
                              "SRAM. El save point del juego está en el mapa 8 "
@@ -5030,6 +5144,12 @@ def main():
     # que aparecen. La ROM lleva uno solo —ver `Temas`— y lo elige más abajo,
     # cuando ya están todos compilados y se sabe cuáles se piden.
     temas = eventos.Temas()
+    # Y las tropas que los EnemyEncounter piden. No numera nada —el bytecode
+    # lleva el id de RM2k— así que sólo dice qué tablas de enemigos hay que
+    # emitir. Ver `eventos.Tropas`.
+    tropas = eventos.Tropas()
+    if args.batalla_de_prueba:
+        tropas.pedir(args.batalla_de_prueba)
     prueba = (mensajes.agregar(args.mensaje_de_prueba)
               if args.mensaje_de_prueba is not None else None)
 
@@ -5050,7 +5170,7 @@ def main():
         temas.mapa = mapas.index(mapa)      # para su paquete de audio
         paginas = eventos.paginas_del_mapa(mapa["game_map"], indices.get,
                                            mensajes, temas, graficos,
-                                           args.imagenes)
+                                           args.imagenes, tropas)
         temas.mapa = None
         # Un intérprete por evento con alguna página paralela que compile. La
         # ROM los lleva en una lista de tope fijo y **no avisa** si se le pasa
@@ -5097,6 +5217,7 @@ def main():
                      % (mapa["id"], graficos.pares, mapa["graficos_de_ruta"]))
         if (args.pagina_de_prueba or args.ruta_de_prueba
                 or args.rama_de_prueba or args.guardar_de_prueba
+                or args.batalla_de_prueba
                 or args.vars_de_prueba or args.rama_var_de_prueba
                 or args.items_de_prueba or args.acceso_de_prueba
                 or args.ruta_de_evento or args.flash_de_prueba or args.switch
@@ -5141,7 +5262,8 @@ def main():
                     acceso=tuple(args.acceso_de_prueba or ()),
                     lluvia=args.lluvia_de_prueba,
                     animacion=tuple(args.animacion_de_prueba or ()),
-                    eventos_mapa=eventos.Eventos(mapa["game_map"]))}, {
+                    eventos_mapa=eventos.Eventos(mapa["game_map"]),
+                    batalla=args.batalla_de_prueba)}, {
                 # Y la que la apaga: misma idea que en la referencia, ver
                 # `PAGINA_DE_PRUEBA_APAGADA`. Sin código, así que en cuanto
                 # gana, el evento inventado deja de tener una automática que
@@ -5382,7 +5504,7 @@ def main():
                  datos["porciento"], datos["colores"], datos["bytes"]))
     informe = emit(args.output, mapas, args.inicial, args.heroe_encima, grupo,
                    ventana_datos, titulo_datos, ranuras_datos,
-                   args.imagenes.info, animaciones)
+                   args.imagenes.info, animaciones, tropas.ids)
     print("%d mapa(s) -> %s, arranca en el %d (mapa %d)"
           % (len(mapas), args.output, args.inicial, mapas[args.inicial]["id"]))
     if informe:

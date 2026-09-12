@@ -193,6 +193,124 @@ FAR_ACCESO     = $25FC
 ACCESO_SIN_GUARDAR = $01
 ACCESO_SIN_MENU    = $02
 ACCESO_PEDIDO      = $80
+; --- la batalla: su estado en la RAM lejana -------------------------------------
+;
+; **La RAM lejana tiene un mapa y hay que respetarlo.** El 2026-09-12 el cartel
+; se puso en $30E8, que era donde vivía el estado del MSU-1, y la ROM dejó de
+; detectar el chip: la música se calló y ninguna prueba lo vio. De $2000 a
+; $30FA está todo tomado —los intérpretes paralelos, las variables, el
+; inventario, el equipo, el clima, los efectos de sonido, el giro, el cartel— y
+; de $3100 a $3600 va el reparto de la ARAM. Así que esto arranca en $3700, que
+; es el primer lugar donde no hay nadie.
+;
+; Los HP de cada actor del LDB, una palabra por número de actor. **Son estado
+; de verdad desde que hay batallas**: hasta el 2026-09-12 nadie bajaba de los
+; máximos y `ChangeHP` compilaba a nada. Viajan en la partida, detrás del
+; equipo, y el reset los pone llenos.
+FAR_HP = $3700
+
+; Y el estado de la pelea, que **no** viaja en la partida: una batalla no se
+; puede guardar en RM2k tampoco.
+FAR_BATALLA = $3800
+; La misma dirección pero larga, para los pocos que la tocan desde afuera de
+; la pelea: `op_batalla` corre con el banco de datos del bytecode.
+BAT_LARGO = $7E0000
+; **Todo lo de acá se nombra con dirección de dieciséis bits, no larga**, y el
+; código de la pelea corre con el banco de datos en $7E. Es lo que le deja usar
+; direccionamiento absoluto: `inc`, `stz`, `ldx` y `cpy` no tienen modo largo,
+; así que con `f:` habría que pasar cada uno por el acumulador. Y no le cuesta
+; nada a lo demás: en el banco $7E las direcciones de $0000 a $1FFF **son** la
+; RAM baja del banco 0, así que `temp`, `comp_*` y `grupo` se siguen leyendo
+; como siempre. Lo que sí cambia son las tablas de la ROM, que van con `f:`.
+BA_TROPA   = FAR_BATALLA + 0      ; la tropa, como número de RM2k
+BA_RESULT  = FAR_BATALLA + 2      ; 0 victoria, 1 huida, 2 derrota
+BA_SEM     = FAR_BATALLA + 3      ; el xorshift de la pelea, con semilla propia
+BA_NACT    = FAR_BATALLA + 5      ; cuántos actores
+BA_NENE    = FAR_BATALLA + 6      ; cuántos enemigos
+BA_MODO    = FAR_BATALLA + 7
+BA_ACTOR   = FAR_BATALLA + 8      ; a quién se le está pidiendo la orden
+BA_ORDEN   = FAR_BATALLA + 9      ; qué orden marca el cursor
+BA_BLANCO  = FAR_BATALLA + 10     ; qué enemigo marca el cursor
+BA_HUIDA   = FAR_BATALLA + 11     ; la chance de escapar, que sube al fallar
+BA_I       = FAR_BATALLA + 12     ; por cuál de la ejecución va el turno
+BA_ESPERA  = FAR_BATALLA + 13     ; cuadros que le quedan al mensaje
+BA_MTIPO   = FAR_BATALLA + 14     ; qué dice el mensaje
+BA_MQUIEN  = FAR_BATALLA + 15
+BA_MBLA    = FAR_BATALLA + 16
+BA_MDANO   = FAR_BATALLA + 17     ; palabra
+BA_NACC    = FAR_BATALLA + 19     ; cuántas acciones tiene el turno
+BA_T0      = FAR_BATALLA + 20     ; palabras de paso, que cualquiera pisa
+BA_T1      = FAR_BATALLA + 22
+BA_T2      = FAR_BATALLA + 24
+BA_S0      = FAR_BATALLA + 26     ; y las que sobreviven a un `jsr`
+BA_S1      = FAR_BATALLA + 28
+BA_S2      = FAR_BATALLA + 30
+BA_S3      = FAR_BATALLA + 32
+BA_S4      = FAR_BATALLA + 34
+BA_S5      = FAR_BATALLA + 36
+BA_S6      = FAR_BATALLA + 38
+; Si el renglón que se compone muestra además los HP máximos, o sea si es del
+; grupo. Tiene byte propio y no un `BA_T2 + 2` prestado, que es lo que era y
+; caía justo encima de `BA_S0`: el lazo de los enemigos se reiniciaba solo y
+; la pantalla no llegaba a aparecer nunca.
+BA_CONMAX  = FAR_BATALLA + 40
+BA_ACC     = FAR_BATALLA + 48     ; dos bytes por combatiente: orden y blanco
+BA_EJEC    = FAR_BATALLA + 72     ; el orden de ejecución, un combatiente por byte
+BA_CAND    = FAR_BATALLA + 88     ; los vivos de un lado, para elegir blanco
+BA_UNO     = FAR_BATALLA + 96     ; los combatientes, BA_BYTES cada uno
+
+; Los combatientes: los cuatro primeros son el grupo y los ocho siguientes la
+; tropa. Que el lugar sea fijo y no una lista compactada es lo que hace que un
+; muerto se siga viendo en su renglón, como en la pantalla.
+BA_GRUPO_MAX = 4
+BA_ENEMIGOS_MAX = 8
+BA_COMB_MAX = BA_GRUPO_MAX + BA_ENEMIGOS_MAX
+BA_BYTES  = 18
+BA_HP     = 0               ; palabra
+BA_HPMAX  = 2
+BA_ATK    = 4
+BA_DEF    = 6
+BA_AGI    = 8
+BA_SORT   = 10              ; el `agi + azar` con el que se ordena el turno
+BA_TXT    = 12              ; el número de texto de su nombre
+BA_HIT    = 14              ; byte
+BA_CRIT   = 15
+BA_FLAGS  = 16
+BA_NUMERO = 17              ; el actor del LDB, o el lugar en la tropa
+BAF_DEF   = $01             ; se está defendiendo
+BAF_ACTOR = $02             ; es del grupo
+BAF_HAY   = $04             ; la ranura está ocupada
+
+; Los tres resultados y las tres órdenes, en el orden de `tools/batalla.py`.
+BA_VICTORIA = 0
+BA_HUIDA_R  = 1
+BA_DERROTA  = 2
+BA_ATACAR   = 0
+BA_DEFENDER = 1
+BA_HUIR     = 2
+; Los modos de la pantalla, como `pantallas.BA_ELIGE_ORDEN` y compañía.
+BA_M_ORDEN  = 0
+BA_M_BLANCO = 1
+BA_M_MENSAJE = 2
+BA_M_FIN    = 3
+; Qué dice el mensaje.
+BA_MSG_ATAQUE = 0
+BA_MSG_DEFIENDE = 1
+BA_MSG_NO_HUYO = 2
+BA_MSG_HUYO = 3
+BA_MSG_VICTORIA = 4
+BA_MSG_DERROTA = 5
+; Cuántos cuadros se queda un mensaje si nadie aprieta A. Son dos segundos, que
+; es lo que tarda en leerse un renglón, y A lo saltea.
+BA_MSG_CUADROS = 120
+; El acierto de un actor sin arma que lo cambie: `Game_Actor::GetHitChance`.
+BA_ACIERTO_ACTOR = 90
+; El tope del daño —`MaxDamageValue()` de RM2k— y el del promedio de agilidad
+; que entra en la cuenta de la huida: doscientos por el promedio tiene que
+; entrar en dieciséis bits, y el enemigo más ágil del juego tiene 300.
+BA_DANO_MAX = 999
+BA_AGI_TOPE = 320
+
 ; Cursor (2), espera (2), si está corriendo (1) y de qué página (2).
 PAR_BYTES = 7
 WMADDL   = $2181
@@ -800,6 +918,7 @@ grupo_listo:
     ; arranca con basura, y una partida cargada las pisa después.
     jsr limpiar_variables
     jsr equipo_inicial_poner
+    jsl f:hp_inicial_poner
     jsr clima_limpiar
     jsr se_limpiar
     jsr giro_limpiar
@@ -3644,6 +3763,9 @@ otro:
 :   cmp #OP_TIENDA
     bne :+
     jmp op_tienda
+:   cmp #OP_BATALLA
+    bne :+
+    jmp op_batalla
 :   cmp #OP_CLIMA
     bne :+
     jmp op_clima
@@ -4044,6 +4166,61 @@ op_tienda_listo:
     ply
     plb
     jmp otro
+
+; `EnemyEncounter`: la tropa y los tres destinos, todos de dieciséis bits. La
+; pelea se juega acá adentro y, al salir, el mapa vuelve —como en la tienda— y
+; la página sigue por el destino que le tocó al resultado.
+op_batalla:
+.a8
+.i16
+    rep #$20
+.a16
+    lda [cod_ptr], y            ; la tropa, como número de RM2k
+    sta f:BAT_LARGO + BA_TROPA
+    sep #$20
+.a8
+    phy                         ; el cursor: los destinos se leen al volver
+    ; El banco de datos, en $7E: es lo que le deja al código de la pelea usar
+    ; direccionamiento absoluto sobre su estado sin perder la RAM baja, que en
+    ; ese banco está en las mismas direcciones. Ver el comentario de
+    ; `FAR_BATALLA`.
+    phb
+    lda #$7E
+    pha
+    plb
+    jsl f:batalla_correr
+    plb
+    ; Los flancos que cerraron la pelea son de ella, como en la tienda y en el
+    ; menú: si no, el A con el que se cerró el último mensaje abriría lo que
+    ; haya en el mapa.
+    lda pad
+    sta pad_ant
+    lda pad_a
+    sta pad_a_ant
+    stz menu_abierto
+    lda boot_cuadros
+    sta nmi_visto
+    jsr volver_al_mapa
+    ply
+    ; Y apunta a la tropa; los tres destinos vienen detrás, de a palabra, en el
+    ; orden victoria, huida, derrota, que es el de `BATALLA_HANDLERS`.
+    lda f:BAT_LARGO + BA_RESULT
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    sty temp
+    clc
+    adc temp
+    inc a
+    inc a
+    tay
+    lda [cod_ptr], y            ; el destino, absoluto dentro de la página
+    tay
+    sep #$20
+.a8
+    jmp otro
+
 
 ; `OP_SONIDO`: el índice en `sonido_tabla`. Queda pendiente y arranca al
 ; final de `music_tick`, detrás de lo que la música escriba en el cuadro.
@@ -5111,6 +5288,7 @@ otra:
     sta MDMAEN
     rts
 .endproc
+
 
 ; La velocidad del héroe, en A. Sólo A: quien la pide está en medio de un paso
 ; con X e Y ocupados.
@@ -9170,13 +9348,15 @@ partida_tabla:
     .word FAR_ITEMS, ITEMS_N    ; el inventario
     .word FAR_ACCESO, 1         ; los permisos de guardar y del menú
     .word FAR_EQUIPO, ACTORES_N * 10    ; el equipo de cada actor
+    ; Y los HP de cada actor, que desde que hay batallas son estado de verdad.
+    .word FAR_HP, ACTORES_N * 2
     .word 0, 0
 ; Los mismos largos, sumados, para poder recorrer la partida en la SRAM sin
 ; volver a mirar la tabla. Está duplicado a propósito y **la ROM lo comprueba**:
 ; `guardar_partida` compara con lo que le quedó a `partida_copiar` y si no dan
 ; iguales entra en pánico. Duplicar un número que nadie verifica es la forma de
 ; error que este repo ya pagó tres veces.
-PARTIDA_BYTES = 2 + 2 + 1 + 2 + 2 + 1 + 6 + 3 + 1 + 5 + 3 + SWITCH_BYTES + 1 + 2 + VARIABLES_N * 2 + 1 + ITEMS_N + 1 + ACTORES_N * 10
+PARTIDA_BYTES = 2 + 2 + 1 + 2 + 2 + 1 + 6 + 3 + 1 + 5 + 3 + SWITCH_BYTES + 1 + 2 + VARIABLES_N * 2 + 1 + ITEMS_N + 1 + ACTORES_N * 10 + ACTORES_N * 2
 ; Dónde cae el grupo adentro de la partida: después de la posición, la
 ; dirección, la celda y el mapa. Lo lee la pantalla de ranuras desde la SRAM
 ; para poner el nombre del líder y las caras. Es la misma suma que arriba,
@@ -13451,6 +13631,108 @@ si_a:
     rts
 .endproc
 
+; --- la batalla -----------------------------------------------------------------
+;
+; `EnemyEncounter`, abierto por `OP_BATALLA` desde el intérprete: como la
+; tienda y como guardar, la pantalla bloquea adentro de la página, `vueltas` no
+; avanza mientras se ve y **no cuesta ningún tick**. Lo que la diferencia de
+; las otras dos es que el resultado **elige por dónde sigue la página**: el
+; opcode lleva los tres destinos y acá se le asigna al cursor el que toque.
+;
+; Las reglas —daño, acierto, crítico, varianza, orden de turnos, huida— salen
+; de easyrpg-player y están escritas dos veces: acá y en `tools/batalla.py`,
+; que es lo que le permite a `pruebas/test_batalla.py` predecir el número
+; exacto que cada HP va a tener. La pantalla es de texto, sobre negro, y su
+; referencia es `pantallas.pantalla_batalla`.
+;
+; **El código de la pelea no vive en el banco 0**: son unos dos kilobytes y en
+; el banco 0 quedaban trescientos bytes. Vive en RODATA —ver `batalla_correr`,
+; al final del archivo— y se entra con `jsl`. De allá para acá no se puede
+; volver con `jsr`, que no cambia el banco de programa, así que las rutinas del
+; banco 0 que la pelea necesita se llaman por estos puentes de cuatro bytes.
+; El banco de datos sigue siendo el 0 en los dos lados, así que un puente no
+; tiene que tocarlo: lo único que hace es cambiar de banco de programa y
+; volver.
+;
+; **Cada puente repone el banco de datos**, que del otro lado es $7E. No es un
+; detalle: `eq_parametro` lee `actor_params` y `ranura_ppu_prender` escribe
+; BG2SC, las dos con direccionamiento absoluto, y con el banco en $7E la
+; primera leería WRAM y la segunda escribiría en la RAM en vez del PPU. Costó
+; una tarde: los tres parámetros de cada actor salían en 999.
+;
+; `phk` acá empuja el banco de este código, que es el 0 porque el `jsl` llega
+; con una dirección de $00xxxx.
+ba_t_vblank:
+    phb
+    phk
+    plb
+    jsr wait_vblank
+    plb
+    rtl
+ba_t_pad:
+    phb
+    phk
+    plb
+    jsr read_pad
+    plb
+    rtl
+ba_t_subir:
+    phb
+    phk
+    plb
+    jsr pant_subir
+    plb
+    rtl
+ba_t_limpiar:
+    phb
+    phk
+    plb
+    jsr pant_limpiar
+    plb
+    rtl
+ba_t_texto:
+    phb
+    phk
+    plb
+    jsr pant_texto
+    plb
+    rtl
+ba_t_numero:
+    phb
+    phk
+    plb
+    jsr pant_numero
+    plb
+    rtl
+ba_t_glifo:
+    phb
+    phk
+    plb
+    jsr pant_glifo
+    plb
+    rtl
+ba_t_banco:
+    phb
+    phk
+    plb
+    jsr items_banco_subir
+    plb
+    rtl
+ba_t_ppu:
+    phb
+    phk
+    plb
+    jsr ranura_ppu_prender
+    plb
+    rtl
+ba_t_param:
+    phb
+    phk
+    plb
+    jsr eq_parametro
+    plb
+    rtl
+
 ; --- la lluvia ------------------------------------------------------------------
 ;
 ; `Game_Screen::UpdateRain` y `Weather::DrawRain`, con la regla de RM2k sobre
@@ -16420,7 +16702,7 @@ hay:
     asl a
     asl a
     clc
-    adc mapa_tabla + M_VRAM_SPRITE, x
+    adc f:mapa_tabla + M_VRAM_SPRITE, x   ; largo: `mapa_tabla` vive en RODATA
     sta f:ANIMB_VRAM
     sep #$20
 .a8
@@ -23551,6 +23833,2045 @@ write_dsp:
     pla
     inc music + 2
 done:
+    rts
+.endproc
+
+
+; ===========================================================================
+; La batalla, fuera del banco 0
+; ===========================================================================
+;
+; Son unos dos kilobytes de código y en el banco 0 quedaban trescientos bytes,
+; así que vive acá, en RODATA, y se entra con `jsl batalla_correr`. Lo que eso
+; obliga está en el comentario de los puentes `ba_t_*`, en el banco 0: desde
+; acá no se puede volver con `jsr`, porque `jsr` no cambia el banco de
+; programa.
+;
+; **El banco de datos es $7E mientras dura la pelea.** Lo pone `op_batalla`
+; antes del `jsl` y lo repone al volver. Es lo que le deja a este código usar
+; direccionamiento absoluto sobre su estado: `inc`, `stz`, `ldx` y `cpy` no
+; tienen modo largo, así que con `f:` cada uno pediría pasar por el
+; acumulador. Y no le cuesta nada a lo demás: en el banco $7E las direcciones
+; de $0000 a $1FFF **son** la RAM baja del banco 0, así que `temp`, `comp_*` y
+; `grupo` se leen igual que siempre.
+;
+; Lo que sí cambia son **las tablas de la ROM**, que van con `f:`: las de acá
+; porque viven en otro banco, y las del banco 0 —`actor_txt`— porque con el
+; banco de datos en $7E su dirección absoluta caería en la RAM.
+;
+; El escritorio, prestado como en la tienda —con el menú abierto no hay
+; mensaje que componer—:
+;   ba_diva   es temp        ; el dividendo, y después el cociente
+;   ba_divb   es temp + 2    ; el divisor
+;   ba_divr   es comp_and    ; el resto
+;   ba_mulp   es comp_or23   ; el parcial bajo del producto
+.segment "RODATA"
+.bloque 4096
+
+; Los HP de todos los actores llenos, a `FAR_HP`: el mismo DMA que el equipo,
+; desde `actor_hpmax`. Corre en el reset, antes de cargar la partida, que lo
+; pisa.
+;
+; Vive **fuera del banco 0** —se la llama con `jsl`— y por eso sus registros
+; van con `f:`: en el banco 0 quedaban setenta bytes libres y ésta son
+; cuarenta. Es el mismo motivo por el que la batalla entera vive allá.
+;
+; Existe desde que hay batallas. Hasta el 2026-09-12 los HP no eran estado —el
+; menú los mostraba llenos siempre y `ChangeHP` compilaba a nada— y ahora una
+; pelea los baja, así que tienen que arrancar en algún lado y viajar en la
+; partida. Que arranquen llenos es RM2k: `Game_Actor::Setup`.
+.proc hp_inicial_poner
+.a8
+.i16
+    rep #$20
+.a16
+    lda #FAR_HP
+    sta f:WMADDL
+    lda #<(actor_hpmax)
+    ora #(>(actor_hpmax) * 256)
+    sta f:A1T0L
+    lda #(ACTORES_N * 2)
+    sta f:DAS0L
+    sep #$20
+.a8
+    lda #0
+    sta f:WMADDH
+    lda #^(actor_hpmax)
+    sta f:A1B0
+    lda #0
+    sta f:DMAP0                 ; de A a B, de a un byte
+    lda #$80                    ; WMDATA
+    sta f:BBAD0
+    lda #$01
+    sta f:MDMAEN
+    rtl
+.endproc
+
+; El xorshift de la pelea, el mismo que `eventos.azar_siguiente` y que
+; `lluvia_azar`, pero sobre `BA_SEM`, que tiene **semilla propia**: pelear no
+; le corre el azar del mapa, que es lo que la referencia de pixeles supone
+; cuando dice que una batalla no cuesta ningún tick.
+.proc ba_azar
+.a16
+.i16
+    lda BA_SEM
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a
+    eor BA_SEM
+    sta BA_SEM
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    eor BA_SEM
+    sta BA_SEM
+    xba
+    and #$FF00
+    eor BA_SEM
+    sta BA_SEM
+    rts
+.endproc
+
+; `temp` dividido `temp + 2`: el cociente queda en `temp` y el resto en
+; `comp_and`. Desplazar y restar, dieciséis vueltas.
+;
+; Existe porque el divisor del hardware es de **ocho bits** y acá hay dos
+; divisiones que no entran: el ajuste de acierto por agilidad divide por dos
+; veces la agilidad —hasta 600 en este juego— y la varianza del daño, por el
+; ajuste, que llega a lo mismo. Hacerlas con el divisor del hardware pedía
+; recortar, y recortar cambia el número: los dos lados dejarían de dar igual.
+;
+; **El divisor tiene que ser menor que 32768**: el resto entra por un `rol` y
+; uno más grande se saldría por arriba. Ninguno de los que se usan se acerca.
+.proc ba_div
+.a16
+.i16
+    stz comp_and
+    ldy #16
+lazo:
+    asl temp
+    rol comp_and
+    lda comp_and
+    sec
+    sbc temp + 2
+    bcc no_entra
+    sta comp_and
+    inc temp                    ; el bit del cociente que acaba de entrar
+no_entra:
+    dey
+    bne lazo
+    lda temp
+    rts
+.endproc
+
+; A16 = n; vuelve con A16 = un número de 0 a n, inclusive. Es
+; `Rand::GetRandomNumber(0, n)` de easyrpg con nuestro azar: ver
+; `batalla.Azar.hasta`.
+.proc ba_hasta
+.a16
+.i16
+    inc a
+    sta temp + 2
+    jsr ba_azar
+    sta temp
+    jsr ba_div
+    lda comp_and
+    rts
+.endproc
+
+; A8 = el tanto por ciento; vuelve con A8 en 1 si salió y Z puesto según eso.
+; Es `Rand::PercentChance(int)`: `GetRandomNumber(0, 99) < rate`.
+.proc ba_pct
+.a8
+.i16
+    sta BA_T2
+    rep #$20
+.a16
+    lda #99
+    jsr ba_hasta
+    sta BA_T0
+    lda BA_T2
+    and #$00FF
+    cmp BA_T0                 ; C=1 si el tanto >= la tirada
+    sep #$20
+.a8
+    beq no                      ; iguales: la tirada no es menor
+    bcc no
+    lda #1
+    rts
+no:
+    lda #0
+    rts
+.endproc
+
+; A16 por el byte de `BA_T2`, en A16. Dos productos del hardware, que es de
+; ocho por ocho.
+;
+; Los registros van con `f:` y no absolutos: acá el banco de datos es $7E, así
+; que un `sta WRMPYA` pelado escribiría en la WRAM y el producto saldría de un
+; registro que nadie tocó. Costó una tarde y se veía como que todos los golpes
+; fallaban.
+.proc ba_mul
+.a16
+.i16
+    sta temp
+    sep #$20
+.a8
+    lda temp
+    sta f:WRMPYA
+    lda BA_T2
+    sta f:WRMPYB                  ; arranca: el producto tarda ocho ciclos
+    nop
+    nop
+    nop
+    nop
+    rep #$20
+.a16
+    lda f:RDMPYL
+    sta comp_or23
+    sep #$20
+.a8
+    lda temp + 1
+    sta f:WRMPYA
+    lda BA_T2
+    sta f:WRMPYB
+    nop
+    nop
+    nop
+    nop
+    rep #$20
+.a16
+    lda f:RDMPYL
+    xba                         ; por 256: el byte alto pesa eso
+    and #$FF00
+    clc
+    adc comp_or23
+    rts
+.endproc
+
+; A8 a X, con el byte de arriba en cero. Existe para no escribir `ldx` sobre
+; una variable de un byte: con los índices de dieciséis se llevaría el byte de
+; al lado, que es la trampa que AGENTS.md nombra.
+.proc ba_ax
+.a8
+.i16
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    rts
+.endproc
+
+; A8 = el combatiente; X = su desplazamiento adentro de `BA_UNO`. Son 18 bytes,
+; o sea dieciséis más dos: dos desplazamientos y una suma, sin tabla.
+.proc ba_x
+.a8
+.i16
+    rep #$20
+.a16
+    and #$00FF
+    sta temp
+    asl a
+    sta temp + 2                ; por dos
+    asl a
+    asl a
+    asl a                       ; por dieciséis
+    clc
+    adc temp + 2
+    tax
+    sep #$20
+.a8
+    rts
+.endproc
+
+; A8 = el combatiente; Z=0 si está vivo, o sea si la ranura existe y le quedan
+; HP. **No usa `pl*`**: la trampa de siempre.
+.proc ba_vivo
+.a8
+.i16
+    jsr ba_x
+    lda BA_UNO + BA_FLAGS, x
+    and #BAF_HAY
+    beq no
+    rep #$20
+.a16
+    lda BA_UNO + BA_HP, x
+    sep #$20
+.a8
+    beq no
+    lda #1
+    rts
+no:
+    lda #0
+    rts
+.endproc
+
+
+; --- armar la pelea -------------------------------------------------------
+;
+; El grupo en las ranuras 0 a 3 y la tropa en las 4 a 11. Que el lugar sea fijo
+; y no una lista compactada es lo que hace que un muerto se siga viendo en su
+; renglón, como en la pantalla.
+
+; El parámetro `A` —0 ataque, 1 defensa, 3 agilidad— del actor de `BA_S0`, en
+; `BA_T2`. Va por memoria y no por el acumulador a propósito: una rutina que
+; entra con A de ocho y sale con A de dieciséis deja al ensamblador creyendo
+; otra cosa, y el `lda #1` que viniera detrás se comería el opcode siguiente.
+; Ya pasó, y lo que se veía era un ataque de 999. Es `eq_parametro`, la misma que usa la pantalla de equipo: el del nivel
+; más lo que suma cada pieza, topado en [1, 999]. `comp_col + 1` en cero es "no
+; se está eligiendo nada", el camino simple de `eq_efectivo`. **Se lleva X.**
+.proc ba_param
+.a8
+.i16
+    sta comp_or01 + 2
+    stz comp_or01 + 3
+    stz comp_col + 1
+    lda BA_S0
+    sta comp_char
+    stz comp_char + 1
+    jsl f:ba_t_param
+    rep #$20
+.a16
+    lda comp_dup
+    sta BA_T2
+    sep #$20
+.a8
+    rts
+.endproc
+
+.proc ba_armar
+.a8
+.i16
+    ; Todas las ranuras vacías: la pantalla y los barridos miran `BAF_HAY`.
+    lda #0
+otra_ranura:
+    pha
+    jsr ba_x
+    lda #0
+    sta BA_UNO + BA_FLAGS, x
+    pla
+    inc a
+    cmp #BA_COMB_MAX
+    bcc otra_ranura
+    stz BA_NACT
+    stz BA_NENE
+
+    ; --- el grupo ---
+    lda #0
+    sta BA_S1                 ; el lugar en el grupo
+otro_actor:
+    rep #$20
+.a16
+    lda BA_S1
+    and #$00FF
+    cmp grupo_n
+    sep #$20
+.a8
+    bcc hay_lugar
+    jmp grupo_listo
+hay_lugar:
+    lda BA_S1
+    cmp #BA_GRUPO_MAX
+    bcc hay_ranura
+    jmp grupo_listo
+hay_ranura:
+    rep #$20
+.a16
+    lda BA_S1
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda grupo, x
+    bne con_actor
+    jmp siguiente_actor         ; una ranura del grupo sin nadie
+con_actor:
+    sta BA_S0                 ; el actor del LDB
+    ; Todo lo suyo a las palabras de paso: `ba_param` se lleva X, así que
+    ; primero se junta y después se escribe con X puesto de una sola vez.
+    rep #$20
+.a16
+    lda BA_S0
+    and #$00FF
+    asl a
+    tax
+    lda f:actor_hpmax, x
+    sta BA_S2                 ; los HP máximos del nivel
+    lda f:actor_txt, x
+    sta BA_S3                 ; y el número de texto de su nombre
+    lda FAR_HP, x
+    sta BA_S4                 ; los HP que trae la partida
+    sep #$20
+.a8
+    lda #0
+    jsr ba_param
+    rep #$20
+.a16
+    lda BA_T2
+    sta BA_S5                   ; el ataque
+    sep #$20
+.a8
+    lda #1
+    jsr ba_param
+    rep #$20
+.a16
+    lda BA_T2
+    sta BA_S6                   ; la defensa
+    sep #$20
+.a8
+    lda #3
+    jsr ba_param
+    rep #$20
+.a16
+    lda BA_T2
+    sta BA_T0                   ; la agilidad
+    sep #$20
+.a8
+    lda BA_S1
+    jsr ba_x
+    rep #$20
+.a16
+    lda BA_S2
+    sta BA_UNO + BA_HPMAX, x
+    lda BA_S4
+    sta BA_UNO + BA_HP, x
+    lda BA_S5
+    sta BA_UNO + BA_ATK, x
+    lda BA_S6
+    sta BA_UNO + BA_DEF, x
+    lda BA_T0
+    sta BA_UNO + BA_AGI, x
+    lda BA_S3
+    sta BA_UNO + BA_TXT, x
+    sep #$20
+.a8
+    lda #BA_ACIERTO_ACTOR
+    sta BA_UNO + BA_HIT, x
+    lda #0
+    sta BA_UNO + BA_CRIT, x   ; ningún actor del ABL tiene golpe crítico
+    lda BA_S0
+    sta BA_UNO + BA_NUMERO, x
+    lda #(BAF_HAY | BAF_ACTOR)
+    sta BA_UNO + BA_FLAGS, x
+    inc BA_NACT
+siguiente_actor:
+    inc BA_S1
+    jmp otro_actor
+grupo_listo:
+
+    ; --- la tropa ---
+    ; El bytecode lleva el número de RM2k, así que hay que buscarlo. Una tropa
+    ; que este cartucho no lleve es una pelea sin enemigos, y `batalla_correr`
+    ; la gana sola: es lo mismo que hace el conversor con un tema que no entró.
+    lda #0
+    sta BA_S1
+busca:
+    lda BA_S1
+    cmp #TROPAS_N
+    bcs sin_tropa
+    rep #$20
+.a16
+    lda BA_S1
+    and #$00FF
+    asl a
+    tax
+    lda f:tropa_id, x
+    cmp BA_TROPA
+    sep #$20
+.a8
+    beq la_tengo
+    inc BA_S1
+    bra busca
+sin_tropa:
+    rts
+la_tengo:
+    rep #$20
+.a16
+    lda BA_S1
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda f:tropa_n, x
+    sta BA_S2                 ; cuántos miembros
+    lda f:tropa_ini, x
+    sta BA_S3                 ; dónde arranca su lista
+    lda #0
+    sta BA_S1                 ; el lugar en la tropa
+otro_enemigo:
+    lda BA_S1
+    cmp BA_S2
+    bcc hay_miembro
+    jmp tropa_lista
+hay_miembro:
+    cmp #BA_ENEMIGOS_MAX
+    bcc hay_ranura_ene
+    jmp tropa_lista
+hay_ranura_ene:
+    rep #$20
+.a16
+    lda BA_S1
+    clc
+    adc BA_S3
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda f:tropa_miembro, x      ; el enemigo, como lugar en las tablas
+    sta BA_S0
+    ; Como con el actor: primero se junta todo y después se escribe, porque el
+    ; índice largo es X y hay dos tablas que recorrer con él.
+    rep #$20
+.a16
+    lda BA_S0
+    and #$00FF
+    asl a
+    tax
+    lda f:enemigo_hp, x
+    sta BA_S4
+    lda f:enemigo_atk, x
+    sta BA_S5
+    lda f:enemigo_def, x
+    sta BA_S6
+    lda f:enemigo_agi, x
+    sta BA_T0
+    lda f:enemigo_txt, x
+    sta BA_T1
+    sep #$20
+.a8
+    rep #$20
+.a16
+    lda BA_S0
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda f:enemigo_hit, x
+    sta BA_T2
+    lda f:enemigo_crit, x
+    sta BA_T2 + 1
+    lda BA_S1
+    clc
+    adc #BA_GRUPO_MAX
+    jsr ba_x
+    rep #$20
+.a16
+    lda BA_S4
+    sta BA_UNO + BA_HP, x
+    sta BA_UNO + BA_HPMAX, x
+    lda BA_S5
+    sta BA_UNO + BA_ATK, x
+    lda BA_S6
+    sta BA_UNO + BA_DEF, x
+    lda BA_T0
+    sta BA_UNO + BA_AGI, x
+    lda BA_T1
+    sta BA_UNO + BA_TXT, x
+    sep #$20
+.a8
+    lda BA_T2
+    sta BA_UNO + BA_HIT, x
+    lda BA_T2 + 1
+    sta BA_UNO + BA_CRIT, x
+    lda BA_S1
+    sta BA_UNO + BA_NUMERO, x
+    lda #BAF_HAY
+    sta BA_UNO + BA_FLAGS, x
+    inc BA_NENE
+    inc BA_S1
+    jmp otro_enemigo
+tropa_lista:
+    rts
+.endproc
+
+; --- el golpe -------------------------------------------------------------
+;
+; `Normal::vExecute` de easyrpg: **tres tiros en este orden** —acierto,
+; crítico y varianza— y el del crítico se hace aunque la chance sea cero. Ese
+; orden es el contrato con `tools/batalla.py`: cambiarlo de un lado desfasa el
+; azar del otro y no se ve hasta que un golpe da distinto.
+;
+; La fuente en `BA_MQUIEN` y el blanco en `BA_MBLA`. Deja el daño en
+; `BA_MDANO`, con $FFFF si el golpe falló, y le baja los HP al blanco.
+.proc ba_atacar
+.a8
+.i16
+    lda BA_MQUIEN
+    jsr ba_x
+    rep #$20
+.a16
+    txa
+    sta BA_S0                   ; el desplazamiento de la fuente
+    sep #$20
+.a8
+    lda BA_MBLA
+    jsr ba_x
+    rep #$20
+.a16
+    txa
+    sta BA_S1                   ; y el del blanco
+    sep #$20
+.a8
+
+    ; --- el acierto, con el ajuste por agilidad ---
+    ldx BA_S0
+    lda #100
+    sec
+    sbc BA_UNO + BA_HIT, x      ; X es el desplazamiento, ya de dieciséis
+    sta BA_T2                   ; 100 - acierto, que es el byte del producto
+    rep #$20
+.a16
+    lda BA_UNO + BA_AGI, x
+    bne agi_hay
+    lda #1                      ; `max(1, GetAgi())` de CalcToHitAgiAdjustment
+agi_hay:
+    sta BA_S2                   ; la agilidad de la fuente
+    ldx BA_S1
+    lda BA_UNO + BA_AGI, x
+    clc
+    adc BA_S2
+    jsr ba_mul                  ; (100 - acierto) * (agiF + agiB)
+    sta BA_S3
+    lda BA_S2
+    asl a
+    sta temp + 2                ; el divisor: dos veces la agilidad
+    ; Hacia arriba, que es lo que hace el truncado de easyrpg sobre `100 - x`:
+    ; ver `batalla.acierto_por_agilidad`.
+    lda BA_S3
+    clc
+    adc temp + 2
+    dec a
+    sta temp
+    jsr ba_div
+    sta BA_S3
+    lda #100
+    sec
+    sbc BA_S3
+    bpl acierto_listo
+    lda #0
+acierto_listo:
+    sep #$20
+.a8
+    jsr ba_pct
+    sta BA_S4                   ; 1 si pegó
+    beq crit_cero
+    lda BA_S0
+    jsr ba_ax
+    lda BA_UNO + BA_CRIT, x
+    bra crit_tira
+crit_cero:
+    lda #0
+crit_tira:
+    jsr ba_pct
+    sta BA_S5                   ; 1 si fue crítico
+    lda BA_S4
+    bne pega
+    rep #$20
+.a16
+    lda #$FFFF
+    sta BA_MDANO
+    sep #$20
+.a8
+    rts
+
+    ; --- el daño: max(0, atk / 2 - def / 4) ---
+pega:
+    rep #$20
+.a16
+    ldx BA_S0
+    lda BA_UNO + BA_ATK, x
+    lsr a
+    sta BA_S2
+    ldx BA_S1
+    lda BA_UNO + BA_DEF, x
+    lsr a
+    lsr a
+    cmp BA_S2
+    bcc hay_dano
+    lda #0
+    sta BA_S2
+    bra sin_varianza
+hay_dano:
+    sta BA_S3
+    lda BA_S2
+    sec
+    sbc BA_S3
+    sta BA_S2
+    sep #$20
+.a8
+    lda BA_S5
+    beq sin_critico
+    rep #$20
+.a16
+    ; El crítico triplica: `dmg *= 3`.
+    lda BA_S2
+    asl a
+    clc
+    adc BA_S2
+    sta BA_S2
+    sep #$20
+.a8
+sin_critico:
+    rep #$20
+.a16
+    ; La varianza de `VarianceAdjustEffect` con var = 4:
+    ;     adj = max(1, 4 * dmg / 10); dmg += rand(0, adj) - adj / 2
+    lda BA_S2
+    asl a
+    asl a
+    sta temp
+    lda #10
+    sta temp + 2
+    jsr ba_div
+    bne ajuste_listo
+    lda #1
+ajuste_listo:
+    sta BA_S3
+    jsr ba_hasta                ; A16 sigue siendo el ajuste
+    clc
+    adc BA_S2
+    sta BA_S2
+    lda BA_S3
+    lsr a
+    sta BA_S3
+    lda BA_S2
+    sec
+    sbc BA_S3
+    bpl varianza_listo
+    lda #0                      ; no puede pasar: 0,8 por el daño es positivo
+varianza_listo:
+    sta BA_S2
+sin_varianza:
+    sep #$20
+.a8
+    ; El que se defiende recibe la mitad: `AdjustDamageForDefend`.
+    ldx BA_S1
+    lda BA_UNO + BA_FLAGS, x
+    and #BAF_DEF
+    beq sin_defensa
+    rep #$20
+.a16
+    lda BA_S2
+    lsr a
+    sta BA_S2
+    sep #$20
+.a8
+sin_defensa:
+    rep #$20
+.a16
+    lda BA_S2
+    cmp #(BA_DANO_MAX + 1)
+    bcc dano_listo
+    lda #BA_DANO_MAX
+dano_listo:
+    sta BA_MDANO
+    ldx BA_S1
+    lda BA_UNO + BA_HP, x
+    sec
+    sbc BA_MDANO
+    bpl hp_listo
+    lda #0
+hp_listo:
+    sta BA_UNO + BA_HP, x
+    sep #$20
+.a8
+    rts
+.endproc
+
+; --- el turno -------------------------------------------------------------
+
+; Las acciones de los enemigos: cada uno vivo ataca a un actor vivo al azar.
+; Es `CreateEnemyActions`, con la única acción que los enemigos de las dos
+; peleas de la intro tienen —"básica: atacar"—. **Un tiro por enemigo**, y va
+; antes del orden de ejecución, que es como lo llama `SelectNextActor`.
+;
+; Si no queda ningún actor vivo se corta y los enemigos que faltaban se quedan
+; sin acción, que es el `break` de `batalla.acciones_de_los_enemigos`: sin eso
+; los dos lados tirarían distinta cantidad de veces.
+.proc ba_acciones_enemigas
+.a8
+.i16
+    lda #BA_GRUPO_MAX
+    sta BA_S0
+otro:
+    lda BA_S0
+    cmp #BA_COMB_MAX
+    bcs listo
+    lda BA_S0
+    jsr ba_vivo
+    beq siguiente
+    ; Los actores vivos, en una lista, para elegir uno.
+    lda #0
+    sta BA_S1                   ; cuántos hay
+    sta BA_S2
+busca:
+    lda BA_S2
+    cmp #BA_GRUPO_MAX
+    bcs buscados
+    lda BA_S2
+    jsr ba_vivo
+    beq no_vive
+    lda BA_S1
+    jsr ba_ax
+    lda BA_S2
+    sta BA_CAND, x
+    inc BA_S1
+no_vive:
+    inc BA_S2
+    bra busca
+buscados:
+    lda BA_S1
+    beq listo                   ; no queda nadie a quien pegarle
+    rep #$20
+.a16
+    lda BA_S1
+    and #$00FF
+    dec a
+    jsr ba_hasta
+    tax
+    sep #$20
+.a8
+    lda BA_CAND, x
+    sta BA_T0                   ; el blanco elegido
+    lda BA_S0
+    asl a
+    jsr ba_ax                   ; dos bytes de acción por combatiente
+    lda #BA_ATACAR
+    sta BA_ACC, x
+    lda BA_T0
+    sta BA_ACC + 1, x
+    lda BA_NACC
+    jsr ba_ax
+    lda BA_S0
+    sta BA_EJEC, x
+    inc BA_NACC
+siguiente:
+    inc BA_S0
+    bra otro
+listo:
+    rts
+.endproc
+
+; El orden de ejecución: `agi + rand(0, agi / 4 + 3)` por cada uno que actúa,
+; de mayor a menor y con un orden **estable**, que es lo que hace `std::sort`
+; sobre una lista que ya viene apilada en el orden en que se empujó. Es
+; `CreateExecutionOrder`. **Un tiro por acción**, en ese mismo orden: primero
+; el grupo y después la tropa.
+.proc ba_orden_ejecucion
+.a8
+.i16
+    lda #0
+    sta BA_S0
+tira:
+    lda BA_S0
+    cmp BA_NACC
+    bcs tirados
+    lda BA_S0
+    jsr ba_ax
+    lda BA_EJEC, x
+    jsr ba_x
+    rep #$20
+.a16
+    txa
+    sta BA_S1                   ; su desplazamiento
+    lda BA_UNO + BA_AGI, x
+    lsr a
+    lsr a
+    clc
+    adc #3
+    jsr ba_hasta
+    sta BA_T0
+    ldx BA_S1
+    lda BA_UNO + BA_AGI, x
+    clc
+    adc BA_T0
+    sta BA_UNO + BA_SORT, x
+    sep #$20
+.a8
+    inc BA_S0
+    bra tira
+tirados:
+    ; Y el orden, por inserción: son doce como mucho, y queda **estable** si
+    ; sólo se corre al que tiene arriba a uno estrictamente menor.
+    lda #1
+    sta BA_S0
+afuera:
+    lda BA_S0
+    cmp BA_NACC
+    bcs ordenado
+    lda BA_S0
+    jsr ba_ax
+    lda BA_EJEC, x
+    sta BA_S2                   ; el que se acomoda
+    jsr ba_x
+    rep #$20
+.a16
+    lda BA_UNO + BA_SORT, x
+    sta BA_S3
+    sep #$20
+.a8
+    lda BA_S0
+    sta BA_S1
+adentro:
+    lda BA_S1
+    beq poner
+    dec a
+    jsr ba_ax
+    lda BA_EJEC, x
+    jsr ba_x
+    rep #$20
+.a16
+    lda BA_UNO + BA_SORT, x
+    cmp BA_S3
+    sep #$20
+.a8
+    bcs poner                   ; el de arriba es mayor o igual: se queda ahí
+    lda BA_S1
+    dec a
+    jsr ba_ax
+    lda BA_EJEC, x
+    inx
+    sta BA_EJEC, x
+    dec BA_S1
+    bra adentro
+poner:
+    lda BA_S1
+    jsr ba_ax
+    lda BA_S2
+    sta BA_EJEC, x
+    inc BA_S0
+    bra afuera
+ordenado:
+    rts
+.endproc
+
+; --- la pantalla ----------------------------------------------------------
+;
+; De texto y sobre negro, en la misma grilla de 32 por 28 celdas que el equipo
+; y la tienda: `pantallas.pantalla_batalla` es la referencia y el conversor
+; emite las posiciones, así que la geometría la escribe **uno solo de los dos
+; lados**. Arriba los enemigos, abajo el grupo, y el último renglón es o el
+; menú de órdenes o los dos renglones del mensaje.
+
+; `BA_T1` = A16 + `BA_S0` por lo que mide un renglón: dónde arranca el renglón
+; número `BA_S0` de la lista que empieza en A16.
+.proc ba_fila
+.a16
+.i16
+    sta BA_T2
+    lda BA_S0
+    and #$00FF
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a
+    clc
+    adc BA_T2
+    sta BA_T1
+    rts
+.endproc
+
+; El cursor de escritura en la columna A16 del renglón `BA_T1`.
+.proc ba_ir
+.a16
+.i16
+    clc
+    adc BA_T1
+    sta eleg_tabla
+    rts
+.endproc
+
+; El renglón de un combatiente: su nombre y sus HP, en gris si está muerto.
+; A8 = el combatiente, `BA_T1` = dónde arranca su renglón, y el bit 0 de
+; `BA_CONMAX` dice si además van los HP máximos —o sea si es del grupo—.
+.proc ba_renglon
+.a8
+.i16
+    sta BA_S4
+    jsr ba_vivo
+    beq muerto
+    lda #0
+    bra variante
+muerto:
+    lda #1
+variante:
+    sta temp + 1
+    lda BA_S4
+    jsr ba_x
+    rep #$20
+.a16
+    txa
+    sta BA_S5                   ; su desplazamiento, que `pant_texto` pisa
+    lda #BA_NOMBRE_DX
+    jsr ba_ir
+    sep #$20
+.a8
+    lda #BA_NOMBRE_ANCHO
+    sta comp_dup + 3
+    ldx BA_S5
+    rep #$20
+.a16
+    lda BA_UNO + BA_TXT, x
+    tax
+    sep #$20
+.a8
+    jsl f:ba_t_texto
+    ; "HP"
+    rep #$20
+.a16
+    lda #BA_HP_DX
+    jsr ba_ir
+    sep #$20
+.a8
+    ldx #BA_TXT_HP
+    jsl f:ba_t_texto
+    ; y el número, de tres cifras, topado en 999 como en la referencia
+    rep #$20
+.a16
+    lda #BA_HP_NUM_DX
+    jsr ba_ir
+    ldx BA_S5
+    lda BA_UNO + BA_HP, x
+    cmp #1000
+    bcc hp_cabe
+    lda #999
+hp_cabe:
+    sta comp_dup
+    sep #$20
+.a8
+    lda #3
+    sta comp_dup + 2
+    jsl f:ba_t_numero
+    lda BA_CONMAX
+    and #$01
+    bne con_maximo
+    rts
+con_maximo:
+    rep #$20
+.a16
+    lda #BA_BARRA_DX
+    jsr ba_ir
+    sep #$20
+.a8
+    lda #$2F                    ; la barra entre los HP y su máximo
+    jsl f:ba_t_glifo
+    rep #$20
+.a16
+    lda #BA_HPMAX_DX
+    jsr ba_ir
+    ldx BA_S5
+    lda BA_UNO + BA_HPMAX, x
+    cmp #1000
+    bcc max_cabe
+    lda #999
+max_cabe:
+    sta comp_dup
+    sep #$20
+.a8
+    lda #3
+    sta comp_dup + 2
+    jsl f:ba_t_numero
+    rts
+.endproc
+
+; El cursor ">" al principio del renglón `BA_T1`.
+.proc ba_cursor
+.a8
+.i16
+    stz temp + 1
+    rep #$20
+.a16
+    lda #BA_CURSOR_DX
+    jsr ba_ir
+    sep #$20
+.a8
+    lda #$3E                    ; el cursor
+    jsl f:ba_t_glifo
+    rts
+.endproc
+
+; Un número sin espacios adelante, en `BA_T0`, donde diga `eleg_tabla`. Es lo
+; que hace easyrpg al armar el mensaje de daño, que pega el número al nombre
+; sin rellenar; `pant_numero` rellena, así que hay que decirle el ancho justo.
+.proc ba_numero_justo
+.a8
+.i16
+    rep #$20
+.a16
+    lda BA_T0
+    sta comp_dup
+    ldx #1
+    cmp #10
+    bcc ancho_listo
+    ldx #2
+    cmp #100
+    bcc ancho_listo
+    ldx #3
+ancho_listo:
+    sep #$20
+.a8
+    txa                         ; el ancho: con M en 8 sólo viaja el byte bajo
+    sta comp_dup + 2
+    stz temp + 1
+    jsl f:ba_t_numero
+    rts
+.endproc
+
+; El nombre del combatiente A8 donde diga `eleg_tabla`, entero.
+.proc ba_nombre
+.a8
+.i16
+    jsr ba_x
+    rep #$20
+.a16
+    lda BA_UNO + BA_TXT, x
+    tax
+    sep #$20
+.a8
+    lda #255
+    sta comp_dup + 3
+    stz temp + 1
+    jsl f:ba_t_texto
+    rts
+.endproc
+
+; Un término del juego —X ya puesto— donde diga `eleg_tabla`, entero.
+.proc ba_termino
+.a8
+.i16
+    lda #255
+    sta comp_dup + 3
+    stz temp + 1
+    jsl f:ba_t_texto
+    rts
+.endproc
+
+; Los dos renglones del mensaje, según `BA_MTIPO`. Todas las palabras salen
+; del LDB —`attacking`, `enemy_damaged`, `victory`...— y se arman como
+; `game_message_terms.cpp`: el nombre pegado al término, y en el de daño el
+; número en el medio. Ninguna es nuestra.
+.proc ba_mensaje
+.a8
+.i16
+    rep #$20
+.a16
+    lda #0
+    sta BA_T1
+    lda #BA_MSG_POS1
+    sta BA_T1
+    lda #BA_MSG_DX
+    jsr ba_ir
+    sep #$20
+.a8
+    lda BA_MTIPO
+    cmp #BA_MSG_ATAQUE
+    beq ataque
+    cmp #BA_MSG_DEFIENDE
+    beq defiende
+    cmp #BA_MSG_NO_HUYO
+    beq no_huyo
+    cmp #BA_MSG_HUYO
+    beq huyo
+    cmp #BA_MSG_VICTORIA
+    beq victoria
+    ldx #BA_TXT_DERROTA
+    jmp solo
+victoria:
+    ldx #BA_TXT_VICTORIA
+    jmp solo
+huyo:
+    ldx #BA_TXT_HUYO
+    jmp solo
+no_huyo:
+    ldx #BA_TXT_NO_HUYO
+solo:
+    jsr ba_termino
+    rts
+defiende:
+    lda BA_MQUIEN
+    jsr ba_nombre
+    ldx #BA_TXT_DEFIENDE
+    jsr ba_termino
+    rts
+ataque:
+    lda BA_MQUIEN
+    jsr ba_nombre
+    ldx #BA_TXT_ATACA
+    jsr ba_termino
+    ; El segundo renglón: el resultado sobre el blanco.
+    rep #$20
+.a16
+    lda #BA_MSG_POS2
+    sta BA_T1
+    lda #BA_MSG_DX
+    jsr ba_ir
+    sep #$20
+.a8
+    lda BA_MBLA
+    jsr ba_nombre
+    rep #$20
+.a16
+    lda BA_MDANO
+    cmp #$FFFF
+    sep #$20
+.a8
+    beq fallo
+    ; `<nombre> <daño> health lost.`
+    lda #$20                    ; el espacio entre el nombre y el número
+    jsl f:ba_t_glifo
+    rep #$20
+.a16
+    lda BA_MDANO
+    sta BA_T0
+    sep #$20
+.a8
+    jsr ba_numero_justo
+    lda BA_MBLA
+    cmp #BA_GRUPO_MAX
+    bcs es_enemigo
+    ldx #BA_TXT_DANO_ACTOR
+    bra dice
+es_enemigo:
+    ldx #BA_TXT_DANO_ENEMIGO
+dice:
+    jsr ba_termino
+    rts
+fallo:
+    lda BA_MBLA
+    cmp #BA_GRUPO_MAX
+    bcs falla_enemigo
+    ldx #BA_TXT_SIN_DANO_ACTOR
+    bra falla_dice
+falla_enemigo:
+    ldx #BA_TXT_SIN_DANO_ENEMIGO
+falla_dice:
+    jsr ba_termino
+    rts
+.endproc
+
+; La pantalla entera, en `texto_buf`. Es `pantallas.pantalla_batalla`.
+.proc ba_componer
+.a8
+.i16
+    lda #255
+    sta comp_dup + 3
+    jsl f:ba_t_limpiar
+    ; --- los enemigos ---
+    lda #0
+    sta BA_S0
+enemigo:
+    lda BA_S0
+    cmp BA_NENE
+    bcs enemigos_listos
+    rep #$20
+.a16
+    lda #BA_ENEMIGO_POS0
+    jsr ba_fila
+    sep #$20
+.a8
+    lda BA_MODO
+    cmp #BA_M_BLANCO
+    bne sin_cursor_ene
+    lda BA_S0
+    cmp BA_BLANCO
+    bne sin_cursor_ene
+    jsr ba_cursor
+sin_cursor_ene:
+    stz BA_CONMAX               ; un enemigo no muestra su máximo
+    lda BA_S0
+    clc
+    adc #BA_GRUPO_MAX
+    jsr ba_renglon
+    inc BA_S0
+    bra enemigo
+enemigos_listos:
+    ; --- el grupo ---
+    lda #0
+    sta BA_S0
+actor:
+    lda BA_S0
+    cmp BA_NACT
+    bcs actores_listos
+    rep #$20
+.a16
+    lda #BA_GRUPO_POS0
+    jsr ba_fila
+    sep #$20
+.a8
+    lda BA_MODO
+    cmp #BA_M_MENSAJE
+    bcs sin_cursor_act
+    lda BA_S0
+    cmp BA_ACTOR
+    bne sin_cursor_act
+    jsr ba_cursor
+sin_cursor_act:
+    lda #1
+    sta BA_CONMAX
+    lda BA_S0
+    jsr ba_renglon
+    inc BA_S0
+    bra actor
+actores_listos:
+    ; --- el último renglón ---
+    lda BA_MODO
+    cmp #BA_M_MENSAJE
+    bcc ordenes
+    jmp ba_mensaje
+ordenes:
+    rep #$20
+.a16
+    lda #BA_MSG_POS1
+    sta BA_T1
+    sep #$20
+.a8
+    lda #0
+    sta BA_S0
+orden:
+    lda BA_S0
+    cmp #3
+    bcs ordenes_listas
+    ; En gris mientras se elige el blanco: el menú ya no manda.
+    lda BA_MODO
+    cmp #BA_M_ORDEN
+    beq en_blanco
+    lda #1
+    bra pone_variante
+en_blanco:
+    lda #0
+pone_variante:
+    sta BA_S1
+    rep #$20
+.a16
+    lda BA_S0
+    and #$00FF
+    asl a
+    tax
+    lda f:ba_orden_dx, x
+    sta BA_T2
+    sep #$20
+.a8
+    lda BA_MODO
+    cmp #BA_M_ORDEN
+    bne sin_cursor_orden
+    lda BA_S0
+    cmp BA_ORDEN
+    bne sin_cursor_orden
+    stz temp + 1
+    rep #$20
+.a16
+    lda BA_T2
+    sec
+    sbc #2
+    jsr ba_ir
+    sep #$20
+.a8
+    lda #$3E                    ; el cursor
+    jsl f:ba_t_glifo
+sin_cursor_orden:
+    rep #$20
+.a16
+    lda BA_T2
+    jsr ba_ir
+    sep #$20
+.a8
+    lda BA_S1
+    sta temp + 1
+    lda #255
+    sta comp_dup + 3
+    rep #$20
+.a16
+    lda BA_S0
+    and #$00FF
+    clc
+    adc #BA_TXT_ATACAR
+    tax
+    sep #$20
+.a8
+    jsl f:ba_t_texto
+    inc BA_S0
+    jmp orden
+ordenes_listas:
+    rts
+.endproc
+
+; Dónde va cada orden en el renglón de abajo, en bytes del búfer. Sale del
+; conversor, que es el que también se lo pasa a la referencia.
+ba_orden_dx:
+    .word BA_ORDEN_DX0, BA_ORDEN_DX1, BA_ORDEN_DX2
+
+; --- el lazo de la pelea --------------------------------------------------
+
+; El promedio de agilidad de un lado: A8 en 0 el grupo y en 1 la tropa. Si no
+; queda nadie vivo cuentan todos, que es el `or list(quienes)` de
+; `batalla.Batalla._promedio`. El resultado va en `BA_T1`, topado en
+; `BA_AGI_TOPE`: por memoria y no por el acumulador, por lo mismo que
+; `ba_param`.
+.proc ba_promedio
+.a8
+.i16
+    sta BA_S6
+    ; Dos vueltas: la primera cuenta sólo a los vivos y, si no hubo ninguno,
+    ; la segunda cuenta a todos.
+    lda #1
+    sta BA_S5                   ; ¿sólo los vivos?
+vuelta:
+    rep #$20
+.a16
+    lda #0
+    sta BA_T0                   ; la suma
+    sep #$20
+.a8
+    lda #0
+    sta BA_S4                   ; cuántos
+    lda BA_S6
+    beq desde_el_grupo
+    lda #BA_GRUPO_MAX
+    sta BA_S0
+    lda BA_NENE
+    clc
+    adc #BA_GRUPO_MAX
+    sta BA_S3
+    bra suma
+desde_el_grupo:
+    lda #0
+    sta BA_S0
+    lda BA_NACT
+    sta BA_S3
+suma:
+    lda BA_S0
+    cmp BA_S3
+    bcs sumados
+    lda BA_S5
+    beq cuenta
+    lda BA_S0
+    jsr ba_vivo
+    beq siguiente
+cuenta:
+    lda BA_S0
+    jsr ba_x
+    rep #$20
+.a16
+    lda BA_UNO + BA_AGI, x
+    clc
+    adc BA_T0
+    sta BA_T0
+    sep #$20
+.a8
+    inc BA_S4
+siguiente:
+    inc BA_S0
+    bra suma
+sumados:
+    lda BA_S4
+    bne dividir
+    lda BA_S5
+    beq dividir                 ; ni vivos ni muertos: no hay nadie
+    stz BA_S5
+    bra vuelta
+dividir:
+    rep #$20
+.a16
+    lda BA_S4
+    and #$00FF
+    bne hay
+    lda #1
+hay:
+    sta temp + 2
+    lda BA_T0
+    sta temp
+    jsr ba_div
+    cmp #(BA_AGI_TOPE + 1)
+    bcc listo
+    lda #BA_AGI_TOPE
+listo:
+    sta BA_T1
+    sep #$20
+.a8
+    rts
+.endproc
+
+; La chance de escapar: `Scene_Battle::InitEscapeChance`.
+;
+;     base   = redondear(100 * agi_enemigos / agi_grupo)
+;     chance = recortar(150 - base, 0, 100)
+;
+; El redondeo es `(2a + b) / (2b)`, que es `RoundTo` con enteros y sin
+; flotantes: ver `batalla.Batalla._chance_de_huir`.
+.proc ba_chance_huir
+.a8
+.i16
+    lda #0
+    jsr ba_promedio
+    rep #$20
+.a16
+    lda BA_T1
+    bne grupo_hay
+    lda #1
+grupo_hay:
+    sta BA_S1                   ; el promedio del grupo
+    sep #$20
+.a8
+    lda #1
+    jsr ba_promedio
+    rep #$20
+.a16
+    lda BA_T1
+    sta BA_S2                   ; el de la tropa
+    lda #200
+    sta BA_T2
+    lda BA_S2
+    jsr ba_mul                  ; 200 por el promedio de la tropa
+    clc
+    adc BA_S1
+    sta temp
+    lda BA_S1
+    asl a
+    sta temp + 2
+    jsr ba_div                  ; A16 = la base
+    sta BA_S3
+    lda #150
+    sec
+    sbc BA_S3
+    bpl no_negativa
+    lda #0
+no_negativa:
+    cmp #101
+    bcc chance_lista
+    lda #100
+chance_lista:
+    sep #$20
+.a8
+    sta BA_HUIDA
+    rts
+.endproc
+
+; `TryEscape`: se tira contra la chance y, si falla, sube diez. Vuelve con A8
+; en 1 si se escapó.
+.proc ba_huir
+.a8
+.i16
+    lda BA_HUIDA
+    jsr ba_pct
+    bne salio
+    lda BA_HUIDA
+    clc
+    adc #10
+    cmp #101
+    bcc guarda
+    lda #100
+guarda:
+    sta BA_HUIDA
+    lda #0
+    rts
+salio:
+    lda #1
+    rts
+.endproc
+
+; El primer actor vivo desde `BA_ACTOR`, o A8 en $FF si no queda ninguno.
+.proc ba_actor_siguiente
+.a8
+.i16
+busca:
+    lda BA_ACTOR
+    cmp BA_NACT
+    bcs ninguno
+    lda BA_ACTOR
+    jsr ba_vivo
+    bne hay
+    inc BA_ACTOR
+    bra busca
+hay:
+    lda BA_ACTOR
+    rts
+ninguno:
+    lda #$FF
+    rts
+.endproc
+
+; El primer enemigo vivo, en A8, o $FF.
+.proc ba_enemigo_vivo
+.a8
+.i16
+    lda #0
+    sta BA_S0
+busca:
+    lda BA_S0
+    cmp BA_NENE
+    bcs ninguno
+    lda BA_S0
+    clc
+    adc #BA_GRUPO_MAX
+    jsr ba_vivo
+    bne hay
+    inc BA_S0
+    bra busca
+hay:
+    lda BA_S0
+    rts
+ninguno:
+    lda #$FF
+    rts
+.endproc
+
+; Le anota la orden A8 al actor `BA_ACTOR`, con el blanco de `BA_T0`, y la
+; apila en la lista de ejecución. El orden en que se apila **importa**: el
+; desempate del orden de turnos es estable, así que primero va el grupo y
+; después la tropa, como en `batalla.Batalla.jugar_turno`.
+.proc ba_anotar
+.a8
+.i16
+    sta BA_S1
+    lda BA_ACTOR
+    asl a
+    jsr ba_ax
+    lda BA_S1
+    sta BA_ACC, x
+    lda BA_T0
+    sta BA_ACC + 1, x
+    lda BA_NACC
+    jsr ba_ax
+    lda BA_ACTOR
+    sta BA_EJEC, x
+    inc BA_NACC
+    inc BA_ACTOR
+    rts
+.endproc
+
+; El mensaje de `BA_MTIPO` en pantalla, por `BA_MSG_CUADROS` cuadros o hasta
+; que alguien apriete A.
+.proc ba_mostrar
+.a8
+.i16
+    lda #BA_M_MENSAJE
+    sta BA_MODO
+    lda #BA_MSG_CUADROS
+    sta BA_ESPERA
+    jsr ba_componer
+    rts
+.endproc
+
+; El turno, ya con las órdenes del grupo anotadas: las de la tropa, el orden de
+; ejecución, y a ejecutar.
+.proc ba_empezar_turno
+.a8
+.i16
+    lda #0
+    sta BA_S0
+limpia:
+    lda BA_S0
+    jsr ba_x
+    lda BA_UNO + BA_FLAGS, x
+    and #(BAF_HAY | BAF_ACTOR)   ; sin BAF_DEF: la defensa dura un turno
+    sta BA_UNO + BA_FLAGS, x
+    inc BA_S0
+    lda BA_S0
+    cmp #BA_COMB_MAX
+    bcc limpia
+    jsr ba_acciones_enemigas
+    jsr ba_orden_ejecucion
+    lda #0
+    sta BA_I
+    jmp ba_ejecutar
+.endproc
+
+; El fin del turno: o se acabó la pelea, o se vuelve a pedir órdenes.
+.proc ba_fin_de_turno
+.a8
+.i16
+    jsr ba_enemigo_vivo
+    cmp #$FF
+    bne siguen
+    lda #BA_VICTORIA
+    sta BA_RESULT
+    lda #BA_MSG_VICTORIA
+    sta BA_MTIPO
+    bra termina
+siguen:
+    lda #0
+    sta BA_ACTOR
+    jsr ba_actor_siguiente
+    cmp #$FF
+    bne otro_turno
+    lda #BA_DERROTA
+    sta BA_RESULT
+    lda #BA_MSG_DERROTA
+    sta BA_MTIPO
+termina:
+    jsr ba_mostrar
+    lda #BA_M_FIN
+    sta BA_MODO
+    rts
+otro_turno:
+    lda #0
+    sta BA_NACC
+    sta BA_ORDEN
+    lda #BA_M_ORDEN
+    sta BA_MODO
+    jsr ba_componer
+    rts
+.endproc
+
+; La acción que sigue, salteando a los que murieron en el camino.
+.proc ba_ejecutar
+.a8
+.i16
+otra:
+    lda BA_I
+    cmp BA_NACC
+    bcc hay
+    jmp ba_fin_de_turno
+hay:
+    lda BA_I
+    jsr ba_ax
+    lda BA_EJEC, x
+    sta BA_MQUIEN
+    inc BA_I
+    lda BA_MQUIEN
+    jsr ba_vivo
+    beq otra
+    lda BA_MQUIEN
+    asl a
+    jsr ba_ax
+    lda BA_ACC, x
+    sta BA_S1                   ; la orden
+    lda BA_ACC + 1, x
+    sta BA_MBLA                 ; y el blanco
+    lda BA_S1
+    cmp #BA_DEFENDER
+    beq defiende
+    cmp #BA_HUIR
+    beq no_huyo
+    ; Atacar. Si el blanco murió antes de que le tocara, se reapunta al primero
+    ; vivo de ese lado, como hace `Game_BattleAlgorithm`.
+    lda BA_MBLA
+    jsr ba_vivo
+    bne pega
+    lda BA_MBLA
+    cmp #BA_GRUPO_MAX
+    bcs busca_enemigo
+    lda #0
+    sta BA_ACTOR
+    jsr ba_actor_siguiente
+    cmp #$FF
+    beq otra
+    sta BA_MBLA
+    bra pega
+busca_enemigo:
+    jsr ba_enemigo_vivo
+    cmp #$FF
+    beq otra
+    clc
+    adc #BA_GRUPO_MAX
+    sta BA_MBLA
+pega:
+    jsr ba_atacar
+    lda #BA_MSG_ATAQUE
+    sta BA_MTIPO
+    jmp ba_mostrar
+defiende:
+    lda BA_MQUIEN
+    jsr ba_x
+    lda BA_UNO + BA_FLAGS, x
+    ora #BAF_DEF
+    sta BA_UNO + BA_FLAGS, x
+    lda #BA_MSG_DEFIENDE
+    sta BA_MTIPO
+    jmp ba_mostrar
+no_huyo:
+    lda #BA_MSG_NO_HUYO
+    sta BA_MTIPO
+    jmp ba_mostrar
+.endproc
+
+; La pelea entera. Se entra con `jsl` desde `op_batalla`, con el banco de datos
+; ya en $7E, y se vuelve con el resultado en `BA_RESULT`.
+;
+; Corre **su propio lazo de cuadros**, como `ranuras_pantalla` y como la
+; tienda: `vueltas` no avanza mientras se ve, así que para la referencia la
+; pelea no cuesta ningún tick, tarde lo que tarde el jugador. Ver `OP_BATALLA`
+; en tools/eventos.py.
+.proc batalla_correr
+.a8
+.i16
+    rep #$20
+.a16
+    lda #BATALLA_SEMILLA
+    sta BA_SEM                  ; el azar arranca igual en toda pelea
+    sep #$20
+.a8
+    lda #BA_VICTORIA
+    sta BA_RESULT
+    lda #0
+    sta BA_NACC
+    sta BA_ORDEN
+    sta BA_ACTOR
+    sta BA_I
+    jsr ba_armar
+    lda BA_NENE
+    bne hay_tropa
+    rtl                         ; una tropa que este cartucho no lleva
+hay_tropa:
+    lda #0
+    sta BA_ACTOR
+    jsr ba_actor_siguiente
+    cmp #$FF
+    bne hay_grupo
+    lda #BA_DERROTA             ; nadie en pie: se pierde sin pelear
+    sta BA_RESULT
+    rtl
+hay_grupo:
+    jsr ba_chance_huir
+    ; Apagar la pantalla, desde acá: los tres registros van con `f:` porque el
+    ; banco de datos es $7E y absolutos caerían en la RAM.
+    lda #$80
+    sta f:INIDISP
+    lda #0
+    sta f:HDMAEN
+    sta f:TM
+    jsl f:ba_t_banco
+    lda #BA_M_ORDEN
+    sta BA_MODO
+    jsr ba_componer
+    jsl f:ba_t_subir
+    jsl f:ba_t_ppu
+    lda #1
+    sta menu_abierto
+
+espera:
+    jsl f:ba_t_vblank
+    jsl f:ba_t_pad                ; el control antes del DMA, como en la tienda
+    jsl f:ba_t_subir
+    lda pad
+    eor pad_ant
+    and pad
+    sta titulo_flancos
+    lda BA_MODO
+    cmp #BA_M_ORDEN
+    bne :+
+    jmp modo_orden
+:   cmp #BA_M_BLANCO
+    bne :+
+    jmp modo_blanco
+:   cmp #BA_M_MENSAJE
+    bne :+
+    jmp modo_mensaje
+:   jmp modo_fin
+
+    ; --- eligiendo la orden ---
+modo_orden:
+    lda titulo_flancos
+    and #PAD_LEFT
+    beq o_no_izq
+    lda BA_ORDEN
+    beq espera2
+    dec BA_ORDEN
+    jmp recomponer
+o_no_izq:
+    lda titulo_flancos
+    and #PAD_RIGHT
+    beq o_no_der
+    lda BA_ORDEN
+    cmp #2
+    bcs espera2
+    inc BA_ORDEN
+    jmp recomponer
+o_no_der:
+    jsr ba_flanco_a
+    beq espera2
+    lda BA_ORDEN
+    cmp #BA_ATACAR
+    bne o_no_ataca
+    jsr ba_enemigo_vivo
+    cmp #$FF
+    beq espera2
+    sta BA_BLANCO
+    lda #BA_M_BLANCO
+    sta BA_MODO
+    jmp recomponer
+o_no_ataca:
+    cmp #BA_DEFENDER
+    bne o_huye
+    lda #0
+    sta BA_T0
+    lda #BA_DEFENDER
+    jsr ba_anotar
+    jmp siguiente_actor
+o_huye:
+    jsr ba_huir
+    beq o_no_huyo
+    lda #BA_HUIDA_R
+    sta BA_RESULT
+    lda #BA_MSG_HUYO
+    sta BA_MTIPO
+    jsr ba_mostrar
+    lda #BA_M_FIN
+    sta BA_MODO
+    jmp espera
+o_no_huyo:
+    lda #0
+    sta BA_T0
+    lda #BA_HUIR
+    jsr ba_anotar
+    jmp siguiente_actor
+espera2:
+    jmp espera
+
+    ; --- eligiendo el blanco ---
+modo_blanco:
+    lda titulo_flancos
+    and #PAD_UP
+    beq b_no_arriba
+    jsr ba_blanco_arriba
+    jmp recomponer
+b_no_arriba:
+    lda titulo_flancos
+    and #PAD_DOWN
+    beq b_no_abajo
+    jsr ba_blanco_abajo
+    jmp recomponer
+b_no_abajo:
+    lda titulo_flancos
+    and #PAD_B
+    beq b_mira_a
+    lda #BA_M_ORDEN
+    sta BA_MODO
+    jmp recomponer
+b_mira_a:
+    jsr ba_flanco_a
+    beq espera2
+    lda BA_BLANCO
+    clc
+    adc #BA_GRUPO_MAX
+    sta BA_T0
+    lda #BA_ATACAR
+    jsr ba_anotar
+siguiente_actor:
+    ; Al que sigue; si no queda ninguno, empieza el turno.
+    jsr ba_actor_siguiente
+    cmp #$FF
+    beq arranca_turno
+    lda #0
+    sta BA_ORDEN
+    lda #BA_M_ORDEN
+    sta BA_MODO
+    jmp recomponer
+arranca_turno:
+    jsr ba_empezar_turno
+    jmp espera
+
+    ; --- un mensaje en pantalla ---
+modo_mensaje:
+    jsr ba_flanco_a
+    bne pasa
+    dec BA_ESPERA
+    bne espera3
+pasa:
+    jsr ba_ejecutar
+espera3:
+    jmp espera
+
+    ; --- la pelea terminó ---
+modo_fin:
+    jsr ba_flanco_a
+    beq espera3
+    ; Los HP del grupo vuelven a la partida: desde que hay batallas son estado
+    ; de verdad y viajan en la ranura de SRAM.
+    lda #0
+    sta BA_S0
+guarda:
+    lda BA_S0
+    cmp BA_NACT
+    bcs guardados
+    lda BA_S0
+    jsr ba_x
+    rep #$20
+.a16
+    lda BA_UNO + BA_HP, x
+    sta BA_T0
+    sep #$20
+.a8
+    lda BA_UNO + BA_NUMERO, x
+    jsr ba_ax
+    rep #$20
+.a16
+    txa
+    asl a
+    tax
+    lda BA_T0
+    sta FAR_HP, x
+    sep #$20
+.a8
+    inc BA_S0
+    bra guarda
+guardados:
+    rtl
+
+recomponer:
+    jsr ba_componer
+    jmp espera
+
+; Z=0 si A se acaba de apretar. Es el mismo de la tienda: `pad_a` y su anterior
+; los pone `read_pad`.
+ba_flanco_a:
+    lda pad_a
+    beq no_a
+    lda pad_a_ant
+    beq si_a
+no_a:
+    lda #0
+    rts
+si_a:
+    lda #1
+    rts
+
+; El cursor del blanco, al enemigo vivo de arriba o de abajo. Si para ese lado
+; no queda ninguno vivo, se queda donde está.
+ba_blanco_arriba:
+    lda BA_BLANCO
+mira_arriba:
+    beq nada
+    dec a
+    sta BA_S0
+    clc
+    adc #BA_GRUPO_MAX
+    jsr ba_vivo
+    bne pone
+    lda BA_S0
+    bra mira_arriba
+ba_blanco_abajo:
+    lda BA_BLANCO
+mira_abajo:
+    inc a
+    cmp BA_NENE
+    bcs nada
+    sta BA_S0
+    clc
+    adc #BA_GRUPO_MAX
+    jsr ba_vivo
+    bne pone
+    lda BA_S0
+    bra mira_abajo
+pone:
+    lda BA_S0
+    sta BA_BLANCO
+nada:
     rts
 .endproc
 

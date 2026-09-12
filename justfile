@@ -1411,6 +1411,56 @@ snes-anclada mapa="6" ruta="1 1 1 1 1 1 2 2 2 2 2 2" cuadros="21 23 50 130" arra
         --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
   done
 
+# La pantalla de batalla, contra `pantallas.py --batalla`.
+#
+# Es el hermano de `snes-guardar` y de `snes-tienda`: la pelea bloquea adentro
+# del intérprete y **no cuesta ningún tick**, así que no se puede comparar
+# contra `snes_expect.py` —de ese lado no hay nada dibujado, a propósito: ver
+# `OP_BATALLA` en tools/eventos.py—. Lo que se compara es la pantalla, contra
+# la misma función que la modela.
+#
+# La pelea se abre desde la página de prueba y no desde un evento del juego, y
+# el porqué está medido: de las 51 peleas del juego, la única que el jugador
+# alcanza hoy es la del droide del mapa 2. La de los Lazer Teeth del mapa 9
+# —la tropa 86, cuatro enemigos— **no compila**, y no por la batalla: la corta
+# un `MoveEvent` con la orden de ruta 9, "hacia el héroe", que la ROM no
+# camina. Sin esta receta, una tropa de más de un enemigo no la ejercitaría
+# nada.
+#
+# Los dos casos de la tanda:
+#
+#   batalla        la tropa 86 con el grupo de verdad: cuatro enemigos, tres
+#                  actores con sus HP y el menú de órdenes. Mira los dos lazos
+#                  de la pantalla —la lista de enemigos y la del grupo— y que
+#                  los parámetros de cada actor salgan de `eq_parametro`.
+#   batalla-blanco lo mismo con dos toques de abajo: el cursor de blanco sobre
+#                  el tercer enemigo, y las órdenes en gris. Ejercita el modo
+#                  que el otro no toca.
+#
+# **Verificado que dan rojo con un defecto puesto**: corriendo una celda el
+# `BA_HP_NUM_DX` que emite el conversor —o sea los HP en la columna de al
+# lado, y **sólo del lado de la ROM**, que es lo que hace que la comparación
+# mida algo— los dos dan 556 pixeles. Un caso que no falla con algo roto no
+# prueba nada.
+snes-batalla tropa="86" grupo="11 12 13" espera="20" cuadros="200" toques="" nombre="batalla":
+  #!/usr/bin/env bash
+  set -euo pipefail
+  mkdir -p {{snes_pngs}} {{snes_inc}}
+  toques="{{toques}}"
+  python3 tools/snes_convert.py --grupo {{grupo}} --map-id 6 --con-ventana \
+      --pagina-de-prueba {{espera}} 0 0 0 --batalla-de-prueba {{tropa}} \
+      -o {{snes_inc}}/mapdata.inc
+  just snes-build
+  pre={{snes_pngs}}/{{nombre}}
+  python3 tools/pantallas.py -o $pre.esperado.png --batalla {{tropa}} \
+      --grupo $(echo "{{grupo}}" | tr ' ' ',') \
+      ${toques:+--modo 1 --blanco 2}
+  python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre.png \
+      --cuadros {{cuadros}} --sin-contador --walk none \
+      ${toques:+--toques-hardware {{toques}}}
+  python3 tools/snes_compare.py $pre.png $pre.esperado.png \
+      -o $pre.comparacion.png
+
 # Cuánto destraba cada comando de evento que todavía no hacemos.
 #
 # Es lo que decide por dónde seguir, y existe porque el número que este repo
