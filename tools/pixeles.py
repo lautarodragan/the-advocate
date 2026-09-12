@@ -13,6 +13,7 @@ Drive" era en realidad media lógica compartida con un nombre que mentía.
 """
 
 import collections
+import sys
 
 CELL = 8
 
@@ -71,13 +72,41 @@ def try_pack(sets, limit, por_paleta=USABLE_COLORS):
 
 
 def luma_distance(a, b):
-    """Distancia entre colores de 9 bits, pesada como la percibe el ojo."""
-    return (0.30 * (a[0] - b[0]) ** 2 + 0.59 * (a[1] - b[1]) ** 2
-            + 0.11 * (a[2] - b[2]) ** 2)
+    """Distancia entre colores, pesada como la percibe el ojo.
+
+    Los pesos son los de la luma de siempre —0,30 / 0,59 / 0,11— multiplicados
+    por cien para que la cuenta sea **entera**. El orden que produce es el
+    mismo que con los coeficientes fraccionarios, y a cambio dos distancias
+    iguales comparan iguales: `merge_least_visible` multiplica esto por la
+    cuenta de píxeles y después ordena, y ahí un empate resuelto por el último
+    bit de un float es exactamente la clase de diferencia que separa a la ROM
+    de la referencia sin que nadie haya tocado nada.
+    """
+    return (30 * (a[0] - b[0]) ** 2 + 59 * (a[1] - b[1]) ** 2
+            + 11 * (a[2] - b[2]) ** 2)
 
 
-def merge_least_used(counts, keep, accept=None):
-    """Fusiona el color menos usado con su vecino más cercano, hasta que pase.
+def merge_least_visible(counts, keep, accept=None):
+    """Fusiona el par de colores que menos se note, hasta que pase.
+
+    "Lo que menos se note" es **cuántos píxeles se mueven por cuánto se
+    mueven**: el costo de mandar el color `a` al color `b` es
+    `pixeles(a) * luma_distance(a, b)`, que es el error que el cambio agrega a
+    la imagen. Se fusiona el par más barato, se suman los píxeles del que se
+    fue al que quedó, y se repite.
+
+    Antes el criterio era sólo `pixeles(a)`: se mataba al color menos usado sin
+    mirar a qué distancia estaba su vecino. Eso es lo que dejaba grises a Talan
+    y al save point. Un color puede cubrir pocos píxeles y aun así **definir el
+    dibujo** —un brillo, un ojo, el borde de un casco—, y mandarlo a diez de
+    distancia se ve; mientras tanto dos grises casi iguales que cubren media
+    lámina sobrevivían los dos porque ninguno era el menos usado. Con el costo
+    de arriba pasa justo al revés: los dos grises se funden en uno —cuesta
+    casi cero— y el brillo se queda, que es la entrada de CGRAM bien gastada.
+
+    No inventa colores: el que queda es siempre uno de los que ya estaban, así
+    que no hay que volver a cuantizar a 15 bits y no depende de la versión de
+    PIL. Y es determinista: el costo es entero y el desempate es por el color.
 
     `accept` decide cuándo parar: para el mapa es "los tiles entran en las
     paletas", para el sprite es "quedan 15 colores o menos". Devuelve el mapeo
@@ -85,29 +114,50 @@ def merge_least_used(counts, keep, accept=None):
     """
     mapping = {c: c for c in counts}
     merged = []
+    weight = collections.Counter(counts)
+    alive = set(counts)
+    # El vecino más barato de cada color vivo, y lo que cuesta mandarlo ahí.
+    # Se recalcula sólo para los que lo tenían al muerto —y para el que
+    # engordó—, que es lo que hace que esto no sea cúbico: las láminas del
+    # fondo llegan a trescientos colores y fusionan cien.
+    cerca = {}
+
+    def recalcular(color):
+        otros = alive - {color}
+        if not otros:
+            cerca.pop(color, None)
+            return
+        vecino = min(otros, key=lambda o: (luma_distance(color, o), o))
+        cerca[color] = (weight[color] * luma_distance(color, vecino), vecino)
+
+    for color in alive:
+        recalcular(color)
 
     while True:
         if accept is None:
-            if len(set(mapping.values())) <= keep:
+            if len(alive) <= keep:
                 return mapping, merged
         else:
             result = accept(mapping)
             if result is not None:
                 return mapping, merged, result
 
-        alive = set(mapping.values())
         if len(alive) <= 1:
             sys.exit("No se pudo reducir la paleta lo suficiente.")
 
-        weight = collections.Counter()
-        for original, current in mapping.items():
-            weight[current] += counts[original]
-        victim = min(alive, key=lambda c: (weight[c], c))
-        target = min(alive - {victim}, key=lambda c: (luma_distance(c, victim), c))
+        victim = min(alive, key=lambda c: (cerca[c][0], c, cerca[c][1]))
+        target = cerca[victim][1]
         for original, current in mapping.items():
             if current == victim:
                 mapping[original] = target
         merged.append((victim, target, weight[victim]))
+        weight[target] += weight[victim]
+        alive.discard(victim)
+        del cerca[victim]
+        recalcular(target)
+        for color in alive:
+            if color != target and cerca[color][1] == victim:
+                recalcular(color)
 
 
 def reduce_colors(grid, budget):
@@ -134,7 +184,7 @@ def reduce_colors(grid, budget):
         groups = try_pack(sets, budget)
         return (remap, groups) if groups is not None else None
 
-    mapping, merged, (remap, groups) = merge_least_used(counts, 0, accept)
+    mapping, merged, (remap, groups) = merge_least_visible(counts, 0, accept)
     return ([[remap[tile] for tile in row] for row in grid],
             groups, merged, counts)
 

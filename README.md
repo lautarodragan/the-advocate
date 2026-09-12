@@ -3367,6 +3367,85 @@ Y dejó dos cosas que valen aunque la rama no entre:
   tanda se aparta de la consola**: si algún día se compara color math, el caso
   va a `snes-bsnes`.
 
+**Menos el save point**, que desde el 2026-09-12 va **opaco**: está en
+`rm2k.SIN_TRAMA` y `lcf` no le pega el sufijo. Es una divergencia deliberada de
+RM2k y la referencia hace lo mismo, así que la comparación sigue midiendo. Se
+probaron los otros dos caminos y los dos se cayeron: con la trama, en una
+pantalla moderna se ve el damero y la llama queda agujereada; con el color math
+—que es transparencia de verdad— el objeto deja de animar y el héroe se ve **a
+través** del save point. Lo que hace que el tercero valga es que ahora tiene
+sus colores: contando sólo las poses que muestra son 13 y le sobra lugar en una
+paleta propia, contra los 41 del bloque entero y la paleta prestada de antes.
+
+#### Los quince colores de un sprite
+
+Un sprite va siempre a 4 bits, o sea 15 colores y el 0 transparente, y los
+CharSets de este juego tienen entre 20 y 48. Así que se fusiona, y **lo que
+importa no es cuántos entran sino cuáles 15**. taro lo reportó el 2026-09-12 en
+tres lugares a la vez: las caras de Talan y de Core grises en el menú, Talan
+gris en el mapa, y el save point "que en algún momento perdió uno o dos colores
+y pasó de azul/celeste/blanco a gris". Eran tres causas distintas.
+
+**El criterio de fusión.** `pixeles.merge_least_used` mataba al color con
+menos píxeles y lo mandaba a su vecino más cercano. Eso es exactamente al
+revés de lo que uno quiere: un color puede cubrir pocos píxeles y aun así
+definir el dibujo —un brillo, un ojo, el borde de un casco— y mandarlo a diez
+de distancia se ve, mientras que dos grises casi iguales que cubren media
+lámina sobrevivían los dos porque ninguno era el menos usado. Ahora es
+`merge_least_visible` y el costo de mandar `a` a `b` es
+`píxeles(a) * luma_distance(a, b)`, o sea el error que el cambio agrega: se
+fusiona el par más barato. No inventa colores —el que queda es uno de los que
+ya estaban, así que no hay que recuantizar a 15 bits y no depende de la versión
+de PIL— y es determinista, porque `luma_distance` pasó a ser entera. Medido
+como error por píxel opaco: Talan -61%, Core -63%, Kersh -23%, Manta -33%.
+
+Las caras del FaceSet usaban `titulo.reducir`, que se queda con los 15 más
+usados y manda el resto al más cercano. En 48x48 píxeles eso arrasa: los 15
+ganadores eran 15 variantes del mismo tono de piel. Ahora usan el mismo
+`merge_least_visible`, y el error por píxel baja 92% en la cara de Talan y 88%
+en la de Core. La pantalla de título sigue con `reducir`: son 240 colores de
+369 y ahí la diferencia no existe.
+
+**Contar sólo las poses que se ven.** `sprite_colors` recorría siempre el
+bloque de doce poses, aunque el evento muestre una. La deduplicación ya existía
+en tiles y en VRAM desde el 2026-09-05 y nunca había bajado al conteo de
+colores. Ahora `poses_del_mapa` dice qué puede mostrar cada gráfico —las doce
+para el que camina, el que gira hacia el héroe y el que cambia de gráfico con
+la 34; los **tres cuadros de su fila** para el que anima quieto, que cambia de
+columna y no de fila; la que declara su página para el resto— y `sprite_colors`
+cuenta sólo eso. El `mapping` que sale cubre igual todos los colores del
+bloque, mandando los de afuera al más cercano de los que quedaron, para que
+pedir una pose de más no sea un KeyError.
+
+Donde se gana es en los CharSets **editados**: los que conservan el gráfico
+original de RPG Maker en casi todo el bloque y tienen un dibujo nuevo, con
+colores ajenos, en un rincón. `savept` es eso, y por eso pasa de 41 colores a
+13. En un CharSet normal las doce poses son el mismo dibujo movido y comparten
+paleta, así que contar doce o contar tres da casi lo mismo.
+
+**El peso.** Un mapa con más gráficos que paletas no deja a nadie sin dibujar:
+al que llega último se le presta una ajena. Quién llegaba último era el orden
+de los eventos del mapa, o sea el azar, y en Lashe City el save point es el
+evento 66 de 68. Ahora un CharSet puede pesar —`PESO_DE_GRAFICO`— y el que pesa
+se sirve primero. Es una tabla escrita a mano y corta a propósito: no hay medida
+automática de "cuánto se ve" que no sea inventada, y la llena lo que taro
+reporta jugando.
+
+Medido sobre los 328 mapas del juego, contra el criterio viejo: los colores
+fusionados bajan de 45564 a 43237 (-5,1%), los gráficos que fusionan algo de
+2102 a 2036, **ningún gráfico fusiona más que antes**, ningún mapa se cae, no
+se descarta ni un evento de tile más, y las paletas de sprite usadas bajan de
+1274 a 1272. Los préstamos pasan de 101 a 102 y se mueven en tres mapas: el 8
+le da la suya al save point y se la saca a `People1:0`.
+
+**Y el cronómetro va antes que los eventos de tile.** Sus dos colores se meten
+ahora en la primera paleta con lugar **antes** de repartir los gráficos
+dibujados con un tile del chipset, que entran "mientras quepan". El orden era el
+revés por accidente: en el mapa 8 el tile 118, que son dos colores, se metía en
+la paleta del save point y la dejaba en catorce, y después había que bajarle un
+color a un personaje entero para hacerle lugar al cronómetro. Sirviéndolo antes
+no se fusiona nada.
+
 #### El giro hacia el héroe
 
 Desde el 2026-09-11 el NPC que el héroe dispara —con A o por contacto— se da

@@ -88,6 +88,38 @@ color math, implementado y descartado". Dejó dos cosas aprovechables —el cana
 de HDMA que apaga la mezcla sobre la ventana de mensaje, y que **snes9x redondea
 distinto que bsnes y mesen-s** en la suma de color math—.
 
+### Los quince colores de un sprite: elegidos de nuevo (2026-09-12)
+
+taro reportó tres síntomas —las caras de Talan y Core grises, Talan gris, y el
+save point que *"pasó de azul/celeste/blanco a gris"*— y eran tres causas
+distintas, las tres arregladas. El porqué durable está en el README, "Los
+quince colores de un sprite": el criterio de fusión pasó a ser **el par que
+menos se note** en vez del color menos usado, la paleta se cuenta sobre **las
+poses que el evento puede mostrar** y no sobre las doce del bloque, y un CharSet
+puede **pesar** para que no le toque la paleta prestada.
+
+Medido sobre los 328 mapas: **-5,1% de colores fusionados, ningún gráfico
+fusiona más que antes, ningún mapa se cae.** Error por pixel opaco: Talan -61%,
+Core -63%, y las caras, que venían por un camino peor, entre -75% y -92%.
+
+Lo que queda abierto:
+
+* **Quién más merece peso.** `PESO_DE_GRAFICO` tiene dos renglones —`savept` y
+  `Future1`— y se llena con lo que taro vea jugando. En el mapa 8, darle su
+  paleta al save point se la saca a `People1:0`; si eso molesta más, es cambiar
+  un renglón.
+* **La referencia ignora los `topes` del cronómetro.** `snes_expect.pose_image`
+  cuantiza siempre a quince colores, pero en un mapa que llene las ocho paletas
+  el conversor puede bajar a un personaje a catorce para hacerle lugar al
+  cronómetro. **Es anterior a todo esto y ninguna prueba lo cubre**: los casos
+  con cronómetro de la tanda no caen en ese mapa. Hoy en `demo-ciudad` pasa una
+  sola vez —`People4:4`—, pero es una discrepancia ROM/referencia por diseño y
+  conviene cerrarla.
+* **Contar un cuadro en vez de tres en los quietos: descartado con el número.**
+  taro lo descartó el 2026-09-12 razonando que no daría nada, y la medición
+  sobre los 61 casos del juego que animan quietos le dio la razón: **cero**
+  diferencia de colores.
+
 ### El MSU-1 (2026-09-12)
 
 Los ocho temas de las demos salen de pistas PCM al lado de la ROM. El porqué y

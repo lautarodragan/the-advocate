@@ -44,7 +44,7 @@ import lcf
 import rm2k
 
 # Los eventos translúcidos llevan su propio gráfico: ver
-# `rm2k.decorar_translucido` —horneado contra el fondo, o tramado—.
+# `rm2k.decorar_translucido` —horneado contra el fondo, tramado, u opaco—.
 lcf.DECORAR_TRANSLUCIDO = rm2k.decorar_translucido
 import imagen
 import pixeles
@@ -324,60 +324,37 @@ def pose_origin(index, pose):
             (index // 4) * SPRITE_H * 4 + (pose // 3) * SPRITE_H)
 
 
-def sprite_colors(image, index):
-    """Los colores del personaje, con cuántos pixeles usa cada uno."""
+TODAS_LAS_POSES = frozenset(range(SPRITE_POSES))
+
+
+def sprite_colors(image, index, poses=None):
+    """Los colores del personaje, con cuántos pixeles usa cada uno.
+
+    `poses` son las que el evento puede llegar a mostrar. **Contar las doce
+    cuando se ve una es regalar entradas de CGRAM**: el save point de Lashe
+    City anima mirando para arriba y nada más, y sus doce poses juntas tienen
+    41 colores contra los 13 de esos tres cuadros. Los 26 de diferencia se
+    fusionaban todos, y lo primero que caía era el azul y el blanco del brillo
+    —pocos píxeles cada uno— contra los grises que cubren el resto del bloque.
+
+    Quién puede mostrar qué lo decide `poses_del_mapa`, que es la misma pasada
+    que ya elegía a quién le van las doce poses al cartucho: la optimización
+    existía en tiles y en VRAM desde el 2026-09-05 y nunca había bajado al
+    conteo de colores. `None` es "las doce", que es lo que corresponde a quien
+    camina, anima quieto, gira hacia el héroe o cambia de gráfico con la 34.
+    """
     base_x = (index % 4) * SPRITE_W * 3
     base_y = (index // 4) * SPRITE_H * 4
     counts = collections.Counter()
-    for y in range(SPRITE_H * 4):
-        for x in range(SPRITE_W * 3):
-            red, green, blue, alpha = image.getpixel((base_x + x, base_y + y))
-            if alpha:
-                counts[(red >> 3, green >> 3, blue >> 3)] += 1
+    for pose in (sorted(TODAS_LAS_POSES) if poses is None else sorted(poses)):
+        ox = base_x + (pose % 3) * SPRITE_W
+        oy = base_y + (pose // 3) * SPRITE_H
+        for y in range(SPRITE_H):
+            for x in range(SPRITE_W):
+                red, green, blue, alpha = image.getpixel((ox + x, oy + y))
+                if alpha:
+                    counts[(red >> 3, green >> 3, blue >> 3)] += 1
     return counts
-
-
-def build_sprite(image, index=0):
-    """Las 12 poses del personaje como tiles de 4 bits, más su paleta.
-
-    Devuelve (tiles, paleta, cuántos colores se fusionaron).
-    """
-    counts = sprite_colors(image, index)
-    if len(counts) <= OBJ_COLORS:
-        mapping = {c: c for c in counts}
-        merged = []
-    else:
-        mapping, merged = pixeles.merge_least_used(counts, OBJ_COLORS)
-    palette = sorted(set(mapping.values()))
-    lookup = {color: i + 1 for i, color in enumerate(palette)}
-
-    # Cada pose es un bloque de 4x4 tiles dentro de una grilla de 16 de ancho,
-    # así que entran cuatro poses por fila de bloques y hacen falta tres filas.
-    block_rows = (SPRITE_POSES + 3) // 4
-    tiles = bytearray(block_rows * 4 * OBJ_ROW * 32)
-    for pose in range(SPRITE_POSES):
-        ox, oy = pose_origin(index, pose)
-        block = (pose // 4) * 4 * OBJ_ROW + (pose % 4) * 4
-        for ty in range(4):
-            for tx in range(4):
-                cell = []
-                for y in range(CELL):
-                    row = []
-                    for x in range(CELL):
-                        # La pose de 24 se centra en el objeto de 32.
-                        sx = tx * CELL + x - (OBJ_W - SPRITE_W) // 2
-                        sy = ty * CELL + y
-                        if 0 <= sx < SPRITE_W and 0 <= sy < SPRITE_H:
-                            r, g, b, a = image.getpixel((ox + sx, oy + sy))
-                            row.append(lookup[mapping[(r >> 3, g >> 3, b >> 3)]]
-                                       if a else 0)
-                        else:
-                            row.append(0)
-                    cell.append(tuple(row))
-                number = block + ty * OBJ_ROW + tx
-                tiles[number * 32:(number + 1) * 32] = pack_tile(tuple(cell),
-                                                                planes=4)
-    return bytes(tiles), palette, len(merged)
 
 
 # --- los NPCs ---------------------------------------------------------------
@@ -399,7 +376,7 @@ def block_tile(block):
     return (block // BLOCKS_PER_ROW) * 64 + (block % BLOCKS_PER_ROW) * 4
 
 
-def paleta_del_personaje(image, index, tope=None):
+def paleta_del_personaje(image, index, tope=None, poses=None):
     """La paleta de un personaje, y cómo mapear cada color a su índice.
 
     Es la misma cuenta para la imagen que va a VRAM y para el banco de poses
@@ -413,14 +390,30 @@ def paleta_del_personaje(image, index, tope=None):
     mapa; acá sólo se obedece. Si el conversor lo eligiera acá, dos llamadas
     para el mismo personaje podrían dar paletas distintas y las poses del
     cartucho no coincidirían con la CGRAM.
+
+    `poses` son las que el evento puede mostrar: **los quince colores se
+    eligen mirando sólo ésas**, que es de donde sale casi toda la ganancia de
+    color del save point. Lo mismo que `tope`, lo decide `npcs_dibujables` y
+    acá sólo se obedece.
+
+    El `mapping` que se devuelve cubre igual **todos** los colores del bloque
+    de doce poses, no sólo los de `poses`: los que quedaron afuera del conteo
+    van al más cercano de los que sobrevivieron. No es adorno defensivo —es lo
+    que hace que `pose_tiles` no se caiga con un KeyError si alguien pide una
+    pose de más—, y cuesta una cuenta por color.
     """
     tope = OBJ_COLORS if tope is None else tope
-    counts = sprite_colors(image, index)
+    counts = sprite_colors(image, index, poses)
     if len(counts) <= tope:
         mapping = {c: c for c in counts}
     else:
-        mapping, _ = pixeles.merge_least_used(counts, tope)
+        mapping, _ = pixeles.merge_least_visible(counts, tope)
     palette = sorted(set(mapping.values()))
+    if poses is not None and palette:
+        for color in sprite_colors(image, index):
+            if color not in mapping:
+                mapping[color] = min(
+                    palette, key=lambda p, c=color: (pixeles.luma_distance(p, c), p))
     lookup = {color: i + 1 for i, color in enumerate(palette)}
     return palette, lookup, mapping
 
@@ -507,8 +500,132 @@ def aviso_de_descarte(args, texto, peligroso):
         "Si es lo que se quiere, `--descartar-eventos` deja seguir y los marca." % texto)
 
 
+# --- el peso de un gráfico --------------------------------------------------
+#
+# Cuando un mapa tiene más personajes que paletas de sprite, el que llega
+# último **no se queda sin dibujar**: se le presta una ajena y se lo dibuja con
+# los colores de otro (ver `cabe`). Quién llega último era el orden de los
+# eventos del mapa, o sea el azar: en Lashe City el save point es el evento 66
+# de 68 y por eso salía con la paleta de otro. taro lo describió como "en
+# algún momento perdió uno o dos colores y pasó de azul/celeste/blanco a gris",
+# y no era la fusión: era que no tenía paleta propia.
+#
+# Así que un gráfico puede pesar, y el que pesa se sirve primero. Es una tabla
+# escrita a mano y corta a propósito: no hay una medida automática de "cuánto
+# se ve" que no sea inventarse una —un evento decorativo puede estar en pantalla
+# todo el juego y un personaje central aparecer un minuto—, y una tabla de dos
+# renglones se revisa de un vistazo. Lo que la llena es lo que taro reporta
+# jugando.
+#
+# El sufijo `~trama` de los translúcidos no cuenta: el peso es del dibujo.
+PESO_DE_GRAFICO = {
+    # El save point: está en cada ciudad, es con lo que se guarda la partida, y
+    # su azul contra el blanco del brillo es todo lo que tiene.
+    "savept": 2,
+    # Los cuatro de Future1 —Talan, Core, Manta, Kersh—. Casi siempre son
+    # líderes, y al líder ya se le fuerza paleta; esto los cubre en los mapas
+    # donde además andan como NPC.
+    "Future1": 1,
+}
+
+
+def peso_de_grafico(charset):
+    """Cuánto pesa un CharSet a la hora de repartir las paletas de sprite."""
+    return PESO_DE_GRAFICO.get((charset or "").split(rm2k.TRAMA_SUFIJO)[0], 0)
+
+
+def fila_de_pose(pose):
+    """Los tres cuadros del ciclo de caminata de la dirección de `pose`.
+
+    Un evento que anima quieto cambia de columna y **nunca de fila**: la ROM
+    arma su pose como `mirada_de_fila * 3 + columna` en `animar_quietos`, así
+    que de las doce sólo puede mostrar estas tres.
+    """
+    return frozenset(range(pose // 3 * 3, pose // 3 * 3 + 3))
+
+
+def poses_del_mapa(renderer, game_map, lideres, movibles=(), giran=(),
+                   graficos_de_ruta=(), anima_quieto=()):
+    """Qué poses puede llegar a mostrar cada (CharSet, índice) en este mapa.
+
+    De acá sale la paleta de cada personaje: quince colores elegidos sobre lo
+    que se ve y no sobre las doce poses del bloque. La lista de quién necesita
+    las doce es **la misma** que ya decidía qué poses van al cartucho y a la
+    VRAM —ver `eventos_movibles` y el armado de `ranuras` en `convertir`—, y
+    tiene que serlo: una pose que la ROM sube y la paleta no contó se dibuja
+    con colores que no son los suyos.
+
+    Llevan las doce:
+
+    * los candidatos a líder, porque el héroe camina;
+    * los eventos de `movibles` que **caminan**;
+    * los gráficos de `giran`, porque el que se da vuelta hacia el héroe puede
+      terminar en cualquiera de las cuatro direcciones;
+    * los gráficos de la orden 34, que después del cambio siguen caminando.
+
+    El que **anima quieto** se queda con los tres cuadros de su dirección, que
+    es lo único que `animar_quietos` puede poner en pantalla: cambia de columna
+    y no de fila. Ahí está el save point de Lashe City, que taro vio gris: sus
+    doce poses tienen 41 colores y los tres cuadros que muestra, 13. `savept`
+    es un CharSet **editado** —el dibujo original de RPG Maker en casi todo el
+    bloque y un dibujo nuevo, con colores propios, en un rincón—, y en ésos las
+    doce poses no comparten paleta. En uno normal contar doce o contar tres da
+    casi lo mismo.
+
+    El resto se queda con la pose que declara su página, más la de cada página
+    si el gráfico las sigue: son exactamente las ranuras de VRAM que el mapa le
+    reserva, ni una más.
+
+    Un mismo (CharSet, índice) puede ser de un quieto y de uno que camina a la
+    vez —y entre mapas de la misma ROM, también—: se acumula la unión, que es
+    lo que hace que la cuenta no dependa del orden en que se recorran.
+    """
+    poses = {}
+
+    def sumar(clave, cuales):
+        anterior = poses.get(clave)
+        poses[clave] = TODAS_LAS_POSES if (anterior is TODAS_LAS_POSES
+                                           or cuales is TODAS_LAS_POSES) \
+            else frozenset(anterior or ()) | frozenset(cuales)
+
+    for actor in lideres:
+        a = renderer.database.actors[actor]
+        sumar((a.charset, a.charset_index), TODAS_LAS_POSES)
+    for pares in (giran.values() if hasattr(giran, "values") else giran):
+        for par in pares:
+            sumar(tuple(par), TODAS_LAS_POSES)
+    for par in graficos_de_ruta:
+        sumar(tuple(par), TODAS_LAS_POSES)
+    for npc in collect_npcs(game_map):
+        clave = (npc["charset"], npc["index"])
+        # Anima quieto y no camina: los tres cuadros de su fila. Si además está
+        # en `giran` ya se llevó las doce más arriba, así que el giro no se
+        # queda sin colores.
+        quieto_animado = (npc["evento"] in anima_quieto
+                          and npc["evento"] in movibles)
+        if quieto_animado:
+            propias = fila_de_pose(npc["pose"])
+        elif npc["evento"] in movibles:
+            propias = TODAS_LAS_POSES
+        else:
+            propias = frozenset((npc["pose"],))
+        sumar(clave, propias)
+        if npc["cambia"]:
+            for grafico in npc["graficos"]:
+                if grafico is not None:
+                    # Un evento que camina y además cambia de gráfico pierde el
+                    # cambio —gana caminar, ver `convertir`—, pero el gráfico de
+                    # la página igual pide paleta acá, así que se le cuenta la
+                    # pose que declara.
+                    sumar(grafico[:2],
+                          fila_de_pose(grafico[2]) if quieto_animado
+                          else TODAS_LAS_POSES if npc["evento"] in movibles
+                          else (grafico[2],))
+    return poses
+
+
 def npcs_dibujables(renderer, game_map, lideres, tope, graficos_de_ruta=(),
-                    timer_colores=(), solo_aqui=None):
+                    timer_colores=(), solo_aqui=None, poses=None):
     """Los NPCs del mapa que se dibujan: todos los que tienen CharSet, y los
     dibujados con un tile del chipset **que entren** en las paletas de sprite.
 
@@ -554,10 +671,15 @@ def npcs_dibujables(renderer, game_map, lideres, tope, graficos_de_ruta=(),
     # héroe es el que destella en este juego y es el único que se puede saber
     # acá. Si aparece un destello sobre otro evento, va a filtrar igual.
     de_lider = set()
+    # Qué poses puede mostrar cada gráfico, que es sobre lo que se eligen sus
+    # quince colores. Sin él —la referencia vieja, o un llamador que no lo
+    # pase— son las doce de siempre.
+    poses = dict(poses or {})
 
     def cabe(charset, index, forzar, lider=False):
         palette, _, _ = paleta_del_personaje(renderer.charsets.get(charset),
-                                             index)
+                                             index,
+                                             poses=poses.get((charset, index)))
         for numero, existente in enumerate(paletas):
             if numero in de_lider and not lider:
                 continue
@@ -651,7 +773,9 @@ def npcs_dibujables(renderer, game_map, lideres, tope, graficos_de_ruta=(),
     #
     # El único que sigue forzado es el líder: el héroe está en pantalla todo el
     # tiempo y es a quien más se le notaría.
-    for npc in npcs:
+    #
+    # El orden es el del mapa, **salvo los que tienen peso**: ver `PESO_DE_GRAFICO`.
+    for npc in sorted(npcs, key=lambda n: -peso_de_grafico(n["charset"])):
         for clave in claves(npc):
             if clave not in vistos and not clave[0].startswith(rm2k.TILE_PREFIX):
                 vistos.add(clave)
@@ -668,6 +792,27 @@ def npcs_dibujables(renderer, game_map, lideres, tope, graficos_de_ruta=(),
                 renderer.charsets.get(clave[0]), clave[1]):
             vistos.add(clave)
             cabe(clave[0], clave[1], False)
+    # El cronómetro **antes que los eventos dibujados con un tile del chipset**.
+    # Sus dos colores van a la primera paleta con lugar y quedan reservados ahí;
+    # `digitos_del_timer` después los encuentra puestos y no agrega nada.
+    #
+    # El orden importa y hasta ahora era el revés por accidente. Un evento de
+    # tile entra "mientras quepa" —así está escrito unas líneas más abajo, y el
+    # que no entra no se dibuja—, mientras que el cronómetro es HUD y está en
+    # pantalla siempre. En el mapa 8 el tile 118 del chipset, que son dos
+    # colores, se metía en la paleta del save point y la dejaba en catorce: el
+    # cronómetro ya no entraba en ninguna y había que bajarle un color a un
+    # personaje entero para hacerle lugar. Sirviéndolo antes, no se fusiona
+    # nada y el tile se acomoda en otra paleta.
+    if timer_colores:
+        for numero, existente in enumerate(paletas):
+            if numero in de_lider:
+                continue        # ésas las pisa la ROM con los colores del líder
+            union = existente + [c for c in timer_colores if c not in existente]
+            if len(union) <= OBJ_COLORS:
+                paletas[numero] = union
+                break
+
     entran, afuera, salida, descartados = set(), set(), [], []
     for npc in npcs:
         for clave in claves(npc):
@@ -725,26 +870,32 @@ def npcs_dibujables(renderer, game_map, lideres, tope, graficos_de_ruta=(),
             if n in de_lider or solos[n] != 1 or clave[0].startswith(
                     rm2k.TILE_PREFIX):
                 continue
-            # Y sólo si no está en ningún otro mapa de la ROM: el banco de poses
-            # es global, así que cuantizarlo distinto acá que allá no da una
-            # imagen fea sino un corte al emitir.
-            if solo_aqui is not None and clave not in solo_aqui:
-                continue
-            cuenta = sprite_colors(renderer.charsets.get(clave[0]), clave[1])
+            # Los que están en otro mapa de la ROM van **últimos**, no afuera:
+            # el banco de poses es global, así que cuantizarlo distinto acá que
+            # allá le cuesta al cartucho un banco más, 6 KB. Hasta el
+            # 2026-09-12 quedaban excluidos y alcanzaba, porque en el mapa 8
+            # siempre había un candidato de un solo mapa; al servir primero a
+            # los gráficos con peso —el save point— el reparto se reacomodó, no
+            # quedó ninguno, y la ROM con cronómetro dejó de armarse. Seis kilos
+            # es peor que nada y mejor que no tener cronómetro.
+            ajeno = solo_aqui is not None and clave not in solo_aqui
+            cuenta = sprite_colors(renderer.charsets.get(clave[0]), clave[1],
+                                   poses.get(clave))
             if not cuenta:
                 continue
             faltan = len([c for c in timer_colores if c not in paletas[n]])
             nuevo_tope = OBJ_COLORS - faltan
-            m, _ = pixeles.merge_least_used(cuenta, nuevo_tope)
+            m, _ = pixeles.merge_least_visible(cuenta, nuevo_tope)
             movidos = sum(v for c, v in cuenta.items() if m[c] != c)
-            costo = movidos / float(sum(cuenta.values()))
+            costo = (ajeno, movidos / float(sum(cuenta.values())), clave)
             if mejor is None or costo < mejor[0]:
                 mejor = (costo, clave, n, nuevo_tope, sorted(set(m.values())))
         if mejor is not None:
             _costo, clave, n, nuevo_tope, paleta_nueva = mejor
             print("  para que entre el cronómetro, %s:%d baja a %d colores "
-                  "(%.2f%% de sus pixeles)"
-                  % (clave[0], clave[1], nuevo_tope, 100 * _costo))
+                  "(%.2f%% de sus pixeles)%s"
+                  % (clave[0], clave[1], nuevo_tope, 100 * _costo[1],
+                     ", y con un banco de poses propio" if _costo[0] else ""))
             paletas[n] = paleta_nueva
             topes[clave] = nuevo_tope
 
@@ -752,7 +903,7 @@ def npcs_dibujables(renderer, game_map, lideres, tope, graficos_de_ruta=(),
     # segundo primer-lugar-que-entre en otro orden puede dar otra cuenta, y
     # dio: el mapa 8 entraba acá en ocho paletas y allá pedía nueve.
     return salida, descartados, (paletas, paleta_de, propios, de_lider,
-                                 topes, prestadas)
+                                 topes, prestadas, poses)
 
 
 def build_characters(images, personajes, ranuras, reparto=None):
@@ -789,12 +940,18 @@ def build_characters(images, personajes, ranuras, reparto=None):
         # si acá se cuantizara con quince, las poses del cartucho no
         # coincidirían con la paleta que la ROM sube a CGRAM.
         topes = dict(reparto[4]) if len(reparto) > 4 else {}
+        # Y qué poses puede mostrar cada uno, que es sobre lo que se eligieron
+        # sus quince colores allá. Tiene que ser el mismo conjunto: con otro,
+        # la paleta que la ROM sube a CGRAM y los tiles que se empaquetan acá
+        # saldrían de dos cuentas distintas.
+        poses_de = dict(reparto[6]) if len(reparto) > 6 else {}
     for charset, index in personajes:
         if (charset, index) in colores:
             continue
         palette, lookup, mapping = paleta_del_personaje(
             images[charset], index,
-            topes.get((charset, index)) if reparto is not None else None)
+            topes.get((charset, index)) if reparto is not None else None,
+            poses=poses_de.get((charset, index)) if reparto is not None else None)
         if reparto is not None:
             if (charset, index) not in paleta_de:
                 sys.exit("%s:%d no está en el reparto de paletas" % (charset, index))
@@ -1189,7 +1346,7 @@ def build_palette(grid, bg_colors, otras=()):
     if len(counts) <= bg_colors:
         return sorted(counts), grid, list(otras), []
 
-    mapping, merged = pixeles.merge_least_used(counts, bg_colors)
+    mapping, merged = pixeles.merge_least_visible(counts, bg_colors)
 
     def fusionar(g):
         return [[tuple(tuple(mapping.get(p) for p in line) for line in tile)
@@ -5192,6 +5349,20 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
         for charset, index in graficos_de_prueba(args.grafico_de_prueba):
             if (charset, index) not in graficos_de_ruta:
                 graficos_de_ruta.append((charset, index))
+    # La ruta inventada de `--ruta-de-evento` también manda a caminar a alguien,
+    # y su página no sale de `paginas_del_mapa`: hay que sumarla a mano o el NPC
+    # caminaría con una sola pose. Va sólo en el mapa donde arranca la ROM, que
+    # es donde el conversor mete esa página. Va **antes** del reparto de
+    # paletas: desde que la paleta se elige sobre las poses que se ven, saber
+    # quién camina es parte de elegir los colores y no sólo de repartir la VRAM.
+    prueba_ev = ruta_de_evento(args.ruta_de_evento)
+    if prueba_ev and map_id == orden[args.inicial]:
+        movibles = movibles | {prueba_ev[0] - 1}
+    # Y con eso, qué poses puede mostrar cada gráfico: es lo que decide sobre
+    # qué píxeles se eligen sus quince colores. Ver `poses_del_mapa`.
+    poses_por_grafico = poses_del_mapa(renderer, game_map, args.lideres,
+                                       movibles, giran, graficos_de_ruta,
+                                       anima_quieto)
 
     # Las ocho, con o sin cronómetro: sus dos colores entran en la paleta de
     # algún personaje. Reservarle una acá le sacaba eventos al mapa, porque este
@@ -5212,7 +5383,8 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
                                                  timer_colores,
                                                  {c for c, n in getattr(
                                                      args, "mapas_por_personaje",
-                                                     {}).items() if n == 1})
+                                                     {}).items() if n == 1},
+                                                 poses_por_grafico)
     prestadas = reparto[5] if len(reparto) > 5 else set()
     if prestadas:
         print("  mapa %d: %d gráfico(s) sin paleta propia, dibujados con una "
@@ -5225,15 +5397,6 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
             % (map_id, evento + 1, tile[len(rm2k.TILE_PREFIX):],
                tope_de_paletas),
             cambia_de_grafico(game_map.events[evento]))
-    # Quiénes van a caminar. A ésos les hacen falta las doce poses del ciclo, y
-    # el resto se queda con la única que declara su página.
-    # La ruta inventada de `--ruta-de-evento` también manda a caminar a alguien,
-    # y su página no sale de `paginas_del_mapa`: hay que sumarla a mano o el NPC
-    # caminaría con una sola pose. Va sólo en el mapa donde arranca la ROM, que
-    # es donde el conversor mete esa página.
-    prueba_ev = ruta_de_evento(args.ruta_de_evento)
-    if prueba_ev and map_id == orden[args.inicial]:
-        movibles = movibles | {prueba_ev[0] - 1}
     # Quiénes cambian de pose y por lo tanto llevan sus doce al cartucho: los
     # candidatos a líder con gráfico y los NPCs que caminan. En ese orden, con
     # el líder inicial primero, que es el orden que espera el resto.

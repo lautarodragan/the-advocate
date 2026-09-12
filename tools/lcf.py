@@ -321,6 +321,7 @@ def read_commands(payload):
 DECORAR_TRANSLUCIDO = None
 
 
+
 class EventPageCondition:
     """Lo que tiene que pasar para que esta página sea la activa."""
 

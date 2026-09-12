@@ -156,6 +156,9 @@ class Mundo:
         # se lo dice al conversor: los que además caminan llevan el contador en
         # su ranura de ruta y no entran acá.
         self.anima_cache = {}
+        # Qué poses puede mostrar cada gráfico en cada mapa: lo pide el dibujo
+        # de cada cuadro y cuesta recorrer los eventos, así que se guarda.
+        self.poses_cache = {}
         self.mensajes = mensajes
         # Los temas se numeran igual que en el conversor, en el orden en que los
         # PlayBGM los piden. Acá no suena nada —la comparación es de pixeles—
@@ -239,12 +242,42 @@ class Mundo:
         mismos, y quién queda afuera —el que además tiene ruta— lo decide una
         sola función.
         """
+        return self.movibles(map_id)[2]
+
+    def movibles(self, map_id):
+        """`snes_convert.eventos_movibles` del mapa, con la ruta inventada de
+        `--ruta-de-evento` ya sumada a los que caminan.
+
+        Es el mismo dato que el conversor calcula en `convertir`, y desde que
+        la paleta se elige sobre las poses que se ven **decide colores**: un
+        evento que camina muestra las doce y uno quieto una sola. Sale de una
+        función y no de dos copias por lo de siempre: dos listas que se armen
+        distinto elegirían dos paletas y la comparación mediría dos ROMs.
+        """
         if map_id not in self.anima_cache:
-            _, _, animados, _ = snes_convert.eventos_movibles(
+            movibles, graficos, animados, giran = snes_convert.eventos_movibles(
                 self.mapa(map_id)[0], self.indices.get,
                 con_ventana=self.mensajes is not None)
-            self.anima_cache[map_id] = animados
+            if (self.prueba is not None and self.prueba[3]
+                    and map_id == self.ids[0]):
+                movibles = movibles | {self.prueba[3][0] - 1}
+            self.anima_cache[map_id] = (movibles, graficos, animados, giran)
         return self.anima_cache[map_id]
+
+    def poses(self, map_id):
+        """Qué poses puede mostrar cada (CharSet, índice) en este mapa.
+
+        Es `snes_convert.poses_del_mapa` con los mismos datos que el conversor:
+        de acá salen los quince colores de cada personaje."""
+        if map_id in self.poses_cache:
+            return self.poses_cache[map_id]
+        movibles, _graficos, animados, giran = self.movibles(map_id)
+        self.poses_cache[map_id] = snes_convert.poses_del_mapa(
+            self.renderer, self.mapa(map_id)[0],
+            snes_convert.lideres_posibles(self.renderer, self.ids, self.grupo,
+                                          self.mensajes is not None),
+            movibles, giran, self.graficos(map_id).pares, animados)
+        return self.poses_cache[map_id]
 
     def graficos(self, map_id):
         """Los gráficos que las rutas de este mapa piden, en el mismo orden en
@@ -285,7 +318,8 @@ class Mundo:
             self.npcs_cache[map_id] = snes_convert.npcs_dibujables(
                 self.renderer, game_map, lideres,
                 7 if self.con_timer else 8,
-                self.graficos(map_id).pares)
+                self.graficos(map_id).pares,
+                poses=self.poses(map_id))
         return self.npcs_cache[map_id][0]
 
     def lleva_lluvia(self, map_id):
@@ -317,7 +351,7 @@ class Mundo:
             reparto = snes_convert.npcs_dibujables(
                 self.renderer, self.mapa(map_id)[0], lideres,
                 snes_convert.OBJ_PALETTES, self.graficos(map_id).pares,
-                timer_colores, solos)[2]
+                timer_colores, solos, self.poses(map_id))[2]
             cabe = snes_convert.lluvia_cabe(reparto[0], reparto[3],
                                             timer_colores)
         self.lluvia_cache[map_id] = cabe
@@ -1091,7 +1125,7 @@ def camera_for(x, y, map_w, map_h, pan=(0, 0)):
     return cam_x, cam_y
 
 
-def pose_image(charset, index, pose, ajena=None):
+def pose_image(charset, index, pose, ajena=None, poses=None):
     """Una pose, con los colores ya fusionados a los 15 que entran en un sprite.
 
     La fusión es la misma que hace el conversor —mismo criterio, mismos datos—
@@ -1102,13 +1136,13 @@ def pose_image(charset, index, pose, ajena=None):
     el más cercano de los que hay: es lo que hace `build_characters`, con la
     misma cuenta de distancia, y sin esto la referencia dibujaría los colores
     de verdad contra una consola que dibuja los aproximados.
+
+    `poses` son las que el evento puede mostrar en este mapa, que es sobre lo
+    que el conversor eligió sus quince colores: ver `Mundo.poses`. Con `None`
+    se cuentan las doce, que es lo que corresponde a quien camina.
     """
-    counts = snes_convert.sprite_colors(charset, index)
-    if len(counts) <= snes_convert.OBJ_COLORS:
-        mapping = {c: c for c in counts}
-    else:
-        mapping, _ = pixeles.merge_least_used(counts,
-                                                 snes_convert.OBJ_COLORS)
+    _paleta, _lookup, mapping = snes_convert.paleta_del_personaje(
+        charset, index, poses=poses)
 
     ox, oy = snes_convert.pose_origin(index, pose)
     out = Image.new("RGBA", (snes_convert.SPRITE_W, snes_convert.SPRITE_H),
@@ -1838,7 +1872,8 @@ def main():
         sprites = []
         for _key, name, index, pose, px, py, arriba, blanco, altura in order:
             imagen = pose_image(charset_image(name), index, pose,
-                                mundo.paleta_prestada(map_id, (name, index)))
+                                mundo.paleta_prestada(map_id, (name, index)),
+                                mundo.poses(map_id).get((name, index)))
             # El destello va sobre el personaje ya dibujado, que en la consola
             # es su paleta. El tinte de pantalla va antes —`Cache::SpriteEffect`
             # aplica el tono y después la mezcla— y acá lo aplica `tenir_imagen`
