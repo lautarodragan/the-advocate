@@ -155,6 +155,12 @@ Lo que hay que hacer siempre:
   código.
 * **Avisarle que hay otros corriendo**: dos tandas a la vez se pelean por CPU y
   tardan, y matarlas por impaciencia arruina la corrida.
+* **Pedirle que no deje nada esperando cuando termina.** Un sub-agente puede
+  lanzar los suyos, y ésos **no aparecen** en la lista del que los mandó —sí en
+  la interfaz de taro—, así que un ayudante colgado queda sin dueño: él lo ve y
+  yo no puedo decirle de quién era. Lo mismo con los `sleep` largos para esperar
+  una tanda: el 2026-09-12 uno dejó cinco armados y siguieron avisando que había
+  terminado mucho después de haber entregado.
 
 ## Git
 
