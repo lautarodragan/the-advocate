@@ -20,7 +20,7 @@ Se escribe **mientras se trabaja**, no al final.
 a vuelta.
 
 Al 2026-09-12: `just snes-hitos-foto` son **124 casos, todos en verde**, y `just
-pruebas` **85 en verde y 1 `xfail`**. El `xfail` no es adorno: es un defecto
+pruebas` **86 en verde y 1 `xfail`**. El `xfail` no es adorno: es un defecto
 medido de guardar con la pantalla de título puesta, y está abajo.
 
 `demo-ciudad` se juega desde la apertura hasta la calle de Lashe City, con los
@@ -161,7 +161,7 @@ Lo que queda abierto:
 Al 2026-09-12, en orden.
 
 1. **Las tres vueltas paralelas están mergeadas** (`75f0b41`), y el árbol
-   combinado da **124 casos en verde** más `just pruebas` en 85 y el xfail. Era
+   combinado da **124 casos en verde** más `just pruebas` en 86 y el xfail. Era
    lo único que ninguna rama podía medir sola. La demo con todo junto está en
    `pruebas-manuales/2026-09-12-75f0b41/`.
 
@@ -421,6 +421,17 @@ ya nadie discute no necesita renglón.
   una línea del header, pero se ve en hardware.
 
 ## Lo que la tanda no cubre
+
+* **`plx`/`ply` pisan N y Z, y hubo cuatro lugares que lo ignoraban** (todos
+  arreglados el 2026-09-12). El patrón es siempre el mismo: una rutina deja la
+  respuesta en las banderas, se restaura el índice con `ply`, y el `beq` que
+  sigue mira el índice —que nunca es cero— en vez de la respuesta. Lo tenían
+  `tema_asegurar` (la música del título), el `ConditionalBranch` por variable
+  —que entraba **siempre**, medido—, el `IsActorInParty` y el `SetTimer` desde
+  una variable negativa. Los dos últimos **no los mide nadie todavía**: ninguna
+  página de prueba los emite y ningún caso de la tanda los ejercita, así que el
+  arreglo es lectura del manual del 65816 y no medición. Si aparece una página
+  que use `IsActorInParty`, es el primer lugar donde mirar.
 
 * **Nada de lo que se oye.** El silencio no cambia un pixel, así que la tanda da
   cero igual con la ROM muda. Eso dejó vivir un día al defecto de

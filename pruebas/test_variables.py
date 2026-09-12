@@ -76,6 +76,28 @@ def test_la_rama_por_variable_decide(con_variables):
     assert una.switch(201)
 
 
+def test_la_rama_por_variable_que_no_se_cumple_no_corre(partida):
+    """Y la otra mitad, que es la que se puede romper sin que nada se entere.
+
+    Hasta el 2026-09-12 el `ConditionalBranch` por variable entraba **siempre**:
+    `comparar_var` dejaba la respuesta en las banderas y el `ply` que restaura
+    el cursor las pisaba con el cursor, que nunca es cero. Todo lo que había
+    acá miraba la rama que sí se cumple, así que pasaba en verde, y la tanda
+    tampoco lo veía: ningún caso de `rom/hitos.txt` toma una rama por variable
+    que no se cumpla. Es el mismo defecto que dejó muda la pantalla de título,
+    en otro lado.
+
+    Verificado que **da rojo con el defecto puesto**: sin el `cmp` el switch
+    200 queda prendido igual.
+    """
+    una = partida(variables=VARIABLES, rama_var=(17, 1, 99, 200, 201))
+    una.correr(30)
+    assert not una.switch(200), (
+        "var 17 vale 12, la rama pedía >= 99, y entró igual")
+    assert una.switch(201), (
+        "la página no llegó al final: el caso no probó nada")
+
+
 def test_las_variables_viajan_en_la_partida(partida):
     """Se guardan con la partida y vuelven después del reset, que las pone
     en cero antes de cargar."""
