@@ -1644,6 +1644,19 @@ intérprete de eventos, y son las que convierten un mapa suelto en un mundo.
 
 Las otras 694 están adentro de cinemáticas y piden el intérprete.
 
+**A qué mapa lleva, en dos bytes.** Tanto `OP_TELEPORT` como el registro de una
+puerta guardaban el índice del mapa destino en **un byte**, y eso le ponía al
+formato un techo de 256 mapas cuando el juego tiene 328. Las demos llevan 29,
+así que no molestaba; se sacó igual, porque un techo escrito en el formato sale
+más barato ahora que el día que una demo se pase. Adentro de la ROM el índice
+viaja de dieciséis bits desde `salto_mapa` hasta `mapa_actual`, y el techo que
+queda es el de `mapa_ofs`: 512 mapas, que es lo que entra en un word a
+`MAPA_STRIDE` de 128 bytes. Los tres bytes de RAM que costó salieron de tres
+declaraciones que no leía nadie —`ev_actual`, `ruta_salto_dx` y
+`ruta_salto_dy`—, porque la RAM baja estaba en 7680 de 7680 y la página directa
+en 256 de 256. **La partida guardada cambió de tamaño**: una partida vieja no
+carga, la suma no le cuadra.
+
 Qué comandos pueden acompañar a un teletransporte sin que deje de ser una
 puerta se decide con un criterio, no a ojo: **que no ejecutarlos no se vea en la
 pantalla que comparamos**. Un fundido, una espera y un sonido se saltean y la
@@ -4523,10 +4536,31 @@ Son de **dieciséis bits con signo**. RM2k las lleva a 32 y las topa en ±999999
 pero ninguna del juego pasa de unos cientos —segundos del cronómetro, un azar de
 0 a 100, contadores— y lo que no entra en el word no compila, que es más
 honesto que truncar. Lo que compila: `ControlVars` de a una variable, con poner,
-sumar y restar, y el operando constante, otra variable, un azar entre a y b, o
-"otro" —el oro y los segundos del cronómetro—; `ConditionalBranch` por variable
-con las seis comparaciones; y `TimerOperation` con los segundos desde una
-variable. Los rangos y el indirecto no los usa ninguna página.
+sumar y restar, y el operando constante, otra variable, un azar entre a y b,
+"otro" —el oro y los segundos del cronómetro— o **las coordenadas de un
+personaje**; `ConditionalBranch` por variable con las seis comparaciones; y
+`TimerOperation` con los segundos desde una variable. Los rangos y el indirecto
+no los usa ninguna página.
+
+**Las coordenadas de un personaje** son la clase 6 de `ControlVars`, y es de
+lejos la que más destraba de lo que quedaba: **+119 páginas sobre el juego
+entero**, de 5016 a 5135 de las 5603 disparables. Es lo que leen los mapas 49,
+52 y 54 para seguir al auto de Lashe City. Los sub-operandos son los de
+`ControlVariables::Event` de easyrpg-player y de ahí salen, no de memoria: de
+las 829 veces que el juego la usa, 412 piden la **x** y 413 la **y**, y las
+otras cuatro las coordenadas **en pantalla**, que no se hacen —la nuestra mide
+256x224 contra los 320x240 de RM2k, así que el número no sería el del original,
+y valen una página—. El id del mapa, la mirada y el id del evento no los pide
+nadie. El personaje puede ser el héroe, el dueño de la página o cualquier
+evento del mapa, y la celda que se lee es la **viva**: `tile_x`/`tile_y` y
+`ev_pos_buf` en la ROM, `Estado.heroe` y `Estado.pos_ev` en la referencia, o sea
+adonde una ruta forzada o un `ChangeEventLocation` dejaron al personaje.
+
+Con qué se compara: en la ROM el intérprete corre en `eventos_tick` y el héroe
+se mueve después, en `move_hero`, así que la página de un cuadro ve la celda con
+la que terminó el cuadro anterior. La referencia hace lo mismo porque quien
+escribe `Estado.heroe` es `cuadro_de_eventos`, que va en el mismo lugar del
+lazo.
 
 **El azar es el mismo de los dos lados.** Un xorshift de dieciséis bits —`x ^=
 x << 7; x ^= x >> 9; x ^= x << 8`—, sembrado en el reset, instrucción por

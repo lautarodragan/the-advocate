@@ -19,14 +19,16 @@ Se escribe **mientras se trabaja**, no al final.
 **Los primeros diez minutos jugables**, que es lo que taro viene probando vuelta
 a vuelta.
 
-Al 2026-09-12: `just snes-hitos-foto` son **138 casos, todos en verde** —sobre
-la foto `01d5509`—, y `just pruebas` **97 en verde y 1 `xfail`**. El `xfail` no
+Al 2026-09-12: `just snes-hitos-foto` son **140 casos, todos en verde** —sobre
+la foto `93fca1c`—, y `just pruebas` **100 en verde y 1 `xfail`**. El `xfail` no
 es adorno: es un defecto medido de guardar con la pantalla de título puesta, y
 está abajo.
 
 **La ROM para probar a mano de esta vuelta** está en
-`pruebas-manuales/desbloqueos/`, con las cuatro piezas del 2026-09-12 y un
-`LEEME.txt` que dice cómo llegar jugando a cada una.
+`pruebas-manuales/vars-y-rutas/`, con las coordenadas de un personaje y el
+teletransporte de dos bytes, y un `LEEME.txt` que dice cómo llegar jugando a lo
+que se destrabó —y por qué la persecución en auto todavía no—. La anterior, con
+las cuatro piezas del mediodía, está en `pruebas-manuales/desbloqueos/`.
 
 `demo-ciudad` se juega desde la apertura hasta la calle de Lashe City, con los
 relámpagos, los autos y los NPCs andando, el agua moviéndose, la lluvia, el save
@@ -35,16 +37,25 @@ point animado y guardando, el menú de pausa, los ítems, el equipo y la tienda.
 efectos por el SPC700.
 
 Las páginas automáticas que compilan enteras son **332 de 489** —`just
-snes-destraba`—, y del juego entero compilan **2882 de 3473**, que eran 2802
-antes de las piezas del 2026-09-12. Los dos números venían de septiembre y
-estaban viejos.
+snes-destraba`—, y del juego entero **5135 de 5603 disparables (91,6%)**, que
+eran 5016 antes de la clase 6 de `ControlVars`.
 
-**Cómo se cuenta el segundo, porque es fácil contarlo mal**: cada página de los
-328 mapas por `eventos.compilar_pagina`, con bloque de textos, con todos los
-teletransportes resolubles —o sea el techo de una ROM con la ventana puesta— y
-con **`eventos.indexar_variables` llamado antes**. Sin eso último ninguna
-`ControlVars` compila y el total sale 300 páginas por debajo; pasó el
-2026-09-12 y los números de los dos primeros commits de ese día son ésos.
+**Cómo se cuenta, porque es fácil contarlo mal**: cada página de los 328 mapas
+cuyo trigger la ROM soporta y que pasa `puede_dispararse`, por
+`eventos.compilar_pagina`, con bloque de textos, con `Temas`, `Graficos` e
+`Imagenes`, con todos los teletransportes resolubles —o sea el techo de una ROM
+con la ventana puesta— y con **`eventos.indexar_variables` llamado antes**. Sin
+eso último ninguna `ControlVars` compila y el total sale 300 páginas por debajo;
+pasó el 2026-09-12 y los números de los dos primeros commits de ese día son
+ésos.
+
+**El denominador cambió y conviene saberlo**: acá venía escrito "2882 de 3473",
+que cuenta sólo las páginas **con comandos**. Con ese criterio los mismos
+números son 2936 de 3473, y antes de la clase 6 eran 2817 —no 2882: ese
+absoluto no se pudo reproducir con ninguna combinación de argumentos de
+`compilar_pagina`, así que lo que vale es la diferencia—. **La diferencia es la
+misma con los dos criterios: +119 páginas.** Cuando un número de éstos se
+reporte, conviene decir con cuál de los dos se contó.
 
 ### El dibujo de las animaciones de batalla: medido, sin empezar
 
@@ -269,6 +280,75 @@ Lo que queda abierto:
   aportan al banco. Los siete son 908 s, unos 160 MB de PCM. Los 35 del juego
   entero que las demos no tocan serían 923 MB.
 
+### Coordenadas, teletransporte de dos bytes, y las rutas que ya no faltan (2026-09-12)
+
+Tres piezas pedidas juntas. Las dos primeras están hechas; la tercera resultó no
+existir, y ésa es la parte que hay que leer.
+
+* **`ControlVars` clase 6**, las coordenadas de un personaje: **+119 páginas**
+  sobre el juego entero, de 5016 a 5135. El porqué durable y los sub-operandos
+  están en el README, "Las coordenadas de un personaje". Sobre las páginas
+  **automáticas** no destraba ninguna —siguen 332—: las que la usan son de
+  contacto y paralelas, que es lo que uno espera de una persecución.
+* **El destino del teletransporte pasó de un byte a dos**, en `OP_TELEPORT` y en
+  el registro de las puertas. No destraba ninguna página: saca un techo de 256
+  mapas que estaba escrito en el formato y que el juego, con 328, ya pasaba. El
+  techo que queda son 512, por `mapa_ofs`. **Cuesta que una partida guardada
+  vieja no cargue**: `mapa_actual` ocupa dos bytes en la SRAM y la suma no
+  cuadra.
+* **Las órdenes de ruta que faltan: no falta ninguna que valga.** El encargo
+  decía que la orden 10 aparecía 104 veces y valía +109 páginas; **medido sobre
+  el juego entero con `just snes-destraba`, la 10 aparece una sola vez**, en una
+  página del mapa 330 que ni siquiera se dispara, y aceptar las nueve órdenes
+  que quedan sin hacer da **+0 páginas**. El número del encargo era de antes de
+  que entrara la orden 9 (`c1a00b6`), que era la que valía —+33— y que ya está.
+  Para que esto no vuelva a pasar, `snes-destraba` ahora imprime la lista.
+
+**La persecución en auto todavía no se puede jugar, y ahora se sabe por qué.**
+Con la clase 6 hecha, de las 134 páginas disparables de los mapas 49, 52 y 54
+compilan 28. A las otras 106 las corta **`ChangeSpriteAssociation`** —102— y
+`KeyInputProc` —4—: el auto cambia de gráfico mientras corre. O sea que el
+próximo paso de esa escena no es el intérprete de variables sino el gráfico del
+personaje. Por eso la ROM de `pruebas-manuales/vars-y-rutas/` **no lleva esos
+mapas**: llevarlos daría una carrera con el auto quieto.
+
+**Y una trampa de medición que conviene no repetir**: la tabla de "qué comando
+corta" que se saca recompilando **comando por comando** miente con
+`ConditionalBranch`, porque una rama suelta no compila nunca fuera de su página
+—`_compilar` no la conoce; la arma `compilar_pagina`—. Medido así, parecía que
+las ramas cortaban 262 páginas; preguntándoselo al compilador de verdad son 89,
+y en dos motivos distintos. La lista honesta, sobre las 468 páginas del juego
+que hoy no compilan:
+
+    ChangeSpriteAssociation  103     ConditionalBranch, condición rara   53
+    RecallToLocation          54     ConditionalBranch, del héroe        36
+    FlashSprite               51     ChangeSystemBGM                     39
+    KeyInputProc              31     ShowMessage (los escapes)           18
+
+Lo que queda abierto de la primera:
+
+* **Las coordenadas en pantalla** —los sub-operandos 4 y 5 de la clase 6— no se
+  hacen: la pantalla mide 256x224 y la de RM2k 320x240, así que el número que le
+  quedaría a la variable no es el del original. Son cuatro apariciones en todo
+  el juego y valen **una** página, medida.
+* **Un lazo de la referencia se colgaba con una página paralela que escribe
+  variables**, y quedó arreglado de paso: un paralelo pide refresco en cada
+  cuadro —`SetNeedRefreshForVarChange`— así que todo lo que esperaba a que no
+  quedara ninguno pendiente esperaba para siempre. Lo destapó el mapa 11, cuyas
+  once páginas paralelas compilan desde la clase 6: el plan de `snes-heroe 11`
+  pasó de 9 ticks a 110008, o sea cuarenta minutos de emulador por dirección.
+  Ahora eso lo decide `Estado.refresco_frena`, con la misma excepción que
+  `asentado` tiene para los autos. **Los cuatro lazos que lo miraban están
+  cambiados**; si aparece uno nuevo, tiene que usar `refresco_frena` y no
+  `refresco`.
+* **La celda del héroe vive ahora en `Estado.heroe`** del lado de la referencia,
+  y la escribe `cuadro_de_eventos`. El orden está elegido para copiar al de la
+  ROM —el intérprete corre antes que `move_hero`— pero **la tanda no tiene
+  ningún caso donde el héroe se mueva y una página lea su celda en el mismo
+  cuadro**: `var-heroe-x` lo lee con el héroe quieto. Si alguna vez hay una
+  página que persiga al héroe mientras camina, ese cuadro de diferencia es lo
+  primero que hay que mirar.
+
 ### Lo próximo, si no se decide otra cosa
 
 Al 2026-09-12, en orden.
@@ -310,7 +390,10 @@ Al 2026-09-12, en orden.
 
 6. **Lo que sigue faltando de Lashe City**: la condición por cronómetro —una
    página en todo el juego—. El `CallEvent` del Hover-Tram está hecho desde el
-   2026-09-12 y el tram se toma: lo cubre el caso `tram`.
+   2026-09-12 y el tram se toma: lo cubre el caso `tram`. **La persecución en
+   auto de los mapas 49, 52 y 54 ya tiene lo que le faltaba del intérprete** —la
+   clase 6 de `ControlVars`—, pero ninguno de esos tres mapas está en una demo
+   todavía, así que **nadie la jugó**: eso es lo que falta para darla por buena.
 
 7. **Lo que falta del sistema de ítems**: los libros, los materiales y los
    especiales, y `ChangeEquipment` —sólo en los mapas 30 y 151—. Las medicinas

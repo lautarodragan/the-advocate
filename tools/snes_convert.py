@@ -3386,6 +3386,12 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "VAR_VARIABLE  = %d\n"
         "VAR_AZAR      = %d\n"
         "VAR_OTRO      = %d\n"
+        "; La clase 6, las coordenadas de un personaje: el blanco va como el de\n"
+        "; OP_RUTA —0 el héroe, el índice del evento más uno— y el otro operando\n"
+        "; dice cuál coordenada. Ver VAR_PERSONAJE en eventos.py.\n"
+        "VAR_PERSONAJE = %d\n"
+        "PERSONAJE_X   = %d\n"
+        "PERSONAJE_Y   = %d\n"
         "AZAR_SEMILLA  = $%04X\n"
         "TIMER_PONER_VAR = %d\n"
         "; Las clases de condición de ConditionalBranch que sabemos,\n"
@@ -3629,7 +3635,9 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            eventos.ITEM_MAX,
            variables_n(),
            eventos.VAR_SUMAR, eventos.VAR_VARIABLE, eventos.VAR_AZAR,
-           eventos.VAR_OTRO, eventos.AZAR_SEMILLA, eventos.TIMER_PONER_VAR,
+           eventos.VAR_OTRO,
+           eventos.VAR_PERSONAJE, eventos.PERSONAJE_X, eventos.PERSONAJE_Y,
+           eventos.AZAR_SEMILLA, eventos.TIMER_PONER_VAR,
            eventos.COND_ORO, eventos.COND_ACTOR,
            eventos.ORO_MAX,
            eventos.PAN_CORRER, eventos.PAN_VOLVER,
@@ -4583,7 +4591,11 @@ def puertas_bytes(puertas, indices):
         registro[2:4] = puerta["y"].to_bytes(2, "little")
         registro[4:6] = puerta["destino_x"].to_bytes(2, "little")
         registro[6:8] = puerta["destino_y"].to_bytes(2, "little")
-        registro[8] = destino
+        # El índice del mapa va en dos bytes, como el de OP_TELEPORT: en uno
+        # el formato no puede nombrar los 328 mapas del juego. La ROM ya lo
+        # leía como word —con un `and #$00FF` porque el de al lado era cero—,
+        # así que esto es lo que hacía falta para que el alto sirva.
+        registro[8:10] = destino.to_bytes(2, "little")
         out += registro
     return bytes(out), afuera
 

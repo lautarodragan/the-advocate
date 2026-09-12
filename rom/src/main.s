@@ -596,7 +596,11 @@ reinicio:   .res 1      ; si el stream ya volvió al principio en este cuadro
 ; dure. Lo que se usa una sola vez —los tamaños de los DMA, las bases de VRAM—
 ; no se copia: se lee del registro en el momento.
 mapa_ofs:    .res 2     ; el desplazamiento del registro del mapa actual
-mapa_actual: .res 1     ; y su índice, para saber si un salto cambia de mapa
+; Y su índice, para saber si un salto cambia de mapa. Dos bytes desde que el
+; destino de OP_TELEPORT es un word: el juego tiene 328 mapas y en un byte
+; entran 256. El techo que queda es MAPA_STRIDE: `mapa_ofs` es de dieciséis
+; bits, así que son 512 mapas.
+mapa_actual: .res 2
 mapa_ancho:  .res 2     ; su ancho en celdas de 16x16
 mapa_alto:   .res 2
 mapa_cw:     .res 2     ; y en celdas de 8x8, que es el doble. Se guarda hecho
@@ -626,8 +630,10 @@ elegida_trigger: .res 1 ; y qué la dispara, para correr sólo las automáticas
 elegida_capa: .res 1
 ; Cuál de las dos se está mirando: 1 la del héroe, 0 la de adelante.
 accion_propia: .res 1
-ev_actual:   .res 2     ; qué evento se está resolviendo
-salto_mapa:  .res 1     ; un Teleport pedido por un evento: a qué mapa
+; `ev_actual` vivía acá y no lo leía nadie: sus dos bytes son los que pagan
+; el índice de mapa de dieciséis bits, que si no no entraba —la ZP estaba en
+; 256 de 256—.
+salto_mapa:  .res 2     ; un Teleport pedido por un evento: a qué mapa
 salto_x:     .res 2     ; y a qué celda. salto_hay dice si hay uno pendiente
 salto_y:     .res 2
 salto_hay:   .res 1
@@ -989,12 +995,19 @@ grupo_listo:
     jsr cargar_partida
     beq nueva
     jsr entrada_de_la_partida
-    lda mapa_actual
+    rep #$20
+.a16
+    lda mapa_actual             ; el índice va en dieciséis bits
     bra cargar
+.a8
 nueva:
+    rep #$20
+.a16
     lda #MAPA_INICIAL
 cargar:
     jsr cargar_mapa
+    sep #$20
+.a8
     jsr clear_oam
 
     stz step_left               ; parado, sin paso en curso
@@ -1020,7 +1033,6 @@ cargar:
     ; subir porque el driver todavía no corría. Ver `paquete_cargar`.
     lda #1
     sta f:APU_LISTO
-    lda mapa_actual
     jsr paquete_cargar
     jsr music_boot
 
@@ -1381,29 +1393,28 @@ cero:
 ; --- volcado del mapa a la VRAM --------------------------------------------
 ; Todo por DMA y con la pantalla apagada, que es cuando se puede escribir la
 ; VRAM sin pelearle al PPU.
-; Carga entero el mapa cuyo índice viene en A: sus datos a la VRAM y a CGRAM,
+; Carga entero el mapa cuyo índice viene en A **de dieciséis bits**: sus datos
+; a la VRAM y a CGRAM,
 ; sus tablas a donde la ROM las busca, la cámara donde arranca el héroe y la
 ; ventana del tilemap llena. Es todo lo que hay que hacer para cambiar de mapa.
 ;
 ; Con la pantalla encendida esto no se puede llamar: escribe VRAM y CGRAM por
 ; DMA, que fuera del vblank el PPU no deja.
 .proc cargar_mapa_sin_eventos
-.a8
+.a16
 .i16
-    pha
+    sta mapa_actual             ; para saber si el próximo salto cambia de mapa
+    sep #$20
+.a8
     jsr giro_limpiar            ; las filas van a ser otras
     jsr animacion_limpiar       ; y la animación de batalla no sigue
     lda #0                      ; y el cartel se borra: es el
     sta f:CARTEL_ACTIVA         ; `erase_on_map_change` de Game_Pictures, y
     sta f:CARTEL_LISTO          ; además sus tiles son de un solo mapa
-    pla
-    sta mapa_actual             ; para saber si el próximo salto cambia de mapa
-    pha
     jsr paquete_cargar          ; el audio del mapa, en el fundido
-    pla
     rep #$20
 .a16
-    and #$00FF
+    lda mapa_actual
     asl a
     asl a
     asl a
@@ -1584,11 +1595,15 @@ puesto:
 ; consola hace cualquier cosa. El tope de vueltas está por la misma razón, para
 ; el caso en que se apunten con un ciclo más largo.
 .proc cargar_mapa
-.a8
+.a16
 .i16
     pha                         ; el índice del mapa, que lo de abajo pisaría
+    sep #$20
+.a8
     lda #SALTOS_MAX
     sta saltos_restantes        ; con stx serían dos bytes y pisaría el de al lado
+    rep #$20
+.a16
     pla
     jsr cargar_mapa_sin_eventos
     rts
@@ -1825,9 +1840,14 @@ hubo_salto:
     ; adentro del mapa 1— se reiniciaba sola para siempre. Fundir, en cambio,
     ; funde igual: en RM2k el `TeleportParams` sale siempre con
     ; `erase_screen = true`, mire a donde mire el salto.
-    lda salto_mapa
-    sta fundido_mapa
-    cmp mapa_actual
+    ; El índice del mapa es de dieciséis bits —ver `mapa_actual`— y esto va por
+    ; X y no por A justamente por eso: X ya es de dieciséis, así que copiar y
+    ; comparar no cuesta el `rep`/`sep` que sí costaría por el acumulador. Y no
+    ; es una cuenta de elegancia: con los cuatro bytes de más, el `beq nada` de
+    ; `eventos_tick` se pasaba de los 128 que alcanza un salto relativo.
+    ldx salto_mapa
+    stx fundido_mapa
+    cpx mapa_actual
     bne otro_mapa
     lda #FUNDIDO_MISMO          ; un salto al mismo mapa no recarga nada
     bra pedir_fundido
@@ -1999,14 +2019,22 @@ no_hay:
 carga:
     cmp #FUNDIDO_PUERTA
     bne salto
-    lda fundido_mapa
+    rep #$20
+.a16
+    lda fundido_mapa            ; el índice va en dieciséis bits
     jsr cargar_mapa             ; una puerta: además reinicia el tope de saltos
+    sep #$20
+.a8
     stz step_left               ; el paso que se estaba dando quedó allá
     stz moving
     bra hecho
 salto:
-    lda fundido_mapa
+    rep #$20
+.a16
+    lda fundido_mapa            ; el índice va en dieciséis bits
     jsr cargar_mapa_sin_eventos
+    sep #$20
+.a8
     ; Y los eventos automáticos del mapa nuevo, a la cola. La página que pidió
     ; el salto sigue corriendo —su código está en la ROM y el cursor quedó
     ; guardado— así que éstos arrancan recién cuando ella termine, que es el
@@ -4934,6 +4962,10 @@ op_var:
     beq var_al_azar
     cmp #VAR_OTRO
     beq var_de_otro
+    cmp #VAR_PERSONAJE
+    bne :+
+    jmp var_de_personaje
+:
     rep #$20
 .a16
     lda [cod_ptr], y            ; una constante
@@ -5057,6 +5089,67 @@ var_pone:
     iny
     iny
     jmp otro
+
+var_de_personaje:
+    ; La clase 6: las coordenadas de un personaje, en celdas. `a` es el blanco
+    ; —0 el héroe, el índice del evento más uno, el mismo byte que OP_RUTA— y
+    ; `b` dice cuál: PERSONAJE_X o PERSONAJE_Y.
+    ;
+    ; La celda que se lee es la **viva**: `tile_x`/`tile_y` para el héroe y
+    ; `ev_pos_buf` para un evento, que es adonde una ruta forzada, un
+    ; ChangeEventLocation o un TradeEventLocations la dejaron. En RM2k es
+    ; `character->GetX()`, o sea lo mismo.
+    ; No se guarda ninguno de los dos operandos en RAM: la BSS está llena
+    ; —dos bytes más y `w65` avisa que no entra— y no hace falta. El blanco
+    ; **por** EV_STRIDE se lleva en X, que acá no la usa nadie, y con el
+    ; corrimiento puesto en la dirección: así el héroe queda con X en cero y
+    ; distinguirlo es un `cpx`, que no toca el acumulador.
+    lda [cod_ptr], y            ; a: el blanco
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    asl a                       ; EV_STRIDE bytes por evento
+    tax
+    sep #$20
+.a8
+    iny
+    iny
+    lda [cod_ptr], y            ; b: cuál coordenada
+    cpx #$0000
+    beq var_personaje_heroe
+    ; Un evento: su celda está en `ev_pos_buf`, indexada por el índice de la
+    ; tabla del mapa, que es el blanco menos uno; de ahí el - EV_STRIDE.
+    cmp #PERSONAJE_X
+    beq var_personaje_ev_x
+    rep #$20
+.a16
+    lda ev_pos_buf - EV_STRIDE + 2, x
+    bra var_personaje_listo
+.a8
+var_personaje_ev_x:
+    rep #$20
+.a16
+    lda ev_pos_buf - EV_STRIDE + 0, x
+    bra var_personaje_listo
+.a8
+var_personaje_heroe:
+    cmp #PERSONAJE_X
+    beq var_personaje_heroe_x
+    rep #$20
+.a16
+    lda tile_y
+    bra var_personaje_listo
+.a8
+var_personaje_heroe_x:
+    rep #$20
+.a16
+    lda tile_x
+var_personaje_listo:
+    sta temp + 2
+    sep #$20
+.a8
+    jmp var_aplicar
 
 ; `ConditionalBranch` por variable: ranura, clase del valor, comparación, el
 ; valor de dieciséis bits y el destino si no se cumple. La comparación es con
@@ -5241,11 +5334,12 @@ op_tinte:
     jmp otro                    ; `bra` no llega: el lazo quedó lejos
 
 op_teleport:
-    lda [cod_ptr], y
-    sta salto_mapa
-    iny
     rep #$20
 .a16
+    lda [cod_ptr], y            ; el mapa, en un word desde que el formato
+    sta salto_mapa              ; tiene que poder nombrar los 328 del juego
+    iny
+    iny
     lda [cod_ptr], y
     sta salto_x
     iny
@@ -9511,7 +9605,7 @@ partida_tabla:
     .word hero_dir, 1
     .word tile_x, 2
     .word tile_y, 2
-    .word mapa_actual, 1
+    .word mapa_actual, 2
     .word grupo, 6              ; el grupo y cuántos son, que van seguidos
     .word tinte_r, 3            ; el tinte, menos la saturación, que vive lejos
     .word tinte_s, 1
@@ -9541,13 +9635,14 @@ partida_tabla:
 ; `guardar_partida` compara con lo que le quedó a `partida_copiar` y si no dan
 ; iguales entra en pánico. Duplicar un número que nadie verifica es la forma de
 ; error que este repo ya pagó tres veces.
-PARTIDA_BYTES = 2 + 2 + 1 + 2 + 2 + 1 + 6 + 3 + 1 + 5 + 3 + SWITCH_BYTES + 1 + 2 + VARIABLES_N * 2 + 1 + ITEMS_N + 1 + ACTORES_N * 10 + ACTORES_N * 2
+PARTIDA_BYTES = 2 + 2 + 1 + 2 + 2 + 2 + 6 + 3 + 1 + 5 + 3 + SWITCH_BYTES + 1 + 2 + VARIABLES_N * 2 + 1 + ITEMS_N + 1 + ACTORES_N * 10 + ACTORES_N * 2
 ; Dónde cae el grupo adentro de la partida: después de la posición, la
 ; dirección, la celda y el mapa. Lo lee la pantalla de ranuras desde la SRAM
 ; para poner el nombre del líder y las caras. Es la misma suma que arriba,
 ; cortada en el sexto renglón de la tabla; si `partida_tabla` cambia de orden,
 ; esto cambia con ella.
-PARTIDA_GRUPO   = 2 + 2 + 1 + 2 + 2 + 1
+PARTIDA_GRUPO   = 2 + 2 + 1 + 2 + 2 + 2   ; el mapa ocupa dos desde que su
+                                          ; índice es de dieciséis bits
 PARTIDA_GRUPO_N = PARTIDA_GRUPO + 4
 
 ; Pone la ranura con la que van a trabajar `guardar_partida` y `cargar_partida`,
@@ -10072,9 +10167,14 @@ la_elegida:
     jsr cargar_partida
     beq salir                   ; la ranura estaba vacía o la suma no cuadra
     jsr entrada_de_la_partida
-    lda mapa_actual
+    rep #$20
+.a16
+    lda mapa_actual             ; el índice va en dieciséis bits
     bra cargar_el_mapa
+.a8
 salir:
+    rep #$20
+.a16
     lda #MAPA_INICIAL
 cargar_el_mapa:
     ; La VRAM quedó con la imagen del título, así que el mapa hay que volver a
@@ -10091,13 +10191,19 @@ cargar_el_mapa:
     ; **snes9x y la comparación de pixeles no lo vieron**, y por una razón que
     ; conviene recordar: la tanda mira la pantalla de título y no lo que pasa
     ; después de salir de ella. El cuadro que lo habría cobrado no existía.
-    pha
+    pha                         ; el índice del mapa, de dieciséis bits
+    sep #$20
+.a8
     lda #$80
     sta INIDISP
     stz TM                      ; y sin el menú encima mientras se rehace todo
     jsr ppu_init                ; los registros del PPU, como los dejó el reset
+    rep #$20
+.a16
     pla
     jsr cargar_mapa
+    sep #$20
+.a8
     jsr clear_oam
     jsr build_oam
     jsr flush_video
@@ -14503,7 +14609,10 @@ PAQ_DEST    = $7E30D6
 PAQ_S       = $7E30D8           ; la muestra que se acomoda
 PAQ_X7      = $7E30DA           ; su fila en `muestra_tabla`
 PAQ_A       = $7E30DC           ; dónde se prueba ponerla
-PAQ_MAPA    = $7E30DE           ; el mapa del paquete
+PAQ_MAPA    = $7E30DE           ; el mapa del paquete, en un word desde que
+                                ; el índice de mapa no entra en un byte.
+                                ; $30E0 a $30E7 siguen libres: lo próximo
+                                ; que hay es MSU_HAY en $30E8
 INT_N       = $7E30E0           ; cuántos ocupados, en bytes: dos por cada uno
 INT_INI     = $7E3400           ; lo ocupado, en orden: dónde empieza
 INT_FIN     = $7E3500           ; y dónde termina
@@ -14929,12 +15038,21 @@ listo:
     rts
 .endproc
 
-; El paquete del mapa A: ver arriba. PAQ_EXTRA es un tema que va antes que
-; los del mapa —el que un `PlayBGM` pide y no estaba—, o $FF.
+; El paquete de `mapa_actual`: ver arriba. PAQ_EXTRA es un tema que va antes
+; que los del mapa —el que un `PlayBGM` pide y no estaba—, o $FF.
+;
+; El mapa sale de `mapa_actual` y no de A desde que el índice es de dieciséis
+; bits: los tres que llamaban acá le pasaban `mapa_actual` en A, así que no se
+; perdió ningún caso y el que llama no tiene que acordarse del ancho.
 .proc paquete_cargar
 .a8
 .i16
+    rep #$20
+.a16
+    lda mapa_actual
     sta f:PAQ_MAPA
+    sep #$20
+.a8
     lda f:APU_LISTO
     bne listo_apu
     rts                         ; en el reset, antes de que corra el driver
@@ -15067,10 +15185,9 @@ listo:
 .proc lista_del_paquete
 .a8
 .i16
-    lda f:PAQ_MAPA
     rep #$20
 .a16
-    and #$00FF
+    lda f:PAQ_MAPA
     asl a
     tax
     lda f:paquetes, x
@@ -15211,7 +15328,6 @@ falta:
     plp
     lda temp + 1
     sta f:PAQ_EXTRA
-    lda mapa_actual
     jsr paquete_cargar
     lda #$FF
     sta f:PAQ_EXTRA
@@ -16904,10 +17020,9 @@ ANIMB_I      = $7E3615          ; cuál de los cuatro objetos se está armando
     sta f:ANIMB_SUBIR
     sta f:ANIMB_PAL
     sta f:ANIMB_HAY
-    lda mapa_actual
     rep #$20
 .a16
-    and #$00FF
+    lda mapa_actual
     tax
     sep #$20
 .a8
@@ -21788,10 +21903,7 @@ cruzar:
     sta entrada_y
     iny
     iny
-    lda [puerta_ptr], y
-    and #$00FF                  ; el índice del mapa al que lleva
-    sep #$20
-.a8
+    lda [puerta_ptr], y         ; el índice del mapa al que lleva, en un word
 
     ; Y el mapa no se carga acá: RM2k funde a negro al cruzar una puerta —una
     ; puerta es un teletransporte y le toca la misma transición—, así que se
@@ -21813,7 +21925,9 @@ cruzar:
     ; su lugar y reaparecían las franjas amarillas. Los dos cuartos son el mismo
     ; mapa 2, separados lo suficiente como para que jugando parezcan dos.
     cmp mapa_actual
-    bne otro_mapa_puerta
+    sep #$20
+.a8
+    bne otro_mapa_puerta        ; `sep` no toca Z: el salto mira el `cmp`
     lda #FUNDIDO_MISMO
     bra pedir_puerta
 otro_mapa_puerta:
@@ -23240,7 +23354,7 @@ pan_py:     .res 2
 fundido:      .res 1    ; si hay uno corriendo
 fundido_base: .res 1    ; el byte bajo de `vueltas` cuando arrancó
 fundido_que:  .res 1    ; qué hay que hacer en el cuadro negro, y ya no
-fundido_mapa: .res 1    ; a qué mapa, para los dos casos que cargan
+fundido_mapa: .res 2    ; a qué mapa, para los dos casos que cargan
 FUNDIDO_NADA   = 0      ; ya se hizo
 FUNDIDO_PUERTA = 1      ; una puerta: `cargar_mapa`, con su tope de saltos
 FUNDIDO_SALTO  = 2      ; un Teleport a otro mapa
@@ -23515,8 +23629,8 @@ switches: .res SWITCH_BYTES
 ruta_atraviesa: .res 1  ; walk_everywhere: la ruta ignora la colisión
 ruta_anim_para: .res 1  ; stop_animation: la pose se queda en la del medio
 ruta_salto:  .res 1     ; lo que le queda al salto en curso, 0 si no hay
-ruta_salto_dx: .res 1   ; y de dónde salió, en celdas y con signo
-ruta_salto_dy: .res 1
+; `ruta_salto_dx` y `ruta_salto_dy` vivían acá y no los leía nadie; su byte
+; de más es el que paga `fundido_mapa` de dieciséis bits.
 ; Prendida mientras se prueba un paso de una ruta que atraviesa paredes. La
 ; miran `can_leave` y `can_enter`, que también usa la caminata con el pad: por
 ; eso vive acá y no adentro de la ruta.

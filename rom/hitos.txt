@@ -206,6 +206,24 @@ snes-vars
 snes-vars 133 "0 0" "123 0 0 8 0" "4 7" "2 30" "12 100 100 100" 115 cofre
 snes-vars 133 "0 0" "123 0 0 7 0" "4 7" "2 30" "12 100 100 100" 115 cofre-no
 snes-vars 133 "0 0" "123 0 0 8 0" "4 7" "2 30" "12 100 100 100" 115 cofre-llave "151 1"
+# La clase 6 de ControlVars —las coordenadas de un personaje—, que es lo que
+# leen los mapas 49, 52 y 54 para seguir al auto de Lashe City. Los dos casos
+# ponen la coordenada en la variable 17 y el cronómetro desde ella, así que el
+# número se ve en los dígitos: si la ROM lee otra cosa, se nota.
+#
+# `var-heroe-x` lee la x del héroe, que está en (22,12): muestra 22 y no 12.
+# Verificado en rojo con el defecto puesto —el `cmp #PERSONAJE_X` de
+# `var_personaje_heroe` cambiado por PERSONAJE_Y—: 48 pixeles en el cuadro 30.
+#
+# `var-evento-y` lee la y de Kersh —el evento 3, blanco 4— **después** de
+# caminarle cuatro celdas para abajo con una ruta forzada, así que sólo da si
+# los dos lados leen la celda viva y no la que trae el mapa: son 13 y no 9, y
+# contra la misma página sin la ruta hay 571 pixeles de diferencia. En rojo con
+# el `+ 2` de `ev_pos_buf` cambiado por `+ 0` —o sea leyendo la x—: 96 pixeles
+# en el cuadro 80. El cuadro es el 80 y no el 30 porque la página espera a que
+# la ruta termine antes de leer.
+snes-vars 6 "60 1" "17 0 6 10001 1 17 9 0 0 0" "22 12" "2 30" "12 0 0 50" 115 var-heroe-x
+snes-vars 6 "60 1" "17 0 6 4 2 17 9 0 0 0" "22 12" "2 80" "12 0 0 50" 115 var-evento-y "" "4 2 2 2 2"
 # El Tram Officer del mapa 9 entero: cuatro mensajes, la elección "1 minute",
 # la caminata de espera, el cronómetro leído a una variable y restado, la rama
 # que dice "it's official, I'm late", y el azar que decide "It's here!". Los

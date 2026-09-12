@@ -734,7 +734,12 @@ class Graficos:
 # LCF ni conoce sus números.
 OP_FIN      = 0x00
 OP_SWITCH   = 0x01      # id (word), valor (byte)
-OP_TELEPORT = 0x02      # mapa (byte), x (word), y (word)
+OP_TELEPORT = 0x02      # mapa (word), x (word), y (word). El mapa iba en un
+                        # byte y eso le ponía **al formato** un techo de 256
+                        # mapas: el juego tiene 328. Hoy no molesta —las
+                        # demos llevan 29— pero era un techo escrito, y
+                        # sacarlo cuando todavía es barato es más barato que
+                        # sacarlo el día que una demo se pase.
 OP_ESPERAR  = 0x03      # cuadros (word): la cinemática espera seis
                         # segundos, o sea 360, y no entran en un byte
 OP_TINTE    = 0x04      # r, g, b, sat (byte cada uno)
@@ -1773,6 +1778,26 @@ VAR_PONER, VAR_SUMAR, VAR_RESTAR = 0, 1, 2
 # 256: la ROM divide con el divisor de ocho bits del hardware.
 VAR_CONSTANTE, VAR_VARIABLE, VAR_AZAR, VAR_OTRO = 0, 1, 3, 7
 OTRO_ORO, OTRO_TIMER = 0, 1
+# Y la clase 6: **las coordenadas de un personaje**. Los sub-operandos son los
+# de `ControlVariables::Event` de easyrpg-player —el `op` de
+# `game_interpreter_control_variables.cpp`—: 0 el id del mapa, 1 la x, 2 la y,
+# 3 hacia dónde mira, 4 y 5 las coordenadas en pantalla y 6 el id del evento.
+# No van de memoria, que es la regla de la casa.
+#
+# De las 829 veces que este juego la usa, **827 piden la x o la y** y las otras
+# dos la x y la y de pantalla; el id del mapa, la mirada y el id del evento no
+# los pide nadie. Así que la ROM hace la 1 y la 2, y el resto no compila:
+#
+# * la **0** en RM2k devuelve 0 para un evento —un defecto de RPG_RT que
+#   easyrpg copia—, así que hacerla sería copiar un defecto que nadie usa;
+# * la **3** devuelve 8, 6, 2 o 4 —el teclado numérico— y no 0..3;
+# * la **4** y la **5** son pixeles de pantalla, y la nuestra mide 256x224
+#   contra los 320x240 de RM2k: el número que le quedaría a la variable no es
+#   el del juego original. Son dos apariciones en todo el juego, y aceptarlas
+#   destrabaría **una** página más —medido, 5135 contra 5136—: no vale
+#   inventar una coordenada que no es la de allá por una página.
+VAR_PERSONAJE = 6
+PERSONAJE_X, PERSONAJE_Y = 1, 2
 CMP_IGUAL, CMP_MAYOR_IGUAL, CMP_MENOR_IGUAL, CMP_MAYOR, CMP_MENOR, \
     CMP_DISTINTO = range(6)
 # El generador de azar, **el mismo de los dos lados**: un xorshift de dieciséis
@@ -2556,7 +2581,7 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         destino = indice_de_mapa(p[0])
         if destino is None:
             raise NoSePuede()       # el mapa no entró en la ROM
-        return bytes([OP_TELEPORT, destino,
+        return bytes([OP_TELEPORT, destino & 0xFF, destino >> 8,
                       p[1] & 0xFF, p[1] >> 8, p[2] & 0xFF, p[2] >> 8])
 
     if cmd.code == CHANGE_PARTY_MEMBERS:
@@ -2627,6 +2652,22 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
             if a not in (OTRO_ORO, OTRO_TIMER):
                 raise NoSePuede("'otro' %d de ControlVars" % a)
             b = 0
+        elif clase == VAR_PERSONAJE:
+            # La celda de un personaje. `a` pasa a ser el mismo byte de blanco
+            # que lleva OP_RUTA —0 el héroe, el índice del evento más uno— y no
+            # el id de RM2k: el bytecode no vuelve a ver un id, que es lo que
+            # `Eventos` existe para garantizar. `b` es cuál coordenada.
+            if b not in (PERSONAJE_X, PERSONAJE_Y):
+                raise NoSePuede("la clase 6 de ControlVars con el "
+                                "sub-operando %d" % b)
+            if a == RUTA_HEROE:
+                a = 0
+            elif eventos_mapa is None:
+                raise NoSePuede("la clase 6 sobre un evento sin el mapa")
+            else:
+                a = eventos_mapa.blanco(a)
+                if a is None:
+                    raise NoSePuede()   # un vehículo, o un evento que no existe
         else:
             raise NoSePuede("operando de clase %d en ControlVars" % clase)
         return bytes([OP_VAR, ranura, p[3], clase, a & 0xFF, (a >> 8) & 0xFF,
@@ -3463,6 +3504,18 @@ class Estado:
         # página de este juego que manda a caminar nueve veces al mismo evento.
         # Se rearma al entrar a cada mapa, igual que `load_npcs` en la ROM.
         self.pos_ev = {}
+        # Y dónde está el héroe, también en celdas. Es `tile_x`/`tile_y` de la
+        # ROM, y vive acá por la misma razón: el intérprete la necesita —la
+        # clase 6 de `ControlVars` la lee— y el intérprete no recibe al héroe.
+        #
+        # **Quién la escribe manda cuándo se lee.** En la ROM `move_hero`
+        # corre *después* de `eventos_tick`, así que la página de un cuadro ve
+        # la celda que el héroe tenía al terminar el cuadro anterior. Acá pasa
+        # lo mismo porque la escribe `cuadro_de_eventos`, que va después del
+        # intérprete y después del paso del héroe; el único lugar donde hace
+        # falta ponerla a mano es al entrar a un mapa, antes de que corra
+        # ningún cuadro. Ver `poner_heroe`.
+        self.heroe = (0, 0)
         # Los intérpretes paralelos del mapa cargado. Los arma
         # `entrar_a_un_mapa`; antes de entrar a ninguno no hay ninguno.
         self.paralelos = []
@@ -3527,6 +3580,13 @@ class Estado:
         self.destello_mostrado = 0
         self.tinte_cambio = False
         self.timer_visible = False
+        # Si el refresco pendiente lo pidió un **intérprete paralelo**. Existe
+        # por lo mismo que la excepción de los autos en `asentado`: un paralelo
+        # que escribe una variable pide refresco todos los cuadros
+        # —`SetNeedRefreshForVarChange`— así que esperar a que deje de pedirlo
+        # es esperar para siempre. El refresco se hace igual; lo único que no
+        # cuenta es que quede pedido. Ver `refresco_frena`.
+        self.refresco_de_paralelo = False
         # Las variables, por ranura, y el estado del azar. Las variables viajan
         # en la partida guardada; el azar no, que RM2k tampoco lo guarda.
         self.variables = {}
@@ -3537,6 +3597,27 @@ class Estado:
 
     def item(self, numero):
         return self.items.get(numero, 0)
+
+    def poner_heroe(self, x, y):
+        """La celda del héroe, que en la ROM son `tile_x` y `tile_y`."""
+        self.heroe = (x, y)
+
+    def coordenada(self, blanco, cual):
+        """La x o la y de un personaje, en celdas: la clase 6 de `ControlVars`.
+
+        `blanco` es el byte que lleva el bytecode —0 el héroe, el índice del
+        evento más uno, igual que en OP_RUTA— y `cual` es PERSONAJE_X o
+        PERSONAJE_Y. La ROM lo lee de `tile_x`/`tile_y` y de `ev_pos_buf`, que
+        es esto mismo: la celda **viva**, la que una ruta ya movió.
+
+        Un evento que el mapa no tiene devuelve 0, que es lo que hace
+        `ControlVariables::Event` cuando `GetCharacter` no encuentra a nadie.
+        El compilador no deja pasar ninguno, así que esto no debería ocurrir
+        nunca; está escrito para que si ocurre los dos lados hagan lo mismo.
+        """
+        x, y = self.heroe if blanco == 0 else self.pos_ev.get(blanco - 1,
+                                                              (0, 0))
+        return x if cual == PERSONAJE_X else y
 
     def poner_variable(self, ranura, valor):
         """Dieciséis bits con signo, dando la vuelta como la ROM."""
@@ -3748,6 +3829,7 @@ class Estado:
         comando, que sólo eligió las páginas. Ver `refrescar_eligiendo`."""
         if self.refresco:
             self.refresco = False
+            self.refresco_de_paralelo = False
             self.aplicar = False
             self.rutas_de_pagina()
         elif self.aplicar:
@@ -3771,8 +3853,25 @@ class Estado:
         """
         if self.refresco:
             self.refresco = False
+            self.refresco_de_paralelo = False
             self.aplicar = True
             self.elegir_paginas()
+
+    def refresco_frena(self):
+        """Si hay un refresco pendiente **de los que hacen esperar**.
+
+        Uno pedido por un intérprete paralelo no cuenta, y es la misma
+        excepción que la de los autos en `asentado`: un paralelo que escribe
+        una variable lo pide en cada cuadro, así que un lazo que espere a que
+        no quede ninguno no termina nunca. Lo encontró el mapa 11 —el Lazer
+        Teeth HQ— cuyas once páginas paralelas compilan desde que existe la
+        clase 6 de `ControlVars`: el plan de `snes-heroe 11` pasó de 9 ticks a
+        110008, o sea cuarenta minutos de emulador por dirección.
+
+        El refresco se hace igual, al principio del cuadro siguiente: lo único
+        que esto cambia es que quede pedido no frene a nadie.
+        """
+        return self.refresco and not self.refresco_de_paralelo
 
     def evento_en(self, celda):
         """Qué evento está parado en esa celda, o None.
@@ -4219,7 +4318,7 @@ class Estado:
 # las doce poses. OP_RUTA no está: lleva las órdenes detrás y lo mide
 # `largo_de_opcode`.
 LARGO_DE_OPCODE = {
-    OP_FIN: 1, OP_SWITCH: 4, OP_TELEPORT: 6, OP_ESPERAR: 3, OP_TINTE: 5,
+    OP_FIN: 1, OP_SWITCH: 4, OP_TELEPORT: 7, OP_ESPERAR: 3, OP_TINTE: 5,
     OP_GRUPO: 3, OP_MENSAJE: 3, OP_RUTAS: 1, OP_FLASH: 7, OP_TIMER: 5,
     OP_BGM: 2, OP_LUGAR: 6, OP_TRUEQUE: 3, OP_SACUDIR: 5, OP_DESTELLO: 6,
     OP_FUNDIR_BGM: 3, OP_PAN: 8, OP_SI: 7, OP_IR: 3, OP_ORO: 5,
@@ -4644,7 +4743,8 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
                     TIMER_OPERATION, 0, "", [TIMER_PONER, 1, v, 0, 0]), None)
                 continue
             codigo += _compilar(lcf.EventCommand(
-                CONTROL_VARS, 0, "", [0, v, v, operacion, clase, a, b]), None)
+                CONTROL_VARS, 0, "", [0, v, v, operacion, clase, a, b]), None,
+                eventos_mapa=eventos_mapa)
     if items:
         # ChangeItems, de a dos números —ítem y cuánto, con signo— por el
         # mismo `_compilar` que el juego.
@@ -4928,7 +5028,7 @@ class Interprete:
         # pudo prender el switch que activa a otra, y `automaticos` lee la
         # instantánea, que recién se rehace en el refresco del cuadro que viene.
         return (self.codigo is None and not self.esperando_ev
-                and not self.estado.refresco and not self.automaticos())
+                and not self.estado.refresco_frena() and not self.automaticos())
 
     def cuadro(self, apreto_a=False, mover_evento=None):
         """Avanza un cuadro. Devuelve True si en éste se pidió un salto.
@@ -4963,7 +5063,11 @@ class Interprete:
         # `UpdateForegroundEvents`. O sea que un evento paralelo sigue
         # corriendo con un cuadro de texto abierto y con otra página en curso,
         # que es justo para lo que existe.
+        antes = self.estado.refresco
         self.cuadro_de_paralelos(mover_evento)
+        # Lo que los paralelos acaban de pedir se anota como suyo: ver
+        # `Estado.refresco_frena`.
+        self.estado.refresco_de_paralelo = self.estado.refresco and not antes
         if self.estado.mensaje is not None:
             if not apreto_a:
                 return False
@@ -5215,15 +5319,15 @@ def ejecutar(codigo, estado, desde=0):
             # siguiente. En la cinemática de apertura los dos van al mismo mapa,
             # así que no cambia nada; si alguna vez aparece una página que salte
             # entre mapas distintos, esto hay que mirarlo de nuevo.
-            estado.salto = (codigo[i + 1],
-                            codigo[i + 2] | (codigo[i + 3] << 8),
-                            codigo[i + 4] | (codigo[i + 5] << 8))
+            estado.salto = (codigo[i + 1] | (codigo[i + 2] << 8),
+                            codigo[i + 3] | (codigo[i + 4] << 8),
+                            codigo[i + 5] | (codigo[i + 6] << 8))
             # Cuántos fundidos lleva la corrida. No lo usa el intérprete: lo
             # usa el plan de la caminata, que le dice al emulador cuántos
             # cuadros correr y tiene que contar los 70 de cada teletransporte.
             # Se cuenta acá, que es el único lugar por donde pasan todos.
             estado.fundidos += 1
-            return (i + 6, 0, True)     # corta el cuadro, como `return false`
+            return (i + 7, 0, True)     # corta el cuadro, como `return false`
         elif op == OP_ESPERAR:
             # Y acá se devuelve el control. Antes se salteaba: "no tenemos
             # cuadros que dejar pasar", decía el comentario, y era cierto
@@ -5286,6 +5390,8 @@ def ejecutar(codigo, estado, desde=0):
                 valor = estado.variable(a)
             elif clase == VAR_AZAR:
                 valor = estado.azar(a, b)
+            elif clase == VAR_PERSONAJE:
+                valor = estado.coordenada(a, b)
             elif a == OTRO_ORO:
                 valor = min(estado.oro, 0x7FFF)
             else:
