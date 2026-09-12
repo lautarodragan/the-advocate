@@ -129,6 +129,33 @@ la vez se pelean por CPU.
 **Las tareas en segundo plano las mata taro.** Se pueden dejar corriendo; lo
 que no hay que hacer es matarlas por cuenta propia. Si estorban, preguntar.
 
+## Sub-agentes
+
+**Se usan, y son la forma preferida cuando dos trabajos no se pisan demasiado.**
+Siempre con `isolation: "worktree"`: cada uno en su copia, así el `mapdata.inc`
+—que es estado global— y las tandas no se mezclan.
+
+Hasta el 2026-09-12 la regla era la contraria, y el porqué sigue valiendo como
+advertencia: los hitos tocan `snes_convert.py`, `main.s` y `snes_expect.py`, que
+son justo donde un merge mal hecho no se ve. Lo que cambió es que el trabajo se
+volvió paralelizable de verdad —dos maneras distintas de resolver lo mismo, para
+comparar— y que el setup ya está armado: worktrees y `pruebas-manuales/`. taro
+aceptó el costo de los conflictos de git a cambio de eso.
+
+Lo que hay que hacer siempre:
+
+* **Traerle los builds al repo principal.** Los worktrees viven en `/extras`, que
+  él no tiene montado en el host: una ROM que quede ahí adentro no la puede
+  probar. Van a `pruebas-manuales/<nombre>/`, con un `LEEME.txt` que diga qué
+  mirar y con qué limitaciones se chocó.
+* **Pasarle al agente lo que ya está medido**, para que no lo vuelva a averiguar
+  y para que no lo mida distinto.
+* **Pedirle el límite medido y no la implementación forzada.** Cuando el punto
+  es comparar dos caminos, saber dónde se rompe cada uno vale tanto como el
+  código.
+* **Avisarle que hay otros corriendo**: dos tandas a la vez se pelean por CPU y
+  tardan, y matarlas por impaciencia arruina la corrida.
+
 ## Git
 
 Los commits van directo a `main`. **El push lo hace taro**, con su YubiKey: no
