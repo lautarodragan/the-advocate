@@ -1856,6 +1856,16 @@ OP_ACTOR_GRAF = 0x25    # actor (byte), gráfico (byte)
 # propio cursor** y se vuelve a ejecutar cuadro a cuadro, así que no puede
 # distinguir la primera vuelta de las otras.
 OP_TECLA = 0x26
+# Interruptor de **medición**, apagado por defecto: acepta el `KeyInputProc`
+# sin espera, que es el volante de la persecución en auto. Existe para que el
+# número de lo que falta se vuelva a sacar con un comando —ver el `raise` de
+# `KEY_INPUT_PROC`, que tiene las dos mediciones— y para armar la ROM que taro
+# puede jugar mientras la otra mitad del arreglo no esté.
+#
+# **Una ROM armada con esto no se compara contra la referencia**: es
+# exactamente el camino que todavía diverge. No ponerlo en ninguna receta de la
+# tanda.
+PERMITIR_TECLA_SIN_ESPERA = bool(os.environ.get("TECLA_SIN_ESPERA"))
 TECLA_ESPERA   = 0x01
 TECLA_DIRS     = 0x02
 TECLA_DECISION = 0x04
@@ -2971,12 +2981,35 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
             # única que pelea contra el empujón hacia la derecha que la página
             # le da al héroe todos los cuadros.
             #
-            # Arreglarlo es hacer que la caminata del arnés avance **cuadro a
-            # cuadro** en vez de celda a celda, y que corra la ruta forzada del
-            # héroe mientras camina. Es el pedazo más delicado de
-            # `snes_expect.py` y no entra en esta vuelta.
-            raise NoSePuede("KeyInputProc sin espera: la ruta forzada del "
-                            "héroe no manda sobre el pad en la referencia")
+            # **Medido de nuevo el 2026-09-13, con la mitad del arreglo puesta.**
+            # Desde ese día `hero_position` respeta la ruta forzada —mientras
+            # haya ruta puesta el pad no mueve, que es lo que hace `move_hero`—
+            # y con eso ese mismo caso pasa de 55,42% a **0,59%**, 248 pixeles:
+            # el auto, a unos pocos pixeles de donde lo deja la ROM. Las otras
+            # cuatro direcciones siguen en cero.
+            #
+            # Lo que falta para el cero, y por eso esto sigue sin aceptarse:
+            # cuando **no** hay ruta puesta el arnés camina una celda entera de
+            # un saque —cuatro cuadros— y la página paralela le puede volver a
+            # poner la ruta en el medio, cosa que la ROM sí ve. O sea que hace
+            # falta la otra mitad: que la caminata avance **cuadro a cuadro**.
+            # Es el pedazo más delicado de `snes_expect.py`.
+            #
+            # Y hay un segundo problema, que apareció con la medición y no es
+            # de precisión: con la carrera corriendo, `snes-heroe 52` **no
+            # termina**. El volante le vuelve a poner la ruta al héroe para
+            # siempre, así que "apretar hasta chocar contra la pared" deja de
+            # tener final y el lazo corta en su tope de 10000 vueltas —27566
+            # cuadros de emulador para una sola dirección—. Antes de aceptar
+            # este comando hay que decidir qué mira ese caso, porque el mapa 52
+            # es de la carrera y está en `rom/hitos.txt`.
+            #
+            # Para reproducir las dos mediciones sin tocar código:
+            # `TECLA_SIN_ESPERA=1 just snes-heroe 52`.
+            if not PERMITIR_TECLA_SIN_ESPERA:
+                raise NoSePuede("KeyInputProc sin espera: la ruta forzada del "
+                                "héroe no manda sobre el pad en la referencia")
+            return bytes([OP_TECLA, ranura_de_variable(p[0]), banderas])
         if banderas != (TECLA_ESPERA | TECLA_DECISION):
             # **La espera se hace sólo con la tecla de acción**, y el número
             # está medido: de las +30 páginas que este comando destraba en el
