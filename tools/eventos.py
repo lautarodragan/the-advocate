@@ -219,6 +219,21 @@ def espera_tras_giro(frecuencia):
 # el héroe encarándose a sí mismo no lo usa ninguna página.
 RUTA_ENCARAR_HEROE = 21
 
+# Y moverse hacia el héroe: `move_towards_hero`. No es una orden nueva sino dos
+# que ya existen pegadas —en `UpdateMoveRoute` es `TurnTowardCharacter(hero)` y
+# después `Move(GetDirection())`—, o sea la 21 y un `move_*` en el mismo
+# cuadro, con el mismo costo de paso que cualquier otro.
+#
+# Es la orden que más destraba de las que faltaban, y por lejos: medido sobre
+# el juego entero, **+31 páginas**, contra +1 de las otras nueve juntas —al
+# azar, huyendo del héroe, hacia adelante y los cinco giros en el lugar—. Se
+# usa 267 veces en rutas forzadas de cuatro mapas, el 9, el 11, el 38 y el 166;
+# el 9 es la pelea de los Lazer Teeth.
+#
+# Sólo sobre eventos, como la 21: el héroe yendo hacia sí mismo no lo pide
+# ninguna ruta del juego —medido, cero— y no querría decir nada.
+RUTA_HACIA_HEROE = 9
+
 # Girar sin moverse —`turn_90_degree_right` y sus hermanas— sigue afuera, y no
 # por costo: RM2k gira sobre la dirección que el personaje ya tenía, y para un
 # evento que todavía no giró ésa es la de su página, que la ruta no lee.
@@ -352,6 +367,7 @@ RUTA_ORDENES = (set(RUTA_MIRAR) | set(RUTA_MOVER)
                 | {RUTA_ESPERAR, RUTA_SALTO_INICIO, RUTA_SALTO_FIN,
                    RUTA_ATRAVESAR_ON, RUTA_ATRAVESAR_OFF,
                    RUTA_ANIM_PARAR, RUTA_ANIM_SEGUIR, RUTA_ENCARAR_HEROE,
+                   RUTA_HACIA_HEROE,
                    RUTA_FIJAR_DIR, RUTA_SOLTAR_DIR, RUTA_VEL_MAS, RUTA_VEL_MENOS,
                    RUTA_FREC_MAS, RUTA_FREC_MENOS, RUTA_CAMBIAR_GRAFICO})
 
@@ -2412,7 +2428,21 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
                              bool(p[2])) < RUTA_FRECUENCIA_MIN:
             raise NoSePuede()   # las órdenes 30 y 31 la bajarían hasta la 1
         ruta = []
+        # Si el cursor va entre un `begin_jump` y su `end_jump`. Adentro de un
+        # salto las órdenes no se ejecutan: `BeginMoveRouteJump` sólo **suma**
+        # los `move_*` y los giros, y la 9 ahí tendría que preguntar por el
+        # héroe en el medio de la cuenta. Ninguna ruta del juego lo hace
+        # —medido, cero—, así que se rechaza en vez de modelarlo a ciegas: si
+        # los dos lados la ignoraran, se equivocarían igual y la comparación
+        # daría cero.
+        en_salto = False
         for orden, extras in ordenes:
+            if orden == RUTA_SALTO_INICIO:
+                en_salto = True
+            elif orden == RUTA_SALTO_FIN:
+                en_salto = False
+            elif orden == RUTA_HACIA_HEROE and en_salto:
+                raise NoSePuede()
 
             if orden == RUTA_SONIDO or orden in RUTA_TRANSPARENCIA:
                 # Se acepta y se tira: no se ve y no
@@ -2428,8 +2458,8 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
             # desde él, girar en el lugar, los switches— sigue afuera.
             if orden not in RUTA_ORDENES:
                 raise NoSePuede()
-            if orden == RUTA_ENCARAR_HEROE and blanco == 0:
-                raise NoSePuede()   # el héroe encarándose a sí mismo
+            if orden in (RUTA_ENCARAR_HEROE, RUTA_HACIA_HEROE) and blanco == 0:
+                raise NoSePuede()   # el héroe encarándose o yendo hacia sí mismo
             if orden in RUTA_HEROE_AFUERA and blanco == 0:
                 # Fijar y soltar la mirada y subir y bajar la velocidad, sobre
                 # **el héroe**: se aceptan y se tiran, como el sonido y la
@@ -3001,8 +3031,15 @@ class Ruta:
                 self.espera = (CUADROS_DE_ESPERA_DE_RUTA - 1
                                + espera_tras_giro(self.frecuencia))
                 break
-            direccion = RUTA_MOVER[orden]
-            diagonal = orden in RUTA_DIAGONALES
+            if orden == RUTA_HACIA_HEROE:
+                # `move_towards_hero`: la dirección sale de encarar al héroe y
+                # de ahí en adelante es un paso como cualquier otro. Nunca en
+                # diagonal: `GetDirectionToCharacter` devuelve uno de los
+                # cuatro lados.
+                direccion, diagonal = hacia_heroe(), False
+            else:
+                direccion = RUTA_MOVER[orden]
+                diagonal = orden in RUTA_DIAGONALES
             if not self.dir_fija:
                 # En diagonal no se gira hacia el rincón: se conserva la pose
                 # o se da vuelta. Ver `encarar_en_diagonal`.
@@ -5491,6 +5528,13 @@ def ruta_propia(page):
     (`AnimType_spin`), que ninguna de las dos páginas del juego que lo usan
     está en los primeros mapas. Los otros tipos de movimiento —al azar,
     vertical, horizontal, hacia el héroe— tampoco: son otra máquina.
+
+    **Moverse hacia el héroe queda afuera también acá**, aunque desde el
+    2026-09-12 la ROM la camine en una ruta forzada: son dos páginas del mapa
+    105 —medido, las únicas de las 37 rutas propias del juego que la usan— y
+    ninguna prueba llega ahí, así que aceptarla sería estrenar el camino sin
+    nada que lo ejercite. La 21 está afuera por lo mismo desde antes: cero
+    rutas propias la usan.
     """
     if page.move_type != 6 or not page.move_route.commands:
         return None
@@ -5502,7 +5546,8 @@ def ruta_propia(page):
     for orden in page.move_route.commands:
         if orden == RUTA_SONIDO or orden in RUTA_TRANSPARENCIA:
             continue
-        if orden not in RUTA_ORDENES or orden == RUTA_ENCARAR_HEROE:
+        if orden not in RUTA_ORDENES or orden in (RUTA_ENCARAR_HEROE,
+                                                  RUTA_HACIA_HEROE):
             return None
         if orden == RUTA_CAMBIAR_GRAFICO:
             # Acá no hay dónde poner el operando —una ruta de página es una

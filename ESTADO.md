@@ -29,8 +29,12 @@ point animado y guardando, el menú de pausa, los ítems, el equipo y la tienda.
 **Corre en la SNES de verdad con el FX Pak**, con la música por MSU-1 y los
 efectos por el SPC700.
 
-Las páginas automáticas que compilan enteras son **272 de 489**, y del juego
-entero compilan **2329 de 3473**.
+Las páginas automáticas que compilan enteras son **322 de 489** —`just
+snes-destraba`—, y del juego entero compilan **2617 de 3473**. Los dos números
+venían de septiembre y estaban viejos; el segundo se cuenta pasando cada página
+de los 328 mapas por `eventos.compilar_pagina` con bloque de textos y con todos
+los teletransportes resolubles, que es el techo de lo que una ROM con la
+ventana puesta sabe correr.
 
 ### El dibujo de las animaciones de batalla: medido, sin empezar
 
@@ -386,6 +390,15 @@ de cada una está en `README.md`.
   medias unidades de RM2k y **queda a la velocidad que la ruta le dejó**, como
   en RM2k, que repone la frecuencia al terminar pero no la velocidad.
 
+* **La orden 9 de ruta, `move_towards_hero`, se camina desde el 2026-09-12.**
+  No es una orden nueva: `UpdateMoveRoute` hace `TurnTowardCharacter(hero)` y
+  después `Move(GetDirection())`, o sea la 21 y un `move_*` pegados, así que
+  los dos lados la resuelven con lo que ya tenían. Medido sobre el juego
+  entero, **+33 páginas** —de 2584 a 2617—, y es la única que rendía: las otras
+  nueve que faltan (al azar, huyendo del héroe, hacia adelante y los cinco
+  giros en el lugar) suman **+1 entre todas**, así que no se hicieron. La cubre
+  `npc-hacia-heroe`. Queda afuera en las **rutas propias de página**, que son
+  dos del mapa 105 y ninguna prueba llega ahí; ver `ruta_propia`.
 * **Las diagonales y la orden 34 van sobre eventos, no sobre el héroe.** El
   paso del héroe está escrito una vez por dirección y su gráfico sale de la
   tabla de actores; darle las dos cosas sería duplicar ese código. Medido: de

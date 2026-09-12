@@ -557,6 +557,20 @@ snes-ruta-evento mapa="6" ruta="3 0 0 0 0 0 0 3 3 3 23 2 2 1 13" cuadros="89 91"
 #   camina abajo-derecha, así que se da vuelta 180° y termina mirando a la
 #   derecha. Comprobado por los dos lados: el caso da idéntico a mirar a la
 #   derecha desde el principio, y distinto a mirar hacia abajo.
+#
+# Y `npc-hacia-heroe`, desde el 2026-09-12: la orden 9, `move_towards_hero`,
+# que es la que destraba la pelea de los Lazer Teeth. No es una orden nueva
+# sino dos que ya estaban pegadas —encarar al héroe y dar el paso—, y el caso
+# mira justamente la costura. El evento 3 arranca en (22,9) y el héroe está en
+# (25,10): tres a la derecha y una abajo, así que manda el eje horizontal y el
+# evento camina a la derecha; al llegar a (25,9) el héroe le queda **abajo** y
+# la cuarta orden lo gira hacia abajo, donde ya no puede avanzar —el héroe
+# ocupa la celda— y se saltea. O sea que el cuadro 70 prueba lo que ninguna
+# posición prueba: que la dirección se recalcula en cada orden y que **girar
+# pasa antes de mirar si se puede**, que es el orden de `UpdateMoveRoute`.
+# Verificado en rojo con el defecto puesto: sin el desvío de la 9 en
+# `cuadro_de_ruta_ev` la ROM la manda a `mover` con una dirección que no es
+# 0..3, y el cuadro 5 ya da 479 pixeles.
 snes-npc mapa="6" ruta="4 2 2 2 2 1 1 12" celda="22 12" cuadros="10 27 40 60" arranque="115" nombre="npc" frecuencia="8":
   #!/usr/bin/env bash
   set -euo pipefail

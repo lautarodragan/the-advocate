@@ -6703,8 +6703,11 @@ no_es_wait:
 no_es_mover:
     cmp #16
     bcc face                    ; 12..15 son los face_*
-    ; Girar sin moverse no se compila, y encarar al héroe no se compila
-    ; **sobre el héroe**: ver `RUTA_ORDENES` en eventos.py. Acá no llegan.
+    ; Girar sin moverse no se compila, y encarar al héroe —la 21— e ir hacia
+    ; él —la 9— no se compilan **sobre el héroe**: ver `RUTA_ORDENES` en
+    ; eventos.py. Acá no llegan. La 9 además caería en `mover` de arriba, que
+    ; con una dirección que no es 0..3 manda al héroe a la izquierda por
+    ; descarte, que es la misma trampa que las diagonales.
     cmp #24
     bne no_es_salto
     jsr armar_salto_heroe
@@ -7962,7 +7965,17 @@ hay_orden:
 no_es_wait:
     cmp #12
     bcs no_mueve
-    jmp mover                   ; 0..3 son los move_*
+    cmp #9
+    bne :+
+    ; `move_towards_hero`. No es una orden aparte sino las dos que ya están
+    ; pegadas: `UpdateMoveRoute` hace `TurnTowardCharacter(hero)` y después
+    ; `Move(GetDirection())`, o sea la 21 y un `move_*` en el mismo cuadro.
+    ; Por eso sale la dirección de acá y cae en `mover` sin tocar nada más:
+    ; el giro, el paso y lo que cuesta son los de siempre.
+    ; `hacia_el_heroe` no pisa X, que es la ranura.
+    jsr celda_del_evento
+    jsr hacia_el_heroe
+:   jmp mover                   ; 0..3 son los move_*, y la 9 ya trae la suya
 no_mueve:
     cmp #16
     bcs :+
