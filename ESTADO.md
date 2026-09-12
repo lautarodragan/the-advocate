@@ -752,6 +752,22 @@ volumen del DSP cuando hay pista —es el que oyen los efectos— y `op_fundir_b
 deja pasar el `FadeOutBGM` con `music_apagada` puesto, que con pista vale 1 y
 hacía que la pista no se fundiera nunca.
 
+**Y la pista suena a `$D8` y no a `$FF`** (`MSU_VOLUMEN_MAX`), desde que taro
+escuchó clipping en el Emitter Room y los efectos bajos. Las dos cosas son el
+mismo número: el MSU-1 se suma a la salida del SPC700, y con la música al tope
+no queda margen. Medido en la apertura: 42 muestras al tope con `$FF` —todas en
+cuadros con un efecto sonando— y **cero** con `$D8`, con la música bajando de
+28933 a 24508, que es el nivel que tenía por el SPC700 (23867). El fundido
+escala contra ese techo; el lazo del producto es uno solo para los dos caminos
+y se verificó que el `FadeOutBGM` del SPC700 sigue bajando igual.
+
+**Lo que no se pudo medir: el Emitter Room.** Es donde taro escuchó el
+clipping, y todas mis corridas se quedaron en el mapa 1 —la apertura no avanza
+sola, y los números de `apertura` en rom/hitos.txt son **ticks**, no cuadros de
+hardware, que es con lo que estuve apretando A—. Lo medido es la apertura, y
+ahí el clipping existía y desapareció; el Emitter Room tiene catorce efectos y
+otro tema, así que conviene volver con `snes-cinematica` bien usado.
+
 **Los efectos por MSU-1 no van, y no es una decisión: es el hardware.** El
 MSU-1 es un único stream estéreo; mientras toca la música no hay dónde meter un
 disparo. Se quedan en el SPC700, que además ahora tiene la ARAM más holgada.

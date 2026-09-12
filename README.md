@@ -1024,6 +1024,20 @@ Cómo funciona, del lado de la ROM:
   quedan afuera: con pista, KOF se deja en `$FF` para que las voces de la
   música no suenen, y `se_despues` lo limpia solo al arrancar un efecto.
 
+* **La pista no suena a fondo, y eso no es cautela: es aritmética.** El MSU-1
+  se **suma** a la salida del SPC700 en vez de mezclarse con ella, así que una
+  música que llega al techo no deja lugar para un efecto de sonido. Con el
+  volumen en `$FF`, en la apertura, 42 muestras llegaban al tope —las 42 en
+  cuadros con un efecto sonando— mientras que la misma corrida por el SPC700 no
+  clavetea ni una vez; y la música por pista picaba 28933 contra 23867, o sea
+  1,21 veces más alta, que es lo mismo escuchado al revés: "los efectos se oyen
+  mucho más bajos". `MSU_VOLUMEN_MAX` es `$D8` —ese 0,85— y con eso el clipping
+  se va a cero y la música queda en 24508, al lado de los 23867 del SPC700. Va
+  en el registro y no en las pistas: normalizarlas más abajo serían 195 MB a
+  rehacer por ROM, y perdería la referencia de nivel entre un tema y otro.
+  El fundido escala contra ese techo y no contra 255, o su primer cuadro
+  **subiría** la música antes de bajarla.
+
 Y del lado del cartucho, `tools/msu.py` (receta `snes-msu`): renderiza el MIDI
 con fluidsynth y **con el mismo soundfont con el que el juego sonaba en la PC**
 —el que ya usa `snes_samples.py` para sacar las muestras—, así que no cambia el

@@ -13690,6 +13690,25 @@ MSU_CONTROL = $2007
 MSU_HAY     = $7E30E8           ; si la firma está
 MSU_SUENA   = $7E30E9           ; si la pista está tocando ahora
 
+; El volumen con que suena la pista, de 0 a 255, y **no es 255**: el MSU-1 se
+; suma a la salida del SPC700 en vez de mezclarse con ella, así que la música a
+; fondo no deja margen para los efectos de sonido. Con 255, en la apertura, 42
+; muestras llegaban al tope —y las 42 en cuadros con un efecto sonando—,
+; mientras que la misma corrida por el SPC700 no clavetea ni una vez. Medido
+; también: la música por pista picaba 28933 contra 23867 del SPC700, o sea
+; 1,21 veces más alta, que es lo que taro escuchó como "los efectos se oyen
+; mucho más bajos".
+;
+; $D8 es ese 0,85. Baja la música hasta donde estaba y devuelve el margen, sin
+; tocar las pistas: normalizarlas más abajo serían 195 MB a rehacer por ROM y
+; encima perdería la referencia de nivel entre un tema y otro.
+MSU_VOLUMEN_MAX = $D8
+
+; Y dos bytes para el factor del fundido, en la RAM lejana porque la del banco 0
+; está llena. El byte alto queda siempre en cero: el lazo lo suma de a dieciséis
+; bits. Vive acá y no en `temp` porque el fundido corre adentro de `irq_musica`.
+MSU_FACTOR  = $7E30EA
+
 ; La firma, una vez, en el reset.
 .proc msu_detectar
 .a8
@@ -13764,7 +13783,7 @@ cargada:
     lda MSU_ESTADO
     and #$08                    ; la pista no está en la tarjeta
     bne no
-    lda #$FF                    ; el volumen del MSU-1 va de 0 a 255
+    lda #MSU_VOLUMEN_MAX
     sta MSU_VOLUMEN
     lda #$03                    ; tocar y repetir
     sta MSU_CONTROL
@@ -22355,6 +22374,21 @@ sigue:
     ; —el divisor comparte el registro del resultado—; una interrupción entre
     ; su escritura y su lectura le cambiaría la cuenta. Así que a mano, de a
     ; un bit del nivel, con `dsp_valor` de lugar: es sólo de la música.
+    ; El factor es el techo de lo que se está fundiendo: el volumen del tema
+    ; si suena el SPC700, y el de la pista si hay MSU-1 —que no es 255, ver
+    ; MSU_VOLUMEN_MAX—. Es un solo producto y un solo camino: con dos, el del
+    ; MSU-1 se equivocaría solo.
+    ldy #TEMA_VOLUMEN
+    lda f:MSU_SUENA
+    beq con_factor
+    ldy #MSU_VOLUMEN_MAX
+con_factor:
+    rep #$20
+.a16
+    tya
+    sta f:MSU_FACTOR            ; el lazo lo suma con `adc f:`: no hay dónde
+    sep #$20                    ; tener un parcial, y `,s` no existe acá
+.a8
     lda bgm_nivel + 1
     sta dsp_valor
     ldx #8
@@ -22370,7 +22404,7 @@ bit_del_nivel:
 .a16
     bcc sin_sumar
     clc
-    adc #TEMA_VOLUMEN
+    adc f:MSU_FACTOR
 sin_sumar:
     dex
     bne bit_del_nivel
@@ -22386,7 +22420,11 @@ sin_sumar:
     ; general del SPC700 es el que oyen los efectos de sonido, así que bajarlo
     ; acá los dejaba mudos hasta el `PlayBGM` siguiente, que es el único que lo
     ; repone.
-    lda bgm_nivel + 1           ; el nivel del fundido ya va de 255 a 0
+    ;
+    ; El producto ya está hecho arriba, y con el factor de la pista: `dsp_valor`
+    ; es el nivel escalado contra MSU_VOLUMEN_MAX, que es el techo de la pista y
+    ; no 255. Acá no hay ninguna cuenta que rehacer.
+    lda dsp_valor
     sta MSU_VOLUMEN
     bne listo_msu
     jsr msu_parar               ; llegó a cero: la pista se corta
