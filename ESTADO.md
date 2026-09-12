@@ -356,7 +356,7 @@ de cada una está en `README.md`.
 * **Agotar el presupuesto de teletransportes es un error, no un caso.** Al
   agotarse, la ROM llama a `entrar_en_panico` y la referencia levanta
   `DemasiadosSaltos`. Un salto descartado en silencio es la forma de falla que
-  el CLAUDE.md nombra, y ésta sobrevivió semanas porque la partida seguía
+  AGENTS.md nombra, y ésta sobrevivió semanas porque la partida seguía
   andando, sólo que en el mapa equivocado.
 
 * **Las ROMs para probar a mano viven en `pruebas-manuales/<fecha>-<commit>/`**,

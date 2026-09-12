@@ -501,7 +501,7 @@ def armar(map_id, mapas=(), con_ventana=True, destino=None, rama=(),
     """Convierte, ensambla y devuelve (ROM, símbolos, ids de mapa en orden).
 
     Los mismos dos comandos que corre el justfile, para que una ROM de prueba
-    no sea nunca una ROM armada a mano: ver "Trampas del entorno" en CLAUDE.md.
+    no sea nunca una ROM armada a mano: ver "Trampas del entorno" en AGENTS.md.
 
     Se saltea si ya está hecha y nada de lo que la arma cambió; ver `huella`.
     El estado inicial —los switches— ya no se hornea en la ROM sino que se
