@@ -46,6 +46,7 @@ import rm2k
 # Los eventos translúcidos llevan su propio gráfico: ver
 # `rm2k.decorar_translucido` —horneado contra el fondo, tramado, u opaco—.
 lcf.DECORAR_TRANSLUCIDO = rm2k.decorar_translucido
+import animacion as animacion_mod
 import imagen
 import pixeles
 import titulo as titulo_mod
@@ -1068,7 +1069,8 @@ def colores_del_timer(sys_img):
     return colores
 
 
-def digitos_del_timer(sys_img, tiles, palettes, de_lider=()):
+def digitos_del_timer(sys_img, tiles, palettes, de_lider=(),
+                     tope=OBJ_PALETTES):
     """Los once glifos del cronómetro, al final del banco de sprites.
 
     Van como dos tiles de 8x8 apilados cada uno, y los once entran en una fila
@@ -1111,11 +1113,11 @@ def digitos_del_timer(sys_img, tiles, palettes, de_lider=()):
             paleta, cual = union, numero
             break
     else:
-        if len(palettes) >= OBJ_PALETTES:
+        if len(palettes) >= tope:
             raise SystemExit(
                 "el cronómetro no entra: el mapa ya usa las %d paletas de "
-                "sprite y ninguna tiene lugar para sus %d colores"
-                % (OBJ_PALETTES, len(quiere)))
+                "sprite que le tocan y ninguna tiene lugar para sus %d colores"
+                % (tope, len(quiere)))
         paleta, cual = list(quiere), len(palettes)
         palettes.append(paleta)
     indice = {color: paleta.index(color) + 1 for color in quiere}
@@ -1147,7 +1149,8 @@ def digitos_del_timer(sys_img, tiles, palettes, de_lider=()):
     return bytes(tiles), base, cual
 
 
-def gotas_de_lluvia(tiles, palettes, de_lider=(), timer_base=None):
+def gotas_de_lluvia(tiles, palettes, de_lider=(), timer_base=None,
+                   tope=OBJ_PALETTES):
     """Los seis tiles de las gotas —arriba y abajo de la raya, en los tres
     grises— y la paleta donde entran sus colores. Ver OP_CLIMA en eventos.py.
 
@@ -1159,7 +1162,7 @@ def gotas_de_lluvia(tiles, palettes, de_lider=(), timer_base=None):
     número de paleta).
     """
     quiere = [c for c in eventos.LLUVIA_COLORES]
-    cual = _primer_lugar(palettes, de_lider, quiere)
+    cual = _primer_lugar(palettes, de_lider, quiere, tope)
     if cual is None:
         # No hay lugar: este mapa no dibuja lluvia, y la referencia lo sabe con
         # la misma regla, `lluvia_cabe`. No se le baja un color a nadie para
@@ -1221,10 +1224,122 @@ def cartel_de_imagen(info, tiles, palettes, base_previa=None):
     return bytes(tiles), base, cual
 
 
-def _primer_lugar(palettes, de_lider, colores):
+def mapa_muestra_animacion(game_map, renderer, extra=()):
+    """Si alguna página de este mapa puede dibujar una animación de batalla.
+
+    Se mira sobre los comandos crudos y no sobre el bytecode ya compilado, y a
+    propósito: la VRAM hay que reservarla al convertir el mapa y las páginas se
+    compilan después. Es un superconjunto —una página que al final no compile
+    deja 64 tiles reservados sin usar— y tiene que serlo: si el bytecode
+    mostrara una animación que el mapa no reservó, la ROM escribiría los tiles
+    encima de los de un personaje.
+
+    `extra` son las animaciones de la página de prueba, que no salen del mapa.
+    """
+    numeros = set(extra)
+    for evento in game_map.events:
+        for page in evento.pages:
+            for cmd in page.commands:
+                if (cmd.code == eventos.SHOW_BATTLE_ANIMATION
+                        and len(cmd.parameters) >= 3):
+                    numeros.add(cmd.parameters[0])
+    return any(animacion_mod.de_numero(renderer, n) is not None
+               for n in numeros)
+
+
+def animacion_de_mapa(tiles, palettes, usadas=0):
+    """La caja de la animación de batalla al final del banco de sprites: sus
+    64 tiles y **una paleta entera para ella sola**.
+
+    No comparte paleta con nadie por lo mismo que el cartel: los quince colores
+    son de la animación, se suben cuando empieza y se pisan cuando empieza otra,
+    y un personaje metido ahí cambiaría de color con ella. Y va **arriba de
+    `SPRITE_CGRAM`**, o sea afuera del rango que recorren `aplicar_tinte` y
+    `subir_paletas`, que además es lo fiel: en `Spriteset_Map::Update` el tono
+    del mapa va al tilemap, a los personajes, al panorama y a las sombras, y a
+    las animaciones no.
+
+    Los tiles se reservan **en blanco**: lo que va adentro lo sube la ROM por
+    DMA cuadro a cuadro, desde el cartucho. Ver `animacion.py`.
+
+    Devuelve (tiles, base, número de paleta), o (tiles, 0, 0) si el mapa ya usa
+    las ocho paletas de sprite. `usadas` son las que ya se llevó el cartel.
+    """
+    cual = len(palettes) + usadas
+    if cual >= OBJ_PALETTES:
+        return bytes(tiles), 0, 0
+    tiles = bytearray(tiles)
+    # Después de todo lo demás: el cronómetro, las gotas y el cartel ya
+    # agrandaron `tiles` hasta cubrir lo suyo, así que el final del banco es el
+    # largo. Redondeado a una **fila de bloques**, que es lo que la aritmética
+    # de los objetos de 32x32 necesita entera.
+    base = -(-(len(tiles) // 32) // 64) * 64
+    if (base + animacion_mod.TILES) * 32 > len(tiles):
+        tiles += bytes((base + animacion_mod.TILES) * 32 - len(tiles))
+    return bytes(tiles), base, cual
+
+
+def tope_de_paletas_del_mapa(renderer, game_map, lideres, graficos,
+                             timer_colores, solos, poses, muestra_animacion):
+    """Cuántas paletas de sprite puede repartirse este mapa entre sus
+    personajes: las ocho, o **siete** si muestra animaciones de batalla.
+
+    La caja de la animación necesita una paleta entera para ella sola, y los
+    dos mapas de la intro —el 2 y el 3, que son los que la escena usa— llenaban
+    las ocho. Sacarle una a los personajes es lo que hace que la escena del
+    Emitter Room tenga dibujo; lo que cuesta son colores fusionados, y lo dice
+    el informe de cada mapa.
+
+    **Salvo que con siete no entre el cronómetro**, que no es negociable: sin
+    sus dos colores no hay cronómetro en toda la ROM. Ahí se vuelve a ocho y
+    este mapa no dibuja animaciones, que es lo que le pasa al mapa 9.
+
+    Vive suelta y no adentro de `convertir` porque **la referencia tiene que
+    tomar la misma decisión**: si los dos lados repartieran las paletas
+    distinto, no estarían dibujando el mismo mapa. Ver `Mundo.tope_de_paletas`
+    en snes_expect.py.
+    """
+    if not muestra_animacion:
+        return OBJ_PALETTES
+    menos = OBJ_PALETTES - 1
+    if timer_colores:
+        reparto = npcs_dibujables(renderer, game_map, lideres, menos, graficos,
+                                  timer_colores, solos, poses)[2]
+        copia = [list(p) for p in reparto[0]]
+        if _primer_lugar(copia, reparto[3], list(timer_colores),
+                         menos) is None:
+            return OBJ_PALETTES
+    return menos
+
+
+def animacion_cabe(paletas, de_lider, timer_colores=(), con_lluvia=False,
+                   con_cartel=False, tope=OBJ_PALETTES):
+    """Si la caja de la animación de batalla consigue paleta en este mapa.
+
+    Es la misma cuenta de `animacion_de_mapa`, sobre una copia y en el mismo
+    orden en que el conversor reparte: primero el cronómetro, después las
+    gotas, después el cartel, y la animación con la que quede. La usa la
+    referencia para saber si en este mapa se dibujan animaciones, que es lo
+    mismo que `lluvia_cabe` hace con las gotas.
+    """
+    copia = [list(p) for p in paletas]
+    if timer_colores:
+        _primer_lugar(copia, de_lider, list(timer_colores), tope)
+    if con_lluvia:
+        _primer_lugar(copia, de_lider, list(eventos.LLUVIA_COLORES), tope)
+    return len(copia) + (1 if con_cartel else 0) < OBJ_PALETTES
+
+
+def _primer_lugar(palettes, de_lider, colores, tope=OBJ_PALETTES):
     """La primera paleta —menos las de líder— donde entran `colores` sin
     fusionar nada, o una nueva si queda ranura; la agrega o la agranda y
-    devuelve su número, o None si no hay lugar."""
+    devuelve su número, o None si no hay lugar.
+
+    `tope` es cuántas paletas de sprite puede usar este mapa, que **no siempre
+    son las ocho**: un mapa que muestra animaciones de batalla reserva una para
+    la caja de la animación, y ni el cronómetro ni las gotas se la pueden
+    llevar. Ver `tope_de_paletas` en `convertir`.
+    """
     for numero, existente in enumerate(palettes):
         if numero in de_lider:
             continue
@@ -1232,23 +1347,23 @@ def _primer_lugar(palettes, de_lider, colores):
         if len(union) <= OBJ_COLORS:
             palettes[numero] = union
             return numero
-    if len(palettes) < OBJ_PALETTES:
+    if len(palettes) < tope:
         palettes.append(list(colores))
         return len(palettes) - 1
     return None
 
 
-def lluvia_cabe(paletas, de_lider, timer_colores=()):
+def lluvia_cabe(paletas, de_lider, timer_colores=(), tope=OBJ_PALETTES):
     """Si las gotas entran en las paletas de sprite de un mapa, después de los
     dígitos del cronómetro: la misma cuenta de `digitos_del_timer` y
     `gotas_de_lluvia`, sobre una copia. La usa la referencia para saber si en
     ese mapa se dibuja la lluvia."""
     copia = [list(p) for p in paletas]
-    if timer_colores and _primer_lugar(copia, de_lider,
-                                       list(timer_colores)) is None:
+    if timer_colores and _primer_lugar(copia, de_lider, list(timer_colores),
+                                       tope) is None:
         return False
-    return _primer_lugar(copia, de_lider,
-                         list(eventos.LLUVIA_COLORES)) is not None
+    return _primer_lugar(copia, de_lider, list(eventos.LLUVIA_COLORES),
+                         tope) is not None
 
 
 def mapas_por_personaje(renderer, map_ids, game_dir):
@@ -2577,6 +2692,127 @@ def anim_dibujo(tile_data, animacion, pasos):
     return bytes(datos)
 
 
+def animaciones_de_la_rom(mapas, renderer):
+    """Las animaciones de batalla que el bytecode ya emitido muestra, por
+    número de RM2k, cada una convertida por `animacion.py`.
+
+    Se recorre el bytecode y no los comandos, que es lo que hace que sea la
+    verdad y no una conjetura: lo que cuenta es lo que quedó emitido, después
+    de que el filtro de páginas decidiera cuáles entran. Es la misma regla de
+    `eventos.blancos_de_ruta`.
+    """
+    numeros = set()
+    for mapa in mapas:
+        for pagina in mapa.get("paginas", ()):
+            codigo = pagina.get("codigo") or b""
+            for i, c in eventos.recorrer_codigo(codigo):
+                if (c[i] == eventos.OP_ANIMACION
+                        and c[i + 1] != eventos.ANIM_SIN_DIBUJO):
+                    numeros.add(c[i + 1])
+    salida = {}
+    for numero in sorted(numeros):
+        info = animacion_mod.de_numero(renderer, numero)
+        if info is not None:
+            salida[numero] = info
+    return salida
+
+
+def animaciones_asm(animaciones, mapas):
+    """Las animaciones de batalla del cartucho, listas para el `.inc`.
+
+    Cuatro cosas:
+
+      `anim_batalla_de`      por número de RM2k, qué entrada le toca, o $FF.
+                             Va por número y no por un índice nuestro para que
+                             ninguna de las dos puntas tenga que llevar un
+                             contador que la otra adivine.
+      `anim_batalla_tabla`   por entrada: cuántos cuadros, dónde cae su ancla
+                             adentro de la caja y en qué cuadro arranca.
+      `anim_batalla_cuadros` por cuadro, el puntero de 24 bits a sus 2 KB de
+                             tiles. Uno por cuadro y no un bloque seguido por
+                             animación: 28 cuadros son 57 KB y un banco tiene
+                             32, así que no hay bloque que entre entero.
+      `anim_batalla_cgram`   sus dieciséis colores, que la ROM sube cuando la
+                             animación empieza.
+      `anim_batalla_reparto` por mapa, dónde y con qué paleta se dibuja acá, o
+                             0 si este mapa no dibuja animaciones.
+    """
+    orden = sorted(animaciones)
+    entrada = {numero: k for k, numero in enumerate(orden)}
+    tope = (max(orden) + 1) if orden else 1
+    out = [
+        "\n; --- el dibujo de las animaciones de batalla ---",
+        ";",
+        "; La caja es una sola para toda la ROM y el porqué está en",
+        "; tools/animacion.py: cuatro objetos de 32x32 en una fila de bloques",
+        "; de la grilla de nombres, que es lo máximo que entra en la VRAM de",
+        "; sprites que le queda libre al mapa 2. Lo que cambia por mapa es",
+        "; dónde cae esa fila y con qué paleta, y eso va en",
+        "; `anim_batalla_reparto`, un byte por mapa.",
+        "ANIM_B_CAJA   = %d" % animacion_mod.CAJA,
+        "ANIM_B_OBJ    = %d" % animacion_mod.OBJ,
+        "ANIM_B_OBJETOS = %d" % animacion_mod.OBJETOS,
+        "ANIM_B_TILES  = %d" % animacion_mod.TILES,
+        "ANIM_B_BYTES  = %d" % (animacion_mod.TILES * 32),
+        "ANIM_B_STRIDE = 8",
+        "; Hasta qué número de animación llega `anim_batalla_de`: el bytecode",
+        "; lleva el número de RM2k tal cual y uno más grande no está en la",
+        "; tabla, así que la ROM lo compara antes de leerla.",
+        "ANIM_B_MAX    = %d" % tope,
+        "; El centro de la pantalla, que es donde caen las de alcance",
+        "; `Scope_screen`: `DrawAt(screen_width / 2, screen_height / 2)`.",
+        "ANIM_B_CENTRO_X = %d" % (animacion_mod.PANTALLA[0] // 2),
+        "ANIM_B_CENTRO_Y = %d" % (animacion_mod.PANTALLA[1] // 2),
+        "ANIM_B_SIN      = $%02X" % eventos.ANIM_SIN_DIBUJO,
+        "ANIM_B_PANTALLA = $%02X" % eventos.ANIM_BLANCO_PANTALLA,
+    ]
+    out.append(bloque("anim_batalla_de",
+                      bytes(entrada.get(n, 0xFF) for n in range(tope))))
+    tabla = bytearray()
+    primero = 0
+    for numero in orden:
+        info = animaciones[numero]
+        # El ancla **como la quiere la ROM**: con la corrida de
+        # `Animation::Position` ya horneada, así que la consola sólo resta.
+        ax, ay = animacion_mod.ancla_rom(info)
+        tabla += bytes([len(info["cuadros"]), ax & 0xFF, ay & 0xFF, 0,
+                        primero & 0xFF, primero >> 8, 0, 0])
+        primero += len(info["cuadros"])
+    out.append(bloque("anim_batalla_tabla", bytes(tabla)))
+    cgram = bytearray()
+    for numero in orden:
+        colores = [(0, 0, 0)] + list(animaciones[numero]["paleta"])
+        colores += [(0, 0, 0)] * (COLORS_PER_PALETTE - len(colores))
+        for color in colores:
+            cgram += cgram_word(color).to_bytes(2, "little")
+    out.append(bloque("anim_batalla_cgram", bytes(cgram)))
+    # La tabla de punteros, con etiquetas: no puede salir de `bloque()`, pero
+    # **sí se declara** con `.bloque` por lo mismo que la de páginas —la ROM la
+    # lee con un puntero de 24 bits y no puede quedar a caballo de dos bancos—.
+    punteros = [".bloque %d" % (4 * primero), "anim_batalla_cuadros:"]
+    for numero in orden:
+        for k in range(len(animaciones[numero]["cuadros"])):
+            punteros.append("    .dword anim_batalla_%d_%d" % (numero, k))
+    out.append("\n".join(punteros))
+    for numero in orden:
+        info = animaciones[numero]
+        for k, cuadro in enumerate(info["cuadros"]):
+            datos = bytearray(animacion_mod.TILES * 32)
+            for tile, celda in animacion_mod.celdas(cuadro).items():
+                datos[tile * 32:(tile + 1) * 32] = pack_tile(celda, planes=4)
+            out.append(bloque("anim_batalla_%d_%d" % (numero, k), bytes(datos)))
+    reparto = bytearray()
+    for mapa in mapas:
+        sprite = mapa["sprite"]
+        base, pal = (sprite[15], sprite[16]) if sprite else (0, 0)
+        # El bit 7 es "acá se dibuja", y abajo van el bloque de 64 tiles y la
+        # paleta, de tres bits cada uno. En un byte porque el registro de mapa
+        # está en sus 128 justos: ver MAPA_STRIDE.
+        reparto.append((0x80 | ((base // 64) << 3) | pal) if base else 0)
+    out.append(bloque("anim_batalla_reparto", bytes(reparto)))
+    return "\n".join(out) + "\n"
+
+
 def bloque(label, data, per_line=16, alinear=None):
     """Un bloque de datos con su declaración de acomodo.
 
@@ -2846,7 +3082,8 @@ def datos_del_mapa(mapa, numero, indice_global, materiales):
 
 
 def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
-         ventana=None, titulo=None, ranuras=None, cartel=None):
+         ventana=None, titulo=None, ranuras=None, cartel=None,
+         animaciones=None):
     """El .inc que arma w65.py junto con main.s.
 
     `titulo` es la pantalla de título —la imagen y su menú— y puede faltar;
@@ -3432,6 +3669,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # impar: ver `una_tabla_de_destello`.
         handle.write(bloque("prod31_tabla", bytes(
             d * n // 31 for n in range(32) for d in range(32))) + "\n")
+        handle.write(animaciones_asm(animaciones or {}, mapas))
         # --- la pantalla de título ---
         #
         # Va entera en BG1, que en modo 3 tiene ocho bits por pixel: la imagen
@@ -3770,11 +4008,15 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                T.ITEM_DESC_COL,
                T.ITEM_PRIMER_CARACTER, T.ITEM_CARACTERES * 4))
 
-        def bytes_asm(etiqueta, valores, formato="%d"):
+        def bytes_asm(etiqueta, valores, formato="%d", declarar=False):
+            if declarar:
+                handle.write(".bloque %d\n" % max(1, len(valores)))
             handle.write("%s:\n    .byte %s\n" % (etiqueta, ", ".join(
                 formato % v for v in valores) or "$FF"))
 
-        def words_asm(etiqueta, valores, formato="%d"):
+        def words_asm(etiqueta, valores, formato="%d", declarar=False):
+            if declarar:
+                handle.write(".bloque %d\n" % max(2, 2 * len(valores)))
             handle.write("%s:\n    .word %s\n" % (etiqueta, ", ".join(
                 formato % v for v in valores) or "0"))
 
@@ -3782,7 +4024,8 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # banco del código se llenó con el paquete de audio.
         handle.write('.segment "RODATA"\n')
         bytes_asm("item_k", [k_de.get(n, 0xFF)
-                             for n in range(eventos.ITEMS_N)])
+                             for n in range(eventos.ITEMS_N)],
+                  declarar=True)
         handle.write('.segment "TABLAS"\n')
         words_asm("item_id", items)
         bytes_asm("item_uso", [
@@ -3802,10 +4045,12 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # trece lugares, ninguno adentro de un lazo por cuadro.
         handle.write('.segment "RODATA"\n')
         for campo, prefijo in (("lo", "<"), ("hi", ">"), ("bk", "^")):
+            handle.write(".bloque %d\n" % max(1, len(item_textos_ofs)))
             handle.write("item_txt_%s:\n    .byte %s\n" % (campo, ", ".join(
                 "%s(item_textos + %d)" % (prefijo, ofs)
                 for ofs, _ in item_textos_ofs) or "0"))
-        bytes_asm("item_txt_n", [n for _, n in item_textos_ofs])
+        bytes_asm("item_txt_n", [n for _, n in item_textos_ofs],
+                  declarar=True)
         handle.write('.segment "TABLAS"\n')
         words_asm("item_fila_vram", [
             celda_vram(T.ITEM_LISTA_Y // T.CELL + 2 * f, 0)
@@ -3827,19 +4072,28 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         bytes_asm("item_tipo", [db_items[n].type for n in items])
         handle.write('.segment "RODATA"\n')     # ídem: ver `item_txt_lo`
         words_asm("item_puntos", [p & 0xFFFF for n in items
-                                  for p in db_items[n].puntos])
+                                  for p in db_items[n].puntos],
+                  declarar=True)
         handle.write('.segment "TABLAS"\n')
         bytes_asm("item_actores", [
             sum(1 << b for b in range(8)
                 if 8 * byte + b + 1 < actores_n
                 and db_items[n].equipable_por(8 * byte + b + 1))
             for n in items for byte in range(8)])
+        # `actor_params` va fuera del banco 0 —se lee con
+        # `lda f:actor_params, x`, una sola vez por pantalla de equipo— por lo
+        # mismo que `item_k`: son 488 bytes y el banco del código se llenó, y
+        # esta vez con el dibujo de las animaciones de batalla.
+        handle.write('.segment "RODATA"\n')
         words_asm("actor_params", [
             (db.actors[a].params.get(k, [0])[titulo_mod.NIVEL - 1]
              if a in db.actors else 0) & 0xFFFF
             for a in range(actores_n)
-            for k in ("attack", "defense", "spirit", "agility")])
+            for k in ("attack", "defense", "spirit", "agility")],
+            declarar=True)
+        handle.write('.segment "TABLAS"\n')
         handle.write('\n.segment "RODATA"\n')
+        handle.write(".bloque %d\n" % (2 * actores_n * P.RANURAS_EQUIPO))
         handle.write("equipo_inicial:\n    .word %s\n" % ", ".join(
             str(db.actors[a].initial_equipment[r] if a in db.actors else 0)
             for a in range(actores_n) for r in range(P.RANURAS_EQUIPO)))
@@ -3907,7 +4161,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             entry(celda, False, False) for gris in (0, 1)
             for n in range(T.ITEM_CARACTERES)
             for celda in glifos[gris][chr(T.ITEM_PRIMER_CARACTER + n)]],
-            "$%04X")
+            "$%04X", declarar=True)
         handle.write('.segment "TABLAS"\n')
         handle.write("\n")
         # `fuente_color` va en el banco 0 y no con el resto de la ventana: la
@@ -4236,11 +4490,19 @@ def tabla_de_senos():
     """La tabla de `sacudida_siguiente`, tal cual la usa la referencia."""
     out = ["; El seno a escala 127, para la sacudida de pantalla: es la misma",
            "; lista que usa la referencia, SENO_SACUDIDA en eventos.py.",
+           ";",
+           "; Va fuera del banco 0 —`lda f:seno_sacudida, x`, una lectura por",
+           "; cuadro de sacudida— por lo mismo que `item_k`: son 256 bytes y",
+           "; el banco del código se llenó.",
+           '.segment "RODATA"',
            "seno_sacudida:"]
     valores = eventos.SENO_SACUDIDA
     for i in range(0, 256, 16):
         out.append("    .byte " + ",".join("$%02X" % (v & 0xFF)
                                             for v in valores[i:i + 16]))
+    # Y se vuelve al banco 0: lo que sigue —`ruta_tras_paso` y compañía— se lee
+    # con direccionamiento absoluto indexado y tiene que quedar acá.
+    out.append('.segment "TABLAS"')
     return "\n".join(out) + "\n"
 
 
@@ -4799,7 +5061,8 @@ def main():
                     items=tuple(args.items_de_prueba or ()),
                     acceso=tuple(args.acceso_de_prueba or ()),
                     lluvia=args.lluvia_de_prueba,
-                    animacion=tuple(args.animacion_de_prueba or ()))}, {
+                    animacion=tuple(args.animacion_de_prueba or ()),
+                    eventos_mapa=eventos.Eventos(mapa["game_map"]))}, {
                 # Y la que la apaga: misma idea que en la referencia, ver
                 # `PAGINA_DE_PRUEBA_APAGADA`. Sin código, así que en cuanto
                 # gana, el evento inventado deja de tener una automática que
@@ -5028,9 +5291,19 @@ def main():
         print("    menú (%s): %d tiles de 4bpp (%d B) + %d colores, %d tilemap(s)"
               % (", ".join(repr(t) for t in textos), len(menu_tiles),
                  len(menu_tiles) * 32, len(menu_paleta), len(menu_mapas)))
+    # Las animaciones de batalla que el bytecode ya emitido muestra: sus
+    # cuadros prerenderizados van al cartucho y la ROM los sube por DMA.
+    animaciones = animaciones_de_la_rom(mapas, renderer)
+    for numero in sorted(animaciones):
+        datos = animacion_mod.informe(numero, animaciones[numero])
+        print("  animación %d: %d cuadros de %dx%d, achicada de %dx%d al %d%%,"
+              " %d colores, %d B"
+              % (datos["animacion"], datos["cuadros"], datos["caja"][0],
+                 datos["caja"][1], datos["original"][0], datos["original"][1],
+                 datos["porciento"], datos["colores"], datos["bytes"]))
     informe = emit(args.output, mapas, args.inicial, args.heroe_encima, grupo,
                    ventana_datos, titulo_datos, ranuras_datos,
-                   args.imagenes.info)
+                   args.imagenes.info, animaciones)
     print("%d mapa(s) -> %s, arranca en el %d (mapa %d)"
           % (len(mapas), args.output, args.inicial, mapas[args.inicial]["id"]))
     if informe:
@@ -5367,7 +5640,17 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
     # Las ocho, con o sin cronómetro: sus dos colores entran en la paleta de
     # algún personaje. Reservarle una acá le sacaba eventos al mapa, porque este
     # número es el que decide cuáles se dibujan.
-    tope_de_paletas = OBJ_PALETTES
+    #
+    # **Menos una en los mapas que muestran animaciones de batalla**, desde el
+    # 2026-09-12: la caja necesita una paleta entera para ella sola —sus quince
+    # colores son de la animación y se pisan cuando empieza otra— y los mapas
+    # 2 y 3, que son los de la intro, llenaban las ocho. Sin esto la escena del
+    # Emitter Room se quedaba sin dibujo, que es justo lo que se estaba
+    # haciendo. Lo que cuesta —qué personajes fusionan más colores— lo dice el
+    # informe de cada mapa.
+    muestra_animacion = mapa_muestra_animacion(
+        game_map, renderer,
+        (args.animacion_de_prueba or ())[:1] if map_id == args.map_id else ())
     # Los colores del cronómetro se pasan al reparto y no sólo al empaquetado:
     # en un mapa que llene las ocho paletas hay que decidir a quién bajarle un
     # color para hacerle lugar, y eso cambia cómo se cuantiza a ese personaje.
@@ -5376,14 +5659,17 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
         import ventana as ventana_mod
         timer_colores = sorted(colores_del_timer(ventana_mod.skin(
             args.game_dir, renderer.database.system_name)))
+    solos = {c for c, n in getattr(args, "mapas_por_personaje", {}).items()
+             if n == 1}
+    tope_de_paletas = tope_de_paletas_del_mapa(
+        renderer, game_map, args.lideres, graficos_de_ruta, timer_colores,
+        solos, poses_por_grafico, muestra_animacion)
 
     npcs, descartados, reparto = npcs_dibujables(renderer, game_map,
                                                  args.lideres, tope_de_paletas,
                                                  graficos_de_ruta,
                                                  timer_colores,
-                                                 {c for c, n in getattr(
-                                                     args, "mapas_por_personaje",
-                                                     {}).items() if n == 1},
+                                                 solos,
                                                  poses_por_grafico)
     prestadas = reparto[5] if len(reparto) > 5 else set()
     if prestadas:
@@ -5551,12 +5837,13 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
         import ventana as ventana_mod
         sys_img = ventana_mod.skin(args.game_dir, renderer.database.system_name)
         tiles, timer_base, timer_pal = digitos_del_timer(
-            sys_img, tiles, palettes, reparto[3] if len(reparto) > 3 else ())
+            sys_img, tiles, palettes, reparto[3] if len(reparto) > 3 else (),
+            tope_de_paletas)
     lluvia_base, lluvia_pal = 0, 0
     if args.con_lluvia:
         tiles, lluvia_base, lluvia_pal = gotas_de_lluvia(
             tiles, palettes, reparto[3] if len(reparto) > 3 else (),
-            timer_base)
+            timer_base, tope_de_paletas)
         if not lluvia_base:
             print("  mapa %d: AVISO, las gotas de lluvia no entran en las "
                   "paletas de sprite y acá no llueve" % map_id)
@@ -5582,6 +5869,44 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
                                      info["objetos"],
                                      imagen.tiles_reservados(info),
                                      imagen_base, imagen_pal))
+    # Y la caja de la animación de batalla, si alguna página de este mapa
+    # puede mostrar una que se dibuje. Va última porque se lleva el final del
+    # banco y la paleta que quede libre después del cartel. El criterio de
+    # que entre es una cuenta y la emite el conversor: si no hay paleta o no
+    # hay VRAM, **este mapa no dibuja animaciones** y lo dice.
+    anim_base, anim_pal = 0, 0
+    if muestra_animacion:
+        probando, probando_base, probando_pal = animacion_de_mapa(
+            tiles, palettes, 1 if imagen_base else 0)
+        if not probando_base:
+            # Sin paleta este mapa no dibuja animaciones, y **la referencia lo
+            # sabe con la misma cuenta**, `animacion_cabe`. Es lo mismo que se
+            # hace con las gotas de lluvia: se declara y se sigue.
+            print("  mapa %d: AVISO, las animaciones de batalla no se dibujan "
+                  "acá: el mapa ya usa las %d paletas de sprite y la caja "
+                  "necesita una entera" % (map_id, OBJ_PALETTES))
+        else:
+            # La VRAM, en cambio, **corta**: que entre o no depende del reparto
+            # de tiles y no de las paletas, y la referencia no lo puede
+            # recalcular sin rehacer el banco entero. Antes que dibujar de un
+            # lado y del otro no, se dice cuál es el mapa.
+            cuantos = len(probando) // 32
+            try:
+                layout = vram_layout(len(tile_data) // BYTES_PER_TILE, cuantos,
+                                     con_ventana=args.con_ventana)
+            except SystemExit:
+                layout = None
+            if layout is None or cuantos > layout["sprites"][1]:
+                sys.exit(
+                    "mapa %d: muestra animaciones de batalla y los %d tiles de "
+                    "su caja no entran en el banco de sprites: gasta %d de %d. "
+                    "Ver `animacion_de_mapa`."
+                    % (map_id, animacion_mod.TILES, cuantos,
+                       layout["sprites"][1] if layout else 0))
+            tiles, anim_base, anim_pal = probando, probando_base, probando_pal
+            print("  mapa %d: las animaciones de batalla se dibujan en %d "
+                  "tiles desde el %d, paleta %d"
+                  % (map_id, animacion_mod.TILES, anim_base, anim_pal))
     table = npc_table(npcs, where, movibles, indice_animado, anima_quieto)
     # Por cada candidato a líder, su paleta y en qué banco de poses están las
     # doce suyas. La ROM no calcula nada a partir de la pose: busca el puntero
@@ -5608,7 +5933,7 @@ def convertir(renderer, map_id, args, inicio=None, ventana_paleta=None):
                  else GIRO_NINGUNO)
     sprite = (tiles, palettes, where, table, actores, timer_base, timer_pal,
               animados, bancos, ruta_graficos, lluvia_base, lluvia_pal,
-              giro_tile, imagen_base, imagen_pal)
+              giro_tile, imagen_base, imagen_pal, anim_base, anim_pal)
 
     # La colisión: un byte por celda de 16x16 con los cuatro bits de dirección
     # ya resueltos. Toda la lógica de RM2k —que la capa alta manda salvo que sea

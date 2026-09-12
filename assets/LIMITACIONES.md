@@ -227,6 +227,45 @@ celda del medio de la puerta que Core rompe.
 tope; ahí el conversor corta y lo dice.
 
 
+## La animación de batalla se dibuja achicada y sin transparencia
+
+El dibujo entra en una caja de **64x64**, cuatro objetos de 32x32 en los 64
+tiles que es una fila de bloques de la grilla de nombres de OAM. Más no entra:
+la VRAM de sprites que le queda libre al mapa 2 son 101 tiles, y una caja de
+96x96 son 144. La animación se achica entera, con su proporción, hasta entrar,
+y **cuánto se achicó lo dice el conversor**: la 78 de la intro queda al 36% y
+la 82, que mide 536x416, al 11%. taro aceptó el precio el 2026-09-12.
+
+Lo demás que se pierde:
+
+* **La transparencia de una celda no existe**: un objeto de la consola es opaco
+  o no está. Las celdas se componen con su alfa y después el alfa se redondea
+  —128 o más queda—, así que una celda que se desvanece desaparece al pasar la
+  mitad en vez de irse de a poco.
+* **Ni el tinte de pantalla ni el destello la tocan**: su paleta cae arriba de
+  `SPRITE_CGRAM`. Lo primero es fiel —`Spriteset_Map::Update` no le pone el
+  tono a las animaciones— y lo segundo no: en RM2k el destello de pantalla sí
+  las alcanza.
+* **Las `global`** —las que RM2k repite en tres por tres para tapar la
+  pantalla— **no se dibujan**. Ninguna de las once de la intro lo pide.
+
+**Cuándo deja de alcanzar.** Un mapa que llene las ocho paletas de sprite y
+además necesite el cronómetro: ahí la caja se queda sin paleta, y el conversor
+lo dice y no dibuja. Le pasa al mapa 9.
+
+
+## Un mapa con animaciones reparte siete paletas y no ocho
+
+La caja de la animación necesita una paleta de sprite entera para ella sola:
+sus quince colores son de la animación y se pisan cuando empieza otra, así que
+un personaje metido ahí cambiaría de color con ella. En los mapas que muestran
+animaciones —el 2 y el 3 son los de la intro— los personajes se reparten
+**siete**, y eso les fusiona más colores.
+
+**Cuándo deja de alcanzar.** Cuando con siete no entra el cronómetro. Ahí manda
+el cronómetro, se vuelve a ocho y ese mapa no dibuja animaciones.
+
+
 ## Los mapas que el cartucho no lleva hacen que sus páginas no compilen
 
 Un `Teleport` a un mapa que no entró en la ROM hace que esa página no sea

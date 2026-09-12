@@ -141,6 +141,20 @@ snes-sacudir 6 "9 8 3 1" "2 5 9 14 17 60" 115 sacudir-lluvia "" 2
 # un destello de pantalla con cuadros impares arranca por la fase que ninguna
 # página toma.
 snes-animacion
+# Y el **dibujo**, que es lo que `animacion` no miraba: la 82 es de alcance
+# "pantalla" y achicada al 11% no se ve casi nada. Estos dos son la 78 —"Single
+# Magic Flame B", 144x176 achicada al 36%— sobre el héroe y sobre un evento,
+# que en la ROM son dos caminos distintos: el héroe sale de `hero_x` y el
+# evento de su fila de NPC, por `npc_de_evento`. Los cuadros miran el primero,
+# uno de los tres que la animación tiene **vacíos**, y los tres más cargados.
+# Ver `animacion.py`.
+snes-animacion 6 "78 10001 1" "1 15 33 37 41 47" 115 animacion-dibujo
+# Sobre Manta, que está pegada al borde izquierdo: la caja arranca en -18 y
+# `emit_object` la recorta. El objetivo es ella y no Kersh a propósito: Kersh
+# es el líder del grupo, comparte paleta con el héroe, y el destello del
+# objetivo se la tiñe a los dos —ver ESTADO, "el destello de un objetivo que
+# comparte paleta con el héroe"—.
+snes-animacion 6 "78 1 1" "1 25 33 41 47" 115 animacion-evento "3 10"
 snes-timer
 snes-timer 6 "1 1" "2 10" "2 40 59 61" "12 0 0 50" 115 timer-cero
 # Las variables, vistas por el cronómetro: 60 segundos a la variable 17, menos

@@ -19,7 +19,7 @@ Se escribe **mientras se trabaja**, no al final.
 **Los primeros diez minutos jugables**, que es lo que taro viene probando vuelta
 a vuelta.
 
-Al 2026-09-12: `just snes-hitos-foto` son **123 casos, todos en verde**, y `just
+Al 2026-09-12: `just snes-hitos-foto` son **126 casos, todos en verde**, y `just
 pruebas` **83 en verde y 1 `xfail`**. El `xfail` no es adorno: es un defecto
 medido de guardar con la pantalla de título puesta, y está abajo.
 
@@ -32,29 +32,49 @@ efectos por el SPC700.
 Las páginas automáticas que compilan enteras son **272 de 489**, y del juego
 entero compilan **2329 de 3473**.
 
-### El dibujo de las animaciones de batalla: medido, sin empezar
+### El dibujo de las animaciones de batalla: hecho (2026-09-12)
 
-De lo que taro pidió para la intro, los efectos de sonido y los destellos están
-hechos —README, "El paquete de audio de cada mapa" y "Las animaciones de
-batalla"—. Falta **el dibujo**, y esto es lo medido el 2026-09-11:
+Las once de la intro se dibujan. El sistema entero está en `tools/animacion.py`
+y el porqué durable en el README, "El dibujo de las animaciones de batalla";
+acá va sólo lo que queda abierto.
 
-En todo el juego son 388 `ShowBattleAnimation` en 81 mapas, con 42 animaciones
-distintas. Las más usadas son chicas: la 141 (144x144), la 168, la 1 y la 132
-(96x96). Las de la intro son las peores: la 79 y la 82 llegan a 512x192 y
-488x336 con zoom de hasta 400%, y la 62 a 384x384.
+Lo que entró: **una caja de 64x64 —cuatro objetos de 32x32, 64 tiles, una
+paleta propia— con los cuadros prerenderizados en el cartucho y subidos por DMA
+cada dos cuadros**. La animación se achica entera hasta entrar y el conversor
+emite cuánto: la 77 al 33%, la 78 al 36%, la 79 al 12% y la 82 al 11%.
 
-Cada cuadro se puede prerenderizar —las celdas escaladas y compuestas— y subir
-como sprites, con estos límites: VRAM de sprites libre en los mapas 2 y 3, 101 y
-162 tiles (una caja de 96x96 son 144); una paleta de sprites más en mapas que ya
-usan las ocho; 34 tiles de sprite por línea, que una animación ancha se come; y
-el DMA de un cuadro de 96x96 son 4,6 KB cada dos cuadros. Los colores —hasta
-38— se reducen a 15. **Las grandes no entran enteras de ninguna forma.**
+Lo que costó, y es lo que conviene que taro mire jugando:
 
-**Una deuda encontrada de paso, anterior a todo esto:** la página de prueba no
-arranca en el Emitter Room con `--switch 13 --mapas 4` —`auto_n` queda en cero y
-la bandera del evento de prueba apagada—, mientras la referencia sí la corre. Es
-lo que impidió armar un caso con la escena grande del mapa 3. No se investigó
-más.
+* **Los mapas que muestran animaciones reparten siete paletas de sprite y no
+  ocho.** Los dos de la intro llenaban las ocho, así que sin esto no había
+  dibujo justo donde se lo pidió. En el mapa 2 eso deja dos gráficos de tile
+  sin paleta propia y en el 3, cuatro; ninguno de los dos pierde eventos.
+  Medido, no razonado: el informe del conversor lo dice mapa por mapa.
+* **El mapa 9 no dibuja animaciones**: con siete paletas no entra el
+  cronómetro, y el cronómetro manda. Lo declara y sigue.
+* **Al 11% la 82 es un brillo y no un incendio.** Es la que taro aceptó achicar
+  explícitamente; si no alcanza, lo que hay para discutir es la caja, y la caja
+  está topada por los 101 tiles libres del mapa 2.
+
+Lo que queda abierto:
+
+* **El destello de un objetivo que comparte paleta con el héroe.** Salió al
+  armar `animacion-evento`: el destello de un `ShowBattleAnimation` sobre un
+  evento es un tinte de su paleta de sprite en la consola, así que si el
+  objetivo comparte gráfico con el líder del grupo —Kersh en el mapa 6— el
+  héroe destella también y la referencia no. El compilador mira
+  `comparte_grafico`, que sólo ve a los otros eventos, y no al líder, que
+  depende del grupo. **Ninguna página del juego cae en eso hoy**; el caso lo
+  produce la página de prueba, y por eso `animacion-evento` apunta a Manta.
+  La cura sería la misma que ya tiene `FlashSprite`: que el conversor lo mire y
+  corte.
+* **La deuda de la página de prueba en el Emitter Room sigue.** `--switch 13
+  --mapas 4` no arranca (`auto_n` en cero) y por eso los casos nuevos son en el
+  mapa 6 y no en el 3. No se investigó más.
+* **El destello de pantalla no alcanza a la animación**, y en RM2k sí
+  —`SetFlashEffect` en `BattleAnimation::Update`—. Es la misma deuda del cartel
+  y por lo mismo: su paleta cae arriba de `SPRITE_CGRAM`. Declarada en
+  `LIMITACIONES`. Que el **tinte** no la toque, en cambio, es lo fiel.
 
 ### Los translúcidos, horneados (2026-09-12)
 
@@ -200,20 +220,17 @@ Al 2026-09-12, en orden.
    `xfail` en `test_titulo.py` tiene la medición entera; no hace falta
    repetirla acá.
 
-4. **El dibujo de las animaciones de batalla.** El sonido y los destellos están
-   hechos; el dibujo no. Lo medido está en su sección, arriba.
-
-5. **El tile testigo del mapa 4**, que propuso taro: que un mapa vacío no se
+4. **El tile testigo del mapa 4**, que propuso taro: que un mapa vacío no se
    confunda con una pantalla rota, porque ya pasó más de una vez que una
    captura negra fuera un PPU mal configurado. **Por el conversor y bajo un
    flag**, con la referencia sacándolo de la misma función, y no editando
    `Map0004.lmu`: el juego original es lo que hace comparable este port contra
    easyrpg, y un mapa retocado ahí contamina toda medición futura sin avisar.
 
-6. **Lo que sigue faltando de Lashe City**: la condición por cronómetro —una
+5. **Lo que sigue faltando de Lashe City**: la condición por cronómetro —una
    página en todo el juego— y el `CallEvent` del Hover-Tram.
 
-7. **Lo que falta del sistema de ítems**: los libros, los materiales y los
+6. **Lo que falta del sistema de ítems**: los libros, los materiales y los
    especiales, y `ChangeEquipment` —sólo en los mapas 30 y 151—. Las medicinas
    piden HP que cambien, o sea parámetros de actor y niveles, que no existen.
    La consola y su evento común quedan afuera por decisión de taro del
@@ -441,7 +458,7 @@ ya nadie discute no necesita renglón.
   `FlashSprite` es un tinte de CGRAM: `pintar_flash` sube la paleta entera del
   personaje, así que tiñe todo lo que la comparta. La referencia lo aplica sobre
   la **imagen** del sprite, que es lo que hace RM2k. Son dos cosas distintas y
-  ninguno de los 123 casos lo ve, porque ninguno tiene un segundo sprite visible
+  ninguno de los 126 casos lo ve, porque ninguno tiene un segundo sprite visible
   compartiendo la paleta del que destella. Lo cuida `test_destello_paleta.py`,
   que exige que nadie comparta la paleta de un líder posible. **Protege al líder
   y no al que destella**: el blanco se decide corriendo y el héroe es el único
@@ -456,7 +473,7 @@ ya nadie discute no necesita renglón.
   adorno —lo imprime `snes_expect.py`—: cuatro cuadros en cero también sería el
   resultado si la página no compilara de los dos lados.
 
-El más largo de los 123 casos es `talan`: mil doscientos cuadros de la escena
+El más largo de los 126 casos es `talan`: mil doscientos cuadros de la escena
 entera del Emitter Room. Lo que la tanda no mira:
 
 * **Que un mapa acepte muchas interacciones seguidas** — ya no, desde el
