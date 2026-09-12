@@ -35,10 +35,15 @@ class Texto:
         """Alineado a la derecha, con espacios adelante."""
         self.escribir(fila, col, ("%*d" % (ancho, valor))[-ancho:], gris)
 
-    def render(self, sys_img, font_id=None):
+    def render(self, sys_img, font_id=None, fondo=None):
         from PIL import Image
         tiles, paletas, glifos = titulo.pantalla_items(sys_img, font_id)
         fuera = Image.new("RGB", (titulo.ANCHO, titulo.ALTO), (0, 0, 0))
+        if fondo is not None:
+            # La escena de la pelea, arriba de todo y **debajo del texto**: es
+            # BG1 y el texto es BG2 con el bit de prioridad puesto. Ver
+            # `escena_prender` en main.s.
+            fuera.paste(fondo, (0, 0))
         pegar = titulo._pintor(fuera, tiles, paletas)
         for (fila, col), (c, gris) in self.celdas.items():
             pegar(glifos[gris][c], fila, col, 1)
@@ -520,6 +525,9 @@ def main():
     parser.add_argument("--turnos", type=int, default=0,
                         help="cuántos turnos jugar antes de dibujar, todos "
                              "atacando al primero que quede vivo")
+    parser.add_argument("--fondo", default="", metavar="NOMBRE",
+                        help="el fondo de batalla, con los battlers de la "
+                             "tropa horneados encima: ver tools/escena.py")
     parser.add_argument("--blanco", type=int, default=0)
     parser.add_argument("--actor", type=int, default=0)
     parser.add_argument("--orden", type=int, default=0)
@@ -545,10 +553,17 @@ def main():
                         0)
             combate.jugar_turno([(batalla.ORDEN_ATACAR, vivo)]
                                 * len(combate.vivos(combate.actores)))
+        escena_img = None
+        if args.fondo:
+            import escena
+            info = escena.convertir(db, args.batalla, args.fondo,
+                                    args.game_dir)
+            escena_img = escena.render(info) if info else None
         pantalla_batalla(db, combate, args.modo, args.actor, args.orden,
-                         args.blanco).render(skin, db.font_id).save(
-            args.output)
-        print("batalla %d -> %s" % (args.batalla, args.output))
+                         args.blanco).render(skin, db.font_id,
+                                             escena_img).save(args.output)
+        print("batalla %d sobre %r -> %s"
+              % (args.batalla, args.fondo, args.output))
         return
     if args.tienda is not None:
         tipo, juego, lista = args.tienda.split(":")

@@ -703,6 +703,7 @@ class Item:
 # que la batalla de este port mira; los que no, se ignoran y quedan en el
 # volcado a JSON, que es el que sirve para leerlos.
 ENEMY_NAME = 0x01
+ENEMY_BATTLER_NAME = 0x02
 ENEMY_MAX_HP = 0x04
 ENEMY_MAX_SP = 0x05
 ENEMY_ATTACK = 0x06
@@ -727,6 +728,11 @@ class Enemy:
 
     def __init__(self, fields):
         self.name = to_string(fields.get(ENEMY_NAME, b""))
+        # Con qué se dibuja, desde el 2026-09-13: el PNG de `Monster/`. El
+        # `battler_hue` no se lee —ninguno de los dos enemigos que el cartucho
+        # lleva lo usa— y si apareciera uno habría que rotarle el tono acá y en
+        # la referencia con la misma función.
+        self.battler_name = to_string(fields.get(ENEMY_BATTLER_NAME, b""))
         self.max_hp = to_int(fields.get(ENEMY_MAX_HP, b"\x01"))
         self.max_sp = to_int(fields.get(ENEMY_MAX_SP, b"\x00"))
         self.attack = to_int(fields.get(ENEMY_ATTACK, b"\x01"))
@@ -749,23 +755,30 @@ class Enemy:
 TROOP_NAME = 0x01
 TROOP_MEMBERS = 0x02
 TROOP_MEMBER_ENEMY_ID = 0x01
+# Dónde va cada battler, en la pantalla de 320x240 de RM2k y como **centro** de
+# la imagen. Los códigos son los de `ChunkTroopMember` de liblcf.
+TROOP_MEMBER_X = 0x02
+TROOP_MEMBER_Y = 0x03
 
 
 class Troop:
-    """Una tropa: qué enemigos la forman, en el orden del LDB.
+    """Una tropa: qué enemigos la forman y dónde va cada uno.
 
-    Las posiciones (x, y) de cada miembro no se leen: este port no dibuja los
-    battlers, así que dónde iban en la pantalla de 320x240 de RM2k no dice
-    nada. Las páginas de eventos de batalla tampoco: ver "lo que falta" de la
-    batalla en README.md.
+    Las posiciones (x, y) son del **centro** de cada battler en la pantalla de
+    320x240 de RM2k, y se leen desde el 2026-09-13, que es cuando la pelea
+    empezó a dibujarlos: ver `escena.py`. Las páginas de eventos de batalla no
+    se leen: ver "lo que falta" de la batalla en README.md.
     """
 
     def __init__(self, fields):
         self.name = to_string(fields.get(TROOP_NAME, b""))
+        miembros = sorted(Reader(
+            fields.get(TROOP_MEMBERS, b"\x00")).read_struct_array().items())
         self.members = [to_int(m.get(TROOP_MEMBER_ENEMY_ID, b"\x01"))
-                        for _, m in sorted(Reader(
-                            fields.get(TROOP_MEMBERS, b"\x00")
-                        ).read_struct_array().items())]
+                        for _, m in miembros]
+        self.posiciones = [(to_int(m.get(TROOP_MEMBER_X, b"\x00")),
+                            to_int(m.get(TROOP_MEMBER_Y, b"\x00")))
+                           for _, m in miembros]
 
 
 class Database:

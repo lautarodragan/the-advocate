@@ -1483,6 +1483,9 @@ BATALLA_HANDLERS = (VICTORY_HANDLER, ESCAPE_HANDLER, DEFEAT_HANDLER)
 # el caso que usan las 51 peleas del juego —tropa por constante— y se planta
 # en los otros, que es lo de siempre: antes emitir nada que emitir algo que la
 # ROM haga distinto.
+# De dónde sale el fondo, el parámetro [2] de `CommandEnemyEncounter`: 0 el
+# del terreno, 1 el que nombra el comando, 2 ninguno.
+BATALLA_FONDO_DEL_COMANDO = 1
 BATALLA_ESCAPE_PROHIBIDO = 0
 BATALLA_ESCAPE_CORTA = 1
 BATALLA_DERROTA_GAME_OVER = 0
@@ -1958,10 +1961,17 @@ class Tropas:
 
     def __init__(self):
         self.ids = []
+        # Y con qué fondo pelea cada una, que es el texto del propio
+        # `EnemyEncounter` —`SJBackdropABL04` en el mapa 2— y no algo que haya
+        # que buscar en el LDB. Va acá y no en un registro aparte porque es un
+        # dato de la pelea, como la tropa. Ver tools/escena.py.
+        self.fondos = {}
 
-    def pedir(self, numero):
+    def pedir(self, numero, fondo=None):
         if numero not in self.ids:
             self.ids.append(numero)
+        if fondo and numero not in self.fondos:
+            self.fondos[numero] = fondo
         return numero
 
 
@@ -1999,6 +2009,17 @@ def tropa_de_encuentro(cmd):
     if p[4] == BATALLA_DERROTA_GAME_OVER:
         raise NoSePuede("EnemyEncounter con Game Over al perder")
     return p[1]
+
+
+def fondo_de_encuentro(cmd):
+    """El fondo de batalla que nombra el `EnemyEncounter`, o "".
+
+    El parámetro `[2]` de `CommandEnemyEncounter` dice de dónde sale el fondo:
+    1 es "el que dice este comando", que es lo que hacen las 51 peleas del
+    juego, y 0 sería el del terreno. El nombre viaja en el string del comando.
+    """
+    p = cmd.parameters
+    return cmd.string if len(p) > 2 and p[2] == BATALLA_FONDO_DEL_COMANDO else ""
 
 
 def con_destino(pieza, destino):
@@ -2051,7 +2072,7 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
             if cmd.code == ENEMY_ENCOUNTER:
                 tropa = tropa_de_encuentro(cmd)
                 if tropas is not None:
-                    tropas.pedir(tropa)
+                    tropas.pedir(tropa, fondo_de_encuentro(cmd))
                 # El tema y los efectos que la pelea hace sonar, anotados en el
                 # paquete de audio de este mapa. Va de los dos lados: ver
                 # `audio_de_batalla`.

@@ -122,9 +122,12 @@ Para no tener que acordarse, está **`just snes-hitos-foto`**: saca una foto del
 árbol con `git stash create` —incluye lo que no está commiteado—, la pone en un
 worktree en `/extras` y corre la tanda ahí, así que se puede seguir editando.
 Cuesta 0,034 s y 19 MB, y al terminar imprime el hash de la foto, que es lo que
-después dice qué se probó y qué se agregó encima. Dos avisos: los archivos sin
-trackear **no** entran en la foto —la receta avisa si ve alguno— y dos tandas a
-la vez se pelean por CPU.
+después dice qué se probó y qué se agregó encima. Tres avisos: los archivos sin
+trackear **no** entran en la foto —la receta avisa si ve alguno—, dos tandas a
+la vez se pelean por CPU, y **se pelean por el directorio**: la receta arranca
+borrando el worktree, así que una segunda tanda le borra el árbol a la primera
+mientras corre y la deja con casos en rojo que no lo están. Con más de un
+agente, cada uno con el suyo: `just snes-hitos-foto 4 /extras/hitos-foto-<quien>`.
 
 **Las tareas en segundo plano las mata taro.** Se pueden dejar corriendo; lo
 que no hay que hacer es matarlas por cuenta propia. Si estorban, preguntar.

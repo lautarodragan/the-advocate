@@ -262,6 +262,12 @@ BA_CONMAX  = FAR_BATALLA + 40
 ; el segundo sale cuando `BA_ESPERA` llega a `BA_SE2_CUADROS`.
 BA_TEMA_ANT = FAR_BATALLA + 41
 BA_SE2      = FAR_BATALLA + 42     ; palabra
+; Qué escena de batalla está puesta en BG1, o $FF si esta pelea va sobre
+; negro. Ver `escena_subir`.
+BA_ESCENA   = FAR_BATALLA + 44
+; Y en qué lugar de `tropa_id` cayó la tropa de esta pelea, que es lo que
+; `escena_de` indexa. $FF: el cartucho no la lleva.
+BA_TROPA_K  = FAR_BATALLA + 45
 BA_ACC     = FAR_BATALLA + 48     ; dos bytes por combatiente: orden y blanco
 BA_EJEC    = FAR_BATALLA + 72     ; el orden de ejecución, un combatiente por byte
 BA_CAND    = FAR_BATALLA + 88     ; los vivos de un lado, para elegir blanco
@@ -24419,6 +24425,8 @@ grupo_listo:
     ; El bytecode lleva el número de RM2k, así que hay que buscarlo. Una tropa
     ; que este cartucho no lleve es una pelea sin enemigos, y `batalla_correr`
     ; la gana sola: es lo mismo que hace el conversor con un tema que no entró.
+    lda #$FF
+    sta BA_TROPA_K
     lda #0
     sta BA_S1
 busca:
@@ -24441,6 +24449,8 @@ busca:
 sin_tropa:
     rts
 la_tengo:
+    lda BA_S1
+    sta BA_TROPA_K              ; para `escena_de`
     rep #$20
 .a16
     lda BA_S1
@@ -25835,6 +25845,221 @@ no_huyo:
     jmp ba_mostrar
 .endproc
 
+; --- la escena de la pelea --------------------------------------------------
+;
+; El fondo de batalla con los monstruos **ya horneados encima**: una sola capa
+; de 8bpp de 256x128 en BG1, que son los siete renglones de texto de arriba.
+; El porqué, el presupuesto y lo que cuesta están en tools/escena.py; acá sólo
+; se sube.
+;
+; Corre desde `batalla_correr` con la pantalla apagada y con el banco de datos
+; en $7E, así que los registros del PPU y las tablas del cartucho van todos
+; con `f:`.
+;
+; Dos cosas del PPU que no son obvias:
+;
+; * **El texto lleva el bit de prioridad.** En modo 3 el orden del PPU deja
+;   BG1 de prioridad 0 arriba de BG2 de prioridad 0, así que sin eso la escena
+;   taparía las letras. Lo pone el conversor en `item_glifo_celdas`.
+; * **El tile con que se tapa lo que queda abajo de la escena es el 512**, que
+;   cae fuera del bloque: los 512 tiles de 8bpp son las 16.384 palabras que
+;   van de `ESCENA_VRAM` al final de la VRAM, así que el 512 da la vuelta y
+;   queda en la palabra 0. Mientras dura la pelea esa palabra es VRAM del mapa
+;   y no la usa nadie; al salir, `volver_al_mapa` rehace todo.
+;
+; A: el índice de tropa. Deja el número de escena en `BA_ESCENA`, o $FF.
+.proc escena_subir
+.a8
+.i16
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda #ESCENA_N
+    beq no_hay
+    lda f:escena_de, x
+    cmp #$FF
+    bne hay
+no_hay:
+    jmp sin_escena              ; esta ROM no lleva escena para esta tropa
+hay:
+    sta BA_ESCENA
+
+    ; --- los 32 KB de tiles, de a trozos ---
+    lda #$80
+    sta f:VMAIN                 ; una palabra por escritura
+    stz BA_S0 + 1
+    lda BA_ESCENA
+    sta BA_S0
+    rep #$20
+.a16
+    lda BA_S0
+    asl a
+    asl a
+    asl a
+    asl a                       ; por ESCENA_TROZOS * 4: la fila de punteros
+    sta BA_S0
+    lda #ESCENA_VRAM
+    sta BA_S1
+    sep #$20
+.a8
+    lda #0
+    sta BA_S2
+trozo:
+    rep #$20
+.a16
+    lda BA_S1
+    sta f:VMADDL
+    lda #ESCENA_TROZO
+    sta f:DAS0L
+    ldx BA_S0
+    lda f:escena_trozo, x
+    sta f:A1T0L
+    sep #$20
+.a8
+    lda f:escena_trozo + 2, x
+    sta f:A1B0
+    lda #$01                    ; dos registros: VMDATAL y VMDATAH
+    sta f:DMAP0
+    lda #$18
+    sta f:BBAD0
+    lda #$01
+    sta f:MDMAEN
+    rep #$20
+.a16
+    lda BA_S0
+    clc
+    adc #4
+    sta BA_S0
+    lda BA_S1
+    clc
+    adc #(ESCENA_TROZO / 2)     ; el trozo, en palabras
+    sta BA_S1
+    sep #$20
+.a8
+    inc BA_S2
+    lda BA_S2
+    cmp #ESCENA_TROZOS
+    bcc trozo
+
+    ; --- el tile transparente, en la palabra 0 ---
+    rep #$20
+.a16
+    lda #0
+    sta f:VMADDL
+    lda #64
+    sta f:DAS0L
+    lda #.loword(escena_cero)
+    sta f:A1T0L
+    sep #$20
+.a8
+    lda #^escena_cero
+    sta f:A1B0
+    lda #$01
+    sta f:DMAP0
+    lda #$18
+    sta f:BBAD0
+    lda #$01
+    sta f:MDMAEN
+
+    ; --- el tilemap: los 512 tiles en orden y el resto tapado ---
+    ;
+    ; Se escribe a mano y no por DMA: son los números 0, 1, 2... y emitirlos
+    ; serían dos kilobytes de cartucho por escena para decir eso.
+    rep #$20
+.a16
+    lda #ESCENA_MAPA
+    sta f:VMADDL
+    lda #0
+    sta BA_S0                   ; el tile que va en la celda
+    ldx #0
+celda:
+    cpx #ESCENA_TILES
+    bcc celda_escena
+    lda #ESCENA_BLANCO
+    bra celda_pone
+celda_escena:
+.a16
+    lda BA_S0
+celda_pone:
+.a16
+    sta f:VMDATAL
+    inc BA_S0
+    inx
+    cpx #(32 * 32)
+    bcc celda
+    sep #$20
+.a8
+
+    ; --- los 96 colores, desde la entrada ESCENA_CGRAM ---
+    lda #ESCENA_CGRAM
+    sta f:CGADD
+    stz BA_S0 + 1
+    lda BA_ESCENA
+    sta BA_S0
+    rep #$20
+.a16
+    lda BA_S0
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a                       ; por 64
+    sta BA_S1
+    asl a                       ; por 128
+    clc
+    adc BA_S1                   ; y por 192, que son ESCENA_COLORES * 2
+    clc
+    adc #.loword(escena_cgram)
+    sta f:A1T0L
+    lda #(ESCENA_COLORES * 2)
+    sta f:DAS0L
+    sep #$20
+.a8
+    lda #^escena_cgram
+    sta f:A1B0
+    lda #0
+    sta f:DMAP0                 ; `stz` no tiene modo largo
+    lda #$22
+    sta f:BBAD0
+    lda #$01
+    sta f:MDMAEN
+    rts
+sin_escena:
+.a8
+    lda #$FF
+    sta BA_ESCENA
+    rts
+.endproc
+
+; BG1 con la escena, después de que `ranura_ppu_prender` haya puesto BG2 y
+; prendido la pantalla. Si esta pelea no tiene escena no toca nada y la
+; pantalla queda sobre negro, como antes del 2026-09-13.
+.proc escena_prender
+.a8
+.i16
+    lda BA_ESCENA
+    cmp #$FF
+    beq listo
+    lda #((ESCENA_MAPA / 1024) * 4)
+    sta f:BG1SC                 ; 32x32, que es lo que tapa la pantalla entera
+    lda #((RANURA_VRAM / 4096) * 16 + (ESCENA_VRAM / 4096))
+    sta f:BG12NBA               ; el texto en BG2 y la escena en BG1
+    lda #0
+    sta f:BG1HOFS               ; `stz` no tiene modo largo
+    sta f:BG1HOFS
+    lda #$FF
+    sta f:BG1VOFS               ; el PPU muestra vofs+1: con -1 cae en su lugar
+    sta f:BG1VOFS
+    lda #$03
+    sta f:TM                    ; BG1 y BG2
+listo:
+    rts
+.endproc
+
 ; La pelea entera. Se entra con `jsl` desde `op_batalla`, con el banco de datos
 ; ya en $7E, y se vuelve con el resultado en `BA_RESULT`.
 ;
@@ -25883,11 +26108,16 @@ hay_grupo:
     sta f:HDMAEN
     sta f:TM
     jsl f:ba_t_banco
+    ; Y la escena: el fondo con los monstruos, en BG1. Va con la pantalla
+    ; apagada porque son 32 KB de VRAM más el tilemap y la paleta.
+    lda BA_TROPA_K
+    jsr escena_subir
     lda #BA_M_ORDEN
     sta BA_MODO
     jsr ba_componer
     jsl f:ba_t_subir
     jsl f:ba_t_ppu
+    jsr escena_prender
     lda #1
     sta menu_abierto
 

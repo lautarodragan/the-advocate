@@ -19,9 +19,9 @@ Se escribe **mientras se trabaja**, no al final.
 **Los primeros diez minutos jugables**, que es lo que taro viene probando vuelta
 a vuelta.
 
-Al 2026-09-13: `just snes-hitos-foto` son **134 casos, todos en verde**, y `just
-pruebas` **99 en verde y 1 `xfail`** —los cuatro nuevos son el audio de la
-pelea—. El `xfail` no es adorno: es un defecto
+Al 2026-09-13: `just snes-hitos-foto` son **136 casos, todos en verde**, y `just
+pruebas` **99 en verde y 1 `xfail`** —los cuatro nuevos de `pruebas` son el
+audio de la pelea, y los dos de la tanda, la escena de batalla—. El `xfail` no es adorno: es un defecto
 medido de guardar con la pantalla de título puesta, y está abajo.
 
 `demo-ciudad` se juega desde la apertura hasta la calle de Lashe City, con los
@@ -40,43 +40,33 @@ imagen de fondo ni imagen del monstruo. El menú tampoco es parecido al del ABL
 original. Le faltan las opciones de `Use Item` y las habilidades especiales de
 cada personaje. Y tampoco tiene música, ni efectos de sonido."*
 
-**La música y los efectos están hechos** —README, "La música y los efectos de
-la pelea"—. Lo demás no, y esto es lo medido:
+**La música, los efectos, el fondo y los monstruos están hechos** —README, "El
+fondo y los monstruos" y "La música y los efectos de la pelea"—. Lo que queda
+es **el menú**, y esto es lo que se sabe:
 
-* **El fondo.** `SJBackdropABL04` —el droide del mapa 2— y `ABLBackdropSJ03`
-  —los Lazer Teeth del mapa 9— son los dos **320x160 y 255 colores a 15 bits**,
-  con 773 y 800 tiles únicos de 8x8 de los 800 de la grilla. O sea que no hay
-  reuso: es una foto.
+* **`Use Item` y las habilidades.** Los ítems y el inventario ya existen en el
+  port —pantalla de ítems, equipo, tienda— y `skills.json` tiene las
+  habilidades; las palabras salen de `terms.json`, como las tres órdenes de
+  hoy. No se empezó.
 
-  Lo que obliga: a 4bpp son 16 colores por tile y no alcanzan; a 8bpp, escalado
-  a 256x128, son **512 tiles y 32.768 B de VRAM** más 2 KB de tilemap, que
-  entran al lado de los 302 tiles del texto porque la pelea **no comparte VRAM
-  con el mapa** —`volver_al_mapa` la rehace entera al salir—. El problema no es
-  la VRAM sino **la CGRAM**: en modo 3 el fondo de 8bpp quiere las 256 entradas,
-  el texto de BG2 usa las primeras y los objetos las últimas 128. El reparto que
-  cierra es texto en la paleta 0 (entradas 0 a 15), fondo con las entradas 16 a
-  127 —112 colores— y los objetos con las suyas.
+  Lo que hay que decidir primero es **dónde**: el renglón de las órdenes tiene
+  tres columnas de nueve caracteres y cinco no entran en una. Los dos renglones
+  del mensaje están libres mientras se elige, así que lo barato es partirlas en
+  dos filas —tres arriba, dos abajo— sin tocar el resto de la pantalla.
 
-  Y queda un problema que no es técnico: **el texto va sin ventana**, así que
-  sobre una foto no se lee. RM2k lo resuelve con ventanas, que este port tiene
-  (`ventana.py`) y esta pantalla no usa.
+  Y lo que hay que escribir dos veces, como todo lo de la pelea: el efecto de
+  un ítem y el de una habilidad van en `main.s` **y** en `tools/batalla.py`,
+  con las fórmulas de easyrpg, o `pruebas/test_batalla.py` deja de poder
+  predecir el HP exacto. Las medicinas ya sirven de algo: desde el 2026-09-12
+  los HP bajan.
 
-* **El monstruo.** Los dos battlers son baratos: `sentry drone` es **70x70 y 27
-  colores** y `Sgangmem` **46x101 y 185**. Como objetos, el drone son 81 tiles
-  de 8x8 —9 objetos de 32x32, 9 tiles por línea de los 34— y los cuatro Lazer
-  Teeth **comparten los mismos 78 tiles**, 8 objetos cada uno y 24 tiles por
-  línea. Entran holgados. Lo caro no es dibujarlos sino **dónde ponerlos**: la
-  pantalla de hoy es una grilla de texto de 32x28 llena, sin lugar libre, así
-  que el monstruo pide rehacer la distribución, que es el mismo trabajo que
-  "el menú como el del ABL original".
+* **Lo que el fondo dejó declarado y taro tiene que mirar jugando**: el texto
+  va sin ventana encima de la escena. En RM2k las ventanas lo separan del
+  fondo; acá las letras blancas con sombra caen directamente sobre la foto. Si
+  no se lee, la salida es la ventana de `ventana.py`, que el port ya tiene.
 
-* **El menú.** `Use Item` y las habilidades. Los ítems y el inventario ya
-  existen en el port —pantalla de ítems, equipo, tienda— y `skills.json` tiene
-  las habilidades; las palabras salen de `terms.json`. No se empezó.
-
-Lo primero de la lista, si se retoma, es **decidir la distribución de la
-pantalla**: el fondo, el monstruo y el menú nuevo son el mismo problema visto
-tres veces, y hacerlos por separado es rehacer la pantalla tres veces.
+* **Y un enemigo muerto se sigue viendo**, porque la escena está horneada. Lo
+  que dice que murió es su renglón, en gris y con los HP en cero.
 
 ### El dibujo de las animaciones de batalla: medido, sin empezar
 

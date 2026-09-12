@@ -932,8 +932,8 @@ Lo que hay, y lo que no:
     habilidades, ítems, estados     no
     experiencia, oro, subir nivel   no: no hay niveles
     la música y los efectos         sí, desde el 2026-09-13: ver abajo
-    los battlers dibujados          no
-    la imagen de fondo              no
+    los battlers dibujados          sí, horneados en el fondo: ver abajo
+    la imagen de fondo              sí, desde el 2026-09-13
     las páginas de evento de tropa  no
     los encuentros aleatorios       no: ver "Lo que falta"
 
@@ -947,6 +947,66 @@ enemigos— no compila, y no por la batalla: la corta un `MoveEvent` con la
 orden de ruta 9, "hacia el héroe", que la ROM no camina. Por eso la tropa de
 cuatro la ejercita `just snes-batalla` con la página de prueba, que es el
 mismo recurso que usa `snes-guardar` con la pantalla de ranuras.
+
+#### El fondo y los monstruos: una sola imagen
+
+taro pidió las dos cosas el 2026-09-13 —*"La batalla no tiene ni imagen de
+fondo ni imagen del monstruo"*— y acá van juntas **porque son el mismo
+dibujo**: el conversor compone el fondo de batalla con los battlers de la
+tropa encima y el cartucho lleva el resultado como una capa de 8bpp de
+256x128, los siete renglones de texto de arriba. La consola no dibuja
+battlers: sube una imagen. El porqué largo, el presupuesto y lo que se pierde
+están en `tools/escena.py`; el titular:
+
+* **El fondo sale del propio `EnemyEncounter`**, que trae el nombre en su
+  string: `SJBackdropABL04` para el droide del mapa 2 y `ABLBackdropSJ03` para
+  los Lazer Teeth del 9.
+* **Todo al 80%.** El fondo de RM2k mide 320x160 en una pantalla de 320x240 y
+  acá la pantalla es de 256x224, así que entra escalado a 256x128. Los
+  battlers van al mismo 80%, con lo cual las posiciones del LDB —que son las
+  del centro de cada uno— se mapean multiplicando por lo mismo. Lo único que
+  no es de RM2k es el recorte: un battler alto se topa adentro de la escena,
+  porque allá abajo le quedan otros ochenta pixeles de pantalla y acá no.
+* **512 tiles, 32.768 B de VRAM y 96 colores**, las entradas 32 a 127 de la
+  CGRAM: las 0 a 31 son las dos paletas del texto y de 128 para arriba son las
+  de los objetos. Los tiles no se deduplican —una foto no repite: 490 y 503 de
+  512 en los dos fondos del juego— y por eso el número es fijo.
+* **Entra sin pelearle a nada** porque la pelea no comparte VRAM con el mapa:
+  `volver_al_mapa` la rehace entera al salir. El texto vive en $2000, su
+  tilemap en $3C00, el de la escena en $3800 y los tiles de la escena en
+  $4000, que son las últimas 16.384 palabras de la VRAM.
+
+Dos cosas que costaron y conviene no volver a descubrir:
+
+* **El texto lleva el bit de prioridad.** En modo 3 el orden del PPU deja BG1
+  de prioridad 0 **arriba** de BG2 de prioridad 0, así que sin eso la escena
+  tapa las letras. Lo pone el conversor en `item_glifo_celdas`; en las otras
+  pantallas que usan esos glifos —ítems, equipo, tienda— BG1 está apagado y el
+  bit no cambia un pixel.
+* **El tile con que se tapa lo que queda abajo de la escena es el 512**, y cae
+  fuera del bloque: 512 tiles de 8bpp son exactamente las palabras que van de
+  `ESCENA_VRAM` al final de la VRAM, así que el 512 da la vuelta y queda en la
+  palabra 0, que mientras dura la pelea es VRAM del mapa y no la usa nadie.
+
+**Lo que cuesta, declarado**: un enemigo muerto se sigue viendo. En RM2k
+desaparece; acá lo que dice que murió es su renglón —el nombre en gris y los
+HP en cero—, que es la misma razón por la que esta pantalla muestra los HP de
+los enemigos y RM2k no. Y una escena es **por tropa** y no por fondo: dos
+tropas con el mismo fondo llevan las dos escenas, a 32 KB cada una.
+
+Lo cobra la tanda, con los dos fondos del juego: `snes-batalla` con la tropa
+86 —cuatro battlers iguales, uno de ellos topado contra el borde— y con la 82
+—uno solo—, los dos en cero. Verificado que da rojo corriéndole a la ROM el
+`BG1VOFS` un scanline.
+
+Y hay un tercer caso que no mira el dibujo sino **el índice**: la misma tropa
+86 en un cartucho que además lleva el mapa 2, o sea con dos tropas y dos
+escenas. Es el único donde la pelea no es la tropa 0, y para que exista hubo
+que mover una línea: la tropa de la página de prueba se pide **al final** y no
+antes de compilar los mapas, igual que `temas_de_la_rom` agrega el tema del
+mapa al final. Pidiéndola antes le tocaba siempre el índice 0 y `escena_de` y
+`tropa_id` acertaban sin indexar nada. Verificado que da rojo —53% de los
+pixeles— con `escena_subir` clavado en la escena 0.
 
 #### La música y los efectos de la pelea
 

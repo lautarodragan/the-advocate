@@ -1442,17 +1442,21 @@ snes-anclada mapa="6" ruta="1 1 1 1 1 1 2 2 2 2 2 2" cuadros="21 23 50 130" arra
 # lado, y **sólo del lado de la ROM**, que es lo que hace que la comparación
 # mida algo— los dos dan 556 pixeles. Un caso que no falla con algo roto no
 # prueba nada.
-snes-batalla tropa="86" grupo="11 12 13" espera="20" cuadros="200" toques="" nombre="batalla":
+snes-batalla tropa="86" grupo="11 12 13" espera="20" cuadros="200" toques="" nombre="batalla" fondo="ABLBackdropSJ03" mapas="":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
   toques="{{toques}}"
+  mapas="{{mapas}}"
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id 6 --con-ventana \
+      ${mapas:+--mapas $mapas} \
       --pagina-de-prueba {{espera}} 0 0 0 --batalla-de-prueba {{tropa}} \
+      --fondo-de-prueba "{{fondo}}" \
       -o {{snes_inc}}/mapdata.inc
   just snes-build
   pre={{snes_pngs}}/{{nombre}}
   python3 tools/pantallas.py -o $pre.esperado.png --batalla {{tropa}} \
+      --fondo "{{fondo}}" \
       --grupo $(echo "{{grupo}}" | tr ' ' ',') \
       ${toques:+--modo 1 --blanco 2}
   python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre.png \
@@ -2167,6 +2171,13 @@ pruebas *args:
 #   viaja, así que la receta avisa si ve alguno.
 # * **Dos tandas a la vez se pelean por CPU.** Esto sirve para seguir editando,
 #   no para que la tanda termine antes.
+# * **Y se pelean por el directorio**, que es peor: la receta arranca con un
+#   `git worktree remove --force`, así que una segunda tanda le borra el árbol
+#   a la primera **mientras corre**. Lo que se ve es una corrida que empieza
+#   bien y de golpe dice `getcwd: cannot access parent directories`, con casos
+#   en rojo que no lo están. Pasó el 2026-09-13 con dos agentes trabajando en
+#   paralelo. Si hay más de uno, cada uno con su `donde`:
+#   `just snes-hitos-foto 4 /extras/hitos-foto-<quien>`.
 snes-hitos-foto trabajos="4" donde="/extras/hitos-foto":
   #!/usr/bin/env bash
   set -uo pipefail
