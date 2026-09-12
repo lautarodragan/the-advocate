@@ -734,7 +734,12 @@ class Graficos:
 # LCF ni conoce sus números.
 OP_FIN      = 0x00
 OP_SWITCH   = 0x01      # id (word), valor (byte)
-OP_TELEPORT = 0x02      # mapa (byte), x (word), y (word)
+OP_TELEPORT = 0x02      # mapa (word), x (word), y (word). El mapa iba en un
+                        # byte y eso le ponía **al formato** un techo de 256
+                        # mapas: el juego tiene 328. Hoy no molesta —las
+                        # demos llevan 29— pero era un techo escrito, y
+                        # sacarlo cuando todavía es barato es más barato que
+                        # sacarlo el día que una demo se pase.
 OP_ESPERAR  = 0x03      # cuadros (word): la cinemática espera seis
                         # segundos, o sea 360, y no entran en un byte
 OP_TINTE    = 0x04      # r, g, b, sat (byte cada uno)
@@ -2462,7 +2467,7 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         destino = indice_de_mapa(p[0])
         if destino is None:
             raise NoSePuede()       # el mapa no entró en la ROM
-        return bytes([OP_TELEPORT, destino,
+        return bytes([OP_TELEPORT, destino & 0xFF, destino >> 8,
                       p[1] & 0xFF, p[1] >> 8, p[2] & 0xFF, p[2] >> 8])
 
     if cmd.code == CHANGE_PARTY_MEMBERS:
@@ -4199,7 +4204,7 @@ class Estado:
 # las doce poses. OP_RUTA no está: lleva las órdenes detrás y lo mide
 # `largo_de_opcode`.
 LARGO_DE_OPCODE = {
-    OP_FIN: 1, OP_SWITCH: 4, OP_TELEPORT: 6, OP_ESPERAR: 3, OP_TINTE: 5,
+    OP_FIN: 1, OP_SWITCH: 4, OP_TELEPORT: 7, OP_ESPERAR: 3, OP_TINTE: 5,
     OP_GRUPO: 3, OP_MENSAJE: 3, OP_RUTAS: 1, OP_FLASH: 7, OP_TIMER: 5,
     OP_BGM: 2, OP_LUGAR: 6, OP_TRUEQUE: 3, OP_SACUDIR: 5, OP_DESTELLO: 6,
     OP_FUNDIR_BGM: 3, OP_PAN: 8, OP_SI: 7, OP_IR: 3, OP_ORO: 5,
@@ -5199,15 +5204,15 @@ def ejecutar(codigo, estado, desde=0):
             # siguiente. En la cinemática de apertura los dos van al mismo mapa,
             # así que no cambia nada; si alguna vez aparece una página que salte
             # entre mapas distintos, esto hay que mirarlo de nuevo.
-            estado.salto = (codigo[i + 1],
-                            codigo[i + 2] | (codigo[i + 3] << 8),
-                            codigo[i + 4] | (codigo[i + 5] << 8))
+            estado.salto = (codigo[i + 1] | (codigo[i + 2] << 8),
+                            codigo[i + 3] | (codigo[i + 4] << 8),
+                            codigo[i + 5] | (codigo[i + 6] << 8))
             # Cuántos fundidos lleva la corrida. No lo usa el intérprete: lo
             # usa el plan de la caminata, que le dice al emulador cuántos
             # cuadros correr y tiene que contar los 70 de cada teletransporte.
             # Se cuenta acá, que es el único lugar por donde pasan todos.
             estado.fundidos += 1
-            return (i + 6, 0, True)     # corta el cuadro, como `return false`
+            return (i + 7, 0, True)     # corta el cuadro, como `return false`
         elif op == OP_ESPERAR:
             # Y acá se devuelve el control. Antes se salteaba: "no tenemos
             # cuadros que dejar pasar", decía el comentario, y era cierto

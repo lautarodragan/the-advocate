@@ -358,7 +358,7 @@ class Partida:
 
     def mapa(self):
         """En qué mapa de RM2k está parada la partida."""
-        indice = self.byte("mapa_actual")
+        indice = self.palabra("mapa_actual")
         if indice >= len(self.mapas):
             raise AssertionError(
                 "la ROM dice estar en el mapa índice %d y su tabla tiene %d: "
@@ -431,8 +431,12 @@ class Partida:
         if map_id not in self.mapas:
             raise AssertionError(
                 "el mapa %d no está en esta ROM; lleva %s" % (map_id, self.mapas))
+        # Dos bytes: el índice de mapa es un word desde que el destino de
+        # OP_TELEPORT lo es. Escribiendo uno solo, el alto se queda con lo que
+        # hubiera antes y la ROM carga cualquier mapa.
+        indice = self.mapas.index(map_id)
         self.consola.escribir_ram(self.simbolos["fundido_mapa"],
-                                  [self.mapas.index(map_id)])
+                                  [indice & 0xFF, indice >> 8])
         for nombre, valor in (("entrada_x", x), ("entrada_y", y)):
             self.consola.escribir_ram(self.simbolos[nombre],
                                       [valor & 0xFF, valor >> 8])

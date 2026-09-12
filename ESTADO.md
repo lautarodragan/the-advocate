@@ -278,6 +278,65 @@ Lo que queda abierto:
   aportan al banco. Los siete son 908 s, unos 160 MB de PCM. Los 35 del juego
   entero que las demos no tocan serían 923 MB.
 
+### Coordenadas, teletransporte de dos bytes, y las rutas que ya no faltan (2026-09-12)
+
+Tres piezas pedidas juntas. Las dos primeras están hechas; la tercera resultó no
+existir, y ésa es la parte que hay que leer.
+
+* **`ControlVars` clase 6**, las coordenadas de un personaje: **+119 páginas**
+  sobre el juego entero, de 5016 a 5135. El porqué durable y los sub-operandos
+  están en el README, "Las coordenadas de un personaje". Sobre las páginas
+  **automáticas** no destraba ninguna —siguen 332—: las que la usan son de
+  contacto y paralelas, que es lo que uno espera de una persecución.
+* **El destino del teletransporte pasó de un byte a dos**, en `OP_TELEPORT` y en
+  el registro de las puertas. No destraba ninguna página: saca un techo de 256
+  mapas que estaba escrito en el formato y que el juego, con 328, ya pasaba. El
+  techo que queda son 512, por `mapa_ofs`. **Cuesta que una partida guardada
+  vieja no cargue**: `mapa_actual` ocupa dos bytes en la SRAM y la suma no
+  cuadra.
+* **Las órdenes de ruta que faltan: no falta ninguna que valga.** El encargo
+  decía que la orden 10 aparecía 104 veces y valía +109 páginas; **medido sobre
+  el juego entero con `just snes-destraba`, la 10 aparece una sola vez**, en una
+  página del mapa 330 que ni siquiera se dispara, y aceptar las nueve órdenes
+  que quedan sin hacer da **+0 páginas**. El número del encargo era de antes de
+  que entrara la orden 9 (`c1a00b6`), que era la que valía —+33— y que ya está.
+  Para que esto no vuelva a pasar, `snes-destraba` ahora imprime la lista.
+
+**La persecución en auto todavía no se puede jugar, y ahora se sabe por qué.**
+Con la clase 6 hecha, de las 134 páginas disparables de los mapas 49, 52 y 54
+compilan 28. A las otras 106 las corta **`ChangeSpriteAssociation`** —102— y
+`KeyInputProc` —4—: el auto cambia de gráfico mientras corre. O sea que el
+próximo paso de esa escena no es el intérprete de variables sino el gráfico del
+personaje. Por eso la ROM de `pruebas-manuales/vars-y-rutas/` **no lleva esos
+mapas**: llevarlos daría una carrera con el auto quieto.
+
+**Y una trampa de medición que conviene no repetir**: la tabla de "qué comando
+corta" que se saca recompilando **comando por comando** miente con
+`ConditionalBranch`, porque una rama suelta no compila nunca fuera de su página
+—`_compilar` no la conoce; la arma `compilar_pagina`—. Medido así, parecía que
+las ramas cortaban 262 páginas; preguntándoselo al compilador de verdad son 89,
+y en dos motivos distintos. La lista honesta, sobre las 468 páginas del juego
+que hoy no compilan:
+
+    ChangeSpriteAssociation  103     ConditionalBranch, condición rara   53
+    RecallToLocation          54     ConditionalBranch, del héroe        36
+    FlashSprite               51     ChangeSystemBGM                     39
+    KeyInputProc              31     ShowMessage (los escapes)           18
+
+Lo que queda abierto de la primera:
+
+* **Las coordenadas en pantalla** —los sub-operandos 4 y 5 de la clase 6— no se
+  hacen: la pantalla mide 256x224 y la de RM2k 320x240, así que el número que le
+  quedaría a la variable no es el del original. Son cuatro apariciones en todo
+  el juego y valen **una** página, medida.
+* **La celda del héroe vive ahora en `Estado.heroe`** del lado de la referencia,
+  y la escribe `cuadro_de_eventos`. El orden está elegido para copiar al de la
+  ROM —el intérprete corre antes que `move_hero`— pero **la tanda no tiene
+  ningún caso donde el héroe se mueva y una página lea su celda en el mismo
+  cuadro**: `var-heroe-x` lo lee con el héroe quieto. Si alguna vez hay una
+  página que persiga al héroe mientras camina, ese cuadro de diferencia es lo
+  primero que hay que mirar.
+
 ### Lo próximo, si no se decide otra cosa
 
 Al 2026-09-12, en orden.

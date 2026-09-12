@@ -1481,6 +1481,19 @@ intérprete de eventos, y son las que convierten un mapa suelto en un mundo.
 
 Las otras 694 están adentro de cinemáticas y piden el intérprete.
 
+**A qué mapa lleva, en dos bytes.** Tanto `OP_TELEPORT` como el registro de una
+puerta guardaban el índice del mapa destino en **un byte**, y eso le ponía al
+formato un techo de 256 mapas cuando el juego tiene 328. Las demos llevan 29,
+así que no molestaba; se sacó igual, porque un techo escrito en el formato sale
+más barato ahora que el día que una demo se pase. Adentro de la ROM el índice
+viaja de dieciséis bits desde `salto_mapa` hasta `mapa_actual`, y el techo que
+queda es el de `mapa_ofs`: 512 mapas, que es lo que entra en un word a
+`MAPA_STRIDE` de 128 bytes. Los tres bytes de RAM que costó salieron de tres
+declaraciones que no leía nadie —`ev_actual`, `ruta_salto_dx` y
+`ruta_salto_dy`—, porque la RAM baja estaba en 7680 de 7680 y la página directa
+en 256 de 256. **La partida guardada cambió de tamaño**: una partida vieja no
+carga, la suma no le cuadra.
+
 Qué comandos pueden acompañar a un teletransporte sin que deje de ser una
 puerta se decide con un criterio, no a ojo: **que no ejecutarlos no se vea en la
 pantalla que comparamos**. Un fundido, una espera y un sonido se saltean y la

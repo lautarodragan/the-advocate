@@ -4423,7 +4423,11 @@ def puertas_bytes(puertas, indices):
         registro[2:4] = puerta["y"].to_bytes(2, "little")
         registro[4:6] = puerta["destino_x"].to_bytes(2, "little")
         registro[6:8] = puerta["destino_y"].to_bytes(2, "little")
-        registro[8] = destino
+        # El índice del mapa va en dos bytes, como el de OP_TELEPORT: en uno
+        # el formato no puede nombrar los 328 mapas del juego. La ROM ya lo
+        # leía como word —con un `and #$00FF` porque el de al lado era cero—,
+        # así que esto es lo que hacía falta para que el alto sirva.
+        registro[8:10] = destino.to_bytes(2, "little")
         out += registro
     return bytes(out), afuera
 
