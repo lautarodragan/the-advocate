@@ -43,8 +43,9 @@ import eventos
 import lcf
 import rm2k
 
-# Los eventos translúcidos van tramados: ver `rm2k.TRAMA_SUFIJO`.
-lcf.SUFIJO_TRANSLUCIDO = rm2k.TRAMA_SUFIJO
+# Los eventos translúcidos llevan su propio gráfico: ver
+# `rm2k.decorar_translucido` —horneado contra el fondo, o tramado—.
+lcf.DECORAR_TRANSLUCIDO = rm2k.decorar_translucido
 import pixeles
 import titulo as titulo_mod
 import pantallas as pantallas_mod

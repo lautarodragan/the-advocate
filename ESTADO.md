@@ -11,7 +11,7 @@ volvió inusable; se borra sin culpa lo que ya esté en esos dos lados.
 
 Se escribe **mientras se trabaja**, no al final.
 
-Última vez que se tocó: 2026-09-11.
+Última vez que se tocó: 2026-09-12.
 
 
 ## El objetivo, y dónde estamos
@@ -668,11 +668,14 @@ texto, y pidió que el audio ande siempre aunque la imagen se atrase más. La
 música pasó a `irq_musica`, una IRQ vertical por cuadro de hardware; ya no
 depende de cuánto tarda el lazo. README, "La música no espera al lazo".
 
-### Los translúcidos, tramados (2026-09-11)
+### Los translúcidos, horneados (2026-09-12)
 
-Los fuegos de los barriles del mapa 9 —el "Trans" de su página— van en
-damero: la transparencia de la consola pide paletas que ese mapa no tiene.
-README, "Los eventos translúcidos van tramados". Lo cobra `fuego`.
+Los fuegos de los barriles del mapa 9 y el save point del 8 —el "Trans" de su
+página— ya no van tramados: la mezcla al 160/255 contra el fondo real la
+calcula el conversor y queda **horneada** en el gráfico, que es lo que se puede
+hacer porque las 70 páginas translúcidas del juego son estáticas. README, "Los
+eventos translúcidos van horneados"; el precio, en `assets/LIMITACIONES.md`.
+Lo cobra `fuego`.
 
 ### Lo que le falta a la intro: medido, sin decidir (2026-09-11)
 
@@ -750,10 +753,25 @@ negro casi puro, así que ninguna trama va a simular transparencia ahí — no h
 nada detrás que asomarse. De ahí salieron los dos caminos que taro pidió probar
 en paralelo el 2026-09-12, cada uno en su worktree:
 
-* **pre-horneado**: los 70 translúcidos del juego son **estáticos** (medido),
-  así que la mezcla se puede calcular en el conversor contra el fondo real y
-  hornearla en el gráfico. Exacto, sin trama. Precio: el objeto queda opaco y
-  dos eventos con el mismo CharSet sobre fondos distintos piden dos paletas.
+* **pre-horneado: hecho el 2026-09-12**, y es lo que corre hoy. Los 70
+  translúcidos del juego son **estáticos** (medido: `move_type` 0 y ninguna
+  ruta propia), así que la mezcla se calcula en el conversor contra el fondo
+  real y queda horneada en el gráfico. Exacto, sin trama. De las 70 páginas se
+  hornean **39**: las otras 31 se dibujan con un tile del chipset y **todas
+  llevan el tile 0**, que en RM2k es "sin gráfico" —o sea que el `EV0068` del
+  mapa 8 no se dibuja tampoco en el original, y no había nada que arreglar ahí—.
+  Las paletas entran en los 35 mapas: sólo se mueven tres —el 9 de siete a
+  ocho, el 117 de seis a siete, el 37 suma un gráfico con paleta ajena— y
+  ninguno se cae. Precio, en LIMITACIONES: el objeto queda opaco (4 de 39 se
+  superponen con otro evento) y dos de 39 están sobre agua animada, que adentro
+  de su cuadro va a quedar quieta. Y hay un costo concreto en la demo: con el
+  mapa 9 en ocho paletas, al cronómetro hay que hacerle lugar bajando a
+  `Chara2:0` de quince colores a trece —el 16% de sus pixeles—, que antes no
+  hacía falta; de paso ese personaje se lleva un banco de poses propio.
+  **Verificado**: `just snes-hitos-foto`, 123 en verde sobre la foto
+  `4c4be80`, con `fuego` en cero pixeles contra la referencia; `just pruebas`,
+  83 más un xfail. La ROM para probar a mano está en
+  `pruebas-manuales/trans-prehorneado/`, **sin escuchar ni ver todavía**.
 * **color math**: lo de FF5. El orden del modo 3 es `objetos 3 / BG1 1 /
   objetos 2 / BG2 1 / objetos 1 / BG1 0 / objetos 0`, y entre el piso (BG1 0) y
   el héroe (objetos 1) **no hay ranura**: la única capa de fondo disponible es
@@ -931,7 +949,10 @@ acotados; del cuarto para abajo es lo de siempre.
    menú, y que los NPCs de Lashe City vuelvan con sus poses —es lo que se
    rompía con las direcciones viejas de VRAM, y snes9x sí lo cobró, pero sólo
    con el grupo 11—.
-   **Las más nuevas son `pruebas-manuales/2026-09-12-af1493d/`**, ya en el
+   **La más nueva es `pruebas-manuales/trans-prehorneado/`**: `demo-ciudad`
+   sola, sin MSU-1, con los translúcidos horneados —los fuegos del mapa 9 y el
+   save point del 8— y un `trama-vs-horneado.png` al lado para comparar contra
+   lo que había. **Falta que taro la mire.** Antes, `2026-09-12-af1493d/`, ya en el
    repo: la pista al 85%
    en vez de a fondo, que es lo que saca el clipping y devuelve el balance con
    los efectos. Mismas pistas que el build anterior —no hizo falta rehacerlas—.

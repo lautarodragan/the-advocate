@@ -131,15 +131,19 @@ TRAMAS = {
 class Charsets:
     """Cache de CharSets, que se repiten mucho entre los eventos de un mapa."""
 
-    def __init__(self, search_dirs, atlas_por_nombre=None):
+    def __init__(self, search_dirs, atlas_por_nombre=None, fondo_de_mapa=None):
         self.search_dirs = search_dirs
         self.images = {}
         self.missing = set()
         self.atlas_por_nombre = atlas_por_nombre
+        self.fondo_de_mapa = fondo_de_mapa
 
     def get(self, name):
         if name not in self.images:
-            if name.endswith(rm2k.TRAMA_SUFIJO):
+            base, donde = rm2k.parte_horneada(name)
+            if donde is not None:
+                self.images[name] = self._horneado(base, *donde)
+            elif name.endswith(rm2k.TRAMA_SUFIJO):
                 self.images[name] = self._tramado(
                     name[:-len(rm2k.TRAMA_SUFIJO)])
             elif name.startswith(rm2k.TILE_PREFIX):
@@ -164,6 +168,49 @@ class Charsets:
             for x in range(image.width):
                 if cae(x, y):
                     pix[x, y] = (0, 0, 0, 0)
+        return image
+
+    def _horneado(self, base, map_id, tile_x, tile_y):
+        """El CharSet de un evento translúcido, con la mezcla ya calculada.
+
+        RM2k lo dibuja al 160 de 255 sobre lo que haya detrás. Como el evento
+        es estático —lo son los 70 del juego— y el fondo también, la mezcla se
+        calcula una vez acá, contra el fondo real de la celda donde está
+        parado, y queda horneada en el gráfico: el sprite sale opaco y con los
+        colores exactos, sin trama.
+
+        El fondo es la **capa de abajo** del mapa, que es lo único que queda
+        detrás del sprite: la de encima se dibuja después y lo tapa, así que en
+        los pixeles donde el sprite se ve el fondo es éste. Y se toma en
+        `(x*16 - 4, y*16 - 16)`, que es donde `charset.draw` apoya el cuadro de
+        24x32 sobre la celda; como todas las poses del CharSet caen en el mismo
+        lugar de la pantalla, cada una se mezcla contra el mismo pedazo y
+        alcanza con mirar la posición del pixel adentro de su cuadro.
+        """
+        sheet = self.get(base)
+        fondo = self.fondo_de_mapa(map_id) if self.fondo_de_mapa else None
+        if sheet is None or fondo is None:
+            return sheet
+        image = sheet.convert("RGBA")
+        pix = image.load()
+        atras = fondo.load()
+        ox = tile_x * TILE + charset.OFFSET_X
+        oy = tile_y * TILE + charset.OFFSET_Y
+        alfa = rm2k.OPACIDAD_TRANSLUCIDO
+        for y in range(image.height):
+            fy = oy + y % charset.SPRITE_HEIGHT
+            for x in range(image.width):
+                r, g, b, a = pix[x, y]
+                if not a:
+                    continue
+                fx = ox + x % charset.SPRITE_WIDTH
+                if 0 <= fx < fondo.width and 0 <= fy < fondo.height:
+                    br, bg, bb = atras[fx, fy][:3]
+                else:
+                    br = bg = bb = 0        # fuera del mapa la consola ve negro
+                pix[x, y] = ((r * alfa + br * (255 - alfa)) // 255,
+                             (g * alfa + bg * (255 - alfa)) // 255,
+                             (b * alfa + bb * (255 - alfa)) // 255, 255)
         return image
 
     def _de_tile(self, name):
@@ -213,10 +260,25 @@ class Renderer:
     def __init__(self, game_dir=GAME_DIR, rtp_dir=RTP_DIR):
         self.database = lcf.Database(os.path.join(game_dir, "RPG_RT.ldb"))
         self.tree = lcf.TreeMap(os.path.join(game_dir, "RPG_RT.lmt"))
+        self.game_dir = game_dir
         self.search_dirs = [REPO, game_dir, rtp_dir]
-        self.charsets = Charsets(self.search_dirs, self.atlas_por_nombre)
+        self.charsets = Charsets(self.search_dirs, self.atlas_por_nombre,
+                                 self.fondo_de_mapa)
         self.atlases = {}
+        self.fondos = {}
         self.missing_chipsets = set()
+
+    def fondo_de_mapa(self, map_id):
+        """La capa de abajo de un mapa, para hornear los translúcidos.
+
+        Se cachea porque un mapa con varios translúcidos la pediría una vez por
+        evento, y renderizar las capas de un mapa grande no es gratis.
+        """
+        if map_id not in self.fondos:
+            game_map = self.cargar_mapa(
+                os.path.join(self.game_dir, "Map%04d.lmu" % map_id))
+            self.fondos[map_id] = self.render_layers(game_map)[0]
+        return self.fondos[map_id]
 
     def atlas(self, chipset):
         """Los ChipSets se repiten entre mapas y expandirlos no es gratis."""

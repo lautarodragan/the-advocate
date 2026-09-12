@@ -167,8 +167,10 @@ snes-hablar 10 "11 4" 24 "25 70 110 150" "20 60 140 160" 115 gemelo
 # y la ranura de ruta queda. Tiene que girar igual y volver a la derecha. Es
 # el `GangMember1` que taro encontró sin girar.
 snes-hablar 10 "11 4" 24 "25 70 110 150" "20 60 140 160" 115 gemelo-ruta "14 13"
-# Los fuegos translúcidos de los barriles del mapa 9, tramados: ver
-# `rm2k.TRAMA_SUFIJO`. La A cae después de la última captura.
+# Los fuegos translúcidos de los barriles del mapa 9, con la mezcla horneada
+# en el gráfico: ver `rm2k.HORNEADO_SUFIJO`. Es el caso que cobra que el
+# conversor y la referencia horneen contra el mismo fondo; un rojo acá quiere
+# decir que no. La A cae después de la última captura.
 snes-hablar 9 "57 36" 24 900 "20 40" 115 fuego
 # Parallel Process: los dos autos y los dos que los reubican del mapa 9,
 # mirados a lo largo de cuatro segundos. Verificado que da rojo sin
