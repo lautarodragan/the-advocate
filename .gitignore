@@ -2,6 +2,12 @@ __pycache__/
 
 wt/
 rom/build/
+# Las ROMs para probar a mano, con sus pistas de MSU-1. Viven acá y no en
+# `rom/build/` porque eso lo pisan las pruebas y el `snes-demos` siguiente; y
+# adentro del repo y no en `/extras` porque taro las saca desde el host y desde
+# ahí había que copiarlas con `podman cp` cada vez. Pesan: un build con las ocho
+# pistas son 383 MB.
+pruebas-manuales/
 rom/shots/
 rom/src/musicdata.inc
 

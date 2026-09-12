@@ -866,7 +866,17 @@ acotados; del cuarto para abajo es lo de siempre.
    confunda con una pantalla rota. Por el conversor y bajo un flag, no editando
    `Map0004.lmu`. Ver la sección propia, más abajo.
 
-4. **Las ROMs para probar viven en `/extras/builds/<fecha>-<commit>/`**,
+4. **Las ROMs para probar viven en `pruebas-manuales/<fecha>-<commit>/`**, que
+   está en el repo y gitignorado, desde el 2026-09-12: taro las saca desde el
+   host y sacarlas de `/extras` pedía un `podman cp` cada vez. Lo de antes del
+   2026-09-12 quedó en `/extras/builds/` y no se movió —son cientos de megas
+   por build desde que hay pistas de MSU-1— así que los directorios que se
+   nombran más abajo con esa ruta siguen estando ahí. **Cuidado con el disco**:
+   un build con las ocho pistas son 383 MB, y éste es el disco de taro y no un
+   volumen descartable; conviene dejar el último y borrar los anteriores.
+   El párrafo que sigue es la historia de por qué existe esto:
+
+   **Las ROMs para probar vivían en `/extras/builds/<fecha>-<commit>/`**,
    copiadas de las demos apenas se arman, porque `rom/build/` lo pisan las
    pruebas y el `snes-demos` siguiente; taro lo pidió el 2026-09-10. La de hoy
    es `/extras/builds/2026-09-10-5837301/`, con `demo-ciudad.sfc` y
@@ -892,7 +902,8 @@ acotados; del cuarto para abajo es lo de siempre.
    menú, y que los NPCs de Lashe City vuelvan con sus poses —es lo que se
    rompía con las direcciones viejas de VRAM, y snes9x sí lo cobró, pero sólo
    con el grupo 11—.
-   **Las más nuevas son `/extras/builds/2026-09-12-af1493d/`**: la pista al 85%
+   **Las más nuevas son `pruebas-manuales/2026-09-12-af1493d/`**, ya en el
+   repo: la pista al 85%
    en vez de a fondo, que es lo que saca el clipping y devuelve el balance con
    los efectos. Mismas pistas que el build anterior —no hizo falta rehacerlas—.
    Lo que falta escuchar ahí es el Emitter Room, que acá no se pudo reproducir.
