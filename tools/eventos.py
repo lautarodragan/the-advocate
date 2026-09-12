@@ -643,12 +643,10 @@ CALL_EVENT = 12330
 OPEN_SHOP = 10720
 
 ACEPTADOS_SIN_HACER = {
-    # CallEvent llama a la página de otro evento en el lugar. En los mapas 1 a
-    # 10 lo usa una sola página, el Tram Officer del mapa 9, para subir al
-    # Hover-Tram; taro pidió el 2026-09-10 dejarlo para otra vuelta. Lo que se
-    # pierde: la escena del tram no corre y el jugador se queda parado con el
-    # "It's here!" dicho. Es deuda declarada, no equivalencia.
-    CALL_EVENT,
+    # CallEvent **ya no está acá**: desde el 2026-09-12 se compila en línea,
+    # ver `_compilar_llamada`. Lo que quedó de aquello es que una llamada cuyo
+    # blanco no compila se saltea igual que antes, y eso se decide ahí adentro
+    # y no en esta lista: el comando en sí ya no es una deuda entera.
     SHOW_PICTURE,
     MOVE_PICTURE,
     ERASE_PICTURE,
@@ -1047,6 +1045,11 @@ class Eventos:
 
     def __init__(self, game_map, mio=None):
         self.indices = {ev.id: n for n, ev in enumerate(game_map.events)}
+        # Las páginas de cada evento, por id, para `CallEvent`: llamar a un
+        # evento del mapa compila su página en el lugar. Van las páginas y no
+        # sus comandos porque el número que trae la llamada es el de la
+        # página, y en RM2k empieza en uno.
+        self.paginas = {ev.id: ev.pages for ev in game_map.events}
         # Visible es tener gráfico en la página activa, que es la misma regla
         # que usa `collect_npcs` para decidir qué entra en la tabla de la ROM.
         self.visibles = {ev.id for ev in game_map.events
@@ -1074,6 +1077,7 @@ class Eventos:
         otro = Eventos.__new__(Eventos)
         otro.indices, otro.visibles = self.indices, self.visibles
         otro.grafico, otro.mio = self.grafico, id_evento
+        otro.paginas = self.paginas
         return otro
 
     def blanco(self, quien):
@@ -1738,6 +1742,32 @@ def variables_de(game_dir, map_ids=None, extra=()):
     return {variable: ranura for ranura, variable in enumerate(sorted(ids))}
 
 
+COMUNES = {}            # evento común de RM2k -> sus comandos
+# Los dos chunks de la base: la lista de eventos comunes y, adentro de cada
+# uno, sus comandos con el formato de una página. Los números salen de liblcf
+# —`rpg::Database` y `rpg::CommonEvent`— y no de memoria, que es de donde
+# salieron mal los códigos de las puertas la primera vez.
+DB_COMMON_EVENTS = 0x19
+COMMON_COMMANDS = 0x16
+
+
+def indexar_comunes(game_dir):
+    """Deja en `COMUNES` los comandos de cada evento común.
+
+    Lo llaman el conversor y la referencia antes de compilar nada, igual que
+    `indexar_variables`, y por lo mismo: `CallEvent` los compila en el lugar,
+    así que los dos lados tienen que estar mirando la misma base.
+    """
+    import lcf
+    db = lcf.Database(os.path.join(game_dir, "RPG_RT.ldb"))
+    COMUNES.clear()
+    COMUNES.update({
+        i: lcf.read_commands(f.get(COMMON_COMMANDS, b""))
+        for i, f in lcf.Reader(
+            db.fields[DB_COMMON_EVENTS]).read_struct_array().items()})
+    return COMUNES
+
+
 def indexar_variables(game_dir, extra=()):
     """Deja en `VARIABLE_SLOT` el índice del juego entero. Lo llaman el
     conversor y la referencia antes de compilar nada; tarda un tercio de
@@ -1955,7 +1985,8 @@ def con_destino(pieza, destino):
 
 
 def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
-                    temas=None, graficos=None, imagenes=None, tropas=None):
+                    temas=None, graficos=None, imagenes=None, tropas=None,
+                    base=0, hondo=0):
     """Los comandos de una página como bytes, o None si no se puede.
 
     `indice_de_mapa` traduce el id de mapa de RM2k al índice en la tabla de la
@@ -1975,6 +2006,13 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
     llevar. **No cambia el bytecode** —el número de tropa que se emite es el de
     RM2k— así que una ROM sin registro compila exactamente lo mismo; lo único
     que se pierde es saber qué tablas hay que emitir.
+
+    `base` y `hondo` son para `CallEvent`, que se compila **en línea**: el
+    cuerpo del evento llamado se emite en el lugar de la llamada. `base` es
+    dónde arranca este pedazo adentro de la página de afuera, porque los
+    destinos de las ramas son absolutos; `hondo` es el anidamiento, que se
+    topa. Un pedazo en línea **no lleva `OP_FIN`**: en RM2k el `END` del
+    evento llamado devuelve al que llamó, no termina la página.
     """
     marca = mensajes.marca() if mensajes is not None else None
     try:
@@ -1985,7 +2023,8 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
         # `SkipToNextConditional` —él recorre la lista de comandos, acá los
         # bloques ya vienen bien anidados—.
         piezas = []
-        largo = 0
+        largo = base         # ver `base`: los destinos de las ramas son
+                             # absolutos adentro de la página de afuera
         pila = []            # piezas con el destino todavía en blanco
         # Las opciones de cada `ShowChoice` se juntan mirando hacia adelante,
         # que es lo que hace `GetChoices`, así que se resuelven antes del lazo:
@@ -2107,6 +2146,10 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
                 abierta = pila.pop()
                 piezas[abierta] = con_destino(piezas[abierta], largo)
                 pieza = b""
+            elif cmd.code == CALL_EVENT:
+                pieza = _compilar_llamada(cmd, largo, hondo, indice_de_mapa,
+                                          mensajes, eventos_mapa, temas,
+                                          graficos, imagenes, tropas)
             else:
                 pieza = _compilar(cmd, indice_de_mapa, mensajes, extra,
                                   eventos_mapa, temas, graficos, imagenes)
@@ -2118,12 +2161,81 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
             raise NoSePuede("una elección sin cerrar")
         if bat:
             raise NoSePuede("una batalla sin cerrar")
-        codigo = b"".join(piezas) + bytes([OP_FIN])
-        return codigo
+        codigo = b"".join(piezas)
+        # El `OP_FIN` es de la página y no del pedazo: un cuerpo en línea que
+        # lo llevara terminaría la página del que llamó en vez de devolverle el
+        # control. Ver `base`.
+        return codigo if hondo else codigo + bytes([OP_FIN])
     except NoSePuede:
         if mensajes is not None:
             mensajes.volver(marca)
         return None
+
+
+# Hasta dónde se anida un `CallEvent`. No es una precaución abstracta: un
+# evento común puede llamarse a sí mismo —el cuerpo en línea sería infinito— y
+# dos pueden llamarse entre ellos. Cuatro es lo que usa `destraba.py` desde que
+# mide CallEvent, y en este juego la cadena más larga que compila es de uno.
+LLAMADA_MAX = 4
+
+
+class _Comandos:
+    """Un envoltorio con `.commands`, que es lo único que `compilar_pagina`
+    mira de una página. Lo piden los eventos comunes, que no son páginas."""
+
+    def __init__(self, comandos):
+        self.commands = comandos
+
+
+def _compilar_llamada(cmd, largo, hondo, indice_de_mapa, mensajes,
+                      eventos_mapa, temas, graficos, imagenes, tropas):
+    """`CallEvent`, compilado **en línea**: el cuerpo del evento llamado va en
+    el lugar de la llamada.
+
+    En RM2k esto es `Push<ExecutionType::Call>`, o sea una pila de intérpretes.
+    Acá no hace falta ninguna, y ésa es la decisión: el llamado corre entero
+    antes de que siga el que llamó, así que pegar su bytecode en el medio da
+    exactamente lo mismo. Lo que costaría una pila de verdad —un cursor y una
+    página por nivel en la RAM del banco 0, que está lleno— no lo compra
+    ninguna diferencia observable: **ninguna llamada de este juego es
+    recursiva**, y el único precio del pegado es el tamaño, medido abajo.
+
+    Y sale sin tocar la ROM ni la referencia: los dos corren el mismo bytecode,
+    así que no hay dos lados que puedan separarse.
+
+    **Si el llamado no compila, la llamada se saltea**, que es lo que el port
+    viene haciendo desde siempre con este comando. Es deuda declarada y no
+    equivalencia, y exigir que compilara costaría 183 páginas que hoy corren:
+    medido, sólo 6 de las 189 páginas que compilan y llaman tienen todos sus
+    blancos compilables.
+    """
+    p = list(cmd.parameters)
+    if len(p) < 2 or hondo >= LLAMADA_MAX:
+        return b""
+    if p[0] == 0:
+        # Un evento común, por número. Los de este juego se cortan casi todos
+        # en `ControlVars` y en los menús propios del original.
+        destino, ctx = COMUNES.get(p[1]), eventos_mapa
+    elif p[0] == 1 and len(p) >= 3 and eventos_mapa is not None:
+        # Un evento del mapa, por id y **número de página**, que en RM2k
+        # empieza en uno: es el `page->ID` de `CommandCallEvent`.
+        paginas = eventos_mapa.paginas.get(p[1])
+        if paginas is None or not 1 <= p[2] <= len(paginas):
+            return b""
+        destino = paginas[p[2] - 1].commands
+        # "Este evento" adentro del llamado es **el llamado**, no el que
+        # llamó: `Push` le pasa `event->GetId()`. Sin esto una ruta del
+        # Hover-Tram movería al Tram Officer.
+        ctx = eventos_mapa.para(p[1])
+    else:
+        # Por variable —el tipo 2— no se resuelve al compilar y nunca se va a
+        # poder: el número sale de la partida. Se saltea, como antes.
+        return b""
+    if not destino:
+        return b""
+    return compilar_pagina(_Comandos(destino), indice_de_mapa, mensajes, ctx,
+                           temas, graficos, imagenes, tropas,
+                           base=largo, hondo=hondo + 1) or b""
 
 
 def imagen_aceptable(p):

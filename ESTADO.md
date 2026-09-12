@@ -304,7 +304,8 @@ Al 2026-09-12, en orden.
    easyrpg, y un mapa retocado ahí contamina toda medición futura sin avisar.
 
 6. **Lo que sigue faltando de Lashe City**: la condición por cronómetro —una
-   página en todo el juego— y el `CallEvent` del Hover-Tram.
+   página en todo el juego—. El `CallEvent` del Hover-Tram está hecho desde el
+   2026-09-12 y el tram se toma: lo cubre el caso `tram`.
 
 7. **Lo que falta del sistema de ítems**: los libros, los materiales y los
    especiales, y `ChangeEquipment` —sólo en los mapas 30 y 151—. Las medicinas
@@ -412,6 +413,27 @@ de cada una está en `README.md`.
   paso está escrito una vez por dirección, y de las 26 rutas del juego con
   diagonales ninguna es del héroe. El conversor rechaza la página que lo
   intente.
+
+* **`CallEvent` se compila en línea desde el 2026-09-12**, y con eso el
+  Hover-Tram del mapa 9 se puede tomar. En RM2k es `Push<ExecutionType::Call>`,
+  una pila de intérpretes; acá no hace falta ninguna, porque el llamado corre
+  entero antes de que siga el que llamó, así que pegar su bytecode en el lugar
+  da lo mismo. **Ninguna llamada de este juego es recursiva**, medido, y el
+  anidamiento se topa en `LLAMADA_MAX`.
+
+  Es la única de las cuatro piezas que **no toca la ROM ni la referencia**: los
+  dos corren el mismo bytecode, así que no hay dos lados que se puedan separar.
+  Por eso su caso se verifica en rojo de un solo lado, bajándole `LLAMADA_MAX`
+  a la referencia.
+
+  Lo medido: **cero páginas ganadas y cero perdidas** —2882 antes y después—,
+  porque si el llamado no compila la llamada se saltea, que es lo que el port
+  venía haciendo. Exigir que compilara costaría **183 páginas** de las 221 que
+  compilan y llaman. Se hacen de verdad **10 llamadas** en cuatro mapas —el 9,
+  el 11, el 114 y uno más— y se siguen salteando 216, casi todas a eventos
+  comunes que se cortan en `ControlVars` y en los menús propios del original.
+  El precio en cartucho es **+608 bytes de bytecode en todo el juego, +0,9%**,
+  y se lo llevan tres mapas: el 11 (+344), el 9 (+195) y el 114 (+69).
 
 * **La orden 34 sobre el héroe se hace desde el 2026-09-12**, y lo que la tenía
   afuera resultó no valer: su gráfico sale de la tabla de actores, pero las
@@ -560,6 +582,14 @@ ya nadie discute no necesita renglón.
   una línea del header, pero se ve en hardware.
 
 ## Lo que la tanda no cubre
+
+* **La escena del Tram Officer divergía con la llamada salteada.** Medido el
+  2026-09-12 al verificar `tram` en rojo: con `CallEvent` sin hacer **de los
+  dos lados** —que es como estuvo hasta ese día— el cuadro 620 de esa escena da
+  34,64% de pixeles distintos entre la ROM y la referencia. Con la llamada
+  hecha da cero, así que la página que lo destapaba ya no pasa por ahí, pero
+  **el camino sigue existiendo** para las 216 llamadas que se siguen salteando.
+  El sospechoso es el cronómetro, que esa rama arranca. No se investigó.
 
 * **Diez pixeles después del cuadro 47 en una ruta forzada del héroe en el
   mapa 6.** Encontrado de paso el 2026-09-12 armando los casos de la orden 34:

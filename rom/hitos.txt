@@ -219,6 +219,7 @@ snes-hablar 10 "11 4" 24 "25 70 110 150" "20 60 140 160" 115 gemelo-ruta "14 13"
 # conversor y la referencia horneen contra el mismo fondo; un rojo acá quiere
 # decir que no. La A cae después de la última captura.
 snes-hablar 9 "57 36" 24 900 "20 40" 115 fuego
+snes-hablar 9 "24 6" 24 "25 65 105 145 185 225 265 305 345 385 425 465 505 545 585 625 665 705 745 785 825 865 905 945 985 1025 1065 1105 1145 1185 1225 1265 1305 1345 1385 1425 1465 1505 1545 1585 1625 1665 1705 1745 1785" "200 420 620 900 1200" 115 tram "" "13"
 # Parallel Process: los dos autos y los dos que los reubican del mapa 9,
 # mirados a lo largo de cuatro segundos. Verificado que da rojo sin
 # `paralelos_tick`: 232 pixeles en el cuadro 2. El mapa 8 tiene nueve y no

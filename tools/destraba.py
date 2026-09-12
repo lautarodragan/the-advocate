@@ -26,6 +26,9 @@ Tres trampas que costaron una medición mal hecha cada una:
 * **`CallEvent`.** Aceptarlo sin hacerlo daba +97, que es mentira: el evento
   común llamado tiene que compilar él también, y los de este juego se cortan
   casi todos en `FullHeal` y en `ControlVars`. Hecho de verdad destraba cero.
+  Desde el 2026-09-12 **se hace**, compilado en línea, y su fila de acá mide la
+  otra pregunta: qué pasaría si se **exigiera** que el llamado compile en vez
+  de saltear la llamada. La respuesta es -98 páginas, y por eso no se exige.
 * **`MoveEvent` sobre otro evento.** El techo daba +40 contando rutas que la ROM
   no va a saber caminar —saltos, cambiar el gráfico, diagonales— y blancos que
   no existen: vehículos, y eventos que el mapa no tiene. Con las órdenes que la
@@ -105,11 +108,14 @@ def mover_otro(cmd, pagina):
     except eventos.NoSePuede:
         return False
     if blanco == MOVE_HEROE and any(
-            o in eventos.RUTA_DIAGONALES or o == eventos.RUTA_CAMBIAR_GRAFICO
+            o in eventos.RUTA_DIAGONALES or o == eventos.RUTA_HACIA_HEROE
             for o, _e in ordenes):
-        # Sobre el héroe la ROM no camina en diagonal y no le cambia el
-        # gráfico: ver `traducir`. Las órdenes 26 a 29 **no** están acá porque
-        # no cortan la página: se aceptan y se tiran, como el sonido.
+        # Sobre el héroe la ROM no camina en diagonal y no lo manda hacia sí
+        # mismo: ver `traducir`. Las órdenes 26 a 29 **no** están acá porque no
+        # cortan la página: se aceptan y se tiran, como el sonido. Y la 34
+        # tampoco desde el 2026-09-12, que se hace también sobre el héroe;
+        # dejarla acá hacía que la columna realista diera **menos** que la
+        # base, que es la forma en que este medidor ya falló dos veces.
         return False
     # Una ruta **vacía** cuenta como que se puede: `traducir` la acepta y no
     # emite nada —RM2k la consume entera en el cuadro y no deja nada que
@@ -139,7 +145,9 @@ CANDIDATOS = [
     ("PanScreen", {11060}, None),
     ("ChangeItems", {10320}, None),
     ("FadeOutBGM", {11520}, None),
-    ("CallEvent", set(), None),  # el suyo no es un código: es entrar al evento
+    # No es "cuánto destraba" sino "cuánto costaría exigir que el llamado
+    # compile", que es la alternativa a saltear la llamada. Ver arriba.
+    ("CallEvent, exigiendo el blanco", set(), None),
 ]
 
 
@@ -194,6 +202,12 @@ def compila(comandos, extra, con_call, comunes, filtros=(), pagina=None,
             if not compila(comunes[p[1]], extra, con_call, comunes, filtros,
                            pagina, hondo + 1):
                 return False
+            continue
+        if cmd.code == CALL_EVENT:
+            # Sin `con_call`, la llamada no corta: desde el 2026-09-12
+            # `compilar_pagina` la compila en línea y saltea la que no puede.
+            # Hay que decirlo acá porque el que decide es él y no `_compilar`,
+            # que es con lo que este medidor recorre los comandos.
             continue
         if cmd.code in extra:
             # Con filtro, sólo los casos que la ROM va a poder. Sin filtro, el

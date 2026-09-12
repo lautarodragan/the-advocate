@@ -188,6 +188,9 @@ class Mundo:
             snes_convert.variables_de_prueba(prueba[15], prueba[16])
             if prueba is not None else ()))
         eventos.indexar_animaciones(game_dir)
+        # Y los eventos comunes, que `CallEvent` compila en el lugar:
+        # los dos lados tienen que mirar la misma base.
+        eventos.indexar_comunes(game_dir)
         if mensajes is not None:
             # Con ventana los mapas se compilan **todos y en el orden de la
             # tabla**, acá y no cuando el héroe pise cada uno. El bloque de

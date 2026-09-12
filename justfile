@@ -1074,20 +1074,43 @@ snes-destello mapa="6" flash="1 31 0 0 31 24" celda="2 10" cuadros="2 12 15 23 2
 # que la página de los caños no queda activa y apretar A no tiene que hacer
 # nada. Es lo único que ejercita que se miren las condiciones: con el 24 puesto
 # se cumplen todas, así que una ROM que las ignorara daría lo mismo.
-snes-hablar mapa="7" celda="3 7" switch="24" apretar="25" cuadros="20 60" arranque="115" nombre="hablar" ruta="":
+#
+# `mapas` son los mapas de más que la ROM tiene que llevar, y existe por el
+# caso `tram`: sin el 13 adentro, el `Teleport` del Hover-Tram no compila, con
+# él no compila el Hover-Tram entero, y entonces el `CallEvent` que lo llama se
+# saltea. O sea que la lista de mapas decide si el caso prueba algo.
+#
+# **`tram` es el caso de `CallEvent`**, y es la escena entera: el héroe le
+# habla al Tram Officer del mapa 9, elige la primera opción —la tanda sólo
+# aprieta A—, espera el minuto, sale "It's here!" y ahí el `CallEvent` mete el
+# cuerpo del `Hover-Tram`, que le cambia el gráfico al héroe con la orden 34,
+# lo sube y lo teletransporta al mapa 13. Los cinco cuadros miran las tres
+# partes: la elección abierta, el mensaje de que llegó, la escena del tram
+# corriendo, y dos cuadros ya en el mapa 13.
+#
+# Verificado en rojo **de un solo lado**, que es lo que hay que hacer con una
+# pieza que vive entera en el conversor: con `eventos.LLAMADA_MAX = 0` puesto
+# sólo en `snes_expect.py` la referencia se saltea la llamada, la ROM la hace,
+# y el cuadro 620 da 95,30% de pixeles distintos. Romper los dos lados a la vez
+# no probaría nada —los dos corren el mismo bytecode—, pero de paso dijo algo:
+# con la llamada salteada en los dos, ese mismo cuadro da 34,64%, o sea que la
+# escena **ya divergía** cuando el comando se aceptaba sin hacerse. Queda
+# anotado en ESTADO.md.
+snes-hablar mapa="7" celda="3 7" switch="24" apretar="25" cuadros="20 60" arranque="115" nombre="hablar" ruta="" mapas="":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
   ruta="{{ruta}}"
+  mapas="{{mapas}}"
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
       --inicio {{celda}} --con-ventana --switch {{switch}} \
-      ${ruta:+--ruta-de-evento $ruta} \
+      ${ruta:+--ruta-de-evento $ruta} ${mapas:+--mapas $mapas} \
       -o {{snes_inc}}/mapdata.inc
   just snes-build
   pre={{snes_pngs}}/{{nombre}}
   python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
       --hero-tile {{celda}} --dir down --con-ventana --switch {{switch}} \
-      ${ruta:+--ruta-de-evento $ruta} \
+      ${ruta:+--ruta-de-evento $ruta} ${mapas:+--mapas $mapas} \
       --cuadros {{cuadros}} --apretar-a {{apretar}} \
       --saltar $pre-{}.saltar.txt -o $pre-{}.esperado.png
   for n in {{cuadros}}; do

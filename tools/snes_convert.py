@@ -5102,6 +5102,9 @@ def main():
     # Y las animaciones de batalla, que `ShowBattleAnimation` compila con su
     # línea de tiempo adentro: ver OP_ANIMACION.
     eventos.indexar_animaciones(args.game_dir)
+    # Y los eventos comunes, que `CallEvent` compila en el lugar:
+    # los dos lados tienen que mirar la misma base.
+    eventos.indexar_comunes(args.game_dir)
     # En cuántos mapas de esta ROM aparece cada personaje. Lo usa el reparto de
     # paletas para elegir a quién puede bajarle un color sin romper nada: el
     # banco de poses es **de la ROM entera**, así que un personaje que está en

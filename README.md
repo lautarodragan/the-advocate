@@ -4372,9 +4372,14 @@ página con azar se compara pixel por pixel: el Tram Officer del mapa 9 tira un
 número de 0 a 100 y dice "It's here!" si sale 90 o más; los dos lados sacan 97.
 No hay entropía, y a los efectos de la comparación tampoco la hay en RPG_RT.
 
-`CallEvent` —la página de otro evento, en el lugar— se acepta sin hacer: en los mapas 1 a 10 lo usa sólo el Tram Officer para subir al
-Hover-Tram, y esa escena quedó para otra vuelta. Es deuda declarada en
-`ACEPTADOS_SIN_HACER`.
+`CallEvent` —la página de otro evento, en el lugar— **se compila en línea**
+desde el 2026-09-12: el cuerpo del llamado se emite donde está la llamada, y no
+hace falta ninguna pila de intérpretes porque el llamado corre entero antes de
+que siga el que llamó. No toca ni la ROM ni la referencia: las dos corren el
+mismo bytecode. Si el llamado **no** compila, la llamada se saltea, que es lo
+que el port venía haciendo con el comando entero; exigir que compilara costaría
+183 de las 221 páginas que compilan y llaman. Con eso el Tram Officer del mapa
+9 sube al Hover-Tram, que es lo único que lo usaba en los mapas 1 a 10.
 
 ### Lo que falta
 
