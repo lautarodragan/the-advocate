@@ -892,7 +892,11 @@ acotados; del cuarto para abajo es lo de siempre.
    menú, y que los NPCs de Lashe City vuelvan con sus poses —es lo que se
    rompía con las direcciones viejas de VRAM, y snes9x sí lo cobró, pero sólo
    con el grupo 11—.
-   **Las más nuevas son `/extras/builds/2026-09-11-ddc82ea/`**: los ocho temas
+   **Las más nuevas son `/extras/builds/2026-09-12-af1493d/`**: la pista al 85%
+   en vez de a fondo, que es lo que saca el clipping y devuelve el balance con
+   los efectos. Mismas pistas que el build anterior —no hizo falta rehacerlas—.
+   Lo que falta escuchar ahí es el Emitter Room, que acá no se pudo reproducir.
+   Antes, `2026-09-11-ddc82ea/`: los ocho temas
    por MSU-1 y los efectos de sonido de vuelta. Son las dos ROMs con su `.msu`
    vacío y ocho `.pcm` cada una, 195 MB por ROM —las pistas están duplicadas
    con los dos nombres base porque el MSU-1 empareja por nombre—. Borrando esos
