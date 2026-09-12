@@ -5537,12 +5537,15 @@ def main():
     for nombre, _v, _t, _b in temas.sonidos:
         if nombre not in pedidos_se:
             pedidos_se.append(nombre)
+    # Quién aporta primero al banco compartido: **el del título y el del
+    # arranque**, y detrás la lista tal cual. El del título es la primera
+    # pantalla del juego y hasta el 2026-09-12 iba último —`temas_de_la_rom` lo
+    # agrega al final para no renumerar el bytecode—, así que era el primero en
+    # caerse; un tema de un mapa que el jugador puede no visitar nunca le
+    # ganaba la ARAM. Ningún tema se cae de la lista: ver `build_varios`.
     driver, muestras, hechos, banco, afuera = snes_music.build_varios(
-        pedidos, args.game_dir, pedidos_se)
-    if arranque != 0xFF and arranque >= len(hechos):
-        arranque = 0xFF             # el del mapa fue uno de los que no entró
-    if tema_titulo != 0xFF and tema_titulo >= len(hechos):
-        tema_titulo = 0xFF          # el del título tampoco entró en la ARAM
+        pedidos, args.game_dir, pedidos_se,
+        prioridad=[t for t in (tema_titulo, arranque) if t != 0xFF])
     # El paquete de audio de cada mapa, en el orden de la tabla de mapas: los
     # temas que sus páginas pueden prender —más, en el de arranque, el que
     # suena desde el principio— y las muestras de sus efectos, en el orden en
@@ -5552,7 +5555,7 @@ def main():
     paquetes = []
     for i, _mapa in enumerate(mapas):
         pide = temas.por_mapa.get(i, {"temas": [], "sonidos": []})
-        suyos = [t for t in pide["temas"] if t < len(hechos)]
+        suyos = list(pide["temas"])
         if i == args.inicial and arranque != 0xFF and arranque not in suyos:
             suyos.insert(0, arranque)
         paquetes.append((suyos, [efectos[n][0] for n in pide["sonidos"]
@@ -5578,7 +5581,9 @@ def main():
         print("  banco compartido: %d muestras, %d B de los %d de ARAM"
               % (len(banco.voces), banco.bytes, snes_music.ARAM_LIBRE))
     if afuera:
-        print("  no entraron en ARAM y quedan mudos: %s" % ", ".join(afuera))
+        print("  no aportan muestras al banco: %s" % ", ".join(afuera))
+        print("    (existen igual: suenan con lo que otros temas ya pusieron,"
+              " y con MSU-1 suenan enteros)")
 
     if args.reference:
         mapas[args.inicial]["base"].save(args.reference)
@@ -5589,15 +5594,16 @@ def temas_de_la_rom(map_id, temas, game_dir, forzado=None, titulo=None):
     """Qué temas pide el cartucho y cuál suena al arrancar.
 
     Se piden **todos**: los que los `PlayBGM` compilados nombran, más el del
-    mapa donde la ROM arranca, que es el que suena sin que pase nada. Cuántos
-    entran de verdad lo decide `snes_music.build_varios`, y no lo limita el
-    cartucho sino la ARAM: las muestras las comparten y el banco compartido
-    vive en los 64 KB del SPC700.
+    mapa donde la ROM arranca, que es el que suena sin que pase nada. **Y
+    entran todos**: el índice lo da la lista y no cuesta ARAM. Lo que la ARAM
+    limita son las muestras, y eso lo reparte `snes_music.build_varios`, que
+    puede dejar a un tema sin las suyas —mudo por el SPC700, entero por
+    MSU-1— pero nunca sin número.
 
     Los índices son los de `Temas` y no se tocan: el bytecode ya los lleva
-    emitidos, así que uno que no entre simplemente no suena —lo mismo que
-    hacían todos menos uno hasta el 2026-09-06—. Por eso el del mapa se agrega
-    **al final**, que es lo único que no renumera a los demás.
+    emitidos. Por eso el del mapa se agrega **al final**, que es lo único que
+    no renumera a los demás; que ir último no signifique perder la ARAM lo
+    arregla la prioridad que se le pasa a `build_varios`.
     """
     propio = forzado or snes_music.tema_del_mapa(map_id, game_dir)
     if propio:

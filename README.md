@@ -2843,6 +2843,40 @@ tenían. Se le da lo que sobre de ARAM en vez de un presupuesto fijo, que
 alcanza para que los platos vuelvan a su tasa nativa, pero un bombo de tres
 temas juntos igual queda más grueso que solo. Es el precio de compartir.
 
+**Y un tema que no entra en el banco no se cae del cartucho**, desde el
+2026-09-12. Hasta ese día, cuando el banco de todos no entraba en la ARAM el
+conversor sacaba temas **de la lista entera**, desde el final. Al pasar la demo
+a los 29 mapas de Lashe City la ROM pidió 19 temas, el banco se llenó —89
+muestras y 66353 B contra los 64512 de ARAM— y se cayeron ocho. Uno era el del
+título, que va último porque agregarlo al final es lo único que no renumera el
+bytecode: `TEMA_TITULO` salió `$FF` y la pantalla de título no intentaba ni
+arrancar música.
+
+Que se cayera de la lista y no sólo del banco cuesta dos cosas distintas, y la
+segunda es la cara: un `PlayBGM` de ese tema no hace nada, y **la pista de
+MSU-1 queda inalcanzable**. `Fantasia_Of_The_Wind` tiene la pista 8; una pista
+no gasta ni un byte de ARAM y lo único que necesita es que el tema tenga
+número. Medido: con los archivos al lado, `MSU_HAY=1`, `MSU_SUENA=0` y el pico
+del audio en cero.
+
+Ahora la lista es completa siempre —un índice y su stream cuestan cartucho, y
+de eso sobra— y lo que se recorta es **quién aporta programas al banco**, en
+orden de prioridad: primero el del título, después el del mapa donde la ROM
+arranca, y detrás la lista tal cual. Un tema que no aporta suena con lo que
+otros ya pusieron, porque el banco es por programa de General MIDI: de los
+siete que hoy quedan afuera, sus notas con muestra van del 8% de
+`golden_axe-turtlevillage2` al 70% de `Lunar_Pyramid`. Antes no sonaba ninguno.
+
+**Por qué el límite sigue estando, ahora que el audio sube por paquetes de
+mapa.** En la ARAM no vive el banco entero sino el directorio y **un** paquete,
+así que el hardware aguanta bastante más: con los diecinueve temas aportando,
+el directorio son 617 B y el peor paquete 54945 de 63831, o sea que entra. Lo
+que no aguanta es el oído: los mismos 40 KB melódicos repartidos entre
+diecinueve programas en vez de once bajan la tasa mediana de 12,5 a 8,4 kHz, y
+eso se lo cobran los once temas que hoy suenan bien. El límite se queda hasta
+que haya un presupuesto **por paquete** en vez de por banco; está en "Lo que
+falta".
+
 **En la ROM cambia poco.** Tres tablas de un byte —`tema_lo`, `tema_hi`,
 `tema_bk`— en el banco 0, porque se leen con un índice; `music_start` toma el
 índice en A y arma el puntero; `tema_actual` recuerda cuál está sonando, que es
@@ -4344,6 +4378,18 @@ Hover-Tram, y esa escena quedó para otra vuelta. Es deuda declarada en
 
 ### Lo que falta
 
+* **El presupuesto de muestras, por paquete y no por banco.** Hoy el banco
+  compartido entero tiene que entrar en los 64 KB de ARAM, y eso era el límite
+  de verdad **antes** del paquete de audio por mapa: ahora en la ARAM viven el
+  directorio y un paquete, no el banco. Medido con los diecinueve temas de la
+  demo aportando: directorio 617 B, peor paquete 54945 de 63831, o sea que el
+  hardware entra de sobra. Lo que no entra es la calidad: repartir los 40 KB de
+  `ARAM_BUDGET` entre 45 programas en vez de 27 baja la tasa mediana de 12,5 a
+  8,4 kHz **para todos**, incluidos los once que hoy suenan bien. Lo que lo
+  resuelve es darle a cada programa lo que su peor paquete puede pagar en vez
+  de una parte del banco entero; mientras no esté, los temas que no aportan
+  suenan incompletos —del 8% al 70% de sus notas— y el recorte va por
+  prioridad: ver "Varios temas en el cartucho".
 * **La música, del lado del SPC700.** Hoy la toca el 65816 desde una IRQ
   —ver "La música no espera al lazo"—, y funciona, pero cuesta hasta veinte
   líneas por cuadro y obliga a las reglas de la interrupción. El paso que

@@ -100,3 +100,59 @@ def test_entrar_al_juego_devuelve_las_muestras_del_tema_del_mapa(partida):
     assert not faltan, (
         "se entró al juego y al tema del mapa le faltan en la ARAM las "
         "muestras %s de las %s que usa" % (faltan, sorted(suyas)))
+
+
+def test_un_tema_pierde_sus_muestras_pero_nunca_su_numero():
+    """Y el del título se las queda antes que un mapa que nadie visite.
+
+    Esta es la otra mitad del mismo defecto, y la única de este archivo que
+    **no** le pregunta a una ROM corriendo: lo que se rompió vive en el
+    conversor, y para verlo desde la consola haría falta un cartucho con los
+    diecinueve temas de la demo, que son cuatro minutos de conversión por caso.
+    Acá se le pide a `build_varios` el mismo reparto con tres temas y el límite
+    de ARAM apretado a mano hasta donde el recorte se dispara.
+
+    Lo que se rompió el 2026-09-12, al pasar la demo a 29 mapas: el banco
+    compartido se llenó y el conversor sacó a ocho temas **de la lista entera**,
+    entre ellos el del título —que va último porque agregarlo al final es lo
+    único que no renumera el bytecode—. Con eso `TEMA_TITULO` salía `$FF` y la
+    pantalla de título no intentaba ni arrancar música.
+
+    Y el agravante, que es lo que hace que perder el número no sea lo mismo que
+    perder las muestras: `Fantasia_Of_The_Wind` **tiene pista de MSU-1**. Una
+    pista no gasta ni un byte de ARAM; lo único que necesita es que el tema
+    tenga número. Sin número no hay nada que tocar ni con los archivos al lado.
+    """
+    import snes_music
+
+    nombres = ["escape_newyork", "evilrhys", "Fantasia_Of_The_Wind"]
+    titulo = nombres.index("Fantasia_Of_The_Wind")
+
+    # El tope se mide, no se escribe: es lo que ocupa el banco de los dos que
+    # tienen que quedar —el del título primero, por la prioridad—, así que el
+    # recorte se lleva exactamente a uno. Un número fijo acá se desfasaría con
+    # el soundfont y la prueba dejaría de apretar nada.
+    leidos = [snes_music.leer_tema(n) for n in nombres]
+    quedan = [leidos[titulo], leidos[0]]
+    tope = snes_music.Banco(
+        set().union(*[t["melodicos"] for t in quedan]),
+        set().union(*[t["golpes"] for t in quedan])).bytes
+
+    viejo = snes_music.ARAM_LIBRE
+    try:
+        snes_music.ARAM_LIBRE = tope
+        _driver, _voces, temas, _banco, afuera = snes_music.build_varios(
+            nombres, prioridad=[titulo])
+    finally:
+        snes_music.ARAM_LIBRE = viejo
+
+    assert [t["nombre"] for t in temas] == nombres, (
+        "un tema se cayó de la lista por no entrar en el banco: sin número no "
+        "hay `PlayBGM` que lo prenda ni pista de MSU-1 que tocar")
+    assert afuera == ["evilrhys"], (
+        "el banco apretado tenía que dejar afuera al de menor prioridad y "
+        "dejó afuera a %s" % (afuera,))
+    assert snes_music.muestras_del_stream(temas[titulo]["stream"]), (
+        "el tema del título quedó sin una sola muestra aunque tenía la "
+        "prioridad: es la primera pantalla del juego y suena antes que "
+        "cualquier mapa")

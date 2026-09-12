@@ -20,7 +20,7 @@ Se escribe **mientras se trabaja**, no al final.
 a vuelta.
 
 Al 2026-09-12: `just snes-hitos-foto` son **134 casos, todos en verde**, y `just
-pruebas` **94 en verde y 1 `xfail`**. El `xfail` no es adorno: es un defecto
+pruebas` **95 en verde y 1 `xfail`**. El `xfail` no es adorno: es un defecto
 medido de guardar con la pantalla de título puesta, y está abajo.
 
 `demo-ciudad` se juega desde la apertura hasta la calle de Lashe City, con los
@@ -116,8 +116,10 @@ mapeo y verificarlo en hardware—, o repartir en dos demos. **Sin decidir.**
 
 Y dos deudas que dejaron los agentes, las dos con el número al lado:
 
-* **El tema del título se cae del banco de muestras** con Lashe City adentro: es
-  el último de la lista y la ARAM se llena. Con pista de MSU-1 suena igual.
+* **El tema del título se caía del banco de muestras** con Lashe City adentro:
+  arreglado el 2026-09-12, ver abajo. Y lo de "con pista de MSU-1 suena igual"
+  era falso y está medido: se caía de la **lista**, no del banco, y sin número
+  no hay pista que tocar.
 * **De las 40 páginas del juego con batalla compila una sola**, y a 30 de las
   otras 39 las corta `ChangeEscapeAccess`: un bit al lado de los dos de
   `FAR_ACCESO`.
@@ -176,6 +178,40 @@ fuerte que hay hasta ahora para que las pruebas de estado miren el audio.
   puesto. **Y el mismo patrón estaba en tres lugares más**: ver la trampa de las
   banderas en `AGENTS.md`.
 
+### Un tema no se cae de la lista por culpa de la ARAM (2026-09-12)
+
+La segunda mitad de "la pantalla de título sin música", y es del conversor y no
+de la ROM: con los 29 mapas de Lashe City la demo pide 19 temas, el banco
+compartido no entró en la ARAM —89 muestras, 66353 B contra 64512— y
+`build_varios` sacó ocho temas de la lista entera, desde el final. El del título
+va último porque agregarlo al final es lo único que no renumera el bytecode.
+
+Ahora **ningún tema pierde su número**: un índice y su stream cuestan cartucho,
+que sobra, y lo que se recorta es quién aporta programas al banco, por
+prioridad —primero el del título, después el del arranque—. El porqué durable
+está en el README, "Varios temas en el cartucho".
+
+Lo medido, 600 cuadros y pico de la salida de audio, con la ROM de antes y la de
+después armadas y corridas con el mismo arnés:
+
+    demo-titulo sin MSU-1 (snes9x)   pico 0 -> 19383, tema_actual 21845 -> 18
+    demo-titulo con MSU-1 (bsnes)    MSU_SUENA 0 -> 1, pico 0 -> 12252
+    demo-ciudad sin MSU-1 (snes9x)   16455 -> 16455, idéntico
+    demo-ciudad con MSU-1 (bsnes)    15750 -> 15750, idéntico
+
+Lo que queda abierto:
+
+* **Los siete temas que no aportan al banco suenan incompletos.** Son los de los
+  mapas del final de Lashe City, ninguno con pista de MSU-1, y sus notas con
+  muestra van del 8% (`golden_axe-turtlevillage2`) al 70% (`Lunar_Pyramid`);
+  antes no sonaban ni existían. **Si incompleto suena peor que mudo, lo dice el
+  oído de taro** y es cortarles el stream.
+* **El límite de verdad ya no es el banco entero**, desde que el audio sube por
+  paquetes de mapa: en la ARAM viven el directorio y un paquete. Con los
+  diecinueve aportando, el peor paquete son 54945 de 63831 B, o sea que entra;
+  lo que se pierde es resolución para todos —12,5 a 8,4 kHz de mediana—. El
+  arreglo real es presupuestar por paquete, y está en "Lo que falta" del README.
+
 ### El MSU-1 (2026-09-12)
 
 Los ocho temas de las demos salen de pistas PCM al lado de la ROM. El porqué y
@@ -209,8 +245,11 @@ Lo que queda abierto:
   el mapa 1, porque la apertura no avanza sola y los números de `apertura` en
   `rom/hitos.txt` son **ticks**, no cuadros de hardware. Conviene volver con
   `snes-cinematica` bien usado.
-* **Los 35 temas que las demos no tocan**, que serían 923 MB si algún día van
-  todos.
+* **Los temas de la demo que no tienen pista.** Desde los 29 mapas de Lashe City
+  la demo lleva 19 temas y `PISTAS_MSU` sigue teniendo ocho: los once restantes
+  suenan siempre por el SPC700, y siete de ésos **incompletos**, porque no
+  aportan al banco. Los siete son 908 s, unos 160 MB de PCM. Los 35 del juego
+  entero que las demos no tocan serían 923 MB.
 
 ### Lo próximo, si no se decide otra cosa
 

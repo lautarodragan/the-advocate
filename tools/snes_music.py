@@ -373,13 +373,19 @@ class Banco:
     ocupan 62310 de los 64512 B, y ninguna muestra melódica baja de 21 kHz, que
     es donde estaban con un tema solo.
 
-    Y conviene tener claro cuál es el límite de verdad. **No es la cantidad de
-    temas**: lo melódico está topado en `ARAM_BUDGET` y la percusión se lleva lo
-    que sobre, así que el banco entra siempre y el lazo de `build_varios` que
-    saca temas no llega a dispararse. Lo que se degrada es la resolución, y sin
-    aviso: con los treinta y pico de temas del juego entero cada instrumento
-    tendría una miga. Para eso hace falta otra cosa —subir bancos en caliente—,
-    anotada en "Lo que falta" del README.
+    Y conviene tener claro cuál es el límite de verdad. Lo melódico está topado
+    en `ARAM_BUDGET` y la percusión se lleva lo que sobre, así que el que crece
+    con cada tema nuevo es el **directorio** —4 B por muestra— y, sobre todo,
+    el piso: cada programa y cada golpe ocupan algo aunque se les dé casi nada.
+    Con los once temas de la demo de hoy son 54 muestras y 56952 B; con los
+    diecinueve que la demo pide, 89 y 66353, y ahí el lazo de `build_varios`
+    que saca aportantes se dispara de verdad.
+
+    Lo que se degrada mientras tanto es la resolución, y sin aviso: los mismos
+    40 KB melódicos repartidos entre diecinueve temas en vez de once bajan la
+    tasa mediana de 12,5 a 8,4 kHz. Por eso el recorte existe, y por eso no
+    alcanza con subirlo: para que entren todos hace falta presupuestar por
+    paquete de mapa en vez de por banco, anotado en "Lo que falta" del README.
     """
 
     def __init__(self, programas, golpes, reserva=0):
@@ -645,36 +651,56 @@ def leer_tema(name, game_dir=GAME_DIR):
     }
 
 
-def build_varios(nombres, game_dir=GAME_DIR, efectos=()):
+def build_varios(nombres, game_dir=GAME_DIR, efectos=(), prioridad=()):
     """Todos los temas de la ROM, compartiendo un solo banco de muestras.
 
     Devuelve (driver, las voces —las del banco y detrás los efectos, cada una
-    con su número de muestra—, temas, banco, los que no entraron).
+    con su número de muestra—, temas, banco, los que no aportan al banco).
     Hay un dict por tema en el orden en que vinieron: los índices son los de
     `Temas`, el bytecode ya los lleva emitidos, así que **no se pueden
-    reordenar** —y por eso los que no entran se caen desde el final y no desde
-    donde sea—.
+    reordenar**.
 
-    Lo que los limita no es el cartucho sino la ARAM: ver `Banco`. Si el banco
-    de todos no entra en `ARAM_LIBRE`, se saca el último y se prueba de nuevo.
-    Con los presupuestos de hoy eso no llega a pasar nunca —el banco se achica
-    solo—, y está igual porque el día que alguno cambie el guard tiene que
-    existir.
+    **Todos los temas pedidos salen en el cartucho, siempre.** Un índice no
+    cuesta ARAM: cuesta su stream, que vive en el cartucho, y de ése sobra.
+    Hasta el 2026-09-12 el que no entraba en el banco se caía de la lista
+    entera, y con eso se caían dos cosas que no tenían por qué: el `PlayBGM`
+    quedaba apuntando a un tema que no existe, y —peor— **la pista de MSU-1 de
+    ese tema quedaba inalcanzable**, cuando una pista no gasta ni una muestra
+    de ARAM: lo único que necesita es que el tema tenga número. Así se quedó
+    muda la pantalla de título al agregar los 29 mapas de Lashe City.
+
+    Lo que sí compite por la ARAM son las **muestras**, y por eso lo que se
+    recorta acá es quién aporta programas al banco y no quién existe. Un tema
+    que no aporta suena con lo que otros ya pusieron —los programas se
+    comparten por número de General MIDI— y en el peor caso sale mudo, que es
+    exactamente lo que hacía antes, sólo que ahora con MSU-1 suena igual.
+
+    `prioridad` son los índices que aportan primero, y el recorte se lleva a
+    los últimos: el del título va ahí, porque es la primera pantalla del juego
+    y no un tema de un mapa que el jugador puede no visitar nunca.
+
+    El límite sigue siendo el banco entero contra `ARAM_LIBRE`, que es más
+    estricto de lo que el hardware pide desde que el audio sube por paquetes de
+    mapa —en la ARAM viven el directorio y **un** paquete, no el banco—; queda
+    así a propósito, porque es el que mantiene la resolución de las muestras:
+    repartir 40 KB melódicos entre diecinueve temas en vez de once baja la tasa
+    mediana de 12,5 a 8,4 kHz, y eso se oye en los once que hoy suenan bien.
+    Aflojarlo de verdad pide presupuestar por paquete: ver el README.
     """
     driver = spc700.assemble(DRIVER, DRIVER_ADDR)
     leidos = [leer_tema(n, game_dir) for n in nombres]
 
-    nombres, leidos, afuera = list(nombres), list(leidos), []
+    orden = [i for i in prioridad if 0 <= i < len(leidos)]
+    orden += [i for i in range(len(leidos)) if i not in orden]
+    aportan, afuera = [i for i in orden if leidos[i]], []
     while True:
-        vivos = [t for t in leidos if t]
-        banco = Banco(set().union(*[t["melodicos"] for t in vivos]) if vivos
-                      else set(),
-                      set().union(*[t["golpes"] for t in vivos]) if vivos
-                      else set())
-        if banco.bytes <= ARAM_LIBRE or not nombres:
+        banco = Banco(set().union(*[leidos[i]["melodicos"] for i in aportan])
+                      if aportan else set(),
+                      set().union(*[leidos[i]["golpes"] for i in aportan])
+                      if aportan else set())
+        if banco.bytes <= ARAM_LIBRE or not aportan:
             break
-        afuera.insert(0, nombres.pop())
-        leidos.pop()
+        afuera.insert(0, nombres[aportan.pop()])
 
     temas = []
     for nombre, leido in zip(nombres, leidos):
