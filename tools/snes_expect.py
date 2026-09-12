@@ -189,13 +189,19 @@ class Mundo:
         self.asociaciones = eventos.asociaciones_de(
             self.mapa(i)[0] for i in self.ids)
         # Y el de `--sprite-de-prueba`, con la misma regla que en el conversor.
-        if prueba is not None and prueba[22] and (
-                prueba[22][1], prueba[22][2]) not in self.asociaciones:
-            self.asociaciones.append((prueba[22][1], prueba[22][2]))
+        # Los índices de esta tupla son posicionales y **se corren cuando dos
+        # ramas agregan un campo cada una**: el 2026-09-13 quedaron dos usos
+        # apuntando al campo de otro —`sprite` leyendo `parar`, la tecla
+        # leyendo `rama_item`— porque git los auto-mergeó lejos del conflicto.
+        # Si se agrega un campo, hay que hacer `grep -n 'prueba\[2[0-9]\]'` y
+        # mirarlos todos, no sólo los que git marcó.
+        if prueba is not None and prueba[24] and (
+                prueba[24][1], prueba[24][2]) not in self.asociaciones:
+            self.asociaciones.append((prueba[24][1], prueba[24][2]))
         # El mismo índice de variables que el conversor: el del juego entero.
         eventos.indexar_variables(game_dir, (
             snes_convert.variables_de_prueba(prueba[15], prueba[16],
-                                             prueba[23])
+                                             prueba[25])
             if prueba is not None else ()))
         eventos.indexar_animaciones(game_dir)
         # Y los eventos comunes, que `CallEvent` compila en el lugar:
