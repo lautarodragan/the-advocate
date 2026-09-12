@@ -3349,6 +3349,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "OP_IMAGEN_MOVER = $%02X\n"
         "OP_IMAGEN_BORRAR = $%02X\n"
         "OP_BATALLA  = $%02X\n"
+        "OP_PARAR_RUTAS = $%02X\n"
         "; En qué tile de su banco de sprites arranca y con qué paleta.\n"
         "; Van de globales y no en el registro del mapa porque el cartel es\n"
         "; **uno solo por ROM** y vive en un solo mapa: los dos campos\n"
@@ -3397,6 +3398,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "; Las clases de condición de ConditionalBranch que sabemos,\n"
         "; con el número de RM2k tal cual.\n"
         "COND_ORO    = %d\n"
+        "COND_ITEM   = %d\n"
         "COND_ACTOR  = %d\n"
         "ORO_MAX     = %d\n"
         "; Las dos operaciones de PanScreen que compilan.\n"
@@ -3622,6 +3624,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            eventos.ANIM_ENTRADA, eventos.ANIM_SONIDO, eventos.ANIM_DESTELLO,
            eventos.OP_IMAGEN, eventos.OP_IMAGEN_MOVER,
            eventos.OP_IMAGEN_BORRAR, eventos.OP_BATALLA,
+           eventos.OP_PARAR_RUTAS,
            cartel_base, cartel_pal,
            cartel["x"] if cartel else 0, cartel["y"] if cartel else 0,
            cartel["objetos"] if cartel else 0,
@@ -3638,7 +3641,8 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            eventos.VAR_OTRO,
            eventos.VAR_PERSONAJE, eventos.PERSONAJE_X, eventos.PERSONAJE_Y,
            eventos.AZAR_SEMILLA, eventos.TIMER_PONER_VAR,
-           eventos.COND_ORO, eventos.COND_ACTOR,
+           eventos.COND_ORO, eventos.COND_ITEM,
+           eventos.COND_ACTOR,
            eventos.ORO_MAX,
            eventos.PAN_CORRER, eventos.PAN_VOLVER,
            eventos.TIMER_PONER, eventos.TIMER_ARRANCAR,
@@ -5215,6 +5219,21 @@ def main():
                              "de prueba, después de esperar esos cuadros. Es "
                              "ChangeEventLocation, y con --ruta-de-evento la "
                              "espera cae a mitad de la ruta")
+    parser.add_argument("--rama-item-de-prueba", nargs=5, type=int,
+                        default=None,
+                        metavar=("ITEM", "R", "G", "B", "SAT"),
+                        help="una rama por objeto —ConditionalBranch de clase "
+                             "4— en la página de prueba: tiñe la pantalla con "
+                             "ese color sólo si el grupo tiene el ítem. Con "
+                             "--items-de-prueba se elige cuál rama corre")
+    parser.add_argument("--parar-de-prueba", type=int, default=None,
+                        metavar="CUADROS",
+                        help="HaltAllMovement desde la página de prueba, "
+                             "después de esperar esos cuadros: corta las rutas "
+                             "forzadas del héroe y de --ruta-de-evento por la "
+                             "mitad. El único del juego está en una página del "
+                             "mapa 11 que teletransporta al final, así que sin "
+                             "esto no hay dónde mirar lo que hace")
     parser.add_argument("--pagina-de-prueba", nargs="+", type=int, default=None,
                         metavar="N",
                         help="ESPERA R G B [SAT]: agrega una página automática "
@@ -5417,6 +5436,7 @@ def main():
                 or args.ruta_de_evento or args.flash_de_prueba or args.switch
                 or args.destello_de_prueba
                 or args.timer_de_prueba or args.lugar_de_prueba
+                or args.parar_de_prueba or args.rama_item_de_prueba
                 or args.sacudida_de_prueba or args.fundir_bgm
                 or args.pan_de_prueba or args.lluvia_de_prueba is not None
                 or args.animacion_de_prueba
@@ -5457,7 +5477,9 @@ def main():
                     lluvia=args.lluvia_de_prueba,
                     animacion=tuple(args.animacion_de_prueba or ()),
                     eventos_mapa=eventos.Eventos(mapa["game_map"]),
-                    batalla=args.batalla_de_prueba, temas=temas)}, {
+                    batalla=args.batalla_de_prueba, temas=temas,
+                    parar=args.parar_de_prueba,
+                    rama_item=tuple(args.rama_item_de_prueba or ()))}, {
                 # Y la que la apaga: misma idea que en la referencia, ver
                 # `PAGINA_DE_PRUEBA_APAGADA`. Sin código, así que en cuanto
                 # gana, el evento inventado deja de tener una automática que

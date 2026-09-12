@@ -232,6 +232,35 @@ snes-vars 6 "60 1" "17 0 6 4 2 17 9 0 0 0" "22 12" "2 80" "12 0 0 50" 115 var-ev
 # Hover-Tram se acepta sin hacer.
 snes-escena 9 "24 8" 12 up "26 50 70 88 108 150 190 220 243 256 320" 115 tram "10 30 54 74 91 115 224 246 260" "24" "8"
 snes-hablar 7 "3 7" 25 25 "20 60" 115 hablar-sin-switch
+# El viaje en el Hover-Tram, que es la única página que traba el mapa 13 y
+# ahora compila entera: la sacudida del tranvía y la ruta forzada que le da
+# vuelta la cabeza a Talan mientras arranca. Pide el 16 adentro —Sector 30, a
+# donde el viaje termina teletransportando— porque sin él el Teleport del final
+# no compila y la página se cae con él. La A cae en el cuadro 900, o sea
+# después de las tres capturas: lo que se compara es el arranque de la escena,
+# antes del primer mensaje.
+#
+# Verificado en rojo **de un solo lado**, que es lo que hay que hacer con una
+# pieza que vive entera en el conversor —los dos lados corren el mismo
+# bytecode—: con `eventos.CHANGE_PBG = -1` puesto sólo en `snes_expect.py` la
+# referencia no compila la página, la ROM sí, y el cuadro 10 da 1,22%. Es poco
+# en pixeles y mucho en significado: son la pose de Talan y el corrimiento de
+# la cámara, o sea la escena entera contra ninguna.
+snes-hablar 13 "2 7" 24 900 "10 30 60" 115 tram-viaje "" "16"
+# `HaltAllMovement`, el único del juego: ver el comentario de `snes-parar`.
+# Verificado en rojo con `op_parar_rutas` cambiado por un `jmp otro` pelado
+# —o sea el comando aceptado y no hecho, sólo en la ROM—: 59,89% en el cuadro
+# 34. Los cuadros llegan hasta el 40 y no más lejos a propósito: del 47 en
+# adelante este mapa tiene los diez pixeles de los tiles animados que ESTADO
+# nombra, y son de antes de esto.
+snes-parar 6 24 "4 2 2 2 2" "2 2 2 2" "22 12" "20 26 34 40" 115 parar-rutas
+# La rama por objeto. Los dos casos son la misma página con y sin el
+# `ChangeItems` que le da el Idol al grupo, así que la diferencia entre ellos
+# —40012 pixeles, el 69,78%— es la respuesta de la rama. Verificado en rojo con
+# el `beq si_item_no` de la ROM cambiado por `bra`, o sea contestando siempre
+# que no lo tiene: el caso con el ítem da esos mismos 40012.
+snes-rama-item 6 "90 12 0 0 100" "90 1" "22 12" "2 30" 115 rama-item
+snes-rama-item 6 "90 12 0 0 100" "" "22 12" "2 30" 115 rama-item-no
 # El destello de pantalla, que hasta el 2026-09-08 no lo corría nadie.
 # Verificado que da rojo con el `lda #0` de antes: 387 pixeles en los tres.
 snes-relampago

@@ -248,6 +248,8 @@ class Mundo:
                                               eventos_mapa=eventos.Eventos(
                                                   self.mapa(map_id)[0]),
                                               batalla=self.prueba[21],
+                                              parar=self.prueba[22],
+                                              rama_item=self.prueba[23],
                                               temas=self.temas)),
                                      dict(PAGINA_DE_PRUEBA_APAGADA,
                                           evento=numero)]
@@ -1617,6 +1619,15 @@ def main():
                         metavar="N",
                         help="BLANCO X Y [ESPERA]: el otro lado del mismo flag "
                              "del conversor")
+    parser.add_argument("--rama-item-de-prueba", nargs=5, type=int,
+                        default=None,
+                        metavar=("ITEM", "R", "G", "B", "SAT"),
+                        help="ITEM R G B SAT: el otro lado del mismo flag del "
+                             "conversor")
+    parser.add_argument("--parar-de-prueba", type=int, default=None,
+                        metavar="CUADROS",
+                        help="HaltAllMovement después de esos cuadros: el otro "
+                             "lado del mismo flag del conversor")
     parser.add_argument("--sacudida-de-prueba", nargs="+", type=int,
                         default=None, metavar="N",
                         help="FUERZA VELOCIDAD DECIMAS [ESPERA]: el otro lado "
@@ -1695,6 +1706,8 @@ def main():
                   or args.ruta_de_evento or args.flash_de_prueba or args.switch
                   or args.destello_de_prueba
                   or args.timer_de_prueba or args.lugar_de_prueba
+                  or args.parar_de_prueba
+                  or args.rama_item_de_prueba
                   or args.sacudida_de_prueba or args.fundir_bgm
                 or args.pan_de_prueba or args.rama_de_prueba
                   or args.vars_de_prueba or args.rama_var_de_prueba
@@ -1726,7 +1739,9 @@ def main():
                    tuple(args.acceso_de_prueba or ()),
                    args.lluvia_de_prueba,
                    tuple(args.animacion_de_prueba or ()),
-                   args.batalla_de_prueba)
+                   args.batalla_de_prueba,
+                   args.parar_de_prueba,
+                   tuple(args.rama_item_de_prueba or ()))
                   if hay_prueba else None, mensajes,
                   graficos_de_prueba=snes_convert.graficos_de_prueba(
                       args.grafico_de_prueba),
