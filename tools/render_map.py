@@ -114,6 +114,20 @@ def draw_tiles(image, atlas, game_map, flags, pass_upper, pasos=(0, 0)):
                 atlas.render_tile(image, x, y, upper_tile, *pasos)
 
 
+# Las tramas con las que se dibuja un evento translúcido, y qué pixel se cae.
+# RM2k dibuja al 160 de 255, o sea al 63%: `cinco_de_ocho` es el que más se le
+# acerca. El resto están para poder comparar en un televisor de verdad, que es
+# donde esto se decide: el barrido de un CRT difumina **a lo largo de la línea**,
+# así que las columnas alternadas se funden y el damero no.
+TRAMAS = {
+    "damero":        lambda x, y: (x + y) % 2 == 1,
+    "columnas":      lambda x, y: x % 2 == 1,
+    "filas":         lambda x, y: y % 2 == 1,
+    "cinco_de_ocho": lambda x, y: ((y % 2) * 4 + (x % 4)) in (1, 4, 7),
+    "tres_de_cuatro": lambda x, y: x % 2 == 1 and y % 2 == 1,
+}
+
+
 class Charsets:
     """Cache de CharSets, que se repiten mucho entre los eventos de un mapa."""
 
@@ -138,16 +152,18 @@ class Charsets:
         return self.images[name]
 
     def _tramado(self, name):
-        """El CharSet de un evento translúcido: el mismo, con los pixeles
-        de (x + y) impar transparentes. Ver `rm2k.TRAMA_SUFIJO`."""
+        """El CharSet de un evento translúcido: el mismo, con parte de sus
+        pixeles transparentes. Ver `rm2k.TRAMA_SUFIJO` y `TRAMAS`."""
         base = self.get(name)
         if base is None:
             return None
         image = base.convert("RGBA")
         pix = image.load()
+        cae = TRAMAS[rm2k.TRAMA_PATRON]
         for y in range(image.height):
-            for x in range(1 - y % 2, image.width, 2):
-                pix[x, y] = (0, 0, 0, 0)
+            for x in range(image.width):
+                if cae(x, y):
+                    pix[x, y] = (0, 0, 0, 0)
         return image
 
     def _de_tile(self, name):

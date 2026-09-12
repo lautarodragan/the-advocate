@@ -11,6 +11,8 @@ Lo que dicen estas reglas se contrasta contra liblcf y easyrpg-player, que está
 en /extras/ref; ninguno de estos números se escribió de memoria.
 """
 
+import os
+
 import lcf
 
 CELL = 8
@@ -245,6 +247,10 @@ TILE_PREFIX = "@tile:"
 # `render_map.Charsets` fabrica la imagen tramada. Todo lo demás —paletas,
 # ranuras, poses, la referencia— lo trata como a cualquier otro.
 TRAMA_SUFIJO = "~trama"
+
+# Con qué trama. Las opciones están en `render_map.TRAMAS`; se elige mirando
+# un televisor de tubo, que es donde esto se ve.
+TRAMA_PATRON = os.environ.get("TRAMA_PATRON", "cinco_de_ocho")
 
 
 def nombre_de_tile(chipset, indice):

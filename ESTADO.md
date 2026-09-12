@@ -735,6 +735,35 @@ dibuja cambian. README, "El costo de la apertura". **Falta que taro lo
 pruebe en la consola**: FastROM y los 2 MB son justo lo que un emulador
 puede perdonar y el FX Pak no.
 
+### La trama de los translúcidos (2026-09-12)
+
+taro vio el damero feo hasta en su CRT. Pasó a `cinco_de_ocho` —62%, que es la
+densidad de RM2k—, elegido mirando los cinco patrones renderizados con la
+referencia; la comparación quedó en `pruebas-manuales/tramas-comparacion.png`.
+El patrón se cambia con `rm2k.TRAMA_PATRON` y hay más en `render_map.TRAMAS`.
+Tanda: 123 en verde sobre la foto `c8be876` —cambia los dos lados a la vez, así
+que un rojo ahí habría querido decir que conversor y referencia no comparten el
+patrón—.
+
+**Lo que la comparación dejó a la vista**: los fuegos del mapa 9 están sobre
+negro casi puro, así que ninguna trama va a simular transparencia ahí — no hay
+nada detrás que asomarse. De ahí salieron los dos caminos que taro pidió probar
+en paralelo el 2026-09-12, cada uno en su worktree:
+
+* **pre-horneado**: los 70 translúcidos del juego son **estáticos** (medido),
+  así que la mezcla se puede calcular en el conversor contra el fondo real y
+  hornearla en el gráfico. Exacto, sin trama. Precio: el objeto queda opaco y
+  dos eventos con el mismo CharSet sobre fondos distintos piden dos paletas.
+* **color math**: lo de FF5. El orden del modo 3 es `objetos 3 / BG1 1 /
+  objetos 2 / BG2 1 / objetos 1 / BG1 0 / objetos 0`, y entre el piso (BG1 0) y
+  el héroe (objetos 1) **no hay ranura**: la única capa de fondo disponible es
+  BG2 1, que está por encima del héroe. O sea que el héroe se ve *a través*,
+  como en FF5, que es una divergencia de RM2k. Y como el color math es por
+  capa, los techos de BG2 obligan a recortarlo con la ventana (hay HDMA libre;
+  los canales 1-3 los usa la ventana de mensaje). Medido: CGRAM tiene 63 de 103
+  colores usados en los mapas 8 y 9, y las paletas de sprite están llenas (8 en
+  el mapa 8, 7 en el 9), que es lo que descarta la vía de las paletas 4-7.
+
 ### El MSU-1: los ocho temas de las demos (2026-09-11)
 
 taro pidió probarlo: *"la música hoy en día está sonando bastante fea"*, y el

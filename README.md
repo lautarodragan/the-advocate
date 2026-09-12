@@ -3141,9 +3141,18 @@ opacidad 160 de 255. La consola tiene transparencia de verdad, el color math,
 pero la aplica a todos los sprites de las paletas 4 a 7 a la vez: un mapa con
 translúcidos tendría que dejarles esas cuatro paletas solas, y el 9 —donde
 están los fuegos de los barriles que taro pidió el 2026-09-11— lleva once
-personajes en las ocho. Así que van **tramados**: la mitad de sus pixeles en
-damero, que es lo que hacían los juegos de la época y en un televisor de tubo
-se ve como semitransparencia. En una pantalla moderna se ve la trama.
+personajes en las ocho. Así que van **tramados**: parte de sus pixeles se
+caen, que es lo que hacían los juegos de la época. El patrón está en
+`render_map.TRAMAS` y lo elige `rm2k.TRAMA_PATRON`; el de hoy es
+`cinco_de_ocho`, que deja el 62% y es la densidad de RM2k —160 de 255—.
+
+Hasta el 2026-09-12 era un damero al 50%, y taro lo vio feo hasta en un CRT.
+Renderizando los cinco patrones con la referencia se ve por qué, y no es sólo
+la densidad: **los fuegos del mapa 9 están sobre negro casi puro**. Ahí no hay
+nada que asomarse por los huecos, así que la trama no simula transparencia:
+agujerea la llama. El damero además la rompe como forma porque alterna en las
+dos direcciones; `columnas` se funde mejor en un tubo —el barrido difumina a lo
+largo de la línea, no entre líneas— pero deja la llama hecha barras.
 
 Para el port un CharSet translúcido es **otro CharSet**, con `~trama` pegado
 al nombre: lo pega el lector en las páginas translúcidas —`lcf` lo hace sólo
