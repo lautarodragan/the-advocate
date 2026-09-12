@@ -11,6 +11,7 @@ Encoding del archivo:
   - Array de structs: count BER, y por cada elemento un ID BER + un Struct.
 """
 
+import os
 import struct
 
 from lcf_schema import FLAGS, SCHEMA, SKIP
@@ -309,11 +310,15 @@ def read_commands(payload):
     return commands
 
 
-# Si no es None, el nombre del CharSet de una página translúcida lleva esto
-# pegado, y para quien lo lea es otro gráfico. Lo prende el port —ver
-# `rm2k.TRAMA_SUFIJO`— y no el lector: el volcado a JSON tiene que seguir
-# viendo el nombre de verdad.
-SUFIJO_TRANSLUCIDO = None
+# Si no es None, el nombre del CharSet de una página translúcida pasa por acá
+# y para quien lo lea es otro gráfico. Lo prende el port —ver
+# `rm2k.decorar_translucido`— y no el lector: el volcado a JSON tiene que
+# seguir viendo el nombre de verdad.
+#
+# Recibe también **dónde está parado el evento** (mapa, x, y), porque el
+# horneado necesita el fondo real de esa celda; por eso no se decora en la
+# página, que no lo sabe, sino en el evento.
+DECORAR_TRANSLUCIDO = None
 
 
 class EventPageCondition:
@@ -373,10 +378,6 @@ class EventPage:
     def __init__(self, fields):
         self.character_name = to_string(fields.get(PAGE_CHARACTER_NAME, b""))
         self.translucent = to_bool(fields.get(PAGE_TRANSLUCENT))
-        if SUFIJO_TRANSLUCIDO and self.translucent and self.character_name:
-            # Ver SUFIJO_TRANSLUCIDO: para el port, un CharSet translúcido es
-            # otro gráfico.
-            self.character_name += SUFIJO_TRANSLUCIDO
         self.character_index = to_int(fields.get(PAGE_CHARACTER_INDEX, b"\x00"))
         self.character_direction = to_int(fields.get(PAGE_CHARACTER_DIRECTION, b"\x02"))
         self.character_pattern = to_int(fields.get(PAGE_CHARACTER_PATTERN, b"\x01"))
@@ -397,13 +398,20 @@ class EventPage:
 
 
 class Event:
-    def __init__(self, event_id, fields):
+    def __init__(self, event_id, fields, map_id=0):
         self.id = event_id
         self.name = to_string(fields.get(EVENT_NAME, b""))
         self.x = to_int(fields.get(EVENT_X, b"\x00"))
         self.y = to_int(fields.get(EVENT_Y, b"\x00"))
         self.pages = [EventPage(f) for _, f
                       in sorted(Reader(fields[EVENT_PAGES]).read_struct_array().items())]
+        if DECORAR_TRANSLUCIDO:
+            # Ver DECORAR_TRANSLUCIDO: para el port, un CharSet translúcido es
+            # otro gráfico, y si va horneado también depende de dónde está.
+            for page in self.pages:
+                if page.translucent and page.character_name:
+                    page.character_name = DECORAR_TRANSLUCIDO(
+                        page.character_name, map_id, self.x, self.y)
 
     def active_page(self, ignore_conditions=False):
         """La página que mostraría el motor en una partida recién empezada.
@@ -423,6 +431,12 @@ class Event:
 
 class Map:
     def __init__(self, path):
+        # El número de mapa no está adentro del archivo: sale del nombre, que
+        # es de donde lo saca todo el resto del port. Lo necesitan los eventos
+        # translúcidos horneados, que llevan en el nombre de su gráfico dónde
+        # están parados.
+        base = os.path.basename(path)
+        self.map_id = int(base[3:7]) if base[3:7].isdigit() else 0
         reader = Reader(open(path, "rb").read())
         header = reader.read_header()
         if header != "LcfMapUnit":
@@ -445,7 +459,7 @@ class Map:
         self.parallax_sy = to_int(fields.get(MAP_PARALLAX_SY, b"\x00"))
         self.lower_layer = to_u16_array(fields[MAP_LOWER_LAYER])
         self.upper_layer = to_u16_array(fields[MAP_UPPER_LAYER])
-        self.events = [Event(i, f) for i, f in sorted(
+        self.events = [Event(i, f, self.map_id) for i, f in sorted(
             Reader(fields.get(MAP_EVENTS, b"\x00")).read_struct_array().items())]
 
 

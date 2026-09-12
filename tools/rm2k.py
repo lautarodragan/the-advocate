@@ -243,7 +243,7 @@ TILE_PREFIX = "@tile:"
 # pixeles en damero, que es lo que hacían los juegos de la época y en un
 # televisor de tubo se ve como semitransparencia. Para el port es otro
 # CharSet, con este sufijo en el nombre: el lector lo pega en las páginas
-# translúcidas —ver `lcf.SUFIJO_TRANSLUCIDO`, que prende `snes_convert`— y
+# translúcidas —ver `decorar_translucido`, que prende `snes_convert`— y
 # `render_map.Charsets` fabrica la imagen tramada. Todo lo demás —paletas,
 # ranuras, poses, la referencia— lo trata como a cualquier otro.
 TRAMA_SUFIJO = "~trama"
@@ -251,6 +251,58 @@ TRAMA_SUFIJO = "~trama"
 # Con qué trama. Las opciones están en `render_map.TRAMAS`; se elige mirando
 # un televisor de tubo, que es donde esto se ve.
 TRAMA_PATRON = os.environ.get("TRAMA_PATRON", "cinco_de_ocho")
+
+
+# La opacidad con la que RM2k dibuja una página translúcida: 160 de 255.
+OPACIDAD_TRANSLUCIDO = 160
+
+# La otra salida, y la de hoy: **hornear la mezcla en el gráfico**. Los 70
+# translúcidos del juego son todos estáticos —`move_type` 0 y sin ruta propia,
+# medido sobre los 35 mapas—, así que ni el objeto ni el fondo se mueven y la
+# mezcla al 160/255 contra el fondo real se puede calcular una vez, en el
+# conversor, y quedar horneada en el sprite: exacta, sin trama y sin gastar
+# color math. Lo que se paga es que el sprite queda **opaco** —nadie se ve por
+# detrás— y que el gráfico deja de ser el mismo para dos eventos parados sobre
+# fondos distintos, así que cada uno se lleva su paleta.
+#
+# Para el resto del programa es, otra vez, otro CharSet: el nombre lleva este
+# sufijo con el mapa y la celda donde está parado el evento, que es todo lo que
+# hace falta para reconstruir el fondo. Lo pega el lector —ver
+# `lcf.DECORAR_TRANSLUCIDO`, que prende el conversor— y `render_map.Charsets`
+# fabrica la imagen.
+HORNEADO_SUFIJO = "~horneado"
+
+# Cuál de los dos caminos corre. Se cambia con MODO_TRANSLUCIDO=trama para
+# poder comparar los dos sobre el mismo árbol.
+MODO_TRANSLUCIDO = os.environ.get("MODO_TRANSLUCIDO", "horneado")
+
+
+def nombre_horneado(nombre, map_id, x, y):
+    return "%s%s:%d:%d:%d" % (nombre, HORNEADO_SUFIJO, map_id, x, y)
+
+
+def parte_horneada(nombre):
+    """(nombre de base, (mapa, x, y)) de un CharSet horneado, o (nombre, None).
+
+    Todo lo que mire *qué* gráfico es —la pasabilidad del tile, quién es un
+    tile y quién un CharSet de verdad— tiene que preguntar por la base: el
+    sufijo lleva dónde está parado, no qué dibuja.
+    """
+    base, marca, resto = nombre.partition(HORNEADO_SUFIJO + ":")
+    if not marca:
+        return nombre, None
+    return base, tuple(int(n) for n in resto.split(":"))
+
+
+def sin_horneado(nombre):
+    return parte_horneada(nombre)[0]
+
+
+def decorar_translucido(nombre, map_id, x, y):
+    """El nombre que lleva el gráfico de una página translúcida."""
+    if MODO_TRANSLUCIDO == "trama":
+        return nombre + TRAMA_SUFIJO
+    return nombre_horneado(nombre, map_id, x, y)
 
 
 def nombre_de_tile(chipset, indice):
@@ -316,10 +368,11 @@ def pasabilidad_del_tile(game_map, charset, layer):
     `pasabilidad_tiles`.
     """
     flags = getattr(game_map, "pasabilidad_tiles", None)
+    base = sin_horneado(charset)
     if flags is None or layer != LAYER_BELOW \
-            or not charset.startswith(TILE_PREFIX):
+            or not base.startswith(TILE_PREFIX):
         return None
-    valor = flags[UPPER_BASE + int(charset.rsplit(":", 1)[1])]
+    valor = flags[UPPER_BASE + int(base.rsplit(":", 1)[1])]
     if valor & PASS_ABOVE:
         return None
     return valor & PASS_ALL

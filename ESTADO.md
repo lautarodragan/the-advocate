@@ -56,47 +56,37 @@ la bandera del evento de prueba apagada—, mientras la referencia sí la corre.
 lo que impidió armar un caso con la escena grande del mapa 3. No se investigó
 más.
 
-### La trama de los translúcidos (2026-09-12)
+### Los translúcidos, horneados (2026-09-12)
 
-taro vio el damero feo hasta en su CRT. Pasó a `cinco_de_ocho` —62%, que es la
-densidad de RM2k—, elegido mirando los cinco patrones renderizados con la
-referencia; la comparación quedó en `pruebas-manuales/tramas-comparacion.png`.
-El patrón se cambia con `rm2k.TRAMA_PATRON` y hay más en `render_map.TRAMAS`.
-Tanda: 123 en verde sobre la foto `c8be876` —cambia los dos lados a la vez, así
-que un rojo ahí habría querido decir que conversor y referencia no comparten el
-patrón—.
+El "Trans" de una página de RM2k —el evento al 160 de 255 sobre lo que tenga
+detrás— ya no va tramado: **la mezcla la calcula el conversor contra el fondo
+real y queda horneada en el gráfico**. Se puede porque los 70 translúcidos del
+juego son **estáticos** (medido: `move_type` 0 y ninguna ruta propia), así que
+la cuenta da siempre lo mismo. README, "Los eventos translúcidos van horneados";
+el precio, en `assets/LIMITACIONES.md`. Lo cobra `fuego`.
 
-**Lo que la comparación dejó a la vista**: los fuegos del mapa 9 están sobre
-negro casi puro, así que ninguna trama va a simular transparencia ahí — no hay
-nada detrás que asomarse. De ahí salieron los dos caminos que taro pidió probar
-en paralelo el 2026-09-12, cada uno en su worktree:
+De las 70 páginas se hornean **39**: las otras 31 se dibujan con un tile del
+chipset y **todas llevan el tile 0**, que en RM2k es "sin gráfico" —así que el
+`EV0068` del mapa 8 no se dibuja tampoco en el original—.
 
-* **pre-horneado**: hecho y verificado, rama `prehorneado-translucidos`
-  (`fc48b9d`). Los translúcidos son todos **estáticos** (medido), así que la
-  mezcla se calcula en el conversor contra el fondo real y queda horneada en el
-  gráfico: exacto, sin trama, y **sigue animando**. taro vio los fuegos del
-  mapa 9 el 2026-09-12 y le gustaron. Precio: el objeto queda opaco —nadie pasa
-  por detrás, son 4 casos en el juego— y dos eventos con el mismo CharSet sobre
-  fondos distintos piden dos paletas, lo que en el mapa 9 obliga a bajarle dos
-  colores a `Chara2:0`. **Es el camino que va a quedar.**
-* **El save point va aparte, y opaco.** taro lo decidió el 2026-09-12: no
-  quiere ni trama ni mezcla ahí, quiere el gráfico entero con sus colores de
-  verdad. Es una divergencia deliberada de RM2k —su página es `translucent`— y
-  la referencia tiene que modelarla igual. El gris que él ve viene de que, como
-  sprite, `savept` se queda sin paleta propia: el mapa 8 usa las ocho, y es uno
-  de 5 gráficos que dibujan con paleta ajena. Como tiles de fondo las
-  recuperaba, pero ahí dejaba de animar. Está encargado junto con el trabajo de
-  paletas.
-* **color math**: **hecho, verificado y descartado** el 2026-09-12. Vive en la
-  rama `color-math-translucidos` (`6e0e355`) y está contado en el README, "El
-  color math, implementado y descartado". taro lo rechazó por dos razones que
-  no son defectos de la implementación: el objeto **deja de animar** —35 de los
-  39 translúcidos animan, y 33 son el save point— y **el héroe se ve a través**,
-  que es lo único que el orden de prioridades del modo 3 permite. Para
-  revivirlo hay que subirle los tiles de BG2 por DMA con la cadencia del evento.
-  Dejó dos cosas aprovechables: el canal de HDMA que apaga la mezcla sobre la
-  ventana de mensaje, y que **snes9x redondea distinto que bsnes y mesen-s** en
-  la suma de color math.
+Lo que cuesta, todo medido: el objeto **queda opaco** (4 de 39 se superponen con
+otro evento), 2 de 39 están sobre agua animada y adentro de su cuadro va a
+quedar quieta, y dos eventos con el mismo CharSet sobre fondos distintos piden
+dos paletas. Las paletas entran en los 35 mapas: sólo se mueven tres y ninguno
+se cae.
+
+**El save point va aparte y opaco**, por decisión de taro del 2026-09-12: ni
+trama ni mezcla, el gráfico entero con sus colores. Es una divergencia
+deliberada de RM2k —su página es `translucent`— y la referencia la modela igual.
+
+**Antes de esto se probó el color math**, que es la transparencia de verdad de
+la consola, y **taro lo rechazó**: el objeto dejaba de animar —35 de los 39
+animan, y 33 son el save point— y el héroe se veía *a través*, que es lo único
+que el orden de prioridades del modo 3 permite. Vive en la rama
+`color-math-translucidos` (`6e0e355`), anda, y está contado en el README: "El
+color math, implementado y descartado". Dejó dos cosas aprovechables —el canal
+de HDMA que apaga la mezcla sobre la ventana de mensaje, y que **snes9x redondea
+distinto que bsnes y mesen-s** en la suma de color math—.
 
 ### El MSU-1 (2026-09-12)
 

@@ -176,6 +176,31 @@ Lo que queda sin hacer: si el evento camina **y** cambia de gráfico de verdad
 lo avisa por mapa y evento.
 
 
+## Un evento translúcido queda opaco, y con el fondo horneado
+
+El "Trans" de RM2k dibuja el evento al 160 de 255 sobre lo que haya detrás. Acá
+esa mezcla se calcula al convertir y queda **horneada** en el gráfico, que es
+exacto en la foto y opaco en movimiento. Se puede porque las 70 páginas
+translúcidas del juego son estáticas; ver README, "Los eventos translúcidos van
+horneados".
+
+Lo que se pierde:
+
+* **Nadie se ve por detrás.** Medido: cuatro de las 39 páginas horneables se
+  superponen con el sprite de otro evento —mapas 74, 152 y 305—, y ahí la
+  mezcla es contra el piso, no contra el vecino. El héroe pasando por detrás
+  tampoco se va a ver, en ninguna.
+* **Si detrás hay un tile animado, la mezcla vale para un dibujo solo.** Pasa
+  en dos: los save points de los mapas 59 y 178 están sobre agua, que adentro
+  del cuadro de 24x32 del sprite va a quedar quieta.
+* **Dos eventos con el mismo CharSet sobre fondos distintos son dos paletas.**
+  Medido sobre los 35 mapas: el 9 pasa de siete a ocho, el 117 de seis a siete
+  y el 37 suma un gráfico con paleta ajena. Ninguno se cae.
+
+**Cuándo deja de alcanzar.** Un translúcido que camine, o uno parado sobre algo
+que se mueva. En este juego no hay ninguno; en otro, la salida es el color math.
+
+
 ## El destello de un evento tiñe la paleta, no el sprite
 
 `FlashSprite` en RM2k tiñe **ese** dibujable. En la consola el tinte es una

@@ -3267,34 +3267,68 @@ en la tabla chica de OAM. Sin él, el héroe pegado al borde izquierdo —que en
 pantalla queda en -8— se leía como positivo y el sprite saltaba al otro lado de
 la pantalla.
 
-#### Los eventos translúcidos van tramados
+#### Los eventos translúcidos van horneados
 
 El "Trans" de una página —`translucent`— en RM2k dibuja el evento con
 opacidad 160 de 255. La consola tiene transparencia de verdad, el color math,
 pero la aplica a todos los sprites de las paletas 4 a 7 a la vez: un mapa con
 translúcidos tendría que dejarles esas cuatro paletas solas, y el 9 —donde
 están los fuegos de los barriles que taro pidió el 2026-09-11— lleva once
-personajes en las ocho. Así que van **tramados**: parte de sus pixeles se
-caen, que es lo que hacían los juegos de la época. El patrón está en
-`render_map.TRAMAS` y lo elige `rm2k.TRAMA_PATRON`; el de hoy es
-`cinco_de_ocho`, que deja el 62% y es la densidad de RM2k —160 de 255—.
+personajes en las ocho.
 
-Hasta el 2026-09-12 era un damero al 50%, y taro lo vio feo hasta en un CRT.
-Renderizando los cinco patrones con la referencia se ve por qué, y no es sólo
-la densidad: **los fuegos del mapa 9 están sobre negro casi puro**. Ahí no hay
-nada que asomarse por los huecos, así que la trama no simula transparencia:
-agujerea la llama. El damero además la rompe como forma porque alterna en las
-dos direcciones; `columnas` se funde mejor en un tubo —el barrido difumina a lo
-largo de la línea, no entre líneas— pero deja la llama hecha barras.
+Hasta el 2026-09-12 iban **tramados**: parte de sus pixeles se caían, que es lo
+que hacían los juegos de la época. Y ahí se vio que en este juego eso no
+alcanza. **Los fuegos del mapa 9 están sobre negro casi puro**: no hay nada que
+asomarse por los huecos, así que la trama no simula transparencia, agujerea la
+llama. Ningún patrón lo arregla, porque el problema no es la densidad.
 
-Para el port un CharSet translúcido es **otro CharSet**, con `~trama` pegado
-al nombre: lo pega el lector en las páginas translúcidas —`lcf` lo hace sólo
-si alguien prende `SUFIJO_TRANSLUCIDO`, que es el conversor, para que el
-volcado a JSON siga viendo el nombre de verdad— y `render_map.Charsets`
-fabrica la imagen. Todo lo demás —paletas, ranuras de VRAM, poses, la
-referencia— lo trata como a cualquier gráfico, y por eso no hubo que tocar
-nada más. Los eventos translúcidos dibujados con un tile del chipset no lo
-llevan todavía. Lo cobra `fuego` en la tanda. Son 70 páginas en 35 mapas.
+Así que la mezcla **se calcula en el conversor y queda horneada en el
+gráfico**. Lo que lo permite es una medición: las 70 páginas translúcidas del
+juego —35 mapas— son todas estáticas, `move_type` 0 y sin ruta propia. Si ni el
+objeto ni el fondo se mueven, la mezcla al 160/255 contra el fondo real da
+siempre lo mismo y se puede calcular una vez: sale exacta, sin trama y sin
+gastar color math ni paletas reservadas. El fondo es la **capa de abajo** del
+mapa en la celda donde el evento está parado —la de encima se dibuja después y
+tapa al sprite, así que donde el sprite se ve el fondo es la de abajo—, tomado
+en `(x*16 - 4, y*16 - 16)`, que es donde `charset.draw` apoya el cuadro de
+24x32. Las doce poses caen en el mismo lugar de la pantalla, así que todas se
+mezclan contra el mismo pedazo: el save point del mapa 8, que anima quieto,
+sale bien cuadro por cuadro.
+
+Para el port un CharSet horneado es **otro CharSet**, con
+`~horneado:<mapa>:<x>:<y>` pegado al nombre: lo pega el lector en las páginas
+translúcidas —`lcf` lo hace sólo si alguien prende `DECORAR_TRANSLUCIDO`, que
+es el conversor, para que el volcado a JSON siga viendo el nombre de verdad— y
+`render_map.Charsets` fabrica la imagen. Todo lo demás —paletas, ranuras de
+VRAM, poses, la referencia— lo trata como a cualquier gráfico. Quien mire
+**qué** dibuja un nombre y no dónde está parado tiene que pasar por
+`rm2k.sin_horneado`: la pasabilidad de un evento dibujado con un tile lo hace.
+El camino viejo sigue estando, con `MODO_TRANSLUCIDO=trama`, para poder
+comparar los dos sobre el mismo árbol.
+
+Lo que se paga, y está declarado en `assets/LIMITACIONES.md`:
+
+* **El sprite queda opaco.** Nadie que pase por detrás se ve. Para un fuego
+  sobre un barril y para un save point da igual —nada camina por ahí—, pero el
+  Kersh translúcido del mapa 305 se superpone con un Guard, y ahí sí taparía.
+* **Dos eventos con el mismo CharSet sobre fondos distintos son dos
+  gráficos**, y por lo tanto dos paletas. Medido sobre los 35 mapas con
+  translúcidos: sólo se mueven tres y **ninguno se cae**. El 9 pasa de siete
+  paletas a ocho —los dos fuegos de los barriles están sobre fondos distintos—,
+  el 117 de seis a siete, y el 37 suma un gráfico dibujado con una paleta ajena
+  (de cinco a seis). Los otros 32 quedan igual; el 8, que ya usaba las ocho,
+  también, porque su `savept` es uno solo.
+* **Si detrás hay un tile animado, el horneado vale para un dibujo solo.**
+  Pasa en dos de las 39: los save points de los mapas 59 y 178 están sobre
+  agua, y adentro de su cuadro de 24x32 el agua va a quedar quieta.
+* **El fondo son los tiles, no los otros eventos.** Cuatro de las 39 se
+  superponen con el sprite de otro evento —los mapas 74, 152 y 305—: ahí la
+  mezcla es contra el piso y no contra el vecino.
+
+De las 70 páginas translúcidas, las que se hornean son **39**: las otras 31 se
+dibujan con un tile del chipset y todas llevan el tile 0, que en RM2k es "sin
+gráfico", así que no se dibujan ni en el original. El `EV0068` del mapa 8 es
+una de ésas. Lo cobra `fuego` en la tanda.
 
 #### El color math, implementado y descartado
 
