@@ -89,7 +89,9 @@ def item_usable_en_batalla(item):
     Y de esas, este port ofrece **sólo las que recuperan HP y no son
     `ko_only`**. Lo que queda afuera y por qué:
 
-    * las de SP, porque los SP no son estado todavía;
+    * las de SP: **los SP ya son estado desde el 2026-09-13**, así que esto
+      pasó de imposible a deuda —falta el `recover_sp` del lado del ítem, que
+      es la misma cuenta que la de HP—;
     * las `ko_only` —Phoenix Down, Pungent Elixir, Jumper Cable— porque
       revivir es sacar el estado de muerto y los estados no existen;
     * las que suben un parámetro para siempre, por lo mismo.
