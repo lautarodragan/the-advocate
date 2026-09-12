@@ -4360,10 +4360,31 @@ Son de **dieciséis bits con signo**. RM2k las lleva a 32 y las topa en ±999999
 pero ninguna del juego pasa de unos cientos —segundos del cronómetro, un azar de
 0 a 100, contadores— y lo que no entra en el word no compila, que es más
 honesto que truncar. Lo que compila: `ControlVars` de a una variable, con poner,
-sumar y restar, y el operando constante, otra variable, un azar entre a y b, o
-"otro" —el oro y los segundos del cronómetro—; `ConditionalBranch` por variable
-con las seis comparaciones; y `TimerOperation` con los segundos desde una
-variable. Los rangos y el indirecto no los usa ninguna página.
+sumar y restar, y el operando constante, otra variable, un azar entre a y b,
+"otro" —el oro y los segundos del cronómetro— o **las coordenadas de un
+personaje**; `ConditionalBranch` por variable con las seis comparaciones; y
+`TimerOperation` con los segundos desde una variable. Los rangos y el indirecto
+no los usa ninguna página.
+
+**Las coordenadas de un personaje** son la clase 6 de `ControlVars`, y es de
+lejos la que más destraba de lo que quedaba: **+119 páginas sobre el juego
+entero**, de 5016 a 5135 de las 5603 disparables. Es lo que leen los mapas 49,
+52 y 54 para seguir al auto de Lashe City. Los sub-operandos son los de
+`ControlVariables::Event` de easyrpg-player y de ahí salen, no de memoria: de
+las 829 veces que el juego la usa, 412 piden la **x** y 413 la **y**, y las
+otras cuatro las coordenadas **en pantalla**, que no se hacen —la nuestra mide
+256x224 contra los 320x240 de RM2k, así que el número no sería el del original,
+y valen una página—. El id del mapa, la mirada y el id del evento no los pide
+nadie. El personaje puede ser el héroe, el dueño de la página o cualquier
+evento del mapa, y la celda que se lee es la **viva**: `tile_x`/`tile_y` y
+`ev_pos_buf` en la ROM, `Estado.heroe` y `Estado.pos_ev` en la referencia, o sea
+adonde una ruta forzada o un `ChangeEventLocation` dejaron al personaje.
+
+Con qué se compara: en la ROM el intérprete corre en `eventos_tick` y el héroe
+se mueve después, en `move_hero`, así que la página de un cuadro ve la celda con
+la que terminó el cuadro anterior. La referencia hace lo mismo porque quien
+escribe `Estado.heroe` es `cuadro_de_eventos`, que va en el mismo lugar del
+lazo.
 
 **El azar es el mismo de los dos lados.** Un xorshift de dieciséis bits —`x ^=
 x << 7; x ^= x >> 9; x ^= x << 8`—, sembrado en el reset, instrucción por

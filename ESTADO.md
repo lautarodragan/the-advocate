@@ -35,16 +35,25 @@ point animado y guardando, el menú de pausa, los ítems, el equipo y la tienda.
 efectos por el SPC700.
 
 Las páginas automáticas que compilan enteras son **332 de 489** —`just
-snes-destraba`—, y del juego entero compilan **2882 de 3473**, que eran 2802
-antes de las piezas del 2026-09-12. Los dos números venían de septiembre y
-estaban viejos.
+snes-destraba`—, y del juego entero **5135 de 5603 disparables (91,6%)**, que
+eran 5016 antes de la clase 6 de `ControlVars`.
 
-**Cómo se cuenta el segundo, porque es fácil contarlo mal**: cada página de los
-328 mapas por `eventos.compilar_pagina`, con bloque de textos, con todos los
-teletransportes resolubles —o sea el techo de una ROM con la ventana puesta— y
-con **`eventos.indexar_variables` llamado antes**. Sin eso último ninguna
-`ControlVars` compila y el total sale 300 páginas por debajo; pasó el
-2026-09-12 y los números de los dos primeros commits de ese día son ésos.
+**Cómo se cuenta, porque es fácil contarlo mal**: cada página de los 328 mapas
+cuyo trigger la ROM soporta y que pasa `puede_dispararse`, por
+`eventos.compilar_pagina`, con bloque de textos, con `Temas`, `Graficos` e
+`Imagenes`, con todos los teletransportes resolubles —o sea el techo de una ROM
+con la ventana puesta— y con **`eventos.indexar_variables` llamado antes**. Sin
+eso último ninguna `ControlVars` compila y el total sale 300 páginas por debajo;
+pasó el 2026-09-12 y los números de los dos primeros commits de ese día son
+ésos.
+
+**El denominador cambió y conviene saberlo**: acá venía escrito "2882 de 3473",
+que cuenta sólo las páginas **con comandos**. Con ese criterio los mismos
+números son 2936 de 3473, y antes de la clase 6 eran 2817 —no 2882: ese
+absoluto no se pudo reproducir con ninguna combinación de argumentos de
+`compilar_pagina`, así que lo que vale es la diferencia—. **La diferencia es la
+misma con los dos criterios: +119 páginas.** Cuando un número de éstos se
+reporte, conviene decir con cuál de los dos se contó.
 
 ### El dibujo de las animaciones de batalla: medido, sin empezar
 
@@ -310,7 +319,10 @@ Al 2026-09-12, en orden.
 
 6. **Lo que sigue faltando de Lashe City**: la condición por cronómetro —una
    página en todo el juego—. El `CallEvent` del Hover-Tram está hecho desde el
-   2026-09-12 y el tram se toma: lo cubre el caso `tram`.
+   2026-09-12 y el tram se toma: lo cubre el caso `tram`. **La persecución en
+   auto de los mapas 49, 52 y 54 ya tiene lo que le faltaba del intérprete** —la
+   clase 6 de `ControlVars`—, pero ninguno de esos tres mapas está en una demo
+   todavía, así que **nadie la jugó**: eso es lo que falta para darla por buena.
 
 7. **Lo que falta del sistema de ítems**: los libros, los materiales y los
    especiales, y `ChangeEquipment` —sólo en los mapas 30 y 151—. Las medicinas

@@ -645,6 +645,13 @@ def cuadro_de_eventos(estado, passable, game_map, heroe, paginas=(),
         dx, dy = PASOS[direccion]
         return 0 <= x + dx < game_map.width and 0 <= y + dy < game_map.height
 
+    # La celda del héroe queda anotada en el estado, que es donde la lee el
+    # intérprete —la clase 6 de `ControlVars`— y donde la ROM la tiene en
+    # `tile_x`/`tile_y`. Acá y no antes a propósito: esto corre después del
+    # intérprete y después del paso del héroe, igual que `move_hero` corre
+    # después de `eventos_tick`, así que la página del cuadro que viene lee la
+    # celda con la que terminó éste. Ver `Estado.poner_heroe`.
+    estado.poner_heroe(*heroe)
     estado.cuadro_de_rutas_ev(
         puede,
         lambda cx, cy, indice: (puede_caer(passable, game_map, cx, cy)
@@ -739,6 +746,12 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
         else:
             x, y = entrada
             entrada = None
+        # Antes de que corra el primer cuadro del mapa nadie pasó todavía por
+        # `cuadro_de_eventos`, así que la celda del héroe se pone acá: es el
+        # `sta tile_x` de `cargar_mapa`. Sin esto una página automática que
+        # lea la posición del héroe en el primer cuadro leería la del mapa
+        # anterior.
+        estado.poner_heroe(x, y)
         # Con un presupuesto de cuadros el intérprete avanza sólo esos; sin él,
         # hasta que las páginas terminen. Lo primero hace falta para comparar
         # *durante* una espera: el emulador corrió N cuadros y la referencia
@@ -757,9 +770,13 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
             # ruta la camina el héroe, y saltearla dejaba al héroe mirando a
             # cámara mientras la ROM lo mostraba mirando arriba.
             for _ in range(10000):
+                # El refresco que se mira es `refresco_frena` y no `refresco` a
+                # secas: el que pide un intérprete paralelo no cuenta, porque
+                # lo pide en cada cuadro y este lazo no terminaría nunca. Ver
+                # `Estado.refresco_frena`, que cuenta lo que costó encontrarlo.
                 if not estado.ruta and not estado.paso_cuadros \
                         and not estado.cuadros_moviendose \
-                        and not estado.refresco \
+                        and not estado.refresco_frena() \
                         and estado.asentado(mundo.paginas(map_id)):
                     break
                 estado.refrescar()
@@ -823,6 +840,7 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
                         # cinemática de apertura —que salta dos veces adentro
                         # del mapa 1— se reiniciaba sola para siempre.
                         x, y = estado.salto[1], estado.salto[2]
+                        estado.poner_heroe(x, y)
                         estado.salto = None
                         continue
                     # Al mapa nuevo se entra desde el lazo de afuera, y el
@@ -881,7 +899,7 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
                         and not estado.paso_cuadros \
                         and not estado.cuadros_moviendose \
                         and not estado.algo_corriendo() \
-                        and not estado.refresco \
+                        and not estado.refresco_frena() \
                         and not estado.paginas_caminando() \
                         and not estado.timer_activo \
                         and not estado.gotas \
@@ -969,14 +987,15 @@ def contacto_al_pisar(mundo, estado, map_id, x, y, passable, game_map):
                           interprete.paginas, congelada=interprete.ocupado())
         if estado.mensaje is not None:
             return map_id, x, y, True
-        # `not estado.refresco`: con un refresco pendiente el cuadro que viene
+        # `refresco_frena`: con un refresco pendiente el cuadro que viene
         # **sí** hace algo —rehacer la página activa de cada evento— y cortar
         # antes dejaba la instantánea vieja. Es lo que hacía que `puerta-emisor`
         # dibujara la puerta cerrada después de abrirla: la página que la abre
         # es un `ControlSwitches` y nada más, así que el intérprete terminaba en
-        # el mismo cuadro y el lazo cortaba con el refresco sin hacer.
+        # el mismo cuadro y el lazo cortaba con el refresco sin hacer. Lo que no
+        # cuenta es el que pide un intérprete paralelo, que lo pide siempre.
         if interprete.terminado and not estado.algo_corriendo() \
-                and not estado.refresco \
+                and not estado.refresco_frena() \
                 and not estado.paso_cuadros and not estado.cuadros_moviendose:
             break
     return map_id, x, y, False
