@@ -3163,7 +3163,7 @@ def datos_del_mapa(mapa, numero, indice_global, materiales):
 
 def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
          ventana=None, titulo=None, ranuras=None, cartel=None,
-         animaciones=None, tropas=()):
+         animaciones=None, tropas=(), audio_batalla=None):
     """El .inc que arma w65.py junto con main.s.
 
     `titulo` es la pantalla de título —la imagen y su menú— y puede faltar;
@@ -4336,6 +4336,30 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                P.BA_HP_MAX_NUM * 2, 1 * 2,
                P.BA_ORDEN_COLS[0] * 2, P.BA_ORDEN_COLS[1] * 2,
                P.BA_ORDEN_COLS[2] * 2))
+        # El audio: el tema de la pelea, el de la victoria y los cinco efectos,
+        # con el índice que sacaron de `Temas`. $FF y $FFFF quieren decir "el
+        # LDB lo tiene apagado", que es el caso de `battle_se` en este juego.
+        # Quién suena en qué momento está en `eventos.AUDIO_BATALLA`, sacado de
+        # easyrpg-player; acá sólo viajan los números.
+        audio = audio_batalla or {}
+        # El paquete de audio de la pelea va detrás de los de los mapas, así
+        # que su índice es cuántos mapas lleva la ROM. Lo emite acá y lo
+        # comprueba la sección de música, que es la que arma la lista.
+        handle.write(
+            "BA_TEMA           = $%02X\n"
+            "BA_TEMA_FIN       = $%02X\n"
+            "BA_PAQUETE        = %d\n"
+            % (audio.get("battle_music", 0xFF),
+               audio.get("battle_end_music", 0xFF),
+               len(mapas) if audio else 0xFF))
+        for nombre, constante in (("dodge_se", "BA_SE_ERRAR"),
+                                  ("enemy_attack_se", "BA_SE_ATAQUE"),
+                                  ("enemy_damaged_se", "BA_SE_DANO_ENEMIGO"),
+                                  ("actor_damaged_se", "BA_SE_DANO_ACTOR"),
+                                  ("enemy_death_se", "BA_SE_MUERTE"),
+                                  ("escape_se", "BA_SE_HUIR")):
+            handle.write("%-18s= $%04X\n"
+                         % (constante, audio.get(nombre, 0xFFFF)))
         # Los términos, por su lugar en `pantallas.BA_TERMINOS`.
         for k, (nombre, _chunk) in enumerate(P.BA_TERMINOS):
             handle.write("BA_TXT_%-11s= BA_TXT_BASE + %d\n"
@@ -5102,6 +5126,7 @@ def main():
     # Y las animaciones de batalla, que `ShowBattleAnimation` compila con su
     # línea de tiempo adentro: ver OP_ANIMACION.
     eventos.indexar_animaciones(args.game_dir)
+    eventos.indexar_audio_de_batalla(args.game_dir)
     # En cuántos mapas de esta ROM aparece cada personaje. Lo usa el reparto de
     # paletas para elegir a quién puede bajarle un color sin romper nada: el
     # banco de poses es **de la ROM entera**, así que un personaje que está en
@@ -5263,7 +5288,7 @@ def main():
                     lluvia=args.lluvia_de_prueba,
                     animacion=tuple(args.animacion_de_prueba or ()),
                     eventos_mapa=eventos.Eventos(mapa["game_map"]),
-                    batalla=args.batalla_de_prueba)}, {
+                    batalla=args.batalla_de_prueba, temas=temas)}, {
                 # Y la que la apaga: misma idea que en la referencia, ver
                 # `PAGINA_DE_PRUEBA_APAGADA`. Sin código, así que en cuanto
                 # gana, el evento inventado deja de tener una automática que
@@ -5502,9 +5527,14 @@ def main():
               % (datos["animacion"], datos["cuadros"], datos["caja"][0],
                  datos["caja"][1], datos["original"][0], datos["original"][1],
                  datos["porciento"], datos["colores"], datos["bytes"]))
+    # El audio de la pelea, con los índices que ya sacó de `temas` mientras las
+    # páginas compilaban. Se vuelve a pedir sólo para leerlos: `Temas` numera
+    # una vez y devuelve lo mismo, y lo anotado va al paquete de la pelea y no
+    # al de ningún mapa.
+    audio_batalla = eventos.audio_de_batalla(temas) if tropas.ids else None
     informe = emit(args.output, mapas, args.inicial, args.heroe_encima, grupo,
                    ventana_datos, titulo_datos, ranuras_datos,
-                   args.imagenes.info, animaciones, tropas.ids)
+                   args.imagenes.info, animaciones, tropas.ids, audio_batalla)
     print("%d mapa(s) -> %s, arranca en el %d (mapa %d)"
           % (len(mapas), args.output, args.inicial, mapas[args.inicial]["id"]))
     if informe:
@@ -5560,10 +5590,24 @@ def main():
             suyos.insert(0, arranque)
         paquetes.append((suyos, [efectos[n][0] for n in pide["sonidos"]
                                  if n in efectos]))
+    # Y el paquete de la pelea, detrás de los mapas: el tema de batalla y sus
+    # efectos, que la ROM sube al abrir la pelea y descarga al cerrarla. Va
+    # aparte y no adentro del paquete del mapa porque el tema de batalla son
+    # 51.480 B de los 64.512 de ARAM; ver `eventos.PAQUETE_BATALLA`.
+    pide = temas.por_mapa.get(eventos.PAQUETE_BATALLA)
+    if pide:
+        assert len(paquetes) == len(mapas), (
+            "el paquete de la pelea tiene que quedar en el índice que emitió "
+            "`emit` como PAQUETE_BATALLA")
+        paquetes.append((list(pide["temas"]),
+                         [efectos[n][0] for n in pide["sonidos"]
+                          if n in efectos]))
+        print("  paquete de audio de la pelea: %d tema(s), %d efecto(s)"
+              % (len(pide["temas"]), len(paquetes[-1][1])))
     snes_music.emit(musica, hechos, driver, muestras, arranque, tema_titulo,
                     snes_music.tabla_de_sonidos(temas.sonidos, banco),
                     paquetes)
-    for i, (suyos, suyas) in enumerate(paquetes):
+    for i, (suyos, suyas) in enumerate(paquetes[:len(mapas)]):
         if suyos or suyas:
             print("  paquete de audio del mapa %d: %d tema(s), %d efecto(s)"
                   % (mapas[i]["id"], len(suyos), len(suyas)))

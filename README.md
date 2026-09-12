@@ -931,7 +931,9 @@ Lo que hay, y lo que no:
                                     grupo, que es una simplificación declarada
     habilidades, ítems, estados     no
     experiencia, oro, subir nivel   no: no hay niveles
+    la música y los efectos         sí, desde el 2026-09-13: ver abajo
     los battlers dibujados          no
+    la imagen de fondo              no
     las páginas de evento de tropa  no
     los encuentros aleatorios       no: ver "Lo que falta"
 
@@ -945,6 +947,56 @@ enemigos— no compila, y no por la batalla: la corta un `MoveEvent` con la
 orden de ruta 9, "hacia el héroe", que la ROM no camina. Por eso la tropa de
 cuatro la ejercita `just snes-batalla` con la página de prueba, que es el
 mismo recurso que usa `snes-guardar` con la pantalla de ranuras.
+
+#### La música y los efectos de la pelea
+
+Desde el 2026-09-13. Todo sale del LDB —`system.json`— y **quién suena en qué
+momento sale de easyrpg-player**, no de memoria: está escrito con su función de
+origen en `eventos.AUDIO_BATALLA`.
+
+    battle_music      T_VGFighterMAX_Masako   `Scene_Battle`, al construirse
+    battle_end_music  T_VGFighterMAX_Masako   `BGM_Victory`, al ganar
+    dodge_se          Evasion1                `AlgorithmBase::GetFailureSe`
+    enemy_attack_se   Attack2                 `Normal::GetStartSe`, fuente enemiga
+    enemy_damaged_se  Damage1                 el mensaje del golpe, blanco enemigo
+    actor_damaged_se  Bite                    ídem, blanco del grupo
+    enemy_death_se    Monster1                `ProcessBattleActionDeath`
+    escape_se         Escape                  cuando el grupo escapa
+
+`battle_se` —el de empezar la pelea— está en `(OFF)` en este juego, así que no
+se registra: sería una entrada muda para siempre.
+
+Tres cosas que no son obvias:
+
+* **El tema de batalla y el de victoria son el mismo**, y por eso ganar no
+  cambia de tema sino que lo reinicia. Que sean dos constantes y no una es
+  porque el dato es del juego: otro LDB podría tener dos.
+* **Un golpe toca dos efectos y acá hay una sola voz.** RM2k pone el del
+  ataque al empezar la acción y el del daño en el mensaje, con una espera en
+  el medio. Acá el segundo queda pendiente en `BA_SE2` y sale veinticuatro
+  cuadros más tarde; juntos serían uno solo, porque un efecto nuevo le pisa la
+  voz al anterior. Cuando el que pega es del grupo no hay primero —RM2k no le
+  pone efecto de ataque al actor— y el del daño sale en el acto.
+* **La pelea tiene paquete de audio propio**, y eso está medido: el tema de
+  batalla son 18 muestras y 51.480 B de los 64.512 de ARAM. Metiéndolo en el
+  paquete del mapa 2, los 24 efectos de ese mapa —49.068 B, que hoy entran
+  todos— se caían casi enteros. Con paquete aparte el mapa no paga nada
+  mientras no se pelee: `op_batalla` carga `BA_PAQUETE` al entrar y el del
+  mapa al salir. Cuesta **65 cuadros medidos** de imagen congelada al volver,
+  y otro tanto al entrar; es el mismo precio que paga cada cambio de mapa, con
+  la diferencia de que allá lo tapa un fundido.
+
+Lo que lo cobra es `pruebas/test_batalla.py`, y **no la tanda de pixeles**: el
+silencio no cambia un pixel, que es el mismo argumento de
+`test_musica_paquete.py`. Son cuatro casos —el tema al entrar con sus muestras
+en la ARAM, el de victoria, el del mapa al volver, y cuál de los cinco efectos
+sale en cada golpe— y los cuatro están verificados en rojo con su defecto
+puesto.
+
+Y de ahí salió un defecto que no era del audio: **el banco de datos de
+`op_batalla` no es el 0**, así que `music_apagada` y `tema_actual`, que son
+absolutos de la BSS, se leían del banco del cartucho donde vive la página. Es
+la misma trampa que ya tenían los puentes `ba_t_*` del otro lado.
 
 ### La lluvia
 

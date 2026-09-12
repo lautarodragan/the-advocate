@@ -254,6 +254,14 @@ BA_S6      = FAR_BATALLA + 38
 ; caía justo encima de `BA_S0`: el lazo de los enemigos se reiniciaba solo y
 ; la pantalla no llegaba a aparecer nunca.
 BA_CONMAX  = FAR_BATALLA + 40
+; El audio de la pelea, en los bytes que quedaban sueltos antes de `BA_ACC`.
+; `BA_TEMA_ANT` es el tema que sonaba en el mapa —$FF si no sonaba nada—, que
+; es el `before_battle_music` de RM2k: al terminar la pelea vuelve. `BA_SE2`
+; es el efecto que falta disparar en el mensaje en curso, o $FFFF: RM2k toca
+; dos por golpe —el del ataque y el del daño, separados por una espera— y acá
+; el segundo sale cuando `BA_ESPERA` llega a `BA_SE2_CUADROS`.
+BA_TEMA_ANT = FAR_BATALLA + 41
+BA_SE2      = FAR_BATALLA + 42     ; palabra
 BA_ACC     = FAR_BATALLA + 48     ; dos bytes por combatiente: orden y blanco
 BA_EJEC    = FAR_BATALLA + 72     ; el orden de ejecución, un combatiente por byte
 BA_CAND    = FAR_BATALLA + 88     ; los vivos de un lado, para elegir blanco
@@ -303,6 +311,13 @@ BA_MSG_DERROTA = 5
 ; Cuántos cuadros se queda un mensaje si nadie aprieta A. Son dos segundos, que
 ; es lo que tarda en leerse un renglón, y A lo saltea.
 BA_MSG_CUADROS = 120
+; Cuándo sale el segundo efecto del golpe: `Scene_Battle_Rpg2k` pone el del
+; ataque al empezar la acción y el del daño en el sub-estado del mensaje, con
+; un `SetWait(4,4)` en el medio. Acá el mensaje dura `BA_MSG_CUADROS` y el
+; segundo efecto sale veinticuatro cuadros más tarde, que es lo que se
+; distingue con una sola voz: los dos juntos serían uno solo, porque el efecto
+; nuevo le pisa la voz al anterior.
+BA_SE2_CUADROS = BA_MSG_CUADROS - 24
 ; El acierto de un actor sin arma que lo cambie: `Game_Actor::GetHitChance`.
 BA_ACIERTO_ACTOR = 90
 ; El tope del daño —`MaxDamageValue()` de RM2k— y el del promedio de agilidad
@@ -4180,6 +4195,37 @@ op_batalla:
     sep #$20
 .a8
     phy                         ; el cursor: los destinos se leen al volver
+    ; El tema del mapa se guarda y vuelve al terminar, que es el
+    ; `before_battle_music` de RM2k —`Scene_Battle` lo anota al construirse y
+    ; `Game_Map` lo repone al volver—. $FF quiere decir "no sonaba nada", y es
+    ; un caso real: los primeros mapas del juego no traen música.
+    ; **Con el banco de datos en el 0**, que acá todavía es el del bytecode:
+    ; `music_apagada` y `tema_actual` son absolutos de la BSS y sin esto se
+    ; leerían del banco del cartucho donde está la página. Es la misma trampa
+    ; que los puentes `ba_t_*` del otro lado, y costó exactamente lo mismo.
+    phb
+    phk
+    plb
+    lda music_apagada
+    bne callado_antes
+    lda tema_actual
+    bra anotado
+callado_antes:
+    lda #$FF
+anotado:
+    sta f:BAT_LARGO + BA_TEMA_ANT
+    ; El paquete de audio de la pelea: su tema y sus efectos. Va aparte del
+    ; paquete del mapa y no adentro, y está medido: el tema de batalla son 18
+    ; muestras y 51.480 B de los 64.512 de ARAM, o sea que metiéndolo en el
+    ; paquete del mapa 2 los 24 efectos de ese mapa se caían casi enteros.
+    ; Se calla antes de rearmar, como hace `tema_asegurar`: `paquete_cargar`
+    ; deja quietas las muestras del tema que suena, y las del mapa no tienen
+    ; por qué ocupar lugar adentro de la pelea.
+    lda #BA_PAQUETE
+    jsr batalla_audio_cargar
+    lda #BA_TEMA
+    jsr batalla_bgm
+    plb
     ; El banco de datos, en $7E: es lo que le deja al código de la pelea usar
     ; direccionamiento absoluto sobre su estado sin perder la RAM baja, que en
     ; ese banco está en las mismas direcciones. Ver el comentario de
@@ -4200,6 +4246,14 @@ op_batalla:
     stz menu_abierto
     lda boot_cuadros
     sta nmi_visto
+    phb
+    phk
+    plb                         ; el banco 0, por lo mismo que al entrar
+    lda mapa_actual             ; y el audio del mapa vuelve al SPC700
+    jsr batalla_audio_cargar
+    lda f:BAT_LARGO + BA_TEMA_ANT
+    jsr batalla_bgm             ; el tema del mapa, o el silencio que había
+    plb
     jsr volver_al_mapa
     ply
     ; Y apunta a la tropa; los tres destinos vienen detrás, de a palabra, en el
@@ -13732,6 +13786,74 @@ ba_t_param:
     jsr eq_parametro
     plb
     rtl
+; Los dos del audio, que son de esta vuelta: un efecto de sonido —A16 el
+; índice en `sonido_tabla`, $FFFF ninguno— y el tema, con A8.
+ba_t_sonido:
+    phb
+    phk
+    plb
+    jsr sonido_tocar
+    plb
+    rtl
+ba_t_bgm:
+    phb
+    phk
+    plb
+    jsr batalla_bgm
+    plb
+    rtl
+
+; El paquete de audio A —el de la pelea al entrar, el del mapa al salir—, con
+; la música callada primero.
+;
+; Callar antes no es un detalle: `paquete_cargar` deja **quietas** las muestras
+; del tema que dice estar sonando, y ésas son justamente las que hay que
+; desalojar para hacerle lugar al paquete nuevo. Es lo mismo que hace
+; `tema_asegurar` antes de rearmar.
+;
+; Con `BA_PAQUETE` en $FF —una ROM sin peleas— no hay nada que cargar; no
+; puede pasar, porque acá se llega desde `op_batalla`, pero el opcode existe
+; en el bytecode de todas.
+.proc batalla_audio_cargar
+.a8
+.i16
+    cmp #$FF
+    beq listo
+    pha
+    lda #$FF
+    jsr batalla_bgm             ; callar, para que nada quede fijo
+    pla
+    jsr paquete_cargar
+listo:
+    rts
+.endproc
+
+; El tema de la pelea: A es el índice, o $FF para dejarla callada. Lo llaman
+; `op_batalla` —al entrar y al salir— y la pelea al ganar, por el puente de
+; arriba.
+;
+; Callar no es `FadeOutBGM`: es lo mismo que hace `tema_asegurar` antes de
+; rearmar el paquete, o sea soltar las ocho voces y poner `music_apagada`. Un
+; mapa sin música es lo normal en este juego —los primeros no traen y la
+; prende un `PlayBGM`—, así que volver de una pelea a un mapa callado tiene
+; que callar de verdad y no dejar sonando el tema de batalla.
+.proc batalla_bgm
+.a8
+.i16
+    cmp #$FF
+    beq callar
+    jmp music_start
+callar:
+    php
+    sei
+    lda #1
+    sta music_apagada
+    lda #$FF
+    ldx #SE_KOF
+    jsr dsp_par                 ; las ocho voces sueltan
+    plp
+    rts
+.endproc
 
 ; --- la lluvia ------------------------------------------------------------------
 ;
@@ -16120,6 +16242,29 @@ listo:
     iny
     iny
     phy
+    jsr sonido_tocar            ; con A de dieciséis; vuelve con A de ocho
+.a8
+    ply
+    rts
+.endproc
+
+; El efecto cuyo índice en `sonido_tabla` trae A de dieciséis bits, o nada si
+; trae $FFFF. Se separó de `sonido_de_codigo` cuando la batalla empezó a tocar
+; efectos: los suyos no salen del bytecode sino de las constantes `BA_SE_*`
+; que emite el conversor, así que el índice llega en el acumulador.
+;
+; Entra con A de dieciséis bits y sale con A de ocho, que es como la dejaba
+; antes. El banco de datos no importa: todo lo que lee va con `f:`.
+.proc sonido_tocar
+.a16
+.i16
+    cmp #$FFFF
+    bne hay
+    sep #$20
+.a8
+    rts
+hay:
+.a16
     phb
     pha
     sep #$20
@@ -16181,7 +16326,6 @@ copiar:
     plp
 listo:
     plb
-    ply
     rts
 .endproc
 
@@ -25459,11 +25603,95 @@ ninguno:
 .proc ba_mostrar
 .a8
 .i16
+    ; El efecto que hubiera quedado pendiente no sobrevive al mensaje que lo
+    ; dejó: quien quiera uno en éste lo anota después de llamar acá.
+    rep #$20
+.a16
+    lda #$FFFF
+    sta BA_SE2
+    sep #$20
+.a8
     lda #BA_M_MENSAJE
     sta BA_MODO
     lda #BA_MSG_CUADROS
     sta BA_ESPERA
     jsr ba_componer
+    rts
+.endproc
+
+; Qué suena en el golpe que se acaba de resolver, y cuándo.
+;
+; RM2k toca **dos** efectos por golpe: el del ataque al empezar la acción
+; —`Normal::GetStartSe`, y sólo cuando el que pega es un enemigo— y el del
+; resultado en el sub-estado del mensaje, unos cuadros más tarde. Acá los
+; efectos tienen **una sola voz**, así que los dos juntos serían uno solo: el
+; del resultado queda pendiente en `BA_SE2` y sale a los `BA_MSG_CUADROS -
+; BA_SE2_CUADROS` cuadros. Cuando el que pega es del grupo no hay primero, así
+; que el del resultado suena ya.
+;
+; El del resultado sale de easyrpg y no de memoria: errar es `GetFailureSe`
+; —dodge_se—, pegarle a un actor es actor_damaged_se y a un enemigo
+; enemy_damaged_se, salvo que lo mate, que es el enemy_death_se de
+; `ProcessBattleActionDeath`.
+.proc ba_sonido_del_golpe
+.a8
+.i16
+    lda BA_MBLA
+    jsr ba_x                    ; X: el desplazamiento del blanco
+    rep #$20
+.a16
+    lda BA_MDANO
+    cmp #$FFFF
+    beq erro
+    sep #$20
+.a8
+    lda BA_MBLA
+    cmp #BA_GRUPO_MAX
+    bcc al_actor
+    rep #$20
+.a16
+    lda BA_UNO + BA_HP, x
+    beq murio
+    lda #BA_SE_DANO_ENEMIGO
+    bra anotado
+murio:
+.a16
+    lda #BA_SE_MUERTE
+    bra anotado
+erro:
+.a16
+    lda #BA_SE_ERRAR
+    bra anotado
+al_actor:
+.a8
+    rep #$20
+.a16
+    lda #BA_SE_DANO_ACTOR
+anotado:
+.a16
+    sta BA_SE2
+    sep #$20
+.a8
+    lda BA_MQUIEN
+    cmp #BA_GRUPO_MAX
+    bcs del_enemigo
+    ; Pega alguien del grupo: RM2k no le pone efecto de ataque, así que el del
+    ; resultado no tiene a qué esperar y sale en el acto.
+    rep #$20
+.a16
+    lda BA_SE2
+    ldx #$FFFF
+    stx BA_SE2
+    jsl f:ba_t_sonido
+.a8
+    rts
+del_enemigo:
+.a8
+    rep #$20
+.a16
+    lda #BA_SE_ATAQUE
+    jsl f:ba_t_sonido
+.a8
     rts
 .endproc
 
@@ -25502,6 +25730,12 @@ limpia:
     sta BA_RESULT
     lda #BA_MSG_VICTORIA
     sta BA_MTIPO
+    ; El `BGM_Victory` de `Scene_Battle_Rpg2k`. En el ABL es **el mismo tema
+    ; que el de la pelea** —los dos campos del LDB dicen T_VGFighterMAX_Masako—
+    ; así que en la práctica vuelve a empezar; que sean dos constantes y no una
+    ; es porque el dato es del juego y no nuestro.
+    lda #BA_TEMA_FIN
+    jsl f:ba_t_bgm
     bra termina
 siguen:
     lda #0
@@ -25584,7 +25818,8 @@ pega:
     jsr ba_atacar
     lda #BA_MSG_ATAQUE
     sta BA_MTIPO
-    jmp ba_mostrar
+    jsr ba_mostrar              ; que limpia el pendiente, así que va antes
+    jmp ba_sonido_del_golpe
 defiende:
     lda BA_MQUIEN
     jsr ba_x
@@ -25614,6 +25849,8 @@ no_huyo:
 .a16
     lda #BATALLA_SEMILLA
     sta BA_SEM                  ; el azar arranca igual en toda pelea
+    lda #$FFFF
+    sta BA_SE2                  ; sin efecto pendiente
     sep #$20
 .a8
     lda #BA_VICTORIA
@@ -25721,6 +25958,11 @@ o_huye:
     lda #BA_MSG_HUYO
     sta BA_MTIPO
     jsr ba_mostrar
+    rep #$20
+.a16
+    lda #BA_SE_HUIR             ; el escape_se de `Scene_Battle_Rpg2k`
+    jsl f:ba_t_sonido
+.a8
     lda #BA_M_FIN
     sta BA_MODO
     jmp espera
@@ -25781,6 +26023,21 @@ modo_mensaje:
     jsr ba_flanco_a
     bne pasa
     dec BA_ESPERA
+    lda BA_ESPERA
+    cmp #BA_SE2_CUADROS
+    bne sin_segundo
+    ; El segundo efecto del golpe, el que RM2k toca en el sub-estado del
+    ; mensaje. Se saca de `BA_SE2` al dispararlo para que no vuelva a salir si
+    ; el mensaje se alarga.
+    rep #$20
+.a16
+    lda BA_SE2
+    ldx #$FFFF
+    stx BA_SE2
+    jsl f:ba_t_sonido
+.a8
+sin_segundo:
+    lda BA_ESPERA
     bne espera3
 pasa:
     jsr ba_ejecutar

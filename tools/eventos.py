@@ -1488,6 +1488,91 @@ BATALLA_ESCAPE_CORTA = 1
 BATALLA_DERROTA_GAME_OVER = 0
 
 
+# --- el audio de la pelea ---------------------------------------------------
+#
+# Todo del LDB, nada inventado: el tema de batalla, el de victoria y los cinco
+# efectos que `Game_System::GetSystemSE` reparte. Quién suena en qué momento
+# sale de easyrpg-player y **no de memoria**, que es la regla de este repo:
+#
+#   battle_music      `Scene_Battle`, al construirse
+#   battle_end_music  `Scene_Battle_Rpg2k`, al ganar (BGM_Victory)
+#   dodge_se          `AlgorithmBase::GetFailureSe`: el golpe que erra
+#   enemy_attack_se   `Normal::GetStartSe` con la fuente enemiga
+#   enemy_damaged_se  el sub-estado `eMessage` del golpe, blanco enemigo
+#   actor_damaged_se  ídem, blanco del grupo
+#   enemy_death_se    `ProcessBattleActionDeath`
+#   escape_se         `Scene_Battle_Rpg2k`, cuando el grupo escapa
+#
+# En el ABL `battle_se` —el de empezar la pelea— está en "(OFF)", así que no
+# se registra nada por él: un nombre que no resuelve a ningún archivo entra
+# igual en las tablas pero ocuparía una entrada para siempre muda.
+#
+# **Esto se registra de los dos lados**, y no porque la referencia suene: los
+# índices de `Temas` los lleva el bytecode de cada `PlayBGM` y cada
+# `PlaySound`, así que un tema que un lado numere y el otro no correría todos
+# los que vengan detrás. Por eso vive acá, en la función que las dos puntas
+# llaman, y no en el conversor.
+AUDIO_BATALLA = {}
+
+# El orden es el contrato con la ROM: el conversor emite `BA_SE_<n>` con el
+# índice que cada uno sacó de `Temas`, en este orden.
+AUDIO_BATALLA_SE = ("dodge_se", "enemy_attack_se", "enemy_damaged_se",
+                    "actor_damaged_se", "enemy_death_se", "escape_se")
+AUDIO_BATALLA_BGM = ("battle_music", "battle_end_music")
+
+# Un nombre que RM2k usa para decir "nada": ni el tema ni el efecto existen.
+AUDIO_APAGADO = ("", "(OFF)")
+
+
+def indexar_audio_de_batalla(game_dir):
+    """El tema y los efectos de la pelea, del LDB. Lo llaman el conversor y la
+    referencia, igual que `indexar_animaciones`."""
+    import lcf
+    db = lcf.Database(os.path.join(game_dir, "RPG_RT.ldb"))
+    AUDIO_BATALLA.clear()
+    AUDIO_BATALLA["battle_music"] = db.battle_music
+    AUDIO_BATALLA["battle_end_music"] = db.battle_end_music
+    for nombre in AUDIO_BATALLA_SE:
+        AUDIO_BATALLA[nombre] = db.system_se[nombre]
+
+
+# La clave de `Temas.por_mapa` donde va el audio de la pelea. No es un mapa:
+# es **un paquete de audio propio**, que la ROM carga al abrir la pelea y
+# descarga al cerrarla.
+#
+# Va aparte y no adelante del paquete del mapa, y eso está medido: el tema de
+# batalla son 18 muestras y 51.480 B de los 64.512 de ARAM, así que metiéndolo
+# en el paquete del mapa 2 los 24 efectos de ese mapa —49.068 B, que hoy
+# entran todos— se caían casi enteros. Con paquete propio el mapa no paga
+# nada mientras no se pelee.
+PAQUETE_BATALLA = "batalla"
+
+
+def audio_de_batalla(temas):
+    """Anota en `temas` lo que la pelea va a hacer sonar, y devuelve sus
+    índices: dos temas y `AUDIO_BATALLA_SE` efectos, $FF o $FFFF el apagado.
+
+    Se llama cada vez que una página compila un `EnemyEncounter`. Lo anotado
+    cae en el paquete `PAQUETE_BATALLA` y no en el del mapa que tiene la
+    pelea, así que hay que salvar y reponer `temas.mapa` alrededor.
+    """
+    if temas is None or not AUDIO_BATALLA:
+        return None
+    indices = {}
+    anterior = temas.mapa
+    temas.mapa = PAQUETE_BATALLA
+    for nombre in AUDIO_BATALLA_BGM:
+        tema = AUDIO_BATALLA[nombre]
+        indices[nombre] = (0xFF if tema in AUDIO_APAGADO
+                           else temas.indice(tema))
+    for nombre in AUDIO_BATALLA_SE:
+        efecto = AUDIO_BATALLA[nombre]
+        indices[nombre] = (0xFFFF if efecto[0] in AUDIO_APAGADO
+                           else temas.sonido(*efecto))
+    temas.mapa = anterior
+    return indices
+
+
 def imagen_tono(desde, hasta, paso, pasos):
     """El tono del cartel en el cuadro `paso` de `pasos`, componente por
     componente.
@@ -1967,6 +2052,10 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
                 tropa = tropa_de_encuentro(cmd)
                 if tropas is not None:
                     tropas.pedir(tropa)
+                # El tema y los efectos que la pelea hace sonar, anotados en el
+                # paquete de audio de este mapa. Va de los dos lados: ver
+                # `audio_de_batalla`.
+                audio_de_batalla(temas)
                 bat.append({"i": len(piezas), "tropa": tropa,
                             "destinos": [None, None, None],
                             "vistas": 0, "salidas": []})
@@ -4154,7 +4243,7 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
                     pan=(), rama=(), destello=(), guardar=False,
                     variables=(), rama_var=(), items=(), acceso=(),
                     lluvia=None, animacion=(), eventos_mapa=None,
-                    batalla=0):
+                    batalla=0, temas=None):
     """Una página automática inventada: una ruta forzada, una espera, un tinte.
 
     No sale de ningún dato del juego, y ésa es la idea. El intérprete corre
@@ -4403,6 +4492,7 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
         # Los tres destinos apuntan al final del bloque, o sea al OP_FIN: gane,
         # pierda o escape, la página sigue por el mismo lado. Lo que se prueba
         # acá es la pelea, no por dónde sigue la escena.
+        audio_de_batalla(temas)
         fin = len(codigo) + 9
         codigo += bytes([OP_BATALLA, batalla & 0xFF, batalla >> 8,
                          fin & 0xFF, fin >> 8, fin & 0xFF, fin >> 8,

@@ -250,6 +250,22 @@ SYSTEM_NAME = 0x13
 # pagó con los códigos de comando de las puertas.
 SYSTEM_TITLE_NAME = 0x11
 SYSTEM_TITLE_MUSIC = 0x1F
+# El audio de la pelea, del mismo `ChunkSystem`: el tema que suena al entrar,
+# el que suena al ganar, y los efectos que `Game_System::GetSystemSE` reparte.
+# Los códigos son los de liblcf y el orden de este diccionario es el que
+# `eventos.AUDIO_BATALLA_SE` recorre.
+SYSTEM_BATTLE_MUSIC = 0x20
+SYSTEM_BATTLE_END_MUSIC = 0x21
+SYSTEM_SE = {
+    "battle_se": 0x2D,
+    "escape_se": 0x2E,
+    "enemy_attack_se": 0x2F,
+    "enemy_damaged_se": 0x30,
+    "actor_damaged_se": 0x31,
+    "dodge_se": 0x32,
+    "enemy_death_se": 0x33,
+    "item_se": 0x34,
+}
 # Con qué fuente dibuja el texto: 0 Gothic, 1 Mincho. easyrpg elige ttyp0 o
 # rmg2000 con esto, y las letras salen distintas. Este juego pide Mincho.
 SYSTEM_FONT_ID = 0x48
@@ -795,6 +811,25 @@ class Database:
         titulo_music = Reader(
             sistema.get(SYSTEM_TITLE_MUSIC, b"\x00")).read_struct()
         self.title_music = to_string(titulo_music.get(MUSIC_NAME, b""))
+        # El audio de la pelea. Sale de acá y no de un literal nuestro por lo
+        # mismo que los términos: es un dato del juego. En el ABL el tema de
+        # batalla y el de victoria son **el mismo** —T_VGFighterMAX_Masako—, y
+        # `battle_se` está en "(OFF)", que es un nombre que no resuelve a
+        # ningún archivo y sale mudo sin que haya que tratarlo aparte.
+        self.battle_music = to_string(Reader(
+            sistema.get(SYSTEM_BATTLE_MUSIC, b"\x00")
+        ).read_struct().get(MUSIC_NAME, b""))
+        self.battle_end_music = to_string(Reader(
+            sistema.get(SYSTEM_BATTLE_END_MUSIC, b"\x00")
+        ).read_struct().get(MUSIC_NAME, b""))
+        self.system_se = {}
+        for nombre, chunk in SYSTEM_SE.items():
+            campos = Reader(sistema.get(chunk, b"\x00")).read_struct()
+            self.system_se[nombre] = (
+                to_string(campos.get(MUSIC_NAME, b"")),
+                to_int(campos.get(MUSIC_VOLUME, b"\x64")),
+                to_int(campos.get(MUSIC_TEMPO, b"\x64")),
+                to_int(campos.get(MUSIC_BALANCE, b"\x32")))
         # Los términos de la pantalla de título. En el ABL no son los de
         # fábrica: dicen 'Begin the Story' y 'Resume the Story', que es lo que
         # el juego eligió y por eso salen de acá y no de un literal nuestro.
