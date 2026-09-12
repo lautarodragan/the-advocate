@@ -165,6 +165,26 @@ Lo que hay que hacer siempre:
   una tanda: el 2026-09-12 uno dejó cinco armados y siguieron avisando que había
   terminado mucho después de haber entregado.
 
+### Un merge sin conflictos no es un merge verificado
+
+Dos ramas que cambian **la misma convención en archivos o líneas distintas**
+mergean limpio y git no dice nada. Pasó el 2026-09-13: una rama hizo que
+`paquete_cargar` leyera el mapa de `mapa_actual` en vez de A, la otra trajo un
+llamador que se lo seguía pasando en A, y desde ese merge la pelea cargaba el
+paquete de audio del mapa. Las dos pruebas que lo cobraban estuvieron en rojo
+un día entero y **tres informes seguidos las dieron por "preexistentes"** —lo
+eran, pero preexistente no quiere decir ajena—.
+
+Así que al mergear una rama de sub-agente:
+
+* **Correr `just pruebas` y la tanda sobre el árbol mergeado**, no sobre las
+  ramas. Que cada una viniera en verde no dice nada del merge.
+* **Un rojo heredado se bisecta, no se hereda.** Si una prueba está en rojo y
+  nadie la rompió, apareció en algún lado: `git log -S` para saber cuándo nació
+  y correrla en los padres del merge sospechoso. Cuesta veinte minutos.
+* **Mirar a mano las firmas que las dos ramas tocaron**: quién pasa qué a quién
+  y con cuántos bits.
+
 ### Cuando un sub-agente se corta
 
 No se reanuda ni se le puede escribir. Al retomar, en este orden:
