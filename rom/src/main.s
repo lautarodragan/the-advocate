@@ -24319,7 +24319,15 @@ done:
 ;   ba_divr   es comp_and    ; el resto
 ;   ba_mulp   es comp_or23   ; el parcial bajo del producto
 .segment "RODATA"
-.bloque 4096
+; **Tiene que ser al menos lo que mide todo lo que sigue hasta `batalla_correr`
+; inclusive**, que hoy son 7025 bytes: adentro se llaman entre sí con `jsr`, y
+; un `jsr` no cruza de banco. Con 4096 —lo que decía acá— la pelea ya se pasaba
+; antes de las habilidades, y lo que se veía era
+; `el operando no entra en 2 byte(s)` sobre `jsr ba_blanco_arriba` **en algunos
+; cartuchos y no en otros**: depende de dónde caiga el bloque, y los casos de
+; la tanda con un solo mapa lo dejaban entrar justo. Lo cobra `snes-escena` con
+; dos mapas —los hitos 77 y 78—.
+.bloque 8192
 
 ; Los HP de todos los actores llenos, a `FAR_HP`: el mismo DMA que el equipo,
 ; desde `actor_hpmax`. Corre en el reset, antes de cargar la partida, que lo
