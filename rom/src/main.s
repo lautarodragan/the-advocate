@@ -3852,6 +3852,9 @@ otro:
 :   cmp #OP_ACTOR_GRAF
     bne :+
     jmp op_actor_graf
+:   cmp #OP_TECLA
+    bne :+
+    jmp op_tecla
 :   cmp #OP_TIENDA
     bne :+
     jmp op_tienda
@@ -5270,6 +5273,61 @@ op_actor_graf:
     jsr aplicar_tinte
 graf_no_lidera:
     ply
+    jmp otro
+
+; `KeyInputProc`: qué tecla apretó el jugador, guardada en una variable. Ver
+; OP_TECLA en eventos.py, que es donde está el porqué de que la forma que
+; espera se emita dos veces.
+;
+; La que **espera** y no encuentra nada rebobina su propio cursor a este mismo
+; opcode y devuelve el control: el cuadro que viene se la vuelve a ejecutar. Es
+; lo mismo que hace la referencia devolviendo `(i, 0, None)`, y es lo que evita
+; tener que guardar "estoy esperando" en algún lado —el intérprete de un evento
+; paralelo son siete bytes y no le sobra ninguno—.
+op_tecla:
+.a8
+.i16
+    lda [cod_ptr], y            ; la ranura de la variable
+    iny
+    sta temp
+    lda [cod_ptr], y            ; las banderas
+    iny
+    sta temp + 1
+    and #TECLA_ARRANCA
+    beq tecla_mirar
+    ; La primera de las dos: la variable en cero y el control de vuelta sin
+    ; mirar nada. Es el `Input::ResetTriggerKeys()` de RPG_RT, que acá sale
+    ; gratis: el flanco se calcula contra el pad del cuadro anterior, así que
+    ; dejar pasar un cuadro es exactamente perderlo.
+    stz temp + 2
+    stz temp + 3
+    lda temp
+    jsr var_escribir
+    lda #1
+    sta refresco
+    sty ev_cur
+    rts
+tecla_mirar:
+    phy
+    jsr tecla_valor
+    ply
+    sta temp + 2                ; el valor, que es de donde lo saca var_escribir
+    stz temp + 3
+    lda temp + 1
+    and #TECLA_ESPERA
+    beq tecla_guardar           ; sin espera se guarda lo que haya, cero incluido
+    lda temp + 2
+    bne tecla_guardar
+    dey                         ; todavía nada: el cursor vuelve a este opcode
+    dey
+    dey
+    sty ev_cur
+    rts
+tecla_guardar:
+    lda temp
+    jsr var_escribir
+    lda #1
+    sta refresco                ; `SetNeedRefreshForVarChange`, como ControlVars
     jmp otro
 
 op_esperar:
@@ -11091,6 +11149,34 @@ otro:
     sta WMDATA
     dex
     bne otro
+    rts
+.endproc
+
+; El valor que `KeyInputProc` le guarda a la variable, en A, o 0 si todavía no
+; hay tecla. `temp + 1` trae las banderas.
+;
+; **Sólo la tecla de acción, y sólo por flanco.** No es una simplificación
+; escondida: es la única forma del comando que compila, ver `KEY_INPUT_PROC` en
+; `eventos.py`, que tiene el número y el porqué. Las otras —la cruceta,
+; cancelar, y leer sin esperar— están escritas del lado del modelo, en
+; `eventos.tecla_de`, y acá **no**: escribirlas sería poner en el banco 0
+; sesenta bytes que ninguna página puede alcanzar y que por lo tanto no prueba
+; nada. El día que la caminata del arnés avance cuadro a cuadro, vuelven, y el
+; orden en que se miran ya está en `tecla_de`.
+;
+; El flanco es `Input::IsTriggered`: `pad_a` contra `pad_a_ant`, lo mismo con
+; lo que se cierra un mensaje.
+.proc tecla_valor
+.a8
+.i16
+    lda pad_a
+    eor pad_a_ant
+    and pad_a
+    beq ninguna
+    lda #TECLA_VALOR_DECISION
+    rts
+ninguna:
+    lda #0
     rts
 .endproc
 

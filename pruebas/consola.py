@@ -257,20 +257,26 @@ class Partida:
         """La SRAM del cartucho, que es lo que un frontend vuelca a un `.srm`."""
         return self.consola.sram(direccion, largo)
 
-    def correr(self, cuadros, apretar_a=()):
+    def correr(self, cuadros, apretar_a=(), sosteniendo=()):
         """Avanza `cuadros` **ticks**. `apretar_a` son toques de A, por número.
 
         El botón se sostiene mientras dure el tick: la ROM lee el pad una vez
         por vuelta, así que si la vuelta se estira sigue siendo un solo flanco.
+
+        `sosteniendo` son los que quedan apretados **todos** los cuadros, que
+        es lo que hace `--teclas` en `snes_correr.py`. Hace falta porque esto
+        suelta el pad en cada vuelta: un `consola.apretar(...)` de afuera se
+        perdía en el primer cuadro, y `KeyInputProc` sin espera leía cero.
         """
         presiones = {n - RETRASO_DE_PANTALLA for n in apretar_a}
+        sosteniendo = tuple(sosteniendo)
         objetivo = self.cuadro + cuadros
         tope = (cuadros + 1) * 60
         while self.cuadro < objetivo:
             if self.cuadro + 1 in presiones:
-                self.consola.apretar("a")
+                self.consola.apretar("a", *sosteniendo)
             else:
-                self.consola.apretar()
+                self.consola.apretar(*sosteniendo)
             self._un_cuadro()
             tope -= 1
             if tope <= 0:
@@ -578,7 +584,7 @@ def huella():
 
 def armar(map_id, mapas=(), con_ventana=True, destino=None, rama=(),
           descartar=False, guardar=0, titulo=False, tema=None, variables=(),
-          rama_var=(), items=(), acceso=()):
+          rama_var=(), items=(), acceso=(), tecla=(), espera=0):
     """Convierte, ensambla y devuelve (ROM, símbolos, ids de mapa en orden).
 
     Los mismos dos comandos que corre el justfile, para que una ROM de prueba
@@ -618,6 +624,13 @@ def armar(map_id, mapas=(), con_ventana=True, destino=None, rama=(),
         convertir += ["--items-de-prueba"] + [str(n) for n in items]
     if acceso:
         convertir += ["--acceso-de-prueba"] + [str(n) for n in acceso]
+    if tecla:
+        # `KeyInputProc` en la página de prueba, con `espera` cuadros de espera
+        # delante: la espera es lo que le deja a la prueba apretar algo antes
+        # de que el comando lea, que si no lee en el primer cuadro de juego y
+        # no hay forma de tener el pad puesto a tiempo.
+        convertir += ["--tecla-de-prueba"] + [str(n) for n in tecla]
+        convertir += ["--pagina-de-prueba", str(espera)]
     if guardar:
         # La página de prueba espera `guardar` ticks y recién ahí guarda la
         # partida. La espera es lo que le deja a la prueba mover el mundo antes

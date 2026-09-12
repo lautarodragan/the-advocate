@@ -1080,6 +1080,79 @@ snes-sprite-actor mapa="6" sprite="11 Future1 0" grafico="Future1 0" celda="22 1
         --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
   done
 
+# `KeyInputProc`: esperar una tecla y guardar cuál fue.
+#
+# Medido sobre las 5603 páginas disparables del juego: **+30** si se acepta el
+# comando entero y **+23** con lo que este port hace, que es la forma que
+# **espera la tecla de acción** y nada más. Las 23 páginas son casi todas lo
+# mismo: un cartel y un "apretá para seguir".
+#
+# Las otras dos formas están medidas y afuera, y el porqué de cada una está en
+# `KEY_INPUT_PROC` en eventos.py:
+#
+#   esperar una dirección o cancelar   +2 páginas. El arnés no sabe producir un
+#                                      flanco de cruceta a mitad de una escena.
+#   leer sin esperar                   +5 del juego y 3 de la persecución en
+#                                      auto. La traba no es el comando sino con
+#                                      qué viene: las cuatro páginas que la usan
+#                                      son el volante del auto, y además de leer
+#                                      el pad **le fuerzan la ruta al héroe en
+#                                      todos los cuadros**. Ahí aparece una
+#                                      divergencia anterior a todo esto: en la
+#                                      ROM la ruta forzada manda sobre el pad y
+#                                      en la referencia la caminata del arnés no
+#                                      la mira. Medido: `just snes-heroe 52` da
+#                                      **55,42%** caminando a la izquierda —la
+#                                      única dirección que pelea contra el
+#                                      empujón— y cero en las otras cuatro.
+#
+# El caso, uno solo, que es el que se puede ver:
+#
+#   `tecla-espera`   la página **se para** hasta que el jugador apriete A y
+#                    recién ahí tiñe. El cuadro en que la pantalla cambia de
+#                    color es el cuadro en que se apretó: con `--apretar-a 40`,
+#                    el 20 sale sin teñir y el 60 teñido, y entre los dos hay
+#                    69,78% de pixeles de diferencia, o sea que el caso
+#                    ejercita. Verificado en rojo: con la ROM sin esperar, el
+#                    cuadro 20 da 69,78%.
+#
+# Qué número quedó en la variable no lo dice ningún pixel: eso lo cobra
+# `pruebas/test_tecla.py`, contra `eventos.tecla_de`, que es la misma función
+# que corre la referencia.
+snes-tecla mapa="6" tecla="88 1 0 1 0" celda="22 12" cuadros="20 60" tinte="0 100 0 0" apretar="40" walk="none" vars="" timer="" arranque="115" nombre="tecla-espera":
+  #!/usr/bin/env bash
+  set -euo pipefail
+  # Los dos opcionales, como variables de bash: `${x:+...}` necesita una
+  # variable de verdad, y con la sustitución de just adentro se expande a la
+  # cadena vacía sin poner el flag **y sin decir nada**. Costó un caso en
+  # verde que no apretaba A y por lo tanto no probaba nada.
+  apretar="{{apretar}}"
+  vars="{{vars}}"
+  timer="{{timer}}"
+  mkdir -p {{snes_pngs}} {{snes_inc}}
+  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
+      --inicio {{celda}} --tecla-de-prueba {{tecla}} \
+      ${vars:+--vars-de-prueba {{vars}}} \
+      ${timer:+--timer-de-prueba {{timer}}} \
+      --pagina-de-prueba {{tinte}} -o {{snes_inc}}/mapdata.inc
+  just snes-build
+  pre={{snes_pngs}}/{{nombre}}
+  python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} \
+      --walk {{walk}} $([ "{{walk}}" = none ] || echo --dir {{walk}}) \
+      --hero-tile {{celda}} --tecla-de-prueba {{tecla}} \
+      ${vars:+--vars-de-prueba {{vars}}} \
+      ${timer:+--timer-de-prueba {{timer}}} \
+      ${apretar:+--apretar-a {{apretar}}} \
+      --pagina-de-prueba {{tinte}} --cuadros {{cuadros}} \
+      --saltar $pre-{}.saltar.txt -o $pre-{}.esperado.png
+  for n in {{cuadros}}; do
+    python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre-$n.png \
+        --walk {{walk}} --cuadros $n --arranque {{arranque}} \
+        ${apretar:+--apretar-a {{apretar}}}
+    python3 tools/snes_compare.py $pre-$n.png $pre-$n.esperado.png \
+        --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
+  done
+
 snes-destello mapa="6" flash="1 31 0 0 31 24" celda="2 10" cuadros="2 12 15 23 25" tinte="12 0 0 50" arranque="115" nombre="destello":
   #!/usr/bin/env bash
   set -euo pipefail

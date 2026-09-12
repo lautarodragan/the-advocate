@@ -194,7 +194,8 @@ class Mundo:
             self.asociaciones.append((prueba[22][1], prueba[22][2]))
         # El mismo índice de variables que el conversor: el del juego entero.
         eventos.indexar_variables(game_dir, (
-            snes_convert.variables_de_prueba(prueba[15], prueba[16])
+            snes_convert.variables_de_prueba(prueba[15], prueba[16],
+                                             prueba[23])
             if prueba is not None else ()))
         eventos.indexar_animaciones(game_dir)
         # Y los eventos comunes, que `CallEvent` compila en el lugar:
@@ -260,7 +261,8 @@ class Mundo:
                                               temas=self.temas,
                                               sprite=self.prueba[22],
                                               graficos=self.graficos_cache[
-                                                  map_id])),
+                                                  map_id],
+                                              tecla=self.prueba[23])),
                                      dict(PAGINA_DE_PRUEBA_APAGADA,
                                           evento=numero)]
             self.paginas_cache[map_id] = paginas
@@ -884,6 +886,7 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
                         apreta = False
                 if interprete.cuadro(
                         apreto_a=apreta,
+                        direccion=mirando,
                         mover_evento=paso_del_paralelo(
                             estado, passable, game_map, (x, y),
                             interprete.paginas)):
@@ -1598,6 +1601,16 @@ def main():
                              "prueba: el blanco es 0 para el héroe o el índice "
                              "del evento más uno, el color va de 0 a 31 y los "
                              "cuadros son cuántos dura")
+    parser.add_argument("--tecla-de-prueba", nargs=5, type=int,
+                        default=None,
+                        metavar="N",
+                        help="el mismo de snes_convert.py: agrega un\n"
+                             "KeyInputProc con los cinco parámetros de\n"
+                             "RM2k: variable, esperar, las cuatro\n"
+                             "direcciones, la tecla de acción y\n"
+                             "cancelar. Ninguna página del juego que\n"
+                             "hoy compile lo usa, así que sin esto el\n"
+                             "camino no lo corre nada")
     parser.add_argument("--sprite-de-prueba", nargs=3, default=None,
                         metavar=("ACTOR", "CHARSET", "INDICE"),
                         help="el mismo de snes_convert.py: agrega a la\n"
@@ -1727,6 +1740,7 @@ def main():
                   or args.lluvia_de_prueba is not None
                   or args.animacion_de_prueba or args.batalla_de_prueba
                   or args.sprite_de_prueba
+                  or args.tecla_de_prueba
                   or args.mensaje_de_prueba is not None)
     # El bloque de textos, armado igual que en el conversor y en el mismo orden:
     # el mensaje de prueba primero —desplazamiento 0— y después los mapas de la
@@ -1753,7 +1767,8 @@ def main():
                    args.lluvia_de_prueba,
                    tuple(args.animacion_de_prueba or ()),
                    args.batalla_de_prueba,
-                   snes_convert.sprite_de_prueba(args.sprite_de_prueba))
+                   snes_convert.sprite_de_prueba(args.sprite_de_prueba),
+                   tuple(args.tecla_de_prueba or ()))
                   if hay_prueba else None, mensajes,
                   graficos_de_prueba=snes_convert.graficos_de_prueba(
                       args.grafico_de_prueba),

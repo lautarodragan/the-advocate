@@ -1575,6 +1575,64 @@ OP_BATALLA = 0x22   # tropa (word), victoria (word), huida (word), derrota (word
 # mismo con la misma función.
 OP_ACTOR_GRAF = 0x23    # actor (byte), gráfico (byte)
 
+# `KeyInputProc`: ranura de variable (byte) y qué teclas mira (byte).
+#
+# En RM2k es `CommandKeyInputProc` más el pedazo de `Game_Interpreter::Update`
+# que lo atiende mientras espera, y el valor que guarda sale de `CheckInput`:
+# 1 abajo, 2 izquierda, 3 derecha, 4 arriba, 5 la tecla de acción, 6 cancelar.
+# Se miran de mayor a menor, que es lo que dice el comentario "RPG processes
+# keys from highest variable value to lowest".
+#
+# Las dos formas son programas distintos y por eso llevan bandera:
+#
+#   sin espera   lee lo que está apretado **ahora** —`Input::IsPressed`— y la
+#                página sigue en el mismo cuadro. Es la del volante del auto.
+#   con espera   la página se para acá hasta que haya un **flanco**
+#                —`IsTriggered`— de alguna de las teclas pedidas.
+#
+# La de espera se emite **dos veces**, la primera con `TECLA_ARRANCA`: ésa pone
+# la variable en cero, se come el flanco que hubiera y devuelve el control sin
+# mirar nada. Es el `Input::ResetTriggerKeys()` de RPG_RT, que existe para que
+# el comando no se coma la misma tecla que acaba de cerrar un mensaje —y en
+# este juego las 23 esperas vienen justo detrás de un `ShowMessage`, así que
+# sin eso el cartel pasaría de largo—. Dos opcodes y no un byte de estado
+# porque el intérprete no tiene dónde guardarlo: el que espera **rebobina su
+# propio cursor** y se vuelve a ejecutar cuadro a cuadro, así que no puede
+# distinguir la primera vuelta de las otras.
+OP_TECLA = 0x24
+TECLA_ESPERA   = 0x01
+TECLA_DIRS     = 0x02
+TECLA_DECISION = 0x04
+TECLA_CANCELAR = 0x08
+TECLA_ARRANCA  = 0x10
+
+KEY_INPUT_PROC = 11610
+
+# El valor que RM2k le guarda a cada tecla, y de acá sale también el orden en
+# que se las mira: de mayor a menor.
+TECLA_VALOR_CANCELAR = 6
+TECLA_VALOR_DECISION = 5
+# Por dirección de la ROM: 0 arriba, 1 derecha, 2 abajo, 3 izquierda.
+TECLA_VALOR_DIR = {0: 4, 1: 3, 3: 2, 2: 1}
+
+
+def tecla_de(banderas, apretadas):
+    """Qué valor le toca a la variable con estas teclas apretadas.
+
+    `apretadas` es el conjunto de lo que el jugador tiene puesto: los enteros
+    0 a 3 para las direcciones, "a" y "b" para las dos teclas. La usan los dos
+    lados —acá la referencia, allá `op_tecla`— y el orden es el de `CheckInput`.
+    """
+    if banderas & TECLA_CANCELAR and "b" in apretadas:
+        return TECLA_VALOR_CANCELAR
+    if banderas & TECLA_DECISION and "a" in apretadas:
+        return TECLA_VALOR_DECISION
+    if banderas & TECLA_DIRS:
+        for direccion in (0, 1, 3, 2):          # arriba, derecha, izq, abajo
+            if direccion in apretadas:
+                return TECLA_VALOR_DIR[direccion]
+    return 0
+
 ENEMY_ENCOUNTER = 10710
 VICTORY_HANDLER = 20710
 ESCAPE_HANDLER = 20711
@@ -2555,6 +2613,66 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         if len(p) < 3 or p[2] != 1:
             raise NoSePuede("ChangeCondition que pone un estado")
         return b""
+
+    if cmd.code == KEY_INPUT_PROC:
+        # [variable, esperar, las cuatro direcciones, la de acción, cancelar].
+        # Las 32 apariciones del juego tienen los cinco y ninguna más: con seis
+        # o más RM2k 1.50 pasa a mirar cada dirección por separado, que es otro
+        # programa, así que el largo se exige en vez de suponerse.
+        if len(p) != 5:
+            raise NoSePuede("KeyInputProc con %d operandos" % len(p))
+        banderas = ((TECLA_ESPERA if p[1] else 0)
+                    | (TECLA_DIRS if p[2] else 0)
+                    | (TECLA_DECISION if p[3] else 0)
+                    | (TECLA_CANCELAR if p[4] else 0))
+        if not banderas & (TECLA_DIRS | TECLA_DECISION | TECLA_CANCELAR):
+            # Sin ninguna tecla pedida, la forma que espera no sale nunca.
+            raise NoSePuede("KeyInputProc sin ninguna tecla")
+        if not p[1]:
+            # **La forma que no espera —leer el pad y seguir— está hecha de los
+            # dos lados y no se acepta**, y el número está medido: vale +5
+            # páginas del juego entero y 3 de la persecución en auto.
+            #
+            # Lo que la traba no es este comando sino con qué viene: las 4
+            # páginas que la usan son el volante del auto —`RaceController2` de
+            # los mapas 49, 51, 52 y 54— y cada una, además de leer el pad,
+            # **le fuerza la ruta al héroe en todos los cuadros**. Ahí aparece
+            # una divergencia que es anterior a todo esto y que ninguna página
+            # compilada había ejercitado nunca: en la ROM una ruta forzada
+            # manda sobre el pad —el `lda ruta_i / cmp ruta_n` de `move_hero`—
+            # y en la referencia la caminata del arnés no la mira: camina por
+            # celdas enteras y sólo se frena con un mensaje abierto.
+            #
+            # Medido: con esta forma aceptada, `just snes-heroe 52` da **55,42%
+            # de pixeles distintos** caminando a la izquierda, desde el cuadro
+            # 60; las otras cuatro direcciones dan cero, y es exactamente la
+            # única que pelea contra el empujón hacia la derecha que la página
+            # le da al héroe todos los cuadros.
+            #
+            # Arreglarlo es hacer que la caminata del arnés avance **cuadro a
+            # cuadro** en vez de celda a celda, y que corra la ruta forzada del
+            # héroe mientras camina. Es el pedazo más delicado de
+            # `snes_expect.py` y no entra en esta vuelta.
+            raise NoSePuede("KeyInputProc sin espera: la ruta forzada del "
+                            "héroe no manda sobre el pad en la referencia")
+        if banderas != (TECLA_ESPERA | TECLA_DECISION):
+            # **La espera se hace sólo con la tecla de acción**, y el número
+            # está medido: de las +30 páginas que este comando destraba en el
+            # juego entero, esta forma vale 23 y las dos que se pierden son las
+            # únicas que esperan una dirección o cancelar.
+            #
+            # El corte no es de la ROM —leer el flanco de la cruceta le sale
+            # igual de barato— sino del **arnés**: la tanda sostiene una
+            # dirección desde el arranque y aprieta A en cuadros anotados, así
+            # que un flanco de cruceta a mitad de una escena no lo puede
+            # producir ningún caso. Modelarlo igual sería escribir de los dos
+            # lados un camino que nada ejecuta, que es exactamente cómo
+            # sobrevivieron los tres errores del intérprete.
+            raise NoSePuede("KeyInputProc que espera algo que no sea la tecla "
+                            "de acción")
+        ranura = ranura_de_variable(p[0])
+        return bytes([OP_TECLA, ranura, banderas | TECLA_ARRANCA,
+                      OP_TECLA, ranura, banderas])
 
     if cmd.code == CHANGE_SPRITE_ASSOCIATION:
         # [actor, índice del CharSet, transparente]. Ver OP_ACTOR_GRAF.
@@ -3694,6 +3812,18 @@ class Estado:
         # en la partida guardada; el azar no, que RM2k tampoco lo guarda.
         self.variables = {}
         self.azar_estado = AZAR_SEMILLA
+        # Lo que el jugador tiene apretado en este cuadro: 0 a 3 las cuatro
+        # direcciones —el mismo índice que el resto del modelo— y "a" y "b" las
+        # dos teclas. Lo escribe el lazo que es dueño del tiempo, antes de
+        # correr el intérprete, y lo lee `KeyInputProc` y nadie más: el héroe
+        # camina por otro lado, porque el arnés le pasa la dirección directo.
+        #
+        # **Es lo que el arnés puede producir y nada más**: una dirección
+        # sostenida desde el arranque —`--walk`— y la tecla de acción en los
+        # cuadros de `--apretar-a`. B no lo aprieta ningún caso de la tanda, así
+        # que una forma de `KeyInputProc` que dependa de él leería siempre cero
+        # de este lado; ver el corte de `_compilar`.
+        self.pad = frozenset()
 
     def variable(self, ranura):
         return self.variables.get(ranura, 0)
@@ -4428,7 +4558,7 @@ LARGO_DE_OPCODE = {
     OP_GUARDAR: 1, OP_VAR: 8, OP_SI_VAR: 8, OP_ITEM: 4, OP_ACCESO: 3,
     OP_CLIMA: 3, OP_SONIDO: 3,
     OP_IMAGEN: 5, OP_IMAGEN_MOVER: 6, OP_IMAGEN_BORRAR: 1,
-    OP_BATALLA: 9, OP_ACTOR_GRAF: 3,
+    OP_BATALLA: 9, OP_ACTOR_GRAF: 3, OP_TECLA: 3,
 }
 
 
@@ -4650,7 +4780,8 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
                     pan=(), rama=(), destello=(), guardar=False,
                     variables=(), rama_var=(), items=(), acceso=(),
                     lluvia=None, animacion=(), eventos_mapa=None,
-                    batalla=0, temas=None, sprite=(), graficos=None):
+                    batalla=0, temas=None, sprite=(), graficos=None,
+                    tecla=()):
     """Una página automática inventada: una ruta forzada, una espera, un tinte.
 
     No sale de ningún dato del juego, y ésa es la idea. El intérprete corre
@@ -4830,6 +4961,20 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
         codigo += bytes([OP_MENSAJE, mensaje & 0xFF, mensaje >> 8])
     if espera:
         codigo += bytes([OP_ESPERAR, espera & 0xFF, espera >> 8])
+    if tecla:
+        # `KeyInputProc`: (variable, esperar, direcciones, acción, cancelar),
+        # los cinco parámetros de RM2k tal cual. Va **antes** de `variables` a
+        # propósito, que es lo que deja encadenarlo con la operación 9 de
+        # `--vars-de-prueba` —el cronómetro desde una variable— y con eso ver
+        # en la pantalla qué tecla leyó: un número en la esquina es lo único
+        # que este comando puede mostrar sin inventarle un dibujo.
+        #
+        # Y antes del tinte, que va último: con la forma que espera, el cuadro
+        # en que la pantalla cambia de color es el cuadro en que el jugador
+        # apretó.
+        import lcf
+        codigo += _compilar(lcf.EventCommand(
+            KEY_INPUT_PROC, 0, "", list(tecla)), None)
     if variables:
         # ControlVars, de a cinco números —variable, operación, clase, a, b—
         # con los mismos números de RM2k, y compilados por el mismo camino que
@@ -5155,7 +5300,7 @@ class Interprete:
         return (self.codigo is None and not self.esperando_ev
                 and not self.estado.refresco_frena() and not self.automaticos())
 
-    def cuadro(self, apreto_a=False, mover_evento=None):
+    def cuadro(self, apreto_a=False, mover_evento=None, direccion=None):
         """Avanza un cuadro. Devuelve True si en éste se pidió un salto.
 
         `apreto_a` es que el jugador **acaba de** apretar A en este cuadro, no
@@ -5169,6 +5314,14 @@ class Interprete:
         página activa quedaba sin rehacer y nadie se enteraba porque se
         calculaba viva. Un solo lugar es lo que hace que no vuelva a pasar.
         """
+        # Lo que el jugador tiene apretado este cuadro, para `KeyInputProc` y
+        # para nadie más. `direccion` es la que el arnés sostiene desde el
+        # arranque —`--walk`—, que es lo único que sabe sostener; A es un toque
+        # de un cuadro, así que su estado y su flanco son lo mismo. Ver
+        # `Estado.pad`.
+        self.estado.pad = frozenset(
+            ({"a"} if apreto_a else set())
+            | ({direccion} if direccion is not None else set()))
         self.refrescar_y_remarcar(eligiendo=False)
         # `Game_Event::CheckEventAutostart`, cada cuadro y para todos. Que
         # corra **también mientras la página de ese evento está corriendo** es
@@ -5410,6 +5563,25 @@ def ejecutar(codigo, estado, desde=0):
                 i = codigo[i + 5] | (codigo[i + 6] << 8)
         elif op == OP_ACCESO:
             estado.permitido[codigo[i + 1]] = bool(codigo[i + 2])
+            i += 3
+        elif op == OP_TECLA:
+            # Ver OP_TECLA. La de arrancar pone la variable en cero y devuelve
+            # el control sin mirar nada; la que espera se **rebobina a sí
+            # misma** hasta que haya tecla, así que se la vuelve a ejecutar
+            # cuadro a cuadro. `(i, 0, None)` es exactamente eso: el cursor
+            # queda en este opcode y no hay cuadros que esperar, que es lo
+            # mismo que hace `op_tecla` en la ROM con `sty ev_cur`.
+            ranura, banderas = codigo[i + 1], codigo[i + 2]
+            if banderas & TECLA_ARRANCA:
+                estado.poner_variable(ranura, 0)
+                estado.refresco = True
+                return (i + 3, 0, None)
+            valor = tecla_de(banderas, estado.pad)
+            if banderas & TECLA_ESPERA and not valor:
+                return (i, 0, None)
+            estado.poner_variable(ranura, valor)
+            # Como cualquier escritura de variable: `SetNeedRefreshForVarChange`.
+            estado.refresco = True
             i += 3
         elif op == OP_ACTOR_GRAF:
             # `actor->SetSprite` más el `ResetGraphic()` del `Game_Player`: si
