@@ -172,6 +172,13 @@ Lo que hay que hacer siempre:
   código.
 * **Avisarle que hay otros corriendo**: dos tandas a la vez se pelean por CPU y
   tardan, y matarlas por impaciencia arruina la corrida.
+* **Repartirles los números de antemano.** Todo lo que se elige tomando "el
+  siguiente libre" —un opcode, un índice en la tupla de prueba de
+  `snes_expect.py`, una dirección de la RAM lejana— lo va a elegir cada agente
+  mirando su copia, y dos van a elegir el mismo sin que git vea nada. Sale más
+  barato decirle a cada uno cuál le toca al lanzarlo que descubrirlo mergeando:
+  el 2026-09-13 pasó con las tres cosas a la vez, y una colisión de opcodes
+  viajó adentro de un merge que ya se había dado por verificado.
 * **Pedirle que no deje nada esperando cuando termina.** Un sub-agente puede
   lanzar los suyos, y ésos **no aparecen** en la lista del que los mandó —sí en
   la interfaz de taro—, así que un ayudante colgado queda sin dueño: él lo ve y
@@ -188,6 +195,23 @@ llamador que se lo seguía pasando en A, y desde ese merge la pelea cargaba el
 paquete de audio del mapa. Las dos pruebas que lo cobraban estuvieron en rojo
 un día entero y **tres informes seguidos las dieron por "preexistentes"** —lo
 eran, pero preexistente no quiere decir ajena—.
+
+Y tiene una variante peor, que mordió dos veces el mismo día: **git resuelve
+solo un extremo del cambio y deja el otro en conflicto.** Uno arregla lo que
+git marcó, que es lo que se ve, y queda incoherente con lo que git ya decidió
+callado treinta líneas más arriba. Las dos veces ensamblaba y corría:
+
+* una rama dejó el índice en `Y` —`tay`— y la otra en `comp_and`; git se quedó
+  con el `sta comp_and` de una, dejó en conflicto el `tyx` de la otra, y el
+  código leía un registro que ya nadie cargaba;
+* dos ramas agregaron un campo a la tupla posicional de `snes_expect.py`, así
+  que los índices se corrieron; git marcó los usos de una zona y auto-mergeó
+  los de otra, que quedaron leyendo el campo del vecino.
+
+La regla práctica: **cuando un conflicto es por un cambio de convención, hay
+que ir a buscar a mano los demás usos de esa convención**, con grep, en vez de
+confiar en que git los haya marcado todos. Si git marcó uno, es probable que
+haya resuelto mal otro.
 
 Así que al mergear una rama de sub-agente:
 
