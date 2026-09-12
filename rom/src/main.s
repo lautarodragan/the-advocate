@@ -6729,12 +6729,13 @@ no_es_fin:
 no_es_velocidad:
     cmp #32
     bcc frecuencia              ; 30 y 31: la frecuencia de la ruta
+    cmp #34
+    bne no_es_grafico_heroe
+    jmp grafico_heroe           ; la 34, la única con operando; queda lejos
+no_es_grafico_heroe:
     cmp #36
-    bcc otra_orden              ; los demás: acá no llegan. Y de los cuatro,
-                                ; la 34 no llega **con más razón**: lleva un
-                                ; operando detrás, así que si el conversor la
-                                ; dejara pasar sobre el héroe, este `otra_orden`
-                                ; leería el gráfico como si fuera una orden
+    bcc otra_orden              ; 32, 33 y 35 —los switches y el sonido— no
+                                ; llegan: el conversor los tira o los rechaza
     cmp #38
     bcc atravesar               ; 36 y 37
     cmp #40
@@ -6786,6 +6787,87 @@ giro_espera:
     dec a
     sta ruta_espera
     jmp listo
+
+; `change_graphic` **sobre el héroe**: la 34 con su operando, el índice del
+; gráfico en la tabla del mapa, igual que sobre un evento.
+;
+; Sale barata porque las dos tablas de poses tienen la misma forma: una entrada
+; de `npc_poses` son doce punteros de tres bytes a las poses del personaje, y
+; los doce que la tabla de actores le da al líder están escritos igual. O sea
+; que alcanza con apuntar `hero_poses` treinta y seis bytes adentro de
+; `npc_poses` y `place_hero` sigue sin enterarse.
+;
+; Dos cosas que **no** se hacen y que son lo que costaría de más:
+;
+; * `hero_cgram` se apaga. Los quince colores del líder los sube
+;   `aplicar_tinte` **en la fila que dice `hero_pal`**, así que dejarlo puesto
+;   con la paleta nueva le escribiría los colores de Talan encima a la paleta
+;   del gráfico al que se cambió. Mientras el cambio está puesto, el héroe se
+;   dibuja con la paleta del gráfico nuevo, que ya vive en CGRAM con el resto
+;   de los sprites del mapa.
+; * No sobrevive al cambio de mapa: `elegir_grafico_heroe` corre al cargar y lo
+;   repone. No es pereza —las poses viven en el banco de sprites **del mapa**,
+;   así que el gráfico de allá no existe acá—, y la referencia lo repone igual.
+;   La página del `EV0047` del mapa 8, que es la que pidió todo esto, cambia a
+;   `Crown7` justo antes de teletransportarse y vuelve a `Future1` justo
+;   después, así que en el juego no se nota.
+grafico_heroe:
+    rep #$20
+.a16
+    lda ruta_i
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda ruta, x
+    inc ruta_i                  ; el operando ya está consumido
+    asl a                       ; dos bytes por entrada en `ruta_graf_buf`
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda #$FF
+    sta hero_pose_vram          ; la pose que hay en VRAM ya no es la suya
+    lda ruta_graf_buf, x        ; su entrada en `npc_poses`, o $FF
+    cmp #$FF
+    beq heroe_sin_grafico
+    sta temp
+    lda ruta_graf_buf + 1, x
+    asl a
+    and #$0E                    ; la paleta, corrida a su lugar en vhoopppN
+    sta hero_pal
+    rep #$20
+.a16
+    lda temp
+    and #$00FF
+    asl a
+    asl a                       ; k por cuatro
+    sta temp + 2
+    asl a
+    asl a
+    asl a                       ; k por treinta y dos
+    clc
+    adc temp + 2                ; treinta y seis por personaje: doce punteros
+    clc                         ; de tres bytes, como la tabla del actor
+    adc poses_ptr
+    sta hero_poses
+    sep #$20
+.a8
+    lda poses_ptr + 2
+    adc #0
+    sta hero_poses + 2
+    stz hero_cgram + 2          ; ver arriba: nadie sube colores encima
+    jmp otra_orden
+heroe_sin_grafico:
+    ; Un CharSet sin un solo pixel opaco —`nobodyhere`— o uno que no entró en
+    ; las ocho paletas de sprite: el héroe deja de dibujarse, que es lo que
+    ; `place_hero` hace con el puntero de poses en cero y lo mismo que le pasa
+    ; a un evento con la fila escondida.
+    stz hero_poses + 2
+    stz hero_cgram + 2
+    jmp otra_orden
 
 
 mover:

@@ -4415,10 +4415,12 @@ Hover-Tram, y esa escena quedó para otra vuelta. Es deuda declarada en
   atenuándose mientras Manta hackea, que sin eso dejaban afuera la escena
   entera; se pierde el fundido, que sobre tiles de fondo la SNES no hace
   barato. Una ruta que se queda sin órdenes por esto no se emite: RM2k la
-  consume entera en el cuadro y no deja nada que esperar. Faltan **cambiar el
-  gráfico** —la orden 34— **sobre el héroe**, **fijar la mirada y cambiarle la
-  velocidad** —las órdenes 26 a 29, que sobre él se aceptan y se tiran por
-  decisión y no por olvido: ver ESTADO.md—, y **moverse hacia el héroe**. La
+  consume entera en el cuadro y no deja nada que esperar. Falta **fijar la
+  mirada** —las órdenes 26 y 27, que sobre el héroe se aceptan y se tiran por
+  decisión y no por olvido: ver ESTADO.md—. **Moverse hacia el héroe** —la
+  orden 9, +33 páginas— y **cambiar el gráfico del héroe** —la 34, +29— se
+  hacen desde el 2026-09-12; las otras nueve órdenes de movimiento que faltan
+  suman +1 entre todas, medido, y por eso siguen afuera. La
   velocidad ya está, desde el 2026-09-05, con las rutas propias de las
   páginas; **subir y bajar la frecuencia** —las órdenes 30 y 31— desde el
   2026-09-06, ver "La frecuencia se sube y se baja a mitad de una ruta"; las
@@ -4562,8 +4564,8 @@ Hover-Tram, y esa escena quedó para otra vuelta. Es deuda declarada en
       ChangeItems                +3      CallEvent              +0
 
   Y aparte, `MoveEvent` con las órdenes de ruta que todavía no sabemos caminar:
-  +10 de techo, que es lo que quedaría dándole la 34 y las diagonales **al
-  héroe**. Puestos todos juntos se llega a **281 de 489**, y lo que seguiría
+  +10 de techo, que es lo que quedaba dándole la 34 y las diagonales **al
+  héroe**. La 34 al héroe se hizo el 2026-09-12; quedan las diagonales. Puestos todos juntos se llega a **281 de 489**, y lo que seguiría
   cortando después sigue siendo `MoveEvent`, ahora con 49 páginas —rutas con
   saltos, apuntadas a un vehículo, o de las que le cambian el gráfico al
   héroe—. Después vienen los 16 cuadros de texto con códigos de escape y

@@ -2494,12 +2494,14 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
                 # sprites del mapa. Ver `recorrer_ruta`, que es por dónde tiene
                 # que pasar todo el que recorra una ruta ya compilada.
                 #
-                # Sobre el héroe no se compila. Su gráfico sale de la tabla de
-                # actores —`place_hero` lo busca por el id del líder— y una
-                # ruta que se lo cambie tendría que pisar ese mecanismo. Son
-                # 89 rutas de páginas automáticas y diez páginas más, medido;
-                # queda anotado en "Lo que falta".
-                if blanco == 0 or graficos is None or len(extras) < 2:
+                # **Sobre el héroe también**, desde el 2026-09-12. Su gráfico
+                # sale de la tabla de actores, pero las doce poses del actor
+                # están escritas con la misma forma que una entrada de
+                # `npc_poses`, así que la ROM cambia el puntero y listo: ver
+                # `grafico_heroe` en main.s. Son +29 páginas del juego, y entre
+                # ellas las tres del `EV0047` del mapa 8, con el que no se
+                # podía interactuar.
+                if graficos is None or len(extras) < 2:
                     raise NoSePuede()
                 elegido = graficos.indice(extras[0], extras[1])
                 if elegido > 0xFF:
@@ -3343,6 +3345,14 @@ class Estado:
         """
         self.rutas_ev = {}
         self.flashes = {}
+        # Y el gráfico que una orden 34 le haya puesto al héroe: las poses
+        # viven en el banco de sprites **del mapa**, así que el gráfico de allá
+        # no existe acá y la ROM lo repone en `elegir_grafico_heroe` al cargar.
+        # Es una divergencia declarada de RM2k, donde `Game_Player` se lleva su
+        # gráfico de un mapa al otro, y no se nota en el juego: la única página
+        # que cambia el gráfico del héroe y después salta —el `EV0047` del mapa
+        # 8— lo vuelve a poner en el comando siguiente al teletransporte.
+        self.ruta_heroe.grafico = None
         self.giro = None            # las filas del mapa nuevo son otras
         self.animacion = None       # y la animación de batalla no sigue
         self.anim_dibujo = None     # ni su dibujo: sus tiles son de un mapa

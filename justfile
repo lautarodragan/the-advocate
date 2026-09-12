@@ -610,6 +610,27 @@ snes-npc mapa="6" ruta="4 2 2 2 2 1 1 12" celda="22 12" cuadros="10 27 40 60" ar
 # cambiando de gráfico en el medio: los cuadros de antes lo miran con el suyo y
 # los de después con el nuevo, **caminando**, que es lo que separa "cambió el
 # gráfico" de "cambió y se quedó quieto".
+#
+# Y desde el 2026-09-12 la misma orden **sobre el héroe** —el blanco 0—, que es
+# lo que destraba el `EV0047` del mapa 8. Dos casos, uno por rama:
+#
+#   `grafico-heroe`     cambia a `Future1 0` mientras baja. El líder de estas
+#                       ROMs es `Future1 5`, así que el cambio se ve: contra la
+#                       misma ruta sin la 34 son 233 pixeles en el cuadro 40
+#   `heroe-invisible`   cambia a `nobodyhere`, el CharSet sin un solo pixel
+#                       opaco, y el héroe **deja de dibujarse**: 311 pixeles
+#                       contra el control
+#
+# Verificado en rojo con el defecto puesto: sin el desvío de la 34 en
+# `paso_de_ruta` el operando se lee como una orden y el cuadro 20 da 11128
+# pixeles distintos.
+#
+# Los cuadros llegan hasta el 40 y no hasta el 70 por algo **anterior a esto**:
+# una ruta forzada del héroe que baja cuatro celdas desde (22,12) en el mapa 6
+# da diez pixeles de diferencia a partir del cuadro 47, con la 34 y sin ella
+# —el control `2 2 2 2` da lo mismo—. Son dos tiles animados del chipset
+# cambiando de paso un cuadro antes de un lado que del otro. Está anotado en
+# ESTADO.md; no es de esta vuelta y no se investigó.
 snes-grafico mapa="6" ruta="4 2 2 34 0 2 2" grafico="Future1 0" celda="22 12" cuadros="10 25 40 70" arranque="115" nombre="grafico":
   #!/usr/bin/env bash
   set -euo pipefail

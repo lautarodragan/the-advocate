@@ -29,8 +29,8 @@ point animado y guardando, el menú de pausa, los ítems, el equipo y la tienda.
 **Corre en la SNES de verdad con el FX Pak**, con la música por MSU-1 y los
 efectos por el SPC700.
 
-Las páginas automáticas que compilan enteras son **322 de 489** —`just
-snes-destraba`—, y del juego entero compilan **2617 de 3473**. Los dos números
+Las páginas automáticas que compilan enteras son **332 de 489** —`just
+snes-destraba`—, y del juego entero compilan **2646 de 3473**. Los dos números
 venían de septiembre y estaban viejos; el segundo se cuenta pasando cada página
 de los 328 mapas por `eventos.compilar_pagina` con bloque de textos y con todos
 los teletransportes resolubles, que es el techo de lo que una ROM con la
@@ -399,13 +399,33 @@ de cada una está en `README.md`.
   giros en el lugar) suman **+1 entre todas**, así que no se hicieron. La cubre
   `npc-hacia-heroe`. Queda afuera en las **rutas propias de página**, que son
   dos del mapa 105 y ninguna prueba llega ahí; ver `ruta_propia`.
-* **Las diagonales y la orden 34 van sobre eventos, no sobre el héroe.** El
-  paso del héroe está escrito una vez por dirección y su gráfico sale de la
-  tabla de actores; darle las dos cosas sería duplicar ese código. Medido: de
-  las 26 rutas con diagonales ninguna es del héroe, y darle la 34 al héroe
-  destrabaría diez páginas más. El conversor rechaza la página que lo intente,
-  y ese corte **no es cosmético**: la 34 lleva operando, así que sin él la ROM
-  leería el gráfico como si fuera una orden.
+* **Las diagonales van sobre eventos y no sobre el héroe**, y siguen así: su
+  paso está escrito una vez por dirección, y de las 26 rutas del juego con
+  diagonales ninguna es del héroe. El conversor rechaza la página que lo
+  intente.
+
+* **La orden 34 sobre el héroe se hace desde el 2026-09-12**, y lo que la tenía
+  afuera resultó no valer: su gráfico sale de la tabla de actores, pero las
+  doce poses del actor están escritas **con la misma forma** que una entrada de
+  `npc_poses`, así que la ROM le mueve el puntero a `hero_poses` y `place_hero`
+  ni se entera. Son **+29 páginas** del juego —de 2617 a 2646— y entre ellas
+  las tres del `EV0047` del mapa 8, con el que taro nunca pudo interactuar. Lo
+  que cuesta, las dos cosas declaradas y modeladas igual de los dos lados:
+
+  * **Mientras el cambio está puesto, el héroe se dibuja con la paleta del
+    gráfico nuevo**, que es una de las ocho de sprite del mapa, y no con la
+    ranura propia del líder. `hero_cgram` se apaga al cambiar: dejarlo puesto
+    le escribiría los quince colores de Talan encima a la paleta del gráfico,
+    porque `aplicar_tinte` los sube **en la fila que dice `hero_pal`**.
+  * **No sobrevive al cambio de mapa.** Las poses viven en el banco de sprites
+    del mapa, así que el gráfico de allá no existe acá; la ROM lo repone en
+    `elegir_grafico_heroe` y la referencia en `entrar_a_un_mapa`. En RM2k
+    `Game_Player` se lo lleva. No se nota: la única página del juego que cambia
+    el gráfico del héroe y después salta lo vuelve a poner en el comando
+    siguiente al teletransporte.
+
+  Lo cubren `grafico-heroe` y `heroe-invisible`, uno por rama —el gráfico que
+  se ve y el `nobodyhere`, que esconde al héroe como esconde a un evento—.
 * **Los temas comparten un solo banco de muestras.** Un banco por tema pediría
   subirlo en cada `PlayBGM` —medio segundo— y eso habría que modelarlo en la
   referencia para que la comparación cuadro a cuadro siga significando algo.
@@ -529,6 +549,16 @@ ya nadie discute no necesita renglón.
   una línea del header, pero se ve en hardware.
 
 ## Lo que la tanda no cubre
+
+* **Diez pixeles después del cuadro 47 en una ruta forzada del héroe en el
+  mapa 6.** Encontrado de paso el 2026-09-12 armando los casos de la orden 34:
+  el héroe baja cuatro celdas desde (22,12), la ruta termina en el cuadro 32, y
+  del 47 en adelante hay **diez pixeles** de diferencia en dos tiles animados
+  del chipset, como si uno de los dos lados cambiara de paso un cuadro antes.
+  **No es de esa vuelta**: el control sin la orden 34 —la ruta `2 2 2 2` pelada—
+  da exactamente lo mismo. El sospechoso es la fase de los tiles animados, que
+  la referencia cuenta con `estado.ticks + fundidos` y la ROM con `vueltas`. No
+  se investigó; los casos nuevos miran hasta el cuadro 40 para no pisarlo.
 
 * **`plx`/`ply` pisan N y Z, y hubo cuatro lugares que lo ignoraban** (todos
   arreglados el 2026-09-12). El patrón es siempre el mismo: una rutina deja la

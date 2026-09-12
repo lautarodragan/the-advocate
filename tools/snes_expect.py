@@ -1857,6 +1857,26 @@ def main():
         else:
             charset, charset_index = renderer.database.lider(estado.grupo)
 
+        # Y encima de eso, la orden 34 de una ruta forzada sobre el héroe, que
+        # gana sobre el líder: es `SetSpriteGraphic` sobre `Game_Player`, el
+        # mismo dato que la orden le cambia a un evento. La ROM lo hace
+        # apuntando `hero_poses` adentro de `npc_poses`; ver `grafico_heroe` en
+        # main.s. No sobrevive al cambio de mapa **de los dos lados**: allá
+        # porque las poses viven en el banco de sprites del mapa, y acá porque
+        # `entrar_a_un_mapa` lo repone.
+        heroe_se_ve = True
+        if estado.ruta_heroe.grafico is not None:
+            charset, charset_index = mundo.graficos(map_id).pares[
+                estado.ruta_heroe.grafico]
+            if (not snes_convert.sprite_colors(charset_image(charset),
+                                               charset_index)
+                    or (charset, charset_index)
+                    not in mundo.paleta_de_sprite(map_id)):
+                # Un CharSet sin un solo pixel opaco, o uno que no entró en las
+                # ocho paletas de sprite: el héroe deja de dibujarse, igual que
+                # un evento al que la 34 le esconde la fila.
+                heroe_se_ve = False
+
         # En qué paso de la animación del ChipSet está el mapa. El reloj es
         # `vueltas`, el de la ROM, y ése **no es `estado.ticks`**: adentro del
         # negro de un teletransporte el mundo está congelado y `cuadro_de_eventos`
@@ -1990,11 +2010,16 @@ def main():
         # Y-coordinate as an event the Player is always rendered first". Sin
         # eso la referencia lo dibujaba **detrás** del NPC con el que empataba,
         # y la ROM adelante; se ve parado encima de uno en el mapa 73.
-        actors.append(((snes_convert.sort_key(rm2k.LAYER_SAME, y), 0xFFFF, 0xFFFF),
-                       charset, charset_index,
-                       direction * 3 + columna, x, y, args.heroe_encima, 0,
-                       eventos.altura_del_salto(estado.ruta_heroe)))
-        anclas[0] = (x, y)      # el héroe es el blanco 0, como en las rutas
+        if heroe_se_ve:
+            actors.append(((snes_convert.sort_key(rm2k.LAYER_SAME, y),
+                            0xFFFF, 0xFFFF),
+                           charset, charset_index,
+                           direction * 3 + columna, x, y, args.heroe_encima, 0,
+                           eventos.altura_del_salto(estado.ruta_heroe)))
+        # El héroe es el blanco 0, como en las rutas. Va puesto aunque no se
+        # dibuje: su celda se sabe igual —la ROM la tiene en `hero_x`—, que no
+        # es el caso de un evento, que sin fila no tiene de dónde sacarla.
+        anclas[0] = (x, y)
 
         # En OAM van del frente hacia el fondo, que es al revés del orden en que
         # se pintan. La consola recorre ese mismo orden para decidir qué entra
