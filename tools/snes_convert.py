@@ -1676,7 +1676,8 @@ BLOCK_BYTES = 16                # cuatro celdas de BG1 y cuatro de BG2
 #   ancho    fondo 512 tiles (32 KB) | sprites 512 (16 KB) | encima 256 (8 KB)
 #   fondo    fondo 640 tiles (40 KB) | encima 256 (8 KB)   | sprites 256 (8 KB)
 #
-# Se usa el primero salvo que el mapa pida más de 512 tiles de fondo, que en
+# Se usa el primero salvo que el mapa pida más de 512 tiles de fondo —tres en
+# todo el juego— o más de 384 de sprite, que en
 # todo el juego son tres. El segundo les da 128 tiles más al fondo a costa de la
 # mitad de los sprites, y esos tres mapas tienen pocos personajes.
 #
@@ -1689,6 +1690,23 @@ LAYOUT_ANCHO = {"tiles": (0x0000, 512), "sprites": (0x4000, 384),
                 "encima": (0x6000, 256)}
 LAYOUT_FONDO = {"tiles": (0x0000, 640), "encima": (0x6000, 128),
                 "sprites": (0x6800, 256)}
+
+# Y el tercero sin ventana, que es el hermano de `LAYOUT_VENTANA_SPRITE`: cambia
+# tiles de fondo por tiles de sprite. Lo pidió el mismo mapa, el 17, cuando
+# `snes-heroe 17` lo armó sin ventana: **444 tiles de sprite** contra los 384
+# del reparto ancho. El comentario de arriba decía que sin ventana `sprites` no
+# se mira porque el que más gasta usa 380; el 17 rompió ese número.
+#
+#   sprites   $0000  16 KB  512 tiles de 4bpp   base de OBJ en 0
+#   tiles     $2000  28 KB  448 tiles de 8bpp   <- la base de BG1
+#   tilemap   $5800   4 KB
+#   encima    $6000   8 KB  256 tiles           <- la base de BG2
+#   tilemap   $7800   4 KB
+#
+# Va **último** en la lista de `vram_layout`, así que ningún mapa que ya tenía
+# reparto cambia de reparto.
+LAYOUT_ANCHO_SPRITE = {"sprites": (0x0000, 512), "tiles": (0x2000, 448),
+                       "encima": (0x6000, 256)}
 
 # Y los dos que hacen lugar para la ventana de mensaje. La ventana necesita 8 KB
 # de tiles propios —el texto son 240 tiles y no hay forma de bajarlo, porque un
@@ -1760,6 +1778,39 @@ LAYOUT_VENTANA = {"sprites": (0x0000, 448), "ventana_map": (0x1C00, 1),
 LAYOUT_VENTANA_FONDO = {"sprites": (0x0000, 256), "tiles": (0x1000, 480),
                         "ventana_map": (0x4C00, 1),
                         "encima": (0x6000, 128), "ventana": (0x6800, 256)}
+
+# Y el tercero, que hace lo contrario del segundo: cambia tiles de fondo por
+# tiles de sprite. Lo pidió Delcentric Factory —el mapa 17, el camino al
+# auditorio—, que gasta **217 tiles de fondo y 475 de sprite** y no entraba en
+# ninguno de los dos: 28 ranuras de personaje son 448 tiles justos, y encima de
+# eso van los 8 glifos del cronómetro y las 19 gotas de lluvia. Son 27 tiles de
+# más sobre los 448 del primer reparto, y la lluvia no se puede sacar porque el
+# clima sigue al cambiar de mapa y la apertura llueve.
+#
+#   sprites     $0000  16 KB  512 tiles de 4bpp   base de OBJ en 0
+#   tiles       $2000  24 KB  384 tiles de 8bpp   <- la base de BG1
+#   ventana_map $5000   2 KB  el tilemap de 32x32 de la ventana
+#   (libre)     $5400   2 KB
+#   tilemap     $5800   4 KB
+#   encima      $6000   8 KB  128 tiles           <- la base de BG2
+#   ventana     $6800   8 KB  256 tiles           <- los índices 128..383
+#   tilemap     $7800   4 KB
+#
+# 512 es el tope del hardware y no una elección: el campo de nombre de OAM es
+# de nueve bits, y con el name select de `OBSEL` en cero las dos tablas quedan
+# pegadas, que es justo lo que `OBSEL_VALUE` emite. O sea que este reparto le da
+# a los sprites todo lo que la consola puede direccionar.
+#
+# Los 2 KB libres de $5400 son el precio de la alineación: la base de BG1 va de
+# a 8 KB, así que bajar el fondo de 448 a 384 tiles libera 8 KB y la ventana
+# necesita 2. No se pueden usar para nada porque no hay nada más que ubicar.
+#
+# **Va último a propósito.** `vram_layout` devuelve el primero que entre, así
+# que ningún mapa que ya tenía reparto cambia de reparto por esto: sólo lo toman
+# los que hoy se quedaban sin ventana.
+LAYOUT_VENTANA_SPRITE = {"sprites": (0x0000, 512), "tiles": (0x2000, 384),
+                         "ventana_map": (0x5000, 1),
+                         "encima": (0x6000, 128), "ventana": (0x6800, 256)}
 # Cuántas ranuras de partida guardada tiene el cartucho. El mismo número está
 # en `main.s` como `SRAM_RANURAS`, y la ROM lo comprueba: si no dieran iguales,
 # la pantalla mostraría un número de ranuras y la SRAM tendría otro.
@@ -1775,12 +1826,14 @@ RANURAS = 4
 # menú —$4400 y $5000— caen en los sprites de LAYOUT_ANCHO, que arrancan en
 # $4000: los NPCs volvían del menú con las poses rotas y el héroe también si
 # no era el del bloque 0. Las de acá están en la intersección del banco de BG1
-# de los cuatro repartos, que es $2000..$4000:
+# de los seis repartos, que es $2000..$4000:
 #
 #   LAYOUT_ANCHO          $0000..$4000
 #   LAYOUT_FONDO          $0000..$5000
+#   LAYOUT_ANCHO_SPRITE   $2000..$5800
 #   LAYOUT_VENTANA        $2000..$5800
 #   LAYOUT_VENTANA_FONDO  $1000..$4C00
+#   LAYOUT_VENTANA_SPRITE $2000..$5000
 #
 # La base de tiles de un BG va de a 4096 palabras y el tilemap de a 1024: los
 # tiles en $2000, que con las caras del grupo son unos 300 y pueden llegar a
@@ -1810,17 +1863,22 @@ MAX_BLOCKS = 1024
 def vram_layout(tiles, sprites=0, con_ventana=False):
     """Qué reparto de VRAM le toca a un mapa, según lo que gasta.
 
-    Sin ventana son los dos de siempre y `sprites` no se mira: el reparto ancho
-    le da 512 a cada uno y sólo los tres mapas que pasan de 512 tiles de fondo
-    necesitan el otro. Con ventana hay que elegir de dónde salen sus 8 KB, y ahí
-    sí importan los dos números.
+    Los dos números se miran en los tres repartos de cada lado, y se devuelve el
+    primero que entre. Los sin ventana **también** miran los sprites desde el
+    2026-09-12: hasta ahí no, porque el que más gastaba usaba 380 de los 384 del
+    reparto ancho, y Delcentric Factory —444— se pasaba sin que nada avisara.
     """
     if not con_ventana:
-        return LAYOUT_FONDO if tiles > LAYOUT_ANCHO["tiles"][1] else LAYOUT_ANCHO
+        for layout in (LAYOUT_ANCHO, LAYOUT_FONDO, LAYOUT_ANCHO_SPRITE):
+            if tiles <= layout["tiles"][1] and sprites <= layout["sprites"][1]:
+                return layout
+        raise SystemExit(
+            "este mapa no entra en ningún reparto de VRAM: gasta %d tiles de "
+            "fondo y %d de sprite" % (tiles, sprites))
     # Los dos números se miran en los dos repartos. Antes se miraba el fondo en
     # uno y los sprites en el otro, y eso dejaba pasar un mapa de 620 tiles de
     # fondo a un banco de 512: ver el comentario de LAYOUT_VENTANA_FONDO.
-    for layout in (LAYOUT_VENTANA, LAYOUT_VENTANA_FONDO):
+    for layout in (LAYOUT_VENTANA, LAYOUT_VENTANA_FONDO, LAYOUT_VENTANA_SPRITE):
         if tiles <= layout["tiles"][1] and sprites <= layout["sprites"][1]:
             return layout
     raise SystemExit(
@@ -1842,8 +1900,10 @@ def _controlar_ranuras(ranura_tiles):
             "los %d tiles de la pantalla de ranuras llegan a $%04X y pisan su "
             "tilemap en $%04X" % (ranura_tiles, fin_tiles, RANURA_MAP))
     for nombre, layout in (("ANCHO", LAYOUT_ANCHO), ("FONDO", LAYOUT_FONDO),
+                           ("ANCHO_SPRITE", LAYOUT_ANCHO_SPRITE),
                            ("VENTANA", LAYOUT_VENTANA),
-                           ("VENTANA_FONDO", LAYOUT_VENTANA_FONDO)):
+                           ("VENTANA_FONDO", LAYOUT_VENTANA_FONDO),
+                           ("VENTANA_SPRITE", LAYOUT_VENTANA_SPRITE)):
         base, cuantos = layout["tiles"]
         tope = base + cuantos * (BYTES_PER_TILE // 2)
         for que, desde, hasta in (("los tiles", RANURA_VRAM, fin_tiles),
@@ -2447,10 +2507,29 @@ def tabla_de_mapas(mapas, etiquetas):
     con la misma cuenta que lo había emitido: dos lugares calculando el mismo
     nombre y ninguna manera de que un bloque fuera de más de un mapa.
     """
-    out = ["; La tabla de mapas: un registro de %d bytes por mapa, con todo lo"
+    out = ['.segment "RODATA"',
+           "; La tabla de mapas: un registro de %d bytes por mapa, con todo lo"
            % MAPA_STRIDE,
            "; que la ROM necesita para cargarlo. Los punteros son de 24 bits",
            "; porque los datos viven repartidos por todos los bancos.",
+           ";",
+           "; **Vive en RODATA y se lee con `lda f:mapa_tabla + campo, x`.**",
+           "; Son 144 bytes por mapa, y en el banco 0 —donde la tabla tiene que",
+           "; estar si se la recorre con el registro de banco de datos— eso",
+           "; alcanzaba para catorce mapas y nada más: con Lashe City entera son",
+           "; 33 y el banco se pasaba por 3739 bytes. Es la tercera tabla que se",
+           "; muda por la misma razón; el precio es un byte por instrucción y",
+           "; que los dos usos con Y hayan tenido que pasar a X, porque el",
+           "; direccionamiento absoluto largo indexado sólo existe con X.",
+           ";",
+           "; **Entera en un banco**, que es lo que pide el `.bloque`. En LoROM",
+           "; lo que sigue a $03FFFF no es la ROM del banco 4 sino la RAM, y la",
+           "; primera versión de esto cayó en $03FFB1: los 144 bytes del único",
+           "; registro se partían al medio y el mapa 5 arrancaba en negro. Los",
+           "; demás mapas de la tanda no lo veían porque su tabla caía en otro",
+           "; lado, que es exactamente la clase de error que aparece al agregar",
+           "; un byte en cualquier otra parte.",
+           ".bloque %d" % (MAPA_STRIDE * len(mapas)),
            "mapa_tabla:"]
     for numero, mapa in enumerate(mapas):
         campos = campos_del_mapa(mapa)
@@ -3301,9 +3380,9 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                      'fundido_rampa:\n    .byte %s\n\n'
                      % ",".join(str(v) for v in eventos.rampa_de_fundido()))
         # Los datos van en RODATA, que el enlazador reparte por los bancos de
-        # arriba. La tabla va en TABLAS, o sea el banco 0, porque la ROM la
-        # recorre con `lda mapa_tabla + campo, x` y ese modo direcciona el banco
-        # de datos. Los datos ya no pueden estar ahí: no entran.
+        # arriba. Lo que queda en TABLAS —o sea en el banco 0— es lo que la ROM
+        # recorre con `lda tabla, x` a secas, que direcciona el banco de datos.
+        # `mapa_tabla` ya no está entre ésas: ver `tabla_de_mapas`.
         handle.write('.segment "RODATA"\n')
         # Las doce poses de cada personaje que cambia de pose, **una vez por
         # cuantización** y no una por ROM: dos mapas que dibujen al mismo
@@ -5155,10 +5234,22 @@ def inicio_del_mapa(renderer, map_id, passable, width, height, ocupadas=()):
 
     Está acá y no en cada llamador porque la referencia con la que se compara
     tiene que pararlo en el mismo lugar que la ROM.
+
+    **Y hay mapas donde ninguna celda está abierta por los cuatro lados**: los
+    cuartos de cinemática, que son una pantalla negra a la que siempre se llega
+    por teletransporte con las coordenadas puestas. `LasheCityVehicle` —el mapa
+    36, el que pregunta a dónde ir con el auto— es uno, y sin él no compila el
+    teletransporte del 34 y se cae la cadena entera del auto. Ahí el número que
+    se emite no lo usa nadie, pero la tabla lo lleva igual, así que se pone el
+    centro geométrico en vez de cortar. El error de `hero_start` sigue valiendo
+    para quien le pregunte por un mapa donde sí se va a caminar.
     """
     if map_id == renderer.tree.start_map_id:
         return renderer.tree.start_x, renderer.tree.start_y
-    return hero_start(passable, width, height, ocupadas)
+    try:
+        return hero_start(passable, width, height, ocupadas)
+    except ValueError:
+        return width // 2, height // 2
 
 
 def images_de(renderer, args, charset):

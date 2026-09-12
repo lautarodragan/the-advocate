@@ -14,7 +14,16 @@
 # esta lista llevaba al lado de cada mapa no están más: cuántos cuadros dura
 # cada caminata lo dice la referencia.
 snes-heroe 52
+snes-heroe 11
+snes-heroe 20
 snes-heroe 8
+snes-heroe 17
+# Rat Tracks B1, que es el que destapó la página automática vacía: sus dos
+# —el idioma con el que RM2k desactiva un evento— dejaban el mapa congelado
+# para siempre. Antes del arreglo este caso tardaba catorce minutos, porque la
+# referencia se comía sus 100.000 ticks de `correr_automaticos`.
+snes-heroe 21
+snes-heroe 32
 snes-heroe 6
 snes-heroe 1
 snes-heroe 73
@@ -82,6 +91,13 @@ snes-cinematica 5 "3 6" "300 600 1200 1600 2500 2800 3300 3900" 115 manta 1 "212
 # cobra la interpolación cuadro a cuadro, que es donde la ROM y la referencia
 # pueden separarse en un valor y no verse.
 snes-cinematica 4 7 "470 550 660 800 880" 115 cartel 1 "" 21
+# Delcentric Factory con ventana de mensaje, que es el único mapa que toma el
+# tercer reparto de VRAM —`LAYOUT_VENTANA_SPRITE`, 512 tiles de sprite y 384 de
+# fondo—. Va con el mapa 1 al lado **a propósito**: es el que pone lluvia, y sin
+# las 19 gotas el 17 entra en el reparto de siempre y el caso no miraría el
+# camino nuevo. Verificado que da rojo —33% de los pixeles— moviéndole el
+# tilemap de la ventana encima de los tiles de fondo.
+snes-cinematica 17 1 "120 150" 115 factoria 1
 snes-escena 2 "4 54" 12 up "100 230 600 950" 115 puerta-izq "20 202 323 444 565"
 snes-escena 2 "36 74" 3 left "60 200 450 930 1300 1800" 115 pantalla "161 282 342 584 735 857 948 1008 1099 1159 1219 1430 1490 1732"
 snes-escena 8 "9 55" 0 down "20 30 40 50" 115 savepoint ""

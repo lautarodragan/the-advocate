@@ -427,7 +427,8 @@ pal_tick:   .res 1      ; para meter el cuadro de música que falta
 reinicio:   .res 1      ; si el stream ya volvió al principio en este cuadro
 
 ; El mapa que está cargado. Todo esto salía de constantes del .inc cuando había
-; un mapa solo; ahora sale de su registro en `mapa_tabla` y vive acá mientras
+; un mapa solo; ahora sale de su registro en `mapa_tabla` —que vive en RODATA y
+; se lee con `lda f:`— y queda acá mientras
 ; dure. Lo que se usa una sola vez —los tamaños de los DMA, las bases de VRAM—
 ; no se copia: se lee del registro en el momento.
 mapa_ofs:    .res 2     ; el desplazamiento del registro del mapa actual
@@ -1247,19 +1248,19 @@ cero:
     tax
 
     ; Lo que se mira seguido se copia; lo que se usa una vez se lee en el lugar.
-    lda mapa_tabla + M_MAP_BW, x
+    lda f:mapa_tabla + M_MAP_BW, x
     sta mapa_ancho
     asl a
     sta mapa_cw                 ; el ancho en celdas de 8x8 es el doble
-    lda mapa_tabla + M_MAP_BH, x
+    lda f:mapa_tabla + M_MAP_BH, x
     sta mapa_alto
     asl a
     sta mapa_ch
-    lda mapa_tabla + M_CAM_MAX_X, x
+    lda f:mapa_tabla + M_CAM_MAX_X, x
     sta cam_max_x
-    lda mapa_tabla + M_CAM_MAX_Y, x
+    lda f:mapa_tabla + M_CAM_MAX_Y, x
     sta cam_max_y
-    lda mapa_tabla + M_EV_COUNT, x
+    lda f:mapa_tabla + M_EV_COUNT, x
     sta ev_total
     ; Uno más: la página de prueba se cuela en la tabla de páginas con el
     ; primer índice libre del mapa, que es justo `ev_total`. Todo lo que barre
@@ -1268,7 +1269,7 @@ cero:
     ; perder el cuadro.
     inc a
     sta ev_tope
-    lda mapa_tabla + M_NPC_COUNT, x
+    lda f:mapa_tabla + M_NPC_COUNT, x
     asl a
     asl a
     asl a
@@ -1280,23 +1281,23 @@ cero:
     ; ocho bytes más adelante, que es donde cada bloque guarda su capa de
     ; encima; sumar ocho no puede desbordar el banco porque `.bloque` garantiza
     ; que la tabla entera entra en uno.
-    lda mapa_tabla + M_PTR_NPC_POSES, x
+    lda f:mapa_tabla + M_PTR_NPC_POSES, x
     sta poses_ptr
-    lda mapa_tabla + M_PTR_MAP_BLOQUES, x
+    lda f:mapa_tabla + M_PTR_MAP_BLOQUES, x
     sta bloques_ptr
     clc
     adc #8
     sta bloques8_ptr
-    lda mapa_tabla + M_PTR_BLOQUE_PASS, x
+    lda f:mapa_tabla + M_PTR_BLOQUE_PASS, x
     sta pass_ptr
     sep #$20
 .a8
-    lda mapa_tabla + M_PTR_MAP_BLOQUES + 2, x
+    lda f:mapa_tabla + M_PTR_MAP_BLOQUES + 2, x
     sta bloques_ptr + 2
     sta bloques8_ptr + 2
-    lda mapa_tabla + M_PTR_BLOQUE_PASS + 2, x
+    lda f:mapa_tabla + M_PTR_BLOQUE_PASS + 2, x
     sta pass_ptr + 2
-    lda mapa_tabla + M_PTR_NPC_POSES + 2, x
+    lda f:mapa_tabla + M_PTR_NPC_POSES + 2, x
     sta poses_ptr + 2
 
     ; Dónde arranca el héroe: donde diga el registro, salvo que quien llamó haya
@@ -1308,14 +1309,14 @@ cero:
     lda entrada_x
     cmp #$FFFF
     bne desde_puerta
-    lda mapa_tabla + M_HERO_START_X, x
+    lda f:mapa_tabla + M_HERO_START_X, x
     sta hero_x
     lsr a
     lsr a
     lsr a
     lsr a
     sta tile_x
-    lda mapa_tabla + M_HERO_START_Y, x
+    lda f:mapa_tabla + M_HERO_START_Y, x
     sta hero_y
     lsr a
     lsr a
@@ -1344,7 +1345,7 @@ desde_puerta:
 puesto:
     sep #$20
 .a8
-    lda mapa_tabla + M_BG12NBA_VALUE, x
+    lda f:mapa_tabla + M_BG12NBA_VALUE, x
     sta BG12NBA
 
     ; La cámara corrida vuelve a cero al cambiar de mapa, y de golpe: es lo que
@@ -2052,17 +2053,17 @@ vaciar:
 .a16
 sin_vaciar:
     ldx mapa_ofs
-    lda mapa_tabla + M_PAGINA_COUNT, x
+    lda f:mapa_tabla + M_PAGINA_COUNT, x
     bne hay_paginas
     jmp sin_paginas             ; queda lejos para un salto corto
 hay_paginas:
     sta pag_restan
-    lda mapa_tabla + M_PTR_PAGINAS, x
+    lda f:mapa_tabla + M_PTR_PAGINAS, x
     sta pag_ptr
     stz pag_ofs
     sep #$20
 .a8
-    lda mapa_tabla + M_PTR_PAGINAS + 2, x
+    lda f:mapa_tabla + M_PTR_PAGINAS + 2, x
     sta pag_ptr + 2
 recorrer:
     ; Sólo las páginas de los eventos que tienen alguna con ruta propia, o
@@ -2260,11 +2261,11 @@ sin_paginas:
     ldx mapa_ofs
     rep #$20
 .a16
-    lda mapa_tabla + M_PTR_PAGINAS, x
+    lda f:mapa_tabla + M_PTR_PAGINAS, x
     sta pag_ptr
     sep #$20
 .a8
-    lda mapa_tabla + M_PTR_PAGINAS + 2, x
+    lda f:mapa_tabla + M_PTR_PAGINAS + 2, x
     sta pag_ptr + 2
     stz par_n                   ; la lista de paralelos se rehace entera
     stz rp_ev
@@ -2984,15 +2985,15 @@ listo:
     ldx mapa_ofs
     rep #$20
 .a16
-    lda mapa_tabla + M_PAGINA_COUNT, x
+    lda f:mapa_tabla + M_PAGINA_COUNT, x
     beq sin_paginas
     sta pag_restan
-    lda mapa_tabla + M_PTR_PAGINAS, x
+    lda f:mapa_tabla + M_PTR_PAGINAS, x
     sta pag_ptr
     stz pag_ofs
     sep #$20
 .a8
-    lda mapa_tabla + M_PTR_PAGINAS + 2, x
+    lda f:mapa_tabla + M_PTR_PAGINAS + 2, x
     sta pag_ptr + 2
 recorrer:
     ; Sólo el evento que se busca: de las demás páginas se lee el evento y
@@ -3390,13 +3391,20 @@ no:
 .a16
 anotada:
     sta pag_ofs
-    ldy mapa_ofs
-    lda mapa_tabla + M_PTR_PAGINAS, y
+    ; Con X, y no con Y como hasta que `mapa_tabla` se mudó a RODATA: el
+    ; direccionamiento absoluto largo indexado del 65816 sólo existe con X. X
+    ; trae el evento y el llamador cuenta con él, así que va y vuelve por la
+    ; pila; el `plx` deja N y Z del valor que saca, y por eso lo que sigue es
+    ; un `jsr` y no una rama.
+    phx
+    ldx mapa_ofs
+    lda f:mapa_tabla + M_PTR_PAGINAS, x
     sta pag_ptr
     sep #$20
 .a8
-    lda mapa_tabla + M_PTR_PAGINAS + 2, y
+    lda f:mapa_tabla + M_PTR_PAGINAS + 2, x
     sta pag_ptr + 2
+    plx
     jsr leer_pagina
     lda pg_trigger
     sta elegida_trigger
@@ -5982,7 +5990,7 @@ cabe:
     ; leerla del registro antes de cargar X con el campo, porque el registro se
     ; direcciona justamente con X.
     ldx mapa_ofs
-    lda mapa_tabla + M_ABOVE_FIRST, x
+    lda f:mapa_tabla + M_ABOVE_FIRST, x
     pha
     ldx #M_PTR_ABOVE_CGRAM
     ldy #M_ABOVE_CGRAM
@@ -6077,7 +6085,7 @@ sin_lider_pal:
     ldx mapa_ofs
     rep #$20
 .a16
-    lda mapa_tabla + M_MAP_CGRAM, x
+    lda f:mapa_tabla + M_MAP_CGRAM, x
     sta tin_count
     sep #$20
 .a8
@@ -6086,16 +6094,16 @@ sin_lider_pal:
     ldx mapa_ofs
     rep #$20
 .a16
-    lda mapa_tabla + M_ABOVE_CGRAM, x
+    lda f:mapa_tabla + M_ABOVE_CGRAM, x
     sta tin_count
     sep #$20
 .a8
-    lda mapa_tabla + M_ABOVE_FIRST, x
+    lda f:mapa_tabla + M_ABOVE_FIRST, x
     jsr dma_sombra
     ldx mapa_ofs
     rep #$20
 .a16
-    lda mapa_tabla + M_SPRITE_CGRAM, x
+    lda f:mapa_tabla + M_SPRITE_CGRAM, x
     sta tin_count
     sep #$20
 .a8
@@ -6142,12 +6150,12 @@ nada:
 .a8
 .i16
     ldx mapa_ofs
-    lda mapa_tabla + M_TIMER_BASE, x
-    ora mapa_tabla + M_TIMER_BASE + 1, x
+    lda f:mapa_tabla + M_TIMER_BASE, x
+    ora f:mapa_tabla + M_TIMER_BASE + 1, x
     bne hay                     ; TIMER_BASE = 0: esta ROM no lleva cronómetro
     rts
 hay:
-    lda mapa_tabla + M_TIMER_PAL, x
+    lda f:mapa_tabla + M_TIMER_PAL, x
     asl a
     asl a
     asl a
@@ -6161,7 +6169,7 @@ hay:
     ; Y el desplazamiento de la paleta adentro del bloque: el doble, porque
     ; cada color son dos bytes.
     ldx mapa_ofs
-    lda mapa_tabla + M_TIMER_PAL, x
+    lda f:mapa_tabla + M_TIMER_PAL, x
     rep #$20
 .a16
     and #$00FF
@@ -6201,11 +6209,11 @@ hay:
     clc
     adc mapa_ofs
     tax
-    lda mapa_tabla, x
+    lda f:mapa_tabla, x
     sta tin_ptr
     sep #$20
 .a8
-    lda mapa_tabla + 2, x
+    lda f:mapa_tabla + 2, x
     sta tin_ptr + 2
 
     rep #$20
@@ -6214,7 +6222,7 @@ hay:
     clc
     adc mapa_ofs
     tax
-    lda mapa_tabla, x
+    lda f:mapa_tabla, x
     sta tin_count
     sep #$20
 .a8
@@ -6344,14 +6352,14 @@ listo:
     ldx mapa_ofs
     rep #$20
 .a16
-    lda mapa_tabla + M_ACTOR_COUNT, x
+    lda f:mapa_tabla + M_ACTOR_COUNT, x
     beq sin_lider16
     sta temp + 2
-    lda mapa_tabla + M_PTR_ACTOR_TABLE, x
+    lda f:mapa_tabla + M_PTR_ACTOR_TABLE, x
     sta act_ptr
     sep #$20
 .a8
-    lda mapa_tabla + M_PTR_ACTOR_TABLE + 2, x
+    lda f:mapa_tabla + M_PTR_ACTOR_TABLE + 2, x
     sta act_ptr + 2
 
     ldy #$0000
@@ -6748,11 +6756,11 @@ apagar:
     clc
     adc mapa_ofs
     tax
-    lda mapa_tabla, x
+    lda f:mapa_tabla, x
     sta A1T0L
     sep #$20
 .a8
-    lda mapa_tabla + 2, x
+    lda f:mapa_tabla + 2, x
     sta A1B0
     rts
 .endproc
@@ -6766,7 +6774,7 @@ apagar:
     sta VMAIN                   ; avanzar una palabra tras el byte alto
     rep #$20
 .a16
-    lda mapa_tabla + M_VRAM_TILES, x
+    lda f:mapa_tabla + M_VRAM_TILES, x
     sta VMADDL
     sep #$20
 .a8
@@ -6775,7 +6783,7 @@ apagar:
     ldx mapa_ofs
     rep #$20
 .a16
-    lda mapa_tabla + M_MAP_TILES, x
+    lda f:mapa_tabla + M_MAP_TILES, x
     asl a
     asl a
     asl a
@@ -6830,7 +6838,7 @@ apagar:
     ldx mapa_ofs
     rep #$20
 .a16
-    lda mapa_tabla + M_MAP_CGRAM, x
+    lda f:mapa_tabla + M_MAP_CGRAM, x
     asl a                       ; dos bytes por color
     sta DAS0L
     sep #$20
@@ -6863,7 +6871,7 @@ apagar:
     sta VMAIN
     rep #$20
 .a16
-    lda mapa_tabla + M_VRAM_SPRITE, x
+    lda f:mapa_tabla + M_VRAM_SPRITE, x
     sta VMADDL
     sep #$20
 .a8
@@ -6872,7 +6880,7 @@ apagar:
     ldx mapa_ofs
     rep #$20
 .a16
-    lda mapa_tabla + M_SPRITE_TILES, x
+    lda f:mapa_tabla + M_SPRITE_TILES, x
     asl a
     asl a
     asl a
@@ -6897,7 +6905,7 @@ apagar:
     ldx mapa_ofs
     rep #$20
 .a16
-    lda mapa_tabla + M_SPRITE_CGRAM, x
+    lda f:mapa_tabla + M_SPRITE_CGRAM, x
     asl a
     sta DAS0L
     sep #$20
@@ -6909,7 +6917,7 @@ apagar:
     lda #$01
     sta MDMAEN
 
-    lda mapa_tabla + M_OBSEL_VALUE, x
+    lda f:mapa_tabla + M_OBSEL_VALUE, x
     sta OBSEL
     rts
 .endproc
@@ -7122,7 +7130,7 @@ listo:
     sta VMAIN
     rep #$20
 .a16
-    lda mapa_tabla + M_VRAM_ABOVE, x
+    lda f:mapa_tabla + M_VRAM_ABOVE, x
     sta VMADDL
     sep #$20
 .a8
@@ -7131,7 +7139,7 @@ listo:
     ldx mapa_ofs
     rep #$20
 .a16
-    lda mapa_tabla + M_ABOVE_TILES, x
+    lda f:mapa_tabla + M_ABOVE_TILES, x
     asl a
     asl a
     asl a
@@ -7150,14 +7158,14 @@ listo:
     ; Su paleta va en las últimas paletas de la mitad baja de CGRAM, que el
     ; fondo de 8 bits deja libres. Cuántas y desde dónde lo decidió el
     ; conversor mapa por mapa, así que viene en el registro.
-    lda mapa_tabla + M_ABOVE_FIRST, x
+    lda f:mapa_tabla + M_ABOVE_FIRST, x
     sta CGADD
     ldy #M_PTR_ABOVE_CGRAM
     jsr dma_origen
     ldx mapa_ofs
     rep #$20
 .a16
-    lda mapa_tabla + M_ABOVE_CGRAM, x
+    lda f:mapa_tabla + M_ABOVE_CGRAM, x
     asl a
     sta DAS0L
     sep #$20
@@ -7187,17 +7195,17 @@ listo:
     clc
     adc mapa_ofs
     tax
-    lda mapa_tabla, x           ; los 16 bits bajos del puntero
+    lda f:mapa_tabla, x           ; los 16 bits bajos del puntero
     sta npc_ptr
     sep #$20
 .a8
-    lda mapa_tabla + 2, x       ; y su banco
+    lda f:mapa_tabla + 2, x       ; y su banco
     sta npc_ptr + 2
 
     ldx mapa_ofs
     rep #$20
 .a16
-    lda mapa_tabla + M_NPC_COUNT, x
+    lda f:mapa_tabla + M_NPC_COUNT, x
     asl a
     asl a
     asl a
@@ -7229,17 +7237,17 @@ listo:
     clc
     adc mapa_ofs
     tax
-    lda mapa_tabla, x
+    lda f:mapa_tabla, x
     sta npc_ptr
     sep #$20
 .a8
-    lda mapa_tabla + 2, x
+    lda f:mapa_tabla + 2, x
     sta npc_ptr + 2
 
     ldx mapa_ofs
     rep #$20
 .a16
-    lda mapa_tabla + M_RUTA_GRAFICO_COUNT, x
+    lda f:mapa_tabla + M_RUTA_GRAFICO_COUNT, x
     asl a                       ; dos bytes por gráfico
     sta temp
     sep #$20
@@ -7273,17 +7281,17 @@ listo:
     clc
     adc mapa_ofs
     tax
-    lda mapa_tabla, x           ; los 16 bits bajos del puntero
+    lda f:mapa_tabla, x           ; los 16 bits bajos del puntero
     sta npc_ptr
     sep #$20
 .a8
-    lda mapa_tabla + 2, x       ; y su banco
+    lda f:mapa_tabla + 2, x       ; y su banco
     sta npc_ptr + 2
 
     ldx mapa_ofs
     rep #$20
 .a16
-    lda mapa_tabla + M_EV_COUNT, x
+    lda f:mapa_tabla + M_EV_COUNT, x
     asl a
     asl a                       ; EV_STRIDE bytes por evento
     sta temp
@@ -8218,15 +8226,15 @@ no_hay:
     ldx mapa_ofs
     rep #$20
 .a16
-    lda mapa_tabla + M_PAGINA_COUNT, x
+    lda f:mapa_tabla + M_PAGINA_COUNT, x
     beq sin_paginas
     sta pag_restan
-    lda mapa_tabla + M_PTR_PAGINAS, x
+    lda f:mapa_tabla + M_PTR_PAGINAS, x
     sta pag_ptr
     stz pag_ofs
     sep #$20
 .a8
-    lda mapa_tabla + M_PTR_PAGINAS + 2, x
+    lda f:mapa_tabla + M_PTR_PAGINAS + 2, x
     sta pag_ptr + 2
     stz elegida_hay
 
@@ -8684,13 +8692,13 @@ listo:
     asl a                       ; treinta y dos bytes por paleta
     sta temp
     ldx mapa_ofs
-    lda mapa_tabla + M_PTR_SPRITE_CGRAM, x
+    lda f:mapa_tabla + M_PTR_SPRITE_CGRAM, x
     clc
     adc temp
     sta tin_ptr
     sep #$20
 .a8
-    lda mapa_tabla + M_PTR_SPRITE_CGRAM + 2, x
+    lda f:mapa_tabla + M_PTR_SPRITE_CGRAM + 2, x
     sta tin_ptr + 2
     rep #$20
 .a16
@@ -13633,8 +13641,8 @@ siguiente:
 .a8
 .i16
     ldx mapa_ofs
-    lda mapa_tabla + M_LLUVIA_BASE, x
-    ora mapa_tabla + M_LLUVIA_BASE + 1, x
+    lda f:mapa_tabla + M_LLUVIA_BASE, x
+    ora f:mapa_tabla + M_LLUVIA_BASE + 1, x
     bne con_gotas
     rts
 con_gotas:
@@ -13645,12 +13653,12 @@ hay:
     sta comp_col                ; cuántas
     rep #$20
 .a16
-    lda mapa_tabla + M_LLUVIA_BASE, x
+    lda f:mapa_tabla + M_LLUVIA_BASE, x
     sta comp_base               ; el primer tile
     sep #$20
 .a8
     ; vhoopppN: prioridad 2 y la paleta de las gotas; el noveno bit va aparte.
-    lda mapa_tabla + M_LLUVIA_PAL, x
+    lda f:mapa_tabla + M_LLUVIA_PAL, x
     and #$07
     asl a
     ora #$20
@@ -15661,7 +15669,7 @@ repintar:
     sta INIDISP
     jsr ppu_init
     ldx mapa_ofs
-    lda mapa_tabla + M_BG12NBA_VALUE, x
+    lda f:mapa_tabla + M_BG12NBA_VALUE, x
     sta BG12NBA
     jsr load_map
     ; Y la capa de encima, por su paleta: las caras de la pantalla usan hasta
@@ -16331,7 +16339,7 @@ con_fila:
     cmp #NPC_QUIETO
     bne puede
     ldx mapa_ofs
-    lda mapa_tabla + M_GIRO_TILE4, x
+    lda f:mapa_tabla + M_GIRO_TILE4, x
     cmp #$FF
     bne puede
     rts                         ; un quieto sin ranura de giro
@@ -16432,7 +16440,7 @@ quieto:
     lda temp
     sta npc_buf + 12, y
     ldx mapa_ofs
-    lda mapa_tabla + M_GIRO_TILE4, x
+    lda f:mapa_tabla + M_GIRO_TILE4, x
     asl a
     asl a                       ; el tile: el byte por cuatro, y el bit 8
     sta npc_buf + 6, y
@@ -16475,7 +16483,7 @@ quieto:
     lda [poses_ptr], y
     sta vq_src + 2
     ldx mapa_ofs
-    lda mapa_tabla + M_GIRO_TILE4, x
+    lda f:mapa_tabla + M_GIRO_TILE4, x
     rep #$20
 .a16
     and #$00FF
@@ -16486,7 +16494,7 @@ quieto:
     asl a
     asl a                       ; dieciséis palabras por tile
     clc
-    adc mapa_tabla + M_VRAM_SPRITE, x
+    adc f:mapa_tabla + M_VRAM_SPRITE, x
     sta vq_dest
     sep #$20
 .a8
@@ -16703,7 +16711,7 @@ cambia:
     asl a                       ; dieciséis palabras por tile
     ldx mapa_ofs
     clc
-    adc mapa_tabla + M_VRAM_SPRITE, x
+    adc f:mapa_tabla + M_VRAM_SPRITE, x
     sta vq_dest
     sep #$20
 .a8
@@ -17722,7 +17730,7 @@ producto_sobre_31:
     ldx mapa_ofs
     rep #$20
 .a16
-    lda mapa_tabla + M_MAP_CGRAM, x
+    lda f:mapa_tabla + M_MAP_CGRAM, x
     sta tin_count
     sep #$20
 .a8
@@ -17743,11 +17751,11 @@ producto_sobre_31:
     ldx mapa_ofs
     rep #$20
 .a16
-    lda mapa_tabla + M_ABOVE_CGRAM, x
+    lda f:mapa_tabla + M_ABOVE_CGRAM, x
     sta tin_count
     sep #$20
 .a8
-    lda mapa_tabla + M_ABOVE_FIRST, x
+    lda f:mapa_tabla + M_ABOVE_FIRST, x
     jmp destellar_rango
 .endproc
 
@@ -17758,7 +17766,7 @@ producto_sobre_31:
     ldx mapa_ofs
     rep #$20
 .a16
-    lda mapa_tabla + M_SPRITE_CGRAM, x
+    lda f:mapa_tabla + M_SPRITE_CGRAM, x
     sta tin_count
     sep #$20
 .a8
@@ -18612,11 +18620,11 @@ sin_columna:
     ; celdas = la grilla del mapa + win_block filas. Se suma de a una en vez de
     ; multiplicar: pasa una sola vez y el 65816 no multiplica.
     ldx mapa_ofs
-    lda mapa_tabla + M_PTR_MAP_CELDAS, x
+    lda f:mapa_tabla + M_PTR_MAP_CELDAS, x
     sta celdas_ptr
     sep #$20
 .a8
-    lda mapa_tabla + M_PTR_MAP_CELDAS + 2, x
+    lda f:mapa_tabla + M_PTR_MAP_CELDAS + 2, x
     sta celdas_ptr + 2
     rep #$20
 .a16
@@ -18706,7 +18714,7 @@ fuente_pre_bk:
     sta VMAIN
     rep #$20
 .a16
-    lda mapa_tabla + M_VRAM_VENTANA, x
+    lda f:mapa_tabla + M_VRAM_VENTANA, x
     sta VMADDL
     lda #.loword(ventana_tiles)
     sta A1T0L
@@ -18759,7 +18767,7 @@ hay:
     ldx mapa_ofs
     rep #$20
 .a16
-    lda mapa_tabla + M_VRAM_VENTANA_MAP, x
+    lda f:mapa_tabla + M_VRAM_VENTANA_MAP, x
     sta VMADDL
     lda #.loword(ventana_celdas)
     sta A1T0L
@@ -18810,7 +18818,7 @@ hay:
     sta hdma_sc + 1
     sta hdma_sc + 3
     ldx mapa_ofs
-    lda mapa_tabla + M_VRAM_VENTANA_MAP + 1, x
+    lda f:mapa_tabla + M_VRAM_VENTANA_MAP + 1, x
     sta hdma_sc + 5
     stz hdma_sc + 6             ; fin de tabla
 
@@ -19109,7 +19117,7 @@ mas:
     asl a
     asl a                       ; por 16 palabras cada tile
     clc
-    adc mapa_tabla + M_VRAM_VENTANA, x
+    adc f:mapa_tabla + M_VRAM_VENTANA, x
     sta VMADDL
     lda #.loword(texto_buf)
     sta A1T0L
@@ -19758,13 +19766,13 @@ puesto:
     ; dieciséis bits no se sale.
     phx
     ldx mapa_ofs
-    lda mapa_tabla + M_PTR_ANIM_TILES, x
+    lda f:mapa_tabla + M_PTR_ANIM_TILES, x
     clc
     adc temp + 2
     sta A1T0L
     sep #$20
 .a8
-    lda mapa_tabla + M_PTR_ANIM_TILES + 2, x
+    lda f:mapa_tabla + M_PTR_ANIM_TILES + 2, x
     sta A1B0
     plx
     lda #$01
@@ -20459,11 +20467,11 @@ positivo:
     rep #$20
 .a16
     ldx mapa_ofs
-    lda mapa_tabla + M_PTR_MAP_CELDAS, x
+    lda f:mapa_tabla + M_PTR_MAP_CELDAS, x
     sta celdas_ptr
     sep #$20
 .a8
-    lda mapa_tabla + M_PTR_MAP_CELDAS + 2, x
+    lda f:mapa_tabla + M_PTR_MAP_CELDAS + 2, x
     sta celdas_ptr + 2
     rep #$20
 .a16
@@ -20626,14 +20634,14 @@ sigue:
     ldx mapa_ofs
     rep #$20
 .a16
-    lda mapa_tabla + M_PUERTA_COUNT, x
+    lda f:mapa_tabla + M_PUERTA_COUNT, x
     beq no_hay
     sta temp                    ; cuántas quedan por mirar
-    lda mapa_tabla + M_PTR_PUERTAS, x
+    lda f:mapa_tabla + M_PTR_PUERTAS, x
     sta temp + 2
     sep #$20
 .a8
-    lda mapa_tabla + M_PTR_PUERTAS + 2, x
+    lda f:mapa_tabla + M_PTR_PUERTAS + 2, x
     sta puerta_ptr + 2
     rep #$20
 .a16
@@ -20877,8 +20885,8 @@ listo_10b:
     rts
 hay:
     ldx mapa_ofs
-    lda mapa_tabla + M_TIMER_BASE, x
-    ora mapa_tabla + M_TIMER_BASE + 1, x
+    lda f:mapa_tabla + M_TIMER_BASE, x
+    ora f:mapa_tabla + M_TIMER_BASE + 1, x
     bne dibujar
     rts                         ; esta ROM no lleva los glifos
 dibujar:
@@ -20951,7 +20959,7 @@ cada_mitad:
     and #$00FF                  ; lado, y por eso el `and`
     ldx mapa_ofs
     clc
-    adc mapa_tabla + M_TIMER_BASE, x
+    adc f:mapa_tabla + M_TIMER_BASE, x
     sta temp
     sep #$20
 .a8
@@ -20962,7 +20970,7 @@ cada_mitad:
     lda temp + 1
     and #$01
     sta temp + 2
-    lda mapa_tabla + M_TIMER_PAL, x
+    lda f:mapa_tabla + M_TIMER_PAL, x
     and #$07
     asl a
     ora #$30
@@ -21744,7 +21752,7 @@ sin_ajuste:
     ldx mapa_ofs
     rep #$20
 .a16
-    lda mapa_tabla + M_VRAM_SPRITE, x
+    lda f:mapa_tabla + M_VRAM_SPRITE, x
     sta vq_dest
     sep #$20
 .a8

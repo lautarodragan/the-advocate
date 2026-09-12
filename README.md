@@ -363,6 +363,30 @@ Ninguno sirve para todos los mapas: el que más tiles de fondo gasta necesita
 —junto con los valores ya armados de `OBSEL` y `BG12NBA`— y viaja en el `.inc`.
 La ROM no elige nada.
 
+Con la ventana de mensaje puesta hay que sacarle 8 KB de tiles y 2 KB de tilemap
+a alguien, y eso da otros tres cortes. Son seis en total, y `vram_layout`
+devuelve **el primero que entre**, así que agregar uno al final no le cambia el
+reparto a ningún mapa que ya lo tenía:
+
+    ancho          fondo 512 | sprites 384 | encima 256
+    fondo          fondo 640 | encima 256  | sprites 256
+    ancho+sprite   sprites 512 | fondo 448 | encima 256
+    ventana        sprites 448 | ventana_map | fondo 448 | encima 128 | ventana 256
+    ventana+fondo  sprites 256 | fondo 480  | ventana_map | encima 128 | ventana 256
+    ventana+sprite sprites 512 | fondo 384  | ventana_map | encima 128 | ventana 256
+
+Los dos "+sprite" son del 2026-09-12 y los pidió el mismo mapa: **Delcentric
+Factory**, el camino al auditorio. Gasta 217 tiles de fondo y **475 de sprite**
+—26 NPCs con CharSet son 28 ranuras, o sea 448 tiles justos, y encima van los 8
+glifos del cronómetro y las 19 gotas de lluvia—. Los 512 no son una elección:
+son el tope del hardware, porque el campo de nombre de OAM tiene nueve bits y
+con el name select de `OBSEL` en cero las dos tablas quedan pegadas.
+
+**Lo que no entra en ninguno de los seis** es un mapa que gaste mucho de las dos
+cosas a la vez. El caso medido es `Sector 34 With Car`, el mapa 38: 476 tiles de
+fondo y 347 de sprite, que son 41 KB de tiles más los 10 de la ventana, los 8 de
+la capa de encima y los 8 de los dos tilemaps. Son 67 de 64.
+
 #### El reparto de CGRAM, también
 
 Las 256 entradas de CGRAM se parten al medio: la mitad de arriba es de los
@@ -697,6 +721,16 @@ mismo banco de tiles y la misma paleta que la pantalla de ranuras —las caras
 son las mismas y guardar se abre desde el menú—. Las órdenes en gris llevan su
 propia paleta de BG2: el color 3 es un degradé y con el del texto sumaban 18
 colores, así que a las caras les quedan seis paletas.
+
+**Y desde el 2026-09-12, la séptima cara se cuelga de una prestada.** La lista
+de caras no es la del grupo sino la de todos los que algún `ChangePartyMembers`
+de los mapas de la ROM pueda meter, y con Lashe City entera son ocho: los cuatro
+de la intro más Arden, Saldra, el Gang Member de los Rat Tracks y AG7-17. Antes
+eso era un corte —`SystemExit`— y ahora cada color de la cara que sobra va al
+más cercano por luma de la paleta a la que menos colores le falte, que es
+exactamente lo que `cabe` hace con los sprites y la misma razón de taro: un
+personaje con colores raros es un error visible, y un cuarto mapa que no entra
+no lo es. Se ve en el informe del conversor, que las nombra.
 
 **Cuándo se abre es lo de RM2k.** `Game_Player::Update` anota el pedido
 —`menu_calling`— si B se aprieta con el menú permitido, sin mensaje y sin
@@ -1430,6 +1464,33 @@ mismo evento: antes `cola_n` llegaba a 8 y se quedaba ahí, ahora el pico es 2.
 Lo encontró taro jugando, y la firma fue lo que lo delató: **"me deja
 interactuar una vez y después nada"**. Salir del mapa y volver lo arreglaba
 porque `encolar_eventos` pone los punteros en cero.
+
+#### La página automática vacía congelaba el mapa
+
+En RM2k una página sin un solo comando **no arranca el intérprete**:
+`Game_Interpreter::Push` vuelve en seguida cuando la lista viene vacía, así que
+el intérprete no queda corriendo y el jugador camina. Acá esa página se volvía
+la activa, se ejecutaba en un tick, terminaba, y como una automática se repite
+mientras siga siendo la activa, volvía a arrancar en el tick siguiente. El mapa
+quedaba congelado para siempre.
+
+No es un caso raro: **es el idioma con el que RM2k desactiva un evento**. Una
+página de abajo prende el switch que activa una de arriba, y ésa está vacía y
+sin gráfico. Medido sobre los 328 mapas: **45 páginas en 35 mapas**, y en Rat
+Tracks B1 son dos que se vuelven activas en el primer cuadro, o sea que el mapa
+era injugable.
+
+Lo delató el caso nuevo `snes-heroe 21` **tardando catorce minutos**: la
+referencia se comía los 100.000 ticks de `correr_automaticos` antes de empezar a
+caminar y el emulador después corría esos 100.000 cuadros por dirección. Con el
+arreglo son nueve ticks. Y es un buen ejemplo de la forma de falla que este repo
+persigue: los dos lados hacían lo mismo, así que la comparación daba cero; lo
+único que gritaba era el reloj.
+
+El arreglo es una línea en el filtro de páginas —una automática o paralela sin
+comandos se emite con el código en `None`—, y lo miran los dos lados por el
+mismo lado, que es lo que ya consultaban para decidir si una automática cuenta:
+`eventos_auto` en la referencia y el bit 7 de la página en el conversor.
 
 #### El presupuesto de saltos se drenaba solo
 
@@ -3548,6 +3609,22 @@ la corrupción de pantalla desapareciera, y por eso no se notó.
 
 Ahora hay un segmento `TABLAS` que el enlazador pone en el banco 0. Todo lo que
 la CPU recorra con un índice tiene que estar ahí.
+
+**Y el banco 0 son 32 K, así que la que crece con el contenido se muda.** Van
+tres: la tabla de bloques, la de textos y, desde el 2026-09-12, `mapa_tabla` —el
+registro de 144 bytes por mapa—. Con los 28 mapas de Lashe City eran 4 KB sobre
+los 530 que quedaban libres. Una tabla mudada se lee con `lda f:tabla, x`, que
+lleva el banco en la instrucción y no en el registro de banco de datos; cuesta
+un byte por instrucción y **obliga a que el índice sea X**, porque el
+direccionamiento absoluto largo indexado con Y no existe. Los dos usos de
+`mapa_tabla` con Y pasaron a X, con X yendo y volviendo por la pila.
+
+Y una tabla mudada necesita su `.bloque` igual que las de acá abajo: la primera
+versión de esto no lo tenía, `mapa_tabla` cayó en `$03FFB1` y sus 144 bytes se
+partieron contra el final del banco. Lo cobró un solo caso de la tanda —el mapa
+5 arrancando en negro—, y los demás no lo vieron porque su tabla caía en otro
+lado. Es exactamente la clase de error que aparece o desaparece al agregar un
+byte en cualquier otra parte del cartucho.
 
 Y lo que no entre en un banco no puede recorrerse con un índice, punto: la
 grilla de celdas llega a 40 KB. Ésa se lee con un puntero de 24 bits, y ahí

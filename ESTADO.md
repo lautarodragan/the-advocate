@@ -19,11 +19,11 @@ Se escribe **mientras se trabaja**, no al final.
 **Los primeros diez minutos jugables**, que es lo que taro viene probando vuelta
 a vuelta.
 
-Al 2026-09-12: `just snes-hitos-foto` son **123 casos, todos en verde**, y `just
+Al 2026-09-12: `just snes-hitos-foto` son **130 casos, todos en verde**, y `just
 pruebas` **83 en verde y 1 `xfail`**. El `xfail` no es adorno: es un defecto
 medido de guardar con la pantalla de título puesta, y está abajo.
 
-`demo-ciudad` se juega desde la apertura hasta la calle de Lashe City, con los
+`demo-ciudad` se juega desde la apertura hasta el auto de la fuga, con los
 relámpagos, los autos y los NPCs andando, el agua moviéndose, la lluvia, el save
 point animado y guardando, el menú de pausa, los ítems, el equipo y la tienda.
 **Corre en la SNES de verdad con el FX Pak**, con la música por MSU-1 y los
@@ -120,6 +120,115 @@ Lo que queda abierto:
   sobre los 61 casos del juego que animan quietos le dio la razón: **cero**
   diferencia de colores.
 
+### Lashe City entera, menos la persecución (2026-09-12)
+
+`demo-ciudad` pasó de 10 mapas a 29: es el subárbol del nodo 15 del árbol de
+mapas del `.lmt` —el que el editor usa para organizar— menos lo que no entra.
+El hilo que se puede jugar ahora es
+
+    7 pad -> 8/9 calle -> 16 corriendo al trabajo -> 17 Delcentric Factory
+    -> 18 auditorio -> 4 -> 19 Talan y el Director -> 20 Sector 30
+    -> 21/26 Rat Tracks -> 20 (escena del Panhandler) -> 28 Sector 27
+    -> 32 galpón -> 33 la fuga del 27 -> 4 -> 34 la escena del auto -> 36
+
+y de costado la misión de los Neon Viper (11 Lazer Teeth HQ, 12 Trash Dump,
+13 Hover-Tram, 14), el escondite del mendigo (23) y los dos negocios del
+Sector 27 (29, 30).
+
+**Tres límites se corrieron, y están medidos.** Los tres eran cortes duros, no
+gustos:
+
+* **El mapa 17 no entraba en ninguno de los dos repartos de VRAM con ventana**:
+  gasta 217 tiles de fondo y **475 de sprite** —28 ranuras de personaje son 448
+  justos, más 8 glifos de cronómetro y 19 gotas de lluvia—, y el reparto de la
+  ventana da 448. Se agregó un tercero, `LAYOUT_VENTANA_SPRITE`: 512 tiles de
+  sprite —el tope del hardware, que es lo que direccionan los nueve bits del
+  campo de nombre de OAM— contra 384 de fondo. Va **último** en `vram_layout`,
+  así que ningún mapa que ya tenía reparto cambia de reparto.
+* **`mapa_tabla` se mudó a RODATA** y se lee con `lda f:mapa_tabla + campo, x`.
+  Son 144 bytes por mapa en el banco 0, que con 28 mapas eran 4 KB sobre los
+  530 que quedaban libres. Es la tercera tabla que se muda por esto. Los dos
+  únicos usos con Y tuvieron que pasar a X —el absoluto largo indexado sólo
+  existe con X— y ahí X va y vuelve por la pila; el `plx` deja N y Z del valor
+  que saca, por eso lo que sigue es un `jsr`.
+* **Las caras del menú y de las ranuras se prestan paleta.** BG2 tiene ocho
+  paletas, dos son del texto, y desde el mapa 20 pueden entrar al grupo Arden,
+  Saldra, el Gang Member de los Rat Tracks y AG7-17: con los cuatro de la
+  intro son ocho caras para seis lugares. Antes eso era un `SystemExit`; ahora
+  la que no consigue paleta se cuelga de la que menos colores le falte, que es
+  exactamente lo que `cabe` hace con los sprites y la misma razón de taro.
+
+**Lo que quedó afuera, con el número:**
+
+* **La persecución en auto (49, 52, 54, 51, 50, 53) y con ella el 64.** No es
+  el tamaño: **42 de las 44 páginas automáticas de cada mapa de la carrera no
+  compilan** porque leen la posición del auto con un `ControlVars` de clase 6
+  —coordenadas de un personaje—, que el conversor no hace, y el 49 además tiene
+  un `KeyInputProc`. Con los seis mapas puestos el auto no dobla y el tráfico
+  no aparece. De paso, los tres de 500x40 son 186 KB y el cartucho se pasaba de
+  los 2 MB por 88 KB, así que la carrera pide **las dos cosas**: los dos
+  opcodes y más cartucho.
+* **Los sectores con auto (37, 38, 47, 48)**, que son a dónde lleva la elección
+  del mapa 36. El **38 no entra en ningún reparto**: 476 tiles de fondo y 347
+  de sprite, y no hay forma de repartir 64 KB entre los dos más la ventana, la
+  capa de encima y los dos tilemaps. Y la elección del 36 es una sola página:
+  o compilan los cuatro destinos o no compila ninguno. Por eso la demo termina
+  parada en el 36, con la escena del auto ya vista.
+* **Los nodos "… Monsters" (24, 25, 27, 31, 35) no son mapas**: son áreas con
+  un `area_rect` y su lista de tropas, colgadas del mapa real. Son los
+  encuentros al azar de los Rat Tracks y del Sector 27, y le tocan al sistema
+  de batalla.
+
+**Y de paso, un defecto que estaba desde siempre y nadie veía: la página
+automática vacía.** En RM2k una página sin un solo comando **no arranca el
+intérprete** —`Game_Interpreter::Push` vuelve en seguida con la lista vacía—, y
+acá se volvía la activa, corría en un tick, terminaba y volvía a arrancar,
+porque una automática se repite mientras siga siendo la activa. El mapa quedaba
+congelado para siempre y el héroe no daba un paso. Es el idioma con el que RM2k
+desactiva un evento —una página de abajo prende el switch que activa una de
+arriba, y ésa está vacía—, así que no es un caso raro: **son 45 páginas en 35 de
+los 328 mapas**, y ocho caen en mapas de la demo (2, 3, 9, 13, 14, 18, 21 y 26).
+En Rat Tracks B1 son dos y se vuelven activas en el primer cuadro, o sea que el
+mapa era injugable.
+
+Lo delató `snes-heroe 21` **tardando catorce minutos**: la referencia se comía
+sus 100.000 ticks de `correr_automaticos` antes de empezar a caminar, y el
+emulador después corría esos 100.000 cuadros por dirección. Con el arreglo son
+9 ticks. Los dos lados lo miran por el mismo lado —el `codigo` de la página en
+None, que es lo que `eventos_auto` y el bit 7 del conversor ya consultaban—.
+
+**Lo que cuesta, declarado:**
+
+* **La pantalla de título se queda sin su tema, otra vez, y ahora por la
+  ARAM.** `demo-titulo` pierde `Fantasia_Of_The_Wind`: el banco de muestras se
+  llenó con los temas de Lashe City y el del título es el último de la lista,
+  o sea el primero que se cae. **No es el defecto del 2026-09-12** —ése era
+  `tema_asegurar` y sigue arreglado—: es que ya no hay lugar. Medido: sacando
+  los mapas 11 y 12 —los dos temas de la misión de los Neon Viper— el banco baja
+  de 56.952 a 55.743 B y **igual no entra**, así que no se arregla con un mapa
+  menos. Con pista de MSU-1 el título suena igual. Lo que lo arreglaría es
+  darle prioridad al tema del título en `build_varios`, que hoy descarta desde
+  el final; no es gratis, porque `hechos` es un prefijo y el arranque y el
+  título se comparan contra su largo.
+* **Ocho temas quedan mudos**: el banco de muestras es uno solo para toda la
+  ROM y tiene que entrar en los 64 KB de ARAM. Entran once —53 KB pasaron a
+  57— y los que se caen son `Astpgmarch` (el discurso del Director), `Gaden` y
+  `3D-Galax` (el 19), `vswar` (Rat Tracks B2), `Lunar_Pyramid` (Sector 27),
+  `dcbest` (el galpón y la fuga) y `golden_axe-turtlevillage2` (el auto). En
+  esos mapas sigue sonando el tema del mapa anterior.
+* **Dos caras con paleta prestada** en el menú y en las ranuras. Es cosmético y
+  falta que taro lo confirme jugando.
+* **`CallEvent` sigue aceptándose sin hacerse**, y ahora lo usan seis mapas más
+  (20, 21, 26, 28, 32 y el 13 del Hover-Tram). El conversor lo avisa por mapa.
+
+**Lo que la tanda no cubre de esto:** la **paleta prestada de una cara**. Los
+casos del menú y de las ranuras arman la ROM con un mapa solo, así que nunca
+llegan a siete caras; y `snes-menu` compara contra `titulo.py`, que no recibe
+la lista de mapas. Hace falta una receta que le pase `--mapas`. El reparto
+nuevo de VRAM **sí** está cubierto: `snes-cinematica 17 1 "120 150" 115
+factoria 1`, verificado que da rojo —33% de los pixeles— moviéndole el tilemap
+de la ventana encima de los tiles de fondo.
+
 ### Dos defectos de audio que ninguna prueba veía (2026-09-12)
 
 Los dos los encontró taro escuchando, y los dos son invisibles para la tanda,
@@ -211,7 +320,9 @@ Al 2026-09-12, en orden.
    easyrpg, y un mapa retocado ahí contamina toda medición futura sin avisar.
 
 6. **Lo que sigue faltando de Lashe City**: la condición por cronómetro —una
-   página en todo el juego— y el `CallEvent` del Hover-Tram.
+   página en todo el juego—, el `CallEvent` del Hover-Tram, y para la
+   persecución en auto el `ControlVars` de clase 6 y el `KeyInputProc`. Ver
+   "Lashe City entera, menos la persecución", arriba.
 
 7. **Lo que falta del sistema de ítems**: los libros, los materiales y los
    especiales, y `ChangeEquipment` —sólo en los mapas 30 y 151—. Las medicinas
