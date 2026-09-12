@@ -1442,14 +1442,15 @@ snes-anclada mapa="6" ruta="1 1 1 1 1 1 2 2 2 2 2 2" cuadros="21 23 50 130" arra
 # lado, y **sólo del lado de la ROM**, que es lo que hace que la comparación
 # mida algo— los dos dan 556 pixeles. Un caso que no falla con algo roto no
 # prueba nada.
-snes-batalla tropa="86" grupo="11 12 13" espera="20" cuadros="200" toques="" nombre="batalla" fondo="ABLBackdropSJ03" mapas="":
+snes-batalla tropa="86" grupo="11 12 13" espera="20" cuadros="200" toques="" nombre="batalla" fondo="ABLBackdropSJ03" mapas="" items="" ref="--modo 1 --blanco 2":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
   toques="{{toques}}"
   mapas="{{mapas}}"
+  items="{{items}}"
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id 6 --con-ventana \
-      ${mapas:+--mapas $mapas} \
+      ${mapas:+--mapas $mapas} ${items:+--items-de-prueba $items} \
       --pagina-de-prueba {{espera}} 0 0 0 --batalla-de-prueba {{tropa}} \
       --fondo-de-prueba "{{fondo}}" \
       -o {{snes_inc}}/mapdata.inc
@@ -1458,7 +1459,8 @@ snes-batalla tropa="86" grupo="11 12 13" espera="20" cuadros="200" toques="" nom
   python3 tools/pantallas.py -o $pre.esperado.png --batalla {{tropa}} \
       --fondo "{{fondo}}" \
       --grupo $(echo "{{grupo}}" | tr ' ' ',') \
-      ${toques:+--modo 1 --blanco 2}
+      ${items:+--items $(echo "$items" | awk '{for(i=1;i<NF;i+=2) printf "%s%s:%s", (i>1?",":""), $i, $(i+1)}')} \
+      ${toques:+{{ref}}}
   python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre.png \
       --cuadros {{cuadros}} --sin-contador --walk none \
       ${toques:+--toques-hardware {{toques}}}

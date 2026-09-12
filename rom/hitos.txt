@@ -134,6 +134,14 @@ snes-batalla 82 "11 12 13" 20 200 "" batalla-droide SJBackdropABL04
 # así que `tropa_id` y `escena_de` se indexan de verdad en vez de acertar
 # siempre con el primer renglón.
 snes-batalla 86 "11 12 13" 20 200 "" batalla-segunda ABLBackdropSJ03 2
+# Los dos modos de `Use Item`: la lista de ítems donde iban los enemigos, y
+# la misma lista en gris con el cursor eligiendo a quién curárselo. El
+# inventario lo pone la página de prueba —tres Potion y dos Cold Sandwich— y
+# la referencia arma la lista con la misma regla que la ROM. Verificado que
+# dan rojo corriendo dos celdas la columna de la cuenta sólo del lado de la
+# ROM: 142 pixeles.
+snes-batalla 86 "11 12 13" 20 220 "right:130 right:140 a:150" batalla-item ABLBackdropSJ03 "" "1 3 97 2" "--modo 2 --item 0"
+snes-batalla 86 "11 12 13" 20 240 "right:130 right:140 a:150 a:160 down:170" batalla-item-blanco ABLBackdropSJ03 "" "1 3 97 2" "--modo 3 --item 0 --blanco 1"
 snes-pisar
 snes-escena 2 "7 76" "0 0 0 0" up "40 60 100" 115 bloqueo ""
 snes-escena 2 "7 74" 14 down "3 8 25 60 106 200" 115 droide ""

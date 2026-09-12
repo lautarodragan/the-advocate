@@ -19,9 +19,10 @@ Se escribe **mientras se trabaja**, no al final.
 **Los primeros diez minutos jugables**, que es lo que taro viene probando vuelta
 a vuelta.
 
-Al 2026-09-13: `just snes-hitos-foto` son **136 casos, todos en verde**, y `just
-pruebas` **99 en verde y 1 `xfail`** —los cuatro nuevos de `pruebas` son el
-audio de la pelea, y los dos de la tanda, la escena de batalla—. El `xfail` no es adorno: es un defecto
+Al 2026-09-13: `just snes-hitos-foto` son **138 casos, todos en verde**, y `just
+pruebas` **102 en verde y 1 `xfail`**. Los siete nuevos de `pruebas` son el
+audio de la pelea y `Use Item`; los cinco de la tanda, la escena de batalla y
+los dos modos de la lista de ítems. El `xfail` no es adorno: es un defecto
 medido de guardar con la pantalla de título puesta, y está abajo.
 
 `demo-ciudad` se juega desde la apertura hasta la calle de Lashe City, con los
@@ -40,25 +41,23 @@ imagen de fondo ni imagen del monstruo. El menú tampoco es parecido al del ABL
 original. Le faltan las opciones de `Use Item` y las habilidades especiales de
 cada personaje. Y tampoco tiene música, ni efectos de sonido."*
 
-**La música, los efectos, el fondo y los monstruos están hechos** —README, "El
-fondo y los monstruos" y "La música y los efectos de la pelea"—. Lo que queda
-es **el menú**, y esto es lo que se sabe:
+De lo que taro pidió entró todo menos las habilidades —README, "El menú", "El
+fondo y los monstruos" y "La música y los efectos de la pelea"—.
 
-* **`Use Item` y las habilidades.** Los ítems y el inventario ya existen en el
-  port —pantalla de ítems, equipo, tienda— y `skills.json` tiene las
-  habilidades; las palabras salen de `terms.json`, como las tres órdenes de
-  hoy. No se empezó.
+* **Las habilidades no las traba la pantalla: las traban los niveles.** Está
+  medido: Kersh aprende la 131 en el nivel 3, Core la 129 en el 3 y Manta la
+  130 en el 3, y este port tiene a todos en el nivel 1 porque no hay
+  experiencia ni subida de nivel. La lista saldría vacía. Y detrás vienen los
+  SP, que tampoco son estado. Por eso `Tech Skill` está en la pantalla y en
+  gris, como las tres órdenes que el menú de pausa todavía no hace.
 
-  Lo que hay que decidir primero es **dónde**: el renglón de las órdenes tiene
-  tres columnas de nueve caracteres y cinco no entran en una. Los dos renglones
-  del mensaje están libres mientras se elige, así que lo barato es partirlas en
-  dos filas —tres arriba, dos abajo— sin tocar el resto de la pantalla.
+  El orden para retomarlo, si se retoma, es: niveles y experiencia, después SP,
+  y recién ahí las habilidades. Lo último es lo barato.
 
-  Y lo que hay que escribir dos veces, como todo lo de la pelea: el efecto de
-  un ítem y el de una habilidad van en `main.s` **y** en `tools/batalla.py`,
-  con las fórmulas de easyrpg, o `pruebas/test_batalla.py` deja de poder
-  predecir el HP exacto. Las medicinas ya sirven de algo: desde el 2026-09-12
-  los HP bajan.
+* **Lo que `Use Item` dejó afuera**: las medicinas de SP y las de revivir. Las
+  primeras porque los SP no son estado; las segundas porque revivir es sacar el
+  estado de muerto y los estados no existen. Son 10 de las 22 medicinas del
+  juego.
 
 * **Lo que el fondo dejó declarado y taro tiene que mirar jugando**: el texto
   va sin ventana encima de la escena. En RM2k las ventanas lo separan del

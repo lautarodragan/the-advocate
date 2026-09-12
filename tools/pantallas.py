@@ -358,13 +358,48 @@ BA_HP_COL = 18
 BA_HP_NUM = 21                  # tres cifras
 BA_BARRA_COL = 24
 BA_HP_MAX_NUM = 25              # y las tres del máximo, en el grupo
-# Las órdenes, en el renglón del mensaje: cursor, texto, cursor, texto...
-BA_ORDEN_COLS = (1, 11, 21)
-BA_ORDEN_ANCHO = 9
-BA_ORDEN_ATACAR, BA_ORDEN_DEFENDER, BA_ORDEN_HUIR = 0, 1, 2
+# Las cinco órdenes del menú de batalla del ABL, en los dos renglones del
+# mensaje: tres arriba y dos abajo. Mientras se elige, el de abajo está libre.
+#
+# Hasta el 2026-09-13 eran tres en un renglón —`Attack`, `Defend`, `Escape`— y
+# taro pidió el menú del original, que tiene además `Use Item` y `Tech Skill`.
+# El ancho pasó de nueve a diez porque `Tech Skill` mide diez justos, y tres
+# columnas de diez en 1, 11 y 21 terminan en la celda 30 de las 32.
+BA_ORDEN_ANCHO = 10
+(BA_ORDEN_ATACAR, BA_ORDEN_DEFENDER, BA_ORDEN_USAR, BA_ORDEN_HABILIDAD,
+ BA_ORDEN_HUIR) = range(5)
+# Por orden: qué término la nombra, en qué renglón va y en qué columna.
+#
+# Las columnas del segundo renglón **no son las del primero**: `Tech Skill`
+# mide diez justos y llena su ancho sin dejarle lugar al cursor del que sigue,
+# que va una celda antes del texto. Arriba eso no pasa porque las tres palabras
+# son más cortas que el ancho y el relleno son espacios.
+BA_ORDENES = (
+    ("atacar", 0, 1),
+    ("defender", 0, 11),
+    ("usar", 0, 21),
+    ("habilidad", 1, 1),
+    ("huir", 1, 13),
+)
 
-# Los modos de la pantalla, que la ROM lleva en `ba_modo`.
-BA_ELIGE_ORDEN, BA_ELIGE_BLANCO, BA_MENSAJE, BA_FIN = 0, 1, 2, 3
+# **`Tech Skill` va siempre en gris y A no hace nada con ella**, que es lo que
+# el menú de pausa ya hace con las tres órdenes que no están. Y no es que falte
+# el código: está medido que **a este nivel nadie sabe ninguna habilidad**. Las
+# de los cuatro actores de la intro se aprenden en el nivel 3 o más arriba
+# —Kersh la 131 en el 3, Core la 129 en el 3, Manta la 130 en el 3— y este port
+# tiene a todos en el nivel 1: ver `titulo.NIVEL`. La lista saldría vacía.
+BA_ORDEN_SIN_HACER = (BA_ORDEN_HABILIDAD,)
+
+# Los modos de la pantalla, que la ROM lleva en `ba_modo`. **El orden importa**:
+# la ROM pregunta `cmp #BA_M_MENSAJE / bcs` para decir "mensaje o fin", así que
+# los que eligen algo van todos antes.
+(BA_ELIGE_ORDEN, BA_ELIGE_BLANCO, BA_ELIGE_ITEM, BA_ELIGE_ACTOR,
+ BA_MENSAJE, BA_FIN) = range(6)
+
+# La lista de ítems ocupa los renglones de los enemigos: mientras se elige qué
+# usar, los enemigos no hacen falta y el grupo sí, que es a quién se cura.
+BA_ITEM_FILAS = BA_ENEMIGOS_FILAS
+BA_ITEM_CUENTA_COL = 18
 
 # Los términos del LDB que la pantalla usa, en el orden en que el conversor los
 # emite. Los códigos salen de `ldb/chunks.h` de liblcf —ChunkTerms— y no de
@@ -385,6 +420,12 @@ BA_TERMINOS = (
     ("derrota", 0x06),          # defeat
     ("huyo", 0x03),             # escape_success
     ("no_huyo", 0x04),          # escape_failure
+    # Los cuatro del 2026-09-13: las dos órdenes que faltaban y los dos
+    # renglones del mensaje de usar un ítem.
+    ("usar", 0x6A),             # command_item: "Use Item"
+    ("habilidad", 0x6B),        # command_skill: "Tech Skill"
+    ("uso", 0x1C),              # use_item: " used."
+    ("recupero", 0x1D),         # hp_recovery: " Recovered"
 )
 
 
@@ -394,7 +435,7 @@ def terminos_batalla(db):
 
 
 def texto_de_orden(termino):
-    """Una de las tres órdenes como la escribe la pantalla.
+    """Una de las cinco órdenes como la escribe la pantalla.
 
     Los términos del LDB traen espacios adelante —`battle_escape` del ABL dice
     " Escape"— y en el renglón de abajo eso correría el texto de su columna.
@@ -406,32 +447,58 @@ def texto_de_orden(termino):
 
 
 def pantalla_batalla(db, combate, modo=BA_ELIGE_ORDEN, actor=0, orden=0,
-                     blanco=0, mensaje=("", "")):
+                     blanco=0, mensaje=("", ""), items=(), item=0, arriba=0):
     """La pantalla como la compone la ROM.
 
     `combate` es una `batalla.Batalla`. `modo` dice qué se está eligiendo:
     `BA_ELIGE_ORDEN` pone el cursor en la orden de `orden` y marca al actor
-    `actor`; `BA_ELIGE_BLANCO` lo pone en el enemigo `blanco`; `BA_MENSAJE` y
-    `BA_FIN` muestran los dos renglones de `mensaje`.
+    `actor`; `BA_ELIGE_BLANCO` lo pone en el enemigo `blanco`; `BA_ELIGE_ITEM`
+    reemplaza la lista de enemigos por la de ítems y pone el cursor en `item`,
+    con `arriba` como el primero que se ve; `BA_ELIGE_ACTOR` deja la lista de
+    ítems y pone el cursor en el actor `blanco`; `BA_MENSAJE` y `BA_FIN`
+    muestran los dos renglones de `mensaje`.
+
+    `items` es la lista de ítems usables, como `(numero, cuantos)`.
 
     Un enemigo muerto **se sigue mostrando**, en gris y con los HP en cero, que
     es lo que hace la ROM: sacarlo de la lista movería a los de abajo en mitad
     de un turno.
     """
     t = Texto()
-    for n, enemigo in enumerate(combate.enemigos[:BA_ENEMIGOS_FILAS]):
-        fila = BA_ENEMIGO_FILA0 + 2 * n
-        gris = 0 if enemigo.vivo else 1
-        if modo == BA_ELIGE_BLANCO and n == blanco:
-            t.escribir(fila, BA_CURSOR_COL, ELEGIR_CURSOR)
-        t.escribir(fila, BA_NOMBRE_COL, titulo.texto_de_item(
-            enemigo.nombre, BA_NOMBRE_ANCHO), gris)
-        t.escribir(fila, BA_HP_COL, db.term_hp_short, gris)
-        t.numero(fila, BA_HP_NUM, min(enemigo.hp, 999), 3, gris)
+    eligiendo_item = modo in (BA_ELIGE_ITEM, BA_ELIGE_ACTOR)
+    if eligiendo_item:
+        # La lista de ítems, donde iban los enemigos: mientras se elige qué
+        # usar lo que hace falta ver es el grupo, que es a quién se cura.
+        lista = list(items)
+        for f in range(BA_ITEM_FILAS):
+            k = arriba + f
+            if k >= len(lista):
+                break
+            numero, cuantos = lista[k]
+            fila = BA_ENEMIGO_FILA0 + 2 * f
+            gris = 0 if modo == BA_ELIGE_ITEM else 1
+            if modo == BA_ELIGE_ITEM and k == item:
+                t.escribir(fila, BA_CURSOR_COL, ELEGIR_CURSOR)
+            t.escribir(fila, BA_NOMBRE_COL, titulo.texto_de_item(
+                db.items[numero].name, BA_NOMBRE_ANCHO), gris)
+            t.escribir(fila, BA_ITEM_CUENTA_COL,
+                       ":%2d" % min(cuantos, 99), gris)
+    else:
+        for n, enemigo in enumerate(combate.enemigos[:BA_ENEMIGOS_FILAS]):
+            fila = BA_ENEMIGO_FILA0 + 2 * n
+            gris = 0 if enemigo.vivo else 1
+            if modo == BA_ELIGE_BLANCO and n == blanco:
+                t.escribir(fila, BA_CURSOR_COL, ELEGIR_CURSOR)
+            t.escribir(fila, BA_NOMBRE_COL, titulo.texto_de_item(
+                enemigo.nombre, BA_NOMBRE_ANCHO), gris)
+            t.escribir(fila, BA_HP_COL, db.term_hp_short, gris)
+            t.numero(fila, BA_HP_NUM, min(enemigo.hp, 999), 3, gris)
     for n, quien in enumerate(combate.actores[:4]):
         fila = BA_GRUPO_FILA0 + 2 * n
         gris = 0 if quien.vivo else 1
-        if modo in (BA_ELIGE_ORDEN, BA_ELIGE_BLANCO) and n == actor:
+        marcado = blanco if modo == BA_ELIGE_ACTOR else actor
+        if modo in (BA_ELIGE_ORDEN, BA_ELIGE_BLANCO,
+                    BA_ELIGE_ITEM, BA_ELIGE_ACTOR) and n == marcado:
             t.escribir(fila, BA_CURSOR_COL, ELEGIR_CURSOR)
         t.escribir(fila, BA_NOMBRE_COL, titulo.texto_de_item(
             quien.nombre, BA_NOMBRE_ANCHO), gris)
@@ -439,14 +506,17 @@ def pantalla_batalla(db, combate, modo=BA_ELIGE_ORDEN, actor=0, orden=0,
         t.numero(fila, BA_HP_NUM, min(quien.hp, 999), 3, gris)
         t.escribir(fila, BA_BARRA_COL, "/", gris)
         t.numero(fila, BA_HP_MAX_NUM, min(quien.hp_max, 999), 3, gris)
-    if modo in (BA_ELIGE_ORDEN, BA_ELIGE_BLANCO):
+    if modo < BA_MENSAJE:
         term = terminos_batalla(db)
-        for n, nombre in enumerate(("atacar", "defender", "huir")):
-            col = BA_ORDEN_COLS[n]
+        for n, (nombre, renglon, col) in enumerate(BA_ORDENES):
+            fila = (BA_MSG_FILA1, BA_MSG_FILA2)[renglon]
+            # En blanco sólo la que se puede elegir ahora, y nunca la que no
+            # está hecha: es lo mismo que hace el menú de pausa.
+            gris = 0 if (modo == BA_ELIGE_ORDEN
+                         and n not in BA_ORDEN_SIN_HACER) else 1
             if modo == BA_ELIGE_ORDEN and n == orden:
-                t.escribir(BA_MSG_FILA1, col - 1, ELEGIR_CURSOR)
-            t.escribir(BA_MSG_FILA1, col, texto_de_orden(term[nombre]),
-                       0 if modo == BA_ELIGE_ORDEN else 1)
+                t.escribir(fila, col - 1, ELEGIR_CURSOR)
+            t.escribir(fila, col, texto_de_orden(term[nombre]), gris)
     else:
         escribir_corrido(t, BA_MSG_FILA1, 1, mensaje[0])
         escribir_corrido(t, BA_MSG_FILA2, 1, mensaje[1])
@@ -525,6 +595,8 @@ def main():
     parser.add_argument("--turnos", type=int, default=0,
                         help="cuántos turnos jugar antes de dibujar, todos "
                              "atacando al primero que quede vivo")
+    parser.add_argument("--item", type=int, default=0,
+                        help="qué ítem de la lista marca el cursor")
     parser.add_argument("--fondo", default="", metavar="NOMBRE",
                         help="el fondo de batalla, con los battlers de la "
                              "tropa horneados encima: ver tools/escena.py")
@@ -553,6 +625,10 @@ def main():
                         0)
             combate.jugar_turno([(batalla.ORDEN_ATACAR, vivo)]
                                 * len(combate.vivos(combate.actores)))
+        # La lista de ítems usables, con la misma regla que la ROM: ver
+        # `batalla.item_usable_en_batalla`. `--items` trae el inventario.
+        usables = [(n, c) for n, c in sorted(inventario.items())
+                   if c > 0 and batalla.item_usable_en_batalla(db.items[n])]
         escena_img = None
         if args.fondo:
             import escena
@@ -560,8 +636,9 @@ def main():
                                     args.game_dir)
             escena_img = escena.render(info) if info else None
         pantalla_batalla(db, combate, args.modo, args.actor, args.orden,
-                         args.blanco).render(skin, db.font_id,
-                                             escena_img).save(args.output)
+                         args.blanco, items=usables,
+                         item=args.item).render(skin, db.font_id,
+                                                escena_img).save(args.output)
         print("batalla %d sobre %r -> %s"
               % (args.batalla, args.fondo, args.output))
         return

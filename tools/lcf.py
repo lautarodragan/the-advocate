@@ -691,12 +691,29 @@ class Item:
                        for c in (ITEM_ATK, ITEM_DEF, ITEM_SPI, ITEM_AGI)]
         self.two_handed = to_bool(fields.get(ITEM_TWO_HANDED, b"\x00"))
         self.actor_set = [bool(b) for b in fields.get(ITEM_ACTOR_SET, b"")]
+        # Lo que cura, desde el 2026-09-13, que es cuando la pelea empezó a
+        # dejar usar ítems: `recover_hp_rate` es por ciento del máximo y
+        # `recover_hp` es a secas. `occasion_field1` es "sólo fuera de
+        # batalla" y `ko_only` "sólo sobre un muerto"; ver
+        # `batalla.item_usable_en_batalla`.
+        self.recover_hp_rate = to_int(fields.get(ITEM_RECOVER_HP_RATE,
+                                                 b"\x00"))
+        self.recover_hp = to_int(fields.get(ITEM_RECOVER_HP, b"\x00"))
+        self.occasion_field1 = to_bool(fields.get(ITEM_OCCASION_FIELD1,
+                                                  b"\x00"))
+        self.ko_only = to_bool(fields.get(ITEM_KO_ONLY, b"\x00"))
 
     def equipable_por(self, actor):
         """`actor_set`, con los que no alcanza la lista en sí: es lo que
         hace RM2k con un ítem que se hizo antes de agregar actores."""
         return self.actor_set[actor - 1] if actor - 1 < len(self.actor_set) \
             else True
+
+
+ITEM_RECOVER_HP_RATE = 0x20
+ITEM_RECOVER_HP = 0x21
+ITEM_OCCASION_FIELD1 = 0x25
+ITEM_KO_ONLY = 0x26
 
 
 # Un enemigo de la base (liblcf: ldb/chunks.h, ChunkEnemy). Sólo los campos

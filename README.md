@@ -929,7 +929,9 @@ Lo que hay, y lo que no:
     defender                        sí, y vale sólo el turno en que le toca
     huir                            sí, pero es orden de cada actor y no del
                                     grupo, que es una simplificación declarada
-    habilidades, ítems, estados     no
+    usar un ítem                    sí, desde el 2026-09-13: ver abajo
+    habilidades                     no, y no es que falte el código: ver abajo
+    los estados                     no
     experiencia, oro, subir nivel   no: no hay niveles
     la música y los efectos         sí, desde el 2026-09-13: ver abajo
     los battlers dibujados          sí, horneados en el fondo: ver abajo
@@ -947,6 +949,55 @@ enemigos— no compila, y no por la batalla: la corta un `MoveEvent` con la
 orden de ruta 9, "hacia el héroe", que la ROM no camina. Por eso la tropa de
 cuatro la ejercita `just snes-batalla` con la página de prueba, que es el
 mismo recurso que usa `snes-guardar` con la pantalla de ranuras.
+
+#### El menú: las cinco órdenes del ABL
+
+Hasta el 2026-09-13 eran tres en un renglón —`Attack`, `Defend`, `Escape`— y
+taro pidió el menú del original, que además tiene `Use Item` y `Tech Skill`.
+Ahora son las cinco, en los dos renglones del mensaje: tres arriba y dos abajo,
+que mientras se elige está libre. Las palabras son las del LDB —`command_item`
+del ABL dice "Use Item" y `command_skill` "Tech Skill"— y el ancho pasó de nueve
+a diez porque "Tech Skill" mide diez justos.
+
+**`Tech Skill` va en gris y A no la toma**, como las tres órdenes que el menú de
+pausa todavía no hace. Y no es que falte el código de las habilidades: está
+medido que **a este nivel nadie sabe ninguna**. Kersh aprende la 131 en el nivel
+3, Core la 129 en el 3 y Manta la 130 en el 3, y este port tiene a todos en el
+nivel 1 —`titulo.NIVEL`— porque no hay experiencia ni subida de nivel. La lista
+saldría vacía. Lo que destraba las habilidades no es la pantalla: son los
+niveles, y detrás los SP, que tampoco son estado.
+
+`Use Item` sí anda. Abre la lista de lo que se puede usar **donde va la de los
+enemigos**, porque eligiendo qué usar lo que hace falta ver es el grupo; se
+elige el ítem, después a quién, y con eso queda anotada la orden de ese actor,
+que se ejecuta en su turno como cualquier otra. B vuelve un paso.
+
+Qué entra en la lista y cuánto cura sale de easyrpg-player:
+
+* **Qué entra**: `Game_Party::IsItemUsable` con la pelea abierta, o sea una
+  medicina que no esté marcada "sólo fuera de batalla". De ésas, este port
+  ofrece las que **recuperan HP y no son `ko_only`**: las de SP quedan afuera
+  porque los SP no son estado, y las de revivir porque revivir es sacar el
+  estado de muerto y los estados no existen. Son 12 de las 22 medicinas del
+  juego, de la Potion de 50 a la Miracle Drop, que cura todo.
+* **Cuánto cura**: `Game_BattleAlgorithm::Item::vExecute`, o sea
+  `recover_hp_rate * GetMaxHp() / 100 + recover_hp`, topado contra lo que le
+  falta al blanco, que es el `ChangeHp`. La cuenta está escrita dos veces
+  —`main.s` y `batalla.curacion`— como todo lo demás de la pelea, y por eso
+  `test_batalla.py` puede exigir el número exacto. El producto entra en una
+  palabra: el conversor corta si algún actor pasa de 655 HP.
+
+Dos cosas que son de RM2k y conviene no "arreglar": **el ítem se gasta al
+elegirlo** y no al usarlo —si no, el último de un ítem se podría repartir entre
+dos actores en el mismo turno— y **el blanco muerto no se reapunta**, que es lo
+contrario de lo que hace un ataque: el ítem se gasta igual.
+
+Lo cobran cinco casos. Dos de la tanda —la lista de ítems y la elección del
+blanco, pixel por pixel contra `pantallas.py`— y tres de estado: que la lista
+sea la que corresponde (con un ítem inusable en el inventario, o no mediría
+nada), que la poción deje el HP exacto que dice el modelo topando contra el
+máximo, y que el cursor pase por encima de `Tech Skill` en vez de trabarse.
+Todos verificados en rojo con su defecto puesto.
 
 #### El fondo y los monstruos: una sola imagen
 

@@ -44,7 +44,16 @@ TROPA_DROIDE = 82
 GRUPO = (11, 12, 13)
 
 # Los modos de la pantalla, como `pantallas.BA_ELIGE_ORDEN` y compañía.
-ORDEN, BLANCO, MENSAJE, FIN = 0, 1, 2, 3
+ORDEN, BLANCO, ITEM, ACTOR, MENSAJE, FIN = range(6)
+# Las cinco órdenes, como `pantallas.BA_ORDENES`.
+(O_ATACAR, O_DEFENDER, O_USAR, O_HABILIDAD, O_HUIR) = range(5)
+# La Potion del LDB: cincuenta HP planos, que es el ítem de curar más barato
+# y el único que hace falta para cobrar la cuenta.
+POCION = 1
+# Y uno que **no** se puede usar en una pelea: el Theatre Key, un ítem de
+# trama. Va en el inventario a propósito, para que la lista tenga algo que
+# dejar afuera; sin él, ofrecer todo y ofrecer lo correcto dan lo mismo.
+LLAVE = 151
 # Un tema para el mapa del droide, que no trae ninguno: sin él no se puede
 # comprobar que el tema del mapa vuelva al terminar la pelea.
 TEMA_DEL_MAPA = "escape_newyork"
@@ -571,3 +580,128 @@ def test_el_golpe_suena_con_el_efecto_que_le_toca(partida):
                 pelea.tocar()
         vistos |= mirar_los_golpes(una, pelea, esperados)
     assert vistos, "ningún golpe llegó a sonar: la prueba no midió nada"
+
+
+# --- usar un ítem ----------------------------------------------------------
+#
+# `Use Item`, desde el 2026-09-13. Lo que se mide acá es lo mismo que en el
+# resto del archivo: **el número exacto**. `batalla.curacion` dice cuánto
+# tendría que curar y la consola tiene que dejar ese HP, ni uno más.
+
+def en_el_droide_con_pocion(partida, cuantas=3):
+    """La pelea del droide con pociones en el inventario y el grupo herido.
+
+    Herido a mano y no peleando: pelear hasta que a alguien le falten HP
+    depende del azar, y lo que este caso mide es la cura.
+    """
+    una = partida(mapas=LINKAGE, items=(POCION, cuantas, LLAVE, 1))
+    una.poner_grupo(*GRUPO)
+    una.ir_al_mapa(2, *DROIDE)
+    una.poner_byte("hero_dir", una.simbolos["DIR_UP"])
+    for actor in GRUPO:
+        una.consola.escribir_ram(una.simbolos["FAR_HP"] + 2 * actor, [1, 0])
+    return una
+
+
+def test_la_lista_de_items_es_la_que_se_puede_usar(partida):
+    """`Game_Party::IsItemUsable` con la pelea abierta, más lo que este port
+    sabe hacer: ver `batalla.item_usable_en_batalla`.
+
+    La lista la arma la ROM recorriendo el inventario, y lo que se compara es
+    contra la misma regla en Python. Si la ROM ofreciera un ítem que no cura
+    —un arma, un libro— el jugador podría gastarlo sin que pasara nada.
+    """
+    una = en_el_droide_con_pocion(partida)
+    pelea = Pelea(una).abrir()
+    for _ in range(O_USAR):
+        pelea.tocar("right")
+    assert pelea.byte("BA_ORDEN") == O_USAR
+    pelea.tocar()
+    assert pelea.modo() == ITEM, "A sobre `Use Item` abre la lista"
+    base = db()
+    esperados = [n for n in sorted(base.items)
+                 if modelo.item_usable_en_batalla(base.items[n])]
+    # De ésos, los que hay en el inventario.
+    hay = [n for n in esperados if una.item(n)]
+    assert hay, "el caso no puso ningún ítem usable: no mide nada"
+    assert una.item(LLAVE), (
+        "el caso no puso ningún ítem inusable: ofrecer todo y ofrecer lo que "
+        "corresponde darían lo mismo y no mediría nada")
+    assert pelea.byte("BA_ITEM_N") == len(hay), (
+        "la ROM ofrece %d ítems y los usables que hay son %d: %s"
+        % (pelea.byte("BA_ITEM_N"), len(hay), hay))
+
+
+def test_usar_una_pocion_cura_lo_que_dice_el_modelo(partida):
+    """`Game_BattleAlgorithm::Item`: `rate * hp_max / 100 + hp`, topado contra
+    lo que falta.
+
+    Con la Potion —cincuenta planos— y un actor en 1 HP de 40, lo que tiene
+    que quedar son los 40: el tope es lo que falta y no lo que el ítem cura.
+    Eso es justamente lo que se equivoca solo si uno suma sin topar.
+    """
+    una = en_el_droide_con_pocion(partida)
+    pelea = Pelea(una).abrir()
+    base = db()
+    esperado = modelo_de(base)
+    for quien in esperado.actores:
+        quien.hp = 1
+    antes = una.item(POCION)
+    # El primer actor usa la poción sobre sí mismo; los otros dos atacan.
+    for _ in range(O_USAR):
+        pelea.tocar("right")
+    pelea.tocar()                       # abre la lista
+    pelea.tocar()                       # elige el primero
+    assert pelea.modo() == ACTOR
+    pelea.tocar()                       # sobre el primer actor
+    assert una.item(POCION) == antes - 1, (
+        "la poción se gasta al elegirla, como en RM2k")
+    for _ in range(2):
+        for _ in range(400):
+            if pelea.modo() != ORDEN:
+                break
+            pelea.tocar()
+        for _ in range(400):
+            if pelea.modo() != BLANCO:
+                break
+            pelea.tocar()
+    for _ in range(400):
+        if pelea.modo() in (ORDEN, FIN):
+            break
+        pelea.tocar()
+    esperado.jugar_turno(
+        [(modelo.ORDEN_ITEM, (base.items[POCION], 0)),
+         (modelo.ORDEN_ATACAR, 0), (modelo.ORDEN_ATACAR, 0)])
+    de_la_rom = [pelea.hp(k) for k in range(3)]
+    del_modelo = [c.hp for c in esperado.actores]
+    assert de_la_rom == del_modelo, (
+        "la consola dejó %r y el modelo %r" % (de_la_rom, del_modelo))
+    assert de_la_rom[0] == esperado.actores[0].hp_max, (
+        "la poción cura cincuenta sobre cuarenta de máximo: tiene que topar")
+
+
+def test_tech_skill_no_hace_nada_y_escape_sigue_donde_va(partida):
+    """Las dos órdenes del final del menú.
+
+    `Tech Skill` está en gris y A no la toma —a este nivel nadie sabe ninguna
+    habilidad: las de los cuatro actores se aprenden en el nivel 3 y este port
+    tiene a todos en el 1— y `Escape` quedó quinta, que es donde va en el menú
+    del ABL. Lo que este caso cobra es que el cursor **pase por encima** de la
+    que no hace nada en vez de quedarse trabado ahí.
+    """
+    una = en_el_droide(partida)
+    pelea = Pelea(una).abrir()
+    for _ in range(4):
+        pelea.tocar("right")
+    assert pelea.byte("BA_ORDEN") == O_HUIR, \
+        "el cursor tiene que llegar hasta `Escape`, que ahora es la quinta"
+    for _ in range(3):
+        pelea.tocar("left")
+    assert pelea.byte("BA_ORDEN") == O_DEFENDER
+    pelea.tocar("right")
+    assert pelea.byte("BA_ORDEN") == O_USAR
+    pelea.tocar("right")
+    assert pelea.byte("BA_ORDEN") == O_HABILIDAD
+    pelea.tocar()
+    assert pelea.modo() == ORDEN, \
+        "A sobre `Tech Skill` no tiene que llevar a ningún lado"

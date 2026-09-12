@@ -4225,6 +4225,17 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             | (8 if db_items[n].two_handed else 0)
             for n in items])
         words_asm("item_switch", [db_items[n].switch_id for n in items])
+        # Lo que cada ítem hace en una pelea: si entra en la lista que se
+        # ofrece y cuánto cura. La regla de cuáles entran es
+        # `batalla.item_usable_en_batalla`, o sea `Game_Party::IsItemUsable`
+        # con la pelea abierta más lo que este port sabe hacer; la cuenta de
+        # cuánto cura es `Game_BattleAlgorithm::Item::vExecute`.
+        bytes_asm("item_batalla", [
+            1 if B.item_usable_en_batalla(db_items[n]) else 0 for n in items])
+        bytes_asm("item_cura_rate", [db_items[n].recover_hp_rate
+                                     for n in items])
+        words_asm("item_cura_hp", [min(db_items[n].recover_hp, 0xFFFF)
+                                   for n in items])
         # Las cuatro de los textos van **fuera del banco 0**, como `item_k` y
         # por lo mismo: ahí no entran. Con los diez mapas de `demo-ciudad` el
         # área de código quedaba en 32622 de 32704 —ochenta y dos bytes
@@ -4392,6 +4403,18 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # acierto mínimo de 70 son 30 por 1998, y el tope de agilidad lo cuida
         # `BA_AGI_TOPE`; un enemigo que acertara menos lo desbordaría sin
         # avisar, así que se corta acá.
+        # `recover_hp_rate * hp_max` tiene que entrar en dieciséis bits: la
+        # ROM lo hace con el multiplicador del hardware, que da una palabra.
+        # Con el por ciento topado en 100 eso son hp_max de hasta 655, y los
+        # actores de este juego andan en 40. Un actor más gordo desbordaría sin
+        # avisar, así que se corta acá.
+        for a in range(actores_n):
+            maximo = (db.actors[a].hp_max[titulo_mod.NIVEL - 1]
+                      if a in db.actors and db.actors[a].hp_max else 0)
+            if maximo * 100 > 0xFFFF:
+                raise SystemExit(
+                    "el actor %d tiene %d HP y la cuenta de la curación de la "
+                    "ROM está dimensionada para 655" % (a, maximo))
         for e in enemigos_rom:
             if db.enemies[e].hit < 70:
                 raise SystemExit("el enemigo %d acierta %d, y la cuenta del "
@@ -4414,17 +4437,12 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             "BA_BARRA_DX       = %d\n"
             "BA_HPMAX_DX       = %d\n"
             "BA_MSG_DX         = %d\n"
-            "BA_ORDEN_DX0      = %d\n"
-            "BA_ORDEN_DX1      = %d\n"
-            "BA_ORDEN_DX2      = %d\n"
             % (len(usadas), B.BATALLA_SEMILLA, texto_batalla,
                pos(P.BA_ENEMIGO_FILA0, 0), pos(P.BA_GRUPO_FILA0, 0),
                pos(P.BA_MSG_FILA1, 0), pos(P.BA_MSG_FILA2, 0), 2 * 64,
                P.BA_CURSOR_COL * 2, P.BA_NOMBRE_COL * 2, P.BA_NOMBRE_ANCHO,
                P.BA_HP_COL * 2, P.BA_HP_NUM * 2, P.BA_BARRA_COL * 2,
-               P.BA_HP_MAX_NUM * 2, 1 * 2,
-               P.BA_ORDEN_COLS[0] * 2, P.BA_ORDEN_COLS[1] * 2,
-               P.BA_ORDEN_COLS[2] * 2))
+               P.BA_HP_MAX_NUM * 2, 1 * 2))
         # El audio: el tema de la pelea, el de la victoria y los cinco efectos,
         # con el índice que sacaron de `Temas`. $FF y $FFFF quieren decir "el
         # LDB lo tiene apagado", que es el caso de `battle_se` en este juego.
@@ -4446,13 +4464,37 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                                   ("enemy_damaged_se", "BA_SE_DANO_ENEMIGO"),
                                   ("actor_damaged_se", "BA_SE_DANO_ACTOR"),
                                   ("enemy_death_se", "BA_SE_MUERTE"),
-                                  ("escape_se", "BA_SE_HUIR")):
+                                  ("escape_se", "BA_SE_HUIR"),
+                                  ("item_se", "BA_SE_ITEM")):
             handle.write("%-18s= $%04X\n"
                          % (constante, audio.get(nombre, 0xFFFF)))
         # Los términos, por su lugar en `pantallas.BA_TERMINOS`.
         for k, (nombre, _chunk) in enumerate(P.BA_TERMINOS):
             handle.write("BA_TXT_%-11s= BA_TXT_BASE + %d\n"
                          % (nombre.upper(), k))
+        # Las cinco órdenes del menú, con lo que la ROM necesita de cada una:
+        # en qué renglón y en qué columna va, qué término la nombra y si va
+        # siempre en gris. Van en tablas y no en una cuenta porque desde el
+        # 2026-09-13 **no son tres seguidas en un renglón**: son las cinco del
+        # menú del ABL repartidas en dos. Ver `pantallas.BA_ORDENES`.
+        handle.write("BA_ORDENES_N      = %d\n" % len(P.BA_ORDENES))
+        handle.write("BA_ITEM_CUENTA_DX = %d\n" % (P.BA_ITEM_CUENTA_COL * 2))
+        handle.write("BA_ORDEN_USAR     = %d\n" % P.BA_ORDEN_USAR)
+        handle.write("BA_ORDEN_HUIR     = %d\n" % P.BA_ORDEN_HUIR)
+        handle.write("BA_ORDEN_ATACAR   = %d\n" % P.BA_ORDEN_ATACAR)
+        handle.write("BA_ORDEN_DEFENDER = %d\n" % P.BA_ORDEN_DEFENDER)
+        handle.write('.segment "RODATA"\n')
+        words_asm("ba_orden_fila", [
+            pos((P.BA_MSG_FILA1, P.BA_MSG_FILA2)[f], 0)
+            for _n, f, _c in P.BA_ORDENES])
+        words_asm("ba_orden_dx", [c * 2 for _n, _f, c in P.BA_ORDENES])
+        bytes_asm("ba_orden_txt", [
+            texto_batalla + [n for n, _c in P.BA_TERMINOS].index(nombre)
+            for nombre, _f, _c in P.BA_ORDENES])
+        bytes_asm("ba_orden_gris", [
+            1 if k in P.BA_ORDEN_SIN_HACER else 0
+            for k in range(len(P.BA_ORDENES))])
+        handle.write('.segment "TABLAS"\n')
 
         glifos = ranuras["items_glifos"]
         # Fuera del banco 0, como `item_k`: se lee con `lda f:`.

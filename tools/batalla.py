@@ -65,6 +65,52 @@ VICTORIA, HUIDA, DERROTA = 0, 1, 2
 # simplificación declarada: ahorra un modo entero de la máquina de la ROM y
 # deja a los dos lados con una sola lista de acciones.
 ORDEN_ATACAR, ORDEN_DEFENDER, ORDEN_HUIR = 0, 1, 2
+# Y usar un ítem, desde el 2026-09-13: `Game_BattleAlgorithm::Item`. Va como
+# cuarta y no entre las otras para no renumerar lo que ya estaba.
+ORDEN_ITEM = 3
+
+
+def item_usable_en_batalla(item):
+    """Si este ítem entra en la lista que la pelea ofrece.
+
+    `Game_Party::IsItemUsable` con `in_battle`: una medicina —`type` 0 en
+    liblcf, que el volcado a JSON llama 6— se puede usar salvo que esté
+    marcada `occasion_field1`, "sólo fuera de batalla".
+
+    Y de esas, este port ofrece **sólo las que recuperan HP y no son
+    `ko_only`**. Lo que queda afuera y por qué:
+
+    * las de SP, porque los SP no son estado todavía;
+    * las `ko_only` —Phoenix Down, Pungent Elixir, Jumper Cable— porque
+      revivir es sacar el estado de muerto y los estados no existen;
+    * las que suben un parámetro para siempre, por lo mismo.
+
+    Está declarado en el README. Lo que sí entra son las veinte medicinas de
+    HP del juego, de la Potion de 50 a la Miracle Drop, que cura todo.
+    """
+    return (item.type == TIPO_MEDICINA and not item.occasion_field1
+            and not item.ko_only
+            and (item.recover_hp or item.recover_hp_rate))
+
+
+def curacion(item, blanco):
+    """Cuánto cura este ítem sobre este blanco.
+
+    `Game_BattleAlgorithm::Item::vExecute`:
+
+        hp = recover_hp_rate * GetMaxHp() / 100 + recover_hp
+
+    y después `Game_Battler::ChangeHp` lo topa contra lo que falta para el
+    máximo. La división es entera de los dos lados, como todas las de acá.
+    """
+    hp = item.recover_hp_rate * blanco.hp_max // 100 + item.recover_hp
+    return max(0, min(hp, blanco.hp_max - blanco.hp))
+
+
+# `Item::Type_medicine`, que en liblcf es el 0. El volcado a JSON de este repo
+# numera distinto —ahí las medicinas son el 6— así que el número sale de
+# `lcf.Item.type`, que es el del LDB.
+TIPO_MEDICINA = 6
 
 # El tope de un parámetro, como `Game_Actor::GetAtk` y sus hermanas.
 PARAM_MAX = 999
@@ -330,6 +376,12 @@ class Batalla:
             quien.defendiendo = False
         acciones = []
         for actor, (orden, blanco) in zip(self.vivos(self.actores), ordenes):
+            if orden == ORDEN_ITEM:
+                # Acá `blanco` es `(item, lugar_del_actor)`: el ítem del LDB y
+                # a quién se le da.
+                item, quien = blanco
+                acciones.append((actor, orden, (item, self.actores[quien])))
+                continue
             acciones.append((actor, orden,
                              self.enemigos[blanco] if orden == ORDEN_ATACAR
                              else None))
@@ -345,6 +397,17 @@ class Batalla:
                 quien.defendiendo = True
                 continue
             if orden == ORDEN_HUIR:
+                continue
+            if orden == ORDEN_ITEM:
+                # Un ítem no puede fallar ni lo esquiva nadie: no tira azar.
+                # El blanco muerto **no** se reapunta, que es lo contrario de
+                # un ataque: `Game_BattleAlgorithm::Item` cura al que se
+                # eligió, y si se murió en el camino el ítem se gasta igual.
+                item, blanco = blanco
+                cura = curacion(item, blanco)
+                blanco.hp = min(blanco.hp_max, blanco.hp + cura)
+                self.registro.append((self.turno, quien.nombre, blanco.nombre,
+                                      True, False, -cura, blanco.hp))
                 continue
             if not blanco.vivo:
                 # `Game_BattleAlgorithm` reapunta a otro del mismo lado cuando

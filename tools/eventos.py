@@ -1520,7 +1520,11 @@ AUDIO_BATALLA = {}
 # El orden es el contrato con la ROM: el conversor emite `BA_SE_<n>` con el
 # índice que cada uno sacó de `Temas`, en este orden.
 AUDIO_BATALLA_SE = ("dodge_se", "enemy_attack_se", "enemy_damaged_se",
-                    "actor_damaged_se", "enemy_death_se", "escape_se")
+                    "actor_damaged_se", "enemy_death_se", "escape_se",
+                    # El del 2026-09-13, cuando la pelea empezó a dejar usar
+                    # ítems: `Item::GetStartSe` de easyrpg, que es el
+                    # `item_se` del LDB.
+                    "item_se")
 AUDIO_BATALLA_BGM = ("battle_music", "battle_end_music")
 
 # Un nombre que RM2k usa para decir "nada": ni el tema ni el efecto existen.
