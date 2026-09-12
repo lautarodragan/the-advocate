@@ -30,11 +30,16 @@ point animado y guardando, el menú de pausa, los ítems, el equipo y la tienda.
 efectos por el SPC700.
 
 Las páginas automáticas que compilan enteras son **332 de 489** —`just
-snes-destraba`—, y del juego entero compilan **2646 de 3473**. Los dos números
-venían de septiembre y estaban viejos; el segundo se cuenta pasando cada página
-de los 328 mapas por `eventos.compilar_pagina` con bloque de textos y con todos
-los teletransportes resolubles, que es el techo de lo que una ROM con la
-ventana puesta sabe correr.
+snes-destraba`—, y del juego entero compilan **2882 de 3473**, que eran 2802
+antes de las piezas del 2026-09-12. Los dos números venían de septiembre y
+estaban viejos.
+
+**Cómo se cuenta el segundo, porque es fácil contarlo mal**: cada página de los
+328 mapas por `eventos.compilar_pagina`, con bloque de textos, con todos los
+teletransportes resolubles —o sea el techo de una ROM con la ventana puesta— y
+con **`eventos.indexar_variables` llamado antes**. Sin eso último ninguna
+`ControlVars` compila y el total sale 300 páginas por debajo; pasó el
+2026-09-12 y los números de los dos primeros commits de ese día son ésos.
 
 ### El dibujo de las animaciones de batalla: medido, sin empezar
 
@@ -124,9 +129,13 @@ Y dos deudas que dejaron los agentes, las dos con el número al lado:
   arreglado el 2026-09-12, ver abajo. Y lo de "con pista de MSU-1 suena igual"
   era falso y está medido: se caía de la **lista**, no del banco, y sin número
   no hay pista que tocar.
-* **De las 40 páginas del juego con batalla compila una sola**, y a 30 de las
-  otras 39 las corta `ChangeEscapeAccess`: un bit al lado de los dos de
-  `FAR_ACCESO`.
+* **De las 40 páginas del juego con batalla compilaba una sola**, y a 30 de
+  las otras 39 las cortaba `ChangeEscapeAccess`. Hecho el 2026-09-12 —un bit al
+  lado de los dos de `FAR_ACCESO`— son **19 de 40**, y las otras tres de esa
+  cuenta las puso la orden 9. El permiso se guarda y viaja en la partida; **no
+  lo lee nadie todavía**, porque la huida es de la batalla. Lo cobran dos
+  pruebas de estado, no la tanda: sin nada que lo lea, el bit no cambia un
+  pixel.
 
 ### Los quince colores de un sprite: elegidos de nuevo (2026-09-12)
 
@@ -394,7 +403,7 @@ de cada una está en `README.md`.
   No es una orden nueva: `UpdateMoveRoute` hace `TurnTowardCharacter(hero)` y
   después `Move(GetDirection())`, o sea la 21 y un `move_*` pegados, así que
   los dos lados la resuelven con lo que ya tenían. Medido sobre el juego
-  entero, **+33 páginas** —de 2584 a 2617—, y es la única que rendía: las otras
+  entero, **+33 páginas** —de 2802 a 2835—, y es la única que rendía: las otras
   nueve que faltan (al azar, huyendo del héroe, hacia adelante y los cinco
   giros en el lugar) suman **+1 entre todas**, así que no se hicieron. La cubre
   `npc-hacia-heroe`. Queda afuera en las **rutas propias de página**, que son
@@ -408,9 +417,11 @@ de cada una está en `README.md`.
   afuera resultó no valer: su gráfico sale de la tabla de actores, pero las
   doce poses del actor están escritas **con la misma forma** que una entrada de
   `npc_poses`, así que la ROM le mueve el puntero a `hero_poses` y `place_hero`
-  ni se entera. Son **+29 páginas** del juego —de 2617 a 2646— y entre ellas
-  las tres del `EV0047` del mapa 8, con el que taro nunca pudo interactuar. Lo
-  que cuesta, las dos cosas declaradas y modeladas igual de los dos lados:
+  ni se entera. Son **+30 páginas** del juego —de 2835 a 2865— y 16
+  automáticas, y entre ellas las tres del `EV0047` del mapa 8, con el que taro
+  nunca pudo interactuar, y la del `Hover-Tram` del mapa 9, que le cambia el
+  gráfico al héroe para subirlo. Lo que cuesta, las dos cosas declaradas y
+  modeladas igual de los dos lados:
 
   * **Mientras el cambio está puesto, el héroe se dibuja con la paleta del
     gráfico nuevo**, que es una de las ocho de sprite del mapa, y no con la

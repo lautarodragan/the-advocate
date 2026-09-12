@@ -163,3 +163,35 @@ def test_los_permisos_viajan_en_la_partida(partida):
     assert una.acceso() & 1
     una.reiniciar()
     assert una.acceso() & 1, "el permiso de guardar no volvió de la SRAM"
+
+
+def test_escapar_prohibido_es_su_bit_y_nada_más(partida):
+    """`ChangeEscapeAccess` en 0 prende **el bit 2 y sólo ése**.
+
+    El permiso de huir todavía no lo lee nadie —la huida es de la batalla—,
+    así que no cambia un pixel y ninguna captura de la tanda lo puede ver. Lo
+    que esta prueba cuida es justamente lo que no se ve: que el bit sea el $04
+    y que no se lleve puestos a los otros dos.
+
+    No es una precaución abstracta. Hasta el 2026-09-12 el operando del opcode
+    era el **número** del permiso y la ROM sacaba el bit con un `inc a`: 0 da
+    $01 y 1 da $02, pero el 2 daba **$03**, o sea prohibir guardar y el menú de
+    una y no tocar el de escapar. Con el defecto puesto —el `inc a` de vuelta—
+    esta prueba da rojo en el `assert` de guardar.
+    """
+    una = con_grupo(partida(acceso=(eventos.ACCESO_ESCAPAR, 0)))
+    una.correr(30)
+    assert una.acceso() & 4, "la página no prohibió escapar"
+    assert not una.acceso() & 1, "se llevó puesto el permiso de guardar"
+    assert not una.acceso() & 2, "se llevó puesto el permiso del menú"
+
+
+def test_el_permiso_de_escapar_viaja_en_la_partida(partida):
+    """Va en el mismo byte que los otros dos, así que la partida ya lo lleva;
+    lo que esto cuida es que siga siendo cierto el día que alguien mude
+    `FAR_ACCESO`."""
+    una = partida(guardar=ESPERA, acceso=(eventos.ACCESO_ESCAPAR, 0))
+    una.guardar_en(0)
+    assert una.acceso() & 4
+    una.reiniciar()
+    assert una.acceso() & 4, "el permiso de escapar no volvió de la SRAM"

@@ -1313,11 +1313,17 @@ OP_ITEM = 0x19      # ítem (word), delta (byte con signo)
 ITEMS_N = 451       # los 450 ítems del LDB más el 0, que no se usa; lo cobra
                     # test_items.py contra RPG_RT.ldb
 ITEM_MAX = 99
-# `ChangeSaveAccess` y `ChangeMainMenuAccess`, desde que hay menú de pausa: cuál
-# —0 guardar, 1 el menú— y si queda permitido. La ROM lo guarda en
-# `FAR_ACCESO`; acá en `Estado`. Guardar desde el save point no lo mira, como
-# `OpenSaveMenu` en RM2k.
-OP_ACCESO = 0x1A    # cuál (byte), permitido (byte)
+# `ChangeSaveAccess`, `ChangeMainMenuAccess` y `ChangeEscapeAccess`, desde que
+# hay menú de pausa: **el bit** del permiso y si queda permitido. La ROM lo
+# guarda en `FAR_ACCESO`; acá en `Estado`. Guardar desde el save point no lo
+# mira, como `OpenSaveMenu` en RM2k.
+#
+# El operando es el bit y no el número del permiso, y eso es de la tercera
+# vuelta: la ROM lo sacaba con un `inc a` sobre el número, que da $01 y $02 para
+# los dos primeros y **$03 para el tercero**, o sea prohibir las otras dos cosas
+# de una. Con el bit puesto por el conversor el opcode no tiene cuenta que
+# hacer y acepta los permisos que haga falta.
+OP_ACCESO = 0x1A    # el bit en FAR_ACCESO (byte), permitido (byte)
 # Los HP y los estados, que fuera de batalla **no bajan nunca** en este juego:
 # medido sobre los 328 mapas, los 11 `ChangeHP` suman —siete de a 1 al grupo,
 # cuatro de 300 y 999 a un actor—, los 16 `ChangeCondition` quitan un estado y
@@ -1650,7 +1656,18 @@ CHANGE_HP = 10460
 CHANGE_CONDITION = 10480
 FULL_HEAL = 10490
 CHANGE_MENU_ACCESS = 11960
-ACCESO_GUARDAR, ACCESO_MENU = 0, 1
+CHANGE_ESCAPE_ACCESS = 11840
+ACCESO_GUARDAR, ACCESO_MENU, ACCESO_ESCAPAR = 0, 1, 2
+# El bit de cada uno en `FAR_ACCESO`, y los bits van en "prohibido" para que el
+# cero del reset sea "todo permitido", que es como arranca RM2k. El $80 es el
+# pedido de menú —`menu_calling`— y no es un permiso.
+ACCESO_BIT = (0x01, 0x02, 0x04)
+# `ChangeEscapeAccess` es el permiso de huir de una batalla, y se guarda sin
+# leerse: la huida la mira la batalla, que es de otro. Está igual porque es lo
+# que más destraba de lo que cuesta un bit —**30 de las 39 páginas del juego
+# con `EnemyEncounter` que no compilan lo tienen adelante**—, y porque un
+# comando aceptado sin hacerse sería mentira: RM2k lo guarda en `Game_System`
+# y viaja en la partida, y acá también.
 # Las operaciones de ControlVars que compilan: poner, sumar, restar. Multiplicar,
 # dividir y el resto no las usa ninguna página del juego.
 VAR_PONER, VAR_SUMAR, VAR_RESTAR = 0, 1, 2
@@ -2212,12 +2229,14 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
             raise NoSePuede("ChangeCondition que pone un estado")
         return b""
 
-    if cmd.code in (CHANGE_SAVE_ACCESS, CHANGE_MENU_ACCESS):
+    if cmd.code in (CHANGE_SAVE_ACCESS, CHANGE_MENU_ACCESS,
+                    CHANGE_ESCAPE_ACCESS):
         if not p:
             raise NoSePuede("%s sin operandos" % cmd.code)
-        cual = (ACCESO_GUARDAR if cmd.code == CHANGE_SAVE_ACCESS
-                else ACCESO_MENU)
-        return bytes([OP_ACCESO, cual, 1 if p[0] else 0])
+        cual = {CHANGE_SAVE_ACCESS: ACCESO_GUARDAR,
+                CHANGE_MENU_ACCESS: ACCESO_MENU,
+                CHANGE_ESCAPE_ACCESS: ACCESO_ESCAPAR}[cmd.code]
+        return bytes([OP_ACCESO, ACCESO_BIT[cual], 1 if p[0] else 0])
 
     if cmd.code == CHANGE_ITEMS:
         # [sumar o quitar, ítem por constante o variable, ítem, cantidad por
@@ -3238,9 +3257,11 @@ class Estado:
         # Y el inventario: cuántos hay de cada ítem, por número de RM2k. Lo
         # que no está es cero. Ver OP_ITEM.
         self.items = {}
-        # Si se puede guardar desde el menú y si se puede abrir el menú. Ver
-        # OP_ACCESO.
-        self.permitido = [True, True]
+        # Si se puede guardar desde el menú, si se puede abrir el menú y si se
+        # puede huir de una batalla, por bit de `FAR_ACCESO`. Ver OP_ACCESO: la
+        # clave es el bit y no el número del permiso, porque eso es lo que
+        # lleva el bytecode.
+        self.permitido = {bit: True for bit in ACCESO_BIT}
         # La elección abierta, si hay una. Mientras esté puesta, `mensaje`
         # apunta al cuadro de la opción marcada y la página está bloqueada.
         self.eleccion = None
@@ -4408,14 +4429,16 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
                 CHANGE_ITEMS, 0, "", [1 if cuanto < 0 else 0, 0, numero, 0,
                                       abs(cuanto)]), None)
     if acceso:
-        # ChangeSaveAccess y ChangeMainMenuAccess, de a dos números —cuál, 0
-        # guardar y 1 el menú, y si queda permitido—, por el mismo camino.
+        # Los tres permisos, de a dos números —cuál, 0 guardar, 1 el menú y 2
+        # escapar, y si queda permitido—, por el mismo camino.
         import lcf
+        codigo_de = {ACCESO_GUARDAR: CHANGE_SAVE_ACCESS,
+                     ACCESO_MENU: CHANGE_MENU_ACCESS,
+                     ACCESO_ESCAPAR: CHANGE_ESCAPE_ACCESS}
         for k in range(0, len(acceso), 2):
             cual, permitido = acceso[k:k + 2]
             codigo += _compilar(lcf.EventCommand(
-                CHANGE_SAVE_ACCESS if cual == ACCESO_GUARDAR
-                else CHANGE_MENU_ACCESS, 0, "", [permitido]), None)
+                codigo_de[cual], 0, "", [permitido]), None)
     if rama_var:
         # (variable, comparación, valor, adentro, después): la rama por
         # variable, como `rama` pero con OP_SI_VAR. Existe porque en los mapas

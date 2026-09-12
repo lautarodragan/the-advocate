@@ -184,14 +184,20 @@ FAR_AZAR       = $25FE
 ; sólo repone la frecuencia al terminar la ruta, `original_move_frequency`; la
 ; velocidad no—. Viaja en la partida. Se lee una vez por paso.
 FAR_HERO_VEL   = $25FD
-; Y los permisos del menú, un byte antes: `ChangeSaveAccess` y
-; `ChangeMainMenuAccess` los apagan y los prenden, y el bit 7 es el pedido de
+; Y los permisos, un byte antes: `ChangeSaveAccess`, `ChangeMainMenuAccess` y
+; `ChangeEscapeAccess` los apagan y los prenden, y el bit 7 es el pedido de
 ; menú de RM2k, `menu_calling`: B lo prende y el héroe lo atiende cuando está
 ; quieto. Los bits van en "prohibido" para que el cero del reset sea "todo
 ; permitido", que es como arranca RM2k. Viaja en la partida, como allá.
+;
+; El de escapar se guarda y **todavía no lo lee nadie**: la huida es de la
+; batalla. Está porque es un bit y porque sin él no compilan 30 de las 39
+; páginas del juego con `EnemyEncounter` que hoy se caen; ver ACCESO_BIT en
+; eventos.py.
 FAR_ACCESO     = $25FC
 ACCESO_SIN_GUARDAR = $01
 ACCESO_SIN_MENU    = $02
+ACCESO_SIN_ESCAPAR = $04
 ACCESO_PEDIDO      = $80
 ; --- la batalla: su estado en la RAM lejana -------------------------------------
 ;
@@ -4370,13 +4376,18 @@ op_clima:
     ply
     jmp otro
 
-; `ChangeSaveAccess` y `ChangeMainMenuAccess`: cuál —0 guardar, 1 el menú— y
-; si queda permitido. Prende o apaga el bit de "prohibido" de `FAR_ACCESO`.
+; `ChangeSaveAccess`, `ChangeMainMenuAccess` y `ChangeEscapeAccess`: **el bit**
+; del permiso y si queda permitido. Prende o apaga ese bit de "prohibido" de
+; `FAR_ACCESO`.
+;
+; El bit lo pone el conversor y acá no se calcula, y eso es lo que deja agregar
+; permisos sin tocar este opcode: antes el operando era el número del permiso y
+; el bit salía de un `inc a`, que da $01 y $02 para los dos primeros y **$03
+; para el tercero**, o sea prohibir las otras dos cosas de una.
 op_acceso:
 .a8
 .i16
-    lda [cod_ptr], y            ; cuál: el bit es cuál más uno, $01 o $02
-    inc a
+    lda [cod_ptr], y            ; el bit: $01 guardar, $02 el menú, $04 escapar
     sta temp
     iny
     lda [cod_ptr], y            ; permitido
