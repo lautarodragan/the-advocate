@@ -260,6 +260,33 @@ BA_S6      = FAR_BATALLA + 38
 ; caía justo encima de `BA_S0`: el lazo de los enemigos se reiniciaba solo y
 ; la pantalla no llegaba a aparecer nunca.
 BA_CONMAX  = FAR_BATALLA + 40
+; El audio de la pelea, en los bytes que quedaban sueltos antes de `BA_ACC`.
+; `BA_TEMA_ANT` es el tema que sonaba en el mapa —$FF si no sonaba nada—, que
+; es el `before_battle_music` de RM2k: al terminar la pelea vuelve. `BA_SE2`
+; es el efecto que falta disparar en el mensaje en curso, o $FFFF: RM2k toca
+; dos por golpe —el del ataque y el del daño, separados por una espera— y acá
+; el segundo sale cuando `BA_ESPERA` llega a `BA_SE2_CUADROS`.
+BA_TEMA_ANT = FAR_BATALLA + 41
+BA_SE2      = FAR_BATALLA + 42     ; palabra
+; Qué escena de batalla está puesta en BG1, o $FF si esta pelea va sobre
+; negro. Ver `escena_subir`.
+BA_ESCENA   = FAR_BATALLA + 44
+; Y en qué lugar de `tropa_id` cayó la tropa de esta pelea, que es lo que
+; `escena_de` indexa. $FF: el cartucho no la lleva.
+BA_TROPA_K  = FAR_BATALLA + 45
+; Y el ítem que se está usando, desde el 2026-09-13. Va **detrás de
+; `BA_UNO`**, que termina en +312, porque entre +40 y +48 ya no queda nada y
+; correr `BA_ACC` sería mover todo lo demás.
+BA_ITEM_N    = FAR_BATALLA + 320   ; cuántos hay en la lista
+BA_ITEM_SEL  = FAR_BATALLA + 321   ; cuál marca el cursor
+BA_ITEM_ARR  = FAR_BATALLA + 322   ; el primero que se ve
+BA_ITEM_BLA  = FAR_BATALLA + 323   ; a qué actor se le da
+BA_MITEM     = FAR_BATALLA + 324   ; el `k` del ítem del mensaje en curso
+BA_ACTOR2    = FAR_BATALLA + 325   ; un contador de actores que `BA_S0` no puede
+BA_MCURA     = FAR_BATALLA + 326   ; palabra: cuánto curó
+BA_ACC_ITEM  = FAR_BATALLA + 328   ; el `k` que eligió cada actor, uno por byte
+BA_ITEM_LISTA = FAR_BATALLA + 336  ; la lista, un `k` por byte
+BA_ITEM_MAX = 64
 BA_ACC     = FAR_BATALLA + 48     ; dos bytes por combatiente: orden y blanco
 BA_EJEC    = FAR_BATALLA + 72     ; el orden de ejecución, un combatiente por byte
 BA_CAND    = FAR_BATALLA + 88     ; los vivos de un lado, para elegir blanco
@@ -294,11 +321,16 @@ BA_DERROTA  = 2
 BA_ATACAR   = 0
 BA_DEFENDER = 1
 BA_HUIR     = 2
-; Los modos de la pantalla, como `pantallas.BA_ELIGE_ORDEN` y compañía.
+BA_ITEM     = 3
+; Los modos de la pantalla, como `pantallas.BA_ELIGE_ORDEN` y compañía. **El
+; orden importa**: más de un lugar pregunta `cmp #BA_M_MENSAJE / bcs` para
+; decir "mensaje o fin", así que los que eligen algo van todos antes.
 BA_M_ORDEN  = 0
 BA_M_BLANCO = 1
-BA_M_MENSAJE = 2
-BA_M_FIN    = 3
+BA_M_ITEM   = 2
+BA_M_ACTOR  = 3
+BA_M_MENSAJE = 4
+BA_M_FIN    = 5
 ; Qué dice el mensaje.
 BA_MSG_ATAQUE = 0
 BA_MSG_DEFIENDE = 1
@@ -306,9 +338,17 @@ BA_MSG_NO_HUYO = 2
 BA_MSG_HUYO = 3
 BA_MSG_VICTORIA = 4
 BA_MSG_DERROTA = 5
+BA_MSG_ITEM = 6
 ; Cuántos cuadros se queda un mensaje si nadie aprieta A. Son dos segundos, que
 ; es lo que tarda en leerse un renglón, y A lo saltea.
 BA_MSG_CUADROS = 120
+; Cuándo sale el segundo efecto del golpe: `Scene_Battle_Rpg2k` pone el del
+; ataque al empezar la acción y el del daño en el sub-estado del mensaje, con
+; un `SetWait(4,4)` en el medio. Acá el mensaje dura `BA_MSG_CUADROS` y el
+; segundo efecto sale veinticuatro cuadros más tarde, que es lo que se
+; distingue con una sola voz: los dos juntos serían uno solo, porque el efecto
+; nuevo le pisa la voz al anterior.
+BA_SE2_CUADROS = BA_MSG_CUADROS - 24
 ; El acierto de un actor sin arma que lo cambie: `Game_Actor::GetHitChance`.
 BA_ACIERTO_ACTOR = 90
 ; El tope del daño —`MaxDamageValue()` de RM2k— y el del promedio de agilidad
@@ -4186,6 +4226,37 @@ op_batalla:
     sep #$20
 .a8
     phy                         ; el cursor: los destinos se leen al volver
+    ; El tema del mapa se guarda y vuelve al terminar, que es el
+    ; `before_battle_music` de RM2k —`Scene_Battle` lo anota al construirse y
+    ; `Game_Map` lo repone al volver—. $FF quiere decir "no sonaba nada", y es
+    ; un caso real: los primeros mapas del juego no traen música.
+    ; **Con el banco de datos en el 0**, que acá todavía es el del bytecode:
+    ; `music_apagada` y `tema_actual` son absolutos de la BSS y sin esto se
+    ; leerían del banco del cartucho donde está la página. Es la misma trampa
+    ; que los puentes `ba_t_*` del otro lado, y costó exactamente lo mismo.
+    phb
+    phk
+    plb
+    lda music_apagada
+    bne callado_antes
+    lda tema_actual
+    bra anotado
+callado_antes:
+    lda #$FF
+anotado:
+    sta f:BAT_LARGO + BA_TEMA_ANT
+    ; El paquete de audio de la pelea: su tema y sus efectos. Va aparte del
+    ; paquete del mapa y no adentro, y está medido: el tema de batalla son 18
+    ; muestras y 51.480 B de los 64.512 de ARAM, o sea que metiéndolo en el
+    ; paquete del mapa 2 los 24 efectos de ese mapa se caían casi enteros.
+    ; Se calla antes de rearmar, como hace `tema_asegurar`: `paquete_cargar`
+    ; deja quietas las muestras del tema que suena, y las del mapa no tienen
+    ; por qué ocupar lugar adentro de la pelea.
+    lda #BA_PAQUETE
+    jsr batalla_audio_cargar
+    lda #BA_TEMA
+    jsr batalla_bgm
+    plb
     ; El banco de datos, en $7E: es lo que le deja al código de la pelea usar
     ; direccionamiento absoluto sobre su estado sin perder la RAM baja, que en
     ; ese banco está en las mismas direcciones. Ver el comentario de
@@ -4206,6 +4277,14 @@ op_batalla:
     stz menu_abierto
     lda boot_cuadros
     sta nmi_visto
+    phb
+    phk
+    plb                         ; el banco 0, por lo mismo que al entrar
+    lda mapa_actual             ; y el audio del mapa vuelve al SPC700
+    jsr batalla_audio_cargar
+    lda f:BAT_LARGO + BA_TEMA_ANT
+    jsr batalla_bgm             ; el tema del mapa, o el silencio que había
+    plb
     jsr volver_al_mapa
     ply
     ; Y apunta a la tropa; los tres destinos vienen detrás, de a palabra, en el
@@ -13838,6 +13917,74 @@ ba_t_param:
     jsr eq_parametro
     plb
     rtl
+; Los dos del audio, que son de esta vuelta: un efecto de sonido —A16 el
+; índice en `sonido_tabla`, $FFFF ninguno— y el tema, con A8.
+ba_t_sonido:
+    phb
+    phk
+    plb
+    jsr sonido_tocar
+    plb
+    rtl
+ba_t_bgm:
+    phb
+    phk
+    plb
+    jsr batalla_bgm
+    plb
+    rtl
+
+; El paquete de audio A —el de la pelea al entrar, el del mapa al salir—, con
+; la música callada primero.
+;
+; Callar antes no es un detalle: `paquete_cargar` deja **quietas** las muestras
+; del tema que dice estar sonando, y ésas son justamente las que hay que
+; desalojar para hacerle lugar al paquete nuevo. Es lo mismo que hace
+; `tema_asegurar` antes de rearmar.
+;
+; Con `BA_PAQUETE` en $FF —una ROM sin peleas— no hay nada que cargar; no
+; puede pasar, porque acá se llega desde `op_batalla`, pero el opcode existe
+; en el bytecode de todas.
+.proc batalla_audio_cargar
+.a8
+.i16
+    cmp #$FF
+    beq listo
+    pha
+    lda #$FF
+    jsr batalla_bgm             ; callar, para que nada quede fijo
+    pla
+    jsr paquete_cargar
+listo:
+    rts
+.endproc
+
+; El tema de la pelea: A es el índice, o $FF para dejarla callada. Lo llaman
+; `op_batalla` —al entrar y al salir— y la pelea al ganar, por el puente de
+; arriba.
+;
+; Callar no es `FadeOutBGM`: es lo mismo que hace `tema_asegurar` antes de
+; rearmar el paquete, o sea soltar las ocho voces y poner `music_apagada`. Un
+; mapa sin música es lo normal en este juego —los primeros no traen y la
+; prende un `PlayBGM`—, así que volver de una pelea a un mapa callado tiene
+; que callar de verdad y no dejar sonando el tema de batalla.
+.proc batalla_bgm
+.a8
+.i16
+    cmp #$FF
+    beq callar
+    jmp music_start
+callar:
+    php
+    sei
+    lda #1
+    sta music_apagada
+    lda #$FF
+    ldx #SE_KOF
+    jsr dsp_par                 ; las ocho voces sueltan
+    plp
+    rts
+.endproc
 
 ; --- la lluvia ------------------------------------------------------------------
 ;
@@ -16226,6 +16373,29 @@ listo:
     iny
     iny
     phy
+    jsr sonido_tocar            ; con A de dieciséis; vuelve con A de ocho
+.a8
+    ply
+    rts
+.endproc
+
+; El efecto cuyo índice en `sonido_tabla` trae A de dieciséis bits, o nada si
+; trae $FFFF. Se separó de `sonido_de_codigo` cuando la batalla empezó a tocar
+; efectos: los suyos no salen del bytecode sino de las constantes `BA_SE_*`
+; que emite el conversor, así que el índice llega en el acumulador.
+;
+; Entra con A de dieciséis bits y sale con A de ocho, que es como la dejaba
+; antes. El banco de datos no importa: todo lo que lee va con `f:`.
+.proc sonido_tocar
+.a16
+.i16
+    cmp #$FFFF
+    bne hay
+    sep #$20
+.a8
+    rts
+hay:
+.a16
     phb
     pha
     sep #$20
@@ -16287,7 +16457,6 @@ copiar:
     plp
 listo:
     plb
-    ply
     rts
 .endproc
 
@@ -24381,6 +24550,8 @@ grupo_listo:
     ; El bytecode lleva el número de RM2k, así que hay que buscarlo. Una tropa
     ; que este cartucho no lleve es una pelea sin enemigos, y `batalla_correr`
     ; la gana sola: es lo mismo que hace el conversor con un tema que no entró.
+    lda #$FF
+    sta BA_TROPA_K
     lda #0
     sta BA_S1
 busca:
@@ -24403,6 +24574,8 @@ busca:
 sin_tropa:
     rts
 la_tengo:
+    lda BA_S1
+    sta BA_TROPA_K              ; para `escena_de`
     rep #$20
 .a16
     lda BA_S1
@@ -25071,6 +25244,172 @@ ancho_listo:
 ; del LDB —`attacking`, `enemy_damaged`, `victory`...— y se arman como
 ; `game_message_terms.cpp`: el nombre pegado al término, y en el de daño el
 ; número en el medio. Ninguna es nuestra.
+; --- usar un ítem en la pelea ---------------------------------------------
+;
+; `Game_BattleAlgorithm::Item` con lo que este port sabe hacer: las medicinas
+; que recuperan HP. Qué entra en la lista y cuánto cura no se decide acá sino
+; en `batalla.item_usable_en_batalla` y `batalla.curacion`, que es el modelo con
+; el que `pruebas/test_batalla.py` predice el HP exacto; el conversor emite el
+; resultado en `item_batalla`, `item_cura_rate` e `item_cura_hp`.
+;
+; Todo esto corre con el banco de datos en $7E, así que **el inventario se lee
+; con direccionamiento absoluto**: `FAR_ITEMS` vive en ese banco y en él las
+; direcciones son las mismas. Las tablas del cartucho van con `f:`.
+
+; La lista de lo que se puede usar: un `k` por byte en `BA_ITEM_LISTA` y
+; cuántos en `BA_ITEM_N`. Recorre los ítems que la ROM conoce en el orden del
+; conversor, que es el del número de RM2k, como `Game_Party`.
+.proc ba_items_lista
+.a8
+.i16
+    lda #0
+    sta BA_ITEM_N
+    sta BA_S0                   ; el `k` que se mira
+otro:
+    lda BA_S0
+    cmp #ITEMS_ROM
+    bcs listo
+    lda BA_S0
+    jsr ba_ax
+    lda f:item_batalla, x
+    beq siguiente
+    lda BA_S0
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    tax
+    lda f:item_id, x            ; su número de RM2k
+    tax
+    sep #$20
+.a8
+    lda FAR_ITEMS, x            ; cuántos hay en el inventario
+    beq siguiente
+    lda BA_ITEM_N
+    jsr ba_ax
+    lda BA_S0
+    sta BA_ITEM_LISTA, x
+    inc BA_ITEM_N
+    lda BA_ITEM_N
+    cmp #BA_ITEM_MAX
+    bcs listo
+siguiente:
+    inc BA_S0
+    bra otro
+listo:
+    rts
+.endproc
+
+; El `k` del lugar A de la lista. Sólo A y X.
+.proc ba_item_de_lista
+.a8
+.i16
+    jsr ba_ax
+    lda BA_ITEM_LISTA, x
+    rts
+.endproc
+
+; Uno menos en el inventario del `k` que trae A. Es lo que hace RM2k al
+; elegirlo y no al usarlo: si no, el último de un ítem se podría repartir entre
+; dos actores en el mismo turno.
+.proc ba_item_gastar
+.a8
+.i16
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    tax
+    lda f:item_id, x
+    tax
+    sep #$20
+.a8
+    lda FAR_ITEMS, x
+    beq listo
+    dec a
+    sta FAR_ITEMS, x
+listo:
+    rts
+.endproc
+
+; Cuánto cura el `k` de A sobre el combatiente `BA_MBLA`. Entra con A de ocho
+; bits y sale con A de dieciséis.
+;
+;     hp = recover_hp_rate * GetMaxHp() / 100 + recover_hp
+;
+; topado contra lo que le falta al blanco, que es el `ChangeHp` de easyrpg. El
+; producto entra en una palabra porque el conversor corta si algún actor tiene
+; más de 655 HP.
+.proc ba_item_cura
+.a8
+.i16
+    sta BA_S3                   ; el `k`
+    lda BA_MBLA
+    jsr ba_x
+    rep #$20
+.a16
+    txa
+    sta BA_S4                   ; el desplazamiento del blanco
+    sep #$20
+.a8
+    lda BA_S3
+    jsr ba_ax
+    lda f:item_cura_rate, x
+    sta BA_T2                   ; el byte del producto
+    ldx BA_S4
+    rep #$20
+.a16
+    lda BA_UNO + BA_HPMAX, x
+    jsr ba_mul                  ; rate * hp_max, en una palabra
+    sta temp
+    lda #100
+    sta temp + 2
+    jsr ba_div
+    sta BA_S5
+    lda BA_S3
+    and #$00FF
+    asl a
+    tax
+    lda f:item_cura_hp, x
+    clc
+    adc BA_S5
+    sta BA_S5                   ; lo que curaría
+    ; y lo que le falta al blanco, que es el tope
+    ldx BA_S4
+    lda BA_UNO + BA_HPMAX, x
+    sec
+    sbc BA_UNO + BA_HP, x
+    cmp BA_S5
+    bcc topado
+    lda BA_S5
+topado:
+.a16
+    rts
+.endproc
+
+; El ítem que eligió el actor `BA_MQUIEN`, sobre `BA_MBLA`: cura, anota cuánto
+; y deja el mensaje listo. No tira azar: un ítem no falla ni lo esquiva nadie,
+; y **el blanco muerto no se reapunta**, que es lo contrario de un ataque.
+.proc ba_item_usar
+.a8
+.i16
+    lda BA_MQUIEN
+    jsr ba_ax
+    lda BA_ACC_ITEM, x
+    sta BA_MITEM
+    jsr ba_item_cura
+.a16
+    sta BA_MCURA
+    ldx BA_S4                   ; el desplazamiento del blanco, de `ba_item_cura`
+    lda BA_UNO + BA_HP, x
+    clc
+    adc BA_MCURA
+    sta BA_UNO + BA_HP, x
+    sep #$20
+.a8
+    rts
+.endproc
+
 .proc ba_mensaje
 .a8
 .i16
@@ -25095,8 +25434,12 @@ ancho_listo:
     beq huyo
     cmp #BA_MSG_VICTORIA
     beq victoria
+    cmp #BA_MSG_ITEM
+    beq usa_item
     ldx #BA_TXT_DERROTA
     jmp solo
+usa_item:
+    jmp item
 victoria:
     ldx #BA_TXT_VICTORIA
     jmp solo
@@ -25136,7 +25479,9 @@ ataque:
     cmp #$FFFF
     sep #$20
 .a8
-    beq fallo
+    bne pego
+    jmp fallo
+pego:
     ; `<nombre> <daño> health lost.`
     lda #$20                    ; el espacio entre el nombre y el número
     jsl f:ba_t_glifo
@@ -25155,6 +25500,58 @@ ataque:
 es_enemigo:
     ldx #BA_TXT_DANO_ENEMIGO
 dice:
+    jsr ba_termino
+    rts
+item:
+    ; `<quien> <ítem> used.`, que es
+    ; `source.GetName() + " " + item.name + terms.use_item` de
+    ; `GetItemStartMessage2k`.
+    lda BA_MQUIEN
+    jsr ba_nombre
+    lda #$20
+    jsl f:ba_t_glifo
+    lda #255
+    sta comp_dup + 3
+    stz temp + 1
+    rep #$20
+.a16
+    lda BA_MITEM
+    and #$00FF
+    sta BA_T0
+    asl a
+    clc
+    adc BA_T0                   ; por tres: `3k` es el nombre del ítem
+    tax
+    sep #$20
+.a8
+    jsl f:ba_t_texto
+    ldx #BA_TXT_USO
+    jsr ba_termino
+    ; `<blanco> HP <n> Recovered`, que es `GetHpSpRecoveredMessage`.
+    rep #$20
+.a16
+    lda #BA_MSG_POS2
+    sta BA_T1
+    lda #BA_MSG_DX
+    jsr ba_ir
+    sep #$20
+.a8
+    lda BA_MBLA
+    jsr ba_nombre
+    lda #$20
+    jsl f:ba_t_glifo
+    ldx #BA_TXT_HP
+    jsr ba_termino
+    lda #$20
+    jsl f:ba_t_glifo
+    rep #$20
+.a16
+    lda BA_MCURA
+    sta BA_T0
+    sep #$20
+.a8
+    jsr ba_numero_justo
+    ldx #BA_TXT_RECUPERO
     jsr ba_termino
     rts
 fallo:
@@ -25177,7 +25574,18 @@ falla_dice:
     lda #255
     sta comp_dup + 3
     jsl f:ba_t_limpiar
-    ; --- los enemigos ---
+    ; --- los enemigos, o la lista de ítems mientras se elige uno ---
+    ;
+    ; Van en los mismos renglones a propósito: eligiendo qué usar lo que hace
+    ; falta ver es el grupo, que es a quién se cura, y no los enemigos.
+    lda BA_MODO
+    cmp #BA_M_ITEM
+    beq a_la_lista
+    cmp #BA_M_ACTOR
+    bne sin_lista
+a_la_lista:
+    jmp la_lista
+sin_lista:
     lda #0
     sta BA_S0
 enemigo:
@@ -25222,9 +25630,17 @@ actor:
     lda BA_MODO
     cmp #BA_M_MENSAJE
     bcs sin_cursor_act
+    cmp #BA_M_ACTOR
+    bne cursor_en_el_que_ordena
+    lda BA_S0
+    cmp BA_ITEM_BLA             ; eligiendo a quién curar
+    bne sin_cursor_act
+    bra pone_cursor_act
+cursor_en_el_que_ordena:
     lda BA_S0
     cmp BA_ACTOR
     bne sin_cursor_act
+pone_cursor_act:
     jsr ba_cursor
 sin_cursor_act:
     lda #1
@@ -25240,26 +25656,39 @@ actores_listos:
     bcc ordenes
     jmp ba_mensaje
 ordenes:
-    rep #$20
-.a16
-    lda #BA_MSG_POS1
-    sta BA_T1
-    sep #$20
-.a8
     lda #0
     sta BA_S0
 orden:
     lda BA_S0
-    cmp #3
-    bcs ordenes_listas
-    ; En gris mientras se elige el blanco: el menú ya no manda.
+    cmp #BA_ORDENES_N
+    bcc hay_orden
+    jmp ordenes_listas
+hay_orden:
+    ; En qué renglón cae ésta: desde el 2026-09-13 son cinco y van en dos.
+    lda BA_S0
+    jsr ba_ax
+    rep #$20
+.a16
+    txa
+    asl a
+    tax
+    lda f:ba_orden_fila, x
+    sta BA_T1
+    sep #$20
+.a8
+    ; En gris mientras se elige otra cosa —el menú ya no manda— y siempre la
+    ; que no está hecha, que es lo que el menú de pausa hace con las suyas.
     lda BA_MODO
     cmp #BA_M_ORDEN
-    beq en_blanco
-    lda #1
-    bra pone_variante
-en_blanco:
+    bne en_gris
+    lda BA_S0
+    jsr ba_ax
+    lda f:ba_orden_gris, x
+    bne en_gris
     lda #0
+    bra pone_variante
+en_gris:
+    lda #1
 pone_variante:
     sta BA_S1
     rep #$20
@@ -25300,12 +25729,12 @@ sin_cursor_orden:
     sta temp + 1
     lda #255
     sta comp_dup + 3
+    lda BA_S0
+    jsr ba_ax
+    lda f:ba_orden_txt, x
     rep #$20
 .a16
-    lda BA_S0
     and #$00FF
-    clc
-    adc #BA_TXT_ATACAR
     tax
     sep #$20
 .a8
@@ -25314,12 +25743,111 @@ sin_cursor_orden:
     jmp orden
 ordenes_listas:
     rts
-.endproc
 
-; Dónde va cada orden en el renglón de abajo, en bytes del búfer. Sale del
-; conversor, que es el que también se lo pasa a la referencia.
-ba_orden_dx:
-    .word BA_ORDEN_DX0, BA_ORDEN_DX1, BA_ORDEN_DX2
+    ; --- la lista de ítems, donde van los enemigos ---
+la_lista:
+    lda #0
+    sta BA_S0
+fila_item:
+    lda BA_S0
+    cmp #BA_ENEMIGOS_MAX
+    bcs no_hay_mas
+    clc
+    adc BA_ITEM_ARR
+    cmp BA_ITEM_N
+    bcc hay_item
+no_hay_mas:
+    jmp items_listos
+hay_item:
+    sta BA_S6                   ; el lugar en la lista
+    rep #$20
+.a16
+    lda #BA_ENEMIGO_POS0
+    jsr ba_fila
+    sep #$20
+.a8
+    ; El cursor, sólo mientras se elige el ítem: eligiendo el blanco la lista
+    ; queda en gris y el cursor se va al grupo.
+    lda BA_MODO
+    cmp #BA_M_ITEM
+    bne gris_item
+    lda BA_S6
+    cmp BA_ITEM_SEL
+    bne sin_cursor_item
+    jsr ba_cursor
+sin_cursor_item:
+    lda #0
+    bra variante_item
+gris_item:
+    lda #1
+variante_item:
+    sta temp + 1
+    ; el nombre
+    rep #$20
+.a16
+    lda #BA_NOMBRE_DX
+    jsr ba_ir
+    sep #$20
+.a8
+    lda #BA_NOMBRE_ANCHO
+    sta comp_dup + 3
+    lda BA_S6
+    jsr ba_item_de_lista
+    sta BA_S1                   ; el `k`
+    rep #$20
+.a16
+    and #$00FF
+    sta BA_T0
+    asl a
+    clc
+    adc BA_T0                   ; por tres: `3k` es el nombre
+    tax
+    sep #$20
+.a8
+    jsl f:ba_t_texto
+    ; y cuántos hay, con los dos puntos adelante
+    rep #$20
+.a16
+    lda #BA_ITEM_CUENTA_DX
+    jsr ba_ir
+    sep #$20
+.a8
+    lda BA_MODO
+    cmp #BA_M_ITEM
+    beq cuenta_blanca
+    lda #1
+    bra cuenta_variante
+cuenta_blanca:
+    lda #0
+cuenta_variante:
+    sta temp + 1
+    lda #$3A                    ; los dos puntos
+    jsl f:ba_t_glifo
+    lda BA_S1
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    tax
+    lda f:item_id, x
+    tax
+    sep #$20
+.a8
+    lda FAR_ITEMS, x
+    rep #$20
+.a16
+    and #$00FF
+    sta comp_dup
+    sep #$20
+.a8
+    lda #2
+    sta comp_dup + 2
+    jsl f:ba_t_numero
+    inc BA_S0
+    jmp fila_item
+items_listos:
+    jmp enemigos_listos
+.endproc
 
 ; --- el lazo de la pelea --------------------------------------------------
 
@@ -25565,11 +26093,95 @@ ninguno:
 .proc ba_mostrar
 .a8
 .i16
+    ; El efecto que hubiera quedado pendiente no sobrevive al mensaje que lo
+    ; dejó: quien quiera uno en éste lo anota después de llamar acá.
+    rep #$20
+.a16
+    lda #$FFFF
+    sta BA_SE2
+    sep #$20
+.a8
     lda #BA_M_MENSAJE
     sta BA_MODO
     lda #BA_MSG_CUADROS
     sta BA_ESPERA
     jsr ba_componer
+    rts
+.endproc
+
+; Qué suena en el golpe que se acaba de resolver, y cuándo.
+;
+; RM2k toca **dos** efectos por golpe: el del ataque al empezar la acción
+; —`Normal::GetStartSe`, y sólo cuando el que pega es un enemigo— y el del
+; resultado en el sub-estado del mensaje, unos cuadros más tarde. Acá los
+; efectos tienen **una sola voz**, así que los dos juntos serían uno solo: el
+; del resultado queda pendiente en `BA_SE2` y sale a los `BA_MSG_CUADROS -
+; BA_SE2_CUADROS` cuadros. Cuando el que pega es del grupo no hay primero, así
+; que el del resultado suena ya.
+;
+; El del resultado sale de easyrpg y no de memoria: errar es `GetFailureSe`
+; —dodge_se—, pegarle a un actor es actor_damaged_se y a un enemigo
+; enemy_damaged_se, salvo que lo mate, que es el enemy_death_se de
+; `ProcessBattleActionDeath`.
+.proc ba_sonido_del_golpe
+.a8
+.i16
+    lda BA_MBLA
+    jsr ba_x                    ; X: el desplazamiento del blanco
+    rep #$20
+.a16
+    lda BA_MDANO
+    cmp #$FFFF
+    beq erro
+    sep #$20
+.a8
+    lda BA_MBLA
+    cmp #BA_GRUPO_MAX
+    bcc al_actor
+    rep #$20
+.a16
+    lda BA_UNO + BA_HP, x
+    beq murio
+    lda #BA_SE_DANO_ENEMIGO
+    bra anotado
+murio:
+.a16
+    lda #BA_SE_MUERTE
+    bra anotado
+erro:
+.a16
+    lda #BA_SE_ERRAR
+    bra anotado
+al_actor:
+.a8
+    rep #$20
+.a16
+    lda #BA_SE_DANO_ACTOR
+anotado:
+.a16
+    sta BA_SE2
+    sep #$20
+.a8
+    lda BA_MQUIEN
+    cmp #BA_GRUPO_MAX
+    bcs del_enemigo
+    ; Pega alguien del grupo: RM2k no le pone efecto de ataque, así que el del
+    ; resultado no tiene a qué esperar y sale en el acto.
+    rep #$20
+.a16
+    lda BA_SE2
+    ldx #$FFFF
+    stx BA_SE2
+    jsl f:ba_t_sonido
+.a8
+    rts
+del_enemigo:
+.a8
+    rep #$20
+.a16
+    lda #BA_SE_ATAQUE
+    jsl f:ba_t_sonido
+.a8
     rts
 .endproc
 
@@ -25608,6 +26220,12 @@ limpia:
     sta BA_RESULT
     lda #BA_MSG_VICTORIA
     sta BA_MTIPO
+    ; El `BGM_Victory` de `Scene_Battle_Rpg2k`. En el ABL es **el mismo tema
+    ; que el de la pelea** —los dos campos del LDB dicen T_VGFighterMAX_Masako—
+    ; así que en la práctica vuelve a empezar; que sean dos constantes y no una
+    ; es porque el dato es del juego y no nuestro.
+    lda #BA_TEMA_FIN
+    jsl f:ba_t_bgm
     bra termina
 siguen:
     lda #0
@@ -25664,6 +26282,8 @@ hay:
     beq defiende
     cmp #BA_HUIR
     beq no_huyo
+    cmp #BA_ITEM
+    beq usa_un_item
     ; Atacar. Si el blanco murió antes de que le tocara, se reapunta al primero
     ; vivo de ese lado, como hace `Game_BattleAlgorithm`.
     lda BA_MBLA
@@ -25690,7 +26310,21 @@ pega:
     jsr ba_atacar
     lda #BA_MSG_ATAQUE
     sta BA_MTIPO
-    jmp ba_mostrar
+    jsr ba_mostrar              ; que limpia el pendiente, así que va antes
+    jmp ba_sonido_del_golpe
+usa_un_item:
+    ; El ítem no falla ni lo esquiva nadie, así que no tira azar; y el blanco
+    ; muerto **no se reapunta**, que es lo contrario de un ataque.
+    jsr ba_item_usar
+    lda #BA_MSG_ITEM
+    sta BA_MTIPO
+    jsr ba_mostrar
+    rep #$20
+.a16
+    lda #BA_SE_ITEM
+    jsl f:ba_t_sonido
+.a8
+    rts
 defiende:
     lda BA_MQUIEN
     jsr ba_x
@@ -25704,6 +26338,221 @@ no_huyo:
     lda #BA_MSG_NO_HUYO
     sta BA_MTIPO
     jmp ba_mostrar
+.endproc
+
+; --- la escena de la pelea --------------------------------------------------
+;
+; El fondo de batalla con los monstruos **ya horneados encima**: una sola capa
+; de 8bpp de 256x128 en BG1, que son los siete renglones de texto de arriba.
+; El porqué, el presupuesto y lo que cuesta están en tools/escena.py; acá sólo
+; se sube.
+;
+; Corre desde `batalla_correr` con la pantalla apagada y con el banco de datos
+; en $7E, así que los registros del PPU y las tablas del cartucho van todos
+; con `f:`.
+;
+; Dos cosas del PPU que no son obvias:
+;
+; * **El texto lleva el bit de prioridad.** En modo 3 el orden del PPU deja
+;   BG1 de prioridad 0 arriba de BG2 de prioridad 0, así que sin eso la escena
+;   taparía las letras. Lo pone el conversor en `item_glifo_celdas`.
+; * **El tile con que se tapa lo que queda abajo de la escena es el 512**, que
+;   cae fuera del bloque: los 512 tiles de 8bpp son las 16.384 palabras que
+;   van de `ESCENA_VRAM` al final de la VRAM, así que el 512 da la vuelta y
+;   queda en la palabra 0. Mientras dura la pelea esa palabra es VRAM del mapa
+;   y no la usa nadie; al salir, `volver_al_mapa` rehace todo.
+;
+; A: el índice de tropa. Deja el número de escena en `BA_ESCENA`, o $FF.
+.proc escena_subir
+.a8
+.i16
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda #ESCENA_N
+    beq no_hay
+    lda f:escena_de, x
+    cmp #$FF
+    bne hay
+no_hay:
+    jmp sin_escena              ; esta ROM no lleva escena para esta tropa
+hay:
+    sta BA_ESCENA
+
+    ; --- los 32 KB de tiles, de a trozos ---
+    lda #$80
+    sta f:VMAIN                 ; una palabra por escritura
+    stz BA_S0 + 1
+    lda BA_ESCENA
+    sta BA_S0
+    rep #$20
+.a16
+    lda BA_S0
+    asl a
+    asl a
+    asl a
+    asl a                       ; por ESCENA_TROZOS * 4: la fila de punteros
+    sta BA_S0
+    lda #ESCENA_VRAM
+    sta BA_S1
+    sep #$20
+.a8
+    lda #0
+    sta BA_S2
+trozo:
+    rep #$20
+.a16
+    lda BA_S1
+    sta f:VMADDL
+    lda #ESCENA_TROZO
+    sta f:DAS0L
+    ldx BA_S0
+    lda f:escena_trozo, x
+    sta f:A1T0L
+    sep #$20
+.a8
+    lda f:escena_trozo + 2, x
+    sta f:A1B0
+    lda #$01                    ; dos registros: VMDATAL y VMDATAH
+    sta f:DMAP0
+    lda #$18
+    sta f:BBAD0
+    lda #$01
+    sta f:MDMAEN
+    rep #$20
+.a16
+    lda BA_S0
+    clc
+    adc #4
+    sta BA_S0
+    lda BA_S1
+    clc
+    adc #(ESCENA_TROZO / 2)     ; el trozo, en palabras
+    sta BA_S1
+    sep #$20
+.a8
+    inc BA_S2
+    lda BA_S2
+    cmp #ESCENA_TROZOS
+    bcc trozo
+
+    ; --- el tile transparente, en la palabra 0 ---
+    rep #$20
+.a16
+    lda #0
+    sta f:VMADDL
+    lda #64
+    sta f:DAS0L
+    lda #.loword(escena_cero)
+    sta f:A1T0L
+    sep #$20
+.a8
+    lda #^escena_cero
+    sta f:A1B0
+    lda #$01
+    sta f:DMAP0
+    lda #$18
+    sta f:BBAD0
+    lda #$01
+    sta f:MDMAEN
+
+    ; --- el tilemap: los 512 tiles en orden y el resto tapado ---
+    ;
+    ; Se escribe a mano y no por DMA: son los números 0, 1, 2... y emitirlos
+    ; serían dos kilobytes de cartucho por escena para decir eso.
+    rep #$20
+.a16
+    lda #ESCENA_MAPA
+    sta f:VMADDL
+    lda #0
+    sta BA_S0                   ; el tile que va en la celda
+    ldx #0
+celda:
+    cpx #ESCENA_TILES
+    bcc celda_escena
+    lda #ESCENA_BLANCO
+    bra celda_pone
+celda_escena:
+.a16
+    lda BA_S0
+celda_pone:
+.a16
+    sta f:VMDATAL
+    inc BA_S0
+    inx
+    cpx #(32 * 32)
+    bcc celda
+    sep #$20
+.a8
+
+    ; --- los 96 colores, desde la entrada ESCENA_CGRAM ---
+    lda #ESCENA_CGRAM
+    sta f:CGADD
+    stz BA_S0 + 1
+    lda BA_ESCENA
+    sta BA_S0
+    rep #$20
+.a16
+    lda BA_S0
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a                       ; por 64
+    sta BA_S1
+    asl a                       ; por 128
+    clc
+    adc BA_S1                   ; y por 192, que son ESCENA_COLORES * 2
+    clc
+    adc #.loword(escena_cgram)
+    sta f:A1T0L
+    lda #(ESCENA_COLORES * 2)
+    sta f:DAS0L
+    sep #$20
+.a8
+    lda #^escena_cgram
+    sta f:A1B0
+    lda #0
+    sta f:DMAP0                 ; `stz` no tiene modo largo
+    lda #$22
+    sta f:BBAD0
+    lda #$01
+    sta f:MDMAEN
+    rts
+sin_escena:
+.a8
+    lda #$FF
+    sta BA_ESCENA
+    rts
+.endproc
+
+; BG1 con la escena, después de que `ranura_ppu_prender` haya puesto BG2 y
+; prendido la pantalla. Si esta pelea no tiene escena no toca nada y la
+; pantalla queda sobre negro, como antes del 2026-09-13.
+.proc escena_prender
+.a8
+.i16
+    lda BA_ESCENA
+    cmp #$FF
+    beq listo
+    lda #((ESCENA_MAPA / 1024) * 4)
+    sta f:BG1SC                 ; 32x32, que es lo que tapa la pantalla entera
+    lda #((RANURA_VRAM / 4096) * 16 + (ESCENA_VRAM / 4096))
+    sta f:BG12NBA               ; el texto en BG2 y la escena en BG1
+    lda #0
+    sta f:BG1HOFS               ; `stz` no tiene modo largo
+    sta f:BG1HOFS
+    lda #$FF
+    sta f:BG1VOFS               ; el PPU muestra vofs+1: con -1 cae en su lugar
+    sta f:BG1VOFS
+    lda #$03
+    sta f:TM                    ; BG1 y BG2
+listo:
+    rts
 .endproc
 
 ; La pelea entera. Se entra con `jsl` desde `op_batalla`, con el banco de datos
@@ -25720,6 +26569,8 @@ no_huyo:
 .a16
     lda #BATALLA_SEMILLA
     sta BA_SEM                  ; el azar arranca igual en toda pelea
+    lda #$FFFF
+    sta BA_SE2                  ; sin efecto pendiente
     sep #$20
 .a8
     lda #BA_VICTORIA
@@ -25752,11 +26603,16 @@ hay_grupo:
     sta f:HDMAEN
     sta f:TM
     jsl f:ba_t_banco
+    ; Y la escena: el fondo con los monstruos, en BG1. Va con la pantalla
+    ; apagada porque son 32 KB de VRAM más el tilemap y la paleta.
+    lda BA_TROPA_K
+    jsr escena_subir
     lda #BA_M_ORDEN
     sta BA_MODO
     jsr ba_componer
     jsl f:ba_t_subir
     jsl f:ba_t_ppu
+    jsr escena_prender
     lda #1
     sta menu_abierto
 
@@ -25775,18 +26631,26 @@ espera:
 :   cmp #BA_M_BLANCO
     bne :+
     jmp modo_blanco
+:   cmp #BA_M_ITEM
+    bne :+
+    jmp modo_item
+:   cmp #BA_M_ACTOR
+    bne :+
+    jmp modo_actor
 :   cmp #BA_M_MENSAJE
     bne :+
     jmp modo_mensaje
 :   jmp modo_fin
 
     ; --- eligiendo la orden ---
+espera5:
+    jmp espera
 modo_orden:
     lda titulo_flancos
     and #PAD_LEFT
     beq o_no_izq
     lda BA_ORDEN
-    beq espera2
+    beq espera5
     dec BA_ORDEN
     jmp recomponer
 o_no_izq:
@@ -25794,31 +26658,50 @@ o_no_izq:
     and #PAD_RIGHT
     beq o_no_der
     lda BA_ORDEN
-    cmp #2
-    bcs espera2
+    cmp #(BA_ORDENES_N - 1)
+    bcs espera5
     inc BA_ORDEN
     jmp recomponer
 o_no_der:
     jsr ba_flanco_a
-    beq espera2
+    beq espera5
     lda BA_ORDEN
-    cmp #BA_ATACAR
+    cmp #BA_ORDEN_ATACAR
     bne o_no_ataca
     jsr ba_enemigo_vivo
     cmp #$FF
-    beq espera2
+    beq espera5
     sta BA_BLANCO
     lda #BA_M_BLANCO
     sta BA_MODO
     jmp recomponer
 o_no_ataca:
-    cmp #BA_DEFENDER
-    bne o_huye
+    cmp #BA_ORDEN_DEFENDER
+    bne o_no_defiende
     lda #0
     sta BA_T0
     lda #BA_DEFENDER
     jsr ba_anotar
     jmp siguiente_actor
+o_no_defiende:
+    cmp #BA_ORDEN_USAR
+    bne o_no_usa
+    ; `Use Item`: la lista de lo que se puede usar. Vacía, no pasa nada, que
+    ; es lo que hace el menú de pausa con una orden que no lleva a ningún
+    ; lado.
+    jsr ba_items_lista
+    lda BA_ITEM_N
+    beq espera5
+    lda #0
+    sta BA_ITEM_SEL
+    sta BA_ITEM_ARR
+    lda #BA_M_ITEM
+    sta BA_MODO
+    jmp recomponer
+o_no_usa:
+    cmp #BA_ORDEN_HUIR
+    beq o_huye
+    jmp espera                  ; `Tech Skill`: en gris y no hace nada
 o_huye:
     jsr ba_huir
     beq o_no_huyo
@@ -25827,6 +26710,11 @@ o_huye:
     lda #BA_MSG_HUYO
     sta BA_MTIPO
     jsr ba_mostrar
+    rep #$20
+.a16
+    lda #BA_SE_HUIR             ; el escape_se de `Scene_Battle_Rpg2k`
+    jsl f:ba_t_sonido
+.a8
     lda #BA_M_FIN
     sta BA_MODO
     jmp espera
@@ -25868,6 +26756,99 @@ b_mira_a:
     sta BA_T0
     lda #BA_ATACAR
     jsr ba_anotar
+    jmp siguiente_actor         ; los dos modos de abajo quedaron en el medio
+
+    ; --- eligiendo qué ítem ---
+modo_item:
+    lda titulo_flancos
+    and #PAD_UP
+    beq i_no_arriba
+    lda BA_ITEM_SEL
+    beq espera4
+    dec BA_ITEM_SEL
+    jsr ba_item_ver
+    jmp recomponer
+i_no_arriba:
+    lda titulo_flancos
+    and #PAD_DOWN
+    beq i_no_abajo
+    lda BA_ITEM_SEL
+    inc a
+    cmp BA_ITEM_N
+    bcs espera4
+    sta BA_ITEM_SEL
+    jsr ba_item_ver
+    jmp recomponer
+i_no_abajo:
+    lda titulo_flancos
+    and #PAD_B
+    beq i_mira_a
+    lda #BA_M_ORDEN
+    sta BA_MODO
+    jmp recomponer
+i_mira_a:
+    jsr ba_flanco_a
+    beq espera4
+    ; A quién curárselo: al primero vivo del grupo.
+    lda #0
+    sta BA_ACTOR2
+busca_vivo:
+    lda BA_ACTOR2
+    cmp BA_NACT
+    bcs espera4                 ; no puede pasar: el que ordena está vivo
+    jsr ba_vivo
+    bne hay_blanco_act
+    inc BA_ACTOR2
+    bra busca_vivo
+hay_blanco_act:
+    lda BA_ACTOR2
+    sta BA_ITEM_BLA
+    lda #BA_M_ACTOR
+    sta BA_MODO
+    jmp recomponer
+espera4:
+    jmp espera
+
+    ; --- eligiendo a quién se le da ---
+modo_actor:
+    lda titulo_flancos
+    and #PAD_UP
+    beq a_no_arriba
+    jsr ba_blanco_act_arriba
+    jmp recomponer
+a_no_arriba:
+    lda titulo_flancos
+    and #PAD_DOWN
+    beq a_no_abajo
+    jsr ba_blanco_act_abajo
+    jmp recomponer
+a_no_abajo:
+    lda titulo_flancos
+    and #PAD_B
+    beq a_mira_a
+    lda #BA_M_ITEM
+    sta BA_MODO
+    jmp recomponer
+a_mira_a:
+    jsr ba_flanco_a
+    beq espera4
+    ; Se anota la orden y **se gasta el ítem ya**, que es lo que hace RM2k al
+    ; elegirlo: si no, el último de un ítem se podría repartir entre dos
+    ; actores en el mismo turno.
+    lda BA_ITEM_SEL
+    jsr ba_item_de_lista
+    pha
+    lda BA_ACTOR
+    jsr ba_ax
+    pla
+    sta BA_ACC_ITEM, x
+    jsr ba_item_gastar
+    lda BA_ITEM_BLA
+    sta BA_T0
+    lda #BA_ITEM
+    jsr ba_anotar
+    jmp siguiente_actor
+
 siguiente_actor:
     ; Al que sigue; si no queda ninguno, empieza el turno.
     jsr ba_actor_siguiente
@@ -25887,6 +26868,21 @@ modo_mensaje:
     jsr ba_flanco_a
     bne pasa
     dec BA_ESPERA
+    lda BA_ESPERA
+    cmp #BA_SE2_CUADROS
+    bne sin_segundo
+    ; El segundo efecto del golpe, el que RM2k toca en el sub-estado del
+    ; mensaje. Se saca de `BA_SE2` al dispararlo para que no vuelva a salir si
+    ; el mensaje se alarga.
+    rep #$20
+.a16
+    lda BA_SE2
+    ldx #$FFFF
+    stx BA_SE2
+    jsl f:ba_t_sonido
+.a8
+sin_segundo:
+    lda BA_ESPERA
     bne espera3
 pasa:
     jsr ba_ejecutar
@@ -25945,6 +26941,54 @@ no_a:
     rts
 si_a:
     lda #1
+    rts
+
+; Que el ítem marcado se vea: corre la ventana de ocho renglones lo justo.
+ba_item_ver:
+    lda BA_ITEM_SEL
+    cmp BA_ITEM_ARR
+    bcs ver_abajo
+    sta BA_ITEM_ARR             ; se fue por arriba: la ventana lo sigue
+    rts
+ver_abajo:
+    sec
+    sbc #BA_ENEMIGOS_MAX
+    bcc listo_ver               ; entra sin mover nada
+    inc a                       ; el primero que tendría que verse
+    cmp BA_ITEM_ARR
+    bcc listo_ver
+    sta BA_ITEM_ARR
+listo_ver:
+    rts
+
+; El cursor de a quién se le da el ítem, al actor vivo de arriba o de abajo.
+; Si para ese lado no queda ninguno vivo, se queda donde está. Es el hermano
+; de `ba_blanco_arriba`, sobre el grupo en vez de sobre la tropa.
+ba_blanco_act_arriba:
+    lda BA_ITEM_BLA
+mira_arriba_act:
+    beq nada_act
+    dec a
+    sta BA_S0
+    jsr ba_vivo
+    bne pone_act
+    lda BA_S0
+    bra mira_arriba_act
+ba_blanco_act_abajo:
+    lda BA_ITEM_BLA
+mira_abajo_act:
+    inc a
+    cmp BA_NACT
+    bcs nada_act
+    sta BA_S0
+    jsr ba_vivo
+    bne pone_act
+    lda BA_S0
+    bra mira_abajo_act
+pone_act:
+    lda BA_S0
+    sta BA_ITEM_BLA
+nada_act:
     rts
 
 ; El cursor del blanco, al enemigo vivo de arriba o de abajo. Si para ese lado

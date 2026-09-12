@@ -1500,19 +1500,25 @@ snes-anclada mapa="6" ruta="1 1 1 1 1 1 2 2 2 2 2 2" cuadros="21 23 50 130" arra
 # lado, y **sólo del lado de la ROM**, que es lo que hace que la comparación
 # mida algo— los dos dan 556 pixeles. Un caso que no falla con algo roto no
 # prueba nada.
-snes-batalla tropa="86" grupo="11 12 13" espera="20" cuadros="200" toques="" nombre="batalla":
+snes-batalla tropa="86" grupo="11 12 13" espera="20" cuadros="200" toques="" nombre="batalla" fondo="ABLBackdropSJ03" mapas="" items="" ref="--modo 1 --blanco 2":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
   toques="{{toques}}"
+  mapas="{{mapas}}"
+  items="{{items}}"
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id 6 --con-ventana \
+      ${mapas:+--mapas $mapas} ${items:+--items-de-prueba $items} \
       --pagina-de-prueba {{espera}} 0 0 0 --batalla-de-prueba {{tropa}} \
+      --fondo-de-prueba "{{fondo}}" \
       -o {{snes_inc}}/mapdata.inc
   just snes-build
   pre={{snes_pngs}}/{{nombre}}
   python3 tools/pantallas.py -o $pre.esperado.png --batalla {{tropa}} \
+      --fondo "{{fondo}}" \
       --grupo $(echo "{{grupo}}" | tr ' ' ',') \
-      ${toques:+--modo 1 --blanco 2}
+      ${items:+--items $(echo "$items" | awk '{for(i=1;i<NF;i+=2) printf "%s%s:%s", (i>1?",":""), $i, $(i+1)}')} \
+      ${toques:+{{ref}}}
   python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre.png \
       --cuadros {{cuadros}} --sin-contador --walk none \
       ${toques:+--toques-hardware {{toques}}}
@@ -2232,8 +2238,11 @@ snes-hitos-foto trabajos="4" donde="":
   # receta hace `git worktree remove --force` al empezar: dos tandas a la vez
   # —dos agentes, o un agente y yo— se arrancaban el árbol entre sí y el
   # resumen salía **verde sin haber medido nada**, que es la peor forma de
-  # fallar que tiene esto. Pasó dos veces el 2026-09-13. El PID alcanza para
-  # que no se pisen, y `pruebas/hitos/` está gitignorado.
+  # fallar que tiene esto; y a veces se ve al revés, como una corrida que
+  # empieza bien y de golpe dice `getcwd: cannot access parent directories`
+  # con casos en rojo que no lo están. Pasó dos veces el 2026-09-13, con dos
+  # agentes trabajando en paralelo. El PID alcanza para que no se pisen, y
+  # `pruebas/hitos/` está gitignorado.
   donde="{{donde}}"
   donde=${donde:-pruebas/hitos/$$}
   mkdir -p "$(dirname "$donde")"

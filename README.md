@@ -929,9 +929,13 @@ Lo que hay, y lo que no:
     defender                        sí, y vale sólo el turno en que le toca
     huir                            sí, pero es orden de cada actor y no del
                                     grupo, que es una simplificación declarada
-    habilidades, ítems, estados     no
+    usar un ítem                    sí, desde el 2026-09-13: ver abajo
+    habilidades                     no, y no es que falte el código: ver abajo
+    los estados                     no
     experiencia, oro, subir nivel   no: no hay niveles
-    los battlers dibujados          no
+    la música y los efectos         sí, desde el 2026-09-13: ver abajo
+    los battlers dibujados          sí, horneados en el fondo: ver abajo
+    la imagen de fondo              sí, desde el 2026-09-13
     las páginas de evento de tropa  no
     los encuentros aleatorios       no: ver "Lo que falta"
 
@@ -945,6 +949,165 @@ enemigos— no compila, y no por la batalla: la corta un `MoveEvent` con la
 orden de ruta 9, "hacia el héroe", que la ROM no camina. Por eso la tropa de
 cuatro la ejercita `just snes-batalla` con la página de prueba, que es el
 mismo recurso que usa `snes-guardar` con la pantalla de ranuras.
+
+#### El menú: las cinco órdenes del ABL
+
+Hasta el 2026-09-13 eran tres en un renglón —`Attack`, `Defend`, `Escape`— y
+taro pidió el menú del original, que además tiene `Use Item` y `Tech Skill`.
+Ahora son las cinco, en los dos renglones del mensaje: tres arriba y dos abajo,
+que mientras se elige está libre. Las palabras son las del LDB —`command_item`
+del ABL dice "Use Item" y `command_skill` "Tech Skill"— y el ancho pasó de nueve
+a diez porque "Tech Skill" mide diez justos.
+
+**`Tech Skill` va en gris y A no la toma**, como las tres órdenes que el menú de
+pausa todavía no hace. Y no es que falte el código de las habilidades: está
+medido que **a este nivel nadie sabe ninguna**. Kersh aprende la 131 en el nivel
+3, Core la 129 en el 3 y Manta la 130 en el 3, y este port tiene a todos en el
+nivel 1 —`titulo.NIVEL`— porque no hay experiencia ni subida de nivel. La lista
+saldría vacía. Lo que destraba las habilidades no es la pantalla: son los
+niveles, y detrás los SP, que tampoco son estado.
+
+`Use Item` sí anda. Abre la lista de lo que se puede usar **donde va la de los
+enemigos**, porque eligiendo qué usar lo que hace falta ver es el grupo; se
+elige el ítem, después a quién, y con eso queda anotada la orden de ese actor,
+que se ejecuta en su turno como cualquier otra. B vuelve un paso.
+
+Qué entra en la lista y cuánto cura sale de easyrpg-player:
+
+* **Qué entra**: `Game_Party::IsItemUsable` con la pelea abierta, o sea una
+  medicina que no esté marcada "sólo fuera de batalla". De ésas, este port
+  ofrece las que **recuperan HP y no son `ko_only`**: las de SP quedan afuera
+  porque los SP no son estado, y las de revivir porque revivir es sacar el
+  estado de muerto y los estados no existen. Son 12 de las 22 medicinas del
+  juego, de la Potion de 50 a la Miracle Drop, que cura todo.
+* **Cuánto cura**: `Game_BattleAlgorithm::Item::vExecute`, o sea
+  `recover_hp_rate * GetMaxHp() / 100 + recover_hp`, topado contra lo que le
+  falta al blanco, que es el `ChangeHp`. La cuenta está escrita dos veces
+  —`main.s` y `batalla.curacion`— como todo lo demás de la pelea, y por eso
+  `test_batalla.py` puede exigir el número exacto. El producto entra en una
+  palabra: el conversor corta si algún actor pasa de 655 HP.
+
+Dos cosas que son de RM2k y conviene no "arreglar": **el ítem se gasta al
+elegirlo** y no al usarlo —si no, el último de un ítem se podría repartir entre
+dos actores en el mismo turno— y **el blanco muerto no se reapunta**, que es lo
+contrario de lo que hace un ataque: el ítem se gasta igual.
+
+Lo cobran cinco casos. Dos de la tanda —la lista de ítems y la elección del
+blanco, pixel por pixel contra `pantallas.py`— y tres de estado: que la lista
+sea la que corresponde (con un ítem inusable en el inventario, o no mediría
+nada), que la poción deje el HP exacto que dice el modelo topando contra el
+máximo, y que el cursor pase por encima de `Tech Skill` en vez de trabarse.
+Todos verificados en rojo con su defecto puesto.
+
+#### El fondo y los monstruos: una sola imagen
+
+taro pidió las dos cosas el 2026-09-13 —*"La batalla no tiene ni imagen de
+fondo ni imagen del monstruo"*— y acá van juntas **porque son el mismo
+dibujo**: el conversor compone el fondo de batalla con los battlers de la
+tropa encima y el cartucho lleva el resultado como una capa de 8bpp de
+256x128, los siete renglones de texto de arriba. La consola no dibuja
+battlers: sube una imagen. El porqué largo, el presupuesto y lo que se pierde
+están en `tools/escena.py`; el titular:
+
+* **El fondo sale del propio `EnemyEncounter`**, que trae el nombre en su
+  string: `SJBackdropABL04` para el droide del mapa 2 y `ABLBackdropSJ03` para
+  los Lazer Teeth del 9.
+* **Todo al 80%.** El fondo de RM2k mide 320x160 en una pantalla de 320x240 y
+  acá la pantalla es de 256x224, así que entra escalado a 256x128. Los
+  battlers van al mismo 80%, con lo cual las posiciones del LDB —que son las
+  del centro de cada uno— se mapean multiplicando por lo mismo. Lo único que
+  no es de RM2k es el recorte: un battler alto se topa adentro de la escena,
+  porque allá abajo le quedan otros ochenta pixeles de pantalla y acá no.
+* **512 tiles, 32.768 B de VRAM y 96 colores**, las entradas 32 a 127 de la
+  CGRAM: las 0 a 31 son las dos paletas del texto y de 128 para arriba son las
+  de los objetos. Los tiles no se deduplican —una foto no repite: 490 y 503 de
+  512 en los dos fondos del juego— y por eso el número es fijo.
+* **Entra sin pelearle a nada** porque la pelea no comparte VRAM con el mapa:
+  `volver_al_mapa` la rehace entera al salir. El texto vive en $2000, su
+  tilemap en $3C00, el de la escena en $3800 y los tiles de la escena en
+  $4000, que son las últimas 16.384 palabras de la VRAM.
+
+Dos cosas que costaron y conviene no volver a descubrir:
+
+* **El texto lleva el bit de prioridad.** En modo 3 el orden del PPU deja BG1
+  de prioridad 0 **arriba** de BG2 de prioridad 0, así que sin eso la escena
+  tapa las letras. Lo pone el conversor en `item_glifo_celdas`; en las otras
+  pantallas que usan esos glifos —ítems, equipo, tienda— BG1 está apagado y el
+  bit no cambia un pixel.
+* **El tile con que se tapa lo que queda abajo de la escena es el 512**, y cae
+  fuera del bloque: 512 tiles de 8bpp son exactamente las palabras que van de
+  `ESCENA_VRAM` al final de la VRAM, así que el 512 da la vuelta y queda en la
+  palabra 0, que mientras dura la pelea es VRAM del mapa y no la usa nadie.
+
+**Lo que cuesta, declarado**: un enemigo muerto se sigue viendo. En RM2k
+desaparece; acá lo que dice que murió es su renglón —el nombre en gris y los
+HP en cero—, que es la misma razón por la que esta pantalla muestra los HP de
+los enemigos y RM2k no. Y una escena es **por tropa** y no por fondo: dos
+tropas con el mismo fondo llevan las dos escenas, a 32 KB cada una.
+
+Lo cobra la tanda, con los dos fondos del juego: `snes-batalla` con la tropa
+86 —cuatro battlers iguales, uno de ellos topado contra el borde— y con la 82
+—uno solo—, los dos en cero. Verificado que da rojo corriéndole a la ROM el
+`BG1VOFS` un scanline.
+
+Y hay un tercer caso que no mira el dibujo sino **el índice**: la misma tropa
+86 en un cartucho que además lleva el mapa 2, o sea con dos tropas y dos
+escenas. Es el único donde la pelea no es la tropa 0, y para que exista hubo
+que mover una línea: la tropa de la página de prueba se pide **al final** y no
+antes de compilar los mapas, igual que `temas_de_la_rom` agrega el tema del
+mapa al final. Pidiéndola antes le tocaba siempre el índice 0 y `escena_de` y
+`tropa_id` acertaban sin indexar nada. Verificado que da rojo —53% de los
+pixeles— con `escena_subir` clavado en la escena 0.
+
+#### La música y los efectos de la pelea
+
+Desde el 2026-09-13. Todo sale del LDB —`system.json`— y **quién suena en qué
+momento sale de easyrpg-player**, no de memoria: está escrito con su función de
+origen en `eventos.AUDIO_BATALLA`.
+
+    battle_music      T_VGFighterMAX_Masako   `Scene_Battle`, al construirse
+    battle_end_music  T_VGFighterMAX_Masako   `BGM_Victory`, al ganar
+    dodge_se          Evasion1                `AlgorithmBase::GetFailureSe`
+    enemy_attack_se   Attack2                 `Normal::GetStartSe`, fuente enemiga
+    enemy_damaged_se  Damage1                 el mensaje del golpe, blanco enemigo
+    actor_damaged_se  Bite                    ídem, blanco del grupo
+    enemy_death_se    Monster1                `ProcessBattleActionDeath`
+    escape_se         Escape                  cuando el grupo escapa
+
+`battle_se` —el de empezar la pelea— está en `(OFF)` en este juego, así que no
+se registra: sería una entrada muda para siempre.
+
+Tres cosas que no son obvias:
+
+* **El tema de batalla y el de victoria son el mismo**, y por eso ganar no
+  cambia de tema sino que lo reinicia. Que sean dos constantes y no una es
+  porque el dato es del juego: otro LDB podría tener dos.
+* **Un golpe toca dos efectos y acá hay una sola voz.** RM2k pone el del
+  ataque al empezar la acción y el del daño en el mensaje, con una espera en
+  el medio. Acá el segundo queda pendiente en `BA_SE2` y sale veinticuatro
+  cuadros más tarde; juntos serían uno solo, porque un efecto nuevo le pisa la
+  voz al anterior. Cuando el que pega es del grupo no hay primero —RM2k no le
+  pone efecto de ataque al actor— y el del daño sale en el acto.
+* **La pelea tiene paquete de audio propio**, y eso está medido: el tema de
+  batalla son 18 muestras y 51.480 B de los 64.512 de ARAM. Metiéndolo en el
+  paquete del mapa 2, los 24 efectos de ese mapa —49.068 B, que hoy entran
+  todos— se caían casi enteros. Con paquete aparte el mapa no paga nada
+  mientras no se pelee: `op_batalla` carga `BA_PAQUETE` al entrar y el del
+  mapa al salir. Cuesta **65 cuadros medidos** de imagen congelada al volver,
+  y otro tanto al entrar; es el mismo precio que paga cada cambio de mapa, con
+  la diferencia de que allá lo tapa un fundido.
+
+Lo que lo cobra es `pruebas/test_batalla.py`, y **no la tanda de pixeles**: el
+silencio no cambia un pixel, que es el mismo argumento de
+`test_musica_paquete.py`. Son cuatro casos —el tema al entrar con sus muestras
+en la ARAM, el de victoria, el del mapa al volver, y cuál de los cinco efectos
+sale en cada golpe— y los cuatro están verificados en rojo con su defecto
+puesto.
+
+Y de ahí salió un defecto que no era del audio: **el banco de datos de
+`op_batalla` no es el 0**, así que `music_apagada` y `tema_actual`, que son
+absolutos de la BSS, se leían del banco del cartucho donde vive la página. Es
+la misma trampa que ya tenían los puentes `ba_t_*` del otro lado.
 
 ### La lluvia
 

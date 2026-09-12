@@ -126,6 +126,25 @@ snes-escena 8 "52 24" 12 up "60 120 200" 115 ev41 "10 40" "24" "10"
 # lo que se compara es la pantalla. Ver el comentario de `snes-batalla`.
 snes-batalla
 snes-batalla 86 "11 12 13" 20 200 "a:130 down:140 down:150" batalla-blanco
+# Y la tropa del droide del mapa 2 sobre su fondo, que es la única pelea que
+# el jugador alcanza hoy: un enemigo y otro fondo, o sea el otro camino de
+# `escena.py`. Sin esto, el único fondo que la tanda miraría sería el de los
+# Lazer Teeth.
+snes-batalla 82 "11 12 13" 20 200 "" batalla-droide SJBackdropABL04
+# Y la misma tropa 86 en un cartucho que además lleva el mapa 2, o sea con
+# **dos** tropas y dos escenas. Es el único caso donde la pelea no es la
+# tropa 0: el mapa 2 pide la 82 y la de la página de prueba queda segunda,
+# así que `tropa_id` y `escena_de` se indexan de verdad en vez de acertar
+# siempre con el primer renglón.
+snes-batalla 86 "11 12 13" 20 200 "" batalla-segunda ABLBackdropSJ03 2
+# Los dos modos de `Use Item`: la lista de ítems donde iban los enemigos, y
+# la misma lista en gris con el cursor eligiendo a quién curárselo. El
+# inventario lo pone la página de prueba —tres Potion y dos Cold Sandwich— y
+# la referencia arma la lista con la misma regla que la ROM. Verificado que
+# dan rojo corriendo dos celdas la columna de la cuenta sólo del lado de la
+# ROM: 142 pixeles.
+snes-batalla 86 "11 12 13" 20 220 "right:130 right:140 a:150" batalla-item ABLBackdropSJ03 "" "1 3 97 2" "--modo 2 --item 0"
+snes-batalla 86 "11 12 13" 20 240 "right:130 right:140 a:150 a:160 down:170" batalla-item-blanco ABLBackdropSJ03 "" "1 3 97 2" "--modo 3 --item 0 --blanco 1"
 snes-pisar
 snes-escena 2 "7 76" "0 0 0 0" up "40 60 100" 115 bloqueo ""
 snes-escena 2 "7 74" 14 down "3 8 25 60 106 200" 115 droide ""

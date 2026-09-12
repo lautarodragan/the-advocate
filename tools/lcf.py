@@ -250,6 +250,22 @@ SYSTEM_NAME = 0x13
 # pagó con los códigos de comando de las puertas.
 SYSTEM_TITLE_NAME = 0x11
 SYSTEM_TITLE_MUSIC = 0x1F
+# El audio de la pelea, del mismo `ChunkSystem`: el tema que suena al entrar,
+# el que suena al ganar, y los efectos que `Game_System::GetSystemSE` reparte.
+# Los códigos son los de liblcf y el orden de este diccionario es el que
+# `eventos.AUDIO_BATALLA_SE` recorre.
+SYSTEM_BATTLE_MUSIC = 0x20
+SYSTEM_BATTLE_END_MUSIC = 0x21
+SYSTEM_SE = {
+    "battle_se": 0x2D,
+    "escape_se": 0x2E,
+    "enemy_attack_se": 0x2F,
+    "enemy_damaged_se": 0x30,
+    "actor_damaged_se": 0x31,
+    "dodge_se": 0x32,
+    "enemy_death_se": 0x33,
+    "item_se": 0x34,
+}
 # Con qué fuente dibuja el texto: 0 Gothic, 1 Mincho. easyrpg elige ttyp0 o
 # rmg2000 con esto, y las letras salen distintas. Este juego pide Mincho.
 SYSTEM_FONT_ID = 0x48
@@ -675,6 +691,17 @@ class Item:
                        for c in (ITEM_ATK, ITEM_DEF, ITEM_SPI, ITEM_AGI)]
         self.two_handed = to_bool(fields.get(ITEM_TWO_HANDED, b"\x00"))
         self.actor_set = [bool(b) for b in fields.get(ITEM_ACTOR_SET, b"")]
+        # Lo que cura, desde el 2026-09-13, que es cuando la pelea empezó a
+        # dejar usar ítems: `recover_hp_rate` es por ciento del máximo y
+        # `recover_hp` es a secas. `occasion_field1` es "sólo fuera de
+        # batalla" y `ko_only` "sólo sobre un muerto"; ver
+        # `batalla.item_usable_en_batalla`.
+        self.recover_hp_rate = to_int(fields.get(ITEM_RECOVER_HP_RATE,
+                                                 b"\x00"))
+        self.recover_hp = to_int(fields.get(ITEM_RECOVER_HP, b"\x00"))
+        self.occasion_field1 = to_bool(fields.get(ITEM_OCCASION_FIELD1,
+                                                  b"\x00"))
+        self.ko_only = to_bool(fields.get(ITEM_KO_ONLY, b"\x00"))
 
     def equipable_por(self, actor):
         """`actor_set`, con los que no alcanza la lista en sí: es lo que
@@ -683,10 +710,17 @@ class Item:
             else True
 
 
+ITEM_RECOVER_HP_RATE = 0x20
+ITEM_RECOVER_HP = 0x21
+ITEM_OCCASION_FIELD1 = 0x25
+ITEM_KO_ONLY = 0x26
+
+
 # Un enemigo de la base (liblcf: ldb/chunks.h, ChunkEnemy). Sólo los campos
 # que la batalla de este port mira; los que no, se ignoran y quedan en el
 # volcado a JSON, que es el que sirve para leerlos.
 ENEMY_NAME = 0x01
+ENEMY_BATTLER_NAME = 0x02
 ENEMY_MAX_HP = 0x04
 ENEMY_MAX_SP = 0x05
 ENEMY_ATTACK = 0x06
@@ -711,6 +745,11 @@ class Enemy:
 
     def __init__(self, fields):
         self.name = to_string(fields.get(ENEMY_NAME, b""))
+        # Con qué se dibuja, desde el 2026-09-13: el PNG de `Monster/`. El
+        # `battler_hue` no se lee —ninguno de los dos enemigos que el cartucho
+        # lleva lo usa— y si apareciera uno habría que rotarle el tono acá y en
+        # la referencia con la misma función.
+        self.battler_name = to_string(fields.get(ENEMY_BATTLER_NAME, b""))
         self.max_hp = to_int(fields.get(ENEMY_MAX_HP, b"\x01"))
         self.max_sp = to_int(fields.get(ENEMY_MAX_SP, b"\x00"))
         self.attack = to_int(fields.get(ENEMY_ATTACK, b"\x01"))
@@ -733,23 +772,30 @@ class Enemy:
 TROOP_NAME = 0x01
 TROOP_MEMBERS = 0x02
 TROOP_MEMBER_ENEMY_ID = 0x01
+# Dónde va cada battler, en la pantalla de 320x240 de RM2k y como **centro** de
+# la imagen. Los códigos son los de `ChunkTroopMember` de liblcf.
+TROOP_MEMBER_X = 0x02
+TROOP_MEMBER_Y = 0x03
 
 
 class Troop:
-    """Una tropa: qué enemigos la forman, en el orden del LDB.
+    """Una tropa: qué enemigos la forman y dónde va cada uno.
 
-    Las posiciones (x, y) de cada miembro no se leen: este port no dibuja los
-    battlers, así que dónde iban en la pantalla de 320x240 de RM2k no dice
-    nada. Las páginas de eventos de batalla tampoco: ver "lo que falta" de la
-    batalla en README.md.
+    Las posiciones (x, y) son del **centro** de cada battler en la pantalla de
+    320x240 de RM2k, y se leen desde el 2026-09-13, que es cuando la pelea
+    empezó a dibujarlos: ver `escena.py`. Las páginas de eventos de batalla no
+    se leen: ver "lo que falta" de la batalla en README.md.
     """
 
     def __init__(self, fields):
         self.name = to_string(fields.get(TROOP_NAME, b""))
+        miembros = sorted(Reader(
+            fields.get(TROOP_MEMBERS, b"\x00")).read_struct_array().items())
         self.members = [to_int(m.get(TROOP_MEMBER_ENEMY_ID, b"\x01"))
-                        for _, m in sorted(Reader(
-                            fields.get(TROOP_MEMBERS, b"\x00")
-                        ).read_struct_array().items())]
+                        for _, m in miembros]
+        self.posiciones = [(to_int(m.get(TROOP_MEMBER_X, b"\x00")),
+                            to_int(m.get(TROOP_MEMBER_Y, b"\x00")))
+                           for _, m in miembros]
 
 
 class Database:
@@ -795,6 +841,25 @@ class Database:
         titulo_music = Reader(
             sistema.get(SYSTEM_TITLE_MUSIC, b"\x00")).read_struct()
         self.title_music = to_string(titulo_music.get(MUSIC_NAME, b""))
+        # El audio de la pelea. Sale de acá y no de un literal nuestro por lo
+        # mismo que los términos: es un dato del juego. En el ABL el tema de
+        # batalla y el de victoria son **el mismo** —T_VGFighterMAX_Masako—, y
+        # `battle_se` está en "(OFF)", que es un nombre que no resuelve a
+        # ningún archivo y sale mudo sin que haya que tratarlo aparte.
+        self.battle_music = to_string(Reader(
+            sistema.get(SYSTEM_BATTLE_MUSIC, b"\x00")
+        ).read_struct().get(MUSIC_NAME, b""))
+        self.battle_end_music = to_string(Reader(
+            sistema.get(SYSTEM_BATTLE_END_MUSIC, b"\x00")
+        ).read_struct().get(MUSIC_NAME, b""))
+        self.system_se = {}
+        for nombre, chunk in SYSTEM_SE.items():
+            campos = Reader(sistema.get(chunk, b"\x00")).read_struct()
+            self.system_se[nombre] = (
+                to_string(campos.get(MUSIC_NAME, b"")),
+                to_int(campos.get(MUSIC_VOLUME, b"\x64")),
+                to_int(campos.get(MUSIC_TEMPO, b"\x64")),
+                to_int(campos.get(MUSIC_BALANCE, b"\x32")))
         # Los términos de la pantalla de título. En el ABL no son los de
         # fábrica: dicen 'Begin the Story' y 'Resume the Story', que es lo que
         # el juego eligió y por eso salen de acá y no de un literal nuestro.

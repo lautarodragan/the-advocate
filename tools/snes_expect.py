@@ -191,6 +191,7 @@ class Mundo:
         # Y los eventos comunes, que `CallEvent` compila en el lugar:
         # los dos lados tienen que mirar la misma base.
         eventos.indexar_comunes(game_dir)
+        eventos.indexar_audio_de_batalla(game_dir)
         if mensajes is not None:
             # Con ventana los mapas se compilan **todos y en el orden de la
             # tabla**, acá y no cuando el héroe pise cada uno. El bloque de
@@ -246,7 +247,8 @@ class Mundo:
                                               animacion=self.prueba[20],
                                               eventos_mapa=eventos.Eventos(
                                                   self.mapa(map_id)[0]),
-                                              batalla=self.prueba[21])),
+                                              batalla=self.prueba[21],
+                                              temas=self.temas)),
                                      dict(PAGINA_DE_PRUEBA_APAGADA,
                                           evento=numero)]
             self.paginas_cache[map_id] = paginas
