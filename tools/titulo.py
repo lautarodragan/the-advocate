@@ -22,6 +22,8 @@ De ahí sale el único paso que no es mecánico: de 369 colores a 256.
 
 import collections
 
+import pixeles as pixeles_mod
+
 CELL = 8
 ANCHO = 256
 ALTO = 224
@@ -44,7 +46,7 @@ def _distancia(a, b):
     """Lo lejos que están dos colores de 15 bits, al cuadrado.
 
     Euclídea y sin pesos por canal: la alternativa —ponderar por luma, que es
-    lo que hace `merge_least_used` para las paletas de dieciséis— acá no
+    lo que hace `merge_least_visible` para las paletas de dieciséis— acá no
     cambiaría nada visible y sí haría falta explicar por qué los pesos son esos.
     Los colores que se fusionan son los que casi no aparecen, y el vecino que
     les toca está a un paso de distancia.
@@ -571,16 +573,28 @@ def _paleta_de_cara(cara):
     """Quince colores para una cara, y de cada color de la imagen a cuál va.
 
     Las caras del ABL usan entre 22 y 29 colores de 15 bits, y en una paleta de
-    4bpp entran 15: se reduce como la imagen del título, con `reducir`, que
-    manda cada color que sobra al más cercano de los que quedan. El índice 0 es
-    el transparente, y el negro va ahí: sobre el fondo negro de la pantalla da
-    lo mismo y no gasta una entrada.
+    4bpp entran 15. El índice 0 es el transparente, y el negro va ahí: sobre el
+    fondo negro de la pantalla da lo mismo y no gasta una entrada.
+
+    La reducción es `pixeles.merge_least_visible` y **no** `reducir`, que es lo
+    que usa la imagen del título. `reducir` se queda con los quince colores más
+    usados y manda el resto al más cercano, y en 48x48 píxeles eso arrasa: en
+    una cara hay un puñado de tonos de piel que cubren casi todo y una docena de
+    detalles de dos o tres píxeles cada uno —el brillo de un ojo, el filo de un
+    mechón—, así que los quince ganadores eran quince variantes del mismo tono y
+    la cara quedaba plana. taro lo reportó como "Talan y Core se ven grises".
+
+    En el título la diferencia no existe —son 240 colores de 369, y los que se
+    fusionan casi no aparecen— y cuesta el cuadrático, así que allá sigue
+    `reducir`.
     """
-    pixeles = [(r >> 3, g >> 3, b >> 3) if a else NEGRO
-               for r, g, b, a in cara.get_flattened_data()]
-    usados = collections.Counter(p for p in pixeles if p != NEGRO)
+    pixeles_de_cara = [(r >> 3, g >> 3, b >> 3) if a else NEGRO
+                       for r, g, b, a in cara.get_flattened_data()]
+    usados = collections.Counter(p for p in pixeles_de_cara if p != NEGRO)
     if len(usados) > 15:
-        paleta, destino = reducir([p for p in pixeles if p != NEGRO], 15)
+        mapa = pixeles_mod.merge_least_visible(usados, 15)[0]
+        paleta = sorted(set(mapa.values()))
+        destino = mapa
     else:
         paleta = sorted(usados, key=lambda c: (-usados[c], c))
         destino = {c: c for c in usados}

@@ -315,6 +315,13 @@ def read_commands(payload):
 # viendo el nombre de verdad.
 SUFIJO_TRANSLUCIDO = None
 
+# Y los CharSets que **no** llevan ese sufijo aunque su página sea translúcida:
+# se dibujan opacos. Lo prende el port igual que el sufijo, por lo mismo —el
+# volcado a JSON tiene que seguir viendo el juego como es—; el porqué de cada
+# nombre está en `rm2k.SIN_TRAMA`. Se comparan en minúsculas: RM2k guarda el
+# nombre como lo escribió el autor y el archivo puede no coincidir.
+SIN_TRAMA = frozenset()
+
 
 class EventPageCondition:
     """Lo que tiene que pasar para que esta página sea la activa."""
@@ -373,9 +380,10 @@ class EventPage:
     def __init__(self, fields):
         self.character_name = to_string(fields.get(PAGE_CHARACTER_NAME, b""))
         self.translucent = to_bool(fields.get(PAGE_TRANSLUCENT))
-        if SUFIJO_TRANSLUCIDO and self.translucent and self.character_name:
+        if (SUFIJO_TRANSLUCIDO and self.translucent and self.character_name
+                and self.character_name.lower() not in SIN_TRAMA):
             # Ver SUFIJO_TRANSLUCIDO: para el port, un CharSet translúcido es
-            # otro gráfico.
+            # otro gráfico. Los de SIN_TRAMA no: van opacos.
             self.character_name += SUFIJO_TRANSLUCIDO
         self.character_index = to_int(fields.get(PAGE_CHARACTER_INDEX, b"\x00"))
         self.character_direction = to_int(fields.get(PAGE_CHARACTER_DIRECTION, b"\x02"))

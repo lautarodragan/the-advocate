@@ -246,6 +246,23 @@ TILE_PREFIX = "@tile:"
 # ranuras, poses, la referencia— lo trata como a cualquier otro.
 TRAMA_SUFIJO = "~trama"
 
+# Y los que se dibujan **opacos aunque su página diga translúcida**. Es una
+# divergencia deliberada de RM2k, decidida por taro el 2026-09-12, y la
+# referencia hace exactamente lo mismo: la comparación pixel a pixel sigue
+# midiendo, sólo que contra otra decisión.
+#
+# Por ahora hay uno solo, el save point. Se probaron los dos caminos para
+# dibujarlo semitransparente y los dos se cayeron: con la trama en una pantalla
+# moderna se ve el damero, y con el color math de la consola —que es
+# transparencia de verdad— el objeto deja de animar y el héroe se ve **a
+# través** del save point. taro eligió el tercero: opaco, sprite, animando, y
+# con su paleta de verdad. Lo que hace que valga la pena es que ahora la tiene:
+# contando sólo las poses que muestra son trece colores y le sobra lugar en una
+# paleta propia, mientras que antes pedía prestada la de otro y salía gris.
+#
+# En minúsculas: así se comparan en `lcf.SIN_TRAMA`.
+SIN_TRAMA = frozenset({"savept"})
+
 
 def nombre_de_tile(chipset, indice):
     return "%s%s:%d" % (TILE_PREFIX, chipset, indice)

@@ -11,7 +11,7 @@ volvió inusable; se borra sin culpa lo que ya esté en esos dos lados.
 
 Se escribe **mientras se trabaja**, no al final.
 
-Última vez que se tocó: 2026-09-11.
+Última vez que se tocó: 2026-09-12.
 
 
 ## El objetivo, y dónde estamos
@@ -1853,6 +1853,46 @@ ningún commit ni en ningún caso, y que sin esto habría que volver a descubrir
 * **El scratchpad de esa sesión ya no existe**, así que las capturas que se
   nombran en los commits no se pueden mirar: si hace falta ver algo, se vuelve
   a correr la receta, que es de donde salían.
+
+## Los quince colores de un sprite: elegidos de nuevo (2026-09-12)
+
+taro reportó tres síntomas —las caras de Talan y de Core grises, Talan gris, y
+el save point que "pasó de azul/celeste/blanco a gris"— y eran tres causas
+distintas. Las tres están arregladas y el porqué durable quedó en README, en
+"Los quince colores de un sprite": el criterio de fusión pasó a ser el par que
+menos se note en vez del color menos usado, la paleta se cuenta sobre las poses
+que el evento puede mostrar, y un CharSet puede pesar para que no le toque la
+paleta prestada. El save point además va **opaco**, que es lo que taro pidió
+después de rechazar el color math.
+
+Medido sobre los 328 mapas: -5,1% de colores fusionados, ningún gráfico fusiona
+más que antes, ningún mapa se cae. Verificado con `just snes-hitos-foto` —123
+casos en verde, foto `eb64401`— y `just pruebas` —83 verdes + 1 xfail—, más las
+dos capturas del emulador en `pruebas-manuales/colores/`.
+
+**Lo que queda abierto de esto:**
+
+* **Quién más merece peso.** `PESO_DE_GRAFICO` tiene dos renglones, `savept` y
+  `Future1`, y se llena con lo que taro vea jugando. En el mapa 8, darle su
+  paleta al save point se la saca a `People1:0`; si eso molesta más, es cambiar
+  un renglón.
+
+* **La referencia ignora los `topes` del cronómetro.** `pose_image` cuantiza
+  siempre a quince colores, pero en un mapa que llene las ocho paletas el
+  conversor puede bajar a un personaje a catorce para hacerle lugar al
+  cronómetro. Es anterior a esto y ninguna prueba lo cubre: los casos con
+  cronómetro de la tanda no caen en ese mapa. Con el cronómetro servido antes
+  que los eventos de tile, hoy en `demo-ciudad` pasa una sola vez
+  —`People4:4`— pero el agujero sigue ahí.
+
+* **La animación de un quieto podría contar un cuadro en vez de tres.** taro la
+  descartó explícitamente el 2026-09-12: con la deduplicación y el espejado que
+  ya hay ahorraría un cuadro y no dos, y los tres cuadros de una pose son el
+  mismo dibujo movido, así que comparten colores. Medido sobre los 328 mapas
+  del juego, en los 61 (mapa, gráfico) que animan quietos: **cero** diferencia entre
+  contar los tres cuadros de la fila y contar uno solo. No queda nada que
+  ganar por ahí.
+
 
 ## Esperando respuesta de taro
 
