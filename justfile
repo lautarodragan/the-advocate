@@ -1813,6 +1813,66 @@ snes-batalla tropa="86" grupo="11 12 13" espera="20" cuadros="200" toques="" nom
   python3 tools/snes_compare.py $pre.png $pre.esperado.png \
       -o $pre.comparacion.png
 
+# La pelea **peleada hasta el final**, y el mapa comparado al volver.
+#
+# Es lo que `snes-batalla` no puede mirar: aquélla abre la pantalla de la pelea
+# y la compara contra `pantallas.py`, pero nunca sale de ahí. Lo que llegó a la
+# SD de taro el 2026-09-13 estaba justo del otro lado: la escena de la batalla
+# sube 32 KB de VRAM —las palabras $4000 a $8000— y `volver_al_mapa` reponía
+# nada más que el banco de tiles de BG1 y el de la capa de encima, así que el
+# mapa volvía con los dos tilemaps, los tiles de la ventana y el banco de
+# sprites hechos basura. Ver `volver_de_batalla` en main.s.
+#
+# Cómo se compara, que es lo que lo hace barato: **la pelea no cuesta ningún
+# tick**. `batalla_correr` corre su propio lazo y `vueltas` no avanza mientras
+# dura, y la referencia sale del `OP_BATALLA` por la rama de victoria en el
+# mismo tick en que entró. O sea que del otro lado no hay nada que modelar: el
+# cuadro N es el mapa quieto, igual que si no hubiera habido pelea. Que la ROM
+# dibuje eso mismo **es** la prueba.
+#
+# Los toques son los A que pelean: uno cada nueve cuadros de hardware desde que
+# la pelea abre, en cuadros de hardware porque adentro de la pelea no hay ticks.
+# Con el azar clavado en `BATALLA_SEMILLA` la pelea es la misma todas las veces.
+# Si la ROM no saliera, `snes_correr.py` corta con "la ROM no llegó al tick".
+#
+# Los dos casos de la tanda miran los **dos repartos de VRAM**, que es donde la
+# pelea rompe cosas distintas:
+#
+#   vuelta          sin ventana, o sea LAYOUT_ANCHO: los sprites viven en $4000
+#                   y la escena se los lleva enteros. Es el único caso que
+#                   cobra el `load_sprite` de la vuelta.
+#   vuelta-ventana  con ventana, o sea LAYOUT_VENTANA: los sprites arrancan en
+#                   0 y lo que se lleva la escena son los tiles de la ventana
+#                   en $6800 y los dos tilemaps.
+#
+# **Verificado que dan rojo** sacando `volver_de_batalla` y dejando el
+# `volver_al_mapa` de antes: 74,30% de los pixeles el primero y 77,49% el
+# segundo, en los dos cuadros de cada uno.
+snes-vuelta mapa="6" tropa="82" fondo="SJBackdropABL04" espera="20" cuadros="30 100" ventana="" arranque="115" nombre="vuelta":
+  #!/usr/bin/env bash
+  set -euo pipefail
+  mkdir -p {{snes_pngs}} {{snes_inc}}
+  ventana="{{ventana}}"
+  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
+      ${ventana:+--con-ventana} \
+      --pagina-de-prueba {{espera}} --batalla-de-prueba {{tropa}} \
+      --fondo-de-prueba "{{fondo}}" -o {{snes_inc}}/mapdata.inc
+  just snes-build
+  pre={{snes_pngs}}/{{nombre}}
+  python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
+      ${ventana:+--con-ventana} \
+      --pagina-de-prueba {{espera}} --batalla-de-prueba {{tropa}} \
+      --cuadros {{cuadros}} \
+      --saltar $pre-{}.saltar.txt -o $pre-{}.esperado.png
+  toques=$(seq 140 9 3000 | sed 's/^/a:/')
+  for n in {{cuadros}}; do
+    python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre-$n.png \
+        --walk none --cuadros $n --arranque {{arranque}} \
+        --toques-hardware $toques
+    python3 tools/snes_compare.py $pre-$n.png $pre-$n.esperado.png \
+        --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
+  done
+
 # Cuánto destraba cada comando de evento que todavía no hacemos.
 #
 # Es lo que decide por dónde seguir, y existe porque el número que este repo

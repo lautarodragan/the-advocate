@@ -1113,10 +1113,22 @@ están en `tools/escena.py`; el titular:
   CGRAM: las 0 a 31 son las dos paletas del texto y de 128 para arriba son las
   de los objetos. Los tiles no se deduplican —una foto no repite: 490 y 503 de
   512 en los dos fondos del juego— y por eso el número es fijo.
-* **Entra sin pelearle a nada** porque la pelea no comparte VRAM con el mapa:
-  `volver_al_mapa` la rehace entera al salir. El texto vive en $2000, su
+* **Entra sin pelearle a nada** porque la pelea se lleva por delante media VRAM
+  del mapa y lo que se lleva se rehace al salir. El texto vive en $2000, su
   tilemap en $3C00, el de la escena en $3800 y los tiles de la escena en
   $4000, que son las últimas 16.384 palabras de la VRAM.
+
+  **Rehacerla no era `volver_al_mapa`, y decirlo acá costó una demo entera.**
+  Aquél repone lo que pisan la tienda, el menú y las ranuras, que escriben nada
+  más que `RANURA_VRAM` y `RANURA_MAP` —elegidos para caer adentro del banco de
+  tiles de BG1 en los cuatro repartos, y el conversor lo comprueba—. Los 32 KB
+  de la escena se salen de esa caja: se llevan además el tilemap del mapa
+  ($5800), el de la capa de encima ($7800), los tiles de la ventana de mensaje
+  ($6800) y el banco de sprites —entero en `LAYOUT_ANCHO`, que lo pone en
+  $4000—. Volver de una pelea es `volver_de_batalla`, que repone eso con
+  `load_sprite`, `load_ventana` y `fill_window` antes de llamar al otro. Lo
+  cobran `vuelta` y `vuelta-ventana`, uno por reparto de VRAM; sin el arreglo
+  son 74% y 77% de los pixeles.
 
 Dos cosas que costaron y conviene no volver a descubrir:
 
