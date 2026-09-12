@@ -5384,10 +5384,9 @@ var_suma:
 .a8
 var_pone:
     lda temp
-    jsr var_escribir
-    lda #1
-    sta refresco                ; las páginas que piden una variable pueden
-    ply                         ; cambiar: `SetNeedRefreshForVarChange`
+    jsr var_escribir            ; y el refresco, si la ranura lo pide: las
+                                ; páginas que miran esta variable pueden
+    ply                         ; cambiar. Ver `var_escribir`
     iny                         ; a y b, cuatro bytes
     iny
     iny
@@ -5585,9 +5584,7 @@ op_tecla:
     stz temp + 2
     stz temp + 3
     lda temp
-    jsr var_escribir
-    lda #1
-    sta refresco
+    jsr var_escribir            ; con su refresco, si la ranura lo pide
     sty ev_cur
     rts
 tecla_mirar:
@@ -5608,10 +5605,8 @@ tecla_mirar:
     rts
 tecla_guardar:
     lda temp
-    jsr var_escribir
-    lda #1
-    sta refresco                ; `SetNeedRefreshForVarChange`, como ControlVars
-    jmp otro
+    jsr var_escribir            ; `SetNeedRefreshForVarChange`, como ControlVars:
+    jmp otro                    ; lo decide la ranura. Ver `var_escribir`
 
 op_esperar:
     ; Y acá se devuelve el control. Antes se salteaba, y el comentario decía
@@ -5769,7 +5764,7 @@ op_teleport:
 .i16
     rep #$20
 .a16
-    and #$00FF
+    and #VAR_RANURA             ; sin el bit de VAR_REFRESCO, que viaja pegado
     asl a                       ; dos bytes por variable
     clc
     adc #FAR_VARIABLES
@@ -5795,15 +5790,30 @@ op_teleport:
     rts
 .endproc
 
-; A: la ranura; `temp + 2`: el valor.
+; A: la ranura, con `VAR_REFRESCO` en el bit de arriba si esta escritura pide
+; el refresco de páginas; `temp + 2`: el valor.
+;
+; El refresco se marca **acá y no en cada opcode** porque por acá pasan las
+; tres escrituras que hay —`op_var` y las dos ramas de `op_tecla`— y así el
+; bit se mira una sola vez. Es `Game_Map::SetNeedRefreshForVarChange`, que
+; tampoco marca por cualquier escritura: le pregunta al `map_cache` si alguna
+; condición de página del mapa mira esa variable. Acá esa pregunta la contestó
+; el conversor; ver VAR_REFRESCO en eventos.py.
 .proc var_escribir
 .a8
 .i16
+    pha                         ; la ranura con su bit, que var_apuntar tira
     jsr var_apuntar
     lda temp + 2
     sta WMDATA
     lda temp + 3
     sta WMDATA
+    pla
+    and #VAR_REFRESCO           ; explícito y no el N que deja `pla`: ver la
+    beq sin_refresco            ; trampa de las banderas en AGENTS.md
+    lda #1
+    sta refresco
+sin_refresco:
     rts
 .endproc
 

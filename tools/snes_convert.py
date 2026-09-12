@@ -3338,6 +3338,13 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "OP_ORO      = $%02X\n"
         "OP_GUARDAR  = $%02X\n"
         "OP_VAR      = $%02X\n"
+        "; El bit de arriba de la ranura de OP_VAR y de OP_TECLA: si la\n"
+        "; escritura pide el refresco de páginas. Lo resuelve el conversor\n"
+        "; mirando qué variables miran las condiciones de página de este\n"
+        "; mapa; `var_apuntar` enmascara con VAR_RANURA. Ver VAR_REFRESCO en\n"
+        "; eventos.py: sin esto media Lashe City corría a 30 cuadros.\n"
+        "VAR_REFRESCO = $%02X\n"
+        "VAR_RANURA   = $%02X\n"
         "OP_SI_VAR   = $%02X\n"
         "OP_ITEM     = $%02X\n"
         "OP_ACCESO   = $%02X\n"
@@ -3646,7 +3653,8 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            eventos.OP_DESTELLO, eventos.OP_FUNDIR_BGM, eventos.OP_PAN,
            eventos.OP_SI, eventos.OP_IR, eventos.OP_ELEGIR,
            eventos.OP_ORO, eventos.OP_GUARDAR,
-           eventos.OP_VAR, eventos.OP_SI_VAR,
+           eventos.OP_VAR, eventos.VAR_REFRESCO, eventos.VAR_RANURA_MAX,
+           eventos.OP_SI_VAR,
            eventos.OP_ITEM, eventos.OP_ACCESO, eventos.OP_TIENDA,
            eventos.OP_CLIMA, eventos.OP_SONIDO, eventos.OP_ANIMACION,
            eventos.ANIM_ENTRADA, eventos.ANIM_SONIDO, eventos.ANIM_DESTELLO,
