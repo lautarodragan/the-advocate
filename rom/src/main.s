@@ -16153,7 +16153,12 @@ ANIM_T     = $7E30E6
 ; El tono son **tres** bytes y no cuatro: la saturación de un cartel es siempre
 ; la neutra —`imagen_aceptable` no acepta otra— así que no hay nada que
 ; interpolar ahí y `imagen_paleta` le pone `TINTE_NEUTRO` a `tinte_s`.
-FAR_CARTEL    = $7E30E8
+; **$30E8 a $30EB son del MSU-1** —`MSU_HAY`, `MSU_SUENA` y `MSU_FACTOR`—, así
+; que esto arranca en $30EC y llega hasta $30FA; el bloque siguiente es
+; `FAR_ARAM_DE`, en $3100. Empezó en $30E8 y se los pisaba: la ROM dejaba de
+; detectar el MSU-1 y la música del título se quedaba muda. No lo vio ninguna
+; prueba —la tanda compara pixeles— y lo encontró taro escuchando.
+FAR_CARTEL    = $7E30EC
 CARTEL_ACTIVA = FAR_CARTEL + 0
 CARTEL_TONO   = FAR_CARTEL + 1  ; r, g, b, con 100 neutro como el tinte
 CARTEL_DESDE  = FAR_CARTEL + 4

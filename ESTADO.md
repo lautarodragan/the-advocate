@@ -120,6 +120,25 @@ Lo que queda abierto:
   sobre los 61 casos del juego que animan quietos le dio la razón: **cero**
   diferencia de colores.
 
+### Dos defectos de audio que ninguna prueba veía (2026-09-12)
+
+Los dos los encontró taro escuchando, y los dos son invisibles para la tanda,
+que compara pixeles: **el silencio no cambia un pixel**. Es el argumento más
+fuerte que hay hasta ahora para que las pruebas de estado miren el audio.
+
+* **La colisión de RAM lejana: arreglada.** El estado del cartel se había puesto
+  en `$7E30E8`, que es donde viven `MSU_HAY`, `MSU_SUENA` y `MSU_FACTOR`: quince
+  bytes encima de cuatro. La ROM dejaba de detectar el MSU-1 —`MSU_HAY=0` con
+  los archivos puestos— y la música quedaba muda. Se mudó a `$30EC`, que llega
+  hasta `$30FA`; `$3100` en adelante es `FAR_ARAM_DE`. **Al encargar trabajo
+  sobre la RAM lejana hay que pasar el mapa**, que es lo que faltó.
+* **La pantalla de título no tiene música desde el paquete de audio por mapa.**
+  Bisect sobre las ROMs de `/extras/builds/`: `9fe396b` suena y `d150491` no.
+  En el título `mapa_actual` vale 0 —todavía no hay mapa— y las cuatro muestras
+  del tema 7 nunca llegan a la ARAM; `tema_asegurar` no las carga. Lo tapaba el
+  MSU-1: con pista, el título suena igual. Está encargado, con la prueba de
+  estado que lo cobre.
+
 ### El MSU-1 (2026-09-12)
 
 Los ocho temas de las demos salen de pistas PCM al lado de la ROM. El porqué y
