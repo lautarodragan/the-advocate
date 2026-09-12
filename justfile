@@ -2225,9 +2225,18 @@ pruebas *args:
 #   viaja, así que la receta avisa si ve alguno.
 # * **Dos tandas a la vez se pelean por CPU.** Esto sirve para seguir editando,
 #   no para que la tanda termine antes.
-snes-hitos-foto trabajos="4" donde="/extras/hitos-foto":
+snes-hitos-foto trabajos="4" donde="":
   #!/usr/bin/env bash
   set -uo pipefail
+  # **Cada corrida en su propio directorio.** El default era uno fijo, y la
+  # receta hace `git worktree remove --force` al empezar: dos tandas a la vez
+  # —dos agentes, o un agente y yo— se arrancaban el árbol entre sí y el
+  # resumen salía **verde sin haber medido nada**, que es la peor forma de
+  # fallar que tiene esto. Pasó dos veces el 2026-09-13. El PID alcanza para
+  # que no se pisen, y `pruebas/hitos/` está gitignorado.
+  donde="{{donde}}"
+  donde=${donde:-pruebas/hitos/$$}
+  mkdir -p "$(dirname "$donde")"
   nuevos=$(git status --porcelain | grep "^??" | grep -E "tools/|rom/src/|justfile|rom/hitos.txt" || true)
   if [ -n "$nuevos" ]; then
     echo "ojo: estos archivos no están trackeados y NO entran en la foto:" >&2
@@ -2235,12 +2244,13 @@ snes-hitos-foto trabajos="4" donde="/extras/hitos-foto":
   fi
   foto=$(git stash create)
   foto=${foto:-$(git rev-parse HEAD)}
-  git worktree remove --force {{donde}} 2>/dev/null || true
-  git worktree add --detach {{donde}} "$foto" >/dev/null
-  echo "foto $foto -> {{donde}}"
-  ( cd {{donde}} && just snes-hitos-paralelo {{trabajos}} )
+  git worktree remove --force "$donde" 2>/dev/null || true
+  git worktree add --detach "$donde" "$foto" >/dev/null
+  echo "foto $foto -> $donde"
+  ( cd "$donde" && just snes-hitos-paralelo {{trabajos}} )
   estado=$?
-  git worktree remove --force {{donde}} 2>/dev/null || true
+  git worktree remove --force "$donde" 2>/dev/null || true
+  rmdir "$(dirname "$donde")" 2>/dev/null || true
   echo "la foto era $foto; para ver qué se agregó encima: git diff $foto"
   exit $estado
 

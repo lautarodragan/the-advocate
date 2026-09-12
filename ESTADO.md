@@ -553,6 +553,18 @@ de cada una está en `README.md`.
   ir primeros. Si alguna vez un personaje se dibuja sin gráfico, es el primer
   lugar donde mirar; `pruebas/test_lideres.py` cuida la parte que ya falló.
 
+* **El cartucho se queda en 4 MB.** Decidido con taro el 2026-09-13, con el
+  número delante: la demo de 29 mapas, siete animaciones, la batalla y 19 temas
+  pesa **2,52 MB, el 60%**. Para el juego entero **no alcanza** —`assets/README.md`
+  tiene la cuenta: ~2,9 MB de mapas, sprites, colisión y música, más 2,7 MB de
+  arte sin dibujar, y las 42 animaciones de batalla serían otros ~1,7 MB: unos 7
+  MB—. Pero el paso siguiente no es agrandar el cartucho: **LoROM topa en 4 MB**
+  y pasar de ahí es ExHiROM, o sea cambiar cómo se calcula cada dirección, con
+  todo lo que eso rompe en hardware y no en el emulador. Lo barato está antes, y
+  está medido en `assets/README.md`: el conversor **cuantiza por mapa**, así que
+  dos mapas que comparten chipset reciben paletas distintas y el mismo dibujo
+  termina siendo bytes distintos. Se revisa al llegar al 85-90% del cartucho.
+
 * **Los builds numerados de `rom/build/` no se arman a mano.** No están en git
   y no los produce ninguna receta salvo el 12. Armar uno a mano es cómo se
   terminó mirando el mapa 6 creyendo que era la demo del hito 12.
