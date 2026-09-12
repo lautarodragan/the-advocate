@@ -169,12 +169,28 @@ def habilidades_de(db, numero, nivel=None):
 
     Las que este port no sabe ofrecer no entran: ver `habilidad_usable`.
     """
+    return [s for s in aprendidas_de(db, numero, nivel)
+            if habilidad_usable(db.skills[s])]
+
+
+def aprendidas_de(db, numero, nivel=None):
+    """Las habilidades que este actor **sabe**, usables o no, ordenadas.
+
+    Es `Game_Actor::LearnLevelSkills` a secas: las de nivel menor o igual al
+    suyo. Va aparte de `habilidades_de` porque son dos preguntas distintas y
+    confundirlas se paga de un solo lado: el menú de la pelea sólo puede
+    ofrecer las que este port sabe ejecutar —ése es el filtro de
+    `habilidad_usable`— pero `IsSkillLearned`, que es lo que pregunta la rama
+    de `ConditionalBranch`, no filtra nada.
+
+    Las dos salen de acá para que no puedan separarse: la rama y el menú tienen
+    que estar de acuerdo en qué sabe cada uno.
+    """
     actor = db.actors[numero]
     if nivel is None:
         nivel = actor.initial_level
     return sorted({s for aprende, s in actor.skills
-                   if s and aprende <= nivel
-                   and habilidad_usable(db.skills[s])})
+                   if s and aprende <= nivel})
 
 
 def nombre_de_orden_habilidad(db, numero):

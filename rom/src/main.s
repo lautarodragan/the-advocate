@@ -3941,6 +3941,9 @@ otro:
 :   cmp #OP_SI_VAR
     bne :+
     jmp op_si_var
+:   cmp #OP_SI_ACTOR
+    bne :+
+    jmp op_si_actor
 :   cmp #OP_PARAR_RUTAS
     bne :+
     jmp op_parar_rutas
@@ -4142,6 +4145,126 @@ si_no_cumple:
     tay
     sep #$20
 .a8
+    jmp otro
+
+; `ConditionalBranch` caso 5 con dos operandos: "sabe esta habilidad" —el
+; sub 4— y "tiene puesto este objeto" —el 5—. Van en un opcode aparte y no en
+; `OP_SI` porque llevan **dos** operandos, el actor y el ítem o la habilidad;
+; ver OP_SI_ACTOR en eventos.py.
+;
+; Ninguna de las dos tiene polaridad: RM2k no se la da, igual que a "está en el
+; grupo", así que la rama de abajo es el `else`.
+;
+; Al entrar, Y apunta al sub. Los dos caminos terminan en `sia_si` o en
+; `sia_no` con Y ya apuntando al destino.
+op_si_actor:
+    lda [cod_ptr], y
+    sta temp                    ; el sub
+    iny
+    lda [cod_ptr], y
+    sta temp + 1                ; el actor, que entra en un byte
+    iny
+    rep #$20
+.a16
+    lda [cod_ptr], y
+    sta temp + 2                ; el ítem o la habilidad, de 16 bits
+    sep #$20
+.a8
+    iny
+    iny                         ; Y -> el destino
+    lda temp
+    cmp #COND_ACTOR_HABILIDAD
+    beq sia_habilidad
+
+    ; --- el equipo puesto ---
+    ; Los cinco `Get*Id()` de easyrpg comparados contra el ítem: alcanza con
+    ; que esté en una ranura. Se leen del mismo lugar que los lee la pantalla
+    ; de equipo —`FAR_EQUIPO` + actor * 10, ver `eq_apuntar`— por el puerto de
+    ; la WRAM, que autoincrementa: una palabra por ranura, byte por byte,
+    ; porque `WMDATA` es un puerto de ocho bits y leerlo de a dos leería el
+    ; registro de al lado.
+    rep #$20
+.a16
+    lda temp + 1
+    and #$00FF                  ; el actor, sin el ítem que sigue
+    asl a                       ; por dos
+    sta temp                    ; el sub ya no hace falta
+    asl a
+    asl a                       ; por ocho
+    clc
+    adc temp                    ; por diez, que es lo que mide una fila
+    clc
+    adc #FAR_EQUIPO
+    sta WMADDL
+    sep #$20
+.a8
+    stz WMADDH
+    ldx #RANURAS_EQUIPO
+sia_eq_otra:
+    lda WMDATA
+    sta temp                    ; el byte bajo del ítem de esta ranura
+    lda WMDATA
+    sta temp + 1
+    rep #$20
+.a16
+    lda temp
+    cmp temp + 2
+    sep #$20
+.a8
+    beq sia_si                  ; `sep` no toca Z: la comparación sigue viva
+    dex
+    bne sia_eq_otra
+    bra sia_no
+
+    ; --- la habilidad ---
+    ; `Game_Actor::IsSkillLearned`: la lista de `sabe_hab` que arranca en
+    ; `sabe_hab_ini[actor]` y dura `sabe_hab_n[actor]`. **No es `actor_hab`**,
+    ; que es la lista del menú de la pelea: ésa lleva sólo las que este port
+    ; sabe ejecutar y sólo de los actores que pueden entrar al grupo, y esta
+    ; pregunta no filtra ninguna de las dos cosas. Ver `sabe_hab` en el
+    ; conversor y `batalla.aprendidas_de`.
+sia_habilidad:
+    rep #$20
+.a16
+    lda temp + 1
+    and #$00FF
+    tax                         ; el actor
+    sep #$20
+.a8
+    lda f:sabe_hab_n, x
+    beq sia_no                  ; no sabe ninguna
+    sta temp                    ; cuántas quedan por mirar
+    lda f:sabe_hab_ini, x
+    rep #$20
+.a16
+    and #$00FF
+    asl a                       ; la tabla es de palabras
+    tax
+    sep #$20
+.a8
+sia_hab_otra:
+    rep #$20
+.a16
+    lda f:sabe_hab, x
+    cmp temp + 2
+    sep #$20
+.a8
+    beq sia_si
+    inx
+    inx
+    dec temp
+    bne sia_hab_otra
+sia_no:
+    rep #$20
+.a16
+    lda [cod_ptr], y            ; el destino, absoluto adentro de la página
+    tay
+    sep #$20
+.a8
+    jmp otro
+sia_si:
+    iny
+    iny                         ; Y -> el opcode siguiente
     jmp otro
 
 ; `ChangeGold`: suma o resta y recorta a [0, ORO_MAX], que es lo que hace

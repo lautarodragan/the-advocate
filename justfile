@@ -908,6 +908,40 @@ snes-rama-item mapa="6" item="90 12 0 0 100" items="90 1" celda="22 12" cuadros=
         --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
   done
 
+# Las dos ramas de actor con dos operandos: "sabe esta habilidad" —sub 4— y
+# "tiene puesto este objeto" —sub 5—. La página de prueba tiñe la pantalla sólo
+# si la rama se cumple, igual que `snes-rama-item`, así que la diferencia entre
+# el caso que se cumple y el que no **es** la respuesta de la rama.
+#
+# Existe porque ninguna página del juego que compile las usa: las 36 que
+# preguntan por el equipo y las 10 que preguntan por una habilidad viven en
+# mapas que ninguna demo lleva —el 20, el 38, el 47, el 48 y el 151, entre
+# otros—. Sin esto, `OP_SI_ACTOR` sería un camino que no ejercita nadie.
+#
+# `rama` son siete números: SUB ACTOR DATO R G B SAT. Los datos de referencia,
+# del LDB: Kersh es el actor 11, lleva puesto el ítem 82 —Modified Blaster— y
+# el 85, no lleva el 84 —que es de Core—, y a nivel 20 sabe las habilidades 131
+# y 146 y no la 152.
+snes-rama-actor mapa="6" rama="5 11 82 12 0 0 100" celda="22 12" cuadros="2 30" arranque="115" nombre="rama-equipo":
+  #!/usr/bin/env bash
+  set -euo pipefail
+  mkdir -p {{snes_pngs}} {{snes_inc}}
+  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
+      --inicio {{celda}} \
+      --rama-actor-de-prueba {{rama}} -o {{snes_inc}}/mapdata.inc
+  just snes-build
+  pre={{snes_pngs}}/{{nombre}}
+  python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
+      --hero-tile {{celda}} \
+      --rama-actor-de-prueba {{rama}} --cuadros {{cuadros}} \
+      --saltar $pre-{}.saltar.txt -o $pre-{}.esperado.png
+  for n in {{cuadros}}; do
+    python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre-$n.png \
+        --walk none --cuadros $n --arranque {{arranque}}
+    python3 tools/snes_compare.py $pre-$n.png $pre-$n.esperado.png \
+        --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
+  done
+
 # `HaltAllMovement`: todas las rutas forzadas se abandonan de golpe.
 #
 # En el mapa 6, con el evento 3 —blanco 4— caminando cuatro celdas para abajo

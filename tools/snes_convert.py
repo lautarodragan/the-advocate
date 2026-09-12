@@ -3408,6 +3408,11 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "COND_ORO    = %d\n"
         "COND_ITEM   = %d\n"
         "COND_ACTOR  = %d\n"
+        "; Y las dos preguntas de actor que llevan dos operandos, con su\n"
+        "; opcode propio: ver OP_SI_ACTOR en eventos.py.\n"
+        "OP_SI_ACTOR = $%02X\n"
+        "COND_ACTOR_HABILIDAD = %d\n"
+        "COND_ACTOR_EQUIPO    = %d\n"
         "ORO_MAX     = %d\n"
         "; Las dos operaciones de PanScreen que compilan.\n"
         "PAN_CORRER  = %d\n"
@@ -3653,6 +3658,8 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            eventos.AZAR_SEMILLA, eventos.TIMER_PONER_VAR,
            eventos.COND_ORO, eventos.COND_ITEM,
            eventos.COND_ACTOR,
+           eventos.OP_SI_ACTOR, eventos.COND_ACTOR_HABILIDAD,
+           eventos.COND_ACTOR_EQUIPO,
            eventos.ORO_MAX,
            eventos.PAN_CORRER, eventos.PAN_VOLVER,
            eventos.TIMER_PONER, eventos.TIMER_ARRANCAR,
@@ -4354,6 +4361,31 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         handle.write("equipo_inicial:\n    .word %s\n" % ", ".join(
             str(db.actors[a].initial_equipment[r] if a in db.actors else 0)
             for a in range(actores_n) for r in range(P.RANURAS_EQUIPO)))
+        # Y qué habilidades sabe cada actor, para la rama 4 de
+        # `ConditionalBranch`: dónde arranca su lista y cuántas tiene, y las
+        # listas pegadas una detrás de otra. Salen de `batalla.aprendidas_de`,
+        # que es de donde las saca también la referencia —ver
+        # `eventos.indexar_actores`—, así que los dos lados no pueden contestar
+        # distinto.
+        #
+        # Va aparte de `actor_hab`, que es la lista del **menú de la pelea**:
+        # ésa lleva sólo las que este port sabe ejecutar y sólo de los actores
+        # que pueden entrar al grupo, y `IsSkillLearned` no filtra ninguna de
+        # las dos cosas. Con los 60 actores del LDB son 81 habilidades
+        # aprendidas, o sea 162 bytes más los 122 del índice.
+        sabe_hab, sabe_hab_ini, sabe_hab_n = [], [], []
+        for a in range(actores_n):
+            suyas = B.aprendidas_de(db, a) if a in db.actors else []
+            sabe_hab_ini.append(len(sabe_hab))
+            sabe_hab_n.append(len(suyas))
+            sabe_hab += suyas
+        if len(sabe_hab) > 255:
+            raise SystemExit("las habilidades aprendidas del LDB son %d y "
+                             "`sabe_hab_ini` es de un byte" % len(sabe_hab))
+        handle.write('.segment "RODATA"\n')
+        words_asm("sabe_hab", sabe_hab or [0], declarar=True)
+        bytes_asm("sabe_hab_ini", sabe_hab_ini, declarar=True)
+        bytes_asm("sabe_hab_n", sabe_hab_n, declarar=True)
         handle.write('\n.segment "TABLAS"\n')
         words_asm("actor_txt", [texto_actor.get(a, 0xFFFF)
                                 for a in range(actores_n)], "$%04X")
@@ -4388,6 +4420,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                pos(P.TI_TOTAL_FILA, P.TI_ORO_COL)))
         handle.write(
             "ACTORES_N         = %d\n"
+            "RANURAS_EQUIPO    = %d\n"
             "EQ_TEXTO_PARAM    = %d\n"
             "EQ_TEXTO_RANURA   = %d\n"
             "EQ_ACTOR_POS      = %d\n"
@@ -4403,7 +4436,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             "PANT_NOMBRE       = %d\n"
             "PANT_DOS_PUNTOS   = %d\n"
             "PANT_DESC_POS     = %d\n"
-            % (actores_n, texto_param[0], texto_ranura[0],
+            % (actores_n, P.RANURAS_EQUIPO, texto_param[0], texto_ranura[0],
                pos(P.EQ_ACTOR_FILA, 1), P.EQ_PARAM_VALOR * 2,
                P.EQ_PARAM_FLECHA * 2, pos(P.EQ_RANURA_FILA0, 0),
                P.EQ_RANURA_TERM_COL * 2, P.EQ_RANURA_NOMBRE_COL * 2,
@@ -5383,6 +5416,15 @@ def main():
                              "4— en la página de prueba: tiñe la pantalla con "
                              "ese color sólo si el grupo tiene el ítem. Con "
                              "--items-de-prueba se elige cuál rama corre")
+    parser.add_argument("--rama-actor-de-prueba", nargs=7, type=int,
+                        default=None,
+                        metavar=("SUB", "ACTOR", "DATO", "R", "G", "B", "SAT"),
+                        help="una rama por actor con dos operandos "
+                             "—ConditionalBranch de clase 5, sub 4 'sabe la "
+                             "habilidad' o sub 5 'tiene puesto el objeto'— en "
+                             "la página de prueba: tiñe la pantalla con ese "
+                             "color sólo si se cumple. DATO es la habilidad o "
+                             "el ítem")
     parser.add_argument("--parar-de-prueba", type=int, default=None,
                         metavar="CUADROS",
                         help="HaltAllMovement desde la página de prueba, "
@@ -5474,6 +5516,10 @@ def main():
     # los dos lados tienen que mirar la misma base.
     eventos.indexar_comunes(args.game_dir)
     eventos.indexar_audio_de_batalla(args.game_dir)
+    # Y el equipo y las habilidades de cada actor del LDB: es lo que contestan
+    # las dos ramas de actor con dos operandos, y la referencia lo arma con la
+    # misma función.
+    eventos.indexar_actores(args.game_dir)
     # En cuántos mapas de esta ROM aparece cada personaje. Lo usa el reparto de
     # paletas para elegir a quién puede bajarle un color sin romper nada: el
     # banco de poses es **de la ROM entera**, así que un personaje que está en
@@ -5594,6 +5640,7 @@ def main():
                 or args.destello_de_prueba
                 or args.timer_de_prueba or args.lugar_de_prueba
                 or args.parar_de_prueba or args.rama_item_de_prueba
+                or args.rama_actor_de_prueba
                 or args.sacudida_de_prueba or args.fundir_bgm
                 or args.pan_de_prueba or args.lluvia_de_prueba is not None
                 or args.animacion_de_prueba
@@ -5636,7 +5683,8 @@ def main():
                     eventos_mapa=eventos.Eventos(mapa["game_map"]),
                     batalla=args.batalla_de_prueba, temas=temas,
                     parar=args.parar_de_prueba,
-                    rama_item=tuple(args.rama_item_de_prueba or ()))}, {
+                    rama_item=tuple(args.rama_item_de_prueba or ()),
+                    rama_actor=tuple(args.rama_actor_de_prueba or ()))}, {
                 # Y la que la apaga: misma idea que en la referencia, ver
                 # `PAGINA_DE_PRUEBA_APAGADA`. Sin código, así que en cuanto
                 # gana, el evento inventado deja de tener una automática que
