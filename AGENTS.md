@@ -162,6 +162,27 @@ Lo que hay que hacer siempre:
   una tanda: el 2026-09-12 uno dejó cinco armados y siguieron avisando que había
   terminado mucho después de haber entregado.
 
+## La trampa que más veces mordió
+
+**`plx`, `ply` y `pla` dejan N y Z del valor que sacan de la pila**, y `sep`/`rep`
+no tocan Z. Así que un `beq` o un `bpl` pegado a un `pl*` no está mirando lo que
+uno cree: mira lo que salió de la pila.
+
+Van cuatro veces, y las cuatro se veían como cualquier otra cosa menos como lo
+que eran:
+
+* ninguna ruta se movía nunca, porque la ranura 0 daba "bloqueado" siempre
+  (el `cmp #0` de `main.s:7997`, con su comentario);
+* la pantalla de título se quedó sin música un día entero, porque la pregunta
+  "¿esta muestra está en la ARAM?" contestaba siempre que sí;
+* `ConditionalBranch` por variable **tomaba siempre la rama**, con la variable
+  en 12 y la condición pidiendo `>= 99`;
+* `IsActorInParty` daba que todos los actores están en el grupo.
+
+El arreglo es siempre el mismo: un `cmp #0` explícito entre el `pl*` y el salto.
+Vale la pena hacer `grep` de `pl[axy]` seguido de un salto condicional cada vez
+que algo "contesta siempre lo mismo".
+
 ## Git
 
 Los commits van directo a `main`. **El push lo hace taro**, con su YubiKey: no
