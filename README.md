@@ -3163,6 +3163,43 @@ referencia— lo trata como a cualquier gráfico, y por eso no hubo que tocar
 nada más. Los eventos translúcidos dibujados con un tile del chipset no lo
 llevan todavía. Lo cobra `fuego` en la tanda. Son 70 páginas en 35 mapas.
 
+#### El color math, implementado y descartado
+
+La consola sabe hacer transparencia de verdad —suma y mitad entre la pantalla
+principal y la subpantalla— y **está implementado y verificado**, en la rama
+`color-math-translucidos` (commit `6e0e355`). No se usa: taro lo probó el
+2026-09-12 y lo rechazó por dos cosas que no tienen vuelta, ninguna de ellas un
+defecto de la implementación.
+
+* **El objeto deja de animar.** El translúcido sale de OAM y pasa a ser tiles
+  de BG2, que se suben una vez al entrar al mapa. De los 39 translúcidos que
+  dibujan algo, **35 animan, y 33 de ésos son el save point**. Revivirlo pide
+  subirle los tiles por DMA con la cadencia del evento, que es la máquina que
+  ya existe para los tiles animados del ChipSet.
+* **El héroe se ve a través.** No es una elección: el orden del modo 3 no deja
+  ninguna ranura de capa de fondo entre el piso y el héroe, así que la única
+  disponible queda por encima. Es lo de FF5, y a taro no le gustó.
+
+Cómo estaba hecho, para quien lo retome: `ppu_init` fija `TS` y `CGWSEL` para
+siempre y **`CGADSUB` solo** prende y apaga la mezcla, escrito desde
+`flush_video` con el valor por mapa que emite el conversor;
+`render_map.dibujar_translucidos` mete el objeto adentro de la capa de encima,
+así que no hubo que tocar el reparto de VRAM ni el de CGRAM.
+
+Y dejó dos cosas que valen aunque la rama no entre:
+
+* **La ventana de mensaje también es BG2**, así que prender la mezcla la volvía
+  semitransparente y el mapa se asomaba por debajo de las letras. Se arregla
+  con un canal de HDMA que pone `CGADSUB` en cero en las 80 líneas de la
+  ventana. Verificado con el control corrido: sin ese canal, `bum-vuelve` da
+  17.586 pixeles de diferencia.
+* **snes9x redondea distinto que el hardware en la suma de color math**: con la
+  misma ROM, bsnes y mesen-s coinciden entre ellos y con la referencia
+  —truncan—, y snes9x redondea para arriba cuando la suma de un canal es impar.
+  Son trece pixeles y no se ven, pero es **la primera vez que el emulador de la
+  tanda se aparta de la consola**: si algún día se compara color math, el caso
+  va a `snes-bsnes`.
+
 #### El giro hacia el héroe
 
 Desde el 2026-09-11 el NPC que el héroe dispara —con A o por contacto— se da
