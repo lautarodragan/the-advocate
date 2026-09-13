@@ -20,7 +20,7 @@ Se escribe **mientras se trabaja**, no al final.
 a vuelta.
 
 Al 2026-09-13: `just snes-hitos-foto` son **164 casos, todos en verde** —sobre
-la foto `30039df`— y `just pruebas` son **140 en verde y 1 `xfail`, sin rojos**.
+la foto `85267c2`— y `just pruebas` son **142 en verde y 1 `xfail`, sin rojos**.
 El `xfail` no es adorno: es un defecto medido de guardar con la pantalla de
 título puesta, y está abajo.
 
@@ -28,6 +28,10 @@ título puesta, y está abajo.
 las piedras del Lazer Teeth HQ, con un cartucho de un solo mapa que arranca
 parado abajo de la reja y con `demo-ciudad` al lado para el control. Su
 `LEEME.txt` dice qué apretar y en qué orden.
+
+Y **la del lag del HQ** está en `pruebas-manuales/lag-hq/`: el mismo mapa, que
+pasó de 30,00 a 59,80 fps. Su `LEEME.txt` dice adónde ir y qué otras escenas
+conviene jugar para ver que las páginas siguen cambiando cuando deben.
 
 **La de la vuelta anterior** está en `pruebas-manuales/2026-09-13-68539a8/`,
 con los tres arreglos y las tres ROMs —la ciudad con sus pistas, la carrera, y
@@ -79,6 +83,70 @@ absoluto no se pudo reproducir con ninguna combinación de argumentos de
 `compilar_pagina`, así que lo que vale es la diferencia—. **La diferencia es la
 misma con los dos criterios: +119 páginas.** Cuando un número de éstos se
 reporte, conviene decir con cuál de los dos se contó.
+
+### El lag del HQ de los Lazer Teeth: dos cosas por cuadro, no una (2026-09-13)
+
+El mapa 11 iba a **30,00 fps** clavados y taro lo reportó como "laggea un
+montón". Eran dos cosas que se recalculaban una vez **por evento paralelo y por
+cuadro**, y las dos contestaban siempre lo mismo. El mapa tiene once páginas
+paralelas, así que cada una se pagaba once veces:
+
+* **`un_paralelo` llamaba a `pagina_desde_eleg`**, que resuelve cuál es la
+  página activa del evento y le lee del cartucho los veinticuatro bytes de la
+  cabecera, por la ventana de banco. RM2k no hace eso: `Game_Event::page` es
+  una instantánea y sólo la reescribe `Game_Map::Refresh`. Ahora la página
+  viaja **en la lista de paralelos**, que `aplicar_paginas` rehace entera.
+* **`ranura_del_evento` recorría las doce ranuras de ruta siempre**, y en este
+  mapa hay **una sola usada**. Ahora `ruta_ev_tope` dice hasta dónde vale la
+  pena mirar y la búsqueda va de ahí para abajo.
+
+Lo medido con `pruebas/consola.py` —`vueltas` contra cuadros de hardware—,
+sobre `562f829`:
+
+    main                                   30,00 fps
+    main + la página en la lista           30,00 fps
+    main + el tope de ranuras              30,00 fps
+    las dos                                59,80 fps   (598 de 600 cuadros)
+
+    mapa 8   60,00 -> 60,00     mapa 6   60,00 -> 60,00
+
+**Ninguna de las dos alcanza sola, y ése es el resultado que conviene no volver
+a medir**: perder el cuadro no cuesta un poco —se pierde el vblank entero y se
+cae a la mitad exacta— así que quedarse cerca del borde da el mismo 30,00 que
+estar lejos. El primer arreglo, solo, había dado 57,67 sobre el árbol de antes
+del minijuego de las piedras; ese mismo arreglo sobre el `main` de después da
+30,00, porque el presupuesto del cuadro se movió. **Un número de fps de este
+mapa vale sobre el árbol donde se midió y sobre ningún otro.**
+
+Lo demás que quedó medido:
+
+* **No es el refresco.** En los 600 cuadros, `refresco` y `refresco_cuadro` dan
+  **cero**: el filtro `VAR_REFRESCO` ya evita que las variables que escriben
+  estas páginas pidan refresco.
+* **Los once paralelos** son los índices de evento 1 a 8, 26, 29 y 65 —TheIdol,
+  Light1 a Light6, LTSentry1, LTSentry2, LTComputer y NVSpy—. El duodécimo
+  candidato, el `EV0017`, es el del minijuego de las piedras y **no entra en la
+  lista con el mapa 11 solo en el cartucho**; no se investigó por qué.
+* **Lo que queda son dos cuadros de cada 600.** Ya no es la caída a la mitad. Si
+  alguna vez molesta, lo que sigue arriba es el cuerpo de los once intérpretes
+  —la cadena de `cmp` que despacha cada opcode se paga por comando— y el paso
+  de sus eventos, que RM2k también hace.
+
+**La red que se perdió, y con qué se reemplazó.** Antes `un_paralelo` volvía a
+preguntar si la página activa seguía siendo paralela, así que una lista vieja no
+hacía daño. Ahora la lista es la única verdad, y lo que la cuida es
+`pruebas/test_paralelos.py`: un switch que cambia qué página está activa tiene
+que sacar al evento de la lista **y volver a meterlo** al apagarlo. Los dos
+casos son del juego —el LTSentry1 pasa a su página de contacto con el switch 45,
+el NVSpy a la de acción con el 48—. Comprobado en rojo sacándole el `stz par_n`
+a `aplicar_paginas`; el de los fps, poniendo el tope en las doce ranuras.
+
+**El banco 0 quedó en 8 bytes libres**, medidos con bisección y con el cartucho
+de `demo-ciudad`, contra los 15 de antes. Las dos piezas pedían 84 y hubo que
+devolverlos: `ruta_para_evento` tenía copiadas las dos búsquedas de ranura y
+ahora las llama, el tope lo sube `ranura_libre`, `PAR_BYTES` y
+`PAR_LISTA_BYTES` pasaron a ocho para que el índice salga con tres `asl`, y
+`hdma_mascara` se fue a RODATA —el HDMA lee del banco que diga `A1B3`—.
 
 ### El recorrido largo: se juega el juego y se le pregunta a la RAM (2026-09-13)
 
@@ -584,9 +652,10 @@ a RODATA: `tabla_fila_buf`, `mascara`, `pass_salir`, `pass_entrar`, `diag_vert`,
 y ésa es la razón de que no bajen: el 65816 tiene absoluto largo indexado por X
 y **no por Y**, así que `paso_por_vel`, `salto_por_vel`, `anim_parado` y
 `anim_continua` pedirían además cambiar de registro en sus llamadores. Medido
-con `demo-ciudad` y bisección con un `.res N` en `TABLAS`: **quedan 15 bytes
-libres**. Lo que siga pidiendo banco 0 va a tener que pasar esos llamadores a X,
-o mover `paso_dx`/`paso_dy` —16 bytes y dieciséis accesos, o sea que no rinde—.
+con `demo-ciudad` y bisección con un `.res N` en `TABLAS`: quedaban 15 bytes
+libres, y **hoy son 8** —ver el lag del HQ, más arriba—. Lo que siga pidiendo
+banco 0 va a tener que pasar esos llamadores a X, o mover `paso_dx`/`paso_dy`
+—16 bytes y dieciséis accesos, o sea que no rinde—.
 
 Lo que queda abierto:
 
