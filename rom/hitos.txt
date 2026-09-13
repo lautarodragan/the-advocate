@@ -169,6 +169,12 @@ snes-batalla 86 "11 12 13" 20 250 "right:130 right:140 right:150 a:160 a:170 dow
 snes-batalla 86 "11 12 13" 20 220 "right:130 a:140" batalla-hab ABLBackdropSJ03 "" "" "--modo 4 --habilidad 0"
 snes-batalla 86 "11 12 13" 20 240 "right:130 a:140 right:150" batalla-hab-dos ABLBackdropSJ03 "" "" "--modo 4 --habilidad 1"
 snes-batalla 86 "11 12 13" 20 240 "right:130 a:140 a:150" batalla-hab-blanco ABLBackdropSJ03 "" "" "--modo 3 --blanco 0 --orden 1"
+# Y la pelea **terminada**, con el mapa comparado al volver: es el único lado
+# de la batalla que `snes-batalla` no mira, y por eso el mapa volvía hecho
+# basura hasta el 2026-09-13. Van los dos repartos de VRAM porque la escena
+# rompe cosas distintas en cada uno; el porqué está en `snes-vuelta`.
+snes-vuelta
+snes-vuelta 6 82 SJBackdropABL04 20 "30 100" si 115 vuelta-ventana
 snes-pisar
 snes-escena 2 "7 76" "0 0 0 0" up "40 60 100" 115 bloqueo ""
 snes-escena 2 "7 74" 14 down "3 8 25 60 106 200" 115 droide ""

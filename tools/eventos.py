@@ -6340,13 +6340,19 @@ def ejecutar(codigo, estado, desde=0):
             # camino normal —perder y huir son salidas—, y es la que el arnés
             # de una comparación llevaría a la ROM a sacar.
             #
-            # **Ninguna prueba de pixeles cruza una batalla**, y eso es a
-            # propósito: ganarla pide muchos toques y el resultado depende del
-            # azar, así que no hay cómo dejar los dos lados en el mismo estado.
-            # Lo que la pantalla muestra lo cobra `just snes-batalla`, y lo que
-            # la pelea le hace a los HP, `pruebas/test_batalla.py`. Dicho de
-            # otra manera: este renglón es un camino que la tanda no ejercita,
-            # y por eso está escrito con todas las letras.
+            # **Desde el 2026-09-13 hay dos pruebas de pixeles que sí cruzan
+            # una batalla**: `snes-vuelta`, que la pelea a fuerza de A y
+            # compara el mapa al volver. Acá decía que no se podía porque el
+            # resultado depende del azar, y el azar está clavado —
+            # `BATALLA_SEMILLA`—, así que la misma tanda de toques da siempre
+            # la misma pelea. Y el estado de los dos lados coincide porque la
+            # rama es esta misma: gane, pierda o escape, la página de prueba
+            # manda las tres al `OP_FIN`.
+            #
+            # Mientras eso no existió, el mapa volvía de la pelea con media
+            # VRAM pisada y nadie se enteraba. Lo que la pantalla de la pelea
+            # muestra lo sigue cobrando `just snes-batalla`, y lo que la pelea
+            # le hace a los HP, `pruebas/test_batalla.py`.
             i = codigo[i + 3] | (codigo[i + 4] << 8)
         elif op == OP_TIENDA:
             # La tienda, como guardar: no cuesta ningún tick y de este lado no

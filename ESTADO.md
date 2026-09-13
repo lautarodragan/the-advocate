@@ -19,12 +19,12 @@ Se escribe **mientras se trabaja**, no al final.
 **Los primeros diez minutos jugables**, que es lo que taro viene probando vuelta
 a vuelta.
 
-Al 2026-09-13: `just snes-hitos-foto` son **159 casos, todos en verde** —sobre
-Al 2026-09-13: `just snes-hitos-foto` son **159 casos, todos en verde** —sobre
-la foto `073d135`, con la vuelta de la persecución en auto adentro— y `just
+Al 2026-09-13: `just snes-hitos-foto` son **161 casos, todos en verde** —sobre
+la foto `254461b`, con los dos casos de la vuelta de la pelea adentro— y `just
 pruebas` son **131 en verde y 1 `xfail`, sin rojos**. Los dos de audio de la
-pelea que venían en rojo no eran preexistentes de nadie: los rompió el merge
-`6c43aa3`, que dejó a la pelea cargando el paquete de audio del mapa. El
+pelea que venían en rojo desde el 2026-09-12 no eran preexistentes de nadie:
+los rompió el merge `6c43aa3`, que dejó a la pelea cargando el paquete de audio
+del mapa. Está arreglado y contado abajo. El
 `xfail` no es adorno: es un defecto medido de guardar con la pantalla de título
 puesta, y está abajo.
 
@@ -246,6 +246,72 @@ Y dos deudas que dejaron los agentes, las dos con el número al lado:
   lo lee nadie todavía**, porque la huida es de la batalla. Lo cobran dos
   pruebas de estado, no la tanda: sin nada que lo lea, el bit no cambia un
   pixel.
+
+### Volver de una pelea dejaba el mapa hecho basura (2026-09-13)
+
+Lo que taro reportó jugando `pruebas-manuales/2026-09-13-f30be91/demo-ciudad.sfc`:
+*"las batallas rompen los gráficos consistentemente, y nunca se arreglan
+después de eso"*. Arreglado, y el porqué durable está en `volver_de_batalla` en
+`main.s` y en el comentario de `snes-vuelta`.
+
+Era **VRAM que nadie reponía**. `escena_subir` sube 32 KB —las palabras $4000 a
+$8000— más su tilemap en $3800 y 64 bytes en la palabra 0, y `volver_al_mapa`
+reponía nada más que el banco de tiles de BG1 y el de la capa de encima. Lo que
+quedaba pisado, medido con la VRAM del core: el tilemap del mapa ($5800), el de
+la capa de encima ($7800), los tiles de la ventana de mensaje ($6800) y el
+banco de sprites —entero en `LAYOUT_ANCHO`, que lo pone en $4000; los dos
+primeros tiles del héroe en los repartos con ventana, que lo ponen en 0—.
+
+**Alcanzaba con `volver_al_mapa` porque hasta ahora sólo volvían de ahí la
+tienda, el menú y las ranuras**, que escriben nada más que `RANURA_VRAM` y
+`RANURA_MAP` —elegidos justamente para caer adentro del banco de BG1 en los
+cuatro repartos, ver `_controlar_ranuras`—. La pelea fue lo primero que se sale
+de esa caja, y nadie lo notó porque **ningún caso de la tanda cruzaba una
+batalla**: `snes-batalla` abre la pantalla de la pelea y nunca sale.
+
+Ahora lo cubren dos casos, `vuelta` y `vuelta-ventana`, uno por reparto de
+VRAM. Verificado que dan rojo con el `volver_al_mapa` de antes: **74,30% y
+77,49% de los pixeles**. La referencia no cambió ni tenía que cambiar: la pelea
+no cuesta ningún tick y del otro lado el mapa se dibuja como si no hubiera
+habido pelea, así que que la ROM dibuje eso mismo **es** la prueba.
+
+Dos cosas que conviene saber de cómo quedó:
+
+* **La reparación va en `volver_de_batalla` y no adentro de `volver_al_mapa`**,
+  para no cobrarle a la tienda, al menú y a las ranuras las 64 columnas de
+  `fill_window` —el único momento en que se escribe tanto tilemap de una vez—,
+  que ellas no necesitan y que les costaría un cuadro perdido de más.
+* **`load_npcs` y `load_ruta_graficos` siguen sin ir ahí**, a propósito: copian
+  tablas del cartucho a RAM y borrarían lo que los eventos hayan movido antes
+  de la pelea. Lo único que se toca de `npc_buf` es el byte +12, que es la
+  sombra de qué pose tiene cada ranura en la VRAM: se pone en $FF para que el
+  próximo `subir_pose_npc` la vuelva a encolar, porque `load_sprite` acaba de
+  dejar ahí la del cartucho.
+
+Y una cosa que **no era de esto**, medida de paso y que conviene no volver a
+medir: el *"héroe como un rectángulo beige liso"* de las capturas `0012` y
+`0013` **no lo causa la batalla**. Se reproduce igual en un cartucho sin pelea:
+el líder entra a Lashe City Interiors (mapa 10) con el grupo `11 12 13` y se
+dibuja como una silueta de un solo color, con los NPCs de al lado bien. Dos
+capturas del mismo tick, una con pelea y otra sin, dan **cero pixeles de
+diferencia**. Es un defecto aparte, sin investigar, y hoy no lo cubre nada.
+
+**Y el banco 0 tenía dos bytes libres.** Los cuarenta y seis que costó esto
+dejaban `demo-ciudad` en 32748 de 32704, así que se mudó `items_banco_subir`
+—131 bytes— a RODATA, con `jsl` y `rtl`. Es la más barata de mudar de todo lo
+que mide más de cien: no llama a nadie, así que no pide ningún puente, y corre
+al abrir una pantalla con el PPU apagado, no por cuadro. Quedan **81 bytes
+libres**, medidos poniendo un relleno de 200 en TABLAS y leyendo lo que dice
+`w65`. **Lo próximo que agregue código al banco 0 los va a necesitar**, y la
+lista de candidatos a mudar sigue ahí: `titulo_subir` son 227 bytes y
+`ranura_banco_subir` 131, las dos del mismo tipo.
+
+Lo que **queda pisado y no se repone** después de una pelea, medido y declarado
+porque no se ve: los tiles de fondo, de la capa de encima y del tilemap que
+están **más allá de lo que el mapa usa** se quedan con la escena adentro. No se
+dibujan nunca —ni el mapa los indexa ni el streaming los muestra— y un cambio
+de mapa tampoco los limpia, exactamente igual que se quedan con los restos del
+mapa anterior en un teletransporte normal.
 
 ### La persecución en auto, jugada (2026-09-13)
 

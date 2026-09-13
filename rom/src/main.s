@@ -4565,7 +4565,7 @@ anotado:
     lda f:BAT_LARGO + BA_TEMA_ANT
     jsr batalla_bgm             ; el tema del mapa, o el silencio que había
     plb
-    jsr volver_al_mapa
+    jsr volver_de_batalla
     ply
     ; Y apunta a la tropa; los tres destinos vienen detrás, de a palabra, en el
     ; orden victoria, huida, derrota, que es el de `BATALLA_HANDLERS`.
@@ -13088,7 +13088,7 @@ vacia:
     sta INIDISP
     stz HDMAEN
     stz TM
-    jsr items_banco_subir
+    jsl f:items_banco_subir
     jsr eq_componer
     jsr pant_subir
     jsr ranura_ppu_prender
@@ -14207,7 +14207,7 @@ empieza:
     sta INIDISP
     stz HDMAEN
     stz TM
-    jsr items_banco_subir
+    jsl f:items_banco_subir
     jsr ti_componer
     jsr pant_subir
     jsr ranura_ppu_prender
@@ -14541,7 +14541,7 @@ ba_t_banco:
     phb
     phk
     plb
-    jsr items_banco_subir
+    jsl f:items_banco_subir
     plb
     rtl
 ba_t_ppu:
@@ -16615,71 +16615,6 @@ sin_decenas:
     jmp glifo_par
 .endproc
 
-; El banco de la pantalla, con la pantalla apagada: la fuente, el tilemap en
-; blanco y las dos paletas.
-.proc items_banco_subir
-.a8
-.i16
-    lda #$80
-    sta VMAIN
-    rep #$20
-.a16
-    lda #RANURA_VRAM
-    sta VMADDL
-    lda #(ITEMS_TILES * 32)
-    sta DAS0L
-    lda #<(items_tiles)
-    ora #(>(items_tiles) * 256)
-    sta A1T0L
-    sep #$20
-.a8
-    lda #^(items_tiles)
-    sta A1B0
-    lda #$01
-    sta DMAP0
-    lda #$18
-    sta BBAD0
-    lda #$01
-    sta MDMAEN
-    ; El tilemap en blanco: un DMA de origen fijo desde el primer tile, que
-    ; es transparente.
-    rep #$20
-.a16
-    lda #RANURA_MAP
-    sta VMADDL
-    lda #(32 * 32 * 2)
-    sta DAS0L
-    lda #<(items_tiles)
-    ora #(>(items_tiles) * 256)
-    sta A1T0L
-    sep #$20
-.a8
-    lda #^(items_tiles)
-    sta A1B0
-    lda #$09                    ; dos registros, sin avanzar el origen
-    sta DMAP0
-    lda #$01
-    sta MDMAEN
-    ; Los colores.
-    stz CGADD
-    rep #$20
-.a16
-    lda #(ITEMS_CGRAM_N * 2)
-    sta DAS0L
-    lda #<(items_cgram)
-    ora #(>(items_cgram) * 256)
-    sta A1T0L
-    sep #$20
-.a8
-    lda #^(items_cgram)
-    sta A1B0
-    stz DMAP0
-    lda #$22
-    sta BBAD0
-    lda #$01
-    sta MDMAEN
-    rts
-.endproc
 
 ; Las filas que se ven, sobre el tilemap en blanco.
 .proc items_filas_pintar
@@ -16718,7 +16653,7 @@ termina:
     sta INIDISP
     stz HDMAEN
     stz TM
-    jsr items_banco_subir
+    jsl f:items_banco_subir
     jsr items_desc_pintar
     jsr items_desc_subir
     jsr items_filas_pintar
@@ -16792,7 +16727,7 @@ mira_a:
     sta titulo_sel
     lda #$80
     sta INIDISP
-    jsr items_banco_subir
+    jsl f:items_banco_subir
     jsr items_desc_pintar
     jsr items_desc_subir
     jsr items_filas_pintar
@@ -16876,7 +16811,7 @@ baja_la_vista:
 repintar:
     lda #$80
     sta INIDISP
-    jsr items_banco_subir       ; el tilemap en blanco, y de paso el resto
+    jsl f:items_banco_subir       ; el tilemap en blanco, y de paso el resto
     jsr items_desc_pintar
     jsr items_desc_subir
     jsr items_filas_pintar
@@ -16934,6 +16869,76 @@ repintar:
     stz destello_listo          ; `pal_buf` era de antes; si el destello sigue,
                                 ; el cuadro que viene lo vuelve a armar
     jsr subir_tinte
+    rts
+.endproc
+
+; Y volver de una **pelea**, que pisa mucho más que la pantalla de ranuras.
+;
+; `volver_al_mapa` alcanza para la tienda, el menú y las ranuras porque las tres
+; escriben nada más que `RANURA_VRAM` y `RANURA_MAP`, elegidos para caer adentro
+; del banco de tiles de BG1 en los cuatro repartos. La escena de la batalla no:
+; `escena_subir` sube **32 KB**, o sea las palabras $4000 a $8000, más su
+; tilemap en $3800 y 64 bytes en la palabra 0. En los seis repartos de
+; `vram_layout` eso se lleva puesto, además del banco de BG1:
+;
+;   $5800  el tilemap del mapa          lo llena `fill_window`
+;   $7800  el de la capa de encima      el mismo
+;   $6800  los tiles de la ventana      `load_ventana`, con su tilemap y su HDMA
+;   los sprites                         `load_sprite`: en LAYOUT_ANCHO viven en
+;                                       $4000 y quedan enteros adentro de la
+;                                       escena; en los repartos con ventana
+;                                       arrancan en 0 y la palabra 0 se lleva
+;                                       los dos primeros tiles del héroe
+;
+; Nada de eso lo repone `load_map`, así que hasta el 2026-09-13 el mapa volvía
+; de la pelea con el fondo hecho basura. Lo que **no** va acá es `load_npcs` ni
+; `load_ruta_graficos`: copian tablas del cartucho a RAM, la pelea no las toca,
+; y reponerlas borraría lo que los eventos hayan movido antes de pelear.
+;
+; Va aparte de `volver_al_mapa` y no adentro para no cobrarle a la tienda, al
+; menú y a las ranuras las 64 columnas de `fill_window`, que son el único
+; momento en que se escribe tanto tilemap de una vez: ellas no lo necesitan, y
+; un cuadro perdido de más se lo comerían los casos de la tanda que las miran.
+.proc volver_de_batalla
+.a8
+.i16
+    lda #$80
+    sta INIDISP                 ; lo que sigue escribe VRAM por DMA
+    jsr load_sprite             ; el banco de poses, la paleta de objetos y OBSEL
+    jsr poses_npc_olvidar
+    jsr load_ventana
+    jsr fill_window
+    jmp volver_al_mapa
+.endproc
+
+; La cola de poses en caliente después de reponer el banco: cada ranura tiene
+; ahora la pose que el conversor dejó en el cartucho, y no la que su NPC venía
+; mostrando. `load_sprite` arregla la del héroe —deja `hero_pose_vram` en $FF—
+; y las de los NPC viven en `npc_buf + 12`, que es la única parte de esa tabla
+; que esto toca: es una sombra de lo que hay en la VRAM, no estado del juego.
+;
+; Con $FF ninguna pose coincide, así que el próximo `subir_pose_npc` de cada
+; fila la vuelve a encolar. Sin esto la sombra mentiría y un NPC que ya
+; estuviera en su pose se quedaría con la del cartucho para siempre.
+.proc poses_npc_olvidar
+.a8
+.i16
+    ldy #$0000
+otra:
+    cpy npc_total               ; viene en bytes, no en filas
+    beq listo
+    lda #$FF
+    sta npc_buf + 12, y
+    rep #$20
+.a16
+    tya
+    clc
+    adc #NPC_STRIDE
+    tay
+    sep #$20
+.a8
+    bra otra
+listo:
     rts
 .endproc
 
@@ -29105,6 +29110,88 @@ pone:
     sta BA_BLANCO
 nada:
     rts
+.endproc
+
+; --- el banco de la pantalla, también fuera del banco 0 ---------------------
+;
+; Se mudó acá el 2026-09-13, cuando `volver_de_batalla` pidió cuarenta y seis
+; bytes que el banco 0 ya no tenía: `demo-ciudad` quedaba en 32748 de 32704, y
+; antes de eso le sobraban **dos**. Ésta es la que sale más barata de mudar de
+; todo lo que mide más de cien bytes: no llama a nadie —son escrituras de
+; registro y cuatro DMA— así que no hace falta ningún puente, y no corre por
+; cuadro sino al abrir una pantalla con el PPU apagado, o sea que el ciclo de
+; más del `jsl` no se nota.
+;
+; Lo que sí obliga: **se entra con `jsl` y vuelve con `rtl`**, y el banco de
+; datos tiene que seguir siendo uno donde $2100..$21FF sea la consola, porque
+; escribe los registros en absoluto. Los seis llamadores están todos en el
+; banco 0; el de la pelea entra por el puente `ba_t_banco`, que es justo el que
+; pone el banco de datos en cero antes de llamar.
+
+; El banco de la pantalla, con la pantalla apagada: la fuente, el tilemap en
+; blanco y las dos paletas.
+.proc items_banco_subir
+.a8
+.i16
+    lda #$80
+    sta VMAIN
+    rep #$20
+.a16
+    lda #RANURA_VRAM
+    sta VMADDL
+    lda #(ITEMS_TILES * 32)
+    sta DAS0L
+    lda #<(items_tiles)
+    ora #(>(items_tiles) * 256)
+    sta A1T0L
+    sep #$20
+.a8
+    lda #^(items_tiles)
+    sta A1B0
+    lda #$01
+    sta DMAP0
+    lda #$18
+    sta BBAD0
+    lda #$01
+    sta MDMAEN
+    ; El tilemap en blanco: un DMA de origen fijo desde el primer tile, que
+    ; es transparente.
+    rep #$20
+.a16
+    lda #RANURA_MAP
+    sta VMADDL
+    lda #(32 * 32 * 2)
+    sta DAS0L
+    lda #<(items_tiles)
+    ora #(>(items_tiles) * 256)
+    sta A1T0L
+    sep #$20
+.a8
+    lda #^(items_tiles)
+    sta A1B0
+    lda #$09                    ; dos registros, sin avanzar el origen
+    sta DMAP0
+    lda #$01
+    sta MDMAEN
+    ; Los colores.
+    stz CGADD
+    rep #$20
+.a16
+    lda #(ITEMS_CGRAM_N * 2)
+    sta DAS0L
+    lda #<(items_cgram)
+    ora #(>(items_cgram) * 256)
+    sta A1T0L
+    sep #$20
+.a8
+    lda #^(items_cgram)
+    sta A1B0
+    stz DMAP0
+    lda #$22
+    sta BBAD0
+    lda #$01
+    sta MDMAEN
+    rtl
 .endproc
 
 ; --- cabecera y vectores ---------------------------------------------------
