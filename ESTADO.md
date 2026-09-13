@@ -20,10 +20,11 @@ Se escribe **mientras se trabaja**, no al final.
 a vuelta.
 
 Al 2026-09-13: `just snes-hitos-foto` son **165 casos, todos en verde** —el que
-se agregó es `snes-encuentro`— y `just pruebas` son **151 en verde y 1 `xfail`,
-sin rojos**; las nueve nuevas son las de los encuentros al azar.
-El `xfail` no es adorno: es un defecto medido de guardar con la pantalla de
-título puesta, y está abajo.
+se agregó es `snes-encuentro`— y `just pruebas` son **157 en verde y 1 `xfail`,
+sin rojos**; las nueve nuevas son las de los encuentros al azar y las dos
+últimas las del save point —`test_guardar_save_point.py`—.
+El `xfail` no es adorno, pero desde el 2026-09-13 se sabe de quién es: es un
+defecto de la **página de prueba** de guardado y no del juego, y está abajo.
 
 **La ROM de esta vuelta** está en `pruebas-manuales/piedras/`: el minijuego de
 las piedras del Lazer Teeth HQ, con un cartucho de un solo mapa que arranca
@@ -1382,12 +1383,30 @@ Al 2026-09-12, en orden.
    **Descartado por él**: analizar evento por evento si alguna vez anima, que
    ahorraría un cuadro y probablemente ningún color.
 
-3. **El `xfail` de guardar tras cambiar de mapa.** Es un artefacto de la página
-   de prueba, no del juego: el caso con el save point de verdad —`savepoint-guarda`—
-   da cero, y taro guardó y cargó jugando. El sospechoso es el doble
-   `cargar_mapa` del título contra el refresco de páginas. El `reason` del
-   `xfail` en `test_titulo.py` tiene la medición entera; no hace falta
-   repetirla acá.
+3. **El `xfail` de guardar tras cambiar de mapa: confirmado como artefacto de
+   la página de prueba** (2026-09-13). Ya no descansa en que taro guardara a
+   mano: `pruebas/test_guardar_save_point.py` camina hasta el save point del
+   juego —`SaveByTalansPad0`, el evento de índice **66** del mapa 8, en (9,56);
+   el `xfail` decía "el evento 67", que es como lo numera el editor de RM2k,
+   desde uno— y guarda **con pantalla
+   de título y después de cambiar de mapa dos veces**, y la partida vuelve del
+   reset en el mapa 8 y en la misma celda. El mismo camino sin título guarda
+   igual. taro lo confirmó además en mednafen, en mesen y en la SNES. O sea que
+   lo que no llega a guardar es la página de prueba —una automática con espera,
+   que el doble `cargar_mapa` del menú reinicia— y eso es andamio: **el juego
+   no tiene el defecto**. El `xfail` sigue puesto y `strict`, porque el andamio
+   sigue roto; su `reason` tiene la medición entera.
+
+   Lo único que costó fue el arnés, y conviene saberlo antes de escribir otra
+   prueba que guarde: **mientras la pantalla de ranuras se ve, `vueltas` no
+   avanza** —`OpenSaveMenu` bloquea adentro del intérprete, como `Scene_Save`—
+   así que cualquier espera por ticks se planta con "la ROM no llegó al tick
+   N", y **ese error es el éxito disfrazado**. Por eso no sirve
+   `Recorrido.activar`, que le toca A con `Partida.correr`, y por eso hay ahora
+   `Recorrido.guardar_en_el_save_point`, que corre por cuadros de hardware y
+   resincroniza `Partida.cuadro` al volver. Es el primer camino de guardado de
+   las pruebas que **no** pasa por la página de prueba, que era justo el
+   sospechoso.
 
 4. **El dibujo de las animaciones de batalla.** El sonido y los destellos están
    hechos; el dibujo no. Lo medido está en su sección, arriba.

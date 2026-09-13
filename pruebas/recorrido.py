@@ -31,6 +31,7 @@ import sys
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(RAIZ, "tools"))
 
+from consola import TITULO_AIRE                              # noqa: E402
 from render_map import GAME_DIR, Renderer                    # noqa: E402
 from rm2k import (TELEPORT, grafico_de_pagina,                # noqa: E402
                   pasabilidad_del_tile, passability_map, puede_pasar)
@@ -735,6 +736,48 @@ class Recorrido:
         raise Trabado("el evento de %s no contestó desde ninguna de las %d "
                       "celdas probadas. %s"
                       % (destino, len(intentos), self.estado()))
+
+    # --- guardar en un save point ------------------------------------------
+
+    def guardar_en_el_save_point(self, ranura=0, toques=40):
+        """Parado sobre un save point, tocarle A y elegir `ranura`.
+
+        Es el camino de guardado **del juego** —`OpenSaveMenu`, el evento 66
+        del mapa 8— y no el de la página de prueba que usan `just snes-guardar`
+        y `test_titulo.py`. Hasta el 2026-09-13 ninguna prueba lo recorría, y
+        por eso el `xfail` de guardar con pantalla de título no podía decir de
+        quién era el defecto.
+
+        **Todo por cuadros de hardware, y ésa es la parte que hay que saber.**
+        `OpenSaveMenu` bloquea adentro del intérprete —como `Scene_Save` en
+        RM2k— así que mientras la pantalla de ranuras se ve `vueltas` no
+        avanza: cualquier espera por ticks se planta con "la ROM no llegó al
+        tick N", y ese error es el **éxito** disfrazado. Por lo mismo no sirve
+        `activar`, que le toca A al evento con `Partida.correr`.
+
+        Al volver se resincroniza `Partida.cuadro`, que quedó viejo por los
+        cuadros que el jugador pasó eligiendo.
+        """
+        p = self.p
+        for _ in range(toques):
+            if p.byte("menu_abierto"):
+                break
+            p.consola.apretar("a")
+            p.consola.correr(2)
+            p.consola.apretar()
+            p.consola.correr(8)
+        if not p.byte("menu_abierto"):
+            raise Trabado(
+                "el save point no abrió la pantalla de ranuras en %d toques "
+                "de A. %s" % (toques, self.estado()))
+        # El mismo aire que `Partida.guardar_en` le da a la pantalla antes de
+        # tocarle nada: sube su banco con la pantalla apagada y un toque que
+        # caiga ahí se pierde.
+        p.consola.correr(TITULO_AIRE)
+        p._bajar_y_elegir(ranura)
+        p.consola.correr(10)
+        p._un_cuadro()
+        return self
 
     def _atender(self, tope):
         """Una página está corriendo: tocarle A hasta que termine."""
