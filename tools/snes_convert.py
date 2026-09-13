@@ -4870,13 +4870,13 @@ FLASH_MAX = 4
 # Medido sobre los 328 mapas con todo lo que hay hecho hoy; el conversor corta
 # si alguno se pasa.
 #
-# Lo que cuesta: seis bytes de `FAR_PAR_LISTA` por ranura —RAM lejana, no la
+# Lo que cuesta: ocho bytes de `FAR_PAR_LISTA` por ranura —RAM lejana, no la
 # BSS; ver `PAR_LISTA_BYTES` en `main.s`, que además del evento guarda la página
 # que el refresco le eligió— y **una vuelta de intérprete por cuadro por cada
 # uno**. Es lo segundo lo que hay que mirar si la carrera se pone lenta: lo
 # primero ya no está, porque la página dejó de resolverse en cada cuadro.
 #
-# 48 por seis son 288 bytes, y de `FAR_PAR_LISTA` a `FAR_VARIABLES` hay 512.
+# 48 por ocho son 384 bytes, y de `FAR_PAR_LISTA` a `FAR_AZAR` hay 508.
 PARALELO_MAX = 48
 # Un NPC en la RAM de la ROM. Eran ocho bytes; los cuatro de más son para los
 # que caminan: a cuál evento corresponden y dónde está su tabla de poses.

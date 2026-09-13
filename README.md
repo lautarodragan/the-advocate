@@ -4778,11 +4778,28 @@ En RM2k la respuesta se calcula una sola vez: `Game_Event::page` es una
 instantánea y sólo la reescribe `Game_Map::Refresh`. Acá la instantánea ya
 existía —`eleg_por_ev`— y `aplicar_paginas` ya armaba con ella la lista de
 eventos con página paralela del mapa; lo que faltaba era que la lista se llevara
-**la página** y no sólo el número de evento. Son seis bytes por ranura en la RAM
-lejana —el evento, el puntero a su bytecode y de qué página salió— escritos en
-`anotar_paralelo`, o sea adentro del mismo refresco que ya la tiene leída. El
-mapa 11 pasó de 30,00 a 57,67 cuadros por segundo, medidos contando `vueltas`
-contra cuadros de hardware.
+**la página** y no sólo el número de evento. Son ocho bytes por ranura en la RAM
+lejana —el evento y el puntero a su bytecode, más de qué página salió— escritos
+en `anotar_paralelo`, o sea adentro del mismo refresco que ya la tiene leída.
+
+**Y no alcanzaba con eso.** Había una segunda cuenta que se rehacía por
+paralelo y por cuadro: `un_paralelo` le da su paso al evento pegado a su
+intérprete —es el orden de `Game_Event::Update`, y es lo que hace que los
+cuatro autos de Lashe City anden— y para eso busca su ranura de ruta con
+`ranura_del_evento`, que recorría **las doce siempre**. En el mapa 11 hay once
+paralelos y una sola ranura usada. Ahora `ruta_ev_tope` dice cuántas vale la
+pena mirar —la más alta que se llegó a tomar desde que se cargó el mapa, más
+una— y la búsqueda va de ahí para abajo, que es lo que deja el corte en `X ==
+0` y ahorra el segundo byte de RAM que el banco 0 no tenía. El tope no baja al
+liberarse una ranura y no hace falta que baje: una que nunca se tomó tiene $FF
+en +0.
+
+Lo medido, contando `vueltas` contra cuadros de hardware en el mapa 11:
+**cada arreglo solo deja los 30,00 cuadros por segundo, y los dos juntos dan
+59,80**. No es raro y conviene entenderlo: pasarse del cuadro no cuesta un
+poco, se pierde el vblank entero, así que quedarse cerca del borde mide igual
+que estar lejos. Un número de fps de este mapa vale sobre el árbol donde se
+midió y sobre ningún otro.
 
 Con eso `un_paralelo` se queda además sin dos preguntas que no podían dar otra
 respuesta —si la página es paralela y si compiló—, porque si no lo fuera el
