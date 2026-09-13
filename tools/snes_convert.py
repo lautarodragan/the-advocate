@@ -5294,6 +5294,13 @@ def main():
                              "--pagina-de-prueba—: sirve para comparar la "
                              "apertura y el cierre sin depender de qué diga "
                              "el juego. Implica --con-ventana")
+    parser.add_argument("--relleno-de-mensajes", type=int, default=0,
+                        help="bytes muertos al principio del bloque de textos, para\n"
+                             "que los desplazamientos pasen los 32 KB que mide\n"
+                             "la ventana de un banco de LoROM. Es lo único que\n"
+                             "reproduce el defecto de `msg_empezar` sin armar un\n"
+                             "cartucho de diez mapas hablados. El otro lado del\n"
+                             "mismo flag de la otra herramienta")
     parser.add_argument("--con-ventana", action="store_true",
                         help="la ROM lleva la ventana de mensaje: 8 KB de "
                              "VRAM, una paleta y la fuente. Es lo que hace "
@@ -5659,7 +5666,8 @@ def main():
     # el mapa donde arranca la ROM ni de en qué orden se compilen. Es el único
     # texto que no sale del juego, y el único cuyo desplazamiento alguien podría
     # querer saber de memoria.
-    mensajes = eventos.Mensajes() if args.con_ventana else None
+    mensajes = (eventos.Mensajes(args.relleno_de_mensajes)
+                if args.con_ventana else None)
     # Los temas que los PlayBGM de las páginas piden, numerados en el orden en
     # que aparecen. La ROM lleva uno solo —ver `Temas`— y lo elige más abajo,
     # cuando ya están todos compilados y se sabe cuáles se piden.

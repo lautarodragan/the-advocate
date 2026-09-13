@@ -20666,18 +20666,38 @@ TEXTO_OFS_Y = 2
 .proc msg_empezar
 .a16
 .i16
+    ; El desplazamiento es de dieciséis bits y el bloque de textos puede medir
+    ; hasta 64 KB, o sea **más que la ventana de un banco de LoROM**: con los
+    ; 29 mapas de `demo-ciudad` son 48972 bytes y arranca en $46:8000, así que
+    ; desde el desplazamiento $8000 la suma se pasa de $FFFF. Lo que sigue a
+    ; $FFFF no es el $0000 del banco que viene sino su $8000, que es lo mismo
+    ; que ya sabía `ptr_mas` para la grilla del mapa; acá se sumaba de a
+    ; dieciséis bits y el acarreo se perdía, así que **todo cuadro de texto
+    ; pasado el primer banco leía de otro lado**: la cabecera y los largos de
+    ; renglón salían de cualquier cosa. El lazo suma un banco por vuelta porque
+    ; un bloque de 64 KB cruza hasta dos veces.
+    phx
+    ldx #^mensajes
     clc
     adc #.loword(mensajes)
+otro_banco:
+    bcc en_el_banco
+    inx
+    clc
+    adc #$8000
+    bra otro_banco
+en_el_banco:
     sta msg_ptr
     sep #$20
 .a8
-    lda #^mensajes
+    txa
     sta msg_ptr + 2
+    rep #$20
+.a16
+    plx
     ; La cola de escapes arranca limpia, y **antes** del `rts` de abajo: una ROM
     ; sin ventana no lee ninguna cabecera, y una pausa de basura ahí dejaría la
     ; página frenada para siempre.
-    rep #$20
-.a16
     lda #0
     sta f:FAR_MSG_PAUSA         ; `stz` no tiene modo largo
     sep #$20

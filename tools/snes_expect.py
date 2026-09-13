@@ -1588,6 +1588,13 @@ def main():
                              "de mensaje con estas líneas. El otro lado del "
                              "mismo flag de snes_convert.py. Implica "
                              "--con-ventana")
+    parser.add_argument("--relleno-de-mensajes", type=int, default=0,
+                        help="bytes muertos al principio del bloque de textos, para\n"
+                             "que los desplazamientos pasen los 32 KB que mide\n"
+                             "la ventana de un banco de LoROM. Es lo único que\n"
+                             "reproduce el defecto de `msg_empezar` sin armar un\n"
+                             "cartucho de diez mapas hablados. El otro lado del\n"
+                             "mismo flag de la otra herramienta")
     parser.add_argument("--con-ventana", action="store_true",
                         help="la ROM lleva la ventana de mensaje, o sea que "
                              "los ShowMessage del juego compilan y el reparto "
@@ -1819,7 +1826,8 @@ def main():
     # El bloque de textos, armado igual que en el conversor y en el mismo orden:
     # el mensaje de prueba primero —desplazamiento 0— y después los mapas de la
     # tabla, que los junta `Mundo` al construirse.
-    mensajes = eventos.Mensajes() if args.con_ventana else None
+    mensajes = (eventos.Mensajes(args.relleno_de_mensajes)
+                if args.con_ventana else None)
     prueba = (mensajes.agregar(args.mensaje_de_prueba)
               if args.mensaje_de_prueba is not None else None)
     mundo = Mundo(renderer, args.game_dir, tabla,

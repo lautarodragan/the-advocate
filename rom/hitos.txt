@@ -75,6 +75,11 @@ snes-items
 snes-equipo
 snes-anclada
 snes-texto
+# El mismo caso con el bloque de textos corrido más allá del primer banco:
+# ver `relleno` en la receta. Verificado en rojo con el `msg_empezar` de antes:
+# 3116 pixeles en el cuadro 60 y 3404 en el 400, todos en la ventana, que ahí
+# dibuja el texto que le tocó leer de otro lado.
+snes-texto 255 200 texto-lejos 33000
 snes-ruta-evento
 snes-npc
 snes-lugar

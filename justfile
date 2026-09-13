@@ -1687,15 +1687,30 @@ snes-pisar mapa="70" celda="12 8" direccion="up" cuadros="200" arranque="115" no
 # dos cuadros la pantalla cambia 2869 pixeles, todos en las filas de la ventana:
 # si el A no avanzara al segundo mensaje, serían cero y la receta daría verde sin
 # probar nada.
-snes-texto mapa="255" apretar="200" nombre="texto":
+#
+# Y `relleno` son bytes muertos delante del bloque de textos, que es lo que
+# corre los desplazamientos más allá de los 32 KB que mide la ventana de un
+# banco de LoROM. Ahí `msg_empezar` sumaba de a dieciséis bits y perdía el
+# acarreo, así que **todo cuadro de texto pasado el primer banco leía de otro
+# lado**: la cabecera y los largos de renglón salían de cualquier cosa, y con un
+# largo de 70 el compositor escribía fuera de `texto_buf` y se llevaba puesto
+# `vq_n`, el contador de la cola de poses, que a partir de ahí subía bloques de
+# 128 bytes a direcciones cualquiera de la VRAM. Eso es lo que taro veía como la
+# pantalla hecha basura en Delcentric Factory. Reproducirlo de verdad pide un
+# cartucho de diez mapas hablados —minutos por caso—; con el relleno lo hace uno
+# de un mapa. Ver `Mensajes.__init__`.
+snes-texto mapa="255" apretar="200" nombre="texto" relleno="":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
+  relleno="{{relleno}}"
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
+      ${relleno:+--relleno-de-mensajes $relleno} \
       --con-ventana -o {{snes_inc}}/mapdata.inc
   just snes-build
   pre={{snes_pngs}}/{{nombre}}
   python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
+      ${relleno:+--relleno-de-mensajes $relleno} \
       --con-ventana --cuadros 60 400 --apretar-a {{apretar}} \
       --saltar $pre-{}.saltar.txt -o $pre-{}.esperado.png
   for n in 60 400; do
