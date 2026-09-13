@@ -4764,6 +4764,34 @@ apenas saliendo del pad de Talan. Con el filtro puesto, 60. Ninguna de esas
 cuatro variables la mira ninguna condición de página del juego; sobre los 328
 mapas, **14 tienen una condición por variable y ninguno tiene dos**.
 
+**Y la otra mitad de la misma idea: la página activa de un paralelo tampoco se
+recalcula por cuadro.** El HQ de los Lazer Teeth —el mapa 11, once eventos con
+página paralela— iba a 30 cuadros por segundo por una causa parecida y distinta:
+ahí no había ningún refresco pendiente, pero `un_paralelo` llamaba igual a
+`pagina_desde_eleg` una vez por paralelo y por cuadro, que resuelve qué página
+está activa y le lee del cartucho los veinticuatro bytes de la cabecera por la
+ventana de banco. Once veces por cuadro, para contestar siempre lo mismo. Con el
+décimo el lazo se pasaba del cuadro, y pasarse no cuesta un poco: se pierde el
+vblank entero y se cae a la mitad exacta.
+
+En RM2k la respuesta se calcula una sola vez: `Game_Event::page` es una
+instantánea y sólo la reescribe `Game_Map::Refresh`. Acá la instantánea ya
+existía —`eleg_por_ev`— y `aplicar_paginas` ya armaba con ella la lista de
+eventos con página paralela del mapa; lo que faltaba era que la lista se llevara
+**la página** y no sólo el número de evento. Son seis bytes por ranura en la RAM
+lejana —el evento, el puntero a su bytecode y de qué página salió— escritos en
+`anotar_paralelo`, o sea adentro del mismo refresco que ya la tiene leída. El
+mapa 11 pasó de 30,00 a 57,67 cuadros por segundo, medidos contando `vueltas`
+contra cuadros de hardware.
+
+Con eso `un_paralelo` se queda además sin dos preguntas que no podían dar otra
+respuesta —si la página es paralela y si compiló—, porque si no lo fuera el
+evento no estaría en la lista. **Eso era una red**, y al sacarla la lista pasó a
+ser la única verdad: si un refresco dejara de rehacerla, un evento que ya no
+tiene página paralela seguiría corriendo la vieja para siempre. Lo cuida
+`pruebas/test_paralelos.py`, que exige que un switch que cambia la página activa
+lo saque de la lista y que apagarlo lo vuelva a meter.
+
 **El azar es el mismo de los dos lados.** Un xorshift de dieciséis bits —`x ^=
 x << 7; x ^= x >> 9; x ^= x << 8`—, sembrado en el reset, instrucción por
 instrucción en `azar_siguiente` de `main.s` y de `eventos.py`. Por eso una

@@ -76,6 +76,52 @@ absoluto no se pudo reproducir con ninguna combinación de argumentos de
 misma con los dos criterios: +119 páginas.** Cuando un número de éstos se
 reporte, conviene decir con cuál de los dos se contó.
 
+### El lag del HQ de los Lazer Teeth: la página de cada paralelo (2026-09-13)
+
+El mapa 11 iba a **30,00 fps** clavados y taro lo reportó como "laggea un
+montón". No era el cuerpo de sus once páginas paralelas: era que `un_paralelo`
+llamaba a `pagina_desde_eleg` **una vez por paralelo y por cuadro**, o sea que
+volvía a resolver la página activa del evento y le leía del cartucho los
+veinticuatro bytes de la cabecera, por la ventana de banco, para contestar lo
+mismo que el cuadro anterior. RM2k no hace eso: `Game_Event::page` es una
+instantánea y sólo la reescribe `Game_Map::Refresh`.
+
+Hecho: la página viaja **en la lista de paralelos**, que `aplicar_paginas` rehace
+entera —seis bytes por ranura: el evento, el puntero a su bytecode y de qué
+página salió—. Medido con `pruebas/consola.py`, contando `vueltas` contra
+cuadros de hardware:
+
+    mapa 11   30,00 -> 57,67 fps    (90 -> 173 vueltas en 180 cuadros)
+    mapa  8   60,00 -> 60,00
+    mapa  6   60,00 -> 60,00
+
+Lo que conviene no volver a medir:
+
+* **Lo que queda del mapa 11 no es el refresco.** Son cuadros sueltos —dieciséis
+  en seiscientos, y en racimos— y en ninguno hay refresco pendiente: medido
+  leyendo `refresco` y `refresco_cuadro` cuadro por cuadro, dan **cero** en los
+  600. Es que once intérpretes más el paso de sus eventos quedan al filo.
+* **Y está repartido entre las dos mitades.** Salteando el cuerpo del intérprete
+  da 60,00; salteando el paso del evento —`ranura_del_evento`,
+  `cuadro_de_ruta_ev`, `animar_ruta_ev` y `refrescar_npc`, que `un_paralelo`
+  hace por evento como `Game_Event::Update`— da 59,67. Las dos son trabajo que
+  RM2k también hace, así que bajarlas es otra clase de trabajo y no éste.
+* **La curva contra cuántos paralelos corren, pisando `par_n` desde afuera**:
+  de 0 a 5 da 60,00, de 6 a 10 da 59,67, y con los once 57,67. O sea que el
+  salto ya no está en el décimo.
+* **Los once son** los índices de evento 1 a 8, 26, 29 y 65 —TheIdol, Light1 a
+  Light6, LTSentry1, LTSentry2, LTComputer y NVSpy—. El duodécimo candidato,
+  el `EV0017` (índice 11), **no compila** y por eso no está en la lista.
+
+**La red que se perdió, y con qué se reemplazó.** Antes `un_paralelo` volvía a
+preguntar si la página activa seguía siendo paralela, así que una lista vieja no
+hacía daño. Ahora la lista es la única verdad, y lo que la cuida es
+`pruebas/test_paralelos.py`: un switch que cambia qué página está activa tiene
+que sacar al evento de la lista **y volver a meterlo** al apagarlo. Los dos
+casos son del juego —el LTSentry1 pasa a su página de contacto con el switch 45,
+el NVSpy a la de acción con el 48—. Comprobado en rojo sacándole el `stz par_n` a
+`aplicar_paginas`.
+
 ### El recorrido largo: se juega el juego y se le pregunta a la RAM (2026-09-13)
 
 `pruebas/test_recorrido.py`, con su arnés en `pruebas/recorrido.py`. Es lo que
