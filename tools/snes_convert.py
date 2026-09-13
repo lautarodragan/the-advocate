@@ -3327,6 +3327,9 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "OP_TIMER    = $%02X\n"
         "OP_BGM      = $%02X\n"
         "OP_LUGAR    = $%02X\n"
+        "; El mismo, con la celda en dos variables. Ver OP_LUGAR_VAR en\n"
+        "; eventos.py y `op_lugar_var` en main.s.\n"
+        "OP_LUGAR_VAR = $%02X\n"
         "OP_TRUEQUE  = $%02X\n"
         "OP_SACUDIR  = $%02X\n"
         "OP_DESTELLO = $%02X\n"
@@ -3338,6 +3341,13 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "OP_ORO      = $%02X\n"
         "OP_GUARDAR  = $%02X\n"
         "OP_VAR      = $%02X\n"
+        "; El bit de arriba de la ranura de OP_VAR y de OP_TECLA: si la\n"
+        "; escritura pide el refresco de páginas. Lo resuelve el conversor\n"
+        "; mirando qué variables miran las condiciones de página de este\n"
+        "; mapa; `var_apuntar` enmascara con VAR_RANURA. Ver VAR_REFRESCO en\n"
+        "; eventos.py: sin esto media Lashe City corría a 30 cuadros.\n"
+        "VAR_REFRESCO = $%02X\n"
+        "VAR_RANURA   = $%02X\n"
         "OP_SI_VAR   = $%02X\n"
         "OP_ITEM     = $%02X\n"
         "OP_ACCESO   = $%02X\n"
@@ -3371,6 +3381,15 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "TECLA_CANCELAR = $%02X\n"
         "TECLA_ARRANCA  = $%02X\n"
         "TECLA_VALOR_DECISION = %d\n"
+        "TECLA_VALOR_CANCELAR = %d\n"
+        "; Y las cuatro direcciones, con el mismo número que les da\n"
+        "; `CheckInput`. El orden en que se miran sale de acá: de mayor a\n"
+        "; menor, que es lo que dice \"RPG processes keys from highest\n"
+        "; variable value to lowest\".\n"
+        "TECLA_VALOR_ARRIBA   = %d\n"
+        "TECLA_VALOR_DERECHA  = %d\n"
+        "TECLA_VALOR_IZQUIERDA = %d\n"
+        "TECLA_VALOR_ABAJO    = %d\n"
         "; En qué tile de su banco de sprites arranca y con qué paleta.\n"
         "; Van de globales y no en el registro del mapa porque el cartel es\n"
         "; **uno solo por ROM** y vive en un solo mapa: los dos campos\n"
@@ -3642,11 +3661,13 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            eventos.CABECERA_LINEAS, eventos.CABECERA_AUTOCIERRE,
            eventos.CUADROS_DE_PAUSA, eventos.OP_RUTAS,
            eventos.OP_FLASH, eventos.OP_TIMER, eventos.OP_BGM,
-           eventos.OP_LUGAR, eventos.OP_TRUEQUE, eventos.OP_SACUDIR,
+           eventos.OP_LUGAR, eventos.OP_LUGAR_VAR,
+           eventos.OP_TRUEQUE, eventos.OP_SACUDIR,
            eventos.OP_DESTELLO, eventos.OP_FUNDIR_BGM, eventos.OP_PAN,
            eventos.OP_SI, eventos.OP_IR, eventos.OP_ELEGIR,
            eventos.OP_ORO, eventos.OP_GUARDAR,
-           eventos.OP_VAR, eventos.OP_SI_VAR,
+           eventos.OP_VAR, eventos.VAR_REFRESCO, eventos.VAR_RANURA_MAX,
+           eventos.OP_SI_VAR,
            eventos.OP_ITEM, eventos.OP_ACCESO, eventos.OP_TIENDA,
            eventos.OP_CLIMA, eventos.OP_SONIDO, eventos.OP_ANIMACION,
            eventos.ANIM_ENTRADA, eventos.ANIM_SONIDO, eventos.ANIM_DESTELLO,
@@ -3657,7 +3678,9 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            eventos.OP_TECLA, eventos.TECLA_ESPERA,
            eventos.TECLA_DIRS, eventos.TECLA_DECISION,
            eventos.TECLA_CANCELAR, eventos.TECLA_ARRANCA,
-           eventos.TECLA_VALOR_DECISION,
+           eventos.TECLA_VALOR_DECISION, eventos.TECLA_VALOR_CANCELAR,
+           eventos.TECLA_VALOR_DIR[0], eventos.TECLA_VALOR_DIR[1],
+           eventos.TECLA_VALOR_DIR[3], eventos.TECLA_VALOR_DIR[2],
            cartel_base, cartel_pal,
            cartel["x"] if cartel else 0, cartel["y"] if cartel else 0,
            cartel["objetos"] if cartel else 0,
@@ -4847,9 +4870,13 @@ FLASH_MAX = 4
 # Medido sobre los 328 mapas con todo lo que hay hecho hoy; el conversor corta
 # si alguno se pasa.
 #
-# Lo que cuesta: un byte de `FAR_PAR_LISTA` por ranura —RAM lejana, no la BSS—
-# y **una vuelta de intérprete por cuadro por cada uno**. Es lo segundo lo que
-# hay que mirar si la carrera se pone lenta.
+# Lo que cuesta: ocho bytes de `FAR_PAR_LISTA` por ranura —RAM lejana, no la
+# BSS; ver `PAR_LISTA_BYTES` en `main.s`, que además del evento guarda la página
+# que el refresco le eligió— y **una vuelta de intérprete por cuadro por cada
+# uno**. Es lo segundo lo que hay que mirar si la carrera se pone lenta: lo
+# primero ya no está, porque la página dejó de resolverse en cada cuadro.
+#
+# 48 por ocho son 384 bytes, y de `FAR_PAR_LISTA` a `FAR_AZAR` hay 508.
 PARALELO_MAX = 48
 # Un NPC en la RAM de la ROM. Eran ocho bytes; los cuatro de más son para los
 # que caminan: a cuál evento corresponden y dónde está su tabla de poses.
@@ -5071,6 +5098,10 @@ def variables_de_prueba(vars_de_prueba, rama_var_de_prueba, tecla=None):
             ids.add(vars_de_prueba[k])
             if vars_de_prueba[k + 2] == eventos.VAR_VARIABLE:
                 ids.add(vars_de_prueba[k + 3])
+            if vars_de_prueba[k + 1] == eventos.VARIABLES_PRUEBA_AL_LUGAR:
+                # La operación 10 nombra **dos** variables: la de la x, que ya
+                # entró como `[k]`, y la de la y, que va en `[k + 4]`.
+                ids.add(vars_de_prueba[k + 4])
     if rama_var_de_prueba:
         ids.add(rama_var_de_prueba[0])
     return ids
@@ -5286,6 +5317,13 @@ def main():
                              "--pagina-de-prueba—: sirve para comparar la "
                              "apertura y el cierre sin depender de qué diga "
                              "el juego. Implica --con-ventana")
+    parser.add_argument("--relleno-de-mensajes", type=int, default=0,
+                        help="bytes muertos al principio del bloque de textos, para\n"
+                             "que los desplazamientos pasen los 32 KB que mide\n"
+                             "la ventana de un banco de LoROM. Es lo único que\n"
+                             "reproduce el defecto de `msg_empezar` sin armar un\n"
+                             "cartucho de diez mapas hablados. El otro lado del\n"
+                             "mismo flag de la otra herramienta")
     parser.add_argument("--con-ventana", action="store_true",
                         help="la ROM lleva la ventana de mensaje: 8 KB de "
                              "VRAM, una paleta y la fuente. Es lo que hace "
@@ -5651,7 +5689,8 @@ def main():
     # el mapa donde arranca la ROM ni de en qué orden se compilen. Es el único
     # texto que no sale del juego, y el único cuyo desplazamiento alguien podría
     # querer saber de memoria.
-    mensajes = eventos.Mensajes() if args.con_ventana else None
+    mensajes = (eventos.Mensajes(args.relleno_de_mensajes)
+                if args.con_ventana else None)
     # Los temas que los PlayBGM de las páginas piden, numerados en el orden en
     # que aparecen. La ROM lleva uno solo —ver `Temas`— y lo elige más abajo,
     # cuando ya están todos compilados y se sabe cuáles se piden.

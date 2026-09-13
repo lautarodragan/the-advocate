@@ -156,7 +156,7 @@ WMDATA   = $2180
 ; no entraban. El día que haya variables de RM2k —cinco mil, diez kilobytes— van
 ; acá también.
 FAR_PAR_ESTADO = $2000      ; EV_MAX entradas de PAR_BYTES
-FAR_PAR_LISTA  = $2400      ; PARALELO_MAX índices de evento
+FAR_PAR_LISTA  = $2400      ; PARALELO_MAX entradas de PAR_LISTA_BYTES
 ; Las variables de RM2k, una palabra con signo por ranura. Cuántas son lo dice
 ; el conversor —`VARIABLES_N`—, que le da ranura sólo a las que nombran las
 ; páginas de los mapas de la ROM; el bytecode habla de ranuras. Se leen y
@@ -422,8 +422,24 @@ BA_PARAM_MAX = 999
 ; intro sabe son o `normal` o `switch`.
 BA_HAB_TIPO_SWITCH = 3
 
-; Cursor (2), espera (2), si está corriendo (1) y de qué página (2).
-PAR_BYTES = 7
+; Cursor (2), espera (2), si está corriendo (1) y de qué página (2). **Ocho y
+; no siete**: el séptimo byte no se usa y a cambio el índice sale con tres
+; `asl` en vez de un `x * 8 - x`, que son seis bytes de banco 0 y unos ciclos
+; en cada paralelo y en cada cuadro. EV_MAX por ocho son 960 bytes, así que
+; sigue entrando abajo de `FAR_PAR_LISTA`.
+PAR_BYTES = 8
+
+; Y lo que la lista de paralelos guarda de cada uno: el evento (1), el puntero
+; a su bytecode (3) y de qué página salió (2). Los tres últimos son lo que
+; antes se volvía a sacar del cartucho en cada cuadro y por cada paralelo, con
+; `pagina_desde_eleg`: veinticuatro bytes de cabecera de página leídos por la
+; ventana de banco, para contestar lo mismo que la vez anterior. La lista se
+; rehace entera en `aplicar_paginas`, o sea exactamente cuando la página activa
+; puede haber cambiado, así que anotarlo ahí es la misma respuesta y una vez.
+; Ocho por lo mismo que `PAR_BYTES`: los dos que sobran se pagan en RAM lejana,
+; que hay de sobra, y se ahorran en banco 0 y en ciclos. PARALELO_MAX por ocho
+; son 384 bytes y hasta `FAR_AZAR` hay 508.
+PAR_LISTA_BYTES = 8
 WMADDL   = $2181
 WMADDM   = $2182
 WMADDH   = $2183
@@ -1358,33 +1374,19 @@ scrolls:
 ; cero, que es "nada encendido".
 .segment "TABLAS"
 
-; Qué permiso hace falta para salir de una celda y para entrar en la de al lado,
-; por dirección —arriba, derecha, abajo, izquierda—. Van en el banco 0 porque se
-; leen con `lda tabla, x`, que direcciona el banco de datos.
-;
-; Los pares son cruzados a propósito: para ir hacia arriba hay que poder salir
-; por arriba de la celda de origen y poder entrar por abajo a la de destino. Es
-; la regla de RM2k, y la misma que `rm2k.puede_pasar` escribe del lado de
-; Python.
-pass_salir:
-    .byte PASS_UP, PASS_RIGHT, PASS_DOWN, PASS_LEFT
-pass_entrar:
-    .byte PASS_DOWN, PASS_LEFT, PASS_UP, PASS_RIGHT
-; Y cuánto se corre cada dirección, en celdas: arriba, derecha, abajo,
+; Lo que **tiene** que vivir en el banco 0: se lee con `lda tabla, y`, y el
+; 65816 no tiene absoluto largo indexado por Y —`long,X` sí, `long,Y` no—, o
+; con tantos índices distintos que el byte de más por acceso costaría más que
+; la tabla. Las que se leen con X y se leen poco bajaron a RODATA el
+; 2026-09-13; ver allá el porqué y lo que queda.
+
+; Cuánto se corre cada dirección, en celdas: arriba, derecha, abajo,
 ; izquierda, y las cuatro diagonales. Con signo, que es como las suma
 ; `armar_salto`. Son RUTA_PASOS de eventos.py.
 paso_dx:
     .byte 0, 1, 0, $FF, 1, 1, $FF, $FF
 paso_dy:
     .byte $FF, 0, 1, 0, $FF, 1, 1, $FF
-; Las dos componentes de cada diagonal, indexadas por la dirección menos
-; cuatro: primero la vertical y después la horizontal. De acá salen las dos
-; eles que prueba `puede_celda_diag` y las dos poses que compara
-; `encarar_diagonal`. Son RUTA_DIAGONALES de eventos.py.
-diag_vert:
-    .byte DIR_UP, DIR_DOWN, DIR_DOWN, DIR_UP
-diag_horiz:
-    .byte DIR_RIGHT, DIR_RIGHT, DIR_LEFT, DIR_LEFT
 ; Cuánto avanza un paso por cuadro según la velocidad, 1 a 6, de 256 por
 ; celda, y cuánto el salto: PASO_POR_VELOCIDAD y SALTO_VELOCIDADES de
 ; eventos.py. La 4 es la del héroe: 32 por cuadro, dos pixeles.
@@ -1398,10 +1400,6 @@ anim_parado:
     .byte 12, 10, 8, 6, 5, 4
 anim_continua:
     .byte 16, 12, 10, 8, 7, 6
-; Un bit por posición, para el bitmap de switches. Sale más barata que ocho
-; corrimientos y se lee con el índice que ya tenemos.
-mascara:
-    .byte $01,$02,$04,$08,$10,$20,$40,$80
 
 
 .segment "CODE"
@@ -2731,7 +2729,29 @@ borrar:
     rts
 .endproc
 
-; Anota al evento `rp_ev` en la lista de paralelos del mapa.
+; La ventana de banco apuntada a la entrada de la lista que trae A. Es la misma
+; cuenta para escribirla y para leerla, y estaba copiada en los dos lados.
+.proc par_lista_apuntar
+.a8
+.i16
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    asl a
+    asl a                       ; por PAR_LISTA_BYTES
+    clc
+    adc #FAR_PAR_LISTA
+    sta WMADDL
+    sep #$20
+.a8
+    stz WMADDH
+    rts
+.endproc
+
+; Anota al evento `rp_ev` en la lista de paralelos del mapa, con la página que
+; acaba de ganar: entra con `pg_*` de ella y con `pag_ofs` en su offset, que es
+; como `aplicar_paginas` la tiene leída.
 .proc anotar_paralelo
 .a8
 .i16
@@ -2740,16 +2760,18 @@ borrar:
     bcc hay_lugar
     rts                         ; el conversor corta antes de que esto pase
 hay_lugar:
-    rep #$20
-.a16
-    and #$00FF
-    clc
-    adc #FAR_PAR_LISTA
-    sta WMADDL
-    sep #$20
-.a8
-    stz WMADDH
+    jsr par_lista_apuntar
     lda rp_ev
+    sta WMDATA
+    lda pg_cod
+    sta WMDATA
+    lda pg_cod + 1
+    sta WMDATA
+    lda pg_cod + 2
+    sta WMDATA
+    lda pag_ofs
+    sta WMDATA
+    lda pag_ofs + 1
     sta WMDATA
     inc par_n
     rts
@@ -2783,18 +2805,22 @@ hay:
     stz par_i
 lazo:
     lda par_i
-    rep #$20
-.a16
-    and #$00FF
-    clc
-    adc #FAR_PAR_LISTA
-    sta WMADDL
-    sep #$20
-.a8
-    stz WMADDH
+    jsr par_lista_apuntar
     lda WMDATA                  ; de qué evento es esta ranura
+    sta par_ev
+    lda WMDATA                  ; y su página, ya resuelta por el refresco:
+    sta cod_ptr                 ; derecho al cursor del intérprete, que es lo
+    lda WMDATA                  ; único que `un_paralelo` iba a hacer con ella
+    sta cod_ptr + 1
+    lda WMDATA
+    sta cod_ptr + 2
+    lda WMDATA
+    sta pag_ofs
+    lda WMDATA
+    sta pag_ofs + 1
     rep #$20
 .a16
+    lda par_ev
     and #$00FF
     tax
     sep #$20
@@ -2824,38 +2850,25 @@ lazo:
     rts
 .endproc
 
-; Un cuadro del evento cuyo índice trae X.
+; Un cuadro del evento cuyo índice trae X, con `elegida` y `pag_ofs` ya puestos
+; por el lazo desde la lista de paralelos.
+;
+; Acá **no** se vuelve a elegir la página ni a leerla del cartucho. Era lo que
+; costaba el cuadro en el HQ de los Lazer Teeth —once paralelos, y el décimo se
+; pasaba— y no podía dar otra respuesta: la lista y lo que lleva adentro los
+; rehace `aplicar_paginas`, que es `Game_Map::Refresh`, o sea el único momento
+; en que la página activa cambia. Tampoco hace falta preguntar si la página es
+; paralela y si compiló: si no lo fuera, el evento no estaría en la lista.
 .proc un_paralelo
 .a8
 .i16
-    txa
-    sta par_ev                  ; se necesita después, y `correr_codigo` usa X
-    phx
-    jsr pagina_desde_eleg
-    plx
-    lda elegida_hay
-    beq nada_cerca
-    lda elegida_trigger
-    cmp #TRIGGER_PARALELO
-    beq con_paralela            ; si no, su página activa ya no es la paralela
-nada_cerca:
-    rts
-con_paralela:
-    lda elegida
-    ora elegida + 1
-    ora elegida + 2
-    beq nada_cerca
-
-    ; Dónde cae su estado: el evento por siete.
+    ; Dónde cae su estado: el evento por ocho.
     rep #$20
 .a16
     txa
-    sta temp
     asl a
     asl a
-    asl a                       ; por ocho
-    sec
-    sbc temp                    ; menos uno, o sea por siete
+    asl a                       ; por PAR_BYTES
     clc
     adc #FAR_PAR_ESTADO
     sta par_dir
@@ -2918,14 +2931,10 @@ misma_pagina:
     jmp guardar                 ; este cuadro se le va esperando
 .a16
 sin_espera:
-    lda elegida
-    sta cod_ptr
     txa
     sta ev_corriendo            ; de quién es la página, para un MoveEvent suyo
     sep #$20
 .a8
-    lda elegida + 2
-    sta cod_ptr + 2
     lda ev_activo
     bne corriendo
     ; No venía corriendo: la página vuelve a empezar. Es el `Push` que RPG_RT
@@ -3110,23 +3119,40 @@ listo:
 .a8
 .i16
     sta otro_ev
-    ldx #$0000
+    ; De la más alta usada para abajo, y no de cero para arriba: así el corte
+    ; es `X == 0`, que el `tax` deja en Z gratis, y no hace falta un límite de
+    ; dieciséis bits en RAM —que no hay—. Un evento tiene a lo sumo una ranura
+    ; —sólo se le da una cuando `ranura_del_evento` no le encontró ninguna— así
+    ; que el orden no cambia la respuesta.
+    lda ruta_ev_tope
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a                       ; por RUTA_EV_STRIDE
+    tax
+    sep #$20
+.a8
 buscar:
-    lda ruta_ev, x
-    cmp otro_ev
-    beq listo
+    cpx #$0000
+    beq no_tiene
     rep #$20
 .a16
     txa
-    clc
-    adc #RUTA_EV_STRIDE
+    sec
+    sbc #RUTA_EV_STRIDE
     tax
-    cmp #RUTA_EV_MAX * RUTA_EV_STRIDE
     sep #$20
 .a8
-    bcc buscar
+    lda ruta_ev, x
+    cmp otro_ev
+    bne buscar
+    rts                         ; X = su ranura
+no_tiene:
     ldx #$FFFF
-listo:
     rts
 .endproc
 
@@ -3150,7 +3176,26 @@ buscar:
 .a8
     bcc buscar
     ldx #$FFFF
+    rts                         ; sin lugar: el tope no se toca
 listo:
+    ; La ranura pasa a tener dueño, así que el tope sube si quedó más arriba
+    ; del que había. Es el único lugar por donde se toma una: las dos —la
+    ; página propia y la ruta forzada— piden acá.
+    rep #$20
+.a16
+    txa
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    lsr a                       ; de bytes a número de ranura
+    inc a
+    sep #$20
+.a8
+    cmp ruta_ev_tope
+    bcc ya_estaba
+    sta ruta_ev_tope
+ya_estaba:
     rts
 .endproc
 
@@ -3613,7 +3658,7 @@ falla:
     sep #$20
 .a8
     lda switches, y
-    and mascara, x
+    and f:mascara, x
     rep #$20
 .a16
     rts                         ; rep no toca Z, así que el and sigue valiendo
@@ -3895,6 +3940,9 @@ otro:
 :   cmp #OP_LUGAR
     bne :+
     jmp op_lugar
+:   cmp #OP_LUGAR_VAR
+    bne :+
+    jmp op_lugar_var
 :   cmp #OP_TRUEQUE
     bne :+
     jmp op_trueque
@@ -4576,7 +4624,7 @@ anotado:
     lda f:BAT_LARGO + BA_TEMA_ANT
     jsr batalla_bgm             ; el tema del mapa, o el silencio que había
     plb
-    jsr volver_al_mapa
+    jsr volver_de_batalla
     ply
     ; Y apunta a la tropa; los tres destinos vienen detrás, de a palabra, en el
     ; orden victoria, huida, derrota, que es el de `BATALLA_HANDLERS`.
@@ -4936,9 +4984,62 @@ op_lugar:
     sep #$20
 .a8
     phy
+lugar_plantar:                  ; con Y ya en la pila: ver `op_lugar_var`
     jsr plantar_evento
     ply
     jmp otro
+
+; `ChangeEventLocation` con la celda en **dos variables**, que es la otra rama
+; de `CommandChangeEventLocation`. Lo demás es idéntico a `op_lugar`: el mismo
+; `MoveTo`, o sea la celda cambia ya, el paso en curso se corta y ni la ruta ni
+; hacia dónde mira se tocan. Ver OP_LUGAR_VAR en eventos.py.
+;
+; Las dos lecturas van **antes** de escribir ninguna de las dos palabras, como
+; en `op_trueque`: una variable que se leyera después de haber movido al evento
+; ya podría valer otra cosa si es una de las de coordenadas de `ControlVars`.
+; En este juego no pasa —el minijuego del mapa 11 las calcula antes— pero es la
+; misma regla y no cuesta nada.
+;
+; `var_leer` no toca X ni `temp`, así que el desplazamiento de la fila se
+; calcula una sola vez y sobrevive a las dos lecturas.
+op_lugar_var:
+.a8
+.i16
+    lda [cod_ptr], y            ; el blanco: el índice del evento más uno
+    dec a
+    sta temp
+    iny
+    lda [cod_ptr], y            ; la ranura de la x
+    sta temp + 1
+    iny
+    lda [cod_ptr], y            ; y la de la y
+    sta temp + 2
+    iny
+    phy
+    rep #$20
+.a16
+    lda temp
+    and #$00FF
+    asl a
+    asl a                       ; EV_STRIDE bytes por evento
+    tax
+    sep #$20
+.a8
+    lda temp + 1
+    jsr var_leer                ; vuelve con M en dieciséis
+.a16
+    pha
+    sep #$20
+.a8
+    lda temp + 2
+    jsr var_leer
+.a16
+    sta ev_pos_buf + 2, x
+    pla
+    sta ev_pos_buf + 0, x
+    sep #$20
+.a8
+    bra lugar_plantar
 
 ; `TradeEventLocations`: los dos eventos se cambian de celda, y cada uno es un
 ; `MoveTo` como el de `op_lugar` —la celda, el corte del paso, y el dibujo que
@@ -5395,10 +5496,9 @@ var_suma:
 .a8
 var_pone:
     lda temp
-    jsr var_escribir
-    lda #1
-    sta refresco                ; las páginas que piden una variable pueden
-    ply                         ; cambiar: `SetNeedRefreshForVarChange`
+    jsr var_escribir            ; y el refresco, si la ranura lo pide: las
+                                ; páginas que miran esta variable pueden
+    ply                         ; cambiar. Ver `var_escribir`
     iny                         ; a y b, cuatro bytes
     iny
     iny
@@ -5596,9 +5696,7 @@ op_tecla:
     stz temp + 2
     stz temp + 3
     lda temp
-    jsr var_escribir
-    lda #1
-    sta refresco
+    jsr var_escribir            ; con su refresco, si la ranura lo pide
     sty ev_cur
     rts
 tecla_mirar:
@@ -5619,10 +5717,8 @@ tecla_mirar:
     rts
 tecla_guardar:
     lda temp
-    jsr var_escribir
-    lda #1
-    sta refresco                ; `SetNeedRefreshForVarChange`, como ControlVars
-    jmp otro
+    jsr var_escribir            ; `SetNeedRefreshForVarChange`, como ControlVars:
+    jmp otro                    ; lo decide la ranura. Ver `var_escribir`
 
 op_esperar:
     ; Y acá se devuelve el control. Antes se salteaba, y el comentario decía
@@ -5780,7 +5876,7 @@ op_teleport:
 .i16
     rep #$20
 .a16
-    and #$00FF
+    and #VAR_RANURA             ; sin el bit de VAR_REFRESCO, que viaja pegado
     asl a                       ; dos bytes por variable
     clc
     adc #FAR_VARIABLES
@@ -5806,15 +5902,30 @@ op_teleport:
     rts
 .endproc
 
-; A: la ranura; `temp + 2`: el valor.
+; A: la ranura, con `VAR_REFRESCO` en el bit de arriba si esta escritura pide
+; el refresco de páginas; `temp + 2`: el valor.
+;
+; El refresco se marca **acá y no en cada opcode** porque por acá pasan las
+; tres escrituras que hay —`op_var` y las dos ramas de `op_tecla`— y así el
+; bit se mira una sola vez. Es `Game_Map::SetNeedRefreshForVarChange`, que
+; tampoco marca por cualquier escritura: le pregunta al `map_cache` si alguna
+; condición de página del mapa mira esa variable. Acá esa pregunta la contestó
+; el conversor; ver VAR_REFRESCO en eventos.py.
 .proc var_escribir
 .a8
 .i16
+    pha                         ; la ranura con su bit, que var_apuntar tira
     jsr var_apuntar
     lda temp + 2
     sta WMDATA
     lda temp + 3
     sta WMDATA
+    pla
+    and #VAR_REFRESCO           ; explícito y no el N que deja `pla`: ver la
+    beq sin_refresco            ; trampa de las banderas en AGENTS.md
+    lda #1
+    sta refresco
+sin_refresco:
     rts
 .endproc
 
@@ -7658,13 +7769,13 @@ si:
     pla
     beq apagar
     lda switches, y
-    ora mascara, x
+    ora f:mascara, x
     sta switches, y
     lda #1
     sta refresco                ; las páginas que lo piden pueden cambiar
     rts
 apagar:
-    lda mascara, x
+    lda f:mascara, x
     eor #$FF
     and switches, y
     sta switches, y
@@ -8241,6 +8352,7 @@ copiar:
     bra copiar
 
 tablas:
+    stz ruta_ev_tope            ; ninguna ranura usada todavía en este mapa
     ldx #$0000
 libre:
     lda #RUTA_EV_LIBRE
@@ -8310,39 +8422,17 @@ sin_flash:
     dec a
     sta temp                    ; el índice del evento
 
-    ; Primero la ranura que ya sea suya.
-    ldx #$0000
-buscar:
-    lda ruta_ev, x
-    cmp temp
-    beq reusada
-    rep #$20
-.a16
-    txa
-    clc
-    adc #RUTA_EV_STRIDE
-    tax
-    cmp #RUTA_EV_MAX * RUTA_EV_STRIDE
-    sep #$20
-.a8
-    bcc buscar
-
-    ; Y si no, una libre.
-    ldx #$0000
-vacia:
-    lda ruta_ev, x
-    cmp #RUTA_EV_LIBRE
-    beq puesta
-    rep #$20
-.a16
-    txa
-    clc
-    adc #RUTA_EV_STRIDE
-    tax
-    cmp #RUTA_EV_MAX * RUTA_EV_STRIDE
-    sep #$20
-.a8
-    bcc vacia
+    ; Primero la ranura que ya sea suya, y si no una libre. Las dos búsquedas
+    ; estaban copiadas acá y son exactamente `ranura_del_evento` y
+    ; `ranura_libre`: llamarlas ahorra banco 0 y, la primera, se lleva de
+    ; regalo el tope de `ruta_ev_tope`.
+    lda temp
+    jsr ranura_del_evento
+    cpx #$FFFF
+    bne reusada
+    jsr ranura_libre
+    cpx #$FFFF
+    bne puesta
     rts                         ; no hay lugar: la ruta se pierde
 
 puesta:
@@ -11416,25 +11506,66 @@ otro:
 ; El valor que `KeyInputProc` le guarda a la variable, en A, o 0 si todavía no
 ; hay tecla. `temp + 1` trae las banderas.
 ;
-; **Sólo la tecla de acción, y sólo por flanco.** No es una simplificación
-; escondida: es la única forma del comando que compila, ver `KEY_INPUT_PROC` en
-; `eventos.py`, que tiene el número y el porqué. Las otras —la cruceta,
-; cancelar, y leer sin esperar— están escritas del lado del modelo, en
-; `eventos.tecla_de`, y acá **no**: escribirlas sería poner en el banco 0
-; sesenta bytes que ninguna página puede alcanzar y que por lo tanto no prueba
-; nada. El día que la caminata del arnés avance cuadro a cuadro, vuelven, y el
-; orden en que se miran ya está en `tecla_de`.
+; **Las tres cosas, y las tres por flanco**: cancelar, la tecla de acción y la
+; cruceta. El orden es el de `CheckInput` —de mayor valor a menor, que es lo
+; que dice "RPG processes keys from highest variable value to lowest"— y es el
+; mismo que corre `eventos.tecla_de` del lado del modelo; los números salen del
+; conversor y no están escritos acá dos veces.
 ;
-; El flanco es `Input::IsTriggered`: `pad_a` contra `pad_a_ant`, lo mismo con
-; lo que se cierra un mensaje.
+; Hasta el 2026-09-13 esto miraba sólo la tecla de acción, y lo que lo tenía
+; cortado no era la ROM sino el arnés: la tanda sostenía una dirección desde el
+; arranque, así que un flanco de cruceta no lo podía producir ningún caso.
+; Ahora lo produce `--tocar`, y lo cobra el caso `tecla-dir` de la tanda.
+;
+; El flanco es `Input::IsTriggered`: `pad` contra `pad_ant` para B y las
+; direcciones, `pad_a` contra `pad_a_ant` para A —A vive en el otro byte del
+; control—, que es lo mismo con lo que se cierra un mensaje.
+;
+; `temp + 3` es el único de los cuatro que está libre acá: `temp` trae la
+; ranura y `temp + 1` las banderas, y `op_tecla` guarda la respuesta en
+; `temp + 2` **después** de volver de acá.
 .proc tecla_valor
 .a8
 .i16
+    lda pad
+    eor pad_ant
+    and pad
+    sta temp + 3                ; los flancos de JOY1H: B y las cuatro flechas
+    lda temp + 1
+    and #TECLA_CANCELAR
+    beq sin_cancelar
+    lda temp + 3
+    and #PAD_B
+    beq sin_cancelar
+    lda #TECLA_VALOR_CANCELAR
+    rts
+sin_cancelar:
+    lda temp + 1
+    and #TECLA_DECISION
+    beq sin_decision
     lda pad_a
     eor pad_a_ant
     and pad_a
-    beq ninguna
+    beq sin_decision
     lda #TECLA_VALOR_DECISION
+    rts
+sin_decision:
+    lda temp + 1
+    and #TECLA_DIRS
+    beq ninguna
+    ; Las cuatro, en el orden de `CheckInput`, por tabla: escritas a mano son
+    ; cuatro `bit`/`bne` más cuatro `lda`/`rts`, y el banco 0 no los tiene.
+    ; La tabla termina en cero, que no es ningún botón.
+    ldx #$0000
+dir_otra:
+    lda f:tecla_dir_bit, x
+    beq ninguna
+    and temp + 3
+    bne dir_hay
+    inx
+    bra dir_otra
+dir_hay:
+    lda f:tecla_dir_val, x
     rts
 ninguna:
     lda #0
@@ -13089,7 +13220,7 @@ vacia:
     sta INIDISP
     stz HDMAEN
     stz TM
-    jsr items_banco_subir
+    jsl f:items_banco_subir
     jsr eq_componer
     jsr pant_subir
     jsr ranura_ppu_prender
@@ -14208,7 +14339,7 @@ empieza:
     sta INIDISP
     stz HDMAEN
     stz TM
-    jsr items_banco_subir
+    jsl f:items_banco_subir
     jsr ti_componer
     jsr pant_subir
     jsr ranura_ppu_prender
@@ -14542,7 +14673,7 @@ ba_t_banco:
     phb
     phk
     plb
-    jsr items_banco_subir
+    jsl f:items_banco_subir
     plb
     rtl
 ba_t_ppu:
@@ -16616,71 +16747,6 @@ sin_decenas:
     jmp glifo_par
 .endproc
 
-; El banco de la pantalla, con la pantalla apagada: la fuente, el tilemap en
-; blanco y las dos paletas.
-.proc items_banco_subir
-.a8
-.i16
-    lda #$80
-    sta VMAIN
-    rep #$20
-.a16
-    lda #RANURA_VRAM
-    sta VMADDL
-    lda #(ITEMS_TILES * 32)
-    sta DAS0L
-    lda #<(items_tiles)
-    ora #(>(items_tiles) * 256)
-    sta A1T0L
-    sep #$20
-.a8
-    lda #^(items_tiles)
-    sta A1B0
-    lda #$01
-    sta DMAP0
-    lda #$18
-    sta BBAD0
-    lda #$01
-    sta MDMAEN
-    ; El tilemap en blanco: un DMA de origen fijo desde el primer tile, que
-    ; es transparente.
-    rep #$20
-.a16
-    lda #RANURA_MAP
-    sta VMADDL
-    lda #(32 * 32 * 2)
-    sta DAS0L
-    lda #<(items_tiles)
-    ora #(>(items_tiles) * 256)
-    sta A1T0L
-    sep #$20
-.a8
-    lda #^(items_tiles)
-    sta A1B0
-    lda #$09                    ; dos registros, sin avanzar el origen
-    sta DMAP0
-    lda #$01
-    sta MDMAEN
-    ; Los colores.
-    stz CGADD
-    rep #$20
-.a16
-    lda #(ITEMS_CGRAM_N * 2)
-    sta DAS0L
-    lda #<(items_cgram)
-    ora #(>(items_cgram) * 256)
-    sta A1T0L
-    sep #$20
-.a8
-    lda #^(items_cgram)
-    sta A1B0
-    stz DMAP0
-    lda #$22
-    sta BBAD0
-    lda #$01
-    sta MDMAEN
-    rts
-.endproc
 
 ; Las filas que se ven, sobre el tilemap en blanco.
 .proc items_filas_pintar
@@ -16719,7 +16785,7 @@ termina:
     sta INIDISP
     stz HDMAEN
     stz TM
-    jsr items_banco_subir
+    jsl f:items_banco_subir
     jsr items_desc_pintar
     jsr items_desc_subir
     jsr items_filas_pintar
@@ -16793,7 +16859,7 @@ mira_a:
     sta titulo_sel
     lda #$80
     sta INIDISP
-    jsr items_banco_subir
+    jsl f:items_banco_subir
     jsr items_desc_pintar
     jsr items_desc_subir
     jsr items_filas_pintar
@@ -16877,7 +16943,7 @@ baja_la_vista:
 repintar:
     lda #$80
     sta INIDISP
-    jsr items_banco_subir       ; el tilemap en blanco, y de paso el resto
+    jsl f:items_banco_subir       ; el tilemap en blanco, y de paso el resto
     jsr items_desc_pintar
     jsr items_desc_subir
     jsr items_filas_pintar
@@ -16935,6 +17001,76 @@ repintar:
     stz destello_listo          ; `pal_buf` era de antes; si el destello sigue,
                                 ; el cuadro que viene lo vuelve a armar
     jsr subir_tinte
+    rts
+.endproc
+
+; Y volver de una **pelea**, que pisa mucho más que la pantalla de ranuras.
+;
+; `volver_al_mapa` alcanza para la tienda, el menú y las ranuras porque las tres
+; escriben nada más que `RANURA_VRAM` y `RANURA_MAP`, elegidos para caer adentro
+; del banco de tiles de BG1 en los cuatro repartos. La escena de la batalla no:
+; `escena_subir` sube **32 KB**, o sea las palabras $4000 a $8000, más su
+; tilemap en $3800 y 64 bytes en la palabra 0. En los seis repartos de
+; `vram_layout` eso se lleva puesto, además del banco de BG1:
+;
+;   $5800  el tilemap del mapa          lo llena `fill_window`
+;   $7800  el de la capa de encima      el mismo
+;   $6800  los tiles de la ventana      `load_ventana`, con su tilemap y su HDMA
+;   los sprites                         `load_sprite`: en LAYOUT_ANCHO viven en
+;                                       $4000 y quedan enteros adentro de la
+;                                       escena; en los repartos con ventana
+;                                       arrancan en 0 y la palabra 0 se lleva
+;                                       los dos primeros tiles del héroe
+;
+; Nada de eso lo repone `load_map`, así que hasta el 2026-09-13 el mapa volvía
+; de la pelea con el fondo hecho basura. Lo que **no** va acá es `load_npcs` ni
+; `load_ruta_graficos`: copian tablas del cartucho a RAM, la pelea no las toca,
+; y reponerlas borraría lo que los eventos hayan movido antes de pelear.
+;
+; Va aparte de `volver_al_mapa` y no adentro para no cobrarle a la tienda, al
+; menú y a las ranuras las 64 columnas de `fill_window`, que son el único
+; momento en que se escribe tanto tilemap de una vez: ellas no lo necesitan, y
+; un cuadro perdido de más se lo comerían los casos de la tanda que las miran.
+.proc volver_de_batalla
+.a8
+.i16
+    lda #$80
+    sta INIDISP                 ; lo que sigue escribe VRAM por DMA
+    jsr load_sprite             ; el banco de poses, la paleta de objetos y OBSEL
+    jsr poses_npc_olvidar
+    jsr load_ventana
+    jsr fill_window
+    jmp volver_al_mapa
+.endproc
+
+; La cola de poses en caliente después de reponer el banco: cada ranura tiene
+; ahora la pose que el conversor dejó en el cartucho, y no la que su NPC venía
+; mostrando. `load_sprite` arregla la del héroe —deja `hero_pose_vram` en $FF—
+; y las de los NPC viven en `npc_buf + 12`, que es la única parte de esa tabla
+; que esto toca: es una sombra de lo que hay en la VRAM, no estado del juego.
+;
+; Con $FF ninguna pose coincide, así que el próximo `subir_pose_npc` de cada
+; fila la vuelve a encolar. Sin esto la sombra mentiría y un NPC que ya
+; estuviera en su pose se quedaría con la del cartucho para siempre.
+.proc poses_npc_olvidar
+.a8
+.i16
+    ldy #$0000
+otra:
+    cpy npc_total               ; viene en bytes, no en filas
+    beq listo
+    lda #$FF
+    sta npc_buf + 12, y
+    rep #$20
+.a16
+    tya
+    clc
+    adc #NPC_STRIDE
+    tay
+    sep #$20
+.a8
+    bra otra
+listo:
     rts
 .endproc
 
@@ -18953,7 +19089,7 @@ con_colision:
     sep #$20
 .a8
     ldx celda_dir
-    and pass_salir, x
+    and f:pass_salir, x
     bne :+
     jmp no                      ; queda lejos para un salto corto
 :
@@ -19016,7 +19152,7 @@ entra:
     sep #$20
 .a8
     ldx celda_dir
-    and pass_entrar, x
+    and f:pass_entrar, x
     bne :+
     jmp no
 :
@@ -19066,9 +19202,9 @@ no:
     tax
     sep #$20
 .a8
-    lda diag_vert, x
+    lda f:diag_vert, x
     sta diag_v
-    lda diag_horiz, x
+    lda f:diag_horiz, x
     sta diag_h
     rep #$20
 .a16
@@ -19211,9 +19347,9 @@ con_pose:
     tax
     sep #$20
 .a8
-    lda diag_vert, x
+    lda f:diag_vert, x
     sta diag_v
-    lda diag_horiz, x
+    lda f:diag_horiz, x
     plx
     cmp diag_mira
     beq queda
@@ -20407,33 +20543,19 @@ columna:
     rts
 .endproc
 
-; Las dos tablas que el compositor consulta en su lazo interno. Van en el banco
-; 0 como el resto de las tablas: `lda tabla, x` direcciona el banco de datos.
-.segment "TABLAS"
+.segment "RODATA"
 ; La tabla del HDMA que enmascara los objetos debajo de la ventana de mensaje:
 ; nada en las 144 líneas de arriba —en dos tramos, por los 7 bits del contador—
 ; y la ventana 1 prendida para los objetos en las 80 de abajo. Ver `armar_hdma`.
+;
+; **Fuera del banco 0**: el HDMA lee de donde diga `A1B3`, así que una tabla de
+; ocho bytes que no cambia nunca no tiene por qué gastar banco 0.
 hdma_mascara:
     .byte 127, $00
     .byte (VENTANA_LINEA - 127), $00
     .byte (LINEAS - VENTANA_LINEA), $02
     .byte 0
 
-; De qué byte del buffer arranca cada una de sus dieciséis filas. El buffer son
-; dos filas de celda, así que la fila Y cae en el tile (Y/8) por 30 columnas de
-; 32 bytes, más (Y mod 8) por 2 dentro del tile.
-tabla_fila_buf:
-    .word 0, 2, 4, 6, 8, 10, 12, 14
-    .word 960, 962, 964, 966, 968, 970, 972, 974
-
-; Dónde empiezan los glifos compuestos de cada fase, indexados por la fase
-; misma —0, 2, 4 o 6—: por eso los bancos van con un byte de relleno entre
-; uno y otro. Ver `componer_char`.
-fuente_pre_lo:
-    .word .loword(fuente_pre0), .loword(fuente_pre1)
-    .word .loword(fuente_pre2), .loword(fuente_pre3)
-fuente_pre_bk:
-    .byte ^fuente_pre0, 0, ^fuente_pre1, 0, ^fuente_pre2, 0, ^fuente_pre3
 
 .segment "CODE"
 
@@ -20605,7 +20727,8 @@ hay:
     sta BBAD3
     ldx #.loword(hdma_mascara)
     stx A1T3L
-    stz A1B3
+    lda #^hdma_mascara
+    sta A1B3
     rts
 .endproc
 
@@ -20662,18 +20785,38 @@ TEXTO_OFS_Y = 2
 .proc msg_empezar
 .a16
 .i16
+    ; El desplazamiento es de dieciséis bits y el bloque de textos puede medir
+    ; hasta 64 KB, o sea **más que la ventana de un banco de LoROM**: con los
+    ; 29 mapas de `demo-ciudad` son 48972 bytes y arranca en $46:8000, así que
+    ; desde el desplazamiento $8000 la suma se pasa de $FFFF. Lo que sigue a
+    ; $FFFF no es el $0000 del banco que viene sino su $8000, que es lo mismo
+    ; que ya sabía `ptr_mas` para la grilla del mapa; acá se sumaba de a
+    ; dieciséis bits y el acarreo se perdía, así que **todo cuadro de texto
+    ; pasado el primer banco leía de otro lado**: la cabecera y los largos de
+    ; renglón salían de cualquier cosa. El lazo suma un banco por vuelta porque
+    ; un bloque de 64 KB cruza hasta dos veces.
+    phx
+    ldx #^mensajes
     clc
     adc #.loword(mensajes)
+otro_banco:
+    bcc en_el_banco
+    inx
+    clc
+    adc #$8000
+    bra otro_banco
+en_el_banco:
     sta msg_ptr
     sep #$20
 .a8
-    lda #^mensajes
+    txa
     sta msg_ptr + 2
+    rep #$20
+.a16
+    plx
     ; La cola de escapes arranca limpia, y **antes** del `rts` de abajo: una ROM
     ; sin ventana no lee ninguna cabecera, y una pausa de basura ahí dejaría la
     ; página frenada para siempre.
-    rep #$20
-.a16
     lda #0
     sta f:FAR_MSG_PAUSA         ; `stz` no tiene modo largo
     sep #$20
@@ -20970,13 +21113,13 @@ mas:
 
     ; Sus datos: la tabla de su fase, más el carácter por FUENTE_PRE_CHAR.
     ldx comp_fase
-    lda fuente_pre_lo, x
+    lda f:fuente_pre_lo, x
     clc
     adc RDMPYL
     sta comp_glifo
     sep #$20
 .a8
-    lda fuente_pre_bk, x
+    lda f:fuente_pre_bk, x
     sta comp_glifo + 2
 
     ldy #0
@@ -20988,7 +21131,7 @@ fila:
     lda comp_fila
     and #$00FF
     tax
-    lda tabla_fila_buf, x
+    lda f:tabla_fila_buf, x
     clc
     adc comp_base
     tax                         ; X = el byte del buffer donde arranca la fila
@@ -24123,6 +24266,17 @@ RUTA_EV_STRIDE = 32
 RUTA_EV_LIBRE = $FF
 RUTA_EV_SIN_MIRAR = $FF     ; en +8: la ruta todavía no lo giró
 ruta_ev:  .res RUTA_EV_MAX * RUTA_EV_STRIDE
+; Cuántas de las doce vale la pena mirar: la más alta que se llegó a usar desde
+; que se cargó el mapa, más una. **No baja** al liberarse una, y no hace falta
+; que baje: una ranura que nunca se tomó tiene $FF en +0, así que buscar más
+; allá no puede encontrar nada.
+;
+; Existe por `ranura_del_evento`, que corre **una vez por evento paralelo y por
+; cuadro** y recorría las doce siempre. En el HQ de los Lazer Teeth hay once
+; eventos con página paralela y **una sola ranura usada**: eran once recorridas
+; de doce para encontrar una, y con eso el lazo se pasaba del cuadro. Es un byte
+; porque en la BSS del banco 0 quedaba exactamente uno.
+ruta_ev_tope: .res 1
 
 ; Los destellos corriendo. Una ranura por destello:
 ;
@@ -24890,6 +25044,69 @@ done:
 ; Bajaron del banco 0 el 2026-09-13, cuando `HaltAllMovement` y la rama por
 ; objeto lo pasaron por 128 bytes. El banco 0 lleva el código y las tablas que
 ; **sí** se indexan con el banco de datos en cero; lo que no, sobra.
+
+; Y desde el mismo día, seis más: el 2026-09-13 el `KeyInputProc` que espera la
+; cruceta y el `ChangeEventLocation` por variables volvieron a pasar el banco 0,
+; esta vez por 58 bytes. Las seis se leen con **X**, que es lo único que el
+; 65816 indexa en largo —`long,Y` no existe—, y por eso bajaron éstas y no las
+; de velocidad de las rutas, que se leen con Y.
+;
+; Ninguna está en un lazo por cuadro. La más caliente es `tabla_fila_buf`, que
+; el compositor de texto lee **una vez por fila de glifo**: dieciséis por letra
+; y sólo mientras se está armando una ventana de mensaje, o sea un ciclo de más
+; por fila sobre los cientos que cuesta componerla.
+
+; De qué byte del buffer de texto arranca cada una de sus dieciséis filas. El
+; buffer son dos filas de celda, así que la fila Y cae en el tile (Y/8) por 30
+; columnas de 32 bytes, más (Y mod 8) por 2 dentro del tile.
+tabla_fila_buf:
+    .word 0, 2, 4, 6, 8, 10, 12, 14
+    .word 960, 962, 964, 966, 968, 970, 972, 974
+
+; Un bit por posición, para el bitmap de switches. Sale más barata que ocho
+; corrimientos y se lee con el índice que ya tenemos.
+mascara:
+    .byte $01,$02,$04,$08,$10,$20,$40,$80
+
+; Qué permiso hace falta para salir de una celda y para entrar en la de al
+; lado, por dirección —arriba, derecha, abajo, izquierda—.
+;
+; Los pares son cruzados a propósito: para ir hacia arriba hay que poder salir
+; por arriba de la celda de origen y poder entrar por abajo a la de destino. Es
+; la regla de RM2k, y la misma que `rm2k.puede_pasar` escribe del lado de
+; Python.
+pass_salir:
+    .byte PASS_UP, PASS_RIGHT, PASS_DOWN, PASS_LEFT
+pass_entrar:
+    .byte PASS_DOWN, PASS_LEFT, PASS_UP, PASS_RIGHT
+
+; Las dos componentes de cada diagonal, indexadas por la dirección menos
+; cuatro: primero la vertical y después la horizontal. De acá salen las dos
+; eles que prueba `puede_celda_diag` y las dos poses que compara
+; `encarar_diagonal`. Son RUTA_DIAGONALES de eventos.py.
+diag_vert:
+    .byte DIR_UP, DIR_DOWN, DIR_DOWN, DIR_UP
+diag_horiz:
+    .byte DIR_RIGHT, DIR_RIGHT, DIR_LEFT, DIR_LEFT
+
+; Dónde empiezan los glifos compuestos de cada fase, indexados por la fase
+; misma —0, 2, 4 o 6—: por eso los bancos van con un byte de relleno entre
+; uno y otro. Ver `componer_char`. Se leen **una vez por glifo**, no por fila.
+fuente_pre_lo:
+    .word .loword(fuente_pre0), .loword(fuente_pre1)
+    .word .loword(fuente_pre2), .loword(fuente_pre3)
+fuente_pre_bk:
+    .byte ^fuente_pre0, 0, ^fuente_pre1, 0, ^fuente_pre2, 0, ^fuente_pre3
+
+; Qué bit de JOY1H mira cada dirección de `KeyInputProc` y qué número le guarda
+; a la variable, en el orden de `CheckInput` —de mayor valor a menor—. El mismo
+; orden que recorre `eventos.tecla_de` del lado del modelo; los números los
+; emite el conversor, así que no están escritos dos veces.
+tecla_dir_bit:
+    .byte PAD_UP, PAD_RIGHT, PAD_LEFT, PAD_DOWN, 0
+tecla_dir_val:
+    .byte TECLA_VALOR_ARRIBA, TECLA_VALOR_DERECHA
+    .byte TECLA_VALOR_IZQUIERDA, TECLA_VALOR_ABAJO
 
 partida_tabla:
     .word hero_x, 2
@@ -29106,6 +29323,88 @@ pone:
     sta BA_BLANCO
 nada:
     rts
+.endproc
+
+; --- el banco de la pantalla, también fuera del banco 0 ---------------------
+;
+; Se mudó acá el 2026-09-13, cuando `volver_de_batalla` pidió cuarenta y seis
+; bytes que el banco 0 ya no tenía: `demo-ciudad` quedaba en 32748 de 32704, y
+; antes de eso le sobraban **dos**. Ésta es la que sale más barata de mudar de
+; todo lo que mide más de cien bytes: no llama a nadie —son escrituras de
+; registro y cuatro DMA— así que no hace falta ningún puente, y no corre por
+; cuadro sino al abrir una pantalla con el PPU apagado, o sea que el ciclo de
+; más del `jsl` no se nota.
+;
+; Lo que sí obliga: **se entra con `jsl` y vuelve con `rtl`**, y el banco de
+; datos tiene que seguir siendo uno donde $2100..$21FF sea la consola, porque
+; escribe los registros en absoluto. Los seis llamadores están todos en el
+; banco 0; el de la pelea entra por el puente `ba_t_banco`, que es justo el que
+; pone el banco de datos en cero antes de llamar.
+
+; El banco de la pantalla, con la pantalla apagada: la fuente, el tilemap en
+; blanco y las dos paletas.
+.proc items_banco_subir
+.a8
+.i16
+    lda #$80
+    sta VMAIN
+    rep #$20
+.a16
+    lda #RANURA_VRAM
+    sta VMADDL
+    lda #(ITEMS_TILES * 32)
+    sta DAS0L
+    lda #<(items_tiles)
+    ora #(>(items_tiles) * 256)
+    sta A1T0L
+    sep #$20
+.a8
+    lda #^(items_tiles)
+    sta A1B0
+    lda #$01
+    sta DMAP0
+    lda #$18
+    sta BBAD0
+    lda #$01
+    sta MDMAEN
+    ; El tilemap en blanco: un DMA de origen fijo desde el primer tile, que
+    ; es transparente.
+    rep #$20
+.a16
+    lda #RANURA_MAP
+    sta VMADDL
+    lda #(32 * 32 * 2)
+    sta DAS0L
+    lda #<(items_tiles)
+    ora #(>(items_tiles) * 256)
+    sta A1T0L
+    sep #$20
+.a8
+    lda #^(items_tiles)
+    sta A1B0
+    lda #$09                    ; dos registros, sin avanzar el origen
+    sta DMAP0
+    lda #$01
+    sta MDMAEN
+    ; Los colores.
+    stz CGADD
+    rep #$20
+.a16
+    lda #(ITEMS_CGRAM_N * 2)
+    sta DAS0L
+    lda #<(items_cgram)
+    ora #(>(items_cgram) * 256)
+    sta A1T0L
+    sep #$20
+.a8
+    lda #^(items_cgram)
+    sta A1B0
+    stz DMAP0
+    lda #$22
+    sta BBAD0
+    lda #$01
+    sta MDMAEN
+    rtl
 .endproc
 
 ; --- cabecera y vectores ---------------------------------------------------

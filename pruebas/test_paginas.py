@@ -65,15 +65,24 @@ def test_la_condicion_por_variable_va_en_la_pagina():
 
 
 def test_las_ranuras_son_las_del_juego_entero():
-    """Ochenta y una variables, las mismas ranuras en cualquier ROM: una
-    partida guardada con la demo tiene que valer para una ROM con más mapas."""
+    """Ochenta y tres variables, las mismas ranuras en cualquier ROM: una
+    partida guardada con la demo tiene que valer para una ROM con más mapas.
+
+    Eran 81 hasta el 2026-09-13: `variables_de` no miraba el `KeyInputProc`,
+    que es el único comando de este juego que le escribe a una variable sin ser
+    un `ControlVars`. Las dos que aparecieron son la 5 —el motor del minijuego
+    de las piedras del mapa 11— y la 151, y a ninguna de las dos la nombra
+    nadie más, así que sin esto sus tres páginas no compilaban por un motivo
+    que no tenía nada que ver con el comando.
+    """
     ranuras = eventos.indexar_variables(GAME_DIR)
-    assert len(ranuras) == 81, len(ranuras)
+    assert len(ranuras) == 83, len(ranuras)
     assert max(ranuras) == 201
-    assert list(ranuras.values()) == list(range(81))
+    assert list(ranuras.values()) == list(range(83))
+    assert 5 in ranuras and 151 in ranuras
     # Las de la página de prueba se suman al final, sin correr a las demás.
     con_extra = eventos.indexar_variables(GAME_DIR, extra=(3000,))
-    assert con_extra[3000] == 81
+    assert con_extra[3000] == 83
     assert all(con_extra[v] == r for v, r in ranuras.items())
 
 

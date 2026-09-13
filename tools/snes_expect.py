@@ -707,7 +707,7 @@ def cuadro_de_eventos(estado, passable, game_map, heroe, paginas=(),
 
 
 def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
-                   apretar_a=None, mirando=None):
+                   apretar_a=None, mirando=None, tocar=None):
     """Entra a un mapa y le corre los eventos automáticos, como `cargar_mapa`.
 
     Primero se para al héroe —donde diga la puerta o el teletransporte que nos
@@ -743,7 +743,13 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
     # antes de saltar al 1.
     base = 0
     apretar_a = set(apretar_a) if apretar_a else set()
-    ultimo_a = max(apretar_a) if apretar_a else None
+    # `tocar` es {cuadro: (botones,)}, con los mismos cuadros que `apretar_a`:
+    # son toques de un cuadro, o sea flancos. Ver `--tocar`.
+    tocar = dict(tocar or {})
+    # Y hasta el último toque, por lo mismo que `ultimo_a`: un mapa sin nada
+    # que correr cortaría el lazo antes de que el jugador llegue a apretar.
+    aprietes = list(apretar_a) + list(tocar)
+    ultimo_a = max(aprietes) if aprietes else None
     anterior = None
     while True:
         game_map, passable, ocupadas, _puertas = mundo.mapa(map_id)
@@ -899,6 +905,7 @@ def entrar_al_mapa(mundo, estado, map_id, entrada=None, cuadros=None,
                 if interprete.cuadro(
                         apreto_a=apreta,
                         direccion=mirando,
+                        tocados=tocar.get(base + n, ()),
                         mover_evento=paso_del_paralelo(
                             estado, passable, game_map, (x, y),
                             interprete.paginas)):
@@ -1032,7 +1039,7 @@ def contacto_al_pisar(mundo, estado, map_id, x, y, passable, game_map):
 
 def hero_position(mundo, estado, map_id, direction_name, inicio=None,
                   avance=None, cuadros=None, apretar_a=None, mirando=None,
-                  margen=0):
+                  margen=0, tocar=None):
     """En qué mapa y en qué celda termina el héroe, y hacia dónde mira.
 
     No se estima: se entra al mapa como entra la ROM —corriéndole los eventos—
@@ -1044,7 +1051,7 @@ def hero_position(mundo, estado, map_id, direction_name, inicio=None,
     Devuelve (mapa, x, y, dirección) con x e y en pixeles.
     """
     map_id, x, y = entrar_al_mapa(mundo, estado, map_id, inicio, cuadros,
-                                  apretar_a, mirando)
+                                  apretar_a, mirando, tocar)
 
     def correr(n, en_x, en_y):
         """`n` ticks del mundo con el héroe quieto en esa celda.
@@ -1101,6 +1108,51 @@ def hero_position(mundo, estado, map_id, direction_name, inicio=None,
     # rebotando y la referencia también, y colgar una prueba no ayuda a nadie.
     for _ in range(10000):
         game_map, passable, _ocupadas, puertas = mundo.mapa(map_id)
+        # **La ruta forzada manda sobre el pad**, y por eso va antes que todo lo
+        # demás: `move_hero` mira `ruta_i / ruta_n` y se vuelve sin tocar el
+        # pad si hay una ruta puesta, igual que `Game_Player::
+        # UpdateNextMovementAction` vuelve sin mirar el input mientras
+        # `IsMoveRouteOverwritten()`. Acá la caminata avanzaba de a una celda
+        # entera sin mirar la ruta, así que el pad y la ruta movían al héroe a
+        # la vez y en direcciones distintas.
+        #
+        # Mientras la ruta esté puesta se vive **de a un cuadro**, que es lo
+        # único que puede intercalarse con ella: el paso de la ruta, los
+        # paralelos y los eventos que caminan solos. Cuando se acaba, la
+        # caminata sigue donde estaba.
+        #
+        # Lo que lo destapó es el volante de la persecución en auto: su página
+        # paralela le vuelve a poner la ruta al héroe **en todos los cuadros**,
+        # así que el pad no lo mueve nunca. Medido con
+        # `TECLA_SIN_ESPERA=1 just snes-heroe 52`, que es lo que acepta esa
+        # página: sin esto, apretando la izquierda da **55,42%** de pixeles
+        # distintos; con esto, **0,59%**.
+        #
+        # **Hoy esto no lo alcanza ningún caso de la tanda, y hay que decirlo.**
+        # Con el volante todavía sin aceptar, ninguna página compilada le pone
+        # una ruta al héroe mientras el jugador camina: la de una automática la
+        # consume `entrar_al_mapa` antes de la caminata, y la de un evento de
+        # contacto la consume `contacto_al_pisar` —su corte mira
+        # `algo_corriendo()`, que cuenta las rutas pendientes—. Queda como la
+        # guarda de la paleta vacía de `tenir_paleta`: código inalcanzable con
+        # lo que el conversor sabe emitir hoy, no un camino a medias. El día
+        # que el `KeyInputProc` sin espera entre, es lo primero que se ejercita.
+        if estado.ruta or estado.paso_cuadros:
+            estado.refrescar()
+            estado.cuadro_de_paralelos(
+                mundo.paginas(map_id),
+                paso_del_paralelo(estado, passable, game_map, (x, y),
+                                  mundo.paginas(map_id)))
+            x, y, llego = paso_de_ruta(estado, passable, game_map, x, y,
+                                       mundo.paginas(map_id))
+            cuadro_de_eventos(estado, passable, game_map, (x, y),
+                              mundo.paginas(map_id))
+            if llego:
+                map_id, x, y, frena = contacto_al_pisar(
+                    mundo, estado, map_id, x, y, passable, game_map)
+                if frena:
+                    break
+            continue
         # Las celdas ocupadas sólo sirven para elegir dónde arranca. No se le
         # pasan a la caminata: en RM2k un NPC bloquea el paso, pero la ROM
         # todavía no lo mira, y modelar acá algo que la consola no hace es
@@ -1543,6 +1595,13 @@ def main():
                              "de mensaje con estas líneas. El otro lado del "
                              "mismo flag de snes_convert.py. Implica "
                              "--con-ventana")
+    parser.add_argument("--relleno-de-mensajes", type=int, default=0,
+                        help="bytes muertos al principio del bloque de textos, para\n"
+                             "que los desplazamientos pasen los 32 KB que mide\n"
+                             "la ventana de un banco de LoROM. Es lo único que\n"
+                             "reproduce el defecto de `msg_empezar` sin armar un\n"
+                             "cartucho de diez mapas hablados. El otro lado del\n"
+                             "mismo flag de la otra herramienta")
     parser.add_argument("--con-ventana", action="store_true",
                         help="la ROM lleva la ventana de mensaje, o sea que "
                              "los ShowMessage del juego compilan y el reparto "
@@ -1554,6 +1613,16 @@ def main():
                              "que cierra un mensaje. Se cuentan desde el "
                              "arranque y a través de los teletransportes. El "
                              "otro lado del mismo flag de snes_correr.py")
+    parser.add_argument("--tocar", nargs="+", default=None,
+                        metavar="BOTON:CUADRO",
+                        help="toques anotados de cualquier botón —`up`, "
+                             "`down`, `left`, `right` y `b`—, con los cuadros "
+                             "contados como los de --apretar-a. El otro lado "
+                             "del mismo flag de snes_correr.py. Existe para "
+                             "la forma de KeyInputProc que espera la cruceta: "
+                             "es la única que pide un **flanco** de dirección "
+                             "a mitad de una escena, y sostener con --walk no "
+                             "lo produce")
     parser.add_argument("--batalla-de-prueba", type=int, default=0,
                         metavar="TROPA",
                         help="una pelea contra esta tropa al final de la "
@@ -1774,7 +1843,8 @@ def main():
     # El bloque de textos, armado igual que en el conversor y en el mismo orden:
     # el mensaje de prueba primero —desplazamiento 0— y después los mapas de la
     # tabla, que los junta `Mundo` al construirse.
-    mensajes = eventos.Mensajes() if args.con_ventana else None
+    mensajes = (eventos.Mensajes(args.relleno_de_mensajes)
+                if args.con_ventana else None)
     prueba = (mensajes.agregar(args.mensaje_de_prueba)
               if args.mensaje_de_prueba is not None else None)
     mundo = Mundo(renderer, args.game_dir, tabla,
@@ -1928,6 +1998,21 @@ def main():
         if args.hero_tile and args.dir:
             estado.mirando = DIRECTIONS[args.dir]
 
+        # Los toques anotados de `--tocar`, en el mismo formato que el modelo
+        # nombra las teclas: los enteros 0 a 3 para las direcciones y "b" para
+        # cancelar. A no entra acá —lo lleva `--apretar-a`, que además le habla
+        # a los eventos— y tampoco start, que en el mapa no lo mira nadie.
+        tocados = {}
+        for toque in args.tocar or ():
+            boton, _, cuadro = toque.partition(":")
+            if boton not in DIRECTIONS and boton != "b":
+                sys.exit("--tocar no sabe apretar %r: son las cuatro "
+                         "direcciones y `b`" % boton)
+            if not cuadro.isdigit():
+                sys.exit("--tocar quiere BOTON:CUADRO, y vino %r" % toque)
+            tocados.setdefault(int(cuadro), []).append(
+                DIRECTIONS[boton] if boton in DIRECTIONS else boton)
+
         # Adónde se llega es lo primero: entre los eventos del arranque y las
         # puertas que cruce la caminata, el mapa que hay que dibujar bien puede
         # no ser el que se pidió.
@@ -1947,7 +2032,8 @@ def main():
                                                        # caminata.
                                                        0 if avance is not None
                                                        or cuadros is not None
-                                                       else args.margen)
+                                                       else args.margen,
+                                                       tocar=tocados)
 
         # Con qué se dibuja al héroe se decide *después* de correr los eventos,
         # no antes: `ChangePartyMembers` puede cambiar el líder del grupo, y en

@@ -65,6 +65,12 @@ snes-grafico 6 "0 2 2 34 0 2 2" "Future1 0" "22 12" "10 20 25 40" 115 grafico-he
 snes-grafico 6 "0 2 2 34 0 2 2" "nobodyhere 0" "22 12" "10 25 40" 115 heroe-invisible
 snes-sprite-actor
 snes-tecla
+# La cruceta, que es lo que le faltaba al minijuego de las piedras del mapa
+# 11. El héroe arranca en (22,8), donde **abajo está cerrado**, y el toque es
+# hacia abajo, que es hacia donde ya mira: así el flanco lo lee el comando y
+# no mueve ni gira a nadie, que es lo único que la referencia no modela de un
+# toque de dirección. Ver `snes-tecla` en el justfile.
+snes-tecla 6 "88 1 1 0 0" "22 8" "41 60" "12 0 0 50" "" none "88 9 0 0 0" "60 1" 115 tecla-dir "down:40"
 snes-pagina 121 10 grupo-121
 snes-pagina 74 21 ruta-74
 snes-espera
@@ -75,10 +81,23 @@ snes-items
 snes-equipo
 snes-anclada
 snes-texto
+# El mismo caso con el bloque de textos corrido más allá del primer banco:
+# ver `relleno` en la receta. Verificado en rojo con el `msg_empezar` de antes:
+# 3116 pixeles en el cuadro 60 y 3404 en el 400, todos en la ventana, que ahí
+# dibuja el texto que le tocó leer de otro lado.
+snes-texto 255 200 texto-lejos 33000
 snes-ruta-evento
 snes-npc
 snes-lugar
 snes-lugar 6 "4 21 10" "" "22 12" "10 60" 115 lugar-quieto
+# El mismo MoveTo con la celda en **dos variables**, que es la otra rama de
+# `CommandChangeEventLocation` y lo que le faltaba al minijuego de las piedras
+# del mapa 11. La página pone 21 y 13 en dos variables y recién después planta
+# al evento 3, así que el cuadro tiene que salir igual que el de `lugar`, que
+# lo planta con los números escritos. Verificado en rojo: sumándole uno a la y
+# en `op_lugar_var` da 392 pixeles, y leyendo la variable de la y también para
+# la x, 246.
+snes-vars 6 "60 1" "31 0 0 21 0 32 0 0 13 0 31 10 0 4 32" "22 12" "20 60" "12 0 0 50" 115 lugar-var "" ""
 snes-destello
 snes-saturar
 snes-saturar 73 "60 100 100 100 0" 30 120 saturar-gris
@@ -169,6 +188,12 @@ snes-batalla 86 "11 12 13" 20 250 "right:130 right:140 right:150 a:160 a:170 dow
 snes-batalla 86 "11 12 13" 20 220 "right:130 a:140" batalla-hab ABLBackdropSJ03 "" "" "--modo 4 --habilidad 0"
 snes-batalla 86 "11 12 13" 20 240 "right:130 a:140 right:150" batalla-hab-dos ABLBackdropSJ03 "" "" "--modo 4 --habilidad 1"
 snes-batalla 86 "11 12 13" 20 240 "right:130 a:140 a:150" batalla-hab-blanco ABLBackdropSJ03 "" "" "--modo 3 --blanco 0 --orden 1"
+# Y la pelea **terminada**, con el mapa comparado al volver: es el único lado
+# de la batalla que `snes-batalla` no mira, y por eso el mapa volvía hecho
+# basura hasta el 2026-09-13. Van los dos repartos de VRAM porque la escena
+# rompe cosas distintas en cada uno; el porqué está en `snes-vuelta`.
+snes-vuelta
+snes-vuelta 6 82 SJBackdropABL04 20 "30 100" si 115 vuelta-ventana
 snes-pisar
 # Los dos de "atravesar paredes vale mientras dura la ruta", en el Sector 30,
 # que es donde taro vio el defecto. Los dos corren la misma ruta forzada de una

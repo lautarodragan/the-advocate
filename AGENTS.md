@@ -108,6 +108,17 @@ que se haya convertido, aunque el código sea el correcto: así se terminó
 mirando el mapa 6 creyendo que era la demo del hito 12. **Las ROMs salen de una
 receta, no de un `w65.py` suelto.**
 
+**Cuánto le sobra al banco 0 depende de qué cartucho se arme.** Las tablas que
+emite el conversor viven ahí, así que el número cambia con la lista de mapas:
+el 2026-09-13 la misma pregunta se contestó **81**, **1** y **85** bytes en la
+misma tarde, y las tres estaban bien —cada una con un `mapdata.inc` distinto—.
+Medido con `demo-ciudad`, que es el cartucho grande, son 85; con
+`demo-carrera`, más de 600. Así que al decir "quedan N bytes" hay que decir con
+cuál, y el que manda es `demo-ciudad`.
+
+Medirlo es meter un `.res N` en `TABLAS` y buscar por bisección el N más grande
+que todavía arma: `w65` corta con "el área no entra: 32705 bytes en 32704".
+
 **`rom/build/cache/` es un caché en disco del conversor** —muestras BRR y
 capas convertidas— y su clave lleva el hash de los fuentes, así que no hay que
 borrarlo al tocar código. Lo único que pide es que cualquier cambio en lo que

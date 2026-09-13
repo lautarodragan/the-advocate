@@ -1113,10 +1113,22 @@ están en `tools/escena.py`; el titular:
   CGRAM: las 0 a 31 son las dos paletas del texto y de 128 para arriba son las
   de los objetos. Los tiles no se deduplican —una foto no repite: 490 y 503 de
   512 en los dos fondos del juego— y por eso el número es fijo.
-* **Entra sin pelearle a nada** porque la pelea no comparte VRAM con el mapa:
-  `volver_al_mapa` la rehace entera al salir. El texto vive en $2000, su
+* **Entra sin pelearle a nada** porque la pelea se lleva por delante media VRAM
+  del mapa y lo que se lleva se rehace al salir. El texto vive en $2000, su
   tilemap en $3C00, el de la escena en $3800 y los tiles de la escena en
   $4000, que son las últimas 16.384 palabras de la VRAM.
+
+  **Rehacerla no era `volver_al_mapa`, y decirlo acá costó una demo entera.**
+  Aquél repone lo que pisan la tienda, el menú y las ranuras, que escriben nada
+  más que `RANURA_VRAM` y `RANURA_MAP` —elegidos para caer adentro del banco de
+  tiles de BG1 en los cuatro repartos, y el conversor lo comprueba—. Los 32 KB
+  de la escena se salen de esa caja: se llevan además el tilemap del mapa
+  ($5800), el de la capa de encima ($7800), los tiles de la ventana de mensaje
+  ($6800) y el banco de sprites —entero en `LAYOUT_ANCHO`, que lo pone en
+  $4000—. Volver de una pelea es `volver_de_batalla`, que repone eso con
+  `load_sprite`, `load_ventana` y `fill_window` antes de llamar al otro. Lo
+  cobran `vuelta` y `vuelta-ventana`, uno por reparto de VRAM; sin el arreglo
+  son 74% y 77% de los pixeles.
 
 Dos cosas que costaron y conviene no volver a descubrir:
 
@@ -4765,6 +4777,76 @@ se mueve después, en `move_hero`, así que la página de un cuadro ve la celda 
 la que terminó el cuadro anterior. La referencia hace lo mismo porque quien
 escribe `Estado.heroe` es `cuadro_de_eventos`, que va en el mismo lugar del
 lazo.
+
+**Escribir una variable casi nunca pide el refresco de páginas, y eso vale
+media Lashe City.** `ControlVars` termina en
+`Game_Map::SetNeedRefreshForVarChange`, que **no** marca el refresco por
+cualquier escritura: le pregunta antes al `map_cache`, que tiene las variables
+que alguna condición de página del **mapa cargado** mira. Acá esa pregunta no
+hace falta correrla en la consola: quién mira qué es estático por mapa y el
+bytecode de una página se compila para su mapa, así que la contesta el
+conversor. Es `VAR_REFRESCO`, el bit de arriba de la ranura de `OP_VAR` y de
+`OP_TECLA`: `var_apuntar` lo enmascara con `VAR_RANURA` y `var_escribir` lo
+mira, que es el único lugar por donde pasan las tres escrituras que hay. Sale
+gratis en bytes —cuatro menos de banco 0, porque el `lda #1 / sta refresco`
+estaba repetido tres veces— y por eso la ranura tiene que entrar en siete bits:
+son 81 variables y `ranura_de_variable` se rompe si alguna pasara de 127.
+
+Lo que costaba no tenerlo, medido el 2026-09-13: el mapa 8 tiene una página
+paralela que escribe cuatro variables por cuadro —las coordenadas del héroe
+contra las de otro evento— y con el refresco pedido en cada una,
+`rutas_de_pagina` recorría sus 68 eventos y sus 106 páginas una vez por cuadro.
+La vuelta del lazo medía unas 388 líneas de las 262 de un cuadro, así que
+`wait_vblank` esperaba siempre al vblank siguiente: **el juego entero corría a
+30 cuadros por segundo**, la mitad exacta, y taro lo vio como "slow motion"
+apenas saliendo del pad de Talan. Con el filtro puesto, 60. Ninguna de esas
+cuatro variables la mira ninguna condición de página del juego; sobre los 328
+mapas, **14 tienen una condición por variable y ninguno tiene dos**.
+
+**Y la otra mitad de la misma idea: la página activa de un paralelo tampoco se
+recalcula por cuadro.** El HQ de los Lazer Teeth —el mapa 11, once eventos con
+página paralela— iba a 30 cuadros por segundo por una causa parecida y distinta:
+ahí no había ningún refresco pendiente, pero `un_paralelo` llamaba igual a
+`pagina_desde_eleg` una vez por paralelo y por cuadro, que resuelve qué página
+está activa y le lee del cartucho los veinticuatro bytes de la cabecera por la
+ventana de banco. Once veces por cuadro, para contestar siempre lo mismo. Con el
+décimo el lazo se pasaba del cuadro, y pasarse no cuesta un poco: se pierde el
+vblank entero y se cae a la mitad exacta.
+
+En RM2k la respuesta se calcula una sola vez: `Game_Event::page` es una
+instantánea y sólo la reescribe `Game_Map::Refresh`. Acá la instantánea ya
+existía —`eleg_por_ev`— y `aplicar_paginas` ya armaba con ella la lista de
+eventos con página paralela del mapa; lo que faltaba era que la lista se llevara
+**la página** y no sólo el número de evento. Son ocho bytes por ranura en la RAM
+lejana —el evento y el puntero a su bytecode, más de qué página salió— escritos
+en `anotar_paralelo`, o sea adentro del mismo refresco que ya la tiene leída.
+
+**Y no alcanzaba con eso.** Había una segunda cuenta que se rehacía por
+paralelo y por cuadro: `un_paralelo` le da su paso al evento pegado a su
+intérprete —es el orden de `Game_Event::Update`, y es lo que hace que los
+cuatro autos de Lashe City anden— y para eso busca su ranura de ruta con
+`ranura_del_evento`, que recorría **las doce siempre**. En el mapa 11 hay once
+paralelos y una sola ranura usada. Ahora `ruta_ev_tope` dice cuántas vale la
+pena mirar —la más alta que se llegó a tomar desde que se cargó el mapa, más
+una— y la búsqueda va de ahí para abajo, que es lo que deja el corte en `X ==
+0` y ahorra el segundo byte de RAM que el banco 0 no tenía. El tope no baja al
+liberarse una ranura y no hace falta que baje: una que nunca se tomó tiene $FF
+en +0.
+
+Lo medido, contando `vueltas` contra cuadros de hardware en el mapa 11:
+**cada arreglo solo deja los 30,00 cuadros por segundo, y los dos juntos dan
+59,80**. No es raro y conviene entenderlo: pasarse del cuadro no cuesta un
+poco, se pierde el vblank entero, así que quedarse cerca del borde mide igual
+que estar lejos. Un número de fps de este mapa vale sobre el árbol donde se
+midió y sobre ningún otro.
+
+Con eso `un_paralelo` se queda además sin dos preguntas que no podían dar otra
+respuesta —si la página es paralela y si compiló—, porque si no lo fuera el
+evento no estaría en la lista. **Eso era una red**, y al sacarla la lista pasó a
+ser la única verdad: si un refresco dejara de rehacerla, un evento que ya no
+tiene página paralela seguiría corriendo la vieja para siempre. Lo cuida
+`pruebas/test_paralelos.py`, que exige que un switch que cambia la página activa
+lo saque de la lista y que apagarlo lo vuelva a meter.
 
 **El azar es el mismo de los dos lados.** Un xorshift de dieciséis bits —`x ^=
 x << 7; x ^= x >> 9; x ^= x << 8`—, sembrado en el reset, instrucción por

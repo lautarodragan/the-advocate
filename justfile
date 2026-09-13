@@ -1080,8 +1080,17 @@ snes-timer mapa="6" timer="600 1" celda="2 10" cuadros="2 31 61 90" tinte="12 0 
 # —"lo que le queda al cronómetro, menos sesenta"— con números más cortos.
 #
 # `vars` van de a cinco con los números de RM2k —variable, operación, clase,
-# a, b— y la operación 9 es la inventada de la página de prueba: el cronómetro
-# desde la variable, que en RM2k es un TimerOperation.
+# a, b— y las operaciones 9 y 10 son las inventadas de la página de prueba: la
+# 9 pone el cronómetro desde la variable, que en RM2k es un TimerOperation, y
+# la 10 planta un evento en la celda que dicen **dos** variables, que es el
+# `ChangeEventLocation` por variables —`OP_LUGAR_VAR`—: ahí `a` es el blanco y
+# `b` la variable de la y, mientras que la variable del renglón es la de la x.
+#
+# Las dos están en esta lista y no en un flag propio por lo mismo: la página de
+# prueba emite `--vars-de-prueba` **después** de `--lugar-de-prueba` y del
+# cronómetro, así que es el único lugar desde donde se puede escribir una
+# variable y usarla en el mismo renglón siguiente. El caso `lugar-var` de la
+# tanda es exactamente eso: dos escrituras y un plantado.
 #
 # `ruta` es opcional y es la misma de `snes-npc` —blanco y órdenes, con el
 # blanco el índice del evento más uno—. Existe para la clase 6, las coordenadas
@@ -1248,11 +1257,17 @@ snes-sprite-actor mapa="6" sprite="11 Future1 0" grafico="Future1 0" celda="22 1
 # **espera la tecla de acción** y nada más. Las 23 páginas son casi todas lo
 # mismo: un cartel y un "apretá para seguir".
 #
-# Las otras dos formas están medidas y afuera, y el porqué de cada una está en
-# `KEY_INPUT_PROC` en eventos.py:
+# **Esperar una dirección o cancelar entró el 2026-09-13**, y lo que lo tenía
+# afuera era esta receta y no la ROM: la tanda sostenía una dirección desde el
+# arranque con `--walk`, así que un flanco de cruceta a mitad de una escena no
+# lo podía producir ningún caso, y escribir el camino sin nada que lo corriera
+# es exactamente cómo sobrevivieron los tres errores del intérprete. Lo produce
+# ahora `tocar`, que es `--tocar BOTON:CUADRO` de las dos mitades: el mismo
+# número de cuadro que `apretar`, para cualquier botón.
 #
-#   esperar una dirección o cancelar   +2 páginas. El arnés no sabe producir un
-#                                      flanco de cruceta a mitad de una escena.
+# La forma que queda afuera está medida, y el porqué está en `KEY_INPUT_PROC`
+# en eventos.py:
+#
 #   leer sin esperar                   +5 del juego y 3 de la persecución en
 #                                      auto. La traba no es el comando sino con
 #                                      qué viene: las cuatro páginas que la usan
@@ -1267,7 +1282,7 @@ snes-sprite-actor mapa="6" sprite="11 Future1 0" grafico="Future1 0" celda="22 1
 #                                      única dirección que pelea contra el
 #                                      empujón— y cero en las otras cuatro.
 #
-# El caso, uno solo, que es el que se puede ver:
+# Los dos casos, que son los que se pueden ver:
 #
 #   `tecla-espera`   la página **se para** hasta que el jugador apriete A y
 #                    recién ahí tiñe. El cuadro en que la pantalla cambia de
@@ -1277,10 +1292,33 @@ snes-sprite-actor mapa="6" sprite="11 Future1 0" grafico="Future1 0" celda="22 1
 #                    ejercita. Verificado en rojo: con la ROM sin esperar, el
 #                    cuadro 20 da 69,78%.
 #
-# Qué número quedó en la variable no lo dice ningún pixel: eso lo cobra
-# `pruebas/test_tecla.py`, contra `eventos.tecla_de`, que es la misma función
-# que corre la referencia.
-snes-tecla mapa="6" tecla="88 1 0 1 0" celda="22 12" cuadros="20 60" tinte="0 100 0 0" apretar="40" walk="none" vars="" timer="" arranque="115" nombre="tecla-espera":
+#   `tecla-dir`      lo mismo pero con la **cruceta**, que es lo que le faltaba
+#                    al minijuego de las piedras del mapa 11. Espera un flanco
+#                    de dirección, lo toca `--tocar down:40`, y la variable se
+#                    vuelca al cronómetro con la operación 9 de `vars`: así el
+#                    número que leyó el comando **se ve**, que es lo único que
+#                    un pixel puede decir de él. Abajo es 1 en `CheckInput`, así
+#                    que el cronómetro pasa de 0:60 a 0:01 y la pantalla se tiñe.
+#                    Verificado en rojo: con el `and #TECLA_DIRS` de
+#                    `tecla_valor` puesto en `and #0` —o sea la ROM de antes,
+#                    que sólo leía la tecla de acción— el cuadro 41 da **68,25%**
+#                    de pixeles distintos.
+#
+#                    **La celda es (22,8) y el toque es hacia abajo a propósito,
+#                    y ésa es la parte delicada.** Un toque de dirección en el
+#                    mapa no lo lee sólo `KeyInputProc`: lo lee también el héroe,
+#                    que gira y da un paso, y eso la referencia no lo modela —su
+#                    caminata va por `--walk`, de a celdas enteras—. En (22,8)
+#                    **abajo está cerrado** y el héroe ya mira para abajo, así
+#                    que el flanco existe y no mueve ni gira a nadie. Con la
+#                    celda de siempre, (22,12), el mismo caso da 30% a 41%: es
+#                    el héroe caminando de un lado y quieto del otro, o sea la
+#                    misma divergencia que tiene afuera a la forma que no espera.
+#
+# Qué número quedó en la variable lo dice además `pruebas/test_tecla.py`, contra
+# `eventos.tecla_de`, que es la misma función que corre la referencia, y para
+# las cuatro direcciones y cancelar: el cronómetro sólo muestra una por caso.
+snes-tecla mapa="6" tecla="88 1 0 1 0" celda="22 12" cuadros="20 60" tinte="0 100 0 0" apretar="40" walk="none" vars="" timer="" arranque="115" nombre="tecla-espera" tocar="":
   #!/usr/bin/env bash
   set -euo pipefail
   # Los dos opcionales, como variables de bash: `${x:+...}` necesita una
@@ -1290,6 +1328,7 @@ snes-tecla mapa="6" tecla="88 1 0 1 0" celda="22 12" cuadros="20 60" tinte="0 10
   apretar="{{apretar}}"
   vars="{{vars}}"
   timer="{{timer}}"
+  tocar="{{tocar}}"
   mkdir -p {{snes_pngs}} {{snes_inc}}
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
       --inicio {{celda}} --tecla-de-prueba {{tecla}} \
@@ -1304,12 +1343,14 @@ snes-tecla mapa="6" tecla="88 1 0 1 0" celda="22 12" cuadros="20 60" tinte="0 10
       ${vars:+--vars-de-prueba {{vars}}} \
       ${timer:+--timer-de-prueba {{timer}}} \
       ${apretar:+--apretar-a {{apretar}}} \
+      ${tocar:+--tocar {{tocar}}} \
       --pagina-de-prueba {{tinte}} --cuadros {{cuadros}} \
       --saltar $pre-{}.saltar.txt -o $pre-{}.esperado.png
   for n in {{cuadros}}; do
     python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre-$n.png \
         --walk {{walk}} --cuadros $n --arranque {{arranque}} \
-        ${apretar:+--apretar-a {{apretar}}}
+        ${apretar:+--apretar-a {{apretar}}} \
+        ${tocar:+--tocar {{tocar}}}
     python3 tools/snes_compare.py $pre-$n.png $pre-$n.esperado.png \
         --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
   done
@@ -1696,15 +1737,30 @@ snes-pisar mapa="70" celda="12 8" direccion="up" cuadros="200" arranque="115" no
 # dos cuadros la pantalla cambia 2869 pixeles, todos en las filas de la ventana:
 # si el A no avanzara al segundo mensaje, serían cero y la receta daría verde sin
 # probar nada.
-snes-texto mapa="255" apretar="200" nombre="texto":
+#
+# Y `relleno` son bytes muertos delante del bloque de textos, que es lo que
+# corre los desplazamientos más allá de los 32 KB que mide la ventana de un
+# banco de LoROM. Ahí `msg_empezar` sumaba de a dieciséis bits y perdía el
+# acarreo, así que **todo cuadro de texto pasado el primer banco leía de otro
+# lado**: la cabecera y los largos de renglón salían de cualquier cosa, y con un
+# largo de 70 el compositor escribía fuera de `texto_buf` y se llevaba puesto
+# `vq_n`, el contador de la cola de poses, que a partir de ahí subía bloques de
+# 128 bytes a direcciones cualquiera de la VRAM. Eso es lo que taro veía como la
+# pantalla hecha basura en Delcentric Factory. Reproducirlo de verdad pide un
+# cartucho de diez mapas hablados —minutos por caso—; con el relleno lo hace uno
+# de un mapa. Ver `Mensajes.__init__`.
+snes-texto mapa="255" apretar="200" nombre="texto" relleno="":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
+  relleno="{{relleno}}"
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
+      ${relleno:+--relleno-de-mensajes $relleno} \
       --con-ventana -o {{snes_inc}}/mapdata.inc
   just snes-build
   pre={{snes_pngs}}/{{nombre}}
   python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
+      ${relleno:+--relleno-de-mensajes $relleno} \
       --con-ventana --cuadros 60 400 --apretar-a {{apretar}} \
       --saltar $pre-{}.saltar.txt -o $pre-{}.esperado.png
   for n in 60 400; do
@@ -1821,6 +1877,66 @@ snes-batalla tropa="86" grupo="11 12 13" espera="20" cuadros="200" toques="" nom
       ${toques:+--toques-hardware {{toques}}}
   python3 tools/snes_compare.py $pre.png $pre.esperado.png \
       -o $pre.comparacion.png
+
+# La pelea **peleada hasta el final**, y el mapa comparado al volver.
+#
+# Es lo que `snes-batalla` no puede mirar: aquélla abre la pantalla de la pelea
+# y la compara contra `pantallas.py`, pero nunca sale de ahí. Lo que llegó a la
+# SD de taro el 2026-09-13 estaba justo del otro lado: la escena de la batalla
+# sube 32 KB de VRAM —las palabras $4000 a $8000— y `volver_al_mapa` reponía
+# nada más que el banco de tiles de BG1 y el de la capa de encima, así que el
+# mapa volvía con los dos tilemaps, los tiles de la ventana y el banco de
+# sprites hechos basura. Ver `volver_de_batalla` en main.s.
+#
+# Cómo se compara, que es lo que lo hace barato: **la pelea no cuesta ningún
+# tick**. `batalla_correr` corre su propio lazo y `vueltas` no avanza mientras
+# dura, y la referencia sale del `OP_BATALLA` por la rama de victoria en el
+# mismo tick en que entró. O sea que del otro lado no hay nada que modelar: el
+# cuadro N es el mapa quieto, igual que si no hubiera habido pelea. Que la ROM
+# dibuje eso mismo **es** la prueba.
+#
+# Los toques son los A que pelean: uno cada nueve cuadros de hardware desde que
+# la pelea abre, en cuadros de hardware porque adentro de la pelea no hay ticks.
+# Con el azar clavado en `BATALLA_SEMILLA` la pelea es la misma todas las veces.
+# Si la ROM no saliera, `snes_correr.py` corta con "la ROM no llegó al tick".
+#
+# Los dos casos de la tanda miran los **dos repartos de VRAM**, que es donde la
+# pelea rompe cosas distintas:
+#
+#   vuelta          sin ventana, o sea LAYOUT_ANCHO: los sprites viven en $4000
+#                   y la escena se los lleva enteros. Es el único caso que
+#                   cobra el `load_sprite` de la vuelta.
+#   vuelta-ventana  con ventana, o sea LAYOUT_VENTANA: los sprites arrancan en
+#                   0 y lo que se lleva la escena son los tiles de la ventana
+#                   en $6800 y los dos tilemaps.
+#
+# **Verificado que dan rojo** sacando `volver_de_batalla` y dejando el
+# `volver_al_mapa` de antes: 74,30% de los pixeles el primero y 77,49% el
+# segundo, en los dos cuadros de cada uno.
+snes-vuelta mapa="6" tropa="82" fondo="SJBackdropABL04" espera="20" cuadros="30 100" ventana="" arranque="115" nombre="vuelta":
+  #!/usr/bin/env bash
+  set -euo pipefail
+  mkdir -p {{snes_pngs}} {{snes_inc}}
+  ventana="{{ventana}}"
+  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
+      ${ventana:+--con-ventana} \
+      --pagina-de-prueba {{espera}} --batalla-de-prueba {{tropa}} \
+      --fondo-de-prueba "{{fondo}}" -o {{snes_inc}}/mapdata.inc
+  just snes-build
+  pre={{snes_pngs}}/{{nombre}}
+  python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} --walk none \
+      ${ventana:+--con-ventana} \
+      --pagina-de-prueba {{espera}} --batalla-de-prueba {{tropa}} \
+      --cuadros {{cuadros}} \
+      --saltar $pre-{}.saltar.txt -o $pre-{}.esperado.png
+  toques=$(seq 140 9 3000 | sed 's/^/a:/')
+  for n in {{cuadros}}; do
+    python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre-$n.png \
+        --walk none --cuadros $n --arranque {{arranque}} \
+        --toques-hardware $toques
+    python3 tools/snes_compare.py $pre-$n.png $pre-$n.esperado.png \
+        --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
+  done
 
 # Cuánto destraba cada comando de evento que todavía no hacemos.
 #
@@ -2817,11 +2933,36 @@ snes-demo nombre="demo-ciudad" titulo="":
 # vueltas —500x40 celdas cada una—, el 50 es la sala de choque con el "vamos de
 # nuevo", el 51 el puente levantado, y el 53 el final.
 #
-# **Con `--grupo 10`, el de verdad.** No es un detalle de banco de pruebas: al
-# entrar al 49, `RaceController1` saca del grupo a todo el mundo y mete a
-# `CarRED` o a `CarBLUE` según el switch que él mismo prende, así que el héroe
-# **es el auto**. Con el grupo de pruebas puesto, Kersh quedaría adentro y el
-# gráfico saldría mal.
+# **Con `--grupo 14`, Talan, que es con quien el juego llega hasta acá.** Al
+# entrar al 49, `RaceController1` saca del grupo a los siete actores que pueden
+# estar ahí —10, 14, 15, 17, 18, 19 y 20— y mete a `CarRED` o a `CarBLUE` según
+# el switch que él mismo prende, así que el héroe **es el auto**. Con el grupo
+# de pruebas puesto, Kersh quedaría adentro —no está en esa lista— y el gráfico
+# saldría mal.
+#
+# Hasta el 2026-09-13 esto decía `--grupo 10`, el grupo inicial de la base, y
+# el precio era un síntoma que taro reportó jugando: **el auto tardaba un
+# segundo en aparecer y hasta ahí el héroe se dibujaba sin gráfico**. El actor
+# 10 es `DummyHero`, cuyo sprite es una celda vacía a propósito, y lo que pasa
+# en el medio está medido: el `PanScreen` de `RaceController1` es de 7 celdas a
+# velocidad 4, o sea **56 cuadros** —`2 << 4` por cuadro sobre `7 * 256`— y
+# **espera**, así que los `ChangePartyMembers` que meten al auto corren recién
+# después. Medido en snes9x: el auto aparece en el cuadro 60. Con Talan adentro
+# el héroe se ve desde el primero, que es lo que se ve en el original.
+#
+# **`--inicio 1 26` es la celda por la que se entra en el juego**, y no es
+# cosmético. Sin ella el conversor planta al héroe en el tile abierto más
+# cercano al centro, que en este mapa cae en la fila 20, y **en la fila 20 no
+# hay ni un obstáculo**: los 40 autos del tráfico están entre las filas 23 y 28
+# —medido evento por evento— y la meta del nivel, los cinco eventos que saltan
+# al mapa 52, entre la 23 y la 27. O sea que el auto podía cruzar las 500
+# celdas del mapa sin chocar con nada y sin llegar a ninguna parte. La celda
+# sale del `Teleport [49, 1, 26]` del evento 3 del mapa 36, que es por donde el
+# juego entra.
+#
+# Y de paso, el otro número que explica lo que taro no vio: **el primer
+# obstáculo está en la columna 70**, y una pantalla son 16 celdas. En las dos
+# primeras pantallas no hay ninguno tampoco en el original.
 #
 # **`--switch 171` es lo que la hace arrancar**, y hay que saber por qué. El
 # evento 1 del mapa 49 tiene dos páginas automáticas: la 0 pide el switch 171 y
@@ -2830,19 +2971,56 @@ snes-demo nombre="demo-ciudad" titulo="":
 # `DummyHero`, cuyo sprite es una celda vacía a propósito: pantalla sin auto.
 #
 # Quien prende el 171 en el juego es `RaceControllerZERO`, la intro de Talan
-# con el cartel de los controles, y esa página **no compila**: termina en un
-# `KeyInputProc` que espera cualquier tecla, que es una de las dos formas que
-# este port no hace. Ver `KEY_INPUT_PROC` en eventos.py. Así que la demo entra
-# a la carrera ya empezada, que es lo que hay hasta que esa forma se pueda.
+# con el cartel de los controles. Esa página **compila desde el 2026-09-13**:
+# termina en un `KeyInputProc` que espera cualquier tecla, que era una de las
+# formas que este port no hacía y que entró con el minijuego de las piedras
+# —ver `KEY_INPUT_PROC` en eventos.py—. El switch sigue puesto a mano igual,
+# porque nadie volvió a mirar esa escena desde entonces: sacarlo es una prueba
+# a mano de toda la intro, no un cambio de un argumento.
+#
+# **Y la carrera no corre sola**, que es lo primero que se nota jugando: el
+# héroe camina libre y a la velocidad que le dejó `RaceController1`. Quien la
+# corre es `RaceController2`, la única página paralela del 49 que no compila,
+# y lo que la corta es el `KeyInputProc` **sin espera**. El porqué de que ese
+# comando siga sin aceptarse —y cuánto falta para aceptarlo, con el número
+# medido hoy— está en `KEY_INPUT_PROC` en eventos.py. De las 46 páginas del
+# mapa 49 compilan **45** desde el 2026-09-13: la única que no es ésa.
 #
 # Aparte de `snes-demo` porque el mapa inicial es otro y porque no comparte un
 # solo mapa con ella: juntarlas sería un `if` en el medio de una receta que ya
 # tiene la lista escrita a mano.
 snes-demo-carrera nombre="demo-carrera":
   mkdir -p rom/build/{{nombre}}
-  python3 tools/snes_convert.py --grupo 10 --map-id 49 \
+  python3 tools/snes_convert.py --grupo 14 --map-id 49 \
       --mapas 50 51 52 53 54 \
-      --con-ventana --con-timer --switch 171 \
+      --con-ventana --con-timer --switch 171 --inicio 1 26 \
+      -o rom/build/{{nombre}}/mapdata.inc
+  python3 tools/w65.py rom/src/main.s -I rom/build/{{nombre}} \
+      -o rom/build/{{nombre}}/{{nombre}}.sfc \
+      --simbolos rom/build/{{nombre}}/{{nombre}}.sfc.sym
+
+# El minijuego de las piedras del `Lazer Teeth HQ`, para jugarlo sin caminar
+# media Lashe City. Un solo mapa —el 11— y el héroe **parado abajo de la reja**.
+#
+# Cómo se juega, que es lo que el juego mismo explica en el cuadro de texto:
+# apretar A mirando la reja —Talan agarra tres piedras y prende el switch 43,
+# que es lo que activa el motor del minijuego—, y después **A y enseguida una
+# dirección** para tirar una. La piedra vuela en esa dirección hasta chocar, y
+# los cuatro `Block*` de (31..33, 55..56) son adonde va a parar.
+#
+# **`--inicio 26 52` es la celda de abajo de `Grate1`**, que está en (26,51) y
+# es pared: al entrar, Talan mira para abajo, así que hay que tocar arriba una
+# vez —que lo gira sin moverlo, porque la reja no se pisa— y después A.
+#
+# `--grupo 14` es Talan, que es con quien el juego llega hasta acá, igual que
+# en `snes-demo-carrera`. Con el grupo de pruebas el héroe sería Kersh.
+#
+# Aparte de `snes-demo` por lo mismo que la carrera: el mapa inicial es otro y
+# la lista de mapas no se parece en nada.
+snes-demo-piedras nombre="demo-piedras":
+  mkdir -p rom/build/{{nombre}}
+  python3 tools/snes_convert.py --grupo 14 --map-id 11 \
+      --con-ventana --con-timer --inicio 26 52 \
       -o rom/build/{{nombre}}/mapdata.inc
   python3 tools/w65.py rom/src/main.s -I rom/build/{{nombre}} \
       -o rom/build/{{nombre}}/{{nombre}}.sfc \

@@ -19,16 +19,28 @@ Se escribe **mientras se trabaja**, no al final.
 **Los primeros diez minutos jugables**, que es lo que taro viene probando vuelta
 a vuelta.
 
-Al 2026-09-13: `just snes-hitos-foto` son **153 casos, todos en verde** —sobre
-la foto `f336b63`, con tres de las cuatro vueltas de esta tanda adentro— y `just
-pruebas` son **123 en verde y 1 `xfail`, sin rojos**. Los
-dos de audio de la pelea que venían en rojo desde el 2026-09-12 no eran
-preexistentes de nadie: los rompió el merge `6c43aa3`, que dejó a la pelea
-cargando el paquete de audio del mapa. Está arreglado y contado abajo. El
-`xfail` no es adorno: es un defecto medido de guardar con la pantalla de título
-puesta, y está abajo.
+Al 2026-09-13: `just snes-hitos-foto` son **164 casos, todos en verde** —sobre
+la foto `85267c2`— y `just pruebas` son **142 en verde y 1 `xfail`, sin rojos**.
+El `xfail` no es adorno: es un defecto medido de guardar con la pantalla de
+título puesta, y está abajo.
 
-**Las ROMs para probar a mano de esta vuelta** son tres, una por pieza:
+**La ROM de esta vuelta** está en `pruebas-manuales/piedras/`: el minijuego de
+las piedras del Lazer Teeth HQ, con un cartucho de un solo mapa que arranca
+parado abajo de la reja y con `demo-ciudad` al lado para el control. Su
+`LEEME.txt` dice qué apretar y en qué orden.
+
+Y **la del lag del HQ** está en `pruebas-manuales/lag-hq/`: el mismo mapa, que
+pasó de 30,00 a 59,80 fps. Su `LEEME.txt` dice adónde ir y qué otras escenas
+conviene jugar para ver que las páginas siguen cambiando cuando deben.
+
+**La de la vuelta anterior** está en `pruebas-manuales/2026-09-13-68539a8/`,
+con los tres arreglos y las tres ROMs —la ciudad con sus pistas, la carrera, y
+la carrera con el volante prendido a mano, que espera el veredicto de taro—.
+La anterior, con la que él encontró los tres bugs, está en
+`pruebas-manuales/2026-09-13-f30be91/`,
+con las cuatro vueltas juntas: `demo-ciudad.sfc` con las ocho pistas de MSU-1 y
+`demo-carrera.sfc` con la persecución en auto. Su `LEEME.txt` dice qué mirar y
+en qué orden. Las de cada pieza por separado, por si hace falta aislar algo:
 
 * `pruebas-manuales/habilidades/` — las habilidades especiales de la batalla:
   dos peleas sueltas que se abren solas y la demo entera. Su `LEEME.txt` dice
@@ -114,6 +126,245 @@ Así que "el Bum" son dos defectos distintos y sólo uno era de la colisión.
 **El banco 0 quedó en un byte libre** con el cartucho de `demo-ciudad`, medido
 por bisección con un `.res N` en `TABLAS`. El arreglo no costó ninguno —cambia
 un operando por otro del mismo ancho— y el uno libre ya estaba antes.
+
+### El lag del HQ de los Lazer Teeth: dos cosas por cuadro, no una (2026-09-13)
+
+El mapa 11 iba a **30,00 fps** clavados y taro lo reportó como "laggea un
+montón". Eran dos cosas que se recalculaban una vez **por evento paralelo y por
+cuadro**, y las dos contestaban siempre lo mismo. El mapa tiene once páginas
+paralelas, así que cada una se pagaba once veces:
+
+* **`un_paralelo` llamaba a `pagina_desde_eleg`**, que resuelve cuál es la
+  página activa del evento y le lee del cartucho los veinticuatro bytes de la
+  cabecera, por la ventana de banco. RM2k no hace eso: `Game_Event::page` es
+  una instantánea y sólo la reescribe `Game_Map::Refresh`. Ahora la página
+  viaja **en la lista de paralelos**, que `aplicar_paginas` rehace entera.
+* **`ranura_del_evento` recorría las doce ranuras de ruta siempre**, y en este
+  mapa hay **una sola usada**. Ahora `ruta_ev_tope` dice hasta dónde vale la
+  pena mirar y la búsqueda va de ahí para abajo.
+
+Lo medido con `pruebas/consola.py` —`vueltas` contra cuadros de hardware—,
+sobre `562f829`:
+
+    main                                   30,00 fps
+    main + la página en la lista           30,00 fps
+    main + el tope de ranuras              30,00 fps
+    las dos                                59,80 fps   (598 de 600 cuadros)
+
+    mapa 8   60,00 -> 60,00     mapa 6   60,00 -> 60,00
+
+**Ninguna de las dos alcanza sola, y ése es el resultado que conviene no volver
+a medir**: perder el cuadro no cuesta un poco —se pierde el vblank entero y se
+cae a la mitad exacta— así que quedarse cerca del borde da el mismo 30,00 que
+estar lejos. El primer arreglo, solo, había dado 57,67 sobre el árbol de antes
+del minijuego de las piedras; ese mismo arreglo sobre el `main` de después da
+30,00, porque el presupuesto del cuadro se movió. **Un número de fps de este
+mapa vale sobre el árbol donde se midió y sobre ningún otro.**
+
+Lo demás que quedó medido:
+
+* **No es el refresco.** En los 600 cuadros, `refresco` y `refresco_cuadro` dan
+  **cero**: el filtro `VAR_REFRESCO` ya evita que las variables que escriben
+  estas páginas pidan refresco.
+* **Los once paralelos** son los índices de evento 1 a 8, 26, 29 y 65 —TheIdol,
+  Light1 a Light6, LTSentry1, LTSentry2, LTComputer y NVSpy—. El duodécimo
+  candidato, el `EV0017`, es el del minijuego de las piedras y **no entra en la
+  lista con el mapa 11 solo en el cartucho**; no se investigó por qué.
+* **Lo que queda son dos cuadros de cada 600.** Ya no es la caída a la mitad. Si
+  alguna vez molesta, lo que sigue arriba es el cuerpo de los once intérpretes
+  —la cadena de `cmp` que despacha cada opcode se paga por comando— y el paso
+  de sus eventos, que RM2k también hace.
+
+**La red que se perdió, y con qué se reemplazó.** Antes `un_paralelo` volvía a
+preguntar si la página activa seguía siendo paralela, así que una lista vieja no
+hacía daño. Ahora la lista es la única verdad, y lo que la cuida es
+`pruebas/test_paralelos.py`: un switch que cambia qué página está activa tiene
+que sacar al evento de la lista **y volver a meterlo** al apagarlo. Los dos
+casos son del juego —el LTSentry1 pasa a su página de contacto con el switch 45,
+el NVSpy a la de acción con el 48—. Comprobado en rojo sacándole el `stz par_n`
+a `aplicar_paginas`; el de los fps, poniendo el tope en las doce ranuras.
+
+**El banco 0 quedó en 8 bytes libres**, medidos con bisección y con el cartucho
+de `demo-ciudad`, contra los 15 de antes. Las dos piezas pedían 84 y hubo que
+devolverlos: `ruta_para_evento` tenía copiadas las dos búsquedas de ranura y
+ahora las llama, el tope lo sube `ranura_libre`, `PAR_BYTES` y
+`PAR_LISTA_BYTES` pasaron a ocho para que el índice salga con tres `asl`, y
+`hdma_mascara` se fue a RODATA —el HDMA lee del banco que diga `A1B3`—.
+
+### El recorrido largo: se juega el juego y se le pregunta a la RAM (2026-09-13)
+
+`pruebas/test_recorrido.py`, con su arnés en `pruebas/recorrido.py`. Es lo que
+pidió taro: **emular una jugada entera** y verificar el estado con lecturas de
+RAM, sin referencia de por medio, sacando una captura en cada hito para que él
+las bendiga a mano. Son dos jugadas:
+
+    apertura   del reset a la cinemática del mapa 1 y de ahí, caminando, al
+               Linkage Block
+    talan      el cartel de "One year previously", el despertador, la puerta a
+               Lashe City, la corrida al trabajo, la fábrica de Delcentric y el
+               guardia que abre el auditorio
+
+**Cuesta 3,1 s** con el cartucho armado y 23,6 s la primera vez, que es cuando
+lo arma: son 6.900 ticks de emulación —menos de tres segundos a 2.900 ticks/s—
+y el resto es el cartucho. Lleva **ocho mapas** (4, 1, 2, 7, 8, 16, 17, 18) y no
+los veintinueve de `demo-ciudad` justamente por eso: la conversión de los 29 son
+dos minutos.
+
+Lo que hay que saber del arnés, porque es lo que lo hace no envejecer:
+
+* **Nada se cuenta en cuadros.** Cada hito es una condición de RAM con tope, y
+  cuando un tope se agota el mensaje dice en qué hito y con qué estado —mapa,
+  celda, hacia dónde mira, si hay página corriendo—.
+* **Por dónde se camina sale del juego original**, no de una lista: un BFS sobre
+  `rm2k.passability_map`, la misma tabla que usan el conversor y la referencia.
+* **Y a dónde ir, también.** `Recorrido.viajar(mapa)` planea sobre un grafo de
+  **islas**: un nodo es "esta isla de este mapa" y una arista es un `Teleport`
+  de un evento cuya página está activa **con los switches que la partida tiene
+  puestos ahora**, que se le preguntan a la RAM. El plan se rehace después de
+  cada puerta.
+* **Tres cosas que costaron y conviene no volver a descubrir**: los mapas de
+  ciudad son bandas de calle separadas por pared unidas por teletransportes, así
+  que el mapa 8 tiene 32 islas; una puerta **no es una celda de la isla**, y
+  contándola adentro el planificador creía que se cruzaba el mapa 9 caminando
+  por arriba del teletransporte que devuelve a Lashe City; y la colisión
+  **depende de los switches**, porque un evento de la capa de abajo con gráfico
+  de tile le impone sus bits a la celda —con la página del arranque, la casa de
+  Talan no tiene salida—.
+
+Lo que queda abierto:
+
+* **Las capturas no están bendecidas.** Están en `pruebas-manuales/recorrido/`
+  con su `LEEME.txt`. Cuando taro diga que están bien, compararlas es una línea.
+* **De Lashe City a la fábrica no se camina, y está medido**: el grafo de islas
+  dice que desde la casa de Talan se llega a los mapas 7, 8, 9 y 10 y a ninguno
+  más. La isla del mapa 9 donde están los eventos 28 y 29 —la puerta de
+  Delcentric— sólo se alcanza desde el HQ de los Lazer Teeth, y el camino lo
+  corta el teletransporte de (64,49), que con el switch 24 puesto devuelve a
+  Lashe City. Así que la prueba entra al mapa 16 con `ir_al_mapa(16, 53, 7)`,
+  que son **las coordenadas del juego**: las del `Teleport` de los eventos 65 y
+  66 del mapa 8 y de los 28 y 29 del mapa 9. Si eso es un bug del port o el
+  juego pide hacer antes la misión de los Neon Viper, no se investigó.
+* **El grafo no entiende condiciones que no son de switch** —objeto, actor,
+  cronómetro—: esas páginas las da por no activas, que es el lado seguro.
+
+### La pantalla rota del mapa 17 es del cartucho, no de la escena (2026-09-13)
+
+Medido con el recorrido de arriba, que es lo que lo destapó: **el mismo
+recorrido, tick por tick, con dos cartuchos distintos** da la fábrica perfecta
+con ocho mapas y basura con los veintinueve de `demo-ciudad`. Y la conversión
+del mapa 17 es **idéntica** en los dos —217 tiles, 52 colores, 475 de sprite, el
+mismo reparto de VRAM, ninguna animación de batalla—, así que lo que cambia no
+es el mapa.
+
+Con los 29 mapas se rompe en **un solo tick**, 160 después de entrar al mapa 17
+desde el 16, con la página de la escena corriendo y el héroe quieto en (36,73):
+el cuadro anterior está limpio y el siguiente tiene el fondo entero con rayas de
+ruido. Los dos cuadros están guardados en `pruebas-manuales/recorrido/`, que es
+lo que taro pidió para armar una golden artificial.
+
+Y **no es sólo el dibujo**: con la pantalla rota el cuadro de texto del guardia
+no se cierra nunca —`msg_lineas` queda en 79, que no es un número de renglones—
+así que el auditorio no se abre. La pinta es la de un DMA a la VRAM de fondo
+desde la dirección equivocada, y el mapa 17 es de los que no entran en la
+ventana de 64x32 y la ROM va redibujando.
+
+Lo que **no** se hizo, porque es de la otra vuelta que corre en paralelo:
+bisecar qué mapa de los 29 lo enciende.
+
+### La pantalla hecha basura: era el bloque de textos cruzando de banco (2026-09-13)
+
+taro veía la pantalla convertirse en una ensalada de tiles al llegar a la
+fábrica, y seguía rota de ahí en adelante —la captura es
+`pruebas-manuales/2026-09-13-f30be91/demo-ciudad-0006.png`—. **Encontrado y
+arreglado**, y no era ni el pan ni el cronómetro.
+
+**Qué era.** `OP_MENSAJE` lleva un desplazamiento de dieciséis bits dentro del
+bloque de textos, y `msg_empezar` lo sumaba al puntero **de a dieciséis bits**,
+perdiendo el acarreo y dejando el banco fijo. El bloque mide 48972 bytes con
+los 29 mapas de `demo-ciudad` —más que los 32 KB que mide la ventana de un
+banco de LoROM— y arranca en `$46:8000`, así que **todo cuadro de texto con
+desplazamiento mayor a $8000 leía de otro lado**: `msg_ptr` quedaba en
+`$46:1370`, que ni siquiera es ROM. Es la misma trampa que `ptr_mas` ya sabía
+para la grilla del mapa: lo que sigue a `$FFFF` no es el `$0000` del banco
+siguiente sino su `$8000`.
+
+**Por qué rompía la pantalla entera y no sólo el texto.** De esa basura salía
+un largo de renglón de **70 caracteres** contra los 39 que entran, y
+`componer_char` no topa la columna: escribió fuera de `texto_buf` —1920 bytes
+en `$01C8`— y se llevó puesto `vq_n`, que vive justo detrás de los 544 bytes de
+la imagen de OAM. Con `vq_n` en 51, `vram_drenar` empezó a subir bloques de 128
+bytes a direcciones cualquiera de la VRAM —medido: `$5555`, `$5655`, `$5755`,
+`$5855`, o sea encima del tilemap del mapa— durante los diez cuadros que tardó
+en drenar la cola inventada.
+
+**Cómo se reprodujo**, que es lo que costó: entrando al mapa 16 con
+`pruebas/consola.py`, dejando correr la escena y pasando a la fábrica. Contra
+la referencia, en un cartucho con los 29 mapas de la demo:
+
+    cuadro 1200   0,58%     1282  34,49%     1290  66,94%
+    cuadro 1250   0,58%     1283  43,12%     1300  70,93%
+
+y con el arreglo puesto, **0,58% en los seis**. Ese 0,58% que queda es anterior
+y está en los cuadros de antes del mensaje; no se investigó.
+
+**El caso de la tanda es `texto-lejos`**, y para que fuera barato hubo que
+inventar algo: reproducirlo de verdad pide un cartucho de diez mapas hablados
+—minutos por caso—, así que `--relleno-de-mensajes` mete bytes muertos delante
+del bloque y corre los desplazamientos más allá del banco con **un solo mapa**.
+Lo usan los dos lados con el mismo número, así que los desplazamientos siguen
+coincidiendo. Comprobado en rojo con el `msg_empezar` de antes: **3116 pixeles
+en el cuadro 60 y 3404 en el 400**.
+
+Lo que queda abierto de esto:
+
+* **`componer_char` sigue sin topar la columna.** Con el puntero arreglado
+  ningún largo pasa de 39, pero la única razón por la que un largo malo no
+  vuelve a escribir encima de `vq_n` es que ya no hay largos malos. Un tope
+  cuesta unos pocos bytes del banco 0 y convertiría un error de puntero futuro
+  en un renglón cortado en vez de en la pantalla hecha basura.
+* **`vq_n` vive pegado al final de la imagen de OAM**, así que es lo primero
+  que pisa cualquier desborde de ahí. Si alguna vez sobra RAM, conviene
+  separarlos.
+
+### Lo que se descartó buscando esto, para no volver a medirlo (2026-09-13)
+
+El encargo traía dos hipótesis y las dos eran falsas. Queda escrito porque
+medirlas costó la mayor parte de la vuelta:
+
+* **El `PanScreen` con los parámetros del juego no tiene nada que ver.** La
+  tanda lo probaba con distancia 2 y velocidad 2 y el juego usa 10 y 4; corrido
+  tal cual —`just snes-pan 6 "2 2 10 4 1" "10 20 40 60 79 80 81" 115`— da
+  **0,00% en los siete cuadros**.
+* **La escena entera del mapa 16 anda**, en un cartucho de dos mapas y en otro
+  con los veintinueve de la demo, entrando por la celda (53,7) que es por donde
+  entra el juego: cuadros 100, 300, 700, 800, 850 y 900 en **0,00%**.
+* **El cronómetro llegando a cero tampoco era.** Con una página de prueba que
+  lo arranca en un segundo y hace el pan de 10/4, el cuadro 60 da **252
+  pixeles (0,44%)**, todos en los dígitos —y da los mismos 252 **sin** el pan—.
+  Es una divergencia de un tick en el cuadro en que el cronómetro se apaga, que
+  `timer-cero` no ve porque mira los cuadros 2, 40, 59 y 61 y **se saltea justo
+  el 60**. Sigue abierta y es cosmética.
+* **Y el cronómetro corriendo de verdad por la escena entera tampoco**:
+  inyectado con 600 segundos desde el primer cuadro del mapa 16, visible, y
+  parado por el `TimerOperation` de la escena, la pantalla sigue igual.
+* **No era el vblank desbordado**: con `push_strips` al principio de
+  `flush_video` y con blanking forzado durante todo el vblank la pantalla sale
+  byte por byte igual, y con dos contadores en la RAM `build_row` y
+  `push_strips` van en lockstep.
+
+**El rojo que apareció de paso y sigue abierto:** cuadro **500** de la escena
+del mapa 16, **43,86% (25153 de 57344)**, en los dos cartuchos. Leyendo la
+WRAM, en el tick 490 la ROM tiene al héroe en 368 y la cámara en 248 y la
+referencia 378 y 258: **la ROM arranca el `MoveEvent` que sigue al tercer
+teletransporte interno —el que va a (24,15)— cuatro ticks antes**, y la
+pantalla queda corrida ocho pixeles hasta que el teletransporte siguiente las
+vuelve a sincronizar. Ningún caso de la tanda corre una página con un
+`Teleport` al mismo mapa, que es por donde se coló.
+
+Y una trampa de medición que costó una hora: **el tinte de pantalla sobrevive
+al cambio de mapa**, así que saltar a un mapa desde el de arranque lo deja todo
+azul —tinte 0,0,100— y parece el defecto. Para mirar un mapa inyectado hay que
+poner `tinte_r/g/b` en 100 primero.
 
 ### El dibujo de las animaciones de batalla: medido, sin empezar
 
@@ -210,6 +461,260 @@ Y dos deudas que dejaron los agentes, las dos con el número al lado:
   lo lee nadie todavía**, porque la huida es de la batalla. Lo cobran dos
   pruebas de estado, no la tanda: sin nada que lo lea, el bit no cambia un
   pixel.
+
+### Volver de una pelea dejaba el mapa hecho basura (2026-09-13)
+
+Lo que taro reportó jugando `pruebas-manuales/2026-09-13-f30be91/demo-ciudad.sfc`:
+*"las batallas rompen los gráficos consistentemente, y nunca se arreglan
+después de eso"*. Arreglado, y el porqué durable está en `volver_de_batalla` en
+`main.s` y en el comentario de `snes-vuelta`.
+
+Era **VRAM que nadie reponía**. `escena_subir` sube 32 KB —las palabras $4000 a
+$8000— más su tilemap en $3800 y 64 bytes en la palabra 0, y `volver_al_mapa`
+reponía nada más que el banco de tiles de BG1 y el de la capa de encima. Lo que
+quedaba pisado, medido con la VRAM del core: el tilemap del mapa ($5800), el de
+la capa de encima ($7800), los tiles de la ventana de mensaje ($6800) y el
+banco de sprites —entero en `LAYOUT_ANCHO`, que lo pone en $4000; los dos
+primeros tiles del héroe en los repartos con ventana, que lo ponen en 0—.
+
+**Alcanzaba con `volver_al_mapa` porque hasta ahora sólo volvían de ahí la
+tienda, el menú y las ranuras**, que escriben nada más que `RANURA_VRAM` y
+`RANURA_MAP` —elegidos justamente para caer adentro del banco de BG1 en los
+cuatro repartos, ver `_controlar_ranuras`—. La pelea fue lo primero que se sale
+de esa caja, y nadie lo notó porque **ningún caso de la tanda cruzaba una
+batalla**: `snes-batalla` abre la pantalla de la pelea y nunca sale.
+
+Ahora lo cubren dos casos, `vuelta` y `vuelta-ventana`, uno por reparto de
+VRAM. Verificado que dan rojo con el `volver_al_mapa` de antes: **74,30% y
+77,49% de los pixeles**. La referencia no cambió ni tenía que cambiar: la pelea
+no cuesta ningún tick y del otro lado el mapa se dibuja como si no hubiera
+habido pelea, así que que la ROM dibuje eso mismo **es** la prueba.
+
+Dos cosas que conviene saber de cómo quedó:
+
+* **La reparación va en `volver_de_batalla` y no adentro de `volver_al_mapa`**,
+  para no cobrarle a la tienda, al menú y a las ranuras las 64 columnas de
+  `fill_window` —el único momento en que se escribe tanto tilemap de una vez—,
+  que ellas no necesitan y que les costaría un cuadro perdido de más.
+* **`load_npcs` y `load_ruta_graficos` siguen sin ir ahí**, a propósito: copian
+  tablas del cartucho a RAM y borrarían lo que los eventos hayan movido antes
+  de la pelea. Lo único que se toca de `npc_buf` es el byte +12, que es la
+  sombra de qué pose tiene cada ranura en la VRAM: se pone en $FF para que el
+  próximo `subir_pose_npc` la vuelva a encolar, porque `load_sprite` acaba de
+  dejar ahí la del cartucho.
+
+Y una cosa que **no era de esto**, medida de paso y que conviene no volver a
+medir: el *"héroe como un rectángulo beige liso"* de las capturas `0012` y
+`0013` **no lo causa la batalla**. Se reproduce igual en un cartucho sin pelea:
+el líder entra a Lashe City Interiors (mapa 10) con el grupo `11 12 13` y se
+dibuja como una silueta de un solo color, con los NPCs de al lado bien. Dos
+capturas del mismo tick, una con pelea y otra sin, dan **cero pixeles de
+diferencia**. Es un defecto aparte, sin investigar, y hoy no lo cubre nada.
+
+**Y el banco 0 tenía dos bytes libres.** Los cuarenta y seis que costó esto
+dejaban `demo-ciudad` en 32748 de 32704, así que se mudó `items_banco_subir`
+—131 bytes— a RODATA, con `jsl` y `rtl`. Es la más barata de mudar de todo lo
+que mide más de cien: no llama a nadie, así que no pide ningún puente, y corre
+al abrir una pantalla con el PPU apagado, no por cuadro. Quedan **81 bytes
+libres**, medidos poniendo un relleno de 200 en TABLAS y leyendo lo que dice
+`w65`. **Lo próximo que agregue código al banco 0 los va a necesitar**, y la
+lista de candidatos a mudar sigue ahí: `titulo_subir` son 227 bytes y
+`ranura_banco_subir` 131, las dos del mismo tipo.
+
+Lo que **queda pisado y no se repone** después de una pelea, medido y declarado
+porque no se ve: los tiles de fondo, de la capa de encima y del tilemap que
+están **más allá de lo que el mapa usa** se quedan con la escena adentro. No se
+dibujan nunca —ni el mapa los indexa ni el streaming los muestra— y un cambio
+de mapa tampoco los limpia, exactamente igual que se quedan con los restos del
+mapa anterior en un teletransporte normal.
+
+### La persecución en auto, jugada (2026-09-13)
+
+taro probó `just snes-demo-carrera` en mednafen y reportó tres cosas. Son tres
+causas distintas y **sólo una es del intérprete**; las otras dos eran de cómo
+entraba la demo. Lo medido, todo con la firma completa de `compilar_pagina`
+—`mensajes`, `eventos_mapa`, `temas`, `graficos`, `imagenes`— y con los cuatro
+`indexar_*` llamados antes:
+
+    mapa 49   46 páginas disparables, 44 compilan
+    mapa 52   44, compilan 43          mapa 50   2, compilan 2
+    mapa 54   44, compilan 43          mapa 51   16, compilan 15
+                                       mapa 53   2, compilan 1
+
+De las seis que no compilan, **cuatro son el mismo comando**: el
+`KeyInputProc` **sin espera** de `RaceController2`, que es el volante. Las
+otras dos eran la intro de Talan del 49 —un `KeyInputProc` que espera cualquier
+tecla, que compila desde el 2026-09-13— y el `GiveOutRewards` del 53, que se
+cae en un `ConditionalBranch`. O sea que hoy son cinco.
+
+**1. La carrera no corre sola: es el volante, y es lo único grande que queda.**
+Quien mueve el auto es `RaceController2`, una página **paralela** que en cada
+cuadro le fuerza al héroe la ruta `28 1 29` —acelerar, un paso a la derecha,
+desacelerar— y además lee el pad para esquivar. Sin ella el héroe camina libre
+y a la velocidad que le dejó `RaceController1`, que es exactamente lo que taro
+describió. El comando vale **+5 páginas** del juego entero —mapas 49, 51, 52,
+54 y 285— sobre una base de 5348 de 5603 disparables.
+
+Lo importante: **los dos lados ya lo hacen**. `op_tecla` en `main.s` y
+`OP_TECLA` en `eventos.py` cubren la forma que no espera; el único que la
+rechaza es el `raise` de `KEY_INPUT_PROC`, y lo rechaza por el arnés. Medido
+con `TECLA_SIN_ESPERA=1`, que es el interruptor que se agregó para no tener que
+volver a parchear a mano:
+
+    la carrera corriendo sola, ROM contra referencia, --walk none
+    y 900 cuadros —el auto cruza las 500 columnas del mapa—:   0,00%
+
+    just snes-heroe 52, apretando la izquierda:
+      sin nada                                                55,42%
+      con la ruta forzada mandando sobre el pad                0,59%   (248 px)
+      las otras cuatro direcciones, en los dos casos            0,00%
+
+O sea que **la ROM está bien y lo que falta es la referencia**. La mitad del
+arreglo entró: `hero_position` respeta la ruta forzada, como `move_hero`. La
+otra mitad es que la caminata avance **cuadro a cuadro** en vez de celda a
+celda: hoy vive los cuatro cuadros de una celda de un saque y la página
+paralela le puede reponer la ruta en el medio, cosa que la consola sí ve. Y
+hay un segundo problema que apareció midiendo y que hay que decidir antes:
+**con la carrera corriendo, `snes-heroe 52` no termina**, porque el volante le
+repone la ruta para siempre y "apretar hasta chocar contra la pared" deja de
+tener final; el lazo corta en su tope de 10000 vueltas, 27566 cuadros de
+emulador para una sola dirección. El mapa 52 está en `rom/hitos.txt`.
+
+**2. Los obstáculos: la mitad no era un defecto y la mitad sí.** Los 40 autos
+del tráfico son los eventos 4 a 43 del mapa 49 y **sus 40 páginas compilan**.
+Dos números:
+
+* **El primero está en la columna 70**, y una pantalla son 16 celdas. En las
+  dos primeras pantallas no hay ninguno **tampoco en el original**.
+* Pero **están todos entre las filas 23 y 28**, y la demo plantaba al héroe en
+  la fila 20: sin `--inicio`, el conversor elige el tile abierto más cercano al
+  centro. En la fila 20 no hay ni un obstáculo, y los cinco eventos que
+  terminan el nivel —los que saltan al mapa 52— están entre la 23 y la 27. Con
+  el volante puesto se ve entero: el auto cruzaba las 500 columnas sin chocar
+  con nada y sin llegar a ninguna parte. La celda de entrada es (1,26) y sale
+  del `Teleport [49, 1, 26]` del evento 3 del mapa 36, que es por donde el
+  juego entra. La receta ahora la pasa.
+
+**3. El auto tardaba en aparecer, y hasta entonces el héroe salía sin
+gráfico.** No era el arreglo de `lideres_posibles` a medio camino: era el grupo
+de la demo. Con `--grupo 10` el líder es `DummyHero`, cuyo sprite es una celda
+vacía a propósito, y quien mete a `CarRED` es `RaceController1` **después** de
+su `PanScreen`, que son 7 celdas a velocidad 4, o sea `7 * 256 / (2 << 4)` =
+**56 cuadros**, y espera. Medido en snes9x: el auto aparece en el cuadro 60 y
+antes no hay nada. La receta ahora entra con `--grupo 14`, Talan, que es con
+quien el juego llega hasta acá: verificado, se lo ve desde el cuadro 1 y el
+auto lo reemplaza en el 60. Los 56 cuadros de cámara corriendo siguen ahí y son
+los del original.
+
+Lo que queda abierto:
+
+* **El volante**, con todo lo de arriba. Es lo que hace jugable la escena.
+* **La intro de Talan del mapa 49** —`RaceControllerZERO`, el cartel de los
+  controles— **compila desde el 2026-09-13**: su `KeyInputProc` espera
+  cualquier tecla, que es la forma que entró con el minijuego de las piedras
+  (ver su sección). La demo sigue entrando con `--switch 171` puesto a mano
+  porque nadie volvió a mirar esa escena todavía.
+* **El `GiveOutRewards` del mapa 53**, el final de la carrera: se cae en un
+  `ConditionalBranch`. No se investigó cuál de las doce clases es.
+* **La guarda nueva de `hero_position` no la ejercita ningún caso de la
+  tanda**, y está dicho en su comentario: con el volante afuera, ninguna página
+  compilada le pone una ruta al héroe mientras el jugador camina. Queda como
+  código inalcanzable, igual que la guarda de la paleta vacía de
+  `tenir_paleta`, no como camino a medias.
+
+### El minijuego de las piedras del mapa 11 (2026-09-13)
+
+taro reportó que en el `Lazer Teeth HQ` **no se podían lanzar las piedras**. El
+motor del minijuego es una sola página —`EV0017` página 0 del mapa 11, la única
+de las 101 disparables de ese mapa que no compilaba— y la cortaban **tres**
+cosas distintas, no una:
+
+* **La variable 5 no tenía ranura.** `variables_de` miraba `ControlVars`, las
+  ramas por variable y el cronómetro, y no `KeyInputProc`, que es el único
+  comando de este juego que le escribe a una variable sin ser un `ControlVars`.
+  **No era circular**: ese barrido mira todos los comandos compilen o no. Son
+  dos variables en todo el juego, la 5 y la 151, y el índice pasó de 81 a 83
+  ranuras.
+* **`KeyInputProc` sólo aceptaba esperar la tecla de acción.** Ahora espera
+  también la cruceta y cancelar, con el mismo flanco —`IsTriggered`— y el mismo
+  orden de `CheckInput`, de mayor valor a menor.
+* **`ChangeEventLocation` con la celda en dos variables** no compilaba, y es
+  con lo que la página planta la piedra donde está el jugador. Es el opcode
+  nuevo `OP_LUGAR_VAR = $27`.
+
+**El corte de `KeyInputProc` era del arnés y no de la ROM**, y ésa es la parte
+que conviene entender: la tanda sostenía una dirección desde el arranque con
+`--walk`, así que un **flanco** de cruceta a mitad de una escena no lo podía
+producir ningún caso, y escribir el camino sin nada que lo corriera es
+exactamente cómo sobrevivieron los tres errores del intérprete. Ahora lo
+produce `--tocar BOTON:CUADRO`, que está en las dos mitades —`snes_correr.py` y
+`snes_expect.py`— y cuenta los cuadros como `--apretar-a`.
+
+Lo que cuesta y hay que saber para usarlo: **un toque de dirección en el mapa no
+lo lee sólo `KeyInputProc`**, lo lee también el héroe, que gira y da un paso, y
+eso la referencia no lo modela —su caminata va por `--walk`, de a celdas
+enteras—. Por eso el caso `tecla-dir` empieza en (22,8) del mapa 6, donde abajo
+está cerrado y el héroe ya mira para abajo: el flanco existe y no mueve ni gira
+a nadie. Con la celda de siempre el mismo caso da 30% a 41% de pixeles
+distintos, que es el héroe caminando de un lado y quieto del otro.
+
+**B queda fuera de la tanda a propósito**: abre el menú de pausa —`pedir_menu`,
+que es el `Game_Player::Update` de RM2k, y sólo lo frena que haya una página
+corriendo—, y el menú de pausa la referencia no lo modela. Lo cubren dos casos
+de estado en `pruebas/test_tecla.py`.
+
+Lo medido, con `eventos.compilar_pagina` sobre las páginas disparables del juego
+entero y con `indexar_variables`, `indexar_comunes`, `indexar_animaciones`,
+`indexar_audio_de_batalla` e `indexar_actores` llamados antes:
+
+    base                                 5415 de 5667 disparables
+    sólo la ranura de la variable        5415  (+0)
+    sólo KeyInputProc entero             5415  (+0)
+    las dos juntas                       5417  (+2)
+    sólo OP_LUGAR_VAR                    5415  (+0)
+    las tres                             5418  (+3)
+
+**Ninguna de las tres sola vale nada, y ése es el resultado.** Las dos páginas
+del `(151, 1, 1, 1, 1)` —`RaceControllerZERO` del mapa 49, el cartel de los
+controles de la carrera, y el `EV0011` del 285— necesitan la ranura *y* la
+espera de cualquier tecla; la del mapa 11 necesita además el opcode nuevo. Con
+eso el mapa 49 deja de entrar con `--switch 171` puesto a mano.
+
+Los absolutos no son los 5198 de 5603 que este archivo trae más arriba, y no
+hay que mezclarlos: aquella cuenta arma el contexto de otra manera —un
+`Graficos` por mapa y no por página—. **Lo que vale es la diferencia**, que es
++3, y está medida con la misma cuenta de los dos lados.
+
+`ChangeEventLocation` por variables aparece **129 veces en 32 páginas
+disparables** y destraba una sola: las otras 31 están frenadas por otra cosa
+igual. Se hizo por esa una.
+
+**El banco 0 se pasó otra vez, por 58 bytes**, y hubo que bajar seis tablas más
+a RODATA: `tabla_fila_buf`, `mascara`, `pass_salir`, `pass_entrar`, `diag_vert`,
+`diag_horiz` y las dos de `fuente_pre`. **Las que quedan arriba se leen con Y**,
+y ésa es la razón de que no bajen: el 65816 tiene absoluto largo indexado por X
+y **no por Y**, así que `paso_por_vel`, `salto_por_vel`, `anim_parado` y
+`anim_continua` pedirían además cambiar de registro en sus llamadores. Medido
+con `demo-ciudad` y bisección con un `.res N` en `TABLAS`: quedaban 15 bytes
+libres, y **hoy son 8** —ver el lag del HQ, más arriba—. Lo que siga pidiendo
+banco 0 va a tener que pasar esos llamadores a X, o mover `paso_dx`/`paso_dy`
+—16 bytes y dieciséis accesos, o sea que no rinde—.
+
+Lo que queda abierto:
+
+* **Nadie lo jugó a mano todavía.** Sí lo juega una prueba:
+  `pruebas/test_piedras.py` le habla a la reja, aprieta A, aprieta izquierda y
+  le pregunta a la RAM dónde quedó el evento `Stone`. Medido: la piedra se
+  planta en la celda del héroe —(26,52)— y camina hasta (22,52) en veinte
+  ticks, con el héroe quieto. Lo que eso **no** dice es si se siente bien:
+  ver `pruebas-manuales/piedras/`.
+* **La forma de `KeyInputProc` que no espera sigue afuera**, con su medición
+  intacta: +5 páginas del juego y 3 de la persecución en auto, y lo que la traba
+  no es el comando sino la ruta forzada del héroe contra el pad. Ver el `raise`
+  en `KEY_INPUT_PROC`.
+* **El `RaceControllerZERO` del mapa 49 ahora compila**, así que `demo-carrera`
+  podría dejar de entrar con `--switch 171` a mano. No se cambió: eso es la
+  carrera y no el minijuego, y cambiarlo pide volver a mirar toda esa escena.
 
 ### Las habilidades: entraron las siete (2026-09-13)
 
@@ -539,7 +1044,7 @@ ROM, y lo que pasó con cada cosa:
 
     mapa 13  ChangePBG + la rama por objeto      hecho: 32/32 con el 16 adentro
     mapa 11  HaltAllMovement                     hecho: 100/101
-    mapa 11  KeyInputProc                        medido, sin hacer (ver abajo)
+    mapa 11  KeyInputProc                        hecho el 2026-09-13, 101/101
     mapa 26  ChangeSystemBGM 3                   del otro agente
     mapa  9  Teleport 7                          mapas fuera de la ventana
     mapa 18  Teleport 2                          ídem
@@ -565,13 +1070,8 @@ escondida**: la condición por ítem figuraba como "pide inventario, que no hay"
 desde antes de que el inventario existiera (2026-09-10). Es la misma pregunta
 que la condición de página por ítem, que la ROM ya contestaba.
 
-**`KeyInputProc`: medido y sin hacer.** Son 31 páginas disparables y **+30** si
-se acepta entero; de sus 32 apariciones, 23 son la misma forma —esperar la
-tecla de acción y guardar cuál fue—, y sólo ésa vale **+23**. La página del
-mapa 11 no entra en ese subconjunto: usa las dos formas, la que espera A y la
-que lee la cruceta. Las dos razones para no hacerlo ahora, las dos con número:
-es del otro agente que corría en paralelo, y **en el banco 0 quedan unos pocos
-bytes** (ver abajo).
+**`KeyInputProc`: hecho el 2026-09-13.** Ver "El minijuego de las piedras del
+mapa 11" más abajo.
 
 **El banco 0 se pasó por 128 bytes** con estas dos piezas y hubo que bajar
 tablas a RODATA: `partida_tabla`, los registros del PPU con su buffer de ceros,
@@ -609,13 +1109,13 @@ existir, y ésa es la parte que hay que leer.
   que entrara la orden 9 (`c1a00b6`), que era la que valía —+33— y que ya está.
   Para que esto no vuelva a pasar, `snes-destraba` ahora imprime la lista.
 
-**La persecución en auto todavía no se puede jugar, y ahora se sabe por qué.**
-Con la clase 6 hecha, de las 134 páginas disparables de los mapas 49, 52 y 54
-compilan 28. A las otras 106 las corta **`ChangeSpriteAssociation`** —102— y
-`KeyInputProc` —4—: el auto cambia de gráfico mientras corre. O sea que el
-próximo paso de esa escena no es el intérprete de variables sino el gráfico del
-personaje. Por eso la ROM de `pruebas-manuales/vars-y-rutas/` **no lleva esos
-mapas**: llevarlos daría una carrera con el auto quieto.
+**La persecución en auto: el número de acá abajo es de antes de
+`ChangeSpriteAssociation` y ya no vale.** Decía que de las 134 páginas
+disparables de los mapas 49, 52 y 54 compilaban 28, y que a las otras 106 las
+cortaba `ChangeSpriteAssociation` —102— y `KeyInputProc` —4—. Ese comando está
+hecho desde entonces: medido de nuevo el 2026-09-13 con la firma completa, de
+esas 134 compilan **130**. Lo que queda es la sección "La persecución en auto,
+jugada" de más arriba.
 
 **Y una trampa de medición que conviene no repetir**: la tabla de "qué comando
 corta" que se saca recompilando **comando por comando** miente con
@@ -629,6 +1129,9 @@ que hoy no compilan:
     RecallToLocation          54     ConditionalBranch, del héroe        36
     FlashSprite               51     ChangeSystemBGM                     39
     KeyInputProc              31     ShowMessage (los escapes)           18
+
+Los 31 de `KeyInputProc` son de antes del 2026-09-13: desde ese día sólo corta
+la forma que **no espera**, que son 4 páginas.
 
 Las dos columnas de `ConditionalBranch` **ya no valen**: desde el 2026-09-13
 "del héroe" es **cero** —las tres preguntas que el juego usa están hechas— y
@@ -658,6 +1161,25 @@ Lo que queda abierto de la primera:
   cuadro**: `var-heroe-x` lo lee con el héroe quieto. Si alguna vez hay una
   página que persiga al héroe mientras camina, ese cuadro de diferencia es lo
   primero que hay que mirar.
+
+### La carrera, cuando llegue: 41 paralelos que comparan posiciones
+
+Anotado el 2026-09-13, antes de que haga falta. Los mapas de la persecución en
+auto —49, 52 y 54— tienen **41 eventos con página paralela cada uno**, el
+triple que el HQ de los Lazer Teeth, y son los tres mapas con más de todo el
+juego. Medidos en frío dan 0 paralelos activos y 60 fps: se encienden a medida
+que la carrera avanza, así que el número de verdad todavía no se vio.
+
+Cada obstáculo es un paralelo que compara su posición con la del héroe, que es
+el mismo patrón que el minijuego del HQ. Con el costo que tenían el 2026-09-13
+—unos 3.200 ciclos por paralelo y por cuadro— serían ~131.000 ciclos, más de
+dos cuadros: la carrera correría a unos 20 fps. Con la página cacheada eso
+debería desaparecer, y por eso **no se hizo nada especial acá**: primero medir
+la carrera con el arreglo puesto.
+
+Si aun así no alcanzara, taro dejó la idea: **la coordenada x del auto sólo
+incrementa**, así que los obstáculos podrían ordenarse por x y mirarse sólo los
+que están cerca, en vez de los 41 todos los cuadros.
 
 ### Lo próximo, si no se decide otra cosa
 
@@ -701,9 +1223,11 @@ Al 2026-09-12, en orden.
 6. **Lo que sigue faltando de Lashe City**: la condición por cronómetro —una
    página en todo el juego—. El `CallEvent` del Hover-Tram está hecho desde el
    2026-09-12 y el tram se toma: lo cubre el caso `tram`. **La persecución en
-   auto de los mapas 49, 52 y 54 ya tiene lo que le faltaba del intérprete** —la
-   clase 6 de `ControlVars`—, pero ninguno de esos tres mapas está en una demo
-   todavía, así que **nadie la jugó**: eso es lo que falta para darla por buena.
+   auto ya la jugó taro**, con `just snes-demo-carrera`, y lo que salió de ahí
+   está arriba en "La persecución en auto, jugada": de lo que reportó, dos
+   cosas eran de cómo entraba la demo y están arregladas, y la tercera —que la
+   carrera no corre sola— es el `KeyInputProc` sin espera, con su medición y lo
+   que falta para aceptarlo.
 
 7. **Lo que falta del sistema de ítems**: los libros, los materiales y los
    especiales, y `ChangeEquipment` —sólo en los mapas 30 y 151—. Las medicinas
