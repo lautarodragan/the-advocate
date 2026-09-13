@@ -19,9 +19,9 @@ Se escribe **mientras se trabaja**, no al final.
 **Los primeros diez minutos jugables**, que es lo que taro viene probando vuelta
 a vuelta.
 
-Al 2026-09-13: `just snes-hitos-foto` son **153 casos, todos en verde** —sobre
-la foto `f336b63`, con tres de las cuatro vueltas de esta tanda adentro— y `just
-pruebas` son **123 en verde y 1 `xfail`, sin rojos**. Los
+Al 2026-09-13: `just snes-hitos-foto` son **161 casos, todos en verde** —sobre
+la foto `254461b`, con los dos de la vuelta de la pelea adentro— y `just
+pruebas` son **131 en verde y 1 `xfail`, sin rojos**. Los
 dos de audio de la pelea que venían en rojo desde el 2026-09-12 no eran
 preexistentes de nadie: los rompió el merge `6c43aa3`, que dejó a la pelea
 cargando el paquete de audio del mapa. Está arreglado y contado abajo. El
