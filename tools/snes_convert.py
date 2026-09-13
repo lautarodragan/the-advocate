@@ -3327,6 +3327,9 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "OP_TIMER    = $%02X\n"
         "OP_BGM      = $%02X\n"
         "OP_LUGAR    = $%02X\n"
+        "; El mismo, con la celda en dos variables. Ver OP_LUGAR_VAR en\n"
+        "; eventos.py y `op_lugar_var` en main.s.\n"
+        "OP_LUGAR_VAR = $%02X\n"
         "OP_TRUEQUE  = $%02X\n"
         "OP_SACUDIR  = $%02X\n"
         "OP_DESTELLO = $%02X\n"
@@ -3378,6 +3381,15 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "TECLA_CANCELAR = $%02X\n"
         "TECLA_ARRANCA  = $%02X\n"
         "TECLA_VALOR_DECISION = %d\n"
+        "TECLA_VALOR_CANCELAR = %d\n"
+        "; Y las cuatro direcciones, con el mismo número que les da\n"
+        "; `CheckInput`. El orden en que se miran sale de acá: de mayor a\n"
+        "; menor, que es lo que dice \"RPG processes keys from highest\n"
+        "; variable value to lowest\".\n"
+        "TECLA_VALOR_ARRIBA   = %d\n"
+        "TECLA_VALOR_DERECHA  = %d\n"
+        "TECLA_VALOR_IZQUIERDA = %d\n"
+        "TECLA_VALOR_ABAJO    = %d\n"
         "; En qué tile de su banco de sprites arranca y con qué paleta.\n"
         "; Van de globales y no en el registro del mapa porque el cartel es\n"
         "; **uno solo por ROM** y vive en un solo mapa: los dos campos\n"
@@ -3649,7 +3661,8 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            eventos.CABECERA_LINEAS, eventos.CABECERA_AUTOCIERRE,
            eventos.CUADROS_DE_PAUSA, eventos.OP_RUTAS,
            eventos.OP_FLASH, eventos.OP_TIMER, eventos.OP_BGM,
-           eventos.OP_LUGAR, eventos.OP_TRUEQUE, eventos.OP_SACUDIR,
+           eventos.OP_LUGAR, eventos.OP_LUGAR_VAR,
+           eventos.OP_TRUEQUE, eventos.OP_SACUDIR,
            eventos.OP_DESTELLO, eventos.OP_FUNDIR_BGM, eventos.OP_PAN,
            eventos.OP_SI, eventos.OP_IR, eventos.OP_ELEGIR,
            eventos.OP_ORO, eventos.OP_GUARDAR,
@@ -3665,7 +3678,9 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            eventos.OP_TECLA, eventos.TECLA_ESPERA,
            eventos.TECLA_DIRS, eventos.TECLA_DECISION,
            eventos.TECLA_CANCELAR, eventos.TECLA_ARRANCA,
-           eventos.TECLA_VALOR_DECISION,
+           eventos.TECLA_VALOR_DECISION, eventos.TECLA_VALOR_CANCELAR,
+           eventos.TECLA_VALOR_DIR[0], eventos.TECLA_VALOR_DIR[1],
+           eventos.TECLA_VALOR_DIR[3], eventos.TECLA_VALOR_DIR[2],
            cartel_base, cartel_pal,
            cartel["x"] if cartel else 0, cartel["y"] if cartel else 0,
            cartel["objetos"] if cartel else 0,
@@ -5083,6 +5098,10 @@ def variables_de_prueba(vars_de_prueba, rama_var_de_prueba, tecla=None):
             ids.add(vars_de_prueba[k])
             if vars_de_prueba[k + 2] == eventos.VAR_VARIABLE:
                 ids.add(vars_de_prueba[k + 3])
+            if vars_de_prueba[k + 1] == eventos.VARIABLES_PRUEBA_AL_LUGAR:
+                # La operación 10 nombra **dos** variables: la de la x, que ya
+                # entró como `[k]`, y la de la y, que va en `[k + 4]`.
+                ids.add(vars_de_prueba[k + 4])
     if rama_var_de_prueba:
         ids.add(rama_var_de_prueba[0])
     return ids

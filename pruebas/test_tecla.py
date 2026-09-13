@@ -10,8 +10,10 @@ El valor esperado sale de `eventos.tecla_de`, que es la misma función que corre
 la referencia: si alguien le cambia el número a la tecla de acción, esto se cae
 aunque los dos lados sigan coincidiendo entre ellos.
 
-**Lo que no se prueba acá, porque no se puede**: la cruceta y cancelar. Este
-port acepta una sola forma del comando —esperar la tecla de acción— y el porqué,
+**La cruceta y cancelar se prueban acá y no en la tanda**, salvo una dirección:
+el cronómetro del caso `tecla-dir` muestra un número por ROM, así que cubrir las
+cuatro y B por pixeles serían cinco casos para medir lo mismo. Acá cuesta un
+toque cada uno. La que sigue afuera es la forma que **no espera**, y el porqué,
 con el número, está en `KEY_INPUT_PROC` en `eventos.py`.
 """
 
@@ -91,3 +93,83 @@ def test_sostener_la_tecla_no_contesta(partida):
     assert leer(una) == 0, (
         "el comando contestó con A sostenida desde antes de arrancar: la "
         "variable quedó en %d" % leer(una))
+
+
+# La forma que espera la cruceta, que es el motor del minijuego de las piedras
+# del mapa 11: `(8, 1, 1, 0, 0)` en RM2k. Y la que espera las tres cosas, que
+# es el `(151, 1, 1, 1, 1)` de las otras dos páginas del juego.
+ESPERAR_DIR = (VARIABLE, 1, 1, 0, 0)
+ESPERAR_TODO = (VARIABLE, 1, 1, 1, 1)
+
+
+def test_la_cruceta_guarda_el_numero_de_cada_direccion(partida):
+    """Las cuatro, con los números de `CheckInput`: 4 arriba, 3 derecha, 2
+    izquierda, 1 abajo.
+
+    Son cuatro ROMs y no cuatro toques sobre una: el comando contesta una vez y
+    la página sigue, así que el segundo toque ya no lo mira nadie.
+    """
+    for boton, direccion in (("up", 0), ("right", 1), ("down", 2), ("left", 3)):
+        una = partida(tecla=ESPERAR_DIR, espera=ESPERA)
+        una.correr(ESPERA + 10)
+        assert leer(una) == 0, (
+            "se adelantó con %s: la variable ya tenía %d" % (boton, leer(una)))
+        una.tocar(boton)
+        una.correr(5)
+        esperado = eventos.tecla_de(eventos.TECLA_DIRS, {direccion})
+        assert esperado == eventos.TECLA_VALOR_DIR[direccion]
+        assert leer(una) == esperado, (
+            "con %s la variable quedó en %d y el modelo dice %d"
+            % (boton, leer(una), esperado))
+
+
+def test_cancelar_guarda_seis(partida):
+    """B, que en RM2k vale 6.
+
+    **El mismo B abre además el menú de pausa, y está bien que lo abra**: el
+    comando no se come nada, y `Game_Player::Update` mira `IsTriggered(CANCEL)`
+    igual. Lo único que lo frena es que haya una página corriendo —el
+    `ev_activo` de `pedir_menu`, que es el
+    `Game_Map::GetInterpreter().IsRunning()` de allá— y en este cuadro la
+    página **termina**: el comando era su último. Por eso el toque es un tick y
+    no `tocar`, que son dos: con la pantalla de pausa abierta `vueltas` no
+    avanza y el segundo tick no llega nunca.
+
+    Y por eso B no entra en la tanda de pixeles: el menú de pausa la referencia
+    no lo modela, así que un caso que lo abriera mediría dos programas
+    distintos.
+    """
+    una = partida(tecla=ESPERAR_TODO, espera=ESPERA)
+    una.correr(ESPERA + 10)
+    una.sostener(1, "b")
+    esperado = eventos.tecla_de(eventos.TECLA_CANCELAR, {"b"})
+    assert esperado == eventos.TECLA_VALOR_CANCELAR == 6
+    assert leer(una) == esperado, (
+        "con B la variable quedó en %d y el modelo dice %d"
+        % (leer(una), esperado))
+
+
+def test_con_las_tres_pedidas_gana_cancelar(partida):
+    """El orden de `CheckInput` es de mayor valor a menor —"RPG processes keys
+    from highest variable value to lowest"— así que B le gana a A y A a la
+    cruceta. Los dos lados lo miran con el mismo orden."""
+    una = partida(tecla=ESPERAR_TODO, espera=ESPERA)
+    una.correr(ESPERA + 10)
+    una.sostener(1, "b", "a", "up")
+    assert leer(una) == eventos.TECLA_VALOR_CANCELAR, (
+        "con B, A y arriba a la vez la variable quedó en %d y tendría que "
+        "decir cancelar" % leer(una))
+
+
+def test_sostener_una_direccion_no_contesta(partida):
+    """Lo mismo que con A: es el **flanco**, `Input::IsTriggered`.
+
+    Sin esto, una dirección sostenida desde el arranque —que es lo único que
+    `--walk` sabe hacer— contestaría en el primer cuadro de un lado y en otro
+    del otro, y el caso `tecla-dir` de la tanda no mediría nada.
+    """
+    una = partida(tecla=ESPERAR_DIR, espera=ESPERA)
+    una.correr(ESPERA + 20, sosteniendo=("left",))
+    assert leer(una) == 0, (
+        "el comando contestó con izquierda sostenida desde antes de arrancar: "
+        "la variable quedó en %d" % leer(una))
