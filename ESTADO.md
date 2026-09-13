@@ -535,6 +535,20 @@ mover el índice a X, y en los cinco lugares X es la ranura de ruta. Lo que qued
 libre de verdad son `mascara` (8 bytes, 3 accesos, neto 5) y `tabla_fila_buf`
 (32 bytes, 1 acceso, pero en el lazo del compositor de texto).
 
+**Verificado sobre `d8e0e5d`**, que es el árbol con las dos cosas puestas:
+
+    just pruebas                             135 en verde, 1 xfail, cero rojos
+    just snes-hitos-foto 4 /extras/hitos-foto-bum   160 casos, todos en verde
+    just snes-demo demo-ciudad               arma, con 7 bytes de banco 0 libres
+
+Los cuatro casos nuevos de `just pruebas` son `test_game_over.py` (131 + 1 xfail
+antes); el caso nuevo de la tanda es `destello-compartido` (159 antes).
+
+La ROM para probar a mano está en **`pruebas-manuales/bum-y-jefe/`**, con el
+`LEEME.txt` que dice cómo llegar a las dos escenas y qué mirar. Lo que taro
+tiene que juzgar es **si se nota** que el `InnBum` del mapa 20 destelle junto
+con el Panhandler: los dos son `Future3:1`.
+
 Lo que quedó afuera, con su número:
 
 * **`ShowBattleAnimation` sigue sin destellar al objetivo que comparte
