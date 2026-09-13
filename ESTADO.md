@@ -20,15 +20,16 @@ Se escribe **mientras se trabaja**, no al final.
 a vuelta.
 
 Al 2026-09-13: `just snes-hitos-foto` son **161 casos, todos en verde** —sobre
-la foto `254461b`, con los dos casos de la vuelta de la pelea adentro— y `just
-pruebas` son **131 en verde y 1 `xfail`, sin rojos**. Los dos de audio de la
-pelea que venían en rojo desde el 2026-09-12 no eran preexistentes de nadie:
-los rompió el merge `6c43aa3`, que dejó a la pelea cargando el paquete de audio
-del mapa. Está arreglado y contado abajo. El
-`xfail` no es adorno: es un defecto medido de guardar con la pantalla de título
-puesta, y está abajo.
+la foto `68539a8`, con los tres bugs que taro reportó jugando ya arreglados— y
+`just pruebas` son **131 en verde y 1 `xfail`, sin rojos**. El `xfail` no es
+adorno: es un defecto medido de guardar con la pantalla de título puesta, y
+está abajo.
 
-**La ROM para probar a mano** está en `pruebas-manuales/2026-09-13-f30be91/`,
+**La ROM para probar a mano** está en `pruebas-manuales/2026-09-13-68539a8/`,
+con los tres arreglos y las tres ROMs —la ciudad con sus pistas, la carrera, y
+la carrera con el volante prendido a mano, que espera el veredicto de taro—.
+La anterior, con la que él encontró los tres bugs, está en
+`pruebas-manuales/2026-09-13-f30be91/`,
 con las cuatro vueltas juntas: `demo-ciudad.sfc` con las ocho pistas de MSU-1 y
 `demo-carrera.sfc` con la persecución en auto. Su `LEEME.txt` dice qué mirar y
 en qué orden. Las de cada pieza por separado, por si hace falta aislar algo:
