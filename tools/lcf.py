@@ -308,6 +308,11 @@ MUSIC_BALANCE = 0x05
 MAPINFO_PARENT = 0x02
 MAPINFO_INDENTATION = 0x03
 MAPINFO_TYPE = 0x04
+MAPINFO_ENCOUNTERS = 0x29     # array de rpg::Encounter, un troop_id cada uno
+MAPINFO_ENCOUNTER_STEPS = 0x2C
+MAPINFO_AREA_RECT = 0x33      # cuatro u32: izquierda, arriba, derecha, abajo
+
+ENCOUNTER_TROOP_ID = 0x01
 
 
 class EventCommand:
@@ -1027,9 +1032,31 @@ class TreeMap:
                           for i, f in infos.items()}
         self.map_parents = {i: to_int(f.get(MAPINFO_PARENT, b"\x00"))
                             for i, f in infos.items()}
-        # Tipo 0 = raíz del árbol, 1 = mapa de verdad, 2 = carpeta del editor.
+        # Tipo 0 = raíz del árbol, 1 = mapa de verdad, 2 = **área**. Un área es
+        # un nodo sin `.lmu` que cuelga de un mapa y le tapa un rectángulo:
+        # `MapType_area` de liblcf (rpg/treemap.h). Acá se usan para los
+        # encuentros al azar, que es lo único que ABL les pone.
         self.map_types = {i: to_int(f.get(MAPINFO_TYPE, b"\x00"))
                           for i, f in infos.items()}
+
+        # Los encuentros al azar, que viven en el árbol y no en el `.lmu`:
+        # la lista de tropas, cada cuántos pasos y —para las áreas— el
+        # rectángulo que cubren. Ver rpg/mapinfo.h en liblcf.
+        self.encounters = {}
+        self.encounter_steps = {}
+        self.area_rect = {}
+        for i, f in infos.items():
+            tropas = Reader(f.get(MAPINFO_ENCOUNTERS, b"\x00")).read_struct_array()
+            self.encounters[i] = [
+                to_int(e.get(ENCOUNTER_TROOP_ID, b"\x00"))
+                for _, e in sorted(tropas.items())
+            ]
+            # El default de RM2k son 25 pasos; 0 es "sin encuentros".
+            self.encounter_steps[i] = to_int(
+                f.get(MAPINFO_ENCOUNTER_STEPS, b"\x19"))
+            rect = f.get(MAPINFO_AREA_RECT, b"")
+            self.area_rect[i] = (struct.unpack("<4i", rect) if len(rect) == 16
+                                 else (0, 0, 0, 0))
 
         count = reader.read_int()
         self.music = {}
