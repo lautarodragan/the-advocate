@@ -156,7 +156,7 @@ WMDATA   = $2180
 ; no entraban. El día que haya variables de RM2k —cinco mil, diez kilobytes— van
 ; acá también.
 FAR_PAR_ESTADO = $2000      ; EV_MAX entradas de PAR_BYTES
-FAR_PAR_LISTA  = $2400      ; PARALELO_MAX índices de evento
+FAR_PAR_LISTA  = $2400      ; PARALELO_MAX entradas de PAR_LISTA_BYTES
 ; Las variables de RM2k, una palabra con signo por ranura. Cuántas son lo dice
 ; el conversor —`VARIABLES_N`—, que le da ranura sólo a las que nombran las
 ; páginas de los mapas de la ROM; el bytecode habla de ranuras. Se leen y
@@ -424,6 +424,15 @@ BA_HAB_TIPO_SWITCH = 3
 
 ; Cursor (2), espera (2), si está corriendo (1) y de qué página (2).
 PAR_BYTES = 7
+
+; Y lo que la lista de paralelos guarda de cada uno: el evento (1), el puntero
+; a su bytecode (3) y de qué página salió (2). Los tres últimos son lo que
+; antes se volvía a sacar del cartucho en cada cuadro y por cada paralelo, con
+; `pagina_desde_eleg`: veinticuatro bytes de cabecera de página leídos por la
+; ventana de banco, para contestar lo mismo que la vez anterior. La lista se
+; rehace entera en `aplicar_paginas`, o sea exactamente cuando la página activa
+; puede haber cambiado, así que anotarlo ahí es la misma respuesta y una vez.
+PAR_LISTA_BYTES = 6
 WMADDL   = $2181
 WMADDM   = $2182
 WMADDH   = $2183
@@ -2731,7 +2740,9 @@ borrar:
     rts
 .endproc
 
-; Anota al evento `rp_ev` en la lista de paralelos del mapa.
+; Anota al evento `rp_ev` en la lista de paralelos del mapa, con la página que
+; acaba de ganar: entra con `pg_*` de ella y con `pag_ofs` en su offset, que es
+; como `aplicar_paginas` la tiene leída.
 .proc anotar_paralelo
 .a8
 .i16
@@ -2743,6 +2754,11 @@ hay_lugar:
     rep #$20
 .a16
     and #$00FF
+    sta temp
+    asl a
+    clc
+    adc temp
+    asl a                       ; por seis
     clc
     adc #FAR_PAR_LISTA
     sta WMADDL
@@ -2750,6 +2766,16 @@ hay_lugar:
 .a8
     stz WMADDH
     lda rp_ev
+    sta WMDATA
+    lda pg_cod
+    sta WMDATA
+    lda pg_cod + 1
+    sta WMDATA
+    lda pg_cod + 2
+    sta WMDATA
+    lda pag_ofs
+    sta WMDATA
+    lda pag_ofs + 1
     sta WMDATA
     inc par_n
     rts
@@ -2786,6 +2812,11 @@ lazo:
     rep #$20
 .a16
     and #$00FF
+    sta temp
+    asl a
+    clc
+    adc temp
+    asl a                       ; por seis
     clc
     adc #FAR_PAR_LISTA
     sta WMADDL
@@ -2793,8 +2824,20 @@ lazo:
 .a8
     stz WMADDH
     lda WMDATA                  ; de qué evento es esta ranura
+    sta par_ev
+    lda WMDATA                  ; y su página, ya resuelta por el refresco
+    sta elegida
+    lda WMDATA
+    sta elegida + 1
+    lda WMDATA
+    sta elegida + 2
+    lda WMDATA
+    sta pag_ofs
+    lda WMDATA
+    sta pag_ofs + 1
     rep #$20
 .a16
+    lda par_ev
     and #$00FF
     tax
     sep #$20
@@ -2824,28 +2867,18 @@ lazo:
     rts
 .endproc
 
-; Un cuadro del evento cuyo índice trae X.
+; Un cuadro del evento cuyo índice trae X, con `elegida` y `pag_ofs` ya puestos
+; por el lazo desde la lista de paralelos.
+;
+; Acá **no** se vuelve a elegir la página ni a leerla del cartucho. Era lo que
+; costaba el cuadro en el HQ de los Lazer Teeth —once paralelos, y el décimo se
+; pasaba— y no podía dar otra respuesta: la lista y lo que lleva adentro los
+; rehace `aplicar_paginas`, que es `Game_Map::Refresh`, o sea el único momento
+; en que la página activa cambia. Tampoco hace falta preguntar si la página es
+; paralela y si compiló: si no lo fuera, el evento no estaría en la lista.
 .proc un_paralelo
 .a8
 .i16
-    txa
-    sta par_ev                  ; se necesita después, y `correr_codigo` usa X
-    phx
-    jsr pagina_desde_eleg
-    plx
-    lda elegida_hay
-    beq nada_cerca
-    lda elegida_trigger
-    cmp #TRIGGER_PARALELO
-    beq con_paralela            ; si no, su página activa ya no es la paralela
-nada_cerca:
-    rts
-con_paralela:
-    lda elegida
-    ora elegida + 1
-    ora elegida + 2
-    beq nada_cerca
-
     ; Dónde cae su estado: el evento por siete.
     rep #$20
 .a16
