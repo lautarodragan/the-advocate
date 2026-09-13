@@ -76,142 +76,100 @@ absoluto no se pudo reproducir con ninguna combinación de argumentos de
 misma con los dos criterios: +119 páginas.** Cuando un número de éstos se
 reporte, conviene decir con cuál de los dos se contó.
 
-### Los gráficos rotos del mapa 16: NO encontrado, y qué se descartó (2026-09-13)
+### La pantalla hecha basura: era el bloque de textos cruzando de banco (2026-09-13)
 
-taro ve la pantalla hacerse basura en **Running To Work Scene** (mapa 16), unos
-segundos después de entrar, y sigue rota al pasar a la fábrica. La captura
-`pruebas-manuales/2026-09-13-f30be91/demo-ciudad-0006.png` es la prueba: el
-centro de la pantalla es una ensalada de tiles con el borde izquierdo y el
-derecho sanos, y **el cronómetro marca 01:53**, o sea que no había llegado a
-cero todavía.
+taro veía la pantalla convertirse en una ensalada de tiles al llegar a la
+fábrica, y seguía rota de ahí en adelante —la captura es
+`pruebas-manuales/2026-09-13-f30be91/demo-ciudad-0006.png`—. **Encontrado y
+arreglado**, y no era ni el pan ni el cronómetro.
 
-**No se encontró.** Lo que sí quedó medido, para que nadie lo vuelva a medir:
+**Qué era.** `OP_MENSAJE` lleva un desplazamiento de dieciséis bits dentro del
+bloque de textos, y `msg_empezar` lo sumaba al puntero **de a dieciséis bits**,
+perdiendo el acarreo y dejando el banco fijo. El bloque mide 48972 bytes con
+los 29 mapas de `demo-ciudad` —más que los 32 KB que mide la ventana de un
+banco de LoROM— y arranca en `$46:8000`, así que **todo cuadro de texto con
+desplazamiento mayor a $8000 leía de otro lado**: `msg_ptr` quedaba en
+`$46:1370`, que ni siquiera es ROM. Es la misma trampa que `ptr_mas` ya sabía
+para la grilla del mapa: lo que sigue a `$FFFF` no es el `$0000` del banco
+siguiente sino su `$8000`.
+
+**Por qué rompía la pantalla entera y no sólo el texto.** De esa basura salía
+un largo de renglón de **70 caracteres** contra los 39 que entran, y
+`componer_char` no topa la columna: escribió fuera de `texto_buf` —1920 bytes
+en `$01C8`— y se llevó puesto `vq_n`, que vive justo detrás de los 544 bytes de
+la imagen de OAM. Con `vq_n` en 51, `vram_drenar` empezó a subir bloques de 128
+bytes a direcciones cualquiera de la VRAM —medido: `$5555`, `$5655`, `$5755`,
+`$5855`, o sea encima del tilemap del mapa— durante los diez cuadros que tardó
+en drenar la cola inventada.
+
+**Cómo se reprodujo**, que es lo que costó: entrando al mapa 16 con
+`pruebas/consola.py`, dejando correr la escena y pasando a la fábrica. Contra
+la referencia, en un cartucho con los 29 mapas de la demo:
+
+    cuadro 1200   0,58%     1282  34,49%     1290  66,94%
+    cuadro 1250   0,58%     1283  43,12%     1300  70,93%
+
+y con el arreglo puesto, **0,58% en los seis**. Ese 0,58% que queda es anterior
+y está en los cuadros de antes del mensaje; no se investigó.
+
+**El caso de la tanda es `texto-lejos`**, y para que fuera barato hubo que
+inventar algo: reproducirlo de verdad pide un cartucho de diez mapas hablados
+—minutos por caso—, así que `--relleno-de-mensajes` mete bytes muertos delante
+del bloque y corre los desplazamientos más allá del banco con **un solo mapa**.
+Lo usan los dos lados con el mismo número, así que los desplazamientos siguen
+coincidiendo. Comprobado en rojo con el `msg_empezar` de antes: **3116 pixeles
+en el cuadro 60 y 3404 en el 400**.
+
+Lo que queda abierto de esto:
+
+* **`componer_char` sigue sin topar la columna.** Con el puntero arreglado
+  ningún largo pasa de 39, pero la única razón por la que un largo malo no
+  vuelve a escribir encima de `vq_n` es que ya no hay largos malos. Un tope
+  cuesta unos pocos bytes del banco 0 y convertiría un error de puntero futuro
+  en un renglón cortado en vez de en la pantalla hecha basura.
+* **`vq_n` vive pegado al final de la imagen de OAM**, así que es lo primero
+  que pisa cualquier desborde de ahí. Si alguna vez sobra RAM, conviene
+  separarlos.
+
+### Lo que se descartó buscando esto, para no volver a medirlo (2026-09-13)
+
+El encargo traía dos hipótesis y las dos eran falsas. Queda escrito porque
+medirlas costó la mayor parte de la vuelta:
 
 * **El `PanScreen` con los parámetros del juego no tiene nada que ver.** La
-  hipótesis era que la tanda sólo prueba el pan con distancia 2 y velocidad 2
-  mientras el juego usa 10 y 4. Corrido tal cual —`just snes-pan 6 "2 2 10 4 1"
-  "10 20 40 60 79 80 81" 115`— da **0,00% en los siete cuadros**. El pan de 10
-  celdas a velocidad 4 anda.
-* **La escena entera del mapa 16 anda, contra la referencia, en dos cartuchos
-  distintos.** Uno con dos mapas (16 y 17) y otro con **los veintinueve de
-  `demo-ciudad`**, los dos con la ventana de mensaje y entrando por la celda
-  (53,7), que es por donde entra el juego. Cuadros 100, 300, 700, 800, 850 y
-  900 —que cubren los cuatro teletransportes internos y el pan entero— en
-  **0,00%**. O sea que la escena sola, en un cartucho igual de cargado, no
-  rompe nada.
-* **El cronómetro llegando a cero tampoco es del pan.** Con una página de
-  prueba que arranca el cronómetro en un segundo y hace el pan de 10/4, el
-  cuadro 60 da **252 pixeles (0,44%)**, todos en los dígitos de arriba a la
-  izquierda. Y da **los mismos 252 sin el pan**: es una divergencia de un tick
-  en el cuadro en que el cronómetro se apaga, que existe desde antes y que
-  `timer-cero` no ve porque mira los cuadros 2, 40, 59 y 61 y **se saltea
-  justo el 60**. Vale arreglarla, pero no es esto: en la captura de taro el
-  cronómetro está en 01:53.
+  tanda lo probaba con distancia 2 y velocidad 2 y el juego usa 10 y 4; corrido
+  tal cual —`just snes-pan 6 "2 2 10 4 1" "10 20 40 60 79 80 81" 115`— da
+  **0,00% en los siete cuadros**.
+* **La escena entera del mapa 16 anda**, en un cartucho de dos mapas y en otro
+  con los veintinueve de la demo, entrando por la celda (53,7) que es por donde
+  entra el juego: cuadros 100, 300, 700, 800, 850 y 900 en **0,00%**.
+* **El cronómetro llegando a cero tampoco era.** Con una página de prueba que
+  lo arranca en un segundo y hace el pan de 10/4, el cuadro 60 da **252
+  pixeles (0,44%)**, todos en los dígitos —y da los mismos 252 **sin** el pan—.
+  Es una divergencia de un tick en el cuadro en que el cronómetro se apaga, que
+  `timer-cero` no ve porque mira los cuadros 2, 40, 59 y 61 y **se saltea justo
+  el 60**. Sigue abierta y es cosmética.
+* **Y el cronómetro corriendo de verdad por la escena entera tampoco**:
+  inyectado con 600 segundos desde el primer cuadro del mapa 16, visible, y
+  parado por el `TimerOperation` de la escena, la pantalla sigue igual.
+* **No era el vblank desbordado**: con `push_strips` al principio de
+  `flush_video` y con blanking forzado durante todo el vblank la pantalla sale
+  byte por byte igual, y con dos contadores en la RAM `build_row` y
+  `push_strips` van en lockstep.
 
-**El único rojo que apareció, y es real:** cuadro **500** de la escena,
-**43,86% (25153 de 57344)**, en los dos cartuchos. No es la VRAM: leyendo la
+**El rojo que apareció de paso y sigue abierto:** cuadro **500** de la escena
+del mapa 16, **43,86% (25153 de 57344)**, en los dos cartuchos. Leyendo la
 WRAM, en el tick 490 la ROM tiene al héroe en 368 y la cámara en 248 y la
-referencia 378 y 258. **La ROM arranca el `MoveEvent` que sigue al tercer
-teletransporte interno —el que va a (24,15)— cuatro ticks antes que la
-referencia**, y de ahí en más la pantalla está corrida ocho pixeles hasta que
-el teletransporte siguiente las vuelve a sincronizar (620 en adelante vuelve a
-dar 0,00%). Es invisible jugando y ninguna prueba lo cubría porque **ningún
-caso de la tanda corre una página con un `Teleport` al mismo mapa**.
+referencia 378 y 258: **la ROM arranca el `MoveEvent` que sigue al tercer
+teletransporte interno —el que va a (24,15)— cuatro ticks antes**, y la
+pantalla queda corrida ocho pixeles hasta que el teletransporte siguiente las
+vuelve a sincronizar. Ningún caso de la tanda corre una página con un
+`Teleport` al mismo mapa, que es por donde se coló.
 
-**Pistas para el que siga**, en orden de lo que parece:
-
-* La captura rota tiene el borde sano y el centro basura: parece **un DMA de
-  datos de tiles que cayó encima del tilemap**, no una tira perdida. Los
-  candidatos por tamaño son `subir_linea` (1920 B), `anim_flush` (hasta 1664 B)
-  y `animacion_dibujo_dma` (2 KB).
-* **Descartado que sea el vblank desbordado**: con `push_strips` movido al
-  principio de `flush_video` y con blanking forzado durante todo el vblank, la
-  pantalla sale igual byte por byte. Y contando con dos contadores en la RAM,
-  `build_row` y `push_strips` van en lockstep: no se pierde ni una tira.
-* Lo que **no** se pudo reproducir es la llegada de verdad: taro entra al mapa
-  16 jugando desde la apertura, y todo lo de arriba entra por un
-  teletransporte inyectado desde `pruebas/consola.py`. La diferencia que queda
-  entre las dos cosas es el estado que trae la partida.
-* Y ojo con una trampa que costó una hora: **el tinte de pantalla sobrevive al
-  cambio de mapa**, así que saltar al mapa 16 desde el mapa de arranque lo
-  deja todo azul (tinte 0,0,100) y parece el defecto. No lo es; para mirar el
-  mapa 16 inyectado hay que poner `tinte_r/g/b` en 100 primero.
-
-### Lashe City iba a la mitad de velocidad, y era el refresco (2026-09-13)
-
-taro lo reportó jugando `pruebas-manuales/2026-09-13-f30be91/demo-ciudad.sfc` en
-mednafen: *"hay lag EXTREMO en Lashe City. varía de zona a zona, pero apenas
-salís del pad de Talan, es insufrible. Parece que vas en slow motion."*
-
-**El número, medido con un cartucho de un solo mapa y el héroe quieto en el 8**
-—`Lashe City - 34,35`, que es a donde sale la puerta del pad de Talan—:
-
-    antes    30,00 cuadros por segundo, 1 cuadro perdido por vuelta
-    después  60,00
-    caminando a la derecha, 300 cuadros: 33,40 -> 54,20
-
-No era "slow motion" como manera de decir: eran **exactamente la mitad**. Cada
-vuelta del lazo medía unas 388 líneas de las 262 que tiene un cuadro, así que
-`wait_vblank` esperaba siempre al vblank siguiente y el juego entero corría a
-mitad de reloj —la lógica de RM2k va por vueltas, no por cuadros: ver
-`vueltas`—.
-
-**La causa**: el mapa 8 tiene una página **paralela** que escribe cuatro
-variables por cuadro —las coordenadas del héroe contra las de otro evento, la
-clase 6 de `ControlVars`— y cada escritura marcaba `refresco`. Con el refresco
-pedido todos los cuadros, `rutas_de_pagina` recorría los 68 eventos y las 106
-páginas del mapa **una vez por cuadro**, que es lo que no entra. **Ninguna de
-esas cuatro variables la mira ninguna condición de página**, ni en ese mapa ni
-en ningún otro del juego.
-
-RM2k no hace eso, y el port lo estaba copiando de más: `SetNeedRefreshForVarChange`
-le pregunta antes al `map_cache`, que tiene las variables que alguna condición
-de página **del mapa cargado** mira. Acá esa pregunta no hace falta correrla:
-quién mira qué es estático por mapa y el bytecode de una página se compila para
-su mapa, así que la contesta el conversor y en la consola queda un `and`. Es el
-bit `VAR_REFRESCO`, el de arriba de la ranura de `OP_VAR` y de `OP_TECLA`;
-`var_apuntar` lo enmascara y `var_escribir` lo mira. **Cuesta cuatro bytes
-menos de banco 0 que antes**, porque el `lda #1 / sta refresco` estaba repetido
-en los tres lugares que escriben una variable y ahora está una sola vez.
-
-Cómo se midió, porque conviene no volver a inventarlo: un script descartable que
-corre la ROM en snes9x por `tools/retro.py` y muestrea `vueltas` y
-`cuadros_perdidos` de la WRAM cada N cuadros de hardware —fps efectivos =
-ticks / cuadros x 60—, y una bisección que saca un `jsr` del lazo principal por
-vez, arma y vuelve a medir. La bisección fue lo que señaló a `eventos_tick` y
-adentro de él a `rutas_de_pagina`; **el medidor de líneas por V-counter mintió**
-y conviene saber por qué: entre dos marcas puede pasar más de un cuadro entero,
-y ahí la cuenta se come 262 líneas sin avisar.
-
-**Verificado**: `just pruebas` 131 en verde y 1 `xfail`, `just snes-hitos-foto
-4 /extras/hitos-foto-lag` **159 casos todos en verde** sobre la foto `12616e2`,
-y `just snes-demo demo-ciudad` arma —es lo único que ve el desborde del banco
-0—. Y el `mapdata.inc` del mapa 7 sale idéntico con y sin `SIN_CACHE=1`. La ROM
-para probar a mano está en `pruebas-manuales/lag-lashe/`.
-
-Lo que queda abierto, con su número:
-
-* **Ningún caso de la tanda mira una página con condición por variable**, que es
-  justo lo que este cambio decide. Son 14 mapas en todo el juego —el 11, el 20,
-  el 21, el 26, el 28, el 32 y los siete del 133 al 140— y ninguno tiene caso
-  propio. O sea que lo que la tanda verificó es que **nada más se rompió**, no
-  que el filtro deje pasar lo que tiene que dejar pasar; eso hoy es lectura de
-  `Game_Map::SetNeedRefreshForVarChange` y del `map_cache`, no medición.
-* **El mapa 11, `Lazer Teeth HQ`, sigue a 30,00 fps y no es esto.** Medido con
-  la misma bisección: sacarle `rutas_de_pagina` no cambia nada y sacarle
-  `paralelos_tick` lo lleva a 60. O sea que ahí el costo son **los paralelos
-  mismos**: doce páginas paralelas que corren unos 48 `ControlVars` por cuadro,
-  que es lo que RPG_RT también hace. No se tocó.
-* **Caminando quedan cuadros perdidos** —30 en 300 en el mapa 8— y no se
-  investigó cuáles: el sospechoso es `stream_map`, que arma la columna o la
-  fila que la cámara destapa.
-* **`ControlSwitches` no está filtrado.** EasyRPG filtra los switches con el
-  mismo cache. Acá no hace falta todavía: medido sobre las páginas paralelas de
-  los 29 mapas de la demo, ninguna escribe switches cuadro a cuadro; las cinco
-  del mapa 11 van adentro de ramas. Si algún día un paralelo los escriba
-  seguido, el arreglo es el mismo bit en `OP_SWITCH`.
-* **La ranura de variable entra en siete bits**, y ahora eso es un requisito:
-  `ranura_de_variable` se rompe si alguna pasa de 127. El juego usa 81.
+Y una trampa de medición que costó una hora: **el tinte de pantalla sobrevive
+al cambio de mapa**, así que saltar a un mapa desde el de arranque lo deja todo
+azul —tinte 0,0,100— y parece el defecto. Para mirar un mapa inyectado hay que
+poner `tinte_r/g/b` en 100 primero.
 
 ### El dibujo de las animaciones de batalla: medido, sin empezar
 
