@@ -422,8 +422,12 @@ BA_PARAM_MAX = 999
 ; intro sabe son o `normal` o `switch`.
 BA_HAB_TIPO_SWITCH = 3
 
-; Cursor (2), espera (2), si está corriendo (1) y de qué página (2).
-PAR_BYTES = 7
+; Cursor (2), espera (2), si está corriendo (1) y de qué página (2). **Ocho y
+; no siete**: el séptimo byte no se usa y a cambio el índice sale con tres
+; `asl` en vez de un `x * 8 - x`, que son seis bytes de banco 0 y unos ciclos
+; en cada paralelo y en cada cuadro. EV_MAX por ocho son 960 bytes, así que
+; sigue entrando abajo de `FAR_PAR_LISTA`.
+PAR_BYTES = 8
 
 ; Y lo que la lista de paralelos guarda de cada uno: el evento (1), el puntero
 ; a su bytecode (3) y de qué página salió (2). Los tres últimos son lo que
@@ -432,7 +436,10 @@ PAR_BYTES = 7
 ; ventana de banco, para contestar lo mismo que la vez anterior. La lista se
 ; rehace entera en `aplicar_paginas`, o sea exactamente cuando la página activa
 ; puede haber cambiado, así que anotarlo ahí es la misma respuesta y una vez.
-PAR_LISTA_BYTES = 6
+; Ocho por lo mismo que `PAR_BYTES`: los dos que sobran se pagan en RAM lejana,
+; que hay de sobra, y se ahorran en banco 0 y en ciclos. PARALELO_MAX por ocho
+; son 384 bytes y hasta `FAR_AZAR` hay 508.
+PAR_LISTA_BYTES = 8
 WMADDL   = $2181
 WMADDM   = $2182
 WMADDH   = $2183
@@ -2624,7 +2631,6 @@ nueva:
     bne :+
     jmp proximo                 ; no hay lugar: se queda quieto
 :
-    jsr ranura_tope_subir
     lda rp_ev
     sta ruta_ev + 0, x
     stz ruta_ev + 6, x
@@ -2723,6 +2729,26 @@ borrar:
     rts
 .endproc
 
+; La ventana de banco apuntada a la entrada de la lista que trae A. Es la misma
+; cuenta para escribirla y para leerla, y estaba copiada en los dos lados.
+.proc par_lista_apuntar
+.a8
+.i16
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    asl a
+    asl a                       ; por PAR_LISTA_BYTES
+    clc
+    adc #FAR_PAR_LISTA
+    sta WMADDL
+    sep #$20
+.a8
+    stz WMADDH
+    rts
+.endproc
+
 ; Anota al evento `rp_ev` en la lista de paralelos del mapa, con la página que
 ; acaba de ganar: entra con `pg_*` de ella y con `pag_ofs` en su offset, que es
 ; como `aplicar_paginas` la tiene leída.
@@ -2734,20 +2760,7 @@ borrar:
     bcc hay_lugar
     rts                         ; el conversor corta antes de que esto pase
 hay_lugar:
-    rep #$20
-.a16
-    and #$00FF
-    sta temp
-    asl a
-    clc
-    adc temp
-    asl a                       ; por seis
-    clc
-    adc #FAR_PAR_LISTA
-    sta WMADDL
-    sep #$20
-.a8
-    stz WMADDH
+    jsr par_lista_apuntar
     lda rp_ev
     sta WMDATA
     lda pg_cod
@@ -2792,28 +2805,15 @@ hay:
     stz par_i
 lazo:
     lda par_i
-    rep #$20
-.a16
-    and #$00FF
-    sta temp
-    asl a
-    clc
-    adc temp
-    asl a                       ; por seis
-    clc
-    adc #FAR_PAR_LISTA
-    sta WMADDL
-    sep #$20
-.a8
-    stz WMADDH
+    jsr par_lista_apuntar
     lda WMDATA                  ; de qué evento es esta ranura
     sta par_ev
-    lda WMDATA                  ; y su página, ya resuelta por el refresco
-    sta elegida
+    lda WMDATA                  ; y su página, ya resuelta por el refresco:
+    sta cod_ptr                 ; derecho al cursor del intérprete, que es lo
+    lda WMDATA                  ; único que `un_paralelo` iba a hacer con ella
+    sta cod_ptr + 1
     lda WMDATA
-    sta elegida + 1
-    lda WMDATA
-    sta elegida + 2
+    sta cod_ptr + 2
     lda WMDATA
     sta pag_ofs
     lda WMDATA
@@ -2862,16 +2862,13 @@ lazo:
 .proc un_paralelo
 .a8
 .i16
-    ; Dónde cae su estado: el evento por siete.
+    ; Dónde cae su estado: el evento por ocho.
     rep #$20
 .a16
     txa
-    sta temp
     asl a
     asl a
-    asl a                       ; por ocho
-    sec
-    sbc temp                    ; menos uno, o sea por siete
+    asl a                       ; por PAR_BYTES
     clc
     adc #FAR_PAR_ESTADO
     sta par_dir
@@ -2934,14 +2931,10 @@ misma_pagina:
     jmp guardar                 ; este cuadro se le va esperando
 .a16
 sin_espera:
-    lda elegida
-    sta cod_ptr
     txa
     sta ev_corriendo            ; de quién es la página, para un MoveEvent suyo
     sep #$20
 .a8
-    lda elegida + 2
-    sta cod_ptr + 2
     lda ev_activo
     bne corriendo
     ; No venía corriendo: la página vuelve a empezar. Es el `Push` que RPG_RT
@@ -3163,29 +3156,6 @@ no_tiene:
     rts
 .endproc
 
-; La ranura de `ruta_ev` que trae X —en bytes— acaba de tomarse: sube el tope
-; si quedó más arriba del que había. Conserva X.
-.proc ranura_tope_subir
-.a8
-.i16
-    rep #$20
-.a16
-    txa
-    lsr a
-    lsr a
-    lsr a
-    lsr a
-    lsr a                       ; de bytes a número de ranura
-    inc a
-    sep #$20
-.a8
-    cmp ruta_ev_tope
-    bcc ya_estaba
-    sta ruta_ev_tope
-ya_estaba:
-    rts
-.endproc
-
 ; Una ranura de ruta libre: X, o $FFFF si no queda ninguna.
 .proc ranura_libre
 .a8
@@ -3206,7 +3176,26 @@ buscar:
 .a8
     bcc buscar
     ldx #$FFFF
+    rts                         ; sin lugar: el tope no se toca
 listo:
+    ; La ranura pasa a tener dueño, así que el tope sube si quedó más arriba
+    ; del que había. Es el único lugar por donde se toma una: las dos —la
+    ; página propia y la ruta forzada— piden acá.
+    rep #$20
+.a16
+    txa
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    lsr a                       ; de bytes a número de ranura
+    inc a
+    sep #$20
+.a8
+    cmp ruta_ev_tope
+    bcc ya_estaba
+    sta ruta_ev_tope
+ya_estaba:
     rts
 .endproc
 
@@ -8422,43 +8411,20 @@ sin_flash:
     dec a
     sta temp                    ; el índice del evento
 
-    ; Primero la ranura que ya sea suya.
-    ldx #$0000
-buscar:
-    lda ruta_ev, x
-    cmp temp
-    beq reusada
-    rep #$20
-.a16
-    txa
-    clc
-    adc #RUTA_EV_STRIDE
-    tax
-    cmp #RUTA_EV_MAX * RUTA_EV_STRIDE
-    sep #$20
-.a8
-    bcc buscar
-
-    ; Y si no, una libre.
-    ldx #$0000
-vacia:
-    lda ruta_ev, x
-    cmp #RUTA_EV_LIBRE
-    beq puesta
-    rep #$20
-.a16
-    txa
-    clc
-    adc #RUTA_EV_STRIDE
-    tax
-    cmp #RUTA_EV_MAX * RUTA_EV_STRIDE
-    sep #$20
-.a8
-    bcc vacia
+    ; Primero la ranura que ya sea suya, y si no una libre. Las dos búsquedas
+    ; estaban copiadas acá y son exactamente `ranura_del_evento` y
+    ; `ranura_libre`: llamarlas ahorra banco 0 y, la primera, se lleva de
+    ; regalo el tope de `ruta_ev_tope`.
+    lda temp
+    jsr ranura_del_evento
+    cpx #$FFFF
+    bne reusada
+    jsr ranura_libre
+    cpx #$FFFF
+    bne puesta
     rts                         ; no hay lugar: la ruta se pierde
 
 puesta:
-    jsr ranura_tope_subir
     lda temp
     sta ruta_ev + 0, x
     stz ruta_ev + 6, x
@@ -20566,10 +20532,13 @@ columna:
     rts
 .endproc
 
-.segment "TABLAS"
+.segment "RODATA"
 ; La tabla del HDMA que enmascara los objetos debajo de la ventana de mensaje:
 ; nada en las 144 líneas de arriba —en dos tramos, por los 7 bits del contador—
 ; y la ventana 1 prendida para los objetos en las 80 de abajo. Ver `armar_hdma`.
+;
+; **Fuera del banco 0**: el HDMA lee de donde diga `A1B3`, así que una tabla de
+; ocho bytes que no cambia nunca no tiene por qué gastar banco 0.
 hdma_mascara:
     .byte 127, $00
     .byte (VENTANA_LINEA - 127), $00
@@ -20747,7 +20716,8 @@ hay:
     sta BBAD3
     ldx #.loword(hdma_mascara)
     stx A1T3L
-    stz A1B3
+    lda #^hdma_mascara
+    sta A1B3
     rts
 .endproc
 
