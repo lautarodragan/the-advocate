@@ -72,6 +72,67 @@ absoluto no se pudo reproducir con ninguna combinación de argumentos de
 misma con los dos criterios: +119 páginas.** Cuando un número de éstos se
 reporte, conviene decir con cuál de los dos se contó.
 
+### Los gráficos rotos del mapa 16: NO encontrado, y qué se descartó (2026-09-13)
+
+taro ve la pantalla hacerse basura en **Running To Work Scene** (mapa 16), unos
+segundos después de entrar, y sigue rota al pasar a la fábrica. La captura
+`pruebas-manuales/2026-09-13-f30be91/demo-ciudad-0006.png` es la prueba: el
+centro de la pantalla es una ensalada de tiles con el borde izquierdo y el
+derecho sanos, y **el cronómetro marca 01:53**, o sea que no había llegado a
+cero todavía.
+
+**No se encontró.** Lo que sí quedó medido, para que nadie lo vuelva a medir:
+
+* **El `PanScreen` con los parámetros del juego no tiene nada que ver.** La
+  hipótesis era que la tanda sólo prueba el pan con distancia 2 y velocidad 2
+  mientras el juego usa 10 y 4. Corrido tal cual —`just snes-pan 6 "2 2 10 4 1"
+  "10 20 40 60 79 80 81" 115`— da **0,00% en los siete cuadros**. El pan de 10
+  celdas a velocidad 4 anda.
+* **La escena entera del mapa 16 anda, contra la referencia, en dos cartuchos
+  distintos.** Uno con dos mapas (16 y 17) y otro con **los veintinueve de
+  `demo-ciudad`**, los dos con la ventana de mensaje y entrando por la celda
+  (53,7), que es por donde entra el juego. Cuadros 100, 300, 700, 800, 850 y
+  900 —que cubren los cuatro teletransportes internos y el pan entero— en
+  **0,00%**. O sea que la escena sola, en un cartucho igual de cargado, no
+  rompe nada.
+* **El cronómetro llegando a cero tampoco es del pan.** Con una página de
+  prueba que arranca el cronómetro en un segundo y hace el pan de 10/4, el
+  cuadro 60 da **252 pixeles (0,44%)**, todos en los dígitos de arriba a la
+  izquierda. Y da **los mismos 252 sin el pan**: es una divergencia de un tick
+  en el cuadro en que el cronómetro se apaga, que existe desde antes y que
+  `timer-cero` no ve porque mira los cuadros 2, 40, 59 y 61 y **se saltea
+  justo el 60**. Vale arreglarla, pero no es esto: en la captura de taro el
+  cronómetro está en 01:53.
+
+**El único rojo que apareció, y es real:** cuadro **500** de la escena,
+**43,86% (25153 de 57344)**, en los dos cartuchos. No es la VRAM: leyendo la
+WRAM, en el tick 490 la ROM tiene al héroe en 368 y la cámara en 248 y la
+referencia 378 y 258. **La ROM arranca el `MoveEvent` que sigue al tercer
+teletransporte interno —el que va a (24,15)— cuatro ticks antes que la
+referencia**, y de ahí en más la pantalla está corrida ocho pixeles hasta que
+el teletransporte siguiente las vuelve a sincronizar (620 en adelante vuelve a
+dar 0,00%). Es invisible jugando y ninguna prueba lo cubría porque **ningún
+caso de la tanda corre una página con un `Teleport` al mismo mapa**.
+
+**Pistas para el que siga**, en orden de lo que parece:
+
+* La captura rota tiene el borde sano y el centro basura: parece **un DMA de
+  datos de tiles que cayó encima del tilemap**, no una tira perdida. Los
+  candidatos por tamaño son `subir_linea` (1920 B), `anim_flush` (hasta 1664 B)
+  y `animacion_dibujo_dma` (2 KB).
+* **Descartado que sea el vblank desbordado**: con `push_strips` movido al
+  principio de `flush_video` y con blanking forzado durante todo el vblank, la
+  pantalla sale igual byte por byte. Y contando con dos contadores en la RAM,
+  `build_row` y `push_strips` van en lockstep: no se pierde ni una tira.
+* Lo que **no** se pudo reproducir es la llegada de verdad: taro entra al mapa
+  16 jugando desde la apertura, y todo lo de arriba entra por un
+  teletransporte inyectado desde `pruebas/consola.py`. La diferencia que queda
+  entre las dos cosas es el estado que trae la partida.
+* Y ojo con una trampa que costó una hora: **el tinte de pantalla sobrevive al
+  cambio de mapa**, así que saltar al mapa 16 desde el mapa de arranque lo
+  deja todo azul (tinte 0,0,100) y parece el defecto. No lo es; para mirar el
+  mapa 16 inyectado hay que poner `tinte_r/g/b` en 100 primero.
+
 ### El dibujo de las animaciones de batalla: medido, sin empezar
 
 De lo que taro pidió para la intro, los efectos de sonido y los destellos están
