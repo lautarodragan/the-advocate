@@ -51,6 +51,12 @@ PASO_TOPE = 40
 # lenta. Ocho es un toque cada 130 ms de tiempo real.
 A_CADA = 8
 
+# Dónde viven las capturas que taro bendijo, y cuánto se les tolera. Ver `foto`.
+GOLDEN = os.path.join(os.path.dirname(os.path.abspath(__file__)), "golden",
+                      "recorrido")
+GOLDEN_TOLERANCIA = 0.15
+
+
 # Cuántas veces se insiste con un paso antes de dar la celda por bloqueada. Los
 # NPCs de este juego caminan solos: el que tapa el pasillo se corre en unos
 # ticks, y rodearlo a la primera es peor camino que esperarlo.
@@ -416,21 +422,64 @@ class Recorrido:
         return self
 
     def foto(self, nombre, asentar=True):
-        """Una captura, numerada por orden de aparición.
+        """Una captura, numerada por orden de aparición, contra su golden.
 
-        No se compara contra nada todavía: las bendice taro una vez y recién
-        ahí pasan a ser golden. Lo que sí hace por sí sola es cazar la
-        corrupción de pantalla, que una prueba de RAM no ve.
+        Esto es lo que una prueba de RAM **no** puede ver: que la pantalla sea
+        basura. El bug que lo motivó salía como el mapa hecho pedazos tres
+        cuadros después de un cuadro de texto, en otro mapa, y ningún assert de
+        estado lo habría notado.
+
+        La golden la bendice taro mirándola una vez —lo hizo el 2026-09-13 con
+        las ocho de las dos jugadas— y vive en `pruebas/golden/`. Si no hay
+        golden, la captura se guarda igual y el caso **no falla**: así se
+        agrega un hito nuevo sin romper la prueba, y se bendice después.
+
+        **La tolerancia es grande a propósito.** No es una comparación pixel
+        por pixel como la de `snes-hitos`: acá los cuadros no están elegidos
+        para ser deterministas —el agua se mueve, los NPCs caminan, el reloj
+        corre— y apretar el umbral traería rojos que no son defectos. Lo que
+        tiene que cazar es la corrupción, y taro lo dijo mejor: "incluso si no
+        logramos 100% de match, con que logremos 90% va a alcanzar, porque las
+        imágenes rotas están MUY rotas". Las que vimos rotas iban del 34% al
+        71% de pixeles distintos.
         """
         if asentar:
             self.asentar()
         if not self.fotos_dir:
             return self
-        ruta = os.path.join(self.fotos_dir,
-                            "%02d-%s.png" % (len(self.fotos) + 1, nombre))
-        self.p.imagen().save(ruta)
+        archivo = "%02d-%s.png" % (len(self.fotos) + 1, nombre)
+        ruta = os.path.join(self.fotos_dir, archivo)
+        imagen = self.p.imagen()
+        imagen.save(ruta)
         self.fotos.append((nombre, ruta, self.estado()))
+        self._contra_golden(nombre, archivo, imagen)
         return self
+
+    def _contra_golden(self, nombre, archivo, imagen):
+        """Compara con la golden si la hay. Ver `foto`."""
+        golden = os.path.join(GOLDEN, os.path.basename(self.fotos_dir), archivo)
+        if not os.path.exists(golden):
+            return
+        from PIL import Image
+        esperada = Image.open(golden).convert("RGB")
+        actual = imagen.convert("RGB")
+        if esperada.size != actual.size:
+            raise AssertionError(
+                "el hito %r mide %s y su golden %s" % (nombre, actual.size,
+                                                       esperada.size))
+        total = esperada.size[0] * esperada.size[1]
+        distintos = sum(1 for a, b in zip(actual.getdata(), esperada.getdata())
+                        if a != b)
+        if distintos > total * GOLDEN_TOLERANCIA:
+            raise AssertionError(
+                "el hito %r no se parece a su golden: %d de %d pixeles "
+                "distintos (%.1f%%, el tope es %.0f%%). La captura quedó en "
+                "%s y la golden es %s. Si el cambio es a propósito, mirala y "
+                "reemplazá la golden; si no, la pantalla se rompió.\n%s"
+                % (nombre, distintos, total, 100.0 * distintos / total,
+                   100.0 * GOLDEN_TOLERANCIA, os.path.join(self.fotos_dir,
+                                                           archivo),
+                   golden, self.estado()))
 
     # --- esperar, que es la mitad del juego --------------------------------
 

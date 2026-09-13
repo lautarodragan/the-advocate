@@ -723,6 +723,23 @@ OPEN_SHOP = 10720
 # paquete" —en "Lo que falta" del README— tiene que resolver antes.
 CHANGE_SYSTEM_BGM = 10660
 
+# `ChangeHeroTitle` (10620): el "título" de un actor, que en RM2k es el texto
+# que la pantalla de estado muestra debajo del nombre. Ocho apariciones en todo
+# el juego y **todas sobre Talan**: "Fugitive", "Limping", "Defender".
+#
+# Se acepta sin hacerlo porque **este port no muestra el título en ninguna
+# parte**: el conversor emite del actor su nombre y su equipo inicial, y nada
+# más —no hay pantalla de estado—. O sea que hacerlo de verdad no es este
+# comando sino esa pantalla, y mientras no exista el dato no tendría dónde
+# verse. Guardarlo igual sería estado que viaja en la partida sin que nadie lo
+# lea.
+#
+# Lo que destraba: **+5 páginas**, y entre ellas la del `RunDirectorScene` del
+# mapa 19, que es automática. Con ella sin compilar la escena del director no
+# arrancaba: taro llegó a la oficina el 2026-09-13, el discurso corrió entero,
+# el teletransporte de vuelta funcionó, y ahí no pasaba nada más.
+CHANGE_HERO_TITLE = 10620
+
 # `ChangeEncounterSteps` (11740): cada cuántos pasos hay un encuentro al azar.
 # Diecinueve apariciones en nueve mapas, y trece de ellas lo ponen en **cero**,
 # que en RM2k es apagarlos.
@@ -766,6 +783,7 @@ ACEPTADOS_SIN_HACER = {
     MOVE_PICTURE,
     ERASE_PICTURE,
     CHANGE_SYSTEM_BGM,
+    CHANGE_HERO_TITLE,
 }
 
 
