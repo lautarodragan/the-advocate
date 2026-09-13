@@ -1101,6 +1101,51 @@ def hero_position(mundo, estado, map_id, direction_name, inicio=None,
     # rebotando y la referencia también, y colgar una prueba no ayuda a nadie.
     for _ in range(10000):
         game_map, passable, _ocupadas, puertas = mundo.mapa(map_id)
+        # **La ruta forzada manda sobre el pad**, y por eso va antes que todo lo
+        # demás: `move_hero` mira `ruta_i / ruta_n` y se vuelve sin tocar el
+        # pad si hay una ruta puesta, igual que `Game_Player::
+        # UpdateNextMovementAction` vuelve sin mirar el input mientras
+        # `IsMoveRouteOverwritten()`. Acá la caminata avanzaba de a una celda
+        # entera sin mirar la ruta, así que el pad y la ruta movían al héroe a
+        # la vez y en direcciones distintas.
+        #
+        # Mientras la ruta esté puesta se vive **de a un cuadro**, que es lo
+        # único que puede intercalarse con ella: el paso de la ruta, los
+        # paralelos y los eventos que caminan solos. Cuando se acaba, la
+        # caminata sigue donde estaba.
+        #
+        # Lo que lo destapó es el volante de la persecución en auto: su página
+        # paralela le vuelve a poner la ruta al héroe **en todos los cuadros**,
+        # así que el pad no lo mueve nunca. Medido con
+        # `TECLA_SIN_ESPERA=1 just snes-heroe 52`, que es lo que acepta esa
+        # página: sin esto, apretando la izquierda da **55,42%** de pixeles
+        # distintos; con esto, **0,59%**.
+        #
+        # **Hoy esto no lo alcanza ningún caso de la tanda, y hay que decirlo.**
+        # Con el volante todavía sin aceptar, ninguna página compilada le pone
+        # una ruta al héroe mientras el jugador camina: la de una automática la
+        # consume `entrar_al_mapa` antes de la caminata, y la de un evento de
+        # contacto la consume `contacto_al_pisar` —su corte mira
+        # `algo_corriendo()`, que cuenta las rutas pendientes—. Queda como la
+        # guarda de la paleta vacía de `tenir_paleta`: código inalcanzable con
+        # lo que el conversor sabe emitir hoy, no un camino a medias. El día
+        # que el `KeyInputProc` sin espera entre, es lo primero que se ejercita.
+        if estado.ruta or estado.paso_cuadros:
+            estado.refrescar()
+            estado.cuadro_de_paralelos(
+                mundo.paginas(map_id),
+                paso_del_paralelo(estado, passable, game_map, (x, y),
+                                  mundo.paginas(map_id)))
+            x, y, llego = paso_de_ruta(estado, passable, game_map, x, y,
+                                       mundo.paginas(map_id))
+            cuadro_de_eventos(estado, passable, game_map, (x, y),
+                              mundo.paginas(map_id))
+            if llego:
+                map_id, x, y, frena = contacto_al_pisar(
+                    mundo, estado, map_id, x, y, passable, game_map)
+                if frena:
+                    break
+            continue
         # Las celdas ocupadas sólo sirven para elegir dónde arranca. No se le
         # pasan a la caminata: en RM2k un NPC bloquea el paso, pero la ROM
         # todavía no lo mira, y modelar acá algo que la consola no hace es

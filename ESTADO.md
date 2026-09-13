@@ -20,12 +20,13 @@ Se escribe **mientras se trabaja**, no al final.
 a vuelta.
 
 Al 2026-09-13: `just snes-hitos-foto` son **159 casos, todos en verde** —sobre
-la foto `f30be91`, con las cuatro vueltas de la tarde adentro— y `just pruebas`
-son **131 en verde y 1 `xfail`, sin rojos**. Los dos de audio de la pelea que
-venían en rojo no eran preexistentes de nadie: los rompió el merge `6c43aa3`,
-que dejó a la pelea cargando el paquete de audio del mapa. El `xfail` no es
-adorno: es un defecto medido de guardar con la pantalla de título puesta, y
-está abajo.
+Al 2026-09-13: `just snes-hitos-foto` son **159 casos, todos en verde** —sobre
+la foto `073d135`, con la vuelta de la persecución en auto adentro— y `just
+pruebas` son **131 en verde y 1 `xfail`, sin rojos**. Los dos de audio de la
+pelea que venían en rojo no eran preexistentes de nadie: los rompió el merge
+`6c43aa3`, que dejó a la pelea cargando el paquete de audio del mapa. El
+`xfail` no es adorno: es un defecto medido de guardar con la pantalla de título
+puesta, y está abajo.
 
 **La ROM para probar a mano** está en `pruebas-manuales/2026-09-13-f30be91/`,
 con las cuatro vueltas juntas: `demo-ciudad.sfc` con las ocho pistas de MSU-1 y
@@ -169,6 +170,98 @@ Y dos deudas que dejaron los agentes, las dos con el número al lado:
   lo lee nadie todavía**, porque la huida es de la batalla. Lo cobran dos
   pruebas de estado, no la tanda: sin nada que lo lea, el bit no cambia un
   pixel.
+
+### La persecución en auto, jugada (2026-09-13)
+
+taro probó `just snes-demo-carrera` en mednafen y reportó tres cosas. Son tres
+causas distintas y **sólo una es del intérprete**; las otras dos eran de cómo
+entraba la demo. Lo medido, todo con la firma completa de `compilar_pagina`
+—`mensajes`, `eventos_mapa`, `temas`, `graficos`, `imagenes`— y con los cuatro
+`indexar_*` llamados antes:
+
+    mapa 49   46 páginas disparables, 44 compilan
+    mapa 52   44, compilan 43          mapa 50   2, compilan 2
+    mapa 54   44, compilan 43          mapa 51   16, compilan 15
+                                       mapa 53   2, compilan 1
+
+De las seis que no compilan, **cuatro son el mismo comando**: el
+`KeyInputProc` **sin espera** de `RaceController2`, que es el volante. Las
+otras dos son la intro de Talan del 49 —un `KeyInputProc` que espera cualquier
+tecla— y el `GiveOutRewards` del 53, que se cae en un `ConditionalBranch`.
+
+**1. La carrera no corre sola: es el volante, y es lo único grande que queda.**
+Quien mueve el auto es `RaceController2`, una página **paralela** que en cada
+cuadro le fuerza al héroe la ruta `28 1 29` —acelerar, un paso a la derecha,
+desacelerar— y además lee el pad para esquivar. Sin ella el héroe camina libre
+y a la velocidad que le dejó `RaceController1`, que es exactamente lo que taro
+describió. El comando vale **+5 páginas** del juego entero —mapas 49, 51, 52,
+54 y 285— sobre una base de 5348 de 5603 disparables.
+
+Lo importante: **los dos lados ya lo hacen**. `op_tecla` en `main.s` y
+`OP_TECLA` en `eventos.py` cubren la forma que no espera; el único que la
+rechaza es el `raise` de `KEY_INPUT_PROC`, y lo rechaza por el arnés. Medido
+con `TECLA_SIN_ESPERA=1`, que es el interruptor que se agregó para no tener que
+volver a parchear a mano:
+
+    la carrera corriendo sola, ROM contra referencia, --walk none
+    y 900 cuadros —el auto cruza las 500 columnas del mapa—:   0,00%
+
+    just snes-heroe 52, apretando la izquierda:
+      sin nada                                                55,42%
+      con la ruta forzada mandando sobre el pad                0,59%   (248 px)
+      las otras cuatro direcciones, en los dos casos            0,00%
+
+O sea que **la ROM está bien y lo que falta es la referencia**. La mitad del
+arreglo entró: `hero_position` respeta la ruta forzada, como `move_hero`. La
+otra mitad es que la caminata avance **cuadro a cuadro** en vez de celda a
+celda: hoy vive los cuatro cuadros de una celda de un saque y la página
+paralela le puede reponer la ruta en el medio, cosa que la consola sí ve. Y
+hay un segundo problema que apareció midiendo y que hay que decidir antes:
+**con la carrera corriendo, `snes-heroe 52` no termina**, porque el volante le
+repone la ruta para siempre y "apretar hasta chocar contra la pared" deja de
+tener final; el lazo corta en su tope de 10000 vueltas, 27566 cuadros de
+emulador para una sola dirección. El mapa 52 está en `rom/hitos.txt`.
+
+**2. Los obstáculos: la mitad no era un defecto y la mitad sí.** Los 40 autos
+del tráfico son los eventos 4 a 43 del mapa 49 y **sus 40 páginas compilan**.
+Dos números:
+
+* **El primero está en la columna 70**, y una pantalla son 16 celdas. En las
+  dos primeras pantallas no hay ninguno **tampoco en el original**.
+* Pero **están todos entre las filas 23 y 28**, y la demo plantaba al héroe en
+  la fila 20: sin `--inicio`, el conversor elige el tile abierto más cercano al
+  centro. En la fila 20 no hay ni un obstáculo, y los cinco eventos que
+  terminan el nivel —los que saltan al mapa 52— están entre la 23 y la 27. Con
+  el volante puesto se ve entero: el auto cruzaba las 500 columnas sin chocar
+  con nada y sin llegar a ninguna parte. La celda de entrada es (1,26) y sale
+  del `Teleport [49, 1, 26]` del evento 3 del mapa 36, que es por donde el
+  juego entra. La receta ahora la pasa.
+
+**3. El auto tardaba en aparecer, y hasta entonces el héroe salía sin
+gráfico.** No era el arreglo de `lideres_posibles` a medio camino: era el grupo
+de la demo. Con `--grupo 10` el líder es `DummyHero`, cuyo sprite es una celda
+vacía a propósito, y quien mete a `CarRED` es `RaceController1` **después** de
+su `PanScreen`, que son 7 celdas a velocidad 4, o sea `7 * 256 / (2 << 4)` =
+**56 cuadros**, y espera. Medido en snes9x: el auto aparece en el cuadro 60 y
+antes no hay nada. La receta ahora entra con `--grupo 14`, Talan, que es con
+quien el juego llega hasta acá: verificado, se lo ve desde el cuadro 1 y el
+auto lo reemplaza en el 60. Los 56 cuadros de cámara corriendo siguen ahí y son
+los del original.
+
+Lo que queda abierto:
+
+* **El volante**, con todo lo de arriba. Es lo que hace jugable la escena.
+* **La intro de Talan del mapa 49** —`RaceControllerZERO`, el cartel de los
+  controles— sigue sin compilar: su `KeyInputProc` espera cualquier tecla, y de
+  las tres formas del comando ésa es la que el arnés no sabe producir. Mientras
+  no esté, la demo entra con `--switch 171` puesto a mano.
+* **El `GiveOutRewards` del mapa 53**, el final de la carrera: se cae en un
+  `ConditionalBranch`. No se investigó cuál de las doce clases es.
+* **La guarda nueva de `hero_position` no la ejercita ningún caso de la
+  tanda**, y está dicho en su comentario: con el volante afuera, ninguna página
+  compilada le pone una ruta al héroe mientras el jugador camina. Queda como
+  código inalcanzable, igual que la guarda de la paleta vacía de
+  `tenir_paleta`, no como camino a medias.
 
 ### Las habilidades: entraron las siete (2026-09-13)
 
@@ -568,13 +661,13 @@ existir, y ésa es la parte que hay que leer.
   que entrara la orden 9 (`c1a00b6`), que era la que valía —+33— y que ya está.
   Para que esto no vuelva a pasar, `snes-destraba` ahora imprime la lista.
 
-**La persecución en auto todavía no se puede jugar, y ahora se sabe por qué.**
-Con la clase 6 hecha, de las 134 páginas disparables de los mapas 49, 52 y 54
-compilan 28. A las otras 106 las corta **`ChangeSpriteAssociation`** —102— y
-`KeyInputProc` —4—: el auto cambia de gráfico mientras corre. O sea que el
-próximo paso de esa escena no es el intérprete de variables sino el gráfico del
-personaje. Por eso la ROM de `pruebas-manuales/vars-y-rutas/` **no lleva esos
-mapas**: llevarlos daría una carrera con el auto quieto.
+**La persecución en auto: el número de acá abajo es de antes de
+`ChangeSpriteAssociation` y ya no vale.** Decía que de las 134 páginas
+disparables de los mapas 49, 52 y 54 compilaban 28, y que a las otras 106 las
+cortaba `ChangeSpriteAssociation` —102— y `KeyInputProc` —4—. Ese comando está
+hecho desde entonces: medido de nuevo el 2026-09-13 con la firma completa, de
+esas 134 compilan **130**. Lo que queda es la sección "La persecución en auto,
+jugada" de más arriba.
 
 **Y una trampa de medición que conviene no repetir**: la tabla de "qué comando
 corta" que se saca recompilando **comando por comando** miente con
@@ -660,9 +753,11 @@ Al 2026-09-12, en orden.
 6. **Lo que sigue faltando de Lashe City**: la condición por cronómetro —una
    página en todo el juego—. El `CallEvent` del Hover-Tram está hecho desde el
    2026-09-12 y el tram se toma: lo cubre el caso `tram`. **La persecución en
-   auto de los mapas 49, 52 y 54 ya tiene lo que le faltaba del intérprete** —la
-   clase 6 de `ControlVars`—, pero ninguno de esos tres mapas está en una demo
-   todavía, así que **nadie la jugó**: eso es lo que falta para darla por buena.
+   auto ya la jugó taro**, con `just snes-demo-carrera`, y lo que salió de ahí
+   está arriba en "La persecución en auto, jugada": de lo que reportó, dos
+   cosas eran de cómo entraba la demo y están arregladas, y la tercera —que la
+   carrera no corre sola— es el `KeyInputProc` sin espera, con su medición y lo
+   que falta para aceptarlo.
 
 7. **Lo que falta del sistema de ítems**: los libros, los materiales y los
    especiales, y `ChangeEquipment` —sólo en los mapas 30 y 151—. Las medicinas

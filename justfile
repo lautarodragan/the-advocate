@@ -2808,11 +2808,36 @@ snes-demo nombre="demo-ciudad" titulo="":
 # vueltas —500x40 celdas cada una—, el 50 es la sala de choque con el "vamos de
 # nuevo", el 51 el puente levantado, y el 53 el final.
 #
-# **Con `--grupo 10`, el de verdad.** No es un detalle de banco de pruebas: al
-# entrar al 49, `RaceController1` saca del grupo a todo el mundo y mete a
-# `CarRED` o a `CarBLUE` según el switch que él mismo prende, así que el héroe
-# **es el auto**. Con el grupo de pruebas puesto, Kersh quedaría adentro y el
-# gráfico saldría mal.
+# **Con `--grupo 14`, Talan, que es con quien el juego llega hasta acá.** Al
+# entrar al 49, `RaceController1` saca del grupo a los siete actores que pueden
+# estar ahí —10, 14, 15, 17, 18, 19 y 20— y mete a `CarRED` o a `CarBLUE` según
+# el switch que él mismo prende, así que el héroe **es el auto**. Con el grupo
+# de pruebas puesto, Kersh quedaría adentro —no está en esa lista— y el gráfico
+# saldría mal.
+#
+# Hasta el 2026-09-13 esto decía `--grupo 10`, el grupo inicial de la base, y
+# el precio era un síntoma que taro reportó jugando: **el auto tardaba un
+# segundo en aparecer y hasta ahí el héroe se dibujaba sin gráfico**. El actor
+# 10 es `DummyHero`, cuyo sprite es una celda vacía a propósito, y lo que pasa
+# en el medio está medido: el `PanScreen` de `RaceController1` es de 7 celdas a
+# velocidad 4, o sea **56 cuadros** —`2 << 4` por cuadro sobre `7 * 256`— y
+# **espera**, así que los `ChangePartyMembers` que meten al auto corren recién
+# después. Medido en snes9x: el auto aparece en el cuadro 60. Con Talan adentro
+# el héroe se ve desde el primero, que es lo que se ve en el original.
+#
+# **`--inicio 1 26` es la celda por la que se entra en el juego**, y no es
+# cosmético. Sin ella el conversor planta al héroe en el tile abierto más
+# cercano al centro, que en este mapa cae en la fila 20, y **en la fila 20 no
+# hay ni un obstáculo**: los 40 autos del tráfico están entre las filas 23 y 28
+# —medido evento por evento— y la meta del nivel, los cinco eventos que saltan
+# al mapa 52, entre la 23 y la 27. O sea que el auto podía cruzar las 500
+# celdas del mapa sin chocar con nada y sin llegar a ninguna parte. La celda
+# sale del `Teleport [49, 1, 26]` del evento 3 del mapa 36, que es por donde el
+# juego entra.
+#
+# Y de paso, el otro número que explica lo que taro no vio: **el primer
+# obstáculo está en la columna 70**, y una pantalla son 16 celdas. En las dos
+# primeras pantallas no hay ninguno tampoco en el original.
 #
 # **`--switch 171` es lo que la hace arrancar**, y hay que saber por qué. El
 # evento 1 del mapa 49 tiene dos páginas automáticas: la 0 pide el switch 171 y
@@ -2826,14 +2851,22 @@ snes-demo nombre="demo-ciudad" titulo="":
 # este port no hace. Ver `KEY_INPUT_PROC` en eventos.py. Así que la demo entra
 # a la carrera ya empezada, que es lo que hay hasta que esa forma se pueda.
 #
+# **Y la carrera no corre sola**, que es lo primero que se nota jugando: el
+# héroe camina libre y a la velocidad que le dejó `RaceController1`. Quien la
+# corre es `RaceController2`, la única página paralela del 49 que no compila,
+# y lo que la corta es el `KeyInputProc` **sin espera**. El porqué de que ese
+# comando siga sin aceptarse —y cuánto falta para aceptarlo, con el número
+# medido hoy— está en `KEY_INPUT_PROC` en eventos.py. De las 46 páginas del
+# mapa 49, **44 compilan**: las dos que no son ésa y la intro de Talan.
+#
 # Aparte de `snes-demo` porque el mapa inicial es otro y porque no comparte un
 # solo mapa con ella: juntarlas sería un `if` en el medio de una receta que ya
 # tiene la lista escrita a mano.
 snes-demo-carrera nombre="demo-carrera":
   mkdir -p rom/build/{{nombre}}
-  python3 tools/snes_convert.py --grupo 10 --map-id 49 \
+  python3 tools/snes_convert.py --grupo 14 --map-id 49 \
       --mapas 50 51 52 53 54 \
-      --con-ventana --con-timer --switch 171 \
+      --con-ventana --con-timer --switch 171 --inicio 1 26 \
       -o rom/build/{{nombre}}/mapdata.inc
   python3 tools/w65.py rom/src/main.s -I rom/build/{{nombre}} \
       -o rom/build/{{nombre}}/{{nombre}}.sfc \
