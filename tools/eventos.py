@@ -2669,6 +2669,214 @@ class Tropas:
         return numero
 
 
+# --- los encuentros al azar -------------------------------------------------
+#
+# Todo lo de acá sale de easyrpg-player —`Game_Player::UpdateEncounterSteps`,
+# `Game_Map::GetEncountersAt` y `Game_Map::PrepareEncounter`— y no de la
+# intuición, que en este repo ya costó tres veces.
+#
+# **Dónde viven los datos**: no en el `.lmu` sino en el árbol, `RPG_RT.lmt`.
+# Cada nodo —mapa o *área*— trae `encounters` (una lista de tropas),
+# `encounter_steps` (25 por omisión, 0 = apagados) y `area_rect`. Un área es un
+# nodo de tipo 2: no tiene `.lmu`, cuelga de un mapa y le tapa un rectángulo.
+# Ver `lcf.TreeMap`.
+#
+# **Cómo se dispara**, paso por paso del héroe y sólo los del pad —una ruta
+# forzada sale por `IsMoveRouteOverwritten` antes de `IncSteps`, así que no
+# cuenta—:
+#
+#     acumulado += encounter_rate del terreno donde está parado
+#     ratio = acumulado / encounter_steps           (entera)
+#     mientras ratio >= TABLA[idx + 1][0]: idx++    (idx no baja nunca)
+#     p = (1 / encounter_steps) * pmod * (rate / 100)
+#     si sale, acumulado = 0 e idx = 0, y queda un encuentro pendiente
+#
+# El pendiente se cobra en el cuadro siguiente, con el héroe ya parado: se
+# juntan las tropas del mapa más las de cada área que tape su celda y se elige
+# una al azar. Si no hay ninguna —el héroe está afuera de todas las áreas— no
+# pasa nada, que es lo que hace `PrepareEncounter` al volver `false`.
+#
+# **Dos simplificaciones, las dos medidas sobre el juego entero** y cobradas
+# por `pruebas/test_encuentros.py`, que es lo que evita que se vuelvan mentira
+# el día que alguien toque los datos:
+#
+# * **el terreno no cambia nada**: los once tags de terreno que pisan los 53
+#   mapas con encuentros tienen `encounter_rate` 100, así que el acumulado sube
+#   de a 100 siempre y el factor `rate / 100` es 1;
+# * **ninguna tropa filtra por terreno**: las 129 que los encuentros nombran
+#   tienen el `terrain_set` vacío, y en RM2k vacío quiere decir "en todos".
+#
+# Con eso el modelo queda entero en enteros, que es lo que la consola puede
+# hacer sin punto flotante: ver `enc_umbrales_de_paso`.
+
+# Cada cuántos pasos, por omisión, si el nodo no trae el chunk (liblcf:
+# rpg::MapInfo::encounter_steps).
+ENC_PASOS_DEFECTO = 25
+
+# El tipo de nodo del árbol que es un área. Ver `lcf.TreeMap.map_types`.
+TREE_AREA = 2
+
+# La tabla de `UpdateEncounterSteps`, en (ratio mínimo, exponente de pmod): los
+# ocho `pmod` de easyrpg son potencias de dos —1/16, 1/8, 1/4, 1/2, 2, 4, 8,
+# 16— así que acá van como corrimientos y la cuenta no necesita flotantes. La
+# novena fila de allá es `{INT_MAX, 16.0}`, o sea un tope que no se alcanza
+# nunca: el `while` no pasa de la última de éstas.
+ENC_TABLA = ((0, -4), (20, -3), (40, -2), (60, -1),
+             (100, 1), (140, 2), (160, 3), (180, 4))
+
+# El `encounter_rate` con el que sube el acumulado: el del terreno, que en este
+# juego es 100 en los 53 mapas con encuentros. Ver arriba.
+ENC_RATE = 100
+
+# La semilla del azar de los encuentros. Es otra que `AZAR_SEMILLA` y otra que
+# `BATALLA_SEMILLA` a propósito, y por lo mismo que aquélla: caminar no le
+# corre el azar al mapa —un `ControlVars` al azar tiene que dar lo mismo con
+# encuentros y sin ellos— y la referencia de pixeles necesita que los dos lados
+# tiren los mismos números. Lo único que se le pide es no ser cero —el xorshift
+# se queda clavado— y ser el mismo de los dos lados.
+ENC_SEMILLA = 0x5A17
+
+
+def enc_base(pasos):
+    """El `1 / encounter_steps` de la fórmula, en 1/65536.
+
+    La chance de un paso es `pmod / pasos`, y `pmod` es una potencia de dos: si
+    el cociente se precalcula acá, en la consola queda un corrimiento y una
+    comparación de dieciséis bits, sin división. **El truncamiento es parte del
+    contrato**: los dos lados usan este mismo número.
+
+    Cero quiere decir apagados, que es lo que `encounter_steps` 0 significa en
+    RM2k.
+    """
+    return 0 if pasos <= 0 else 0x10000 // pasos
+
+
+def enc_umbrales_de_paso(pasos):
+    """En qué paso se cruza cada fila de `ENC_TABLA`, contando desde cero.
+
+    Allá la comparación es `ratio >= fila`, con `ratio = acumulado / pasos`
+    entera y `acumulado = 100 * n`. Como la fila es entera,
+
+        acumulado / pasos >= fila   <=>   100 * n >= fila * pasos
+
+    o sea `n >= ceil(fila * pasos / 100)`, que es lo que se emite: siete bytes
+    por mapa y ni una división en la consola. La primera fila es el 0 y no
+    hace falta.
+    """
+    return [-(-fila * pasos // ENC_RATE) for fila, _ in ENC_TABLA[1:]]
+
+
+def enc_umbral(base, idx):
+    """La chance del paso, en 1/65536, o None si es "siempre".
+
+    `pmod` corre `base` para un lado o para el otro. Con pasos chicos —los que
+    pone `ChangeEncounterSteps`, o una ROM de prueba— `pmod / pasos` puede
+    pasar de 1, y ahí RM2k tiene la certeza: `PercentChance` con `rate >= 1`
+    da siempre que sí. En la consola eso es el acarreo del corrimiento.
+    """
+    corrimiento = ENC_TABLA[idx][1]
+    if corrimiento < 0:
+        return base >> -corrimiento
+    valor = base << corrimiento
+    return None if valor >= 0x10000 else valor
+
+
+def zonas_de_encuentro(tree, map_id, ancho, alto):
+    """Las zonas de un mapa: la suya y una por área que le cuelgue.
+
+    Una zona es (izquierda, arriba, derecha, abajo, tropas) con el rectángulo
+    **semiabierto**, que es lo que dice `Rect::IsOutOfBounds`: adentro es
+    `l <= x < r` y `t <= y < b`. La del mapa tapa el mapa entero.
+
+    El orden es el de `GetEncountersAt`, que recorre el árbol por índice: en
+    este juego ningún mapa tiene tropas propias **y** áreas —medido—, así que
+    poner la suya primero no puede cambiar qué tropa sale.
+    """
+    zonas = []
+    if tree.encounters.get(map_id):
+        zonas.append((0, 0, ancho, alto, list(tree.encounters[map_id])))
+    for i in sorted(tree.map_types):
+        if (tree.map_types[i] == TREE_AREA and tree.map_parents.get(i) == map_id
+                and tree.encounters.get(i)):
+            izq, arr, der, aba = tree.area_rect[i]
+            zonas.append((izq, arr, der, aba, list(tree.encounters[i])))
+    return zonas
+
+
+class Encuentros:
+    """El estado de los encuentros de una partida, igual de los dos lados.
+
+    Lo usan la referencia —`snes_expect`— y las pruebas; la ROM hace lo mismo
+    con las tablas que emite el conversor. Quien lo cambie tiene que cambiar
+    `main.s` en el mismo commit: si no, la comparación mide dos programas.
+    """
+
+    def __init__(self, pasos, zonas, semilla=ENC_SEMILLA):
+        self.zonas = list(zonas)
+        self.poner_pasos(pasos)
+        self.semilla = semilla
+        self.reiniciar()
+
+    def poner_pasos(self, pasos):
+        """`encounter_steps` del mapa: al entrar, y `ChangeEncounterSteps`."""
+        self.pasos = pasos
+        self.base = enc_base(pasos) if self.zonas else 0
+        self.umbrales = enc_umbrales_de_paso(pasos)
+
+    def reiniciar(self):
+        """El `SetTotalEncounterRate(0)` de `Game_Player::MoveTo`: todo
+        teletransporte —y toda puerta— pone el acumulado en cero."""
+        self.n = 0
+        self.idx = 0
+        self.pendiente = False
+
+    def _azar(self):
+        self.semilla = azar_siguiente(self.semilla)
+        return self.semilla
+
+    def paso(self):
+        """Un paso del héroe con el pad. Devuelve si quedó un encuentro
+        pendiente."""
+        if not self.base:
+            self.n = 0
+            self.idx = 0
+            return False
+        # Se topa en 255 porque del otro lado es un byte. No cambia nada y hay
+        # que decirlo: el umbral más alto del juego son 153 pasos —el mapa 258,
+        # con 85—, así que para cuando `n` llegara al tope la fila ya es la
+        # última y dejó de mirarse. Pero los dos lados tienen que **contar
+        # igual**, y allá el contador no da la vuelta.
+        self.n = min(255, self.n + 1)
+        while (self.idx + 1 < len(ENC_TABLA)
+               and self.n >= self.umbrales[self.idx]):
+            self.idx += 1
+        umbral = enc_umbral(self.base, self.idx)
+        salio = umbral is None or self._azar() < umbral
+        if salio:
+            self.n = 0
+            self.idx = 0
+            self.pendiente = True
+        return salio
+
+    def candidatas(self, x, y):
+        """Las tropas que se pueden pelear en esa celda: las del mapa más las
+        de cada área que la tape. Es `GetEncountersAt`."""
+        salida = []
+        for izq, arr, der, aba, tropas in self.zonas:
+            if izq <= x < der and arr <= y < aba:
+                salida += tropas
+        return salida
+
+    def elegir(self, x, y):
+        """El `PrepareEncounter` del cuadro siguiente: qué tropa se pelea, o
+        None si en esa celda no hay ninguna."""
+        self.pendiente = False
+        tropas = self.candidatas(x, y)
+        if not tropas:
+            return None
+        return tropas[self._azar() % len(tropas)]
+
+
 def tropa_de_encuentro(cmd):
     """El número de tropa de un `EnemyEncounter`, o `NoSePuede`.
 
@@ -4262,6 +4470,10 @@ class Estado:
         # que cambia es el brillo de la pantalla. Ver `brillo_de_fundido`.
         self.fundido = None
         self.fundidos = 0       # cuántos hubo, para el plan de la caminata
+        # El encuentro al azar que cortó la caminata: (paso, tropa), o None si
+        # no salió ninguno. Lo pone `snes_expect.hero_position` y lo lee la
+        # receta, que con la tropa dibuja la pelea que la ROM está peleando.
+        self.encuentro = None
         # Cuántos ticks vivió la referencia. Lo cuenta `cuadro_de_eventos`, que
         # es por donde pasa un cuadro entero del mundo, y es lo que el plan le
         # dice al emulador: no "cuánto dura la caminata" sino **cuántos ticks
