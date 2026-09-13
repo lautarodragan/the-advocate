@@ -19,13 +19,17 @@ Se escribe **mientras se trabaja**, no al final.
 **Los primeros diez minutos jugables**, que es lo que taro viene probando vuelta
 a vuelta.
 
-Al 2026-09-13: `just snes-hitos-foto` son **161 casos, todos en verde** —sobre
-la foto `68539a8`, con los tres bugs que taro reportó jugando ya arreglados— y
-`just pruebas` son **131 en verde y 1 `xfail`, sin rojos**. El `xfail` no es
-adorno: es un defecto medido de guardar con la pantalla de título puesta, y
-está abajo.
+Al 2026-09-13: `just snes-hitos-foto` son **164 casos, todos en verde** —sobre
+la foto `30039df`— y `just pruebas` son **140 en verde y 1 `xfail`, sin rojos**.
+El `xfail` no es adorno: es un defecto medido de guardar con la pantalla de
+título puesta, y está abajo.
 
-**La ROM para probar a mano** está en `pruebas-manuales/2026-09-13-68539a8/`,
+**La ROM de esta vuelta** está en `pruebas-manuales/piedras/`: el minijuego de
+las piedras del Lazer Teeth HQ, con un cartucho de un solo mapa que arranca
+parado abajo de la reja y con `demo-ciudad` al lado para el control. Su
+`LEEME.txt` dice qué apretar y en qué orden.
+
+**La de la vuelta anterior** está en `pruebas-manuales/2026-09-13-68539a8/`,
 con los tres arreglos y las tres ROMs —la ciudad con sus pistas, la carrera, y
 la carrera con el volante prendido a mano, que espera el veredicto de taro—.
 La anterior, con la que él encontró los tres bugs, está en
@@ -428,8 +432,9 @@ entraba la demo. Lo medido, todo con la firma completa de `compilar_pagina`
 
 De las seis que no compilan, **cuatro son el mismo comando**: el
 `KeyInputProc` **sin espera** de `RaceController2`, que es el volante. Las
-otras dos son la intro de Talan del 49 —un `KeyInputProc` que espera cualquier
-tecla— y el `GiveOutRewards` del 53, que se cae en un `ConditionalBranch`.
+otras dos eran la intro de Talan del 49 —un `KeyInputProc` que espera cualquier
+tecla, que compila desde el 2026-09-13— y el `GiveOutRewards` del 53, que se
+cae en un `ConditionalBranch`. O sea que hoy son cinco.
 
 **1. La carrera no corre sola: es el volante, y es lo único grande que queda.**
 Quien mueve el auto es `RaceController2`, una página **paralela** que en cada
@@ -494,9 +499,10 @@ Lo que queda abierto:
 
 * **El volante**, con todo lo de arriba. Es lo que hace jugable la escena.
 * **La intro de Talan del mapa 49** —`RaceControllerZERO`, el cartel de los
-  controles— sigue sin compilar: su `KeyInputProc` espera cualquier tecla, y de
-  las tres formas del comando ésa es la que el arnés no sabe producir. Mientras
-  no esté, la demo entra con `--switch 171` puesto a mano.
+  controles— **compila desde el 2026-09-13**: su `KeyInputProc` espera
+  cualquier tecla, que es la forma que entró con el minijuego de las piedras
+  (ver su sección). La demo sigue entrando con `--switch 171` puesto a mano
+  porque nadie volvió a mirar esa escena todavía.
 * **El `GiveOutRewards` del mapa 53**, el final de la carrera: se cae en un
   `ConditionalBranch`. No se investigó cuál de las doce clases es.
 * **La guarda nueva de `hero_position` no la ejercita ningún caso de la
@@ -504,6 +510,99 @@ Lo que queda abierto:
   compilada le pone una ruta al héroe mientras el jugador camina. Queda como
   código inalcanzable, igual que la guarda de la paleta vacía de
   `tenir_paleta`, no como camino a medias.
+
+### El minijuego de las piedras del mapa 11 (2026-09-13)
+
+taro reportó que en el `Lazer Teeth HQ` **no se podían lanzar las piedras**. El
+motor del minijuego es una sola página —`EV0017` página 0 del mapa 11, la única
+de las 101 disparables de ese mapa que no compilaba— y la cortaban **tres**
+cosas distintas, no una:
+
+* **La variable 5 no tenía ranura.** `variables_de` miraba `ControlVars`, las
+  ramas por variable y el cronómetro, y no `KeyInputProc`, que es el único
+  comando de este juego que le escribe a una variable sin ser un `ControlVars`.
+  **No era circular**: ese barrido mira todos los comandos compilen o no. Son
+  dos variables en todo el juego, la 5 y la 151, y el índice pasó de 81 a 83
+  ranuras.
+* **`KeyInputProc` sólo aceptaba esperar la tecla de acción.** Ahora espera
+  también la cruceta y cancelar, con el mismo flanco —`IsTriggered`— y el mismo
+  orden de `CheckInput`, de mayor valor a menor.
+* **`ChangeEventLocation` con la celda en dos variables** no compilaba, y es
+  con lo que la página planta la piedra donde está el jugador. Es el opcode
+  nuevo `OP_LUGAR_VAR = $27`.
+
+**El corte de `KeyInputProc` era del arnés y no de la ROM**, y ésa es la parte
+que conviene entender: la tanda sostenía una dirección desde el arranque con
+`--walk`, así que un **flanco** de cruceta a mitad de una escena no lo podía
+producir ningún caso, y escribir el camino sin nada que lo corriera es
+exactamente cómo sobrevivieron los tres errores del intérprete. Ahora lo
+produce `--tocar BOTON:CUADRO`, que está en las dos mitades —`snes_correr.py` y
+`snes_expect.py`— y cuenta los cuadros como `--apretar-a`.
+
+Lo que cuesta y hay que saber para usarlo: **un toque de dirección en el mapa no
+lo lee sólo `KeyInputProc`**, lo lee también el héroe, que gira y da un paso, y
+eso la referencia no lo modela —su caminata va por `--walk`, de a celdas
+enteras—. Por eso el caso `tecla-dir` empieza en (22,8) del mapa 6, donde abajo
+está cerrado y el héroe ya mira para abajo: el flanco existe y no mueve ni gira
+a nadie. Con la celda de siempre el mismo caso da 30% a 41% de pixeles
+distintos, que es el héroe caminando de un lado y quieto del otro.
+
+**B queda fuera de la tanda a propósito**: abre el menú de pausa —`pedir_menu`,
+que es el `Game_Player::Update` de RM2k, y sólo lo frena que haya una página
+corriendo—, y el menú de pausa la referencia no lo modela. Lo cubren dos casos
+de estado en `pruebas/test_tecla.py`.
+
+Lo medido, con `eventos.compilar_pagina` sobre las páginas disparables del juego
+entero y con `indexar_variables`, `indexar_comunes`, `indexar_animaciones`,
+`indexar_audio_de_batalla` e `indexar_actores` llamados antes:
+
+    base                                 5415 de 5667 disparables
+    sólo la ranura de la variable        5415  (+0)
+    sólo KeyInputProc entero             5415  (+0)
+    las dos juntas                       5417  (+2)
+    sólo OP_LUGAR_VAR                    5415  (+0)
+    las tres                             5418  (+3)
+
+**Ninguna de las tres sola vale nada, y ése es el resultado.** Las dos páginas
+del `(151, 1, 1, 1, 1)` —`RaceControllerZERO` del mapa 49, el cartel de los
+controles de la carrera, y el `EV0011` del 285— necesitan la ranura *y* la
+espera de cualquier tecla; la del mapa 11 necesita además el opcode nuevo. Con
+eso el mapa 49 deja de entrar con `--switch 171` puesto a mano.
+
+Los absolutos no son los 5198 de 5603 que este archivo trae más arriba, y no
+hay que mezclarlos: aquella cuenta arma el contexto de otra manera —un
+`Graficos` por mapa y no por página—. **Lo que vale es la diferencia**, que es
++3, y está medida con la misma cuenta de los dos lados.
+
+`ChangeEventLocation` por variables aparece **129 veces en 32 páginas
+disparables** y destraba una sola: las otras 31 están frenadas por otra cosa
+igual. Se hizo por esa una.
+
+**El banco 0 se pasó otra vez, por 58 bytes**, y hubo que bajar seis tablas más
+a RODATA: `tabla_fila_buf`, `mascara`, `pass_salir`, `pass_entrar`, `diag_vert`,
+`diag_horiz` y las dos de `fuente_pre`. **Las que quedan arriba se leen con Y**,
+y ésa es la razón de que no bajen: el 65816 tiene absoluto largo indexado por X
+y **no por Y**, así que `paso_por_vel`, `salto_por_vel`, `anim_parado` y
+`anim_continua` pedirían además cambiar de registro en sus llamadores. Medido
+con `demo-ciudad` y bisección con un `.res N` en `TABLAS`: **quedan 15 bytes
+libres**. Lo que siga pidiendo banco 0 va a tener que pasar esos llamadores a X,
+o mover `paso_dx`/`paso_dy` —16 bytes y dieciséis accesos, o sea que no rinde—.
+
+Lo que queda abierto:
+
+* **Nadie lo jugó a mano todavía.** Sí lo juega una prueba:
+  `pruebas/test_piedras.py` le habla a la reja, aprieta A, aprieta izquierda y
+  le pregunta a la RAM dónde quedó el evento `Stone`. Medido: la piedra se
+  planta en la celda del héroe —(26,52)— y camina hasta (22,52) en veinte
+  ticks, con el héroe quieto. Lo que eso **no** dice es si se siente bien:
+  ver `pruebas-manuales/piedras/`.
+* **La forma de `KeyInputProc` que no espera sigue afuera**, con su medición
+  intacta: +5 páginas del juego y 3 de la persecución en auto, y lo que la traba
+  no es el comando sino la ruta forzada del héroe contra el pad. Ver el `raise`
+  en `KEY_INPUT_PROC`.
+* **El `RaceControllerZERO` del mapa 49 ahora compila**, así que `demo-carrera`
+  podría dejar de entrar con `--switch 171` a mano. No se cambió: eso es la
+  carrera y no el minijuego, y cambiarlo pide volver a mirar toda esa escena.
 
 ### Las habilidades: entraron las siete (2026-09-13)
 
@@ -833,7 +932,7 @@ ROM, y lo que pasó con cada cosa:
 
     mapa 13  ChangePBG + la rama por objeto      hecho: 32/32 con el 16 adentro
     mapa 11  HaltAllMovement                     hecho: 100/101
-    mapa 11  KeyInputProc                        medido, sin hacer (ver abajo)
+    mapa 11  KeyInputProc                        hecho el 2026-09-13, 101/101
     mapa 26  ChangeSystemBGM 3                   del otro agente
     mapa  9  Teleport 7                          mapas fuera de la ventana
     mapa 18  Teleport 2                          ídem
@@ -859,13 +958,8 @@ escondida**: la condición por ítem figuraba como "pide inventario, que no hay"
 desde antes de que el inventario existiera (2026-09-10). Es la misma pregunta
 que la condición de página por ítem, que la ROM ya contestaba.
 
-**`KeyInputProc`: medido y sin hacer.** Son 31 páginas disparables y **+30** si
-se acepta entero; de sus 32 apariciones, 23 son la misma forma —esperar la
-tecla de acción y guardar cuál fue—, y sólo ésa vale **+23**. La página del
-mapa 11 no entra en ese subconjunto: usa las dos formas, la que espera A y la
-que lee la cruceta. Las dos razones para no hacerlo ahora, las dos con número:
-es del otro agente que corría en paralelo, y **en el banco 0 quedan unos pocos
-bytes** (ver abajo).
+**`KeyInputProc`: hecho el 2026-09-13.** Ver "El minijuego de las piedras del
+mapa 11" más abajo.
 
 **El banco 0 se pasó por 128 bytes** con estas dos piezas y hubo que bajar
 tablas a RODATA: `partida_tabla`, los registros del PPU con su buffer de ceros,
@@ -923,6 +1017,9 @@ que hoy no compilan:
     RecallToLocation          54     ConditionalBranch, del héroe        36
     FlashSprite               51     ChangeSystemBGM                     39
     KeyInputProc              31     ShowMessage (los escapes)           18
+
+Los 31 de `KeyInputProc` son de antes del 2026-09-13: desde ese día sólo corta
+la forma que **no espera**, que son 4 páginas.
 
 Las dos columnas de `ConditionalBranch` **ya no valen**: desde el 2026-09-13
 "del héroe" es **cero** —las tres preguntas que el juego usa están hechas— y

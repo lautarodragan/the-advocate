@@ -245,6 +245,19 @@ def main():
                              "arranque, igual que los de la referencia, y son "
                              "los mismos que se le pasan a snes_expect.py con "
                              "--apretar-a")
+    parser.add_argument("--tocar", nargs="+", default=None,
+                        metavar="BOTON:CUADRO",
+                        help="toques anotados en el camino de las escenas, el "
+                             "mismo que usa --apretar-a: el botón se aprieta "
+                             "en ese cuadro y se suelta en el siguiente, y el "
+                             "número se cuenta desde que termina el arranque, "
+                             "igual que los de la referencia. Es --apretar-a "
+                             "para cualquier botón, y existe porque la forma "
+                             "de KeyInputProc que espera la cruceta necesita "
+                             "un **flanco** de dirección a mitad de una "
+                             "escena, que sostener con --walk no produce. La "
+                             "referencia lo lee con el mismo flag y los "
+                             "mismos números")
     parser.add_argument("--toques", nargs="*", metavar="BOTON:CUADRO",
                         help="toques sueltos: el botón se aprieta en ese "
                              "cuadro y se suelta en el siguiente. Es lo que "
@@ -283,15 +296,24 @@ def main():
     # pantalla de ranuras del save point, donde `vueltas` no avanza y por lo
     # tanto un toque por tick no cae nunca. Valen en los dos caminos de abajo:
     # con `--teclas`/`--toques`, y con `--apretar-a`, que es el de las escenas.
-    cuando, cuando_hw = {}, {}
+    #
+    # Y `--tocar`, que es el mismo par BOTON:CUADRO pero con los cuadros
+    # contados como los de `--apretar-a` —desde el fin del arranque y con
+    # `RETRASO_DE_PANTALLA` restado—, así que vale en el camino de las escenas
+    # sin sacarlo del lazo de `correr_con_a`. Ver su ayuda. Vale en los dos
+    # caminos igual: un flag que se ignore calladito en uno de los dos es como
+    # se dejó un caso en verde que no apretaba nada, ver `snes-tecla`.
+    cuando, cuando_hw, tocar = {}, {}, {}
     for lista, donde, flag in ((args.toques, cuando, "--toques"),
                                (args.toques_hardware, cuando_hw,
-                                "--toques-hardware")):
+                                "--toques-hardware"),
+                               (args.tocar, tocar, "--tocar")):
         for toque in lista or ():
             boton, _, cuadro = toque.partition(":")
             if not cuadro.isdigit():
                 sys.exit("%s quiere BOTON:CUADRO, y vino %r" % (flag, toque))
             donde.setdefault(int(cuadro), []).append(boton)
+    tocar = {n - RETRASO_DE_PANTALLA: tuple(b) for n, b in tocar.items()}
 
     if args.teclas is not None or args.toques or args.toques_hardware:
         consola = Consola(args.rom, core=args.core)
@@ -310,12 +332,13 @@ def main():
         def antes(n):
             consola.apretar(*(sostenidos + tuple(cuando.get(n, ()))
                               + (("a",) if n in presiones_a else ())
+                              + tocar.get(n, ())
                               + tuple(cuando_hw.get(reloj.corridos, ()))))
 
         if sostenidos:
             consola.apretar(*sostenidos)
         reloj.avanzar(args.cuadros, antes if cuando or cuando_hw
-                      or presiones_a else None)
+                      or presiones_a or tocar else None)
         consola.imagen().save(args.output)
         print("captura -> %s: %s, %d cuadros (%d de arranque)%s"
               % (args.output,
@@ -354,7 +377,8 @@ def main():
         quieto_desde, anterior = None, [None]
 
         def antes(n):
-            de_hardware = tuple(cuando_hw.get(reloj.corridos, ()))
+            de_hardware = (tuple(cuando_hw.get(reloj.corridos, ()))
+                           + tocar.get(n, ()))
             if n in presiones:
                 consola.apretar(*(apretados + ("a",) + de_hardware))
             else:
