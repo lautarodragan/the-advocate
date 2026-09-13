@@ -217,6 +217,16 @@ dibuja como una silueta de un solo color, con los NPCs de al lado bien. Dos
 capturas del mismo tick, una con pelea y otra sin, dan **cero pixeles de
 diferencia**. Es un defecto aparte, sin investigar, y hoy no lo cubre nada.
 
+**Y el banco 0 tenía dos bytes libres.** Los cuarenta y seis que costó esto
+dejaban `demo-ciudad` en 32748 de 32704, así que se mudó `items_banco_subir`
+—131 bytes— a RODATA, con `jsl` y `rtl`. Es la más barata de mudar de todo lo
+que mide más de cien: no llama a nadie, así que no pide ningún puente, y corre
+al abrir una pantalla con el PPU apagado, no por cuadro. Quedan **81 bytes
+libres**, medidos poniendo un relleno de 200 en TABLAS y leyendo lo que dice
+`w65`. **Lo próximo que agregue código al banco 0 los va a necesitar**, y la
+lista de candidatos a mudar sigue ahí: `titulo_subir` son 227 bytes y
+`ranura_banco_subir` 131, las dos del mismo tipo.
+
 Lo que **queda pisado y no se repone** después de una pelea, medido y declarado
 porque no se ve: los tiles de fondo, de la capa de encima y del tilemap que
 están **más allá de lo que el mapa usa** se quedan con la escena adentro. No se
