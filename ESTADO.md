@@ -742,14 +742,10 @@ Lo medido, y esto es lo que conviene no volver a medir:
 
 Lo que **no** se hizo, con su número:
 
-* **`EnemyEncounter` con Game Over al perder: 3 páginas cortadas —los mapas 21,
-  179 y 255— y destraba cero.** El 21 son los Rat Tracks B1, que es lo próximo
-  que taro quiere jugar, así que el número importa: **hacerlo no los destraba**.
-  Medido desactivando el `raise`: la página del 21 se cae enseguida en "una
-  batalla sin cerrar", porque con `defeat_mode` 0 RM2k no emite bloque de
-  manejadores y la pelea no tiene `EndBattle`. O sea que además de la pantalla
-  de Game Over —que este port no tiene— hay que modelar la pelea sin
-  manejadores. Dos trabajos para +0 páginas hoy.
+* **`EnemyEncounter` con Game Over al perder: hecho el 2026-09-13**, y el
+  diagnóstico de este renglón era el correcto —eran dos trabajos— pero el
+  número estaba viejo: son **15 páginas**, no 3, y juntas dan **+15**. Ver "El
+  Bum que trababa el juego, y el jefe de los Rat Tracks", arriba.
 * **La elección con rama de cancelar: 1 página, la del mapa 348, y también
   destraba cero**: con el `raise` desactivado se cae en el `ControlSwitches`
   que invierte un switch, que tampoco compila.
@@ -987,6 +983,96 @@ Lo que queda abierto:
   aportan al banco. Los siete son 908 s, unos 160 MB de PCM. Los 35 del juego
   entero que las demos no tocan serían 923 MB.
 
+### El Bum que trababa el juego, y el jefe de los Rat Tracks (2026-09-13)
+
+taro jugó hasta los Rat Tracks y reportó dos cosas: que al salir aparecía
+**invisible y podía caminar** —la cinemática del Bum no se disparaba, o sea fin
+del juego— y que el jefe *"nunca aparece"*. Eran dos causas distintas y las dos
+están hechas.
+
+Medido sobre el juego entero, con `compilar_pagina` y los cinco `indexar_*`
+llamados antes, sobre las **5667** páginas disparables (3468 con comandos):
+
+    base                              5410   (3211 con comandos)
+    el destello por fila de paleta    5461   (+51)
+    la pelea sin manejadores          5476   (+15)
+
+* **El bloqueante era `FlashSprite` sobre un evento que comparte gráfico.** El
+  compilador no compilaba esa página porque en la consola el destello tiñe la
+  fila de CGRAM entera y la referencia lo hacía sobre la imagen del sprite. El
+  comentario decía "hoy no cuesta ninguna"; costaba **51**, y una es el `EV0027`
+  del mapa 20. Se resolvió **modelando la consola en la referencia** —destella
+  por fila— y no aflojando el corte. El porqué durable está en el README, "El
+  destello de un personaje va sobre su fila de paleta"; el precio, en
+  `assets/LIMITACIONES.md`. Lo cubre `destello-compartido`, comprobado en rojo
+  con 320 pixeles (0,56%) en el cuadro 2.
+
+* **El jefe era `EnemyEncounter` con Game Over al perder**, y eran **dos**
+  trabajos, no uno: la pantalla de Game Over y la pelea sin bloque de
+  manejadores. Medido de nuevo: cada mitad sola da **+0** y las dos juntas
+  **+15**, y las 15 páginas del juego con `defeat_mode` 0 son **todas** sin
+  bloque. El número viejo de esta misma sección —"3 páginas, los mapas 21, 179
+  y 255"— era de antes de los merges de esta vuelta.
+
+  Game Over es **volver al arranque** (`jml reset`), o sea la pantalla de título
+  con la partida esperando en la SRAM. **La imagen no se dibuja y el tema no
+  suena**: ver `assets/LIMITACIONES.md`, "Perder una pelea es volver al
+  arranque". Lo cobra `pruebas/test_game_over.py` —la tanda no puede: la
+  referencia se va siempre por la victoria— comprobado en rojo desarmando el
+  `bne` de `op_batalla`.
+
+**El banco 0.** El Game Over cuesta **10 bytes** de `CODE` (el `iny`/`bne`/`jml`
+de `op_batalla` y el `phk`/`plb` que `reset` necesitaba para que lo llamen con
+el banco de datos del bytecode). Para hacerle lugar bajaron a RODATA
+`pass_salir`, `pass_entrar`, `hdma_mascara`, `fuente_pre_lo` y `fuente_pre_bk`:
+**24 bytes netos**, contando el `f:` que cada acceso paga. Medido con el mismo
+`mapdata.inc` de `demo-ciudad`:
+
+    main.s de d32050d                 32711 B
+    con el Game Over puesto           32721 B
+    con las cinco tablas abajo        32697 B de 32704, o sea 7 libres
+
+Y un aviso que hay que leer entero: **las cuatro tablas por velocidad
+—`paso_por_vel`, `salto_por_vel`, `anim_parado`, `anim_continua`— no se pueden
+bajar así**. Son treinta bytes y sólo cinco accesos, o sea la candidata obvia,
+pero los cinco las indexan **con Y** y el 65816 no tiene `long,Y`: bajarlas pide
+mover el índice a X, y en los cinco lugares X es la ranura de ruta. Lo que queda
+libre de verdad son `mascara` (8 bytes, 3 accesos, neto 5) y `tabla_fila_buf`
+(32 bytes, 1 acceso, pero en el lazo del compositor de texto).
+
+**Verificado sobre `d8e0e5d`**, que es el árbol con las dos cosas puestas:
+
+    just pruebas                             135 en verde, 1 xfail, cero rojos
+    just snes-hitos-foto 4 /extras/hitos-foto-bum   160 casos, todos en verde
+    just snes-demo demo-ciudad               arma, con 7 bytes de banco 0 libres
+
+Los cuatro casos nuevos de `just pruebas` son `test_game_over.py` (131 + 1 xfail
+antes); el caso nuevo de la tanda es `destello-compartido` (159 antes).
+
+La ROM para probar a mano está en **`pruebas-manuales/bum-y-jefe/`**, con el
+`LEEME.txt` que dice cómo llegar a las dos escenas y qué mirar. Lo que taro
+tiene que juzgar es **si se nota** que el `InnBum` del mapa 20 destelle junto
+con el Panhandler: los dos son `Future3:1`.
+
+Lo que quedó afuera, con su número:
+
+* **`ShowBattleAnimation` sigue sin destellar al objetivo que comparte
+  gráfico.** Ahora se podría —la referencia lo modelaría bien— pero cambia lo
+  que se dibuja en los mapas donde eso pasa, así que pide medir la tanda de
+  nuevo. No cuesta ninguna página: ese destello se acepta y se tira.
+* **`--batalla-game-over` no está en `snes_expect.py`.** El bytecode de la
+  página de prueba con esa bandera difiere en dos bytes entre los dos lados —el
+  destino de la derrota, que la referencia nunca lee porque se va por la
+  victoria—. Agregarlo pide un índice más en la tupla de prueba, que es de los
+  números que hay que repartir de antemano: hoy está tomado hasta el 26. Ningún
+  caso de pixeles usa la bandera.
+* **`EnemyEncounter que corta la página al huir`** —`escape_mode` 1— sigue sin
+  hacerse: **4 páginas**.
+* **Huir de una pelea con `escape_mode` 0 se puede igual**, porque el permiso no
+  viaja en el opcode, y sale por el destino de la victoria. Son las 24 peleas de
+  esta forma.
+
+
 ### El Hover-Tram, el HQ de los Lazer Teeth y los Rat Tracks (2026-09-13)
 
 taro pidió destrabar esos tres lugares, y **la mitad del encargo ya estaba
@@ -1087,8 +1173,13 @@ que hoy no compilan:
     FlashSprite               51     ChangeSystemBGM                     39
     KeyInputProc              31     ShowMessage (los escapes)           18
 
+<<<<<<< HEAD
 Los 31 de `KeyInputProc` son de antes del 2026-09-13: desde ese día sólo corta
 la forma que **no espera**, que son 4 páginas.
+=======
+**El renglón de `FlashSprite` ya no vale**: desde el 2026-09-13 es **cero**, y
+las 51 páginas compilan. Ver arriba.
+>>>>>>> worktree-agent-a1719b85baf4f7497
 
 Las dos columnas de `ConditionalBranch` **ya no valen**: desde el 2026-09-13
 "del héroe" es **cero** —las tres preguntas que el juego usa están hechas— y

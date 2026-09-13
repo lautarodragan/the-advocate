@@ -99,6 +99,7 @@ snes-lugar 6 "4 21 10" "" "22 12" "10 60" 115 lugar-quieto
 # la x, 246.
 snes-vars 6 "60 1" "31 0 0 21 0 32 0 0 13 0 31 10 0 4 32" "22 12" "20 60" "12 0 0 50" 115 lugar-var "" ""
 snes-destello
+snes-destello 6 "4 31 0 0 31 24" "22 10" "2 12 15 23 25" "12 0 0 50" 115 destello-compartido
 snes-saturar
 snes-saturar 73 "60 100 100 100 0" 30 120 saturar-gris
 snes-saturar 73 "60 0 120 120 200" 30 120 saturar-brillo

@@ -205,16 +205,55 @@ que se mueva. En este juego no hay ninguno; en otro, la salida es el color math.
 
 `FlashSprite` en RM2k tiñe **ese** dibujable. En la consola el tinte es una
 transformación de CGRAM, así que tiñe la paleta entera y con ella todo lo que la
-comparta. La referencia hace lo correcto —aplica el destello sobre la imagen— y
-por eso los dos lados pueden diferir sin que la tanda de pixeles lo vea.
+comparta: otro evento con el mismo gráfico, uno al que le prestaron la paleta, o
+el héroe cuando el líder es además NPC del mapa.
 
-Lo que hacemos es que **nadie comparta la paleta de un líder posible**, porque el
-héroe es el que destella en este juego y es el único que se puede saber al
-convertir. Ver `pruebas/test_destello_paleta.py`.
+**Los dos lados hacen lo mismo, y eso es la decisión.** Desde el 2026-09-13 la
+referencia destella **por fila de paleta**, igual que `pintar_flash`, en vez de
+por sprite. Antes hacía lo de RM2k y la diferencia era invisible para la tanda,
+así que el compilador se defendía no compilando ninguna página que destellara a
+un evento que compartiera gráfico: costaba **51 páginas**, medidas, y una de
+ellas —el `EV0027` del mapa 20— es la cinemática del Bum, sin la cual el jugador
+aparece invisible en Rat Tracks B2 y el juego no se puede seguir.
 
-**Cuándo deja de alcanzar.** Un juego que destelle sobre un NPC cualquiera va a
-filtrar el color a quien comparta su paleta. La solución general sería darle una
-paleta propia al que destella, en caliente, y hoy no hay ninguna libre.
+O sea que lo que queda es una divergencia **con RM2k**, declarada acá y modelada
+igual de los dos lados, y no una divergencia entre la ROM y la referencia, que
+es la que no se puede tolerar. Se sigue cuidando que **nadie comparta la paleta
+de un líder posible** —ver `pruebas/test_destello_paleta.py`—, porque ahí el que
+filtra es el héroe, que está en pantalla todo el tiempo.
+
+En el mapa 20 el que destella es `BumGuardingEntrance` y el que se tiñe con él
+es `InnBum`: los dos son `Future3:1`. Lo cubre el caso `destello-compartido` de
+la tanda, sobre el mapa 6, donde el blanco es el Kersh NPC y quien se tiñe con
+él es el héroe.
+
+**Cuándo deja de alcanzar.** Cuando el que comparte la paleta esté al lado del
+que destella y se note. La salida general sería darle una paleta propia al que
+destella, en caliente, y hoy no hay ninguna libre: los mapas apretados ya piden
+más de las ocho.
+
+
+## Perder una pelea es volver al arranque, sin imagen de Game Over
+
+Un `EnemyEncounter` con `defeat_mode` 0 manda a `Scene_Gameover`: la imagen de
+Game Over del proyecto, su tema, y al apretar una tecla la pantalla de título.
+Son **15 páginas del juego**, entre ellas las tres del jefe de los Rat Tracks.
+
+Este port hace la última parte y no las dos primeras: el destino de la derrota
+es `BATALLA_PERDER` y `op_batalla` resuelve con un `jml reset`, o sea la
+pantalla de título si el cartucho la lleva, con la partida guardada esperando en
+la SRAM. **La imagen no se dibuja** —una de 320x240 pediría prestarle una capa
+al cartel, ver "Lo que costaría el sistema entero" en ESTADO.md— y **el tema de
+Game Over no suena**: sería un tema más en la lista de todos los cartuchos con
+pelea, y lo que se gana es el silencio de un segundo antes del arranque.
+
+**Y se pierde el progreso desde el último guardado**, que es lo mismo que pasa
+en RM2k si el jugador elige "Continue"; lo que no hay es la otra opción, seguir
+desde el título con "New Game" sabiendo que perdiste.
+
+**Cuándo deja de alcanzar.** Un juego donde perder sea parte de la trama —una
+pelea que se tiene que perder para que la escena siga—. En el ABL no hay
+ninguna: las 15 son peleas normales.
 
 
 ## El cronómetro comparte paleta con un personaje

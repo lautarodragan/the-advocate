@@ -584,7 +584,8 @@ def huella():
 
 def armar(map_id, mapas=(), con_ventana=True, destino=None, rama=(),
           descartar=False, guardar=0, titulo=False, tema=None, variables=(),
-          rama_var=(), items=(), acceso=(), tecla=(), espera=0, timer=False):
+          rama_var=(), items=(), acceso=(), tecla=(), espera=0, timer=False,
+          batalla=0, game_over=False):
     """Convierte, ensambla y devuelve (ROM, símbolos, ids de mapa en orden).
 
     Los mismos dos comandos que corre el justfile, para que una ROM de prueba
@@ -609,7 +610,7 @@ def armar(map_id, mapas=(), con_ventana=True, destino=None, rama=(),
     actual = huella() + "\n" + repr((
         map_id, tuple(mapas), con_ventana, tuple(rama), descartar, guardar,
         titulo, tema, tuple(variables), tuple(rama_var), tuple(items),
-        tuple(acceso), tuple(tecla), espera))
+        tuple(acceso), tuple(tecla), espera, timer, batalla, game_over))
     if os.path.exists(sfc) and os.path.exists(inc):
         try:
             with open(sello) as archivo:
@@ -639,6 +640,17 @@ def armar(map_id, mapas=(), con_ventana=True, destino=None, rama=(),
         # no hay forma de tener el pad puesto a tiempo.
         convertir += ["--tecla-de-prueba"] + [str(n) for n in tecla]
         convertir += ["--pagina-de-prueba", str(espera)]
+    if batalla:
+        # Una pelea contra esta tropa al final de la página de prueba, con la
+        # derrota puesta en `BATALLA_PERDER`, o sea el Game Over de RM2k. La
+        # espera de delante es lo que le deja a la prueba ponerle los HP del
+        # grupo en cero antes de que la pelea se abra: con todos caídos,
+        # `batalla_correr` devuelve derrota sin pelear —ver "nadie en pie" en
+        # main.s— y ése es el camino que se quiere ejercitar.
+        convertir += ["--batalla-de-prueba", str(batalla),
+                      "--pagina-de-prueba", str(espera)]
+        if game_over:
+            convertir.append("--batalla-game-over")
     if guardar:
         # La página de prueba espera `guardar` ticks y recién ahí guarda la
         # partida. La espera es lo que le deja a la prueba mover el mundo antes

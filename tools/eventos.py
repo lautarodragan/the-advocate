@@ -1825,6 +1825,12 @@ IMAGEN_CUADROS_MAX = 255
 # Un manejador que la página no tenga apunta al final del bloque, o sea al
 # `EndBattle`, que es lo que hace RM2k cuando el sub-índice no tiene rama.
 OP_BATALLA = 0x22   # tropa (word), victoria (word), huida (word), derrota (word)
+# El destino que quiere decir "acá no se sigue: esto es un Game Over". Va en el
+# lugar de la derrota cuando el `EnemyEncounter` trae `defeat_mode` 0, que en
+# RM2k es `Scene_Gameover`. Es un destino imposible —los tres son absolutos
+# adentro de la página y ninguna del juego llega a 64 KB— así que no hace falta
+# un opcode nuevo ni un byte más en cada pelea. La ROM lo mira en `op_batalla`.
+BATALLA_PERDER = 0xFFFF
 
 # `HaltAllMovement`: todas las rutas forzadas del mapa se abandonan de golpe.
 # Es `Game_Map::RemoveAllPendingMoves`, o sea un `CancelMoveRoute` sobre el
@@ -2678,9 +2684,14 @@ def tropa_de_encuentro(cmd):
     * **huir prohibido o con manejador**, pero no `escape_mode` 1, que en RM2k
       corta la página entera al escapar —`abort_on_escape`— y sería un camino
       sin nada que lo ejercite;
-    * **perder con manejador**: `defeat_mode` 0 es la pantalla de Game Over,
-      que este port no tiene. Emitirla como "no pasa nada" sería mentir sobre
-      lo que el juego hace.
+    * **perder**, con manejador o sin él: `defeat_mode` 0 es la pantalla de
+      Game Over de RM2k, y desde el 2026-09-13 se emite como `BATALLA_PERDER`
+      en el destino de la derrota. La ROM la resuelve volviendo al arranque
+      —o sea a la pantalla de título, con la partida guardada esperando en la
+      SRAM— que es lo que `Scene_Gameover` hace después de mostrar su imagen.
+      **La imagen no se dibuja**, y eso es deuda declarada en
+      `assets/LIMITACIONES.md`; lo que no se hace es lo de antes, que era no
+      compilar la página: costaba 15, entre ellas el jefe de los Rat Tracks.
 
     El fondo no se mira: la pantalla de batalla va sobre un color plano, que es
     lo que taro pidió para esta vuelta. Ver "la batalla" en README.md.
@@ -2694,8 +2705,6 @@ def tropa_de_encuentro(cmd):
         raise NoSePuede("EnemyEncounter de la tropa %d" % p[1])
     if p[3] == BATALLA_ESCAPE_CORTA:
         raise NoSePuede("EnemyEncounter que corta la página al huir")
-    if p[4] == BATALLA_DERROTA_GAME_OVER:
-        raise NoSePuede("EnemyEncounter con Game Over al perder")
     return p[1]
 
 
@@ -2763,6 +2772,18 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
         comandos = list(page.commands)
         opciones_de = {id(c): opciones_de_eleccion(comandos, i)
                        for i, c in enumerate(comandos) if c.code == SHOW_CHOICE}
+        # Qué `EnemyEncounter` vienen **sin bloque de manejadores**. RM2k no lo
+        # emite cuando la pelea no tiene ninguna rama que escribir, que es
+        # exactamente lo que pasa con `defeat_mode` 0: perder es la pantalla de
+        # Game Over y no una rama de la página. Son las 15 páginas del juego
+        # que este port no compilaba —entre ellas el jefe de los Rat Tracks—, y
+        # las 15 son así: sin esto, aceptar el Game Over las dejaba caer en
+        # "una batalla sin cerrar". Se mira adelante como las opciones de un
+        # `ShowChoice`, porque adentro del lazo los comandos vienen de a uno.
+        sin_bloque = {id(c) for i, c in enumerate(comandos)
+                      if c.code == ENEMY_ENCOUNTER
+                      and (i + 1 >= len(comandos)
+                           or comandos[i + 1].code not in BATALLA_HANDLERS)}
         eleg = []            # las elecciones abiertas
         bat = []             # y las batallas abiertas, igual que ellas
         for cmd, extra in agrupar(comandos):
@@ -2774,10 +2795,34 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
                 # paquete de audio de este mapa. Va de los dos lados: ver
                 # `audio_de_batalla`.
                 audio_de_batalla(temas)
-                bat.append({"i": len(piezas), "tropa": tropa,
-                            "destinos": [None, None, None],
-                            "vistas": 0, "salidas": []})
-                pieza = bytes(9)      # el lugar, que se llena en el EndBattle
+                perder_es_game_over = (len(cmd.parameters) > 4
+                                       and cmd.parameters[4]
+                                       == BATALLA_DERROTA_GAME_OVER)
+                if id(cmd) in sin_bloque:
+                    # Sin manejadores: la pelea se cierra acá mismo. Ganar y
+                    # huir siguen por el comando de abajo —que es lo que hace
+                    # RM2k cuando no hay ramas— y perder va a `BATALLA_PERDER`,
+                    # o sea al Game Over.
+                    #
+                    # **Huir apunta a la victoria y no a otro lado**, y es una
+                    # aproximación declarada: las 24 peleas de esta forma traen
+                    # `escape_mode` 0 —huir prohibido—, así que allá la salida
+                    # no existe; acá la pelea deja huir igual, porque el
+                    # permiso no viaja en el opcode. Ver `ChangeEscapeAccess`
+                    # en ESTADO.md.
+                    sigue = largo + 9
+                    perder = (BATALLA_PERDER if perder_es_game_over
+                              else sigue)
+                    pieza = bytes([OP_BATALLA, tropa & 0xFF, tropa >> 8,
+                                   sigue & 0xFF, sigue >> 8,
+                                   sigue & 0xFF, sigue >> 8,
+                                   perder & 0xFF, perder >> 8])
+                else:
+                    bat.append({"i": len(piezas), "tropa": tropa,
+                                "destinos": [None, None, None],
+                                "game_over": perder_es_game_over,
+                                "vistas": 0, "salidas": []})
+                    pieza = bytes(9)  # el lugar, que se llena en el EndBattle
             elif cmd.code in BATALLA_HANDLERS:
                 if not bat:
                     raise NoSePuede("un manejador de batalla sin su pelea")
@@ -2800,11 +2845,16 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
                 actual = bat.pop()
                 tabla = bytes([OP_BATALLA,
                                actual["tropa"] & 0xFF, actual["tropa"] >> 8])
-                for destino in actual["destinos"]:
+                for n, destino in enumerate(actual["destinos"]):
                     # El manejador que la página no tiene cae en el final del
                     # bloque, que es lo que hace RM2k con un sub-índice sin
-                    # rama: `SetSubcommandIndex` y a seguir.
-                    d = largo if destino is None else destino
+                    # rama: `SetSubcommandIndex` y a seguir. **Salvo la
+                    # derrota con `defeat_mode` 0**, que allá no es una rama
+                    # que falta sino el Game Over: ver `BATALLA_PERDER`.
+                    if destino is None and n == 2 and actual["game_over"]:
+                        d = BATALLA_PERDER
+                    else:
+                        d = largo if destino is None else destino
                     tabla += bytes([d & 0xFF, d >> 8])
                 piezas[actual["i"]] = tabla
                 for salida in actual["salidas"]:
@@ -3312,15 +3362,22 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
             blanco = eventos_mapa.blanco(p[0])
             if blanco is None:
                 raise NoSePuede()   # un vehículo, o un evento que no existe
-            quien = (eventos_mapa.mio if p[0] == RUTA_ESTE_EVENTO else p[0])
-            if eventos_mapa.comparte_grafico(quien):
-                # En la consola el destello se hace sobre la paleta del
-                # personaje, y dos eventos con el mismo gráfico comparten una
-                # sola: destellarían juntos. Antes que emitir eso y que la
-                # referencia lo copie —que es cómo un error se vuelve
-                # invisible—, la página no compila. Hoy no cuesta ninguna: son
-                # tres destellos y sus páginas se cortan igual por otra cosa.
-                raise NoSePuede()
+            # **Un destello sobre un evento que comparte paleta se emite igual.**
+            # Hasta el 2026-09-13 la página no compilaba: en la consola el
+            # destello es un tinte de CGRAM —`pintar_flash` sube la fila
+            # entera— así que dos eventos con el mismo gráfico destellan
+            # juntos, y emitirlo con la referencia destellando uno solo era
+            # medir dos programas distintos. El corte costaba **51 páginas**,
+            # medidas, y una de ellas es el `EV0027` del mapa 20: la cinemática
+            # del Bum que prende el evento de Rat Tracks B2. Sin ella el
+            # jugador aparece invisible y el juego no se puede seguir.
+            #
+            # Lo que se hizo en vez de aflojar el corte: la referencia modela
+            # lo que la consola hace y destella **la fila de paleta** —ver el
+            # reparto de `snes_expect.py`—, así que los dos lados vuelven a ser
+            # el mismo programa. Lo que queda es una divergencia declarada con
+            # RM2k, que destella la imagen de un sprite solo, y está en
+            # `assets/LIMITACIONES.md`.
         if any(not 0 <= v <= 31 for v in p[1:5]):
             raise NoSePuede()
         cuadros = p[5] * CUADROS_POR_DECIMA
@@ -5359,7 +5416,8 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
                     pan=(), rama=(), destello=(), guardar=False,
                     variables=(), rama_var=(), items=(), acceso=(),
                     lluvia=None, animacion=(), eventos_mapa=None,
-                    batalla=0, temas=None, parar=None, rama_item=(),
+                    batalla=0, batalla_game_over=False, temas=None,
+                    parar=None, rama_item=(),
                     sprite=(), graficos=None, tecla=(), rama_actor=()):
     """Una página automática inventada: una ruta forzada, una espera, un tinte.
 
@@ -5718,11 +5776,19 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
         # Los tres destinos apuntan al final del bloque, o sea al OP_FIN: gane,
         # pierda o escape, la página sigue por el mismo lado. Lo que se prueba
         # acá es la pelea, no por dónde sigue la escena.
+        #
+        # Con `batalla_game_over` la derrota va a `BATALLA_PERDER` en vez de al
+        # final del bloque, que es lo que emiten las 15 páginas del juego con
+        # `defeat_mode` 0 —el jefe de los Rat Tracks entre ellas—. Existe
+        # porque ese destino manda la ROM al arranque y no hay pixel que
+        # comparar: lo cobra `pruebas/test_game_over.py`, que le pone los HP
+        # del grupo en cero y deja que la pelea se pierda sola.
         audio_de_batalla(temas)
         fin = len(codigo) + 9
+        perder = BATALLA_PERDER if batalla_game_over else fin
         codigo += bytes([OP_BATALLA, batalla & 0xFF, batalla >> 8,
                          fin & 0xFF, fin >> 8, fin & 0xFF, fin >> 8,
-                         fin & 0xFF, fin >> 8])
+                         perder & 0xFF, perder >> 8])
     if tinte:
         # (r, g, b) y, si viene, la saturación; si no, la neutra.
         codigo += bytes([OP_TINTE]) + bytes(tinte[:3])

@@ -871,6 +871,13 @@ rapido:
 .i16
     ldx #$1FFF
     txs
+    ; El banco de datos, en el del código. En un reset de verdad el 65816 lo
+    ; deja en cero y todo lo de acá abajo funcionaría igual, pero desde el
+    ; 2026-09-13 acá se llega también con un `jml` —el Game Over de
+    ; `op_batalla`— y ahí el banco de datos es el del bytecode, o sea un banco
+    ; del cartucho: `sta INIDISP` escribiría la ROM en vez del PPU.
+    phk
+    plb
 
     sep #$20
 .a8
@@ -1377,21 +1384,12 @@ scrolls:
 ; Lo que **tiene** que vivir en el banco 0: se lee con `lda tabla, y`, y el
 ; 65816 no tiene absoluto largo indexado por Y —`long,X` sí, `long,Y` no—, o
 ; con tantos índices distintos que el byte de más por acceso costaría más que
-; la tabla. Las que se leen con X y se leen poco bajaron a RODATA el
-; 2026-09-13; ver allá el porqué y lo que queda.
+; la tabla. Las que se leen con X y se leen poco fueron bajando a RODATA a lo
+; largo del 2026-09-13, en tres vueltas distintas y por el mismo motivo: hacer
+; lugar. Ahí abajo está el porqué de cada una y lo que todavía se podría bajar.
 
-; Cuánto se corre cada dirección, en celdas: arriba, derecha, abajo,
-; izquierda, y las cuatro diagonales. Con signo, que es como las suma
-; `armar_salto`. Son RUTA_PASOS de eventos.py.
-paso_dx:
-    .byte 0, 1, 0, $FF, 1, 1, $FF, $FF
-paso_dy:
-    .byte $FF, 0, 1, 0, $FF, 1, 1, $FF
-; Cuánto avanza un paso por cuadro según la velocidad, 1 a 6, de 256 por
-; celda, y cuánto el salto: PASO_POR_VELOCIDAD y SALTO_VELOCIDADES de
-; eventos.py. La 4 es la del héroe: 32 por cuadro, dos pixeles.
-paso_por_vel:
-    .word 4, 8, 16, 32, 64, 128
+; `paso_por_vel` bajó a RODATA el 2026-09-13: tiene un solo acceso, y pasarlo
+; por X cuesta cuatro bytes contra los doce de la tabla.
 salto_por_vel:
     .byte 8, 12, 16, 24, 32, 64
 ; Cada cuántos cuadros cambia el frame de la caminata, por velocidad: caminando
@@ -3278,7 +3276,10 @@ listo:
 .a16
     and #$00FF
     tay
-    lda paso_por_vel, y
+    phx                         ; X trae la ranura y el que llama cuenta con ella
+    tyx
+    lda f:paso_por_vel, x
+    plx
     sta temp
     sep #$20
 .a8
@@ -4630,6 +4631,24 @@ anotado:
     tay
     lda [cod_ptr], y            ; el destino, absoluto dentro de la página
     tay
+    ; `BATALLA_PERDER`, o sea $FFFF: la pelea no traía manejador de derrota
+    ; porque en RM2k perderla es `Scene_Gameover`. Es un destino imposible —los
+    ; tres son absolutos adentro de la página y ninguna llega a 64 KB— así que
+    ; no hace falta un opcode nuevo ni un byte más en las otras peleas. El `iny`
+    ; es el `cmp #$FFFF` barato: con A de 16 bits compararlo costaría tres
+    ; bytes y en el banco 0 no sobran.
+    ;
+    ; **Game Over es volver al arranque**, que es la pantalla de título si esta
+    ; ROM la lleva, con la partida guardada esperando en la SRAM: es lo que
+    ; `Scene_Gameover` hace cuando el jugador aprieta, menos la imagen, que este
+    ; port no dibuja —ver assets/LIMITACIONES.md—. Se va con `jml` y no
+    ; devolviendo el control porque no hay a dónde volver: la página no tiene
+    ; rama de derrota y `reset` repone la pila él mismo.
+    iny
+    bne sigue_la_pagina
+    jml f:reset
+sigue_la_pagina:
+    dey
     sep #$20
 .a8
     jmp otro
@@ -9148,7 +9167,7 @@ listo:
     ; corre en los dos ejes a la vez, y así el caso derecho es el que tiene un
     ; cero de un lado. X queda pisado; el que llama ya lo guardó.
     ldx ruta_dir
-    lda paso_dx, x
+    lda f:paso_dx, x
     beq sin_dx
     jsr con_signo_16
 .a16
@@ -9158,7 +9177,7 @@ listo:
     sep #$20
 .a8
 sin_dx:
-    lda paso_dy, x
+    lda f:paso_dy, x
     beq sin_dy
     jsr con_signo_16
 .a16
@@ -18688,7 +18707,7 @@ con_paso_npc:
     tax
     sep #$20
 .a8
-    lda paso_dx, x
+    lda f:paso_dx, x
     beq sin_dx_npc
     bmi mas_px                  ; $FF, o sea hacia la izquierda
     jsr restar_a_px
@@ -18696,7 +18715,7 @@ con_paso_npc:
 mas_px:
     jsr sumar_a_px
 sin_dx_npc:
-    lda paso_dy, x
+    lda f:paso_dy, x
     beq puesto
     bmi mas_py                  ; venía de abajo: todavía le falta subir
     jsr restar_a_py
@@ -19130,9 +19149,9 @@ entra:
     sep #$20
 .a8
     ldx celda_dir
-    lda paso_dx, x
+    lda f:paso_dx, x
     jsr sumar_a_pasa_x
-    lda paso_dy, x
+    lda f:paso_dy, x
     jsr sumar_a_pasa_y
     rep #$20
 .a16
@@ -19155,9 +19174,9 @@ entra:
     sta dest_y
     sep #$20
 .a8
-    lda paso_dx, x
+    lda f:paso_dx, x
     jsr sumar_a_dest_x
-    lda paso_dy, x
+    lda f:paso_dy, x
     jsr sumar_a_dest_y
     jsr celda_bloqueada
     bne no
@@ -19247,7 +19266,7 @@ si:
     sta celda_y
     sep #$20
 .a8
-    lda paso_dx, x
+    lda f:paso_dx, x
     beq sin_x
     rep #$20
 .a16
@@ -19262,7 +19281,7 @@ mas_x:
     sep #$20
 .a8
 sin_x:
-    lda paso_dy, x
+    lda f:paso_dy, x
     beq sin_y
     rep #$20
 .a16
@@ -20532,21 +20551,10 @@ columna:
     rts
 .endproc
 
-.segment "RODATA"
-; La tabla del HDMA que enmascara los objetos debajo de la ventana de mensaje:
-; nada en las 144 líneas de arriba —en dos tramos, por los 7 bits del contador—
-; y la ventana 1 prendida para los objetos en las 80 de abajo. Ver `armar_hdma`.
-;
-; **Fuera del banco 0**: el HDMA lee de donde diga `A1B3`, así que una tabla de
-; ocho bytes que no cambia nunca no tiene por qué gastar banco 0.
-hdma_mascara:
-    .byte 127, $00
-    .byte (VENTANA_LINEA - 127), $00
-    .byte (LINEAS - VENTANA_LINEA), $02
-    .byte 0
-
-
-.segment "CODE"
+; `hdma_mascara` y `tabla_fila_buf` **vivían acá** y bajaron a RODATA el
+; 2026-09-13, las dos por separado y el mismo día: ver allá abajo. El HDMA lee
+; de donde diga `A1B3`, así que no necesita banco 0, y el compositor la indexa
+; con X, que sí tiene modo largo.
 
 ; --- la ventana de mensaje -------------------------------------------------
 ; Sus tiles y su paleta se suben una sola vez, con la pantalla apagada, igual
@@ -20716,7 +20724,7 @@ hay:
     sta BBAD3
     ldx #.loword(hdma_mascara)
     stx A1T3L
-    lda #^hdma_mascara
+    lda #^hdma_mascara          ; ya no es el banco 0: vive en RODATA
     sta A1B3
     rts
 .endproc
@@ -22252,9 +22260,9 @@ no8:
     tax
     sep #$20
 .a8
-    lda paso_dx, x
+    lda f:paso_dx, x
     jsr sumar_a_pasa_x
-    lda paso_dy, x
+    lda f:paso_dy, x
     jsr sumar_a_pasa_y
     rep #$20
 .a16
@@ -23520,11 +23528,11 @@ sin_girar:
 .a8
     lda salto_dx
     clc
-    adc paso_dx, x
+    adc f:paso_dx, x
     sta salto_dx
     lda salto_dy
     clc
-    adc paso_dy, x
+    adc f:paso_dy, x
     sta salto_dy
     rts
 no_mueve:
@@ -25052,10 +25060,41 @@ tabla_fila_buf:
     .word 0, 2, 4, 6, 8, 10, 12, 14
     .word 960, 962, 964, 966, 968, 970, 972, 974
 
+; Cuánto se corre cada dirección, en celdas: arriba, derecha, abajo,
+; izquierda, y las cuatro diagonales. Con signo, que es como las suma
+; `armar_salto`. Son RUTA_PASOS de eventos.py.
+paso_dx:
+    .byte 0, 1, 0, $FF, 1, 1, $FF, $FF
+paso_dy:
+    .byte $FF, 0, 1, 0, $FF, 1, 1, $FF
+
+; `paso_dx`, `paso_dy` y `paso_por_vel` bajaron a RODATA el 2026-09-13, al
+; resolver el merge de dos ramas que habían bajado tablas cada una por su lado y
+; aun así no entraban juntas: faltaban diez bytes. Los doce accesos a las dos
+; primeras son con X, que tiene modo largo; la tercera tiene uno solo y se pasa
+; por X salvando la ranura, cuatro bytes contra los doce de la tabla.
+; Cuánto avanza un paso por cuadro según la velocidad, 1 a 6, de 256 por
+; celda, y cuánto el salto: PASO_POR_VELOCIDAD y SALTO_VELOCIDADES de
+; eventos.py. La 4 es la del héroe: 32 por cuadro, dos pixeles.
+paso_por_vel:
+    .word 4, 8, 16, 32, 64, 128
+
 ; Un bit por posición, para el bitmap de switches. Sale más barata que ocho
 ; corrimientos y se lee con el índice que ya tenemos.
 mascara:
     .byte $01,$02,$04,$08,$10,$20,$40,$80
+
+; La tabla del HDMA que enmascara los objetos debajo de la ventana de mensaje:
+; nada en las 144 líneas de arriba —en dos tramos, por los 7 bits del contador—
+; y la ventana 1 prendida para los objetos en las 80 de abajo. Ver `armar_hdma`.
+;
+; **Fuera del banco 0**: el HDMA lee de donde diga `A1B3`, así que una tabla de
+; ocho bytes que no cambia nunca no tiene por qué gastarlo.
+hdma_mascara:
+    .byte 127, $00
+    .byte (VENTANA_LINEA - 127), $00
+    .byte (LINEAS - VENTANA_LINEA), $02
+    .byte 0
 
 ; Qué permiso hace falta para salir de una celda y para entrar en la de al
 ; lado, por dirección —arriba, derecha, abajo, izquierda—.
@@ -25133,6 +25172,12 @@ partida_tabla:
     ; por actor. Viaja en la partida como en RM2k, y cruza el teletransporte.
     .word FAR_ACTOR_GRAF, ACTORES_N
     .word 0, 0
+
+; Las cuatro tablas que bajaron del banco 0 el 2026-09-13, para hacerle lugar
+; al Game Over de `op_batalla`. Las tres que se indexan se leen con
+; `lda f:tabla, x` —absoluto largo, que no depende del banco de datos— y por eso
+; van con X y no con Y: el 65816 no tiene `long,Y`. `hdma_mascara` no se indexa:
+; su dirección y su banco se los pasa `armar_hdma` al canal de HDMA.
 
 ; Hacia dónde mira cada pose, de 0 a 11: la dirección es la pose entre tres.
 dir_de_pose:
