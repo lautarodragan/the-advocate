@@ -118,8 +118,20 @@ adentro de él a `rutas_de_pagina`; **el medidor de líneas por V-counter minti�
 y conviene saber por qué: entre dos marcas puede pasar más de un cuadro entero,
 y ahí la cuenta se come 262 líneas sin avisar.
 
+**Verificado**: `just pruebas` 131 en verde y 1 `xfail`, `just snes-hitos-foto
+4 /extras/hitos-foto-lag` **159 casos todos en verde** sobre la foto `12616e2`,
+y `just snes-demo demo-ciudad` arma —es lo único que ve el desborde del banco
+0—. Y el `mapdata.inc` del mapa 7 sale idéntico con y sin `SIN_CACHE=1`. La ROM
+para probar a mano está en `pruebas-manuales/lag-lashe/`.
+
 Lo que queda abierto, con su número:
 
+* **Ningún caso de la tanda mira una página con condición por variable**, que es
+  justo lo que este cambio decide. Son 14 mapas en todo el juego —el 11, el 20,
+  el 21, el 26, el 28, el 32 y los siete del 133 al 140— y ninguno tiene caso
+  propio. O sea que lo que la tanda verificó es que **nada más se rompió**, no
+  que el filtro deje pasar lo que tiene que dejar pasar; eso hoy es lectura de
+  `Game_Map::SetNeedRefreshForVarChange` y del `map_cache`, no medición.
 * **El mapa 11, `Lazer Teeth HQ`, sigue a 30,00 fps y no es esto.** Medido con
   la misma bisección: sacarle `rutas_de_pagina` no cambia nada y sacarle
   `paralelos_tick` lo lleva a 60. O sea que ahí el costo son **los paralelos
