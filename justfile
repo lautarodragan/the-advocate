@@ -1680,16 +1680,25 @@ snes-cinematica origen="4" destino="1" cuadros="50 68 170 370 750 1110" arranque
 # describir un mapa donde alguien se mueve mientras tanto. Es `WouldCollide`:
 # ver `bloqueada` en eventos.py y `celda_bloqueada` en main.s. Antes lo
 # atravesaba y seguía hasta la pared, y taro lo vio jugando.
-snes-pisar mapa="70" celda="12 8" direccion="up" cuadros="200" arranque="115" nombre="pisar":
+# `ruta` es opcional y sirve para lo contrario: una ruta forzada sobre el héroe
+# que corre **antes** de que el pad empiece a caminar, para dejarlo en un estado
+# y recién ahí caminar. Hoy la usan los dos casos de `atravesar`, con la orden
+# 36 —`walk_everywhere_on`— puesta y la ruta sin un solo paso: lo que se mira es
+# que la bandera que deja no siga valiendo para la caminata con el pad. Ver
+# "Atravesar paredes vale mientras dura la ruta" en README.md.
+snes-pisar mapa="70" celda="12 8" direccion="up" cuadros="200" arranque="115" nombre="pisar" ruta="":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
+  ruta="{{ruta}}"
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
-      --inicio {{celda}} --con-ventana -o {{snes_inc}}/mapdata.inc
+      --inicio {{celda}} --con-ventana ${ruta:+--ruta-de-prueba $ruta} \
+      -o {{snes_inc}}/mapdata.inc
   just snes-build
   pre={{snes_pngs}}/{{nombre}}
   python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} \
       --walk {{direccion}} --hero-tile {{celda}} --con-ventana \
+      ${ruta:+--ruta-de-prueba $ruta} \
       --saltar $pre.saltar.txt -o $pre.esperado.png
   python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre.png \
       --walk {{direccion}} --cuadros {{cuadros}} --arranque {{arranque}}
@@ -3012,6 +3021,28 @@ snes-demo-piedras nombre="demo-piedras":
   mkdir -p rom/build/{{nombre}}
   python3 tools/snes_convert.py --grupo 14 --map-id 11 \
       --con-ventana --con-timer --inicio 26 52 \
+      -o rom/build/{{nombre}}/mapdata.inc
+  python3 tools/w65.py rom/src/main.s -I rom/build/{{nombre}} \
+      -o rom/build/{{nombre}}/{{nombre}}.sfc \
+      --simbolos rom/build/{{nombre}}/{{nombre}}.sfc.sym
+
+# Los cofres del Sector 30 y de los Rat Tracks, para probar la colisión sin
+# cruzar media Lashe City. Tres mapas —el 20, el 21 y el 26— y el héroe parado
+# **al lado del Slum30Chest1c**, en (80,19).
+#
+# Lo que la hace distinta de entrar caminando: **arranca con la bandera de
+# atravesar paredes prendida**, que es el estado en el que el Hover-Tram deja a
+# la partida —ver "Atravesar paredes vale mientras dura la ruta" en README.md—.
+# La página de prueba le fuerza al héroe una ruta de una sola orden, la 36, sin
+# un solo paso; no se ve ni se oye nada. Con la ROM de antes del 2026-09-13, con
+# esa bandera puesta se le camina por encima a todos los eventos del cartucho;
+# con ésta, a ninguno.
+#
+# `--grupo 14` es Talan, que es con quien el juego llega hasta acá.
+snes-demo-cofres nombre="demo-cofres":
+  mkdir -p rom/build/{{nombre}}
+  python3 tools/snes_convert.py --grupo 14 --map-id 20 --mapas 21 26 \
+      --con-ventana --con-timer --inicio 80 19 --ruta-de-prueba 36 \
       -o rom/build/{{nombre}}/mapdata.inc
   python3 tools/w65.py rom/src/main.s -I rom/build/{{nombre}} \
       -o rom/build/{{nombre}}/{{nombre}}.sfc \

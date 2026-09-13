@@ -84,6 +84,62 @@ absoluto no se pudo reproducir con ninguna combinación de argumentos de
 misma con los dos criterios: +119 páginas.** Cuando un número de éstos se
 reporte, conviene decir con cuál de los dos se contó.
 
+### Los cofres que no frenaban: era el Hover-Tram (2026-09-13)
+
+taro reportó que en el Sector 30 y en los Rat Tracks los cofres, los bums y las
+piedras no tienen colisión —los abre, las animaciones están bien, y les camina
+por encima—. **No era la capa**: la capa ya estaba de los dos lados desde el
+2026-09-05, y está medida: de las 5684 páginas del juego, **2953 son de la capa
+del héroe** —las que frenan—, 2712 de la de abajo y 19 de la de encima; **un
+solo evento de todo el juego** queda afuera de la tabla por tener una condición
+que la ROM no evalúa. Preguntándole a la ROM con `pruebas/consola.py` sobre la
+ROM que él jugó —`pruebas-manuales/lag-hq/demo-ciudad.sfc`, byte por byte—, los
+cofres del 20, del 21 y del 26, las piedras del 21 y los dos bums del 20 **lo
+frenan todos** si se entra al mapa con una partida recién arrancada.
+
+Lo que pasaba es otra cosa: **la orden 36 de una ruta forzada, `walk_everywhere_on`,
+era pegajosa y la caminata con el pad la miraba**. El Hover-Tram (mapa 13,
+`EV0028`) la prende para que Talan se mueva entre los pasajeros y **nunca la
+apaga**, así que desde que se toma el tram —que está en el camino principal— el
+héroe le camina por encima a todos los eventos del resto de la partida. En
+`demo-ciudad` son dos páginas así; en el juego entero, cuatro de las 153 que
+mueven la bandera.
+
+El porqué durable, con lo que hace RM2k y por qué acá no, está en el README:
+"Atravesar paredes vale mientras dura la ruta". El titular: en RM2k la bandera
+es un campo de la partida guardada y la caminata con el pad la lee, así que allá
+el héroe también atravesaría **paredes**; acá sólo atravesaba eventos, porque
+`can_leave` y `can_enter` ya miraban la copia por paso. La ROM quedó del lado de
+la referencia, que ya lo hacía así sin decirlo.
+
+Lo cubren dos casos nuevos, `atravesar-cofre` y `atravesar-savept`, los dos
+sobre el mapa 20 y con la misma ruta de una sola orden; el primero verificado en
+rojo con la ROM de antes —9,78%— y el segundo en rojo sacándole el `cmp
+movil_capa` a `celda_bloqueada` —52,24%—.
+
+**Y lo del Bum era otra cosa.** El `InnBum` del mapa 20 —el que cobra por dejarte
+dormir sobre la pila de basura— **sí** frena al héroe; con lo que no se puede
+interactuar es con su página, que no compila: usa `ShowInn` (código 10730) y el
+port no lo tiene. El otro bum del mapa, `BumGuardingEntrance`, compila entero.
+Así que "el Bum" son dos defectos distintos y sólo uno era de la colisión.
+
+**El banco 0 quedó en 8 bytes libres** con el cartucho de `demo-ciudad`, medido
+por bisección con un `.res N` en `TABLAS` sobre el árbol mergeado. El arreglo no
+costó ninguno —cambia un operando por otro del mismo ancho— y los ocho ya
+estaban antes.
+
+Para probarlo a mano está **`just snes-demo-cofres`**: el 20, el 21 y el 26, con
+Talan al lado del primer cofre y **con la bandera de atravesar ya prendida**, que
+es el estado en el que el tram deja la partida. Sin eso el cartucho no mostraría
+nada: con una partida recién arrancada los cofres frenaban también antes. La ROM
+está en `pruebas-manuales/colision/`, con `demo-ciudad` al lado para el camino
+de verdad.
+
+Verificado sobre el árbol mergeado con `main` —la foto `6734dd3`—: `just
+snes-hitos-foto` **166 casos, todos en verde**, `just pruebas` **142 en verde y
+1 `xfail`, sin rojos** —`test_recorrido.py` incluido, con sus ocho capturas
+golden sin tocar— y `just snes-demo demo-ciudad` arma.
+
 ### El lag del HQ de los Lazer Teeth: dos cosas por cuadro, no una (2026-09-13)
 
 El mapa 11 iba a **30,00 fps** clavados y taro lo reportó como "laggea un

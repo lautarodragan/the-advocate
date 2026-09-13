@@ -2118,8 +2118,47 @@ quién se está moviendo, para no chocar consigo mismo y para saber si el héroe
 le estorba. Cuesta una pasada por la tabla de páginas por cada evento parado
 en la celda de destino, o sea nada en la práctica: casi nunca hay uno.
 
+##### Atravesar paredes vale mientras dura la ruta
+
+Y acá hay una **divergencia deliberada de RM2k**, que es lo que hace que los
+cofres del Sector 30 se puedan pisar o no.
+
+La orden 36 de una ruta —`walk_everywhere_on`— es pegajosa en RM2k: escribe
+`move_route_through` de `Game_Player`, que es un campo **de la partida
+guardada** —`SaveMapEventBase` en liblcf— y que no lo repone nadie. Ni
+`CancelMoveRoute`, ni `ForceMoveRoute`, ni `MoveTo` al cambiar de mapa: los
+tres están leídos, y ninguno lo toca. Y la caminata con el pad lo lee en cada
+paso: `Game_Player::UpdateNextMovementAction` hace `SetThrough(...||
+move_route_through); Move(); ResetThrough();`. O sea que en RM2k, una página
+que prenda la 36 y no la apague deja al héroe **atravesando todo** —eventos y
+paredes— hasta el final de la partida.
+
+Medido sobre el juego entero: de las 153 páginas que mueven la bandera, **4 la
+dejan prendida**, y dos de esas cuatro están en `demo-ciudad`. Una es el
+**Hover-Tram** (mapa 13, `EV0028`), que la prende para que Talan se mueva entre
+los pasajeros y nunca la apaga; la otra es el mapa 14, "NV Get Talan to Work".
+Las dos están en el camino principal, así que el defecto lo tiene cualquiera
+que llegue caminando al Sector 30.
+
+Acá la bandera vale **sólo mientras el paso lo dé la ruta forzada**. Del lado
+de la referencia eso ya era así sin que estuviera escrito —`caminar` no mira
+`ruta_heroe.atraviesa` y `paso_de_ruta` sí—, y del lado de la ROM lo dice
+`celda_bloqueada`, que lee `atravesando` —la copia que `paso_de_ruta` hace
+alrededor de cada paso de ruta— y no la pegajosa `ruta_atraviesa`. Antes leía
+la pegajosa, y eso dejaba al héroe en un estado que RM2k no tiene: atravesando
+**eventos** pero no **paredes**, porque `can_leave` y `can_enter` ya miraban
+`atravesando`. Ésa era la mitad que se veía jugando.
+
+Lo que queda como está, y conviene saberlo: para la pregunta al revés —un
+evento que camina contra el héroe— los dos lados siguen mirando la pegajosa
+(`ruta_atraviesa` acá, `estado.ruta_heroe.atraviesa` allá). Es una asimetría,
+y se deja porque los dos lados la tienen igual y ninguna ruta del juego la
+ejercita: haría falta un evento caminando encima del héroe justo después de
+una página que dejó la 36 prendida.
+
 **Cómo se verifica.** El caso `bloqueo` —`snes-pisar 2 "7 76" up 60 30
-bloqueo`—: el héroe sube hacia el droide de (7,72) y se frena en (7,73). Y el
+bloqueo`—: el héroe sube hacia el droide de (7,72) y se frena en (7,73). Los
+dos de `atravesar` miran lo de arriba, con la ruta de una sola orden. Y el
 `snes-npc` de siempre cambió de resultado sin cambiar de receta: Kersh baja
 cuatro celdas desde (22,9) y el héroe está parado en (22,12), así que los dos
 pasos que caen ahí se saltean y termina en (24,11), donde antes terminaba en

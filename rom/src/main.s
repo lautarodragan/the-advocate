@@ -3429,7 +3429,18 @@ siguiente:
     bne libre_cerca
     bra recorrer
 es_heroe:
-    lda ruta_atraviesa
+    ; **`atravesando` y no `ruta_atraviesa`**, que es la divergencia declarada
+    ; en el README, "Atravesar paredes vale mientras dura la ruta": la bandera
+    ; que deja la orden 36 vale mientras el paso lo dé la ruta forzada —ahí
+    ; `paso_de_ruta` la copia a `atravesando`— y no para la caminata con el
+    ; pad, que la deja en cero. Leyendo la pegajosa, cualquier página que
+    ; prendiera el 36 y no lo apagara dejaba al héroe caminando por encima de
+    ; **todos** los eventos para el resto de la partida, y las paredes lo
+    ; seguían frenando porque `can_leave` y `can_enter` ya miraban
+    ; `atravesando`: el mismo héroe atravesaba eventos y no paredes. Lo vio
+    ; taro jugando, con los cofres del Sector 30, y el culpable es el
+    ; Hover-Tram (mapa 13, EV0028), que prende la 36 y nunca la apaga.
+    lda atravesando
     beq recorrer
 libre_cerca:
     jmp libre                   ; `libre` queda lejos para un salto corto
