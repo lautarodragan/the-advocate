@@ -1358,33 +1358,19 @@ scrolls:
 ; cero, que es "nada encendido".
 .segment "TABLAS"
 
-; Qué permiso hace falta para salir de una celda y para entrar en la de al lado,
-; por dirección —arriba, derecha, abajo, izquierda—. Van en el banco 0 porque se
-; leen con `lda tabla, x`, que direcciona el banco de datos.
-;
-; Los pares son cruzados a propósito: para ir hacia arriba hay que poder salir
-; por arriba de la celda de origen y poder entrar por abajo a la de destino. Es
-; la regla de RM2k, y la misma que `rm2k.puede_pasar` escribe del lado de
-; Python.
-pass_salir:
-    .byte PASS_UP, PASS_RIGHT, PASS_DOWN, PASS_LEFT
-pass_entrar:
-    .byte PASS_DOWN, PASS_LEFT, PASS_UP, PASS_RIGHT
-; Y cuánto se corre cada dirección, en celdas: arriba, derecha, abajo,
+; Lo que **tiene** que vivir en el banco 0: se lee con `lda tabla, y`, y el
+; 65816 no tiene absoluto largo indexado por Y —`long,X` sí, `long,Y` no—, o
+; con tantos índices distintos que el byte de más por acceso costaría más que
+; la tabla. Las que se leen con X y se leen poco bajaron a RODATA el
+; 2026-09-13; ver allá el porqué y lo que queda.
+
+; Cuánto se corre cada dirección, en celdas: arriba, derecha, abajo,
 ; izquierda, y las cuatro diagonales. Con signo, que es como las suma
 ; `armar_salto`. Son RUTA_PASOS de eventos.py.
 paso_dx:
     .byte 0, 1, 0, $FF, 1, 1, $FF, $FF
 paso_dy:
     .byte $FF, 0, 1, 0, $FF, 1, 1, $FF
-; Las dos componentes de cada diagonal, indexadas por la dirección menos
-; cuatro: primero la vertical y después la horizontal. De acá salen las dos
-; eles que prueba `puede_celda_diag` y las dos poses que compara
-; `encarar_diagonal`. Son RUTA_DIAGONALES de eventos.py.
-diag_vert:
-    .byte DIR_UP, DIR_DOWN, DIR_DOWN, DIR_UP
-diag_horiz:
-    .byte DIR_RIGHT, DIR_RIGHT, DIR_LEFT, DIR_LEFT
 ; Cuánto avanza un paso por cuadro según la velocidad, 1 a 6, de 256 por
 ; celda, y cuánto el salto: PASO_POR_VELOCIDAD y SALTO_VELOCIDADES de
 ; eventos.py. La 4 es la del héroe: 32 por cuadro, dos pixeles.
@@ -1398,10 +1384,6 @@ anim_parado:
     .byte 12, 10, 8, 6, 5, 4
 anim_continua:
     .byte 16, 12, 10, 8, 7, 6
-; Un bit por posición, para el bitmap de switches. Sale más barata que ocho
-; corrimientos y se lee con el índice que ya tenemos.
-mascara:
-    .byte $01,$02,$04,$08,$10,$20,$40,$80
 
 
 .segment "CODE"
@@ -3602,7 +3584,7 @@ falla:
     sep #$20
 .a8
     lda switches, y
-    and mascara, x
+    and f:mascara, x
     rep #$20
 .a16
     rts                         ; rep no toca Z, así que el and sigue valiendo
@@ -3884,6 +3866,9 @@ otro:
 :   cmp #OP_LUGAR
     bne :+
     jmp op_lugar
+:   cmp #OP_LUGAR_VAR
+    bne :+
+    jmp op_lugar_var
 :   cmp #OP_TRUEQUE
     bne :+
     jmp op_trueque
@@ -4925,9 +4910,62 @@ op_lugar:
     sep #$20
 .a8
     phy
+lugar_plantar:                  ; con Y ya en la pila: ver `op_lugar_var`
     jsr plantar_evento
     ply
     jmp otro
+
+; `ChangeEventLocation` con la celda en **dos variables**, que es la otra rama
+; de `CommandChangeEventLocation`. Lo demás es idéntico a `op_lugar`: el mismo
+; `MoveTo`, o sea la celda cambia ya, el paso en curso se corta y ni la ruta ni
+; hacia dónde mira se tocan. Ver OP_LUGAR_VAR en eventos.py.
+;
+; Las dos lecturas van **antes** de escribir ninguna de las dos palabras, como
+; en `op_trueque`: una variable que se leyera después de haber movido al evento
+; ya podría valer otra cosa si es una de las de coordenadas de `ControlVars`.
+; En este juego no pasa —el minijuego del mapa 11 las calcula antes— pero es la
+; misma regla y no cuesta nada.
+;
+; `var_leer` no toca X ni `temp`, así que el desplazamiento de la fila se
+; calcula una sola vez y sobrevive a las dos lecturas.
+op_lugar_var:
+.a8
+.i16
+    lda [cod_ptr], y            ; el blanco: el índice del evento más uno
+    dec a
+    sta temp
+    iny
+    lda [cod_ptr], y            ; la ranura de la x
+    sta temp + 1
+    iny
+    lda [cod_ptr], y            ; y la de la y
+    sta temp + 2
+    iny
+    phy
+    rep #$20
+.a16
+    lda temp
+    and #$00FF
+    asl a
+    asl a                       ; EV_STRIDE bytes por evento
+    tax
+    sep #$20
+.a8
+    lda temp + 1
+    jsr var_leer                ; vuelve con M en dieciséis
+.a16
+    pha
+    sep #$20
+.a8
+    lda temp + 2
+    jsr var_leer
+.a16
+    sta ev_pos_buf + 2, x
+    pla
+    sta ev_pos_buf + 0, x
+    sep #$20
+.a8
+    bra lugar_plantar
 
 ; `TradeEventLocations`: los dos eventos se cambian de celda, y cada uno es un
 ; `MoveTo` como el de `op_lugar` —la celda, el corte del paso, y el dibujo que
@@ -7657,13 +7695,13 @@ si:
     pla
     beq apagar
     lda switches, y
-    ora mascara, x
+    ora f:mascara, x
     sta switches, y
     lda #1
     sta refresco                ; las páginas que lo piden pueden cambiar
     rts
 apagar:
-    lda mascara, x
+    lda f:mascara, x
     eor #$FF
     and switches, y
     sta switches, y
@@ -11415,25 +11453,66 @@ otro:
 ; El valor que `KeyInputProc` le guarda a la variable, en A, o 0 si todavía no
 ; hay tecla. `temp + 1` trae las banderas.
 ;
-; **Sólo la tecla de acción, y sólo por flanco.** No es una simplificación
-; escondida: es la única forma del comando que compila, ver `KEY_INPUT_PROC` en
-; `eventos.py`, que tiene el número y el porqué. Las otras —la cruceta,
-; cancelar, y leer sin esperar— están escritas del lado del modelo, en
-; `eventos.tecla_de`, y acá **no**: escribirlas sería poner en el banco 0
-; sesenta bytes que ninguna página puede alcanzar y que por lo tanto no prueba
-; nada. El día que la caminata del arnés avance cuadro a cuadro, vuelven, y el
-; orden en que se miran ya está en `tecla_de`.
+; **Las tres cosas, y las tres por flanco**: cancelar, la tecla de acción y la
+; cruceta. El orden es el de `CheckInput` —de mayor valor a menor, que es lo
+; que dice "RPG processes keys from highest variable value to lowest"— y es el
+; mismo que corre `eventos.tecla_de` del lado del modelo; los números salen del
+; conversor y no están escritos acá dos veces.
 ;
-; El flanco es `Input::IsTriggered`: `pad_a` contra `pad_a_ant`, lo mismo con
-; lo que se cierra un mensaje.
+; Hasta el 2026-09-13 esto miraba sólo la tecla de acción, y lo que lo tenía
+; cortado no era la ROM sino el arnés: la tanda sostenía una dirección desde el
+; arranque, así que un flanco de cruceta no lo podía producir ningún caso.
+; Ahora lo produce `--tocar`, y lo cobra el caso `tecla-dir` de la tanda.
+;
+; El flanco es `Input::IsTriggered`: `pad` contra `pad_ant` para B y las
+; direcciones, `pad_a` contra `pad_a_ant` para A —A vive en el otro byte del
+; control—, que es lo mismo con lo que se cierra un mensaje.
+;
+; `temp + 3` es el único de los cuatro que está libre acá: `temp` trae la
+; ranura y `temp + 1` las banderas, y `op_tecla` guarda la respuesta en
+; `temp + 2` **después** de volver de acá.
 .proc tecla_valor
 .a8
 .i16
+    lda pad
+    eor pad_ant
+    and pad
+    sta temp + 3                ; los flancos de JOY1H: B y las cuatro flechas
+    lda temp + 1
+    and #TECLA_CANCELAR
+    beq sin_cancelar
+    lda temp + 3
+    and #PAD_B
+    beq sin_cancelar
+    lda #TECLA_VALOR_CANCELAR
+    rts
+sin_cancelar:
+    lda temp + 1
+    and #TECLA_DECISION
+    beq sin_decision
     lda pad_a
     eor pad_a_ant
     and pad_a
-    beq ninguna
+    beq sin_decision
     lda #TECLA_VALOR_DECISION
+    rts
+sin_decision:
+    lda temp + 1
+    and #TECLA_DIRS
+    beq ninguna
+    ; Las cuatro, en el orden de `CheckInput`, por tabla: escritas a mano son
+    ; cuatro `bit`/`bne` más cuatro `lda`/`rts`, y el banco 0 no los tiene.
+    ; La tabla termina en cero, que no es ningún botón.
+    ldx #$0000
+dir_otra:
+    lda f:tecla_dir_bit, x
+    beq ninguna
+    and temp + 3
+    bne dir_hay
+    inx
+    bra dir_otra
+dir_hay:
+    lda f:tecla_dir_val, x
     rts
 ninguna:
     lda #0
@@ -18957,7 +19036,7 @@ con_colision:
     sep #$20
 .a8
     ldx celda_dir
-    and pass_salir, x
+    and f:pass_salir, x
     bne :+
     jmp no                      ; queda lejos para un salto corto
 :
@@ -19020,7 +19099,7 @@ entra:
     sep #$20
 .a8
     ldx celda_dir
-    and pass_entrar, x
+    and f:pass_entrar, x
     bne :+
     jmp no
 :
@@ -19070,9 +19149,9 @@ no:
     tax
     sep #$20
 .a8
-    lda diag_vert, x
+    lda f:diag_vert, x
     sta diag_v
-    lda diag_horiz, x
+    lda f:diag_horiz, x
     sta diag_h
     rep #$20
 .a16
@@ -19215,9 +19294,9 @@ con_pose:
     tax
     sep #$20
 .a8
-    lda diag_vert, x
+    lda f:diag_vert, x
     sta diag_v
-    lda diag_horiz, x
+    lda f:diag_horiz, x
     plx
     cmp diag_mira
     beq queda
@@ -20411,8 +20490,6 @@ columna:
     rts
 .endproc
 
-; Las dos tablas que el compositor consulta en su lazo interno. Van en el banco
-; 0 como el resto de las tablas: `lda tabla, x` direcciona el banco de datos.
 .segment "TABLAS"
 ; La tabla del HDMA que enmascara los objetos debajo de la ventana de mensaje:
 ; nada en las 144 líneas de arriba —en dos tramos, por los 7 bits del contador—
@@ -20423,21 +20500,6 @@ hdma_mascara:
     .byte (LINEAS - VENTANA_LINEA), $02
     .byte 0
 
-; De qué byte del buffer arranca cada una de sus dieciséis filas. El buffer son
-; dos filas de celda, así que la fila Y cae en el tile (Y/8) por 30 columnas de
-; 32 bytes, más (Y mod 8) por 2 dentro del tile.
-tabla_fila_buf:
-    .word 0, 2, 4, 6, 8, 10, 12, 14
-    .word 960, 962, 964, 966, 968, 970, 972, 974
-
-; Dónde empiezan los glifos compuestos de cada fase, indexados por la fase
-; misma —0, 2, 4 o 6—: por eso los bancos van con un byte de relleno entre
-; uno y otro. Ver `componer_char`.
-fuente_pre_lo:
-    .word .loword(fuente_pre0), .loword(fuente_pre1)
-    .word .loword(fuente_pre2), .loword(fuente_pre3)
-fuente_pre_bk:
-    .byte ^fuente_pre0, 0, ^fuente_pre1, 0, ^fuente_pre2, 0, ^fuente_pre3
 
 .segment "CODE"
 
@@ -20994,13 +21056,13 @@ mas:
 
     ; Sus datos: la tabla de su fase, más el carácter por FUENTE_PRE_CHAR.
     ldx comp_fase
-    lda fuente_pre_lo, x
+    lda f:fuente_pre_lo, x
     clc
     adc RDMPYL
     sta comp_glifo
     sep #$20
 .a8
-    lda fuente_pre_bk, x
+    lda f:fuente_pre_bk, x
     sta comp_glifo + 2
 
     ldy #0
@@ -21012,7 +21074,7 @@ fila:
     lda comp_fila
     and #$00FF
     tax
-    lda tabla_fila_buf, x
+    lda f:tabla_fila_buf, x
     clc
     adc comp_base
     tax                         ; X = el byte del buffer donde arranca la fila
@@ -24914,6 +24976,69 @@ done:
 ; Bajaron del banco 0 el 2026-09-13, cuando `HaltAllMovement` y la rama por
 ; objeto lo pasaron por 128 bytes. El banco 0 lleva el código y las tablas que
 ; **sí** se indexan con el banco de datos en cero; lo que no, sobra.
+
+; Y desde el mismo día, seis más: el 2026-09-13 el `KeyInputProc` que espera la
+; cruceta y el `ChangeEventLocation` por variables volvieron a pasar el banco 0,
+; esta vez por 58 bytes. Las seis se leen con **X**, que es lo único que el
+; 65816 indexa en largo —`long,Y` no existe—, y por eso bajaron éstas y no las
+; de velocidad de las rutas, que se leen con Y.
+;
+; Ninguna está en un lazo por cuadro. La más caliente es `tabla_fila_buf`, que
+; el compositor de texto lee **una vez por fila de glifo**: dieciséis por letra
+; y sólo mientras se está armando una ventana de mensaje, o sea un ciclo de más
+; por fila sobre los cientos que cuesta componerla.
+
+; De qué byte del buffer de texto arranca cada una de sus dieciséis filas. El
+; buffer son dos filas de celda, así que la fila Y cae en el tile (Y/8) por 30
+; columnas de 32 bytes, más (Y mod 8) por 2 dentro del tile.
+tabla_fila_buf:
+    .word 0, 2, 4, 6, 8, 10, 12, 14
+    .word 960, 962, 964, 966, 968, 970, 972, 974
+
+; Un bit por posición, para el bitmap de switches. Sale más barata que ocho
+; corrimientos y se lee con el índice que ya tenemos.
+mascara:
+    .byte $01,$02,$04,$08,$10,$20,$40,$80
+
+; Qué permiso hace falta para salir de una celda y para entrar en la de al
+; lado, por dirección —arriba, derecha, abajo, izquierda—.
+;
+; Los pares son cruzados a propósito: para ir hacia arriba hay que poder salir
+; por arriba de la celda de origen y poder entrar por abajo a la de destino. Es
+; la regla de RM2k, y la misma que `rm2k.puede_pasar` escribe del lado de
+; Python.
+pass_salir:
+    .byte PASS_UP, PASS_RIGHT, PASS_DOWN, PASS_LEFT
+pass_entrar:
+    .byte PASS_DOWN, PASS_LEFT, PASS_UP, PASS_RIGHT
+
+; Las dos componentes de cada diagonal, indexadas por la dirección menos
+; cuatro: primero la vertical y después la horizontal. De acá salen las dos
+; eles que prueba `puede_celda_diag` y las dos poses que compara
+; `encarar_diagonal`. Son RUTA_DIAGONALES de eventos.py.
+diag_vert:
+    .byte DIR_UP, DIR_DOWN, DIR_DOWN, DIR_UP
+diag_horiz:
+    .byte DIR_RIGHT, DIR_RIGHT, DIR_LEFT, DIR_LEFT
+
+; Dónde empiezan los glifos compuestos de cada fase, indexados por la fase
+; misma —0, 2, 4 o 6—: por eso los bancos van con un byte de relleno entre
+; uno y otro. Ver `componer_char`. Se leen **una vez por glifo**, no por fila.
+fuente_pre_lo:
+    .word .loword(fuente_pre0), .loword(fuente_pre1)
+    .word .loword(fuente_pre2), .loword(fuente_pre3)
+fuente_pre_bk:
+    .byte ^fuente_pre0, 0, ^fuente_pre1, 0, ^fuente_pre2, 0, ^fuente_pre3
+
+; Qué bit de JOY1H mira cada dirección de `KeyInputProc` y qué número le guarda
+; a la variable, en el orden de `CheckInput` —de mayor valor a menor—. El mismo
+; orden que recorre `eventos.tecla_de` del lado del modelo; los números los
+; emite el conversor, así que no están escritos dos veces.
+tecla_dir_bit:
+    .byte PAD_UP, PAD_RIGHT, PAD_LEFT, PAD_DOWN, 0
+tecla_dir_val:
+    .byte TECLA_VALOR_ARRIBA, TECLA_VALOR_DERECHA
+    .byte TECLA_VALOR_IZQUIERDA, TECLA_VALOR_ABAJO
 
 partida_tabla:
     .word hero_x, 2

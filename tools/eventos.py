@@ -111,6 +111,8 @@ def cuadros_de_pan(falta, paso):
     """
     return -(-falta // paso)
 LUGAR_CONSTANTE = 0         # p[1]: 0 es la celda escrita, 1 la lee de variables
+LUGAR_POR_VARIABLE = 1      # y no hay una tercera: `CommandChangeEventLocation`
+                            # tiene dos ramas y nada más
 
 # Un cuadro de texto. RM2k emite un `ShowMessage` con la primera línea y un
 # `ShowMessage_2` por cada una de las que siguen del mismo cuadro: son un solo
@@ -1944,6 +1946,26 @@ TECLA_VALOR_DECISION = 5
 # Por dirección de la ROM: 0 arriba, 1 derecha, 2 abajo, 3 izquierda.
 TECLA_VALOR_DIR = {0: 4, 1: 3, 3: 2, 2: 1}
 
+# `ChangeEventLocation` con la celda **en dos variables**, que es el otro
+# `LUGAR` de RM2k: mismos efectos que `OP_LUGAR` —`MoveTo`, la celda cambia ya
+# y el paso en curso se corta— pero los dos números se leen al correr.
+#
+# Va en un opcode propio y no en un bit de `OP_LUGAR` porque los operandos son
+# otros: dos ranuras de un byte contra dos palabras. `LARGO_DE_OPCODE` es una
+# tabla, así que un opcode que mida distinto según un bit no lo sabe recorrer
+# ni el conversor ni la ROM.
+#
+# Lo que destraba es **una página**, medido sobre el juego entero, y son las
+# 129 apariciones en 32 páginas: las otras 31 están frenadas por otra cosa
+# igual. Esa página es la que importa: el motor del minijuego de las piedras
+# del mapa 11, que sin esto no puede plantar la piedra donde el jugador está
+# parado y por lo tanto no se puede tirar ninguna.
+#
+# **El número se elige mirando los que ya están**, no el último que uno
+# recuerde: ver el aviso de `OP_ACTOR_GRAF`.
+OP_LUGAR_VAR = 0x27     # blanco (byte, como en OP_LUGAR), ranura de la x
+                        # (byte), ranura de la y (byte)
+
 
 def tecla_de(banderas, apretadas):
     """Qué valor le toca a la variable con estas teclas apretadas.
@@ -1951,6 +1973,12 @@ def tecla_de(banderas, apretadas):
     `apretadas` es el conjunto de lo que el jugador tiene puesto: los enteros
     0 a 3 para las direcciones, "a" y "b" para las dos teclas. La usan los dos
     lados —acá la referencia, allá `op_tecla`— y el orden es el de `CheckInput`.
+
+    **Qué conjunto se le pasa depende de la forma del comando**, y eso lo
+    decide quien llama: la que espera mira los **flancos** de este cuadro
+    —`Input::IsTriggered`— y la que no espera, lo que está puesto
+    —`Input::IsPressed`—. Acá no se puede distinguir: las dos son "lo que
+    cuenta como apretado" para esta pregunta.
     """
     if banderas & TECLA_CANCELAR and "b" in apretadas:
         return TECLA_VALOR_CANCELAR
@@ -2275,6 +2303,13 @@ TIMER_PONER_VAR = 3     # la cuarta operación del cronómetro: los segundos des
 VARIABLE_SLOT = {}      # variable de RM2k -> ranura en la ROM
 VARIABLES_PRUEBA_AL_TIMER = 9   # la "operación" de --vars-de-prueba que pone el
                                 # cronómetro desde la variable; ver pagina_de_prueba
+VARIABLES_PRUEBA_AL_LUGAR = 10  # y la que planta un evento en la celda que dicen
+                                # dos variables, o sea `OP_LUGAR_VAR`. Va en la
+                                # misma lista y no en un flag propio por lo
+                                # mismo que la 9: la página de prueba tiene que
+                                # poder **escribir las variables primero**, y
+                                # `--lugar-de-prueba` se emite mucho antes que
+                                # `--vars-de-prueba`. Ver pagina_de_prueba.
 
 
 def mapas_del_juego(game_dir):
@@ -2292,6 +2327,16 @@ def variables_de(game_dir, map_ids=None, extra=()):
     compilen o no: es un superconjunto barato —dos bytes por variable— y así
     una página que compile después no cambia las ranuras de las demás. `extra`
     son las de la página de prueba, que no salen de ningún mapa.
+
+    **`KeyInputProc` también nombra una variable, y hasta el 2026-09-13 no
+    estaba en esta lista.** Es el único comando del juego que le escribe a una
+    variable sin ser un `ControlVars`, así que una variable que sólo él toque
+    se quedaba sin ranura y la página no compilaba por un motivo que no tenía
+    nada que ver con el comando. Pasan **dos**: la 5, del motor del minijuego de
+    las piedras del mapa 11, y la 151, de otras dos páginas; a las tres las
+    escribe este comando y no las lee nadie más.
+    No era circular —no dependía de que la página compilara—: este barrido mira
+    todos los comandos compilen o no, y a éste no lo miraba.
     """
     import lcf
     ids = set(extra)
@@ -2315,6 +2360,8 @@ def variables_de(game_dir, map_ids=None, extra=()):
                         ids.add(p[1])
                         if p[2] == 1:
                             ids.add(p[3])
+                    elif cmd.code == KEY_INPUT_PROC and p:
+                        ids.add(p[0])
                     elif cmd.code == TIMER_OPERATION and len(p) >= 3 \
                             and p[0] == TIMER_PONER \
                             and p[1] != TIMER_SEGUNDOS_FIJOS:
@@ -3093,21 +3140,23 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
                 raise NoSePuede("KeyInputProc sin espera: la ruta forzada del "
                                 "héroe no manda sobre el pad en la referencia")
             return bytes([OP_TECLA, ranura_de_variable(p[0]), banderas])
-        if banderas != (TECLA_ESPERA | TECLA_DECISION):
-            # **La espera se hace sólo con la tecla de acción**, y el número
-            # está medido: de las +30 páginas que este comando destraba en el
-            # juego entero, esta forma vale 23 y las dos que se pierden son las
-            # únicas que esperan una dirección o cancelar.
-            #
-            # El corte no es de la ROM —leer el flanco de la cruceta le sale
-            # igual de barato— sino del **arnés**: la tanda sostiene una
-            # dirección desde el arranque y aprieta A en cuadros anotados, así
-            # que un flanco de cruceta a mitad de una escena no lo puede
-            # producir ningún caso. Modelarlo igual sería escribir de los dos
-            # lados un camino que nada ejecuta, que es exactamente cómo
-            # sobrevivieron los tres errores del intérprete.
-            raise NoSePuede("KeyInputProc que espera algo que no sea la tecla "
-                            "de acción")
+        # **La espera se hace con las tres cosas: la cruceta, la tecla de
+        # acción y cancelar**, desde el 2026-09-13. Hasta ese día valía sólo la
+        # de acción, y la razón escrita era del **arnés** y no de la ROM: la
+        # tanda sostenía una dirección desde el arranque y apretaba A en
+        # cuadros anotados, así que un flanco de cruceta a mitad de una escena
+        # no lo podía producir ningún caso, y modelarlo igual habría sido
+        # escribir de los dos lados un camino que nada ejecuta.
+        #
+        # Esa razón dejó de valer con `pruebas/recorrido.py`, que juega el
+        # juego de verdad y puede apretar cualquier botón en cualquier cuadro,
+        # y con `--tocar` de las dos mitades de la tanda, que aprieta una
+        # dirección en un cuadro anotado como ya se apretaba A.
+        #
+        # Lo que destraba, medido: las dos páginas del `(151, 1, 1, 1, 1)` —la
+        # que espera las tres— y, junto con la ranura de la variable 5, la del
+        # motor del minijuego de las piedras del mapa 11, que es el `(8, 1, 1,
+        # 0, 0)`: sin esto no se puede tirar ninguna piedra.
         ranura = ranura_de_variable(p[0]) | escritura_pide_refresco(
             p[0], eventos_mapa)
         return bytes([OP_TECLA, ranura, banderas | TECLA_ARRANCA,
@@ -3467,8 +3516,8 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         return bytes([OP_RUTA, blanco, p[1], len(ruta)]) + bytes(ruta)
 
     if cmd.code == CHANGE_EVENT_LOCATION:
-        if len(p) < 4 or p[1] != LUGAR_CONSTANTE:
-            raise NoSePuede()   # la celda sale de variables, y no las leemos
+        if len(p) < 4 or p[1] not in (LUGAR_CONSTANTE, LUGAR_POR_VARIABLE):
+            raise NoSePuede()
         if p[0] == RUTA_HEROE or eventos_mapa is None:
             # Al héroe no lo mueve nadie así en este juego —para eso está
             # Teleport— y sin el mapa no hay cómo traducir el id.
@@ -3476,6 +3525,15 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         blanco = eventos_mapa.blanco(p[0])
         if blanco is None:
             raise NoSePuede()   # un vehículo, o un evento que no existe
+        if p[1] == LUGAR_POR_VARIABLE:
+            # La celda sale de dos variables, y se leen **al correr**: es el
+            # `Main_Data::game_variables->Get(x)` de `CommandChangeEventLocation`.
+            # Va en un opcode aparte y no en un bit de `OP_LUGAR` porque los
+            # operandos son otros —dos ranuras de un byte contra dos palabras—
+            # y un opcode de largo variable es lo que el recorrido del
+            # bytecode no sabe hacer: `LARGO_DE_OPCODE` es una tabla.
+            return bytes([OP_LUGAR_VAR, blanco, ranura_de_variable(p[2]),
+                          ranura_de_variable(p[3])])
         if not (0 <= p[2] <= 0xFFFF and 0 <= p[3] <= 0xFFFF):
             raise NoSePuede()
         return bytes([OP_LUGAR, blanco, p[2] & 0xFF, p[2] >> 8,
@@ -4303,11 +4361,19 @@ class Estado:
         # camina por otro lado, porque el arnés le pasa la dirección directo.
         #
         # **Es lo que el arnés puede producir y nada más**: una dirección
-        # sostenida desde el arranque —`--walk`— y la tecla de acción en los
-        # cuadros de `--apretar-a`. B no lo aprieta ningún caso de la tanda, así
-        # que una forma de `KeyInputProc` que dependa de él leería siempre cero
-        # de este lado; ver el corte de `_compilar`.
+        # sostenida desde el arranque —`--walk`—, la tecla de acción en los
+        # cuadros de `--apretar-a`, y desde el 2026-09-13 cualquier botón en un
+        # cuadro anotado con `--tocar`, que es lo que hizo falta para que la
+        # forma de `KeyInputProc` que espera la cruceta tenga con qué medirse.
+        #
+        # `pad_ant` es el cuadro anterior, que es lo que hace falta para el
+        # **flanco**: la forma que espera es `Input::IsTriggered` y no
+        # `IsPressed`, igual que el A que cierra un mensaje. En la ROM eso es
+        # `pad` contra `pad_ant` y `pad_a` contra `pad_a_ant`. Sin esto, una
+        # dirección sostenida desde el arranque contestaría todos los cuadros
+        # de este lado y uno solo del otro.
         self.pad = frozenset()
+        self.pad_ant = frozenset()
 
     def variable(self, ranura):
         return self.variables.get(ranura, 0)
@@ -5071,7 +5137,7 @@ LARGO_DE_OPCODE = {
     OP_CLIMA: 3, OP_SONIDO: 3,
     OP_IMAGEN: 5, OP_IMAGEN_MOVER: 6, OP_IMAGEN_BORRAR: 1,
     OP_BATALLA: 9, OP_PARAR_RUTAS: 1, OP_ACTOR_GRAF: 3, OP_TECLA: 3,
-    OP_SI_ACTOR: 7,
+    OP_SI_ACTOR: 7, OP_LUGAR_VAR: 4,
 }
 
 
@@ -5517,6 +5583,19 @@ def pagina_de_prueba(espera=0, tinte=(), ruta=(), mensaje=None, ruta_ev=(),
                 codigo += _compilar(lcf.EventCommand(
                     TIMER_OPERATION, 0, "", [TIMER_PONER, 1, v, 0, 0]), None)
                 continue
+            if operacion == VARIABLES_PRUEBA_AL_LUGAR:
+                # `ChangeEventLocation` con la celda en dos variables: `a` es el
+                # blanco —el índice del evento más uno, como en `--lugar-de-
+                # prueba`— y `v` y `b` son las variables de la x y de la y.
+                #
+                # Se emiten los bytes y no un `_compilar` de un
+                # `CHANGE_EVENT_LOCATION` porque el blanco de la página de
+                # prueba ya viene traducido, y `_compilar` lo traduciría de
+                # nuevo desde un id de RM2k que acá no existe. Es lo mismo que
+                # hace `lugar` un poco más arriba con `OP_LUGAR`.
+                codigo += bytes([OP_LUGAR_VAR, a, ranura_de_variable(v),
+                                 ranura_de_variable(b)])
+                continue
             codigo += _compilar(lcf.EventCommand(
                 CONTROL_VARS, 0, "", [0, v, v, operacion, clase, a, b]), None,
                 eventos_mapa=eventos_mapa)
@@ -5870,12 +5949,18 @@ class Interprete:
         return (self.codigo is None and not self.esperando_ev
                 and not self.estado.refresco_frena() and not self.automaticos())
 
-    def cuadro(self, apreto_a=False, mover_evento=None, direccion=None):
+    def cuadro(self, apreto_a=False, mover_evento=None, direccion=None,
+               tocados=()):
         """Avanza un cuadro. Devuelve True si en éste se pidió un salto.
 
         `apreto_a` es que el jugador **acaba de** apretar A en este cuadro, no
         que lo tenga apretado: RM2k cierra el mensaje con `IsTriggered`, o sea
         con el flanco. En la ROM eso es `pad_a` contra `pad_a_ant`.
+
+        `tocados` son los botones que el arnés aprieta **sólo en este cuadro**
+        —`--tocar` de las dos mitades—: las direcciones como enteros 0 a 3 y
+        "b". Es lo que le hacía falta a la forma de `KeyInputProc` que espera
+        la cruceta, que antes ningún caso podía producir.
 
         **El refresco pendiente se hace acá**, arriba de todo, que es donde lo
         hace `Game_Map::Update`: `if (GetNeedRefresh()) Refresh();` y recién
@@ -5887,11 +5972,14 @@ class Interprete:
         # Lo que el jugador tiene apretado este cuadro, para `KeyInputProc` y
         # para nadie más. `direccion` es la que el arnés sostiene desde el
         # arranque —`--walk`—, que es lo único que sabe sostener; A es un toque
-        # de un cuadro, así que su estado y su flanco son lo mismo. Ver
-        # `Estado.pad`.
+        # de un cuadro, así que su estado y su flanco son lo mismo; `tocados`
+        # son los toques anotados. El cuadro anterior queda en `pad_ant`, que
+        # es de donde sale el flanco. Ver `Estado.pad`.
+        self.estado.pad_ant = self.estado.pad
         self.estado.pad = frozenset(
             ({"a"} if apreto_a else set())
-            | ({direccion} if direccion is not None else set()))
+            | ({direccion} if direccion is not None else set())
+            | set(tocados))
         self.refrescar_y_remarcar(eligiendo=False)
         # `Game_Event::CheckEventAutostart`, cada cuadro y para todos. Que
         # corra **también mientras la página de ese evento está corriendo** es
@@ -6190,7 +6278,13 @@ def ejecutar(codigo, estado, desde=0):
                 if pide_refresco:
                     estado.refresco = True
                 return (i + 3, 0, None)
-            valor = tecla_de(banderas, estado.pad)
+            # La que espera mira el **flanco** —`Input::IsTriggered`, lo mismo
+            # que cierra un mensaje— y la que no espera, lo que está puesto
+            # —`IsPressed`—. Es lo que hace `tecla_valor` en la ROM: la de
+            # espera contra `pad_ant`, la otra contra `pad` a secas.
+            valor = tecla_de(banderas,
+                             estado.pad - estado.pad_ant
+                             if banderas & TECLA_ESPERA else estado.pad)
             if banderas & TECLA_ESPERA and not valor:
                 return (i, 0, None)
             estado.poner_variable(ranura, valor)
@@ -6419,6 +6513,13 @@ def ejecutar(codigo, estado, desde=0):
                                 codigo[i + 2] | (codigo[i + 3] << 8),
                                 codigo[i + 4] | (codigo[i + 5] << 8))
             i += 6
+        elif op == OP_LUGAR_VAR:
+            # El mismo `MoveTo` que `OP_LUGAR`, con la celda leída de dos
+            # variables **al correr**. Ver OP_LUGAR_VAR.
+            estado.mover_evento(codigo[i + 1] - 1,
+                                estado.variable(codigo[i + 2]),
+                                estado.variable(codigo[i + 3]))
+            i += 4
         elif op == OP_SACUDIR:
             # `ShakeOnce`, que no reinicia la posición —"so that multiple
             # shakes which interrupt each other flow smoothly"—, o `ShakeEnd`
