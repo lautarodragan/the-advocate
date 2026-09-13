@@ -584,7 +584,7 @@ def huella():
 
 def armar(map_id, mapas=(), con_ventana=True, destino=None, rama=(),
           descartar=False, guardar=0, titulo=False, tema=None, variables=(),
-          rama_var=(), items=(), acceso=(), tecla=(), espera=0):
+          rama_var=(), items=(), acceso=(), tecla=(), espera=0, timer=False):
     """Convierte, ensambla y devuelve (ROM, símbolos, ids de mapa en orden).
 
     Los mismos dos comandos que corre el justfile, para que una ROM de prueba
@@ -639,6 +639,12 @@ def armar(map_id, mapas=(), con_ventana=True, destino=None, rama=(),
         convertir += ["--guardar-de-prueba", "--pagina-de-prueba", str(guardar)]
     if con_ventana:
         convertir.append("--con-ventana")
+    if timer:
+        # El cronómetro, que es lo que las demos llevan: se lo pide `--con-timer`
+        # y cuesta la paleta de los dígitos. Lo necesita la prueba de recorrido,
+        # porque la cuenta atrás de diez minutos arranca en la casa de Talan y
+        # sin esto el mapa que la para no tendría qué parar.
+        convertir.append("--con-timer")
     if tema:
         # Que la ROM arranque con un tema sonando. Los mapas de estas pruebas
         # no traen música propia, así que sin esto no hay forma de comprobar

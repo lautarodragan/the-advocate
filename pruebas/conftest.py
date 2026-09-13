@@ -18,6 +18,12 @@ con `Partida.ir_al_mapa`, que le pide a la ROM el mismo fundido que una puerta.
 Ese segundo no es capricho: el conversor se niega a poner la ventana de mensaje
 en un mapa que no le deja 8 KB de tiles y 2 de tilemap, y el 66 es uno de ésos.
 
+**Y una tercera, que es la cara**: la del recorrido largo, con los ocho mapas de
+la cadena que se juega —ver `test_recorrido.py`—. Vale la pena saber cuánto
+cuesta cada una: armar la del recorrido son unos veinte segundos de conversión y
+cinco de ensamblado, contra los tres segundos que tarda en jugarse entera. Por
+eso lleva ocho mapas y no los veintinueve de `demo-ciudad`, que son dos minutos.
+
 Lo que **no** se comparte es la partida: cada prueba arranca su propia consola
 desde el reset. Compartirla dejaría a una corriendo sobre lo que dejó otra, que
 es la clase de error que este repo ya cobró con `mapdata.inc`.
@@ -58,12 +64,12 @@ def partida(builds):
     def hacer(switch=(), con_ventana=True, rama=(), mapas=None,
               descartar=False, guardar=0, titulo=None, tema=None,
               variables=(), rama_var=(), items=(), acceso=(), tecla=(),
-              espera=0):
+              espera=0, timer=False):
         arranca, resto = mapas or (CON_VENTANA if con_ventana else SIN_VENTANA)
         clave = (arranca, tuple(resto), con_ventana, tuple(rama), descartar,
                  guardar, titulo is not None, tema, tuple(variables),
                  tuple(rama_var), tuple(items), tuple(acceso),
-                 tuple(tecla), espera)
+                 tuple(tecla), espera, timer)
         if clave not in builds:
             destino = os.path.join(
                 os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
@@ -84,11 +90,12 @@ def partida(builds):
                                 + ("-p" + "_".join(str(n) for n in acceso)
                                    if acceso else "")
                                 + ("-k" + "_".join(str(n) for n in tecla)
-                                   + "_%d" % espera if tecla else "")))
+                                   + "_%d" % espera if tecla else "")
+                                + ("-c" if timer else "")))
             builds[clave] = armar(arranca, resto, con_ventana, destino, rama,
                                   descartar, guardar, titulo is not None, tema,
                                   variables, rama_var, items, acceso, tecla,
-                                  espera)
+                                  espera, timer)
         sfc, simbolos, tabla = builds[clave]
         return Partida(sfc, simbolos, tabla, switch, titulo)
 
