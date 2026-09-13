@@ -953,6 +953,25 @@ Lo que queda abierto de la primera:
   página que persiga al héroe mientras camina, ese cuadro de diferencia es lo
   primero que hay que mirar.
 
+### La carrera, cuando llegue: 41 paralelos que comparan posiciones
+
+Anotado el 2026-09-13, antes de que haga falta. Los mapas de la persecución en
+auto —49, 52 y 54— tienen **41 eventos con página paralela cada uno**, el
+triple que el HQ de los Lazer Teeth, y son los tres mapas con más de todo el
+juego. Medidos en frío dan 0 paralelos activos y 60 fps: se encienden a medida
+que la carrera avanza, así que el número de verdad todavía no se vio.
+
+Cada obstáculo es un paralelo que compara su posición con la del héroe, que es
+el mismo patrón que el minijuego del HQ. Con el costo que tenían el 2026-09-13
+—unos 3.200 ciclos por paralelo y por cuadro— serían ~131.000 ciclos, más de
+dos cuadros: la carrera correría a unos 20 fps. Con la página cacheada eso
+debería desaparecer, y por eso **no se hizo nada especial acá**: primero medir
+la carrera con el arreglo puesto.
+
+Si aun así no alcanzara, taro dejó la idea: **la coordenada x del auto sólo
+incrementa**, así que los obstáculos podrían ordenarse por x y mirarse sólo los
+que están cerca, en vez de los 41 todos los cuadros.
+
 ### Lo próximo, si no se decide otra cosa
 
 Al 2026-09-12, en orden.
