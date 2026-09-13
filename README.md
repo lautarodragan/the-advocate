@@ -911,6 +911,42 @@ tienda y como guardar, la pantalla bloquea adentro del intérprete y `vueltas`
 no avanza: los dos lados salen del opcode en el mismo tick tarde lo que tarde
 el jugador.
 
+#### La pelea sin manejadores, y el Game Over
+
+Hay una forma de `EnemyEncounter` que no trae bloque de manejadores: RM2k no lo
+emite cuando `defeat_mode` es 0, porque entonces perder no es una rama de la
+página sino `Scene_Gameover`. Son **24 comandos en 15 páginas disparables** del
+juego, y hasta el 2026-09-13 ninguna compilaba. Importa quiénes son: tres de
+esas páginas son el `EV0006` del mapa 26, o sea **el jefe de los Rat Tracks**,
+que por eso no aparecía nunca.
+
+Eran dos trabajos y por eso hacer uno solo daba cero páginas: el `raise` del
+Game Over y el de "una batalla sin cerrar" —sin `EndBattle` el bloque no se
+cierra—. Medido: destrabar cualquiera de los dos solo, **+0**; los dos, **+15**.
+
+Ahora el compilador mira adelante, como con las opciones de un `ShowChoice`: si
+al `EnemyEncounter` no le sigue un manejador, emite el `OP_BATALLA` en el acto,
+con victoria y huida en el comando de abajo y la derrota en `BATALLA_PERDER`.
+
+**`BATALLA_PERDER` es $FFFF**, o sea un destino imposible —los tres son
+absolutos adentro de la página y ninguna del juego llega a 64 KB—, así que el
+Game Over no cuesta un opcode nuevo ni un byte más en las otras peleas. La ROM
+lo mira en `op_batalla` con un `iny`/`bne`, que es el `cmp #$FFFF` barato, y
+responde con `jml reset`: **Game Over es volver al arranque**, o sea a la
+pantalla de título si el cartucho la lleva, con la partida guardada esperando en
+la SRAM. Es lo que `Scene_Gameover` hace al final, menos la imagen y menos el
+tema; los dos están declarados en `assets/LIMITACIONES.md`.
+
+Ese camino **la tanda de pixeles no lo puede ver**: del lado de la referencia
+`OP_BATALLA` se va siempre por la victoria, así que no hay cuadro que comparar.
+Lo cobra `pruebas/test_game_over.py`, que pone el grupo entero en cero HP —con
+nadie en pie `batalla_correr` contesta derrota sin abrir la pantalla— y exige
+que la ROM se reinicie, con el control de la misma pelea apuntando a la página.
+
+Y una aproximación declarada: las 24 peleas de esta forma traen `escape_mode` 0,
+o sea huir prohibido, y la ROM deja huir igual porque el permiso no viaja en el
+opcode. Huir sale por el mismo destino que ganar.
+
 **El código de la pelea no vive en el banco 0.** Son unos tres kilobytes y ahí
 quedaban trescientos bytes, así que vive en RODATA y se entra con `jsl`. De
 allá no se puede volver con `jsr` —no cambia el banco de programa— así que las
@@ -1501,7 +1537,10 @@ página espera lo que dura. Tres cosas son nuestras:
 * **Al héroe no se lo destella.** Con quién comparte paleta depende del grupo,
   que el compilador no ve; para los `FlashSprite` el conversor lo mira y corta
   la ROM entera, y una animación no vale eso. Tampoco a un evento que comparta
-  gráfico con otro.
+  gráfico con otro, y eso **quedó conservador** desde que la referencia destella
+  por fila de paleta (ver abajo): hoy el destello del objetivo se podría emitir
+  igual. No se hizo en la misma vuelta porque cambia qué se dibuja en los mapas
+  donde dos eventos comparten gráfico, y eso pide medir la tanda de nuevo.
 * **El dibujo no está.** Son celdas de 96x96 con zoom de hasta el doble y su
   propia paleta; es el sistema de al lado, y está abajo.
 
@@ -2932,6 +2971,36 @@ receta hacía hasta ahora —las esperas se miraban con margen—:
   dígitos no había con qué: el parpadeo de los dos puntos cambiaba un cuadro
   antes en la referencia, con el mismo estado de los dos lados. `timer_texto`
   usa ahora la cuenta de antes de descontar el cuadro.
+
+#### El destello de un personaje va sobre su fila de paleta
+
+`FlashSprite` (11320) es `OP_FLASH`. En RM2k tiñe **ese dibujable**; acá el
+dibujable es una fila de CGRAM, así que `pintar_flash` sube la paleta del blanco
+mezclada y la vuelve a subir como estaba al terminar. De ahí sale una diferencia
+con RM2k que no es de implementación sino de hardware: **destella todo lo que
+comparta esa fila** —otro evento con el mismo gráfico, uno al que le prestaron la
+paleta, o el héroe cuando el líder es además NPC del mapa—.
+
+Hasta el 2026-09-13 el compilador se defendía **no compilando** la página que
+destellara a un evento que compartiera gráfico, porque la referencia destellaba
+sobre la imagen de un sprite solo y la diferencia era invisible para la tanda.
+Ese corte costaba **51 páginas**, medidas, y una de ellas es el `EV0027` del
+mapa 20 —la cinemática del Bum de Sector 30—, que es la que prende el evento de
+Rat Tracks B2: sin ella el jugador aparece invisible y el juego se traba.
+
+Lo que se hizo no fue aflojar el corte sino **modelar la consola**: la
+referencia arma `destello_de_fila` con el mismo reparto de paletas que usa el
+conversor y destella por fila. Con eso los dos lados vuelven a ser el mismo
+programa y lo que queda es una divergencia con RM2k, declarada en
+`assets/LIMITACIONES.md`. De paso cierra una discrepancia que ya existía y que
+nadie medía: dos gráficos distintos pueden compartir fila —`cabe` une paletas
+cuando entran en quince colores— y ahí el corte por "mismo gráfico" no protegía
+nada.
+
+Lo cobra el caso `destello-compartido` de la tanda: el mapa 6, destellando al
+Kersh que está parado ahí, que comparte fila con el héroe. **Verificado en
+rojo** antes del cambio —320 pixeles, el 0,56%, en el cuadro 2— y en cero
+después, los cinco cuadros.
 
 #### El destello de pantalla
 

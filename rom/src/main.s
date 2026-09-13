@@ -855,6 +855,13 @@ rapido:
 .i16
     ldx #$1FFF
     txs
+    ; El banco de datos, en el del código. En un reset de verdad el 65816 lo
+    ; deja en cero y todo lo de acá abajo funcionaría igual, pero desde el
+    ; 2026-09-13 acá se llega también con un `jml` —el Game Over de
+    ; `op_batalla`— y ahí el banco de datos es el del bytecode, o sea un banco
+    ; del cartucho: `sta INIDISP` escribiría la ROM en vez del PPU.
+    phk
+    plb
 
     sep #$20
 .a8
@@ -1358,18 +1365,10 @@ scrolls:
 ; cero, que es "nada encendido".
 .segment "TABLAS"
 
-; Qué permiso hace falta para salir de una celda y para entrar en la de al lado,
-; por dirección —arriba, derecha, abajo, izquierda—. Van en el banco 0 porque se
-; leen con `lda tabla, x`, que direcciona el banco de datos.
-;
-; Los pares son cruzados a propósito: para ir hacia arriba hay que poder salir
-; por arriba de la celda de origen y poder entrar por abajo a la de destino. Es
-; la regla de RM2k, y la misma que `rm2k.puede_pasar` escribe del lado de
-; Python.
-pass_salir:
-    .byte PASS_UP, PASS_RIGHT, PASS_DOWN, PASS_LEFT
-pass_entrar:
-    .byte PASS_DOWN, PASS_LEFT, PASS_UP, PASS_RIGHT
+; `pass_salir` y `pass_entrar` **ya no están acá**: se bajaron a RODATA el
+; 2026-09-13 —con `hdma_mascara` y las dos de `fuente_pre`— para hacerle lugar
+; al Game Over de `op_batalla`. Lo que queda en este segmento se lee con
+; `lda tabla, x` a secas, que direcciona el banco de datos.
 ; Y cuánto se corre cada dirección, en celdas: arriba, derecha, abajo,
 ; izquierda, y las cuatro diagonales. Con signo, que es como las suma
 ; `armar_salto`. Son RUTA_PASOS de eventos.py.
@@ -4582,6 +4581,24 @@ anotado:
     tay
     lda [cod_ptr], y            ; el destino, absoluto dentro de la página
     tay
+    ; `BATALLA_PERDER`, o sea $FFFF: la pelea no traía manejador de derrota
+    ; porque en RM2k perderla es `Scene_Gameover`. Es un destino imposible —los
+    ; tres son absolutos adentro de la página y ninguna llega a 64 KB— así que
+    ; no hace falta un opcode nuevo ni un byte más en las otras peleas. El `iny`
+    ; es el `cmp #$FFFF` barato: con A de 16 bits compararlo costaría tres
+    ; bytes y en el banco 0 no sobran.
+    ;
+    ; **Game Over es volver al arranque**, que es la pantalla de título si esta
+    ; ROM la lleva, con la partida guardada esperando en la SRAM: es lo que
+    ; `Scene_Gameover` hace cuando el jugador aprieta, menos la imagen, que este
+    ; port no dibuja —ver assets/LIMITACIONES.md—. Se va con `jml` y no
+    ; devolviendo el control porque no hay a dónde volver: la página no tiene
+    ; rama de derrota y `reset` repone la pila él mismo.
+    iny
+    bne sigue_la_pagina
+    jml f:reset
+sigue_la_pagina:
+    dey
     sep #$20
 .a8
     jmp otro
@@ -18942,7 +18959,7 @@ con_colision:
     sep #$20
 .a8
     ldx celda_dir
-    and pass_salir, x
+    and f:pass_salir, x
     bne :+
     jmp no                      ; queda lejos para un salto corto
 :
@@ -19005,7 +19022,7 @@ entra:
     sep #$20
 .a8
     ldx celda_dir
-    and pass_entrar, x
+    and f:pass_entrar, x
     bne :+
     jmp no
 :
@@ -20399,30 +20416,12 @@ columna:
 ; Las dos tablas que el compositor consulta en su lazo interno. Van en el banco
 ; 0 como el resto de las tablas: `lda tabla, x` direcciona el banco de datos.
 .segment "TABLAS"
-; La tabla del HDMA que enmascara los objetos debajo de la ventana de mensaje:
-; nada en las 144 líneas de arriba —en dos tramos, por los 7 bits del contador—
-; y la ventana 1 prendida para los objetos en las 80 de abajo. Ver `armar_hdma`.
-hdma_mascara:
-    .byte 127, $00
-    .byte (VENTANA_LINEA - 127), $00
-    .byte (LINEAS - VENTANA_LINEA), $02
-    .byte 0
-
 ; De qué byte del buffer arranca cada una de sus dieciséis filas. El buffer son
 ; dos filas de celda, así que la fila Y cae en el tile (Y/8) por 30 columnas de
 ; 32 bytes, más (Y mod 8) por 2 dentro del tile.
 tabla_fila_buf:
     .word 0, 2, 4, 6, 8, 10, 12, 14
     .word 960, 962, 964, 966, 968, 970, 972, 974
-
-; Dónde empiezan los glifos compuestos de cada fase, indexados por la fase
-; misma —0, 2, 4 o 6—: por eso los bancos van con un byte de relleno entre
-; uno y otro. Ver `componer_char`.
-fuente_pre_lo:
-    .word .loword(fuente_pre0), .loword(fuente_pre1)
-    .word .loword(fuente_pre2), .loword(fuente_pre3)
-fuente_pre_bk:
-    .byte ^fuente_pre0, 0, ^fuente_pre1, 0, ^fuente_pre2, 0, ^fuente_pre3
 
 .segment "CODE"
 
@@ -20594,7 +20593,8 @@ hay:
     sta BBAD3
     ldx #.loword(hdma_mascara)
     stx A1T3L
-    stz A1B3
+    lda #^hdma_mascara          ; ya no es el banco 0: vive en RODATA
+    sta A1B3
     rts
 .endproc
 
@@ -20959,13 +20959,13 @@ mas:
 
     ; Sus datos: la tabla de su fase, más el carácter por FUENTE_PRE_CHAR.
     ldx comp_fase
-    lda fuente_pre_lo, x
+    lda f:fuente_pre_lo, x
     clc
     adc RDMPYL
     sta comp_glifo
     sep #$20
 .a8
-    lda fuente_pre_bk, x
+    lda f:fuente_pre_bk, x
     sta comp_glifo + 2
 
     ldy #0
@@ -24916,6 +24916,42 @@ partida_tabla:
     ; por actor. Viaja en la partida como en RM2k, y cruza el teletransporte.
     .word FAR_ACTOR_GRAF, ACTORES_N
     .word 0, 0
+
+; Las cuatro tablas que bajaron del banco 0 el 2026-09-13, para hacerle lugar
+; al Game Over de `op_batalla`. Las tres que se indexan se leen con
+; `lda f:tabla, x` —absoluto largo, que no depende del banco de datos— y por eso
+; van con X y no con Y: el 65816 no tiene `long,Y`. `hdma_mascara` no se indexa:
+; su dirección y su banco se los pasa `armar_hdma` al canal de HDMA.
+
+; Qué permiso hace falta para salir de una celda y para entrar en la de al lado,
+; por dirección —arriba, derecha, abajo, izquierda—.
+;
+; Los pares son cruzados a propósito: para ir hacia arriba hay que poder salir
+; por arriba de la celda de origen y poder entrar por abajo a la de destino. Es
+; la regla de RM2k, y la misma que `rm2k.puede_pasar` escribe del lado de
+; Python.
+pass_salir:
+    .byte PASS_UP, PASS_RIGHT, PASS_DOWN, PASS_LEFT
+pass_entrar:
+    .byte PASS_DOWN, PASS_LEFT, PASS_UP, PASS_RIGHT
+
+; La tabla del HDMA que enmascara los objetos debajo de la ventana de mensaje:
+; nada en las 144 líneas de arriba —en dos tramos, por los 7 bits del contador—
+; y la ventana 1 prendida para los objetos en las 80 de abajo. Ver `armar_hdma`.
+hdma_mascara:
+    .byte 127, $00
+    .byte (VENTANA_LINEA - 127), $00
+    .byte (LINEAS - VENTANA_LINEA), $02
+    .byte 0
+
+; Dónde empiezan los glifos compuestos de cada fase, indexados por la fase
+; misma —0, 2, 4 o 6—: por eso los bancos van con un byte de relleno entre
+; uno y otro. Ver `componer_char`.
+fuente_pre_lo:
+    .word .loword(fuente_pre0), .loword(fuente_pre1)
+    .word .loword(fuente_pre2), .loword(fuente_pre3)
+fuente_pre_bk:
+    .byte ^fuente_pre0, 0, ^fuente_pre1, 0, ^fuente_pre2, 0, ^fuente_pre3
 
 ; Hacia dónde mira cada pose, de 0 a 11: la dirección es la pose entre tres.
 dir_de_pose:

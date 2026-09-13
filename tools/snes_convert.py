@@ -5298,6 +5298,12 @@ def main():
                              "página de prueba. Es lo que le da banco a la "
                              "tropa de cuatro enemigos del mapa 9, cuya "
                              "página no compila por una orden de ruta")
+    parser.add_argument("--batalla-game-over", action="store_true",
+                        help="y que perderla sea un Game Over, o sea el "
+                             "`defeat_mode` 0 de RM2k: el destino de la "
+                             "derrota es `BATALLA_PERDER` y la ROM vuelve al "
+                             "arranque. Es la forma que traen las 15 páginas "
+                             "del juego con pelea sin manejadores")
     parser.add_argument("--fondo-de-prueba", default="",
                         metavar="NOMBRE",
                         help="con qué fondo de batalla pelea esa tropa. En una "
@@ -5777,7 +5783,8 @@ def main():
                     lluvia=args.lluvia_de_prueba,
                     animacion=tuple(args.animacion_de_prueba or ()),
                     eventos_mapa=eventos.Eventos(mapa["game_map"]),
-                    batalla=args.batalla_de_prueba, temas=temas,
+                    batalla=args.batalla_de_prueba,
+                    batalla_game_over=args.batalla_game_over, temas=temas,
                     parar=args.parar_de_prueba,
                     rama_item=tuple(args.rama_item_de_prueba or ()),
                     sprite=sprite_de_prueba(args.sprite_de_prueba),

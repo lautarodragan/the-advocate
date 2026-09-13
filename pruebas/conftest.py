@@ -58,12 +58,12 @@ def partida(builds):
     def hacer(switch=(), con_ventana=True, rama=(), mapas=None,
               descartar=False, guardar=0, titulo=None, tema=None,
               variables=(), rama_var=(), items=(), acceso=(), tecla=(),
-              espera=0):
+              espera=0, batalla=0, game_over=False):
         arranca, resto = mapas or (CON_VENTANA if con_ventana else SIN_VENTANA)
         clave = (arranca, tuple(resto), con_ventana, tuple(rama), descartar,
                  guardar, titulo is not None, tema, tuple(variables),
                  tuple(rama_var), tuple(items), tuple(acceso),
-                 tuple(tecla), espera)
+                 tuple(tecla), espera, batalla, game_over)
         if clave not in builds:
             destino = os.path.join(
                 os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
@@ -84,11 +84,15 @@ def partida(builds):
                                 + ("-p" + "_".join(str(n) for n in acceso)
                                    if acceso else "")
                                 + ("-k" + "_".join(str(n) for n in tecla)
-                                   + "_%d" % espera if tecla else "")))
+                                   + "_%d" % espera if tecla else "")
+                                + ("-b%d_%d%s" % (
+                                    batalla, espera,
+                                    "-go" if game_over else "")
+                                   if batalla else "")))
             builds[clave] = armar(arranca, resto, con_ventana, destino, rama,
                                   descartar, guardar, titulo is not None, tema,
                                   variables, rama_var, items, acceso, tecla,
-                                  espera)
+                                  espera, batalla, game_over)
         sfc, simbolos, tabla = builds[clave]
         return Partida(sfc, simbolos, tabla, switch, titulo)
 

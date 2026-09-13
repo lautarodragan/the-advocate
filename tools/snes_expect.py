@@ -2147,6 +2147,38 @@ def main():
         # en cada línea, así que hay que respetarlo para reproducir lo que se
         # pierde.
         order = sorted(actors, key=lambda a: a[0], reverse=True)
+        # **El destello es por paleta y no por sprite**, que es lo que hace la
+        # consola: `pintar_flash` mira `paleta_del_blanco` y sube **esa fila de
+        # CGRAM** mezclada, así que destella todo lo que la comparta —otro
+        # evento con el mismo gráfico, uno al que le prestaron la paleta, o el
+        # héroe cuando el líder es además NPC del mapa—. RM2k lo hace sobre la
+        # imagen de un sprite solo; acá el hardware no deja, y antes que los dos
+        # lados se equivoquen distinto, la referencia modela lo que la consola
+        # hace. Es una divergencia declarada con RM2k, no una entre los dos
+        # lados: ver `assets/LIMITACIONES.md`.
+        #
+        # De quién es cada fila sale del mismo reparto que usa el conversor, y
+        # el blanco se resuelve con lo que **se está dibujando**, que es de
+        # donde la ROM saca el byte de atributos de la fila del NPC. Un blanco
+        # que no se dibuja no tiñe nada, igual que el `$FF` de
+        # `paleta_del_blanco`.
+        paleta_de = mundo.paleta_de_sprite(map_id)
+        fila_de_blanco = {}
+        for _key, name, index, _pose, _px, _py, _arr, blanco, _alt in actors:
+            fila = paleta_de.get((name, index))
+            if fila is not None:
+                fila_de_blanco[blanco] = fila
+        # Fila -> qué destello la está tiñendo. Si dos destellos vivos cayeran
+        # en la misma fila gana el último, que es lo que pasa en la consola:
+        # `flashes_tick` recorre las ranuras en orden y cada una sube la fila
+        # entera, así que la última escrita es la que queda. En este juego no
+        # pasa —una página se bloquea mientras dura su destello— y ningún caso
+        # de la tanda lo ejercita.
+        destello_de_fila = {}
+        for blanco in estado.flashes:
+            fila = fila_de_blanco.get(blanco)
+            if fila is not None:
+                destello_de_fila[fila] = blanco
         sprites = []
         for _key, name, index, pose, px, py, arriba, blanco, altura in order:
             imagen = pose_image(charset_image(name), index, pose,
@@ -2156,9 +2188,10 @@ def main():
             # es su paleta. El tinte de pantalla va antes —`Cache::SpriteEffect`
             # aplica el tono y después la mezcla— y acá lo aplica `tenir_imagen`
             # sobre todo al final, que es el mismo orden.
-            imagen = destellar_imagen(imagen, estado.color_de_flash(blanco),
-                                      estado.nivel_de_flash(blanco)) \
-                if blanco in estado.flashes else imagen
+            quien = destello_de_fila.get(paleta_de.get((name, index)))
+            imagen = destellar_imagen(imagen, estado.color_de_flash(quien),
+                                      estado.nivel_de_flash(quien)) \
+                if quien is not None else imagen
             sprites.append((imagen, px - 4 - cam_x,
                             py - 16 - cam_y - altura, arriba))
 
