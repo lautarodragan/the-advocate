@@ -170,6 +170,23 @@ snes-batalla 86 "11 12 13" 20 220 "right:130 a:140" batalla-hab ABLBackdropSJ03 
 snes-batalla 86 "11 12 13" 20 240 "right:130 a:140 right:150" batalla-hab-dos ABLBackdropSJ03 "" "" "--modo 4 --habilidad 1"
 snes-batalla 86 "11 12 13" 20 240 "right:130 a:140 a:150" batalla-hab-blanco ABLBackdropSJ03 "" "" "--modo 3 --blanco 0 --orden 1"
 snes-pisar
+# Los dos de "atravesar paredes vale mientras dura la ruta", en el Sector 30,
+# que es donde taro vio el defecto. Los dos corren la misma ruta forzada de una
+# sola orden —la 36, `walk_everywhere_on`, sin un paso— y después caminan con el
+# pad; lo único que cambia es la capa del evento contra el que caminan:
+#
+#   atravesar-cofre   el Slum30Chest1c en (78,19), capa "same": tiene que
+#                     frenarlo. **Verificado en rojo con la ROM de antes**:
+#                     5606 pixeles, 9,78%, con el héroe ya del otro lado del
+#                     cofre. Es el defecto que taro reportó: después de tomar
+#                     el Hover-Tram se les caminaba por encima a los cofres.
+#   atravesar-savept  el SaveInSector30 en (88,27), capa "below": **no** tiene
+#                     que frenarlo, y el héroe camina quince celdas por encima.
+#                     Es el control del par, y no es de adorno: sacándole el
+#                     `cmp movil_capa` a `celda_bloqueada` —o sea haciendo que
+#                     toda capa frene— da 29959 pixeles, 52,24%.
+snes-pisar 20 "80 19" left 200 115 atravesar-cofre "36"
+snes-pisar 20 "90 27" left 200 115 atravesar-savept "36"
 snes-escena 2 "7 76" "0 0 0 0" up "40 60 100" 115 bloqueo ""
 snes-escena 2 "7 74" 14 down "3 8 25 60 106 200" 115 droide ""
 snes-escena 2 "7 74" 14 down "10 20 30 45 100" 115 droide-roto "" 22

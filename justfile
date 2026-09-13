@@ -1639,16 +1639,25 @@ snes-cinematica origen="4" destino="1" cuadros="50 68 170 370 750 1110" arranque
 # describir un mapa donde alguien se mueve mientras tanto. Es `WouldCollide`:
 # ver `bloqueada` en eventos.py y `celda_bloqueada` en main.s. Antes lo
 # atravesaba y seguía hasta la pared, y taro lo vio jugando.
-snes-pisar mapa="70" celda="12 8" direccion="up" cuadros="200" arranque="115" nombre="pisar":
+# `ruta` es opcional y sirve para lo contrario: una ruta forzada sobre el héroe
+# que corre **antes** de que el pad empiece a caminar, para dejarlo en un estado
+# y recién ahí caminar. Hoy la usan los dos casos de `atravesar`, con la orden
+# 36 —`walk_everywhere_on`— puesta y la ruta sin un solo paso: lo que se mira es
+# que la bandera que deja no siga valiendo para la caminata con el pad. Ver
+# "Atravesar paredes vale mientras dura la ruta" en README.md.
+snes-pisar mapa="70" celda="12 8" direccion="up" cuadros="200" arranque="115" nombre="pisar" ruta="":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
+  ruta="{{ruta}}"
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
-      --inicio {{celda}} --con-ventana -o {{snes_inc}}/mapdata.inc
+      --inicio {{celda}} --con-ventana ${ruta:+--ruta-de-prueba $ruta} \
+      -o {{snes_inc}}/mapdata.inc
   just snes-build
   pre={{snes_pngs}}/{{nombre}}
   python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} \
       --walk {{direccion}} --hero-tile {{celda}} --con-ventana \
+      ${ruta:+--ruta-de-prueba $ruta} \
       --saltar $pre.saltar.txt -o $pre.esperado.png
   python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre.png \
       --walk {{direccion}} --cuadros {{cuadros}} --arranque {{arranque}}
