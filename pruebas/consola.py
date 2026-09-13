@@ -601,7 +601,15 @@ def armar(map_id, mapas=(), con_ventana=True, destino=None, rama=(),
     sfc = os.path.join(destino, "prueba.sfc")
     sello = os.path.join(destino, "huella.txt")
 
-    actual = huella()
+    # La huella lleva **también los argumentos**, y no sólo los fuentes: dos
+    # llamadas con mapas distintos y el mismo `destino` devolvían el cartucho de
+    # la primera, en silencio. `conftest.partida()` no se lo come porque le da
+    # un destino por combinación, pero llamar a `armar()` a mano sí: el
+    # 2026-09-13 me hizo medir cuatro mapas y estar midiendo siempre el mismo.
+    actual = huella() + "\n" + repr((
+        map_id, tuple(mapas), con_ventana, tuple(rama), descartar, guardar,
+        titulo, tema, tuple(variables), tuple(rama_var), tuple(items),
+        tuple(acceso), tuple(tecla), espera))
     if os.path.exists(sfc) and os.path.exists(inc):
         try:
             with open(sello) as archivo:
