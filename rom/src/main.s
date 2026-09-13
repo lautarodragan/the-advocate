@@ -2624,6 +2624,7 @@ nueva:
     bne :+
     jmp proximo                 ; no hay lugar: se queda quieto
 :
+    jsr ranura_tope_subir
     lda rp_ev
     sta ruta_ev + 0, x
     stz ruta_ev + 6, x
@@ -3125,23 +3126,63 @@ listo:
 .a8
 .i16
     sta otro_ev
-    ldx #$0000
+    ; De la más alta usada para abajo, y no de cero para arriba: así el corte
+    ; es `X == 0`, que el `tax` deja en Z gratis, y no hace falta un límite de
+    ; dieciséis bits en RAM —que no hay—. Un evento tiene a lo sumo una ranura
+    ; —sólo se le da una cuando `ranura_del_evento` no le encontró ninguna— así
+    ; que el orden no cambia la respuesta.
+    lda ruta_ev_tope
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a                       ; por RUTA_EV_STRIDE
+    tax
+    sep #$20
+.a8
 buscar:
-    lda ruta_ev, x
-    cmp otro_ev
-    beq listo
+    cpx #$0000
+    beq no_tiene
     rep #$20
 .a16
     txa
-    clc
-    adc #RUTA_EV_STRIDE
+    sec
+    sbc #RUTA_EV_STRIDE
     tax
-    cmp #RUTA_EV_MAX * RUTA_EV_STRIDE
     sep #$20
 .a8
-    bcc buscar
+    lda ruta_ev, x
+    cmp otro_ev
+    bne buscar
+    rts                         ; X = su ranura
+no_tiene:
     ldx #$FFFF
-listo:
+    rts
+.endproc
+
+; La ranura de `ruta_ev` que trae X —en bytes— acaba de tomarse: sube el tope
+; si quedó más arriba del que había. Conserva X.
+.proc ranura_tope_subir
+.a8
+.i16
+    rep #$20
+.a16
+    txa
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    lsr a                       ; de bytes a número de ranura
+    inc a
+    sep #$20
+.a8
+    cmp ruta_ev_tope
+    bcc ya_estaba
+    sta ruta_ev_tope
+ya_estaba:
     rts
 .endproc
 
@@ -8311,6 +8352,7 @@ copiar:
     bra copiar
 
 tablas:
+    stz ruta_ev_tope            ; ninguna ranura usada todavía en este mapa
     ldx #$0000
 libre:
     lda #RUTA_EV_LIBRE
@@ -8416,6 +8458,7 @@ vacia:
     rts                         ; no hay lugar: la ruta se pierde
 
 puesta:
+    jsr ranura_tope_subir
     lda temp
     sta ruta_ev + 0, x
     stz ruta_ev + 6, x
@@ -24242,6 +24285,17 @@ RUTA_EV_STRIDE = 32
 RUTA_EV_LIBRE = $FF
 RUTA_EV_SIN_MIRAR = $FF     ; en +8: la ruta todavía no lo giró
 ruta_ev:  .res RUTA_EV_MAX * RUTA_EV_STRIDE
+; Cuántas de las doce vale la pena mirar: la más alta que se llegó a usar desde
+; que se cargó el mapa, más una. **No baja** al liberarse una, y no hace falta
+; que baje: una ranura que nunca se tomó tiene $FF en +0, así que buscar más
+; allá no puede encontrar nada.
+;
+; Existe por `ranura_del_evento`, que corre **una vez por evento paralelo y por
+; cuadro** y recorría las doce siempre. En el HQ de los Lazer Teeth hay once
+; eventos con página paralela y **una sola ranura usada**: eran once recorridas
+; de doce para encontrar una, y con eso el lazo se pasaba del cuadro. Es un byte
+; porque en la BSS del banco 0 quedaba exactamente uno.
+ruta_ev_tope: .res 1
 
 ; Los destellos corriendo. Una ranura por destello:
 ;
