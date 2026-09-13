@@ -75,6 +75,82 @@ absoluto no se pudo reproducir con ninguna combinación de argumentos de
 misma con los dos criterios: +119 páginas.** Cuando un número de éstos se
 reporte, conviene decir con cuál de los dos se contó.
 
+### Lashe City iba a la mitad de velocidad, y era el refresco (2026-09-13)
+
+taro lo reportó jugando `pruebas-manuales/2026-09-13-f30be91/demo-ciudad.sfc` en
+mednafen: *"hay lag EXTREMO en Lashe City. varía de zona a zona, pero apenas
+salís del pad de Talan, es insufrible. Parece que vas en slow motion."*
+
+**El número, medido con un cartucho de un solo mapa y el héroe quieto en el 8**
+—`Lashe City - 34,35`, que es a donde sale la puerta del pad de Talan—:
+
+    antes    30,00 cuadros por segundo, 1 cuadro perdido por vuelta
+    después  60,00
+    caminando a la derecha, 300 cuadros: 33,40 -> 54,20
+
+No era "slow motion" como manera de decir: eran **exactamente la mitad**. Cada
+vuelta del lazo medía unas 388 líneas de las 262 que tiene un cuadro, así que
+`wait_vblank` esperaba siempre al vblank siguiente y el juego entero corría a
+mitad de reloj —la lógica de RM2k va por vueltas, no por cuadros: ver
+`vueltas`—.
+
+**La causa**: el mapa 8 tiene una página **paralela** que escribe cuatro
+variables por cuadro —las coordenadas del héroe contra las de otro evento, la
+clase 6 de `ControlVars`— y cada escritura marcaba `refresco`. Con el refresco
+pedido todos los cuadros, `rutas_de_pagina` recorría los 68 eventos y las 106
+páginas del mapa **una vez por cuadro**, que es lo que no entra. **Ninguna de
+esas cuatro variables la mira ninguna condición de página**, ni en ese mapa ni
+en ningún otro del juego.
+
+RM2k no hace eso, y el port lo estaba copiando de más: `SetNeedRefreshForVarChange`
+le pregunta antes al `map_cache`, que tiene las variables que alguna condición
+de página **del mapa cargado** mira. Acá esa pregunta no hace falta correrla:
+quién mira qué es estático por mapa y el bytecode de una página se compila para
+su mapa, así que la contesta el conversor y en la consola queda un `and`. Es el
+bit `VAR_REFRESCO`, el de arriba de la ranura de `OP_VAR` y de `OP_TECLA`;
+`var_apuntar` lo enmascara y `var_escribir` lo mira. **Cuesta cuatro bytes
+menos de banco 0 que antes**, porque el `lda #1 / sta refresco` estaba repetido
+en los tres lugares que escriben una variable y ahora está una sola vez.
+
+Cómo se midió, porque conviene no volver a inventarlo: un script descartable que
+corre la ROM en snes9x por `tools/retro.py` y muestrea `vueltas` y
+`cuadros_perdidos` de la WRAM cada N cuadros de hardware —fps efectivos =
+ticks / cuadros x 60—, y una bisección que saca un `jsr` del lazo principal por
+vez, arma y vuelve a medir. La bisección fue lo que señaló a `eventos_tick` y
+adentro de él a `rutas_de_pagina`; **el medidor de líneas por V-counter mintió**
+y conviene saber por qué: entre dos marcas puede pasar más de un cuadro entero,
+y ahí la cuenta se come 262 líneas sin avisar.
+
+**Verificado**: `just pruebas` 131 en verde y 1 `xfail`, `just snes-hitos-foto
+4 /extras/hitos-foto-lag` **159 casos todos en verde** sobre la foto `12616e2`,
+y `just snes-demo demo-ciudad` arma —es lo único que ve el desborde del banco
+0—. Y el `mapdata.inc` del mapa 7 sale idéntico con y sin `SIN_CACHE=1`. La ROM
+para probar a mano está en `pruebas-manuales/lag-lashe/`.
+
+Lo que queda abierto, con su número:
+
+* **Ningún caso de la tanda mira una página con condición por variable**, que es
+  justo lo que este cambio decide. Son 14 mapas en todo el juego —el 11, el 20,
+  el 21, el 26, el 28, el 32 y los siete del 133 al 140— y ninguno tiene caso
+  propio. O sea que lo que la tanda verificó es que **nada más se rompió**, no
+  que el filtro deje pasar lo que tiene que dejar pasar; eso hoy es lectura de
+  `Game_Map::SetNeedRefreshForVarChange` y del `map_cache`, no medición.
+* **El mapa 11, `Lazer Teeth HQ`, sigue a 30,00 fps y no es esto.** Medido con
+  la misma bisección: sacarle `rutas_de_pagina` no cambia nada y sacarle
+  `paralelos_tick` lo lleva a 60. O sea que ahí el costo son **los paralelos
+  mismos**: doce páginas paralelas que corren unos 48 `ControlVars` por cuadro,
+  que es lo que RPG_RT también hace. No se tocó.
+* **Caminando quedan cuadros perdidos** —30 en 300 en el mapa 8— y no se
+  investigó cuáles: el sospechoso es `stream_map`, que arma la columna o la
+  fila que la cámara destapa.
+* **`ControlSwitches` no está filtrado.** EasyRPG filtra los switches con el
+  mismo cache. Acá no hace falta todavía: medido sobre las páginas paralelas de
+  los 29 mapas de la demo, ninguna escribe switches cuadro a cuadro; las cinco
+  del mapa 11 van adentro de ramas. Si algún día un paralelo los escriba
+  seguido, el arreglo es el mismo bit en `OP_SWITCH`.
+* **La ranura de variable entra en siete bits**, y ahora eso es un requisito:
+  `ranura_de_variable` se rompe si alguna pasa de 127. El juego usa 81.
+
 ### El dibujo de las animaciones de batalla: medido, sin empezar
 
 De lo que taro pidió para la intro, los efectos de sonido y los destellos están

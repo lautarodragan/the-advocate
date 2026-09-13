@@ -1242,6 +1242,14 @@ class Eventos:
             if page is not None and page.character_name:
                 self.grafico[ev.id] = (page.character_name,
                                        page.character_index)
+        # Qué variables mira alguna condición de página de este mapa: es el
+        # `map_cache` de `Game_Map::RefreshEvent`, que se llena con
+        # `pg.condition.variable_id` de cada página. Lo lee
+        # `escritura_pide_refresco`. Medido sobre los 328 mapas: como mucho
+        # **una** por mapa, y 314 no tienen ninguna.
+        self.vars_observadas = {pg.condition.ids["variable"]
+                                for ev in game_map.events for pg in ev.pages
+                                if "variable" in pg.condition.active}
         self.mio = mio
 
     def comparte_grafico(self, quien):
@@ -1255,6 +1263,7 @@ class Eventos:
         otro.indices, otro.visibles = self.indices, self.visibles
         otro.grafico, otro.mio = self.grafico, id_evento
         otro.paginas = self.paginas
+        otro.vars_observadas = self.vars_observadas
         return otro
 
     def blanco(self, quien):
@@ -1570,6 +1579,27 @@ COND_VARIABLE = 1
 # cronómetro, un azar de 0 a 100, contadores—. Lo que no entra en el word no
 # compila, que es más honesto que truncar.
 OP_VAR = 0x17       # ranura (byte), operación (byte), clase (byte), a (word), b (word)
+# El bit de arriba de la **ranura**, en OP_VAR y en OP_TECLA: si esta escritura
+# pide el refresco de páginas.
+#
+# Es `Game_Map::SetNeedRefreshForVarChange`, que **no** marca el refresco por
+# cualquier escritura: se lo pregunta al `map_cache`, que tiene la lista de las
+# variables que alguna condición de página del mapa cargado mira. Acá esa
+# pregunta no hace falta correrla: quién mira qué es estático por mapa y el
+# bytecode de una página se compila **para su mapa**, así que la contesta el
+# conversor y en la consola queda un `bpl`.
+#
+# Sin esto el port corría a **30 cuadros por segundo en media Lashe City**: los
+# mapas 8, 20, 23, 26, 28 y 32 tienen una página paralela que escribe cuatro
+# variables por cuadro —las coordenadas del héroe contra las de un evento— y
+# cada escritura pedía el refresco entero, que en el mapa 8 son 68 eventos y
+# 106 páginas y **no entra en un cuadro**. Ninguna de esas cuatro variables la
+# mira ninguna condición de página, ni ahí ni en ningún otro mapa del juego.
+#
+# La ranura cabe en siete bits: el juego usa 81 variables y `var_apuntar`
+# enmascara con $7F. Si alguna vez hicieran falta más de 128, esto se muda.
+VAR_REFRESCO = 0x80
+VAR_RANURA_MAX = 0x7F
 OP_SI_VAR = 0x18    # ranura (byte), clase (byte), comparación (byte), valor (word),
                     # destino (word): como OP_SI, el destino va último para el parcheo
 # El inventario, desde el 2026-09-10 a la noche: un byte por ítem del LDB en la
@@ -2341,7 +2371,27 @@ def cumple_comparacion(valor, comparacion, contra):
 def ranura_de_variable(numero):
     if numero not in VARIABLE_SLOT:
         raise NoSePuede("la variable %d no tiene ranura en esta ROM" % numero)
-    return VARIABLE_SLOT[numero]
+    ranura = VARIABLE_SLOT[numero]
+    if ranura > VAR_RANURA_MAX:
+        # El bit de arriba de la ranura es `VAR_REFRESCO`. Con más de 128
+        # variables una ranura lo pisaría y todas las escrituras pedirían
+        # refresco: se rompe acá, que es donde se ve.
+        raise NoSePuede("la ranura %d no entra en siete bits: ver VAR_REFRESCO"
+                        % ranura)
+    return ranura
+
+
+def escritura_pide_refresco(numero, eventos_mapa):
+    """El bit `VAR_REFRESCO` para una escritura sobre la variable `numero`.
+
+    Es `SetNeedRefreshForVarChange` resuelto al compilar: sólo piden refresco
+    las variables que alguna condición de página del mapa mira. **Sin el mapa
+    se pide siempre**, que es lo que hacía el port antes de esto y lo único
+    honesto cuando no se sabe quién mira qué: `destraba.py` compila así.
+    """
+    if eventos_mapa is None:
+        return VAR_REFRESCO
+    return VAR_REFRESCO if numero in eventos_mapa.vars_observadas else 0
 
 
 def azar_siguiente(x):
@@ -3025,7 +3075,8 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
             # sobrevivieron los tres errores del intérprete.
             raise NoSePuede("KeyInputProc que espera algo que no sea la tecla "
                             "de acción")
-        ranura = ranura_de_variable(p[0])
+        ranura = ranura_de_variable(p[0]) | escritura_pide_refresco(
+            p[0], eventos_mapa)
         return bytes([OP_TECLA, ranura, banderas | TECLA_ARRANCA,
                       OP_TECLA, ranura, banderas])
 
@@ -3208,7 +3259,8 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
             raise NoSePuede("un ControlVars sin operandos")
         if p[0] != 0:
             raise NoSePuede("ControlVars sobre un rango o indirecto")
-        ranura = ranura_de_variable(p[1])
+        ranura = ranura_de_variable(p[1]) | escritura_pide_refresco(
+            p[1], eventos_mapa)
         if p[3] not in (VAR_PONER, VAR_SUMAR, VAR_RESTAR):
             raise NoSePuede("operación %d de ControlVars" % p[3])
         clase, a, b = p[4], p[5], p[6]
@@ -6098,16 +6150,21 @@ def ejecutar(codigo, estado, desde=0):
             # queda en este opcode y no hay cuadros que esperar, que es lo
             # mismo que hace `op_tecla` en la ROM con `sty ev_cur`.
             ranura, banderas = codigo[i + 1], codigo[i + 2]
+            pide_refresco = bool(ranura & VAR_REFRESCO)
+            ranura &= VAR_RANURA_MAX
             if banderas & TECLA_ARRANCA:
                 estado.poner_variable(ranura, 0)
-                estado.refresco = True
+                if pide_refresco:
+                    estado.refresco = True
                 return (i + 3, 0, None)
             valor = tecla_de(banderas, estado.pad)
             if banderas & TECLA_ESPERA and not valor:
                 return (i, 0, None)
             estado.poner_variable(ranura, valor)
-            # Como cualquier escritura de variable: `SetNeedRefreshForVarChange`.
-            estado.refresco = True
+            # Como cualquier escritura de variable: `SetNeedRefreshForVarChange`,
+            # que sólo marca si alguna condición de página mira esta variable.
+            if pide_refresco:
+                estado.refresco = True
             i += 3
         elif op == OP_ACTOR_GRAF:
             # `actor->SetSprite` más el `ResetGraphic()` del `Game_Player`: si
@@ -6213,6 +6270,8 @@ def ejecutar(codigo, estado, desde=0):
             i += 8
         elif op == OP_VAR:
             ranura, operacion, clase = codigo[i + 1], codigo[i + 2], codigo[i + 3]
+            pide_refresco = bool(ranura & VAR_REFRESCO)
+            ranura &= VAR_RANURA_MAX
             a = con_signo(codigo[i + 4] | (codigo[i + 5] << 8))
             b = con_signo(codigo[i + 6] | (codigo[i + 7] << 8))
             if clase == VAR_CONSTANTE:
@@ -6233,8 +6292,11 @@ def ejecutar(codigo, estado, desde=0):
                                   else actual - valor)
             # Las páginas con condición por variable pueden cambiar:
             # `SetNeedRefreshForVarChange`, que RM2k hace tras cada
-            # ControlVars. La ROM marca `refresco` en `var_pone`.
-            estado.refresco = True
+            # ControlVars **y que sólo marca si alguna condición de página del
+            # mapa mira esta variable**. Quién la mira lo resolvió el conversor
+            # en `VAR_REFRESCO`; la ROM lo mira en `var_escribir`.
+            if pide_refresco:
+                estado.refresco = True
             i += 8
         elif op == OP_SI_VAR:
             ranura, clase, comparacion = codigo[i + 1], codigo[i + 2], codigo[i + 3]

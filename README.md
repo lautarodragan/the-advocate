@@ -4727,6 +4727,31 @@ la que terminó el cuadro anterior. La referencia hace lo mismo porque quien
 escribe `Estado.heroe` es `cuadro_de_eventos`, que va en el mismo lugar del
 lazo.
 
+**Escribir una variable casi nunca pide el refresco de páginas, y eso vale
+media Lashe City.** `ControlVars` termina en
+`Game_Map::SetNeedRefreshForVarChange`, que **no** marca el refresco por
+cualquier escritura: le pregunta antes al `map_cache`, que tiene las variables
+que alguna condición de página del **mapa cargado** mira. Acá esa pregunta no
+hace falta correrla en la consola: quién mira qué es estático por mapa y el
+bytecode de una página se compila para su mapa, así que la contesta el
+conversor. Es `VAR_REFRESCO`, el bit de arriba de la ranura de `OP_VAR` y de
+`OP_TECLA`: `var_apuntar` lo enmascara con `VAR_RANURA` y `var_escribir` lo
+mira, que es el único lugar por donde pasan las tres escrituras que hay. Sale
+gratis en bytes —cuatro menos de banco 0, porque el `lda #1 / sta refresco`
+estaba repetido tres veces— y por eso la ranura tiene que entrar en siete bits:
+son 81 variables y `ranura_de_variable` se rompe si alguna pasara de 127.
+
+Lo que costaba no tenerlo, medido el 2026-09-13: el mapa 8 tiene una página
+paralela que escribe cuatro variables por cuadro —las coordenadas del héroe
+contra las de otro evento— y con el refresco pedido en cada una,
+`rutas_de_pagina` recorría sus 68 eventos y sus 106 páginas una vez por cuadro.
+La vuelta del lazo medía unas 388 líneas de las 262 de un cuadro, así que
+`wait_vblank` esperaba siempre al vblank siguiente: **el juego entero corría a
+30 cuadros por segundo**, la mitad exacta, y taro lo vio como "slow motion"
+apenas saliendo del pad de Talan. Con el filtro puesto, 60. Ninguna de esas
+cuatro variables la mira ninguna condición de página del juego; sobre los 328
+mapas, **14 tienen una condición por variable y ninguno tiene dos**.
+
 **El azar es el mismo de los dos lados.** Un xorshift de dieciséis bits —`x ^=
 x << 7; x ^= x >> 9; x ^= x << 8`—, sembrado en el reset, instrucción por
 instrucción en `azar_siguiente` de `main.s` y de `eventos.py`. Por eso una
