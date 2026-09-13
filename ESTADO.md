@@ -123,9 +123,22 @@ interactuar es con su página, que no compila: usa `ShowInn` (código 10730) y e
 port no lo tiene. El otro bum del mapa, `BumGuardingEntrance`, compila entero.
 Así que "el Bum" son dos defectos distintos y sólo uno era de la colisión.
 
-**El banco 0 quedó en un byte libre** con el cartucho de `demo-ciudad`, medido
-por bisección con un `.res N` en `TABLAS`. El arreglo no costó ninguno —cambia
-un operando por otro del mismo ancho— y el uno libre ya estaba antes.
+**El banco 0 quedó en 8 bytes libres** con el cartucho de `demo-ciudad`, medido
+por bisección con un `.res N` en `TABLAS` sobre el árbol mergeado. El arreglo no
+costó ninguno —cambia un operando por otro del mismo ancho— y los ocho ya
+estaban antes.
+
+Para probarlo a mano está **`just snes-demo-cofres`**: el 20, el 21 y el 26, con
+Talan al lado del primer cofre y **con la bandera de atravesar ya prendida**, que
+es el estado en el que el tram deja la partida. Sin eso el cartucho no mostraría
+nada: con una partida recién arrancada los cofres frenaban también antes. La ROM
+está en `pruebas-manuales/colision/`, con `demo-ciudad` al lado para el camino
+de verdad.
+
+Verificado sobre el árbol mergeado con `main` —la foto `6734dd3`—: `just
+snes-hitos-foto` **166 casos, todos en verde**, `just pruebas` **142 en verde y
+1 `xfail`, sin rojos** —`test_recorrido.py` incluido, con sus ocho capturas
+golden sin tocar— y `just snes-demo demo-ciudad` arma.
 
 ### El lag del HQ de los Lazer Teeth: dos cosas por cuadro, no una (2026-09-13)
 

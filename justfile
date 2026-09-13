@@ -3026,6 +3026,28 @@ snes-demo-piedras nombre="demo-piedras":
       -o rom/build/{{nombre}}/{{nombre}}.sfc \
       --simbolos rom/build/{{nombre}}/{{nombre}}.sfc.sym
 
+# Los cofres del Sector 30 y de los Rat Tracks, para probar la colisión sin
+# cruzar media Lashe City. Tres mapas —el 20, el 21 y el 26— y el héroe parado
+# **al lado del Slum30Chest1c**, en (80,19).
+#
+# Lo que la hace distinta de entrar caminando: **arranca con la bandera de
+# atravesar paredes prendida**, que es el estado en el que el Hover-Tram deja a
+# la partida —ver "Atravesar paredes vale mientras dura la ruta" en README.md—.
+# La página de prueba le fuerza al héroe una ruta de una sola orden, la 36, sin
+# un solo paso; no se ve ni se oye nada. Con la ROM de antes del 2026-09-13, con
+# esa bandera puesta se le camina por encima a todos los eventos del cartucho;
+# con ésta, a ninguno.
+#
+# `--grupo 14` es Talan, que es con quien el juego llega hasta acá.
+snes-demo-cofres nombre="demo-cofres":
+  mkdir -p rom/build/{{nombre}}
+  python3 tools/snes_convert.py --grupo 14 --map-id 20 --mapas 21 26 \
+      --con-ventana --con-timer --inicio 80 19 --ruta-de-prueba 36 \
+      -o rom/build/{{nombre}}/mapdata.inc
+  python3 tools/w65.py rom/src/main.s -I rom/build/{{nombre}} \
+      -o rom/build/{{nombre}}/{{nombre}}.sfc \
+      --simbolos rom/build/{{nombre}}/{{nombre}}.sfc.sym
+
 # Las dos de una vez.
 snes-demos:
   just snes-demo demo-ciudad
