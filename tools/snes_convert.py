@@ -3247,9 +3247,61 @@ def datos_del_mapa(mapa, numero, indice_global, materiales):
     return "\n".join(out), etiquetas
 
 
+def encuentros_de_la_rom(mapas, tree, pasos_de_prueba, tropas):
+    """Los encuentros al azar de cada mapa del cartucho, listos para emitir.
+
+    Los datos viven en el árbol y no en el `.lmu`: cada nodo trae su lista de
+    tropas, cada cuántos pasos, y —si es un área— el rectángulo que tapa. Ver
+    `eventos.zonas_de_encuentro`, que es lo que usa también la referencia.
+
+    De paso **pide las tropas**, que es lo que hace que el cartucho lleve sus
+    enemigos y el paquete de audio de la pelea: sin eso un encuentro arrancaría
+    una batalla contra una tropa que no está en ninguna tabla.
+
+    `pasos_de_prueba` reemplaza el `encounter_steps` de todos los mapas. Es
+    para las ROMs de prueba: con los del juego —de 25 a 85— un encuentro tarda
+    más de cien pasos, que es lo que se quiere jugando y no lo que se quiere
+    en un caso de la tanda. La referencia toma el mismo número por el mismo
+    flag.
+    """
+    registros, zonas, tropas_de_zona, por_mapa = [], [], [], []
+    for mapa in mapas:
+        game_map = mapa["game_map"]
+        suyas = eventos.zonas_de_encuentro(tree, mapa["id"],
+                                           game_map.width, game_map.height)
+        pasos = (pasos_de_prueba if pasos_de_prueba is not None
+                 else tree.encounter_steps.get(mapa["id"],
+                                               eventos.ENC_PASOS_DEFECTO))
+        if not suyas or not eventos.enc_base(pasos):
+            por_mapa.append(0xFF)
+            continue
+        por_mapa.append(len(registros))
+        registro = {"base": eventos.enc_base(pasos),
+                    "umbrales": eventos.enc_umbrales_de_paso(pasos),
+                    "zona_ini": len(zonas), "zona_n": len(suyas)}
+        for izq, arr, der, aba, cuales in suyas:
+            zonas.append({"rect": (izq, arr, der, aba),
+                          "tropa_ini": len(tropas_de_zona),
+                          "tropa_n": len(cuales)})
+            for numero in cuales:
+                tropas.pedir(numero)
+            tropas_de_zona += cuales
+        registros.append(registro)
+    if len(registros) > 0xFF or len(zonas) > 0xFF or len(tropas_de_zona) > 0xFF:
+        # Las tres tablas se indexan con un byte. Con los 53 mapas del juego
+        # entero son 53 registros, 56 zonas y 322 tropas, así que la que puede
+        # pasarse es la última —y hoy sólo en un cartucho que los lleve todos—.
+        sys.exit("los encuentros no entran en tablas de un byte: %d "
+                 "registro(s), %d zona(s), %d tropa(s)"
+                 % (len(registros), len(zonas), len(tropas_de_zona)))
+    return {"por_mapa": por_mapa, "registros": registros, "zonas": zonas,
+            "tropas": tropas_de_zona}
+
+
 def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
          ventana=None, titulo=None, ranuras=None, cartel=None,
-         animaciones=None, tropas=(), audio_batalla=None, escenas=()):
+         animaciones=None, tropas=(), audio_batalla=None, escenas=(),
+         encuentros=None):
     """El .inc que arma w65.py junto con main.s.
 
     `titulo` es la pantalla de título —la imagen y su menú— y puede faltar;
@@ -3434,6 +3486,9 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "PERSONAJE_X   = %d\n"
         "PERSONAJE_Y   = %d\n"
         "AZAR_SEMILLA  = $%04X\n"
+        "; Y la del azar de los encuentros, que es otra a propósito: caminar no\n"
+        "; le corre el azar al mapa. Ver ENC_SEMILLA en eventos.py.\n"
+        "ENC_SEMILLA   = $%04X\n"
         "TIMER_PONER_VAR = %d\n"
         "; Las clases de condición de ConditionalBranch que sabemos,\n"
         "; con el número de RM2k tal cual.\n"
@@ -3696,7 +3751,8 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            eventos.VAR_SUMAR, eventos.VAR_VARIABLE, eventos.VAR_AZAR,
            eventos.VAR_OTRO,
            eventos.VAR_PERSONAJE, eventos.PERSONAJE_X, eventos.PERSONAJE_Y,
-           eventos.AZAR_SEMILLA, eventos.TIMER_PONER_VAR,
+           eventos.AZAR_SEMILLA, eventos.ENC_SEMILLA,
+           eventos.TIMER_PONER_VAR,
            eventos.COND_ORO, eventos.COND_ITEM,
            eventos.COND_ACTOR,
            eventos.OP_SI_ACTOR, eventos.COND_ACTOR_HABILIDAD,
@@ -4318,7 +4374,13 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             | (4 if T.item_pide_actor(db_items[n]) else 0)
             | (8 if db_items[n].two_handed else 0)
             for n in items])
+        # `item_switch` va fuera del banco 0 —se lee con `lda f:item_switch, x`,
+        # una sola vez por ítem usado— porque los encuentros al azar lo pasaron
+        # por 34 bytes el 2026-09-13. Son 124: la tabla más grande de las que
+        # se leen con X y no están en ningún lazo por cuadro.
+        handle.write('.segment "RODATA"\n')
         words_asm("item_switch", [db_items[n].switch_id for n in items])
+        handle.write('.segment "TABLAS"\n')
         # Lo que cada ítem hace en una pelea: si entra en la lista que se
         # ofrece y cuánto cura. La regla de cuáles entran es
         # `batalla.item_usable_en_batalla`, o sea `Game_Party::IsItemUsable`
@@ -4607,6 +4669,28 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         bytes_asm("tropa_n", [len(db.troops[n].members[:B.ENEMIGOS_MAX])
                               for n in usadas])
         bytes_asm("tropa_miembro", miembros)
+        # Y los encuentros al azar, que también hablan de tropas por su número
+        # de RM2k. Van acá afuera del banco 0 —se leen con `lda f:tabla, x`—
+        # porque allá quedaban ochenta y cinco bytes y esto son unos doscientos.
+        # Ver `encuentros_de_la_rom` y la sección de `main.s`.
+        enc = encuentros or {"por_mapa": [0xFF] * len(mapas), "registros": [],
+                             "zonas": [], "tropas": []}
+        bytes_asm("enc_mapa", enc["por_mapa"], declarar=True)
+        words_asm("enc_base", [r["base"] for r in enc["registros"]])
+        umbrales = []
+        for r in enc["registros"]:
+            # Siete umbrales y uno de relleno: con ocho el índice del registro
+            # es un corrimiento y no una multiplicación. Ver ENC_STRIDE.
+            umbrales += list(r["umbrales"]) + [0xFF]
+        bytes_asm("enc_umbral_n", umbrales)
+        bytes_asm("enc_zona_ini", [r["zona_ini"] for r in enc["registros"]])
+        bytes_asm("enc_zona_n", [r["zona_n"] for r in enc["registros"]])
+        for k, etiqueta in enumerate(("enc_izq", "enc_arr", "enc_der",
+                                      "enc_aba")):
+            words_asm(etiqueta, [z["rect"][k] for z in enc["zonas"]])
+        bytes_asm("enc_tropa_ini", [z["tropa_ini"] for z in enc["zonas"]])
+        bytes_asm("enc_tropa_n", [z["tropa_n"] for z in enc["zonas"]])
+        words_asm("enc_tropa", enc["tropas"])
         words_asm("enemigo_hp", [db.enemies[e].max_hp for e in enemigos_rom])
         words_asm("enemigo_atk", [db.enemies[e].attack for e in enemigos_rom])
         words_asm("enemigo_def", [db.enemies[e].defense for e in enemigos_rom])
@@ -5539,6 +5623,12 @@ def main():
                              "mitad. El único del juego está en una página del "
                              "mapa 11 que teletransporta al final, así que sin "
                              "esto no hay dónde mirar lo que hace")
+    parser.add_argument("--encuentros-de-prueba", type=int, default=None,
+                        metavar="PASOS",
+                        help="cada cuántos pasos hay un encuentro al azar, "
+                             "para todos los mapas del cartucho. Sin esto vale "
+                             "el del árbol del juego, que va de 25 a 85 pasos; "
+                             "0 los apaga. La referencia toma el mismo número")
     parser.add_argument("--pagina-de-prueba", nargs="+", type=int, default=None,
                         metavar="N",
                         help="ESPERA R G B [SAT]: agrega una página automática "
@@ -6066,6 +6156,17 @@ def main():
     # mismo que hace `temas_de_la_rom` con el tema del mapa. Pedirla antes le
     # daba siempre el índice 0, y con eso ningún caso de la tanda ejercitaba
     # que `escena_de` y `tropa_id` se indexen de verdad.
+    # Los encuentros al azar de cada mapa, que piden sus tropas. Van **antes**
+    # que la de `--batalla-de-prueba` por lo mismo que aquélla va última: así
+    # las tropas del cartucho se numeran por los mapas y la inventada no se
+    # queda con el índice 0.
+    encuentros = encuentros_de_la_rom(mapas, renderer.tree,
+                                      args.encuentros_de_prueba, tropas)
+    cuantas = sum(z["tropa_n"] for z in encuentros["zonas"])
+    if encuentros["registros"]:
+        print("  encuentros al azar: %d mapa(s), %d zona(s), %d tropa(s)"
+              % (len(encuentros["registros"]), len(encuentros["zonas"]),
+                 cuantas))
     if args.batalla_de_prueba:
         tropas.pedir(args.batalla_de_prueba, args.fondo_de_prueba)
     # El audio de la pelea, con los índices que ya sacó de `temas` mientras las
@@ -6096,7 +6197,7 @@ def main():
     informe = emit(args.output, mapas, args.inicial, args.heroe_encima, grupo,
                    ventana_datos, titulo_datos, ranuras_datos,
                    args.imagenes.info, animaciones, tropas.ids, audio_batalla,
-                   escenas)
+                   escenas, encuentros)
     print("%d mapa(s) -> %s, arranca en el %d (mapa %d)"
           % (len(mapas), args.output, args.inicial, mapas[args.inicial]["id"]))
     if informe:

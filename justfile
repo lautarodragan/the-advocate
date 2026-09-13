@@ -1929,6 +1929,65 @@ snes-vuelta mapa="6" tropa="82" fondo="SJBackdropABL04" espera="20" cuadros="30 
         --saltar $pre-$n.saltar.txt -o $pre-$n.comparacion.png
   done
 
+# Un encuentro al azar, de punta a punta: se camina hasta que sale y lo que se
+# compara es **la pelea**.
+#
+# El caso es filoso por construcción, que es lo que le faltaba a la primera
+# idea —comparar el mapa unos cuadros antes—: si la ROM no dispara el encuentro
+# en el paso que dice la referencia, lo que hay en pantalla es el mapa y no la
+# pantalla de batalla, y la comparación no da 0,6% sino 90%. Y si lo dispara
+# con **otra tropa**, el nombre y los HP del enemigo son otros. Está verificado
+# en rojo de las dos maneras: ver ESTADO.md.
+#
+# Por qué el mapa 21 y por qué caminando para arriba: es Rat Tracks B1, uno de
+# los tres lugares donde taro reportó que no había encuentros, y desde donde el
+# héroe arranca es la única dirección con lugar para caminar —quince celdas—.
+# Su área es la 25, "Rat Tracks B1 Monsters", que lo tapa entero con cinco
+# tropas.
+#
+# **`--encuentros-de-prueba 8` no es hacer trampa, es acortar el caso**: con
+# los setenta pasos que el árbol le da a este mapa, el encuentro sale recién en
+# el paso ~130 y el caso duraría mil cuadros de emulador. Con ocho sale en el
+# paso 8, y lo que se ejercita es exactamente lo mismo: la tabla de `pmod`, el
+# acumulado, el azar y la elección de tropa. Los dos lados toman el mismo
+# número por el mismo flag.
+snes-encuentro mapa="21" pasos="8" walk="up" grupo="11 12 13" cuadros="200" nombre="encuentro":
+  #!/usr/bin/env bash
+  set -euo pipefail
+  mkdir -p {{snes_pngs}} {{snes_inc}}
+  python3 tools/snes_convert.py --grupo {{grupo}} --map-id {{mapa}} \
+      --con-ventana --encuentros-de-prueba {{pasos}} \
+      -o {{snes_inc}}/mapdata.inc
+  just snes-build
+  pre={{snes_pngs}}/{{nombre}}
+  # La referencia dice en qué paso sale, contra qué tropa y con qué grupo se
+  # pelea —que no es el del arranque: las páginas del mapa lo cambian mientras
+  # se camina—. El PNG que saca es el mapa sin la pelea encima y no se compara
+  # contra nada: lo que se compara es la pantalla de batalla.
+  python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} \
+      --con-ventana --encuentros-de-prueba {{pasos}} --walk {{walk}} \
+      --encuentro $pre.tropa.txt -o $pre.mapa.png
+  read -r tropa paso grupo_final < $pre.tropa.txt
+  echo "  la referencia dice: tropa $tropa en el paso $paso, grupo $grupo_final"
+  python3 tools/pantallas.py -o $pre.esperado.png --batalla $tropa \
+      --grupo $grupo_final
+  python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} -o $pre.png \
+      --cuadros {{cuadros}} --sin-contador --walk {{walk}}
+  python3 tools/snes_compare.py $pre.png $pre.esperado.png \
+      -o $pre.comparacion.png
+  # Y una captura **antes** del último paso, que es lo que fija en qué paso
+  # sale: con la pelea puesta ahí se vería la pantalla de batalla en vez del
+  # mapa. Sin esto, un encuentro que saliera en el paso 3 daría la misma
+  # comparación de arriba, porque la pantalla de batalla es la misma.
+  avance=$(( (paso - 1) * 16 ))
+  python3 tools/snes_expect.py --grupo {{grupo}} --map-id {{mapa}} \
+      --con-ventana --encuentros-de-prueba {{pasos}} --walk {{walk}} \
+      --avance $avance --saltar $pre.saltar.txt -o $pre.antes.esperado.png
+  python3 tools/snes_correr.py --core {{nucleo}} {{snes_rom}} \
+      -o $pre.antes.png --walk {{walk}} --avance $avance
+  python3 tools/snes_compare.py $pre.antes.png $pre.antes.esperado.png \
+      --saltar $pre.saltar.txt -o $pre.antes.comparacion.png
+
 # Cuánto destraba cada comando de evento que todavía no hacemos.
 #
 # Es lo que decide por dónde seguir, y existe porque el número que este repo

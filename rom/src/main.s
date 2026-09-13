@@ -236,6 +236,30 @@ FAR_SP = $3780
 FAR_ACTOR_GRAF = $3800
 ACTOR_GRAF_NINGUNO = $FF
 
+; --- los encuentros al azar: su estado en la RAM lejana ----------------------
+;
+; Nueve bytes en $3900, que es el hueco que queda entre `FAR_ACTOR_GRAF` —61
+; bytes desde $3800— y la pelea. **No viaja en la partida**, como no viajan los
+; HP de una pelea sin cerrar: al cargar, el acumulado arranca en cero, que es
+; lo mismo que pasa al entrar a un mapa.
+;
+; En el banco 0 no entraba: la BSS está en 7680 de 7680, medido el 2026-09-13
+; metiéndole un `.res 64` y mirando el corte de w65.
+FAR_ENCUENTRO = $3900
+ENC_N     = FAR_ENCUENTRO + 0   ; pasos dados desde el último encuentro
+ENC_IDX   = FAR_ENCUENTRO + 1   ; la fila de la tabla, que no baja nunca
+ENC_PIDE  = FAR_ENCUENTRO + 2   ; salió uno y se cobra en el cuadro que viene
+ENC_SEM   = FAR_ENCUENTRO + 3   ; palabra: el xorshift, con semilla propia
+ENC_BASE  = FAR_ENCUENTRO + 5   ; palabra: 1/pasos en 1/65536; 0 es apagados
+ENC_REG   = FAR_ENCUENTRO + 7   ; el registro de este mapa, o ENC_SIN
+; Un mapa sin tropas propias y sin áreas que lo tapen.
+ENC_SIN   = $FF
+; Las ocho filas de la tabla de `UpdateEncounterSteps`, y cuántos bytes de
+; umbral lleva cada registro: siete —el de la fila 0 es 0 y no se guarda— más
+; uno de relleno, para que el índice sea un corrimiento y no una multiplicación.
+ENC_FILAS  = 8
+ENC_STRIDE = 8
+
 ; Y el estado de la pelea, que **no** viaja en la partida: una batalla no se
 ; puede guardar en RM2k tampoco.
 FAR_BATALLA = $3A00
@@ -1050,6 +1074,7 @@ grupo_listo:
     lda #BRILLO_MAX
     sta brillo
     stz bgm_fundido             ; y lo mismo con el del tema
+    jsl f:encuentro_arranque    ; la semilla del azar de los encuentros
 
     ; Si el cartucho tiene una partida guardada, se carga acá: los switches que
     ; trae deciden qué página está activa en cada evento, así que tienen que
@@ -1479,6 +1504,7 @@ anim_continua:
     sep #$20
 .a8
     jsr animacion_dibujo_mapa   ; entra y sale con el acumulador en ocho
+    jsl f:encuentro_mapa        ; y cada cuántos pasos hay un encuentro acá
     rep #$20
 .a16
     plx
@@ -2171,6 +2197,7 @@ listo:
     stz step_left               ; un paso a mitad de camino se corta
     stz moving
     jsr menu_olvidar            ; y un pedido de menú también: `MoveTo`
+    jsl f:encuentro_mover       ; y lo caminado, que es lo otro que borra
     jsr follow_camera
     jsr fill_window             ; la cámara saltó: el tilemap se llena de nuevo
     jsr init_hero_ptr
@@ -4554,70 +4581,16 @@ op_batalla:
     sep #$20
 .a8
     phy                         ; el cursor: los destinos se leen al volver
-    ; El tema del mapa se guarda y vuelve al terminar, que es el
-    ; `before_battle_music` de RM2k —`Scene_Battle` lo anota al construirse y
-    ; `Game_Map` lo repone al volver—. $FF quiere decir "no sonaba nada", y es
-    ; un caso real: los primeros mapas del juego no traen música.
-    ; **Con el banco de datos en el 0**, que acá todavía es el del bytecode:
-    ; `music_apagada` y `tema_actual` son absolutos de la BSS y sin esto se
-    ; leerían del banco del cartucho donde está la página. Es la misma trampa
-    ; que los puentes `ba_t_*` del otro lado, y costó exactamente lo mismo.
-    phb
-    phk
-    plb
-    lda music_apagada
-    bne callado_antes
-    lda tema_actual
-    bra anotado
-callado_antes:
-    lda #$FF
-anotado:
-    sta f:BAT_LARGO + BA_TEMA_ANT
-    ; El paquete de audio de la pelea: su tema y sus efectos. Va aparte del
-    ; paquete del mapa y no adentro, y está medido: el tema de batalla son 18
-    ; muestras y 51.480 B de los 64.512 de ARAM, o sea que metiéndolo en el
-    ; paquete del mapa 2 los 24 efectos de ese mapa se caían casi enteros.
-    ; Se calla antes de rearmar, como hace `tema_asegurar`: `paquete_cargar`
-    ; deja quietas las muestras del tema que suena, y las del mapa no tienen
-    ; por qué ocupar lugar adentro de la pelea.
-    ldx #BA_PAQUETE
-    jsr batalla_audio_cargar
-    lda #BA_TEMA
-    jsr batalla_bgm
-    plb
-    ; El banco de datos, en $7E: es lo que le deja al código de la pelea usar
-    ; direccionamiento absoluto sobre su estado sin perder la RAM baja, que en
-    ; ese banco está en las mismas direcciones. Ver el comentario de
-    ; `FAR_BATALLA`.
-    phb
-    lda #$7E
-    pha
-    plb
-    jsl f:batalla_correr
-    plb
-    ; Los flancos que cerraron la pelea son de ella, como en la tienda y en el
-    ; menú: si no, el A con el que se cerró el último mensaje abriría lo que
-    ; haya en el mapa.
-    lda pad
-    sta pad_ant
-    lda pad_a
-    sta pad_a_ant
-    stz menu_abierto
-    lda boot_cuadros
-    sta nmi_visto
-    phb
-    phk
-    plb                         ; el banco 0, por lo mismo que al entrar
-    ldx mapa_actual             ; y el audio del mapa vuelve al SPC700
-    jsr batalla_audio_cargar
-    lda f:BAT_LARGO + BA_TEMA_ANT
-    jsr batalla_bgm             ; el tema del mapa, o el silencio que había
-    plb
-    jsr volver_de_batalla
+    jsr pelea_arrancar
     ply
     ; Y apunta a la tropa; los tres destinos vienen detrás, de a palabra, en el
     ; orden victoria, huida, derrota, que es el de `BATALLA_HANDLERS`.
     lda f:BAT_LARGO + BA_RESULT
+    jmp op_batalla_destino
+
+op_batalla_destino:
+.a8
+.i16
     rep #$20
 .a16
     and #$00FF
@@ -5849,6 +5822,78 @@ op_teleport:
     ; después de un teletransporte —está en la lista de ESTADO.md—; la
     ; cinemática de apertura tiene once.
     sty ev_cur
+    rts
+.endproc
+
+; Una pelea de punta a punta, con la tropa ya puesta en `BA_TROPA`: guardar el
+; tema del mapa, cargar el audio de la pelea, pelearla y volver al mapa.
+;
+; Está separada de `op_batalla` desde que hay encuentros al azar, que la
+; arrancan **sin bytecode**: allá no hay cursor que guardar ni manejadores a
+; los que saltar. Lo de adentro no cambió de lugar.
+.proc pelea_arrancar
+.a8
+.i16
+    ; El tema del mapa se guarda y vuelve al terminar, que es el
+    ; `before_battle_music` de RM2k —`Scene_Battle` lo anota al construirse y
+    ; `Game_Map` lo repone al volver—. $FF quiere decir "no sonaba nada", y es
+    ; un caso real: los primeros mapas del juego no traen música.
+    ; **Con el banco de datos en el 0**, que acá todavía es el del bytecode:
+    ; `music_apagada` y `tema_actual` son absolutos de la BSS y sin esto se
+    ; leerían del banco del cartucho donde está la página. Es la misma trampa
+    ; que los puentes `ba_t_*` del otro lado, y costó exactamente lo mismo.
+    phb
+    phk
+    plb
+    lda music_apagada
+    bne callado_antes
+    lda tema_actual
+    bra anotado
+callado_antes:
+    lda #$FF
+anotado:
+    sta f:BAT_LARGO + BA_TEMA_ANT
+    ; El paquete de audio de la pelea: su tema y sus efectos. Va aparte del
+    ; paquete del mapa y no adentro, y está medido: el tema de batalla son 18
+    ; muestras y 51.480 B de los 64.512 de ARAM, o sea que metiéndolo en el
+    ; paquete del mapa 2 los 24 efectos de ese mapa se caían casi enteros.
+    ; Se calla antes de rearmar, como hace `tema_asegurar`: `paquete_cargar`
+    ; deja quietas las muestras del tema que suena, y las del mapa no tienen
+    ; por qué ocupar lugar adentro de la pelea.
+    ldx #BA_PAQUETE
+    jsr batalla_audio_cargar
+    lda #BA_TEMA
+    jsr batalla_bgm
+    plb
+    ; El banco de datos, en $7E: es lo que le deja al código de la pelea usar
+    ; direccionamiento absoluto sobre su estado sin perder la RAM baja, que en
+    ; ese banco está en las mismas direcciones. Ver el comentario de
+    ; `FAR_BATALLA`.
+    phb
+    lda #$7E
+    pha
+    plb
+    jsl f:batalla_correr
+    plb
+    ; Los flancos que cerraron la pelea son de ella, como en la tienda y en el
+    ; menú: si no, el A con el que se cerró el último mensaje abriría lo que
+    ; haya en el mapa.
+    lda pad
+    sta pad_ant
+    lda pad_a
+    sta pad_a_ant
+    stz menu_abierto
+    lda boot_cuadros
+    sta nmi_visto
+    phb
+    phk
+    plb                         ; el banco 0, por lo mismo que al entrar
+    ldx mapa_actual             ; y el audio del mapa vuelve al SPC700
+    jsr batalla_audio_cargar
+    lda f:BAT_LARGO + BA_TEMA_ANT
+    jsr batalla_bgm             ; el tema del mapa, o el silencio que había
+    plb
+    jsr volver_de_batalla
     rts
 .endproc
 
@@ -16886,7 +16931,7 @@ sin_gastar:
     and #$00FF
     asl a
     tax
-    lda item_switch, x
+    lda f:item_switch, x        ; vive en RODATA: ver el conversor
     sta temp
     sep #$20
 .a8
@@ -21951,6 +21996,16 @@ sin_ruta:
 menu_sin_pagina:
     lda msg_abierto
     bne no_derecha
+    ; El encuentro que quedó pendiente se cobra acá: sin página corriendo, sin
+    ; mensaje abierto y sin ruta forzada, que es el orden de
+    ; `Game_Player::UpdateNextMovementAction` —el encuentro va **antes** del
+    ; pedido de menú—. `encuentro_probar` deja la tropa en `BA_TROPA`.
+    jsl f:encuentro_probar
+    cmp #0                      ; el `plx` de allá dejó sus propias banderas
+    beq sin_encuentro
+    jsr pelea_arrancar
+    rts
+sin_encuentro:
     jsr acceso_leer
     bpl menu_sin_pedido         ; el bit 7 es el pedido
     and #$7F
@@ -21984,7 +22039,7 @@ menu_sin_pedido:
     lda #DIR_UP
     sta hero_dir
     jsr try_up
-    rts
+    bra tras_paso
 no_arriba:
     lda pad
     and #PAD_DOWN
@@ -21992,7 +22047,7 @@ no_arriba:
     lda #DIR_DOWN
     sta hero_dir
     jsr try_down
-    rts
+    bra tras_paso
 no_abajo:
     lda pad
     and #PAD_LEFT
@@ -22000,7 +22055,7 @@ no_abajo:
     lda #DIR_LEFT
     sta hero_dir
     jsr try_left
-    rts
+    bra tras_paso
 no_izquierda:
     lda pad
     and #PAD_RIGHT
@@ -22008,6 +22063,15 @@ no_izquierda:
     lda #DIR_RIGHT
     sta hero_dir
     jsr try_right
+tras_paso:
+    ; Un paso que arrancó de verdad —`step_left` lo dice— es un paso de RM2k:
+    ; `IncSteps` y `UpdateEncounterSteps`, que allá corren después de `Move()`
+    ; y sólo si el héroe se movió. Va en la rama del pad y no adentro de
+    ; `advance_step` porque **los pasos de una ruta forzada no cuentan**: allá
+    ; se vuelve antes, por `IsMoveRouteOverwritten`.
+    lda step_left
+    beq no_derecha
+    jsl f:encuentro_paso
 no_derecha:
     rts
 .endproc
@@ -29394,6 +29458,474 @@ nada:
     lda #$01
     sta MDMAEN
     rtl
+.endproc
+
+; --- los encuentros al azar, fuera del banco 0 -------------------------------
+;
+; Lo que RM2k hace, de `Game_Player::UpdateEncounterSteps`, `GetEncountersAt` y
+; `PrepareEncounter`, y escrito igual en `eventos.Encuentros`, que es contra lo
+; que se compara:
+;
+;   * cada paso del héroe **con el pad** —una ruta forzada sale antes, por
+;     `IsMoveRouteOverwritten`— suma el `encounter_rate` del terreno y mira si
+;     salió un encuentro;
+;   * la chance es `pmod / encounter_steps`, con `pmod` una potencia de dos que
+;     sube a medida que se camina sin que salga nada;
+;   * si sale, queda pendiente y se cobra en el cuadro siguiente, con el héroe
+;     ya parado: se juntan las tropas del mapa y las de cada área que tape su
+;     celda, y se elige una al azar.
+;
+; **Todas las cuentas son enteras**, que es lo que la consola puede hacer: el
+; conversor precalcula `1 / encounter_steps` en 1/65536 —`enc_base`— y en qué
+; paso se cruza cada fila de la tabla —`enc_umbral_n`—, así que acá no hay ni
+; una división. Ver `eventos.enc_base` y `eventos.enc_umbrales_de_paso`, que son
+; las mismas cuentas del otro lado.
+;
+; Vive acá y no en el banco 0 porque allá quedaban ochenta y cinco bytes: lo
+; único que queda del otro lado son los cuatro `jsl` y el puente a la pelea.
+; **El banco de datos es $7E mientras esto corre**, como en la batalla: así el
+; estado de $3900 se lee con direccionamiento absoluto y la RAM baja —`temp`,
+; `tile_x`, `mapa_actual`— se sigue leyendo igual, porque en el banco $7E las
+; direcciones de $0000 a $1FFF **son** las del banco 0.
+.bloque 1024
+
+; La semilla del azar de los encuentros, en el reset. Es otra que la del mapa y
+; otra que la de la pelea: ver `enc_azar`.
+.proc encuentro_arranque
+.a8
+.i16
+    phb
+    lda #$7E
+    pha
+    plb
+    rep #$20
+.a16
+    lda #ENC_SEMILLA
+    sta ENC_SEM
+    sep #$20
+.a8
+    plb
+    rtl
+.endproc
+
+; El registro del mapa actual, o que este mapa no tiene encuentros.
+.proc encuentro_mapa
+.a8
+.i16
+    phx
+    phb
+    lda #$7E
+    pha
+    plb
+    ldx mapa_actual
+    lda f:enc_mapa, x
+    sta ENC_REG
+    cmp #ENC_SIN
+    beq sin_encuentros
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    tax
+    lda f:enc_base, x
+    bra con_base
+sin_encuentros:
+.a8
+    rep #$20
+.a16
+    lda #0
+con_base:
+.a16
+    sta ENC_BASE
+    sep #$20
+.a8
+    ; Y el acumulado en cero, como en todo `MoveTo`: entrar a un mapa es uno.
+    stz ENC_N
+    stz ENC_IDX
+    stz ENC_PIDE
+    plb
+    plx
+    rtl
+.endproc
+
+; El `SetTotalEncounterRate(0)` de `Game_Player::MoveTo`: un teletransporte
+; —una puerta, un `Teleport`, un `ChangeEventLocation` sobre el héroe— borra lo
+; caminado. No toca `ENC_BASE`: el mapa puede ser el mismo.
+.proc encuentro_mover
+.a8
+.i16
+    phb
+    lda #$7E
+    pha
+    plb
+    stz ENC_N
+    stz ENC_IDX
+    stz ENC_PIDE
+    plb
+    rtl
+.endproc
+
+; Un paso del héroe. Entra y sale con el acumulador en ocho bits.
+.proc encuentro_paso
+.a8
+.i16
+    phx
+    phb
+    lda #$7E
+    pha
+    plb
+    rep #$20
+.a16
+    lda ENC_BASE
+    bne hay
+    ; Apagados: `encounter_steps` en cero, o un mapa sin tropas ni áreas.
+    sep #$20
+.a8
+    stz ENC_N
+    stz ENC_IDX
+    bra fin
+hay:
+.a16
+    sep #$20
+.a8
+    lda ENC_N
+    inc a
+    beq sigue_arriba            ; 255 pasos sin encuentro: no da la vuelta
+    sta ENC_N
+sigue_arriba:
+.a8
+    ; La fila de la tabla, que **no baja nunca**: es el `last_encounter_idx` de
+    ; allá. X apunta al umbral de la fila que sigue, `reg * 8 + idx`.
+    rep #$20
+.a16
+    lda ENC_REG
+    and #$00FF
+    asl a
+    asl a
+    asl a
+    sta temp
+    lda ENC_IDX
+    and #$00FF
+    clc
+    adc temp
+    tax
+    sep #$20
+.a8
+sube:
+.a8
+    lda ENC_IDX
+    cmp #(ENC_FILAS - 1)
+    bcs con_fila                ; la última fila no sube más
+    lda ENC_N
+    cmp f:enc_umbral_n, x       ; ¿llegó al umbral de la que sigue?
+    bcc con_fila
+    inx
+    lda ENC_IDX
+    inc a
+    sta ENC_IDX
+    bra sube
+con_fila:
+.a8
+    ; El umbral del azar: `base` corrido por el `pmod` de la fila. Las filas 0
+    ; a 3 son 1/16, 1/8, 1/4 y 1/2; las 4 a 7 son 2, 4, 8 y 16.
+    rep #$20
+.a16
+    lda ENC_IDX
+    and #$00FF
+    tax
+    lda ENC_BASE
+    cpx #4
+    bcs a_la_izquierda
+derecha:
+.a16
+    lsr a
+    inx
+    cpx #4
+    bcc derecha
+    bra con_umbral
+a_la_izquierda:
+.a16
+    dex
+    dex
+    dex
+izquierda:
+.a16
+    asl a
+    bcs siempre                 ; pasó de 1: es certeza, como `PercentChance`
+    dex
+    bne izquierda
+con_umbral:
+.a16
+    sta temp
+    jsr enc_azar
+    cmp temp
+    bcc salio
+    sep #$20
+.a8
+    bra fin
+siempre:
+.a16
+salio:
+.a16
+    sep #$20
+.a8
+    stz ENC_N
+    stz ENC_IDX
+    lda #1
+    sta ENC_PIDE
+fin:
+.a8
+    plb
+    plx
+    rtl
+.endproc
+
+; ¿Hay un encuentro pendiente que pelear acá? Vuelve con A en ocho bits: 1 si
+; hay que pelear, y con la tropa ya puesta en `BA_TROPA`.
+;
+; Es `PrepareEncounter`: si en la celda no tapa ninguna zona, el pendiente se
+; consume y no pasa nada, que es lo que hace allá al volver `false`.
+.proc encuentro_probar
+.a8
+.i16
+    phx
+    phy
+    phb
+    lda #$7E
+    pha
+    plb
+    lda ENC_PIDE
+    bne pendiente
+    jmp no_hay
+pendiente:
+.a8
+    stz ENC_PIDE
+    lda ENC_REG
+    cmp #ENC_SIN
+    bne con_registro
+    jmp no_hay
+con_registro:
+.a8
+    ; El rango de zonas del mapa: la suya y una por área.
+    jsr enc_zonas
+    ; Primera pasada: cuántas tropas tapan la celda del héroe.
+    rep #$20
+.a16
+    lda #0
+    sta comp_and
+contar:
+.a16
+    lda temp
+    cmp temp + 2
+    bcs contadas
+    jsr enc_tapa
+    bcc sin_tapar
+    sep #$20
+.a8
+    lda f:enc_tropa_n, x
+    rep #$20
+.a16
+    and #$00FF
+    clc
+    adc comp_and
+    sta comp_and
+sin_tapar:
+.a16
+    inc temp
+    bra contar
+contadas:
+.a16
+    lda comp_and
+    bne hay_tropas
+    sep #$20
+.a8
+    bra no_hay
+hay_tropas:
+.a16
+    ; Una al azar, `Rand::GetRandomNumber(0, n - 1)`: el resto de dividir el
+    ; azar por cuántas hay. La división es la de toda la vida, a mano, porque
+    ; el 65816 no divide y la de la pelea vive en otro banco.
+    sta comp_and + 2
+    jsr enc_azar
+    sta comp_or23
+    lda #0
+    sta comp_or23 + 2
+    ldy #16
+divide:
+.a16
+    asl comp_or23
+    rol comp_or23 + 2
+    lda comp_or23 + 2
+    cmp comp_and + 2
+    bcc sin_restar
+    sec
+    sbc comp_and + 2
+    sta comp_or23 + 2
+sin_restar:
+.a16
+    dey
+    bne divide
+    lda comp_or23 + 2
+    sta comp_and                ; cuántas hay que saltear
+    ; Segunda pasada: la que le toca.
+    sep #$20
+.a8
+    jsr enc_zonas
+    rep #$20
+.a16
+elegir:
+.a16
+    lda temp
+    cmp temp + 2
+    bcs no_hay16                ; no puede pasar: el total salió de estas zonas
+    jsr enc_tapa
+    bcc sigue_eligiendo
+    sep #$20
+.a8
+    lda f:enc_tropa_n, x
+    rep #$20
+.a16
+    and #$00FF
+    sta comp_or23
+    lda comp_and
+    cmp comp_or23
+    bcc es_de_esta
+    sec
+    sbc comp_or23
+    sta comp_and
+sigue_eligiendo:
+.a16
+    inc temp
+    bra elegir
+es_de_esta:
+.a16
+    sep #$20
+.a8
+    lda f:enc_tropa_ini, x
+    rep #$20
+.a16
+    and #$00FF
+    clc
+    adc comp_and
+    asl a
+    tax
+    lda f:enc_tropa, x
+    sta BA_TROPA
+    sep #$20
+.a8
+    lda #1
+    bra fin
+no_hay16:
+.a16
+    sep #$20
+.a8
+no_hay:
+.a8
+    lda #0
+fin:
+.a8
+    plb
+    ply
+    plx
+    rtl
+.endproc
+
+; De qué zona a qué zona son las del mapa: `temp` la primera y `temp + 2` una
+; más que la última. Entra con el acumulador en ocho bits y sale igual.
+.proc enc_zonas
+.a8
+.i16
+    lda ENC_REG
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda f:enc_zona_ini, x
+    rep #$20
+.a16
+    and #$00FF
+    sta temp
+    sta temp + 2
+    sep #$20
+.a8
+    lda f:enc_zona_n, x
+    rep #$20
+.a16
+    and #$00FF
+    clc
+    adc temp + 2
+    sta temp + 2
+    sep #$20
+.a8
+    rts
+.endproc
+
+; ¿La zona `temp` tapa la celda donde está parado el héroe? Vuelve con el
+; acarreo puesto si sí, y con X en el número de zona, que es lo que indexan las
+; tablas de un byte. El rectángulo es **semiabierto** —`l <= x < r`—, que es lo
+; que dice `Rect::IsOutOfBounds` de easyrpg con el héroe como un rectángulo de
+; una celda.
+.proc enc_tapa
+.a16
+.i16
+    lda temp
+    asl a
+    tax
+    lda tile_x
+    cmp f:enc_izq, x
+    bcc afuera
+    cmp f:enc_der, x
+    bcs afuera
+    lda tile_y
+    cmp f:enc_arr, x
+    bcc afuera
+    cmp f:enc_aba, x
+    bcs afuera
+    ldx temp
+    sec
+    rts
+afuera:
+.a16
+    ldx temp
+    clc
+    rts
+.endproc
+
+; El paso del xorshift de los encuentros: el mismo de `azar_siguiente` y de
+; `ba_azar`, sobre `ENC_SEM`, que tiene **semilla propia**. Caminar no le corre
+; el azar al mapa: un `ControlVars` al azar tiene que dar lo mismo con
+; encuentros y sin ellos. Es `eventos.Encuentros._azar`.
+.proc enc_azar
+.a16
+.i16
+    lda ENC_SEM
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a
+    eor ENC_SEM
+    sta ENC_SEM
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    eor ENC_SEM
+    sta ENC_SEM
+    xba
+    and #$FF00
+    eor ENC_SEM
+    sta ENC_SEM
+    rts
 .endproc
 
 ; --- cabecera y vectores ---------------------------------------------------

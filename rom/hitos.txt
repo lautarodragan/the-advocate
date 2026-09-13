@@ -371,6 +371,11 @@ snes-ventana 348 ventana-348
 snes-ventana 269 ventana-269
 snes-ventana
 snes-ventana 6 ventana-6
+# El encuentro al azar del mapa 21, Rat Tracks B1: se camina para arriba hasta
+# que sale y lo que se compara es la pantalla de la pelea, con la tropa que
+# dice la referencia. Es el único caso de la tanda donde la pelea no la arranca
+# un `EnemyEncounter` de una página sino el azar de los pasos.
+snes-encuentro
 # La pantalla de título, contra la imagen del LDB convertida. Es el único caso
 # que corre con `--sin-contador`: ahí el reloj del juego no avanza.
 snes-titulo

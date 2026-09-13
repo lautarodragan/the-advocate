@@ -937,7 +937,7 @@ Lo que hay, y lo que no:
     los battlers dibujados          sí, horneados en el fondo: ver abajo
     la imagen de fondo              sí, desde el 2026-09-13
     las páginas de evento de tropa  no
-    los encuentros aleatorios       no: ver "Lo que falta"
+    los encuentros aleatorios       sí, desde el 2026-09-13: ver abajo
 
 La pantalla muestra los HP de los enemigos, que RM2k no hace. Es a propósito:
 lo que esta vuelta tiene que dejar ver es la mecánica, y sin eso un golpe que
@@ -1161,6 +1161,113 @@ antes de compilar los mapas, igual que `temas_de_la_rom` agrega el tema del
 mapa al final. Pidiéndola antes le tocaba siempre el índice 0 y `escena_de` y
 `tropa_id` acertaban sin indexar nada. Verificado que da rojo —53% de los
 pixeles— con `escena_subir` clavado en la escena 0.
+
+#### Los encuentros al azar
+
+Desde el 2026-09-13. taro jugó y reportó que en `Sector 30 Back Alleys` y en
+los Rat Tracks no aparecía nunca nada, y tenía razón: no estaban hechos.
+
+**Los datos no están en el `.lmu`, están en el árbol.** `RPG_RT.lmt` guarda por
+nodo —mapa o área— tres campos que este port no leía: `encounters`, la lista de
+tropas; `encounter_steps`, cada cuántos pasos; y `area_rect`. Un **área** es un
+nodo de tipo 2: no tiene `.lmu`, cuelga de un mapa y le tapa un rectángulo.
+Hasta el 2026-09-13 el comentario de `lcf.TreeMap` decía que el tipo 2 era una
+carpeta del editor, y estaba mal.
+
+Medido sobre el juego entero:
+
+    23 áreas, colgando de 20 mapas
+    33 mapas con tropas propias, ninguno de ellos con área
+    53 mapas donde puede salir un encuentro, de 328
+    5 de los 29 de `demo-ciudad`: el 20, el 21, el 26, el 28 y el 32
+    129 tropas distintas
+
+**Cómo se dispara**, de `Game_Player::UpdateEncounterSteps`. Cada paso del
+héroe **con el pad** suma el `encounter_rate` del terreno a un acumulado; el
+cociente entre el acumulado y `encounter_steps` elige una fila de una tabla de
+ocho, y la fila da un multiplicador `pmod` que va de 1/16 a 16. La chance del
+paso es `pmod / encounter_steps`, y la fila **no baja nunca** hasta que sale un
+encuentro: por eso los primeros cincuenta pasos de un mapa casi no pasa nada y
+después la cosa se acelera.
+
+Los pasos de una **ruta forzada no cuentan**: allá `UpdateNextMovementAction`
+vuelve antes de `IncSteps` si la ruta manda. Y todo teletransporte borra el
+acumulado, porque `Game_Player::MoveTo` llama a `SetTotalEncounterRate(0)`.
+
+Cuando sale, queda **pendiente** y se cobra en el cuadro siguiente, con el
+héroe ya parado y sin página ni mensaje: ahí `PrepareEncounter` junta las
+tropas del mapa más las de cada área que tape la celda y elige una al azar. Si
+no lo tapa ninguna —el héroe está afuera del rectángulo— no pasa nada.
+
+**Dos simplificaciones, las dos medidas y las dos cobradas por
+`pruebas/test_encuentros.py`:**
+
+* **el terreno no cambia nada.** Los once tags que pisan los 53 mapas con
+  encuentros tienen `encounter_rate` 100, así que el acumulado sube de a 100 y
+  el factor `rate / 100` de la fórmula es 1. Leer el terreno celda por celda
+  sería una capa más de datos por mapa para multiplicar siempre por uno;
+* **ninguna tropa filtra por terreno.** Las 129 tienen el `terrain_set` vacío,
+  y en RM2k vacío quiere decir "en todos".
+
+Si alguna de las dos dejara de ser cierta, el modelo pasaría a ser mentira
+**sin que ningún pixel se mueva**. Por eso lo cobra una prueba de datos y no la
+tanda.
+
+**Todas las cuentas son enteras**, que es lo que la consola puede hacer. El
+conversor precalcula dos cosas por mapa: `1 / encounter_steps` en 1/65536
+—`enc_base`— y en qué paso se cruza cada fila —`enc_umbral_n`—, que sale de
+reescribir `acumulado / pasos >= fila` como `n >= ceil(fila * pasos / 100)`.
+Con eso la consola no divide nunca: la chance es el corrimiento de una palabra
+y la comparación contra un xorshift. `test_encuentros.py` comprueba las dos
+reescrituras contra la cuenta de allá, para todos los `encounter_steps` del
+juego.
+
+**El azar es el de siempre pero con semilla propia** —`ENC_SEMILLA`—, como la
+pelea con `BATALLA_SEMILLA`: caminar no le corre el azar al mapa, así que un
+`ControlVars` al azar da lo mismo con encuentros y sin ellos, y la referencia
+de pixeles sigue pudiendo predecir los dos. Se consume un número por paso y uno
+más para elegir la tropa, y ése es el contrato con `eventos.Encuentros`.
+
+**Dónde vive cada cosa.** El estado son nueve bytes en la RAM lejana,
+`FAR_ENCUENTRO` en `$7E3900`: en el banco 0 no entraban, porque la BSS está en
+7680 de 7680 —medido metiéndole un `.res 64` y mirando el corte de w65—. Las
+tablas y las tres rutinas viven **fuera del banco 0**, en RODATA, y del lado de
+allá quedan nada más que cuatro `jsl` y el puente a la pelea, 43 bytes. Ni ésos
+entraban: `demo-ciudad` tenía ocho libres, así que bajó `item_switch` a RODATA
+—124 bytes, la tabla más grande de las que se leen con X y no están en un lazo
+por cuadro— y quedaron ochenta y nueve. Y la pelea se arranca con
+`pelea_arrancar`, que es el cuerpo de `op_batalla` sacado a una rutina aparte:
+un encuentro al azar pelea **sin bytecode**, así que no tiene cursor que
+guardar ni manejadores a los que saltar.
+
+**Lo que cuesta, declarado:**
+
+* **el fondo de batalla.** Un `EnemyEncounter` trae el nombre del suyo en el
+  string del comando; un encuentro al azar no trae ninguno —en RM2k sale del
+  terreno— así que se pelea sobre el color plano, como cualquier pelea sin
+  fondo. Son 32 KB de cartucho por tropa los que se ahorran, y con 129 tropas
+  eso no es un detalle.
+* **perder no lleva a ninguna parte.** En RM2k un encuentro perdido es Game
+  Over, y este port no tiene esa pantalla: la pelea vuelve al mapa. Es la misma
+  deuda que ya tenía `EnemyEncounter` con `defeat_mode` 0.
+* **el acumulado no viaja en la partida.** Al cargar arranca en cero, como al
+  entrar a un mapa. En RM2k se guarda.
+* **`ChangeEncounterSteps` sigue sin compilar.** Son 19 apariciones en nueve
+  mapas —trece de ellas apagando los encuentros— y ninguno de esos mapas está
+  cerca de los primeros diez minutos. Lo que lo frena no es la cuenta, que
+  ahora está: es que aceptarlo destraba la automática `DaliaGoingToTasgarde`
+  del mapa 66, que es el único mapa sin ventana de las pruebas de estado, y con
+  ella despierta se caen dos casos de `test_condicional.py`. Ver
+  `CHANGE_ENCOUNTER_STEPS` en eventos.py.
+
+**Lo cobra `snes-encuentro`**, el caso de la tanda: el mapa 21 —Rat Tracks B1,
+uno de los tres que taro reportó— caminando para arriba, con
+`--encuentros-de-prueba 8` para que el encuentro salga en el paso 8 y no en el
+130. Compara dos cuadros: el mapa un paso antes, y la pantalla de la pelea
+contra `pantallas.py --batalla`, con la tropa que dice la referencia. Los dos
+en cero. Verificado en rojo de tres maneras: con los encuentros apagados sólo
+del lado de la ROM son el 100% de los pixeles; contra otra tropa de la misma
+área, 338; y el cuadro de antes es el que no deja que salga antes de tiempo.
 
 #### La música y los efectos de la pelea
 

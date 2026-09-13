@@ -19,8 +19,9 @@ Se escribe **mientras se trabaja**, no al final.
 **Los primeros diez minutos jugables**, que es lo que taro viene probando vuelta
 a vuelta.
 
-Al 2026-09-13: `just snes-hitos-foto` son **164 casos, todos en verde** —sobre
-la foto `85267c2`— y `just pruebas` son **142 en verde y 1 `xfail`, sin rojos**.
+Al 2026-09-13: `just snes-hitos-foto` son **165 casos, todos en verde** —el que
+se agregó es `snes-encuentro`— y `just pruebas` son **151 en verde y 1 `xfail`,
+sin rojos**; las nueve nuevas son las de los encuentros al azar.
 El `xfail` no es adorno: es un defecto medido de guardar con la pantalla de
 título puesta, y está abajo.
 
@@ -322,6 +323,80 @@ Y una trampa de medición que costó una hora: **el tinte de pantalla sobrevive
 al cambio de mapa**, así que saltar a un mapa desde el de arranque lo deja todo
 azul —tinte 0,0,100— y parece el defecto. Para mirar un mapa inyectado hay que
 poner `tinte_r/g/b` en 100 primero.
+
+### Los encuentros al azar (2026-09-13)
+
+taro jugó y reportó que no aparecía nada ni en `Sector 30 Back Alleys` (20) ni
+en los Rat Tracks (21 y 26). No estaban hechos; ahora sí. El porqué durable
+—cómo se dispara, qué se simplificó y con qué número— está en el README, "Los
+encuentros al azar". Lo que hay que saber para trabajar encima:
+
+* **Los datos viven en el árbol y no en el `.lmu`.** `lcf.TreeMap` lee ahora
+  `encounters`, `encounter_steps` y `area_rect`, y el comentario que decía que
+  el tipo 2 era una carpeta del editor está corregido: es un **área**.
+* **El alcance, medido**: 23 áreas colgando de 20 mapas, 33 mapas con tropas
+  propias y ninguno con las dos cosas, o sea **53 mapas de 328** donde puede
+  salir un encuentro. De los 29 de `demo-ciudad` son **cinco**: el 20, el 21,
+  el 26, el 28 y el 32. Son 129 tropas distintas en todo el juego.
+* **Dos simplificaciones medidas, y las cobra `pruebas/test_encuentros.py`**:
+  ningún terreno que pisen esos mapas tiene `encounter_rate` distinto de 100, y
+  ninguna de las 129 tropas filtra por terreno. Las dos son ciertas hoy y
+  pueden dejar de serlo sin que se mueva un pixel; por eso las cobra una prueba
+  de datos.
+* **El azar tiene semilla propia**, `ENC_SEMILLA`, como la pelea. Caminar no le
+  corre el azar al mapa, y por eso la referencia puede predecir las dos cosas.
+* **Nueve bytes de RAM lejana en `$7E3900`**, `FAR_ENCUENTRO`. En el banco 0 no
+  entraban: la BSS está en **7680 de 7680**, medido metiéndole un `.res 64` y
+  mirando el corte de w65. Al repartir direcciones de RAM lejana, ésa está
+  tomada.
+* **Las tablas y las rutinas viven fuera del banco 0**, en RODATA; del otro
+  lado quedan cuatro `jsl` y el puente a la pelea, que son **43 bytes**. No
+  entraban: `demo-ciudad` tenía **8 libres** —medido con un `.res` en `TABLAS`,
+  que es lo que AGENTS.md manda— así que bajó `item_switch` a RODATA, 124
+  bytes: es la tabla más grande de las que se leen con X y no están en ningún
+  lazo por cuadro. Con eso quedan **89 libres**, medidos igual.
+* **`op_batalla` se partió en dos**: su cuerpo es ahora `pelea_arrancar`, y lo
+  llaman el opcode y el encuentro. Un encuentro pelea **sin bytecode**, así que
+  no tiene cursor que guardar ni manejadores a los que saltar. **Es lo único
+  que esta vuelta le toca a la pelea**; `batalla.py` no se tocó.
+* **El caso de la tanda es `snes-encuentro`** y `--encuentros-de-prueba` es el
+  flag que lo hace corto —los dos lados lo toman igual—. Con los pasos del
+  juego el encuentro sale recién a los ~130 pasos; con 8, en el paso 8.
+
+Lo que queda abierto, con su número al lado:
+
+* **Se pelea sobre el color plano.** Un `EnemyEncounter` trae el nombre de su
+  fondo en el string del comando; un encuentro al azar no trae ninguno —en RM2k
+  sale del terreno—. Ponerlo son 32 KB de cartucho **por tropa**, y las cinco
+  áreas de `demo-ciudad` tienen 22 tropas entre todas: 704 KB. Si taro lo
+  quiere, lo primero a decidir es cuántas.
+* **Perder no lleva a ninguna parte**, porque no hay pantalla de Game Over. Es
+  la misma deuda que ya tenía `EnemyEncounter` con `defeat_mode` 0.
+* **El acumulado no viaja en la partida.** Al cargar arranca en cero, como al
+  entrar a un mapa; en RM2k se guarda. No cambia un pixel y evita tocar
+  `partida_tabla`, que acaba de mudarse de banco.
+* **`ChangeEncounterSteps` sigue sin compilar**, y ahora por una sola razón:
+  aceptarlo despierta la automática `DaliaGoingToTasgarde` del mapa 66 —el
+  único mapa sin ventana de las pruebas de estado— y se caen dos casos de
+  `test_condicional.py`. La cuenta que le faltaba ya está hecha; lo que falta
+  es mudar esa ROM de prueba a otro mapa que tampoco acepte la ventana. Son +14
+  páginas y ninguna cerca de los primeros diez minutos.
+* **Los encuentros no se apagan desde adentro del juego**, justamente por lo de
+  arriba: las trece apariciones que ponen `encounter_steps` en cero son las que
+  RM2k usa para apagarlos durante una escena. Ninguna cae en un mapa de
+  `demo-ciudad`, así que hoy no se nota.
+* **Un encuentro pendiente que una página nueva pisa.** En RM2k lo tira:
+  `Game_Interpreter::Push` hace `SetEncounterCalling(false)` cuando arranca una
+  página de primer plano, igual que con el pedido de menú. Acá se **guarda** y
+  se cobra cuando la página termina. Son unos pocos bytes del banco 0 —que no
+  sobran— y no lo mira nadie: para caer ahí hay que pisar un evento de contacto
+  en la misma celda donde salió el encuentro. Está escrito igual de los dos
+  lados, así que la comparación sigue valiendo; lo que diverge es contra RM2k.
+* **Lo que ninguna prueba mira**: un encuentro que salga **con una página
+  automática corriendo** o con un mensaje abierto. El modelo dice que espera
+  —es el orden de `UpdateNextMovementAction`— y los dos lados lo escriben
+  igual, pero ningún caso pasa por ahí: en el mapa 21 nada corre mientras se
+  camina.
 
 ### El dibujo de las animaciones de batalla: medido, sin empezar
 

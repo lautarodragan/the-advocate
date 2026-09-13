@@ -172,6 +172,11 @@ class Mundo:
         # de cada cuadro y cuesta recorrer los eventos, así que se guarda.
         self.poses_cache = {}
         self.mensajes = mensajes
+        # Cada cuántos pasos hay un encuentro, si una ROM de prueba lo forzó.
+        # None es "lo que diga el árbol del juego". Es el mismo
+        # `--encuentros-de-prueba` del conversor y tiene que valer lo mismo:
+        # de acá sale en qué paso sale el encuentro, y eso decide qué se ve.
+        self.pasos_encuentro = None
         # Los temas se numeran igual que en el conversor, en el orden en que los
         # PlayBGM los piden. Acá no suena nada —la comparación es de pixeles—
         # pero el opcode **ocupa dos bytes** en el bytecode, así que si un lado
@@ -330,6 +335,22 @@ class Mundo:
         que los numeró el conversor."""
         self.paginas(map_id)            # los junta compilando las páginas
         return self.graficos_cache[map_id]
+
+    def encuentros(self, map_id):
+        """El estado de los encuentros al azar al entrar a un mapa.
+
+        Nace nuevo en cada mapa porque entrar a uno es un `MoveTo`, y `MoveTo`
+        pone el acumulado en cero. Las zonas y los pasos salen del árbol, que
+        es donde RM2k los guarda: ver `eventos.zonas_de_encuentro`.
+        """
+        game_map = self.mapa(map_id)[0]
+        tree = self.renderer.tree
+        pasos = (self.pasos_encuentro if self.pasos_encuentro is not None
+                 else tree.encounter_steps.get(map_id,
+                                               eventos.ENC_PASOS_DEFECTO))
+        return eventos.Encuentros(
+            pasos, eventos.zonas_de_encuentro(tree, map_id, game_map.width,
+                                              game_map.height))
 
     def mapa(self, map_id):
         if map_id not in self.cache:
@@ -1052,6 +1073,10 @@ def hero_position(mundo, estado, map_id, direction_name, inicio=None,
     """
     map_id, x, y = entrar_al_mapa(mundo, estado, map_id, inicio, cuadros,
                                   apretar_a, mirando, tocar)
+    # Los encuentros al azar del mapa donde se camina. La caminata **se corta**
+    # cuando sale uno: del otro lado la pelea toma la pantalla, así que seguir
+    # caminando acá sería comparar dos escenas distintas.
+    encuentros = mundo.encuentros(map_id)
 
     def correr(n, en_x, en_y):
         """`n` ticks del mundo con el héroe quieto en esa celda.
@@ -1196,6 +1221,11 @@ def hero_position(mundo, estado, map_id, direction_name, inicio=None,
                                - vividos))
         vividos += vivir
         correr(vivir, x, y)
+        # El paso cuenta para el encuentro **antes** que la puerta: allá el
+        # acumulado sube al empezar el paso —`IncSteps`— y la pelea recién
+        # arranca en el cuadro siguiente, así que una puerta en la celda de
+        # llegada llega primero y su `MoveTo` borra lo que quedó pendiente.
+        encuentros.paso()
         puerta = puertas.get((x, y))
         if puerta is None:
             # Sin puerta, puede haber un evento de contacto.
@@ -1203,7 +1233,17 @@ def hero_position(mundo, estado, map_id, direction_name, inicio=None,
                 mundo, estado, map_id, x, y, passable, game_map)
             if (nx, ny) != (x, y) or frena:
                 x, y = nx, ny
+                encuentros.reiniciar()   # moverlo de celda es un `MoveTo`
                 if frena:
+                    break
+            elif encuentros.pendiente:
+                # Y el encuentro se cobra con el héroe parado y sin página
+                # corriendo, que es el orden de `UpdateNextMovementAction`: el
+                # contacto de arriba manda, porque allá una página en el frente
+                # devuelve antes.
+                tropa = encuentros.elegir(x, y)
+                if tropa is not None:
+                    estado.encuentro = (pasos, tropa)
                     break
             continue
         if avance is not None:
@@ -1763,6 +1803,18 @@ def main():
                         help="agrega a la página de prueba una ruta forzada "
                              "sobre el héroe, con los códigos de "
                              "rpg::MoveCommand::Code: 0..3 mover, 12..15 girar")
+    parser.add_argument("--encuentros-de-prueba", type=int, default=None,
+                        metavar="PASOS",
+                        help="cada cuántos pasos hay un encuentro al azar, "
+                             "como el del conversor. **Tiene que ser el "
+                             "mismo**: de acá sale en qué paso sale y contra "
+                             "qué tropa")
+    parser.add_argument("--encuentro", metavar="ARCHIVO",
+                        help="archivo donde anotar el encuentro que corta la "
+                             "caminata: la tropa y en qué paso salió. Es lo "
+                             "que la receta le pasa a pantallas.py para "
+                             "dibujar la pelea que la ROM tiene que estar "
+                             "peleando")
     parser.add_argument("--pagina-de-prueba", nargs="+", type=int, default=None,
                         metavar="N",
                         help="ESPERA R G B [SAT]: agrega una página automática "
@@ -1875,6 +1927,11 @@ def main():
                   graficos_de_prueba=snes_convert.graficos_de_prueba(
                       args.grafico_de_prueba),
                   grupo=grupo, con_timer=args.con_timer)
+    # Cada cuántos pasos hay un encuentro, si la ROM de prueba lo forzó. Va
+    # acá afuera del constructor y no adentro por lo que dice el comentario de
+    # la tupla de prueba: agregarle un campo posicional a `Mundo` es
+    # exactamente lo que ya se mergeó mal una vez.
+    mundo.pasos_encuentro = args.encuentros_de_prueba
 
     # Los CharSets y los mapas ya convertidos se comparten entre las
     # direcciones. Convertir un mapa es lo más caro de todo esto —el 52 son
@@ -2420,6 +2477,22 @@ def main():
             por_celda = cuadros_por_celda(estado)
             print("  camina %d celdas = %d cuadros a %d por celda"
                   % (pasos, pasos * por_celda, por_celda))
+        if estado.encuentro is not None:
+            # La caminata se cortó porque salió un encuentro al azar. La imagen
+            # de arriba es el mapa **sin la pelea encima**, así que no es
+            # contra eso que hay que comparar: contra la pantalla de batalla
+            # que dibuja `pantallas.py --batalla`, con esta tropa.
+            print("  encuentro al azar en el paso %d: la tropa %d"
+                  % estado.encuentro)
+            if args.encuentro:
+                with open(args.encuentro, "w") as handle:
+                    # Y con qué grupo se pelea, que **no** es el del arranque:
+                    # las páginas del mapa lo pueden haber cambiado mientras se
+                    # caminaba. En el mapa 21 pasa: entra Talan. Sin esto la
+                    # pantalla de la pelea se dibuja con un renglón de menos.
+                    handle.write("%d %d %s\n"
+                                 % (estado.encuentro[1], estado.encuentro[0],
+                                    ",".join(str(a) for a in estado.grupo)))
 
     if args.plan:
         with open(args.plan, "w") as handle:
