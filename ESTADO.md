@@ -72,6 +72,86 @@ absoluto no se pudo reproducir con ninguna combinación de argumentos de
 misma con los dos criterios: +119 páginas.** Cuando un número de éstos se
 reporte, conviene decir con cuál de los dos se contó.
 
+### El recorrido largo: se juega el juego y se le pregunta a la RAM (2026-09-13)
+
+`pruebas/test_recorrido.py`, con su arnés en `pruebas/recorrido.py`. Es lo que
+pidió taro: **emular una jugada entera** y verificar el estado con lecturas de
+RAM, sin referencia de por medio, sacando una captura en cada hito para que él
+las bendiga a mano. Son dos jugadas:
+
+    apertura   del reset a la cinemática del mapa 1 y de ahí, caminando, al
+               Linkage Block
+    talan      el cartel de "One year previously", el despertador, la puerta a
+               Lashe City, la corrida al trabajo, la fábrica de Delcentric y el
+               guardia que abre el auditorio
+
+**Cuesta 3,1 s** con el cartucho armado y 23,6 s la primera vez, que es cuando
+lo arma: son 6.900 ticks de emulación —menos de tres segundos a 2.900 ticks/s—
+y el resto es el cartucho. Lleva **ocho mapas** (4, 1, 2, 7, 8, 16, 17, 18) y no
+los veintinueve de `demo-ciudad` justamente por eso: la conversión de los 29 son
+dos minutos.
+
+Lo que hay que saber del arnés, porque es lo que lo hace no envejecer:
+
+* **Nada se cuenta en cuadros.** Cada hito es una condición de RAM con tope, y
+  cuando un tope se agota el mensaje dice en qué hito y con qué estado —mapa,
+  celda, hacia dónde mira, si hay página corriendo—.
+* **Por dónde se camina sale del juego original**, no de una lista: un BFS sobre
+  `rm2k.passability_map`, la misma tabla que usan el conversor y la referencia.
+* **Y a dónde ir, también.** `Recorrido.viajar(mapa)` planea sobre un grafo de
+  **islas**: un nodo es "esta isla de este mapa" y una arista es un `Teleport`
+  de un evento cuya página está activa **con los switches que la partida tiene
+  puestos ahora**, que se le preguntan a la RAM. El plan se rehace después de
+  cada puerta.
+* **Tres cosas que costaron y conviene no volver a descubrir**: los mapas de
+  ciudad son bandas de calle separadas por pared unidas por teletransportes, así
+  que el mapa 8 tiene 32 islas; una puerta **no es una celda de la isla**, y
+  contándola adentro el planificador creía que se cruzaba el mapa 9 caminando
+  por arriba del teletransporte que devuelve a Lashe City; y la colisión
+  **depende de los switches**, porque un evento de la capa de abajo con gráfico
+  de tile le impone sus bits a la celda —con la página del arranque, la casa de
+  Talan no tiene salida—.
+
+Lo que queda abierto:
+
+* **Las capturas no están bendecidas.** Están en `pruebas-manuales/recorrido/`
+  con su `LEEME.txt`. Cuando taro diga que están bien, compararlas es una línea.
+* **De Lashe City a la fábrica no se camina, y está medido**: el grafo de islas
+  dice que desde la casa de Talan se llega a los mapas 7, 8, 9 y 10 y a ninguno
+  más. La isla del mapa 9 donde están los eventos 28 y 29 —la puerta de
+  Delcentric— sólo se alcanza desde el HQ de los Lazer Teeth, y el camino lo
+  corta el teletransporte de (64,49), que con el switch 24 puesto devuelve a
+  Lashe City. Así que la prueba entra al mapa 16 con `ir_al_mapa(16, 53, 7)`,
+  que son **las coordenadas del juego**: las del `Teleport` de los eventos 65 y
+  66 del mapa 8 y de los 28 y 29 del mapa 9. Si eso es un bug del port o el
+  juego pide hacer antes la misión de los Neon Viper, no se investigó.
+* **El grafo no entiende condiciones que no son de switch** —objeto, actor,
+  cronómetro—: esas páginas las da por no activas, que es el lado seguro.
+
+### La pantalla rota del mapa 17 es del cartucho, no de la escena (2026-09-13)
+
+Medido con el recorrido de arriba, que es lo que lo destapó: **el mismo
+recorrido, tick por tick, con dos cartuchos distintos** da la fábrica perfecta
+con ocho mapas y basura con los veintinueve de `demo-ciudad`. Y la conversión
+del mapa 17 es **idéntica** en los dos —217 tiles, 52 colores, 475 de sprite, el
+mismo reparto de VRAM, ninguna animación de batalla—, así que lo que cambia no
+es el mapa.
+
+Con los 29 mapas se rompe en **un solo tick**, 160 después de entrar al mapa 17
+desde el 16, con la página de la escena corriendo y el héroe quieto en (36,73):
+el cuadro anterior está limpio y el siguiente tiene el fondo entero con rayas de
+ruido. Los dos cuadros están guardados en `pruebas-manuales/recorrido/`, que es
+lo que taro pidió para armar una golden artificial.
+
+Y **no es sólo el dibujo**: con la pantalla rota el cuadro de texto del guardia
+no se cierra nunca —`msg_lineas` queda en 79, que no es un número de renglones—
+así que el auditorio no se abre. La pinta es la de un DMA a la VRAM de fondo
+desde la dirección equivocada, y el mapa 17 es de los que no entran en la
+ventana de 64x32 y la ROM va redibujando.
+
+Lo que **no** se hizo, porque es de la otra vuelta que corre en paralelo:
+bisecar qué mapa de los 29 lo enciende.
+
 ### El dibujo de las animaciones de batalla: medido, sin empezar
 
 De lo que taro pidió para la intro, los efectos de sonido y los destellos están
