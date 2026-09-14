@@ -3686,7 +3686,7 @@ impl TroopPageConditionFlags {
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct Actor {
     /// The number the array names this element with.
@@ -3744,14 +3744,13 @@ pub struct Actor {
     /// field 0x4a of the binary, stored even when it holds the default
     pub attribute_ranks: Vec<u8> = Vec::new(),
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct Animation {
     /// The number the array names this element with.
@@ -3771,14 +3770,13 @@ pub struct Animation {
     /// field 0x0c of the binary, stored even when it holds the default
     pub frames: Vec<AnimationFrame> = Default::default(),
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct AnimationCellData {
     /// The number the array names this element with.
@@ -3804,14 +3802,13 @@ pub struct AnimationCellData {
     /// field 0x0a of the binary
     pub transparency: i32 = 0,
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct AnimationFrame {
     /// The number the array names this element with.
@@ -3819,14 +3816,13 @@ pub struct AnimationFrame {
     /// field 0x01 of the binary, stored even when it holds the default
     pub cells: Vec<AnimationCellData> = Default::default(),
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct AnimationTiming {
     /// The number the array names this element with.
@@ -3848,14 +3844,13 @@ pub struct AnimationTiming {
     /// field 0x08 of the binary
     pub screen_shake: AnimationTimingScreenShake = AnimationTimingScreenShake::from_i32(0),
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct Attribute {
     /// The number the array names this element with.
@@ -3875,14 +3870,13 @@ pub struct Attribute {
     /// field 0x0f of the binary
     pub e_rate: i32 = 0,
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct BattleCommand {
     /// The number the array names this element with.
@@ -3892,14 +3886,13 @@ pub struct BattleCommand {
     /// field 0x02 of the binary
     pub r#type: BattleCommandType = BattleCommandType::from_i32(0),
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct BattleCommands {
     /// field 0x02 of the binary
@@ -3929,14 +3922,13 @@ pub struct BattleCommands {
     /// field 0x1d of the binary
     pub death_teleport_face: BattleCommandsFacing = BattleCommandsFacing::from_i32(0),
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct Chipset {
     /// The number the array names this element with.
@@ -3956,14 +3948,13 @@ pub struct Chipset {
     /// field 0x0c of the binary
     pub animation_speed: i32 = 0,
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct Class {
     /// The number the array names this element with.
@@ -3997,14 +3988,13 @@ pub struct Class {
     /// field 0x50 of the binary, stored even when it holds the default
     pub battle_commands: Vec<i32> = Vec::new(),
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct CommonEvent {
     /// The number the array names this element with.
@@ -4020,14 +4010,13 @@ pub struct CommonEvent {
     /// field 0x16 of the binary, stored even when it holds the default
     pub event_commands: Vec<EventCommand> = Default::default(),
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct Database {
     /// field 0x0b of the binary, stored even when it holds the default
@@ -4063,14 +4052,13 @@ pub struct Database {
     /// field 0x1a of the binary
     pub version: i32 = 0,
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct Encounter {
     /// The number the array names this element with.
@@ -4078,14 +4066,13 @@ pub struct Encounter {
     /// field 0x01 of the binary
     pub troop_id: i32 = 0,
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct Enemy {
     /// The number the array names this element with.
@@ -4133,14 +4120,13 @@ pub struct Enemy {
     /// field 0x2a of the binary, stored even when it holds the default
     pub actions: Vec<EnemyAction> = Default::default(),
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct EnemyAction {
     /// The number the array names this element with.
@@ -4172,14 +4158,13 @@ pub struct EnemyAction {
     /// field 0x0d of the binary
     pub rating: i32 = 50,
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct Equipment {
     /// field 0x00 of the binary
@@ -4193,14 +4178,13 @@ pub struct Equipment {
     /// field 0x00 of the binary
     pub accessory_id: i32 = 0,
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct Event {
     /// The number the array names this element with.
@@ -4214,14 +4198,13 @@ pub struct Event {
     /// field 0x05 of the binary, stored even when it holds the default
     pub pages: Vec<EventPage> = Default::default(),
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct EventCommand {
     /// field 0x00 of the binary
@@ -4233,14 +4216,13 @@ pub struct EventCommand {
     /// field 0x00 of the binary
     pub parameters: Vec<i32> = Vec::new(),
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct EventPage {
     /// The number the array names this element with.
@@ -4276,14 +4258,13 @@ pub struct EventPage {
     /// field 0x34 of the binary, stored even when it holds the default
     pub event_commands: Vec<EventCommand> = Default::default(),
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct EventPageCondition {
     /// field 0x01 of the binary, stored even when it holds the default
@@ -4303,14 +4284,13 @@ pub struct EventPageCondition {
     /// field 0x08 of the binary
     pub timer_sec: i32 = 0,
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct Item {
     /// The number the array names this element with.
@@ -4410,14 +4390,13 @@ pub struct Item {
     /// field 0x4c of the binary
     pub ranged_target: ItemTarget = ItemTarget::from_i32(0),
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct Learning {
     /// The number the array names this element with.
@@ -4427,14 +4406,13 @@ pub struct Learning {
     /// field 0x02 of the binary
     pub skill_id: i32 = 1,
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct Map {
     /// field 0x01 of the binary
@@ -4500,14 +4478,13 @@ pub struct Map {
     /// field 0x5b of the binary
     pub save_count: i32 = 0,
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct MapInfo {
     /// The number the array names this element with.
@@ -4547,14 +4524,13 @@ pub struct MapInfo {
     /// field 0x33 of the binary, stored even when it holds the default
     pub area_rect: Rect = Default::default(),
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct MoveCommand {
     /// field 0x00 of the binary
@@ -4568,14 +4544,13 @@ pub struct MoveCommand {
     /// field 0x00 of the binary
     pub parameter_c: i32 = 0,
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct MoveRoute {
     /// field 0x0c of the binary, stored even when it holds the default
@@ -4585,14 +4560,13 @@ pub struct MoveRoute {
     /// field 0x16 of the binary
     pub skippable: bool = false,
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct Music {
     /// field 0x01 of the binary, stored even when it holds the default
@@ -4606,14 +4580,13 @@ pub struct Music {
     /// field 0x05 of the binary
     pub balance: i32 = 50,
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct Parameters {
     /// field 0x00 of the binary, stored even when it holds the default
@@ -4629,14 +4602,13 @@ pub struct Parameters {
     /// field 0x00 of the binary, stored even when it holds the default
     pub agility: Vec<i16> = Vec::new(),
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct Rect {
     /// field 0x00 of the binary
@@ -4648,14 +4620,13 @@ pub struct Rect {
     /// field 0x00 of the binary
     pub b: u32 = 0,
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct Save {
     /// field 0x64 of the binary
@@ -4689,14 +4660,13 @@ pub struct Save {
     /// field 0x72 of the binary, stored even when it holds the default
     pub common_events: Vec<SaveCommonEvent> = Default::default(),
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct SaveActor {
     /// The number the array names this element with.
@@ -4746,14 +4716,13 @@ pub struct SaveActor {
     /// field 0x5a of the binary
     pub class_id: i32 = -1,
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct SaveCommonEvent {
     /// The number the array names this element with.
@@ -4761,14 +4730,13 @@ pub struct SaveCommonEvent {
     /// field 0x01 of the binary, stored even when it holds the default
     pub parallel_event_execstate: SaveEventExecState = Default::default(),
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct SaveEventExecFrame {
     /// The number the array names this element with.
@@ -4784,14 +4752,13 @@ pub struct SaveEventExecFrame {
     /// field 0x16 of the binary, stored even when it holds the default
     pub subcommand_path: Vec<u8> = Vec::new(),
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct SaveEventExecState {
     /// field 0x01 of the binary, stored even when it holds the default
@@ -4839,14 +4806,13 @@ pub struct SaveEventExecState {
     /// field 0x2a of the binary
     pub wait_key_enter: bool = false,
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct SaveInventory {
     /// field 0x02 of the binary, stored even when it holds the default
@@ -4888,14 +4854,13 @@ pub struct SaveInventory {
     /// field 0x2a of the binary
     pub steps: i32 = 0,
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct SaveMapEvent {
     /// The number the array names this element with.
@@ -4909,14 +4874,13 @@ pub struct SaveMapEvent {
     /// field 0x6c of the binary, stored even when it holds the default
     pub parallel_event_execstate: SaveEventExecState = Default::default(),
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct SaveMapEventBase {
     /// field 0x01 of the binary
@@ -4998,14 +4962,13 @@ pub struct SaveMapEventBase {
     /// field 0x55 of the binary
     pub flash_time_left: i32 = 0,
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct SaveMapInfo {
     /// field 0x01 of the binary
@@ -5037,14 +5000,13 @@ pub struct SaveMapInfo {
     /// field 0x26 of the binary
     pub parallax_vert_speed: i32 = 0,
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct SavePanorama {
     /// field 0x01 of the binary
@@ -5052,14 +5014,13 @@ pub struct SavePanorama {
     /// field 0x02 of the binary
     pub pan_y: i32 = 0,
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct SavePartyLocation {
     /// field 0x65 of the binary
@@ -5095,14 +5056,13 @@ pub struct SavePartyLocation {
     /// field 0x84 of the binary
     pub database_save_count: i32 = 0,
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct SavePicture {
     /// The number the array names this element with.
@@ -5172,14 +5132,13 @@ pub struct SavePicture {
     /// field 0x35 of the binary
     pub current_waver: i32 = 0,
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct SaveScreen {
     /// field 0x01 of the binary
@@ -5243,14 +5202,13 @@ pub struct SaveScreen {
     /// field 0x31 of the binary
     pub weather_strength: i32 = 0,
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct SaveSystem {
     /// field 0x01 of the binary, stored even when it holds the default
@@ -5362,14 +5320,13 @@ pub struct SaveSystem {
     /// field 0x84 of the binary
     pub save_slot: i32 = 1,
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct SaveTarget {
     /// The number the array names this element with.
@@ -5385,14 +5342,13 @@ pub struct SaveTarget {
     /// field 0x05 of the binary
     pub switch_id: i32 = 0,
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct SaveTitle {
     /// field 0x01 of the binary
@@ -5420,14 +5376,13 @@ pub struct SaveTitle {
     /// field 0x1c of the binary
     pub face4_id: i32 = 0,
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct SaveVehicleLocation {
     /// field 0x65 of the binary
@@ -5441,14 +5396,13 @@ pub struct SaveVehicleLocation {
     /// field 0x70 of the binary
     pub orig_sprite_id: i32 = 0,
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct Skill {
     /// The number the array names this element with.
@@ -5512,14 +5466,13 @@ pub struct Skill {
     /// field 0x2d of the binary
     pub affect_attr_defence: bool = false,
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct Sound {
     /// field 0x01 of the binary, stored even when it holds the default
@@ -5531,14 +5484,13 @@ pub struct Sound {
     /// field 0x05 of the binary
     pub balance: i32 = 50,
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct Start {
     /// field 0x01 of the binary
@@ -5566,14 +5518,13 @@ pub struct Start {
     /// field 0x21 of the binary
     pub airship_y: i32 = 0,
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct State {
     /// The number the array names this element with.
@@ -5653,14 +5604,13 @@ pub struct State {
     /// field 0x44 of the binary
     pub sp_change_map_val: i32 = 0,
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct Switch {
     /// The number the array names this element with.
@@ -5668,14 +5618,13 @@ pub struct Switch {
     /// field 0x01 of the binary
     pub name: String = "".to_string(),
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct System {
     /// field 0x0a of the binary
@@ -5773,14 +5722,13 @@ pub struct System {
     /// field 0x60 of the binary
     pub battletest_condition: SystemBattleCondition = SystemBattleCondition::from_i32(0),
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct Terms {
     /// field 0x01 of the binary, stored even when it holds the default
@@ -6024,14 +5972,13 @@ pub struct Terms {
     /// field 0x99 of the binary, stored even when it holds the default
     pub no: String = "".to_string(),
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct Terrain {
     /// The number the array names this element with.
@@ -6055,14 +6002,13 @@ pub struct Terrain {
     /// field 0x0b of the binary, stored even when it holds the default
     pub bush_depth: TerrainBushDepth = TerrainBushDepth::from_i32(0),
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct TestBattler {
     /// The number the array names this element with.
@@ -6082,14 +6028,13 @@ pub struct TestBattler {
     /// field 0x0f of the binary
     pub accessory_id: i32 = 0,
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct TreeMap {
     /// field 0x00 of the binary, stored even when it holds the default
@@ -6101,14 +6046,13 @@ pub struct TreeMap {
     /// field 0x00 of the binary
     pub start: Start = Default::default(),
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct Troop {
     /// The number the array names this element with.
@@ -6122,14 +6066,13 @@ pub struct Troop {
     /// field 0x0b of the binary, stored even when it holds the default
     pub pages: Vec<TroopPage> = Default::default(),
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct TroopMember {
     /// The number the array names this element with.
@@ -6143,14 +6086,13 @@ pub struct TroopMember {
     /// field 0x04 of the binary
     pub invisible: bool = false,
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct TroopPage {
     /// The number the array names this element with.
@@ -6160,14 +6102,13 @@ pub struct TroopPage {
     /// field 0x0c of the binary, stored even when it holds the default
     pub event_commands: Vec<EventCommand> = Default::default(),
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct TroopPageCondition {
     /// field 0x01 of the binary, stored even when it holds the default
@@ -6201,14 +6142,13 @@ pub struct TroopPageCondition {
     /// field 0x0f of the binary
     pub actor_hp_max: i32 = 100,
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }
 
 schema_struct! {
 /// Generated from `fields.csv`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct Variable {
     /// The number the array names this element with.
@@ -6216,7 +6156,6 @@ pub struct Variable {
     /// field 0x01 of the binary
     pub name: String = "".to_string(),
     /// The chunks the schema does not name, so the round trip is exact.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub unknown: Vec<RawChunk> = Vec::new(),
 }
 }

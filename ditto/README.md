@@ -101,6 +101,27 @@ which is exactly what the codec needs in order to decide omission and what
 it would leave the default written twice all the same, with a proc-macro
 dependency on top.
 
+#### And the same default decides what the JSON leaves out
+
+`Serialize` is **not derived**: `schema_struct!` writes it, and it leaves out
+every field that equals `Self::default()` —the very value the codec compares
+against when it decides to omit a chunk—. The binary's rule and the JSON's are
+then the same rule, and reading costs nothing because `#[serde(default)]` puts
+the field back. Nothing is lost by it: the round trip is measured through the
+JSON, and it stays at 330 of 330.
+
+It is written out by hand rather than with `#[serde(skip_serializing_if = "…")]`
+because that attribute takes the *path of a function*, and the default here is
+an arbitrary expression: one function per field would mean building an
+identifier out of the struct's name and the field's, which `macro_rules!` cannot
+do. Comparing against `Self::default()` needs no name at all.
+
+One trap, and it cost the first version two files: `stringify!` on a raw
+identifier keeps the `r#`. The field liblcf calls `type` is `r#type` in Rust and
+went into the JSON as `"r#type"`, which the derived `Deserialize` —which does
+strip it— did not find, so it came back holding its default: `Skill` 71 read
+back as `Normal` instead of `Teleport`. `json_name` strips it.
+
 ## The format, and the four things that make the exact round trip hard
 
 A file is a header —a length and a name— and a struct behind it. A struct is a
