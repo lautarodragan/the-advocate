@@ -5,7 +5,7 @@ members = [".", "xtask"]
 name = "ditto"
 version = "0.1.0"
 edition = "2021"
-description = "Lee los archivos de RPG Maker 2000 y los vuelca a JSON"
+description = "Reads the RPG Maker 2000 files and dumps them to JSON, and back"
 
 [lib]
 name = "ditto"

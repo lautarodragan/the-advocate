@@ -1,21 +1,24 @@
-//! El formato binario de RPG Maker 2000, de los dos lados.
+//! The RPG Maker 2000 binary format, from both sides.
 //!
-//! El archivo es un encabezado —un largo y un nombre— y después un struct.
-//! Un struct es una tira de *chunks* `(id, largo, bytes)` cerrada por un id 0;
-//! un array de structs es una cantidad y, por cada elemento, su id y su struct.
-//! Los enteros van en BER: siete bits por byte, el bit alto dice que sigue.
+//! A file is a header —a length and a name— and then a struct. A struct is a
+//! run of *chunks* `(id, length, bytes)` closed by an id 0; an array of structs
+//! is a count and, per element, its id and its struct. Integers are BER: seven
+//! bits per byte, the high bit says it continues.
 //!
-//! Lo que hace difícil la vuelta exacta no es eso, sino la regla de omisión:
-//! **un campo que vale su default no se escribe**, salvo los que
-//! `fields.csv` marca con `PersistIfDefault`. Así que leer y escribir no son
-//! simétricos por construcción: son simétricos porque el default que rellena
-//! al leer es el mismo que decide omitir al escribir, y los dos salen de la
-//! misma tabla. Ver `src/esquema/mod.rs`.
+//! What makes the exact round trip hard is not that, but the omission rule:
+//! **a field holding its default is not written**, except for the ones
+//! `fields.csv` marks with `PersistIfDefault`. So reading and writing are not
+//! symmetric by construction: they are symmetric because the default that
+//! fills a field in when reading is the same one that decides to omit it when
+//! writing, and both come from the same table. See `src/schema/mod.rs`.
 
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
-pub type Resultado<T> = Result<T, Error>;
+/// The crate's result type. It shadows the prelude's `Result` inside the
+/// modules that glob-import this one, which is deliberate: every fallible
+/// operation here fails with the same `Error`.
+pub type Result<T, E = Error> = std::result::Result<T, E>;
 
 #[derive(Debug)]
 pub struct Error(pub String);
@@ -28,57 +31,58 @@ impl fmt::Display for Error {
 
 impl std::error::Error for Error {}
 
-pub fn error<T>(m: impl Into<String>) -> Resultado<T> {
+pub fn error<T>(m: impl Into<String>) -> Result<T> {
     Err(Error(m.into()))
 }
 
-/// Un chunk que el esquema no nombra. Se guarda tal cual y vuelve al archivo
-/// en su lugar, para que un campo que liblcf no conoce no rompa la vuelta.
+/// A chunk the schema does not name. It is kept as is and goes back to the
+/// file in its place, so a field liblcf does not know about cannot break the
+/// round trip.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct ChunkCrudo {
+pub struct RawChunk {
     pub id: u32,
     pub bytes: Vec<u8>,
 }
 
-// --- Lector ---------------------------------------------------------------
+// --- Reader ---------------------------------------------------------------
 
-pub struct Lector<'a> {
+pub struct Reader<'a> {
     d: &'a [u8],
     pub pos: usize,
 }
 
-impl<'a> Lector<'a> {
-    pub fn nuevo(d: &'a [u8]) -> Self {
-        Lector { d, pos: 0 }
+impl<'a> Reader<'a> {
+    pub fn new(d: &'a [u8]) -> Self {
+        Reader { d, pos: 0 }
     }
 
     pub fn eof(&self) -> bool {
         self.pos >= self.d.len()
     }
 
-    pub fn restante(&self) -> usize {
+    pub fn remaining(&self) -> usize {
         self.d.len() - self.pos
     }
 
-    pub fn espiar(&self) -> Resultado<u8> {
+    pub fn peek(&self) -> Result<u8> {
         self.d
             .get(self.pos)
             .copied()
-            .ok_or_else(|| Error("lectura fuera de rango".into()))
+            .ok_or_else(|| Error("read past the end".into()))
     }
 
-    pub fn byte(&mut self) -> Resultado<u8> {
-        let b = self.espiar()?;
+    pub fn byte(&mut self) -> Result<u8> {
+        let b = self.peek()?;
         self.pos += 1;
         Ok(b)
     }
 
-    pub fn bytes(&mut self, n: usize) -> Resultado<&'a [u8]> {
+    pub fn bytes(&mut self, n: usize) -> Result<&'a [u8]> {
         if self.pos + n > self.d.len() {
             return error(format!(
-                "pedí {n} bytes en {} y quedan {}",
+                "asked for {n} bytes at {} and {} are left",
                 self.pos,
-                self.restante()
+                self.remaining()
             ));
         }
         let t = &self.d[self.pos..self.pos + n];
@@ -86,8 +90,8 @@ impl<'a> Lector<'a> {
         Ok(t)
     }
 
-    /// Entero BER. No tiene signo: los negativos llegan en complemento a dos.
-    pub fn ber(&mut self) -> Resultado<i32> {
+    /// A BER integer. It is unsigned: negatives arrive in two's complement.
+    pub fn ber(&mut self) -> Result<i32> {
         let mut v: u32 = 0;
         loop {
             let b = self.byte()?;
@@ -99,16 +103,16 @@ impl<'a> Lector<'a> {
     }
 }
 
-// --- Escritor -------------------------------------------------------------
+// --- Writer ---------------------------------------------------------------
 
 #[derive(Default)]
-pub struct Escritor {
+pub struct Writer {
     pub b: Vec<u8>,
 }
 
-impl Escritor {
-    pub fn nuevo() -> Self {
-        Escritor { b: Vec::new() }
+impl Writer {
+    pub fn new() -> Self {
+        Writer { b: Vec::new() }
     }
 
     pub fn bytes(&mut self, s: &[u8]) {
@@ -116,117 +120,119 @@ impl Escritor {
     }
 
     pub fn ber(&mut self, v: i32) {
-        self.bytes(&cod_ber(v));
+        self.bytes(&enc_ber(v));
     }
 
-    /// Escribe los chunks de un struct: los que el esquema conoce y los que
-    /// no, mezclados por id. El orden del esquema ya es ascendente —lo garantiza
-    /// el CSV de liblcf— así que un orden estable por id deja cada desconocido
-    /// donde estaba.
-    pub fn volcar(&mut self, conocidos: Vec<(u32, Vec<u8>)>, extras: &[ChunkCrudo]) {
-        let mut todos = conocidos;
-        if !extras.is_empty() {
-            for e in extras {
-                todos.push((e.id, e.bytes.clone()));
+    /// Writes the chunks of a struct: the ones the schema knows and the ones it
+    /// does not, merged by id. The schema's order is already ascending —the
+    /// liblcf CSV guarantees it— so a stable sort by id leaves every unknown
+    /// chunk where it was.
+    pub fn dump(&mut self, known: Vec<(u32, Vec<u8>)>, extra: &[RawChunk]) {
+        let mut all = known;
+        if !extra.is_empty() {
+            for e in extra {
+                all.push((e.id, e.bytes.clone()));
             }
-            todos.sort_by_key(|c| c.0);
+            all.sort_by_key(|c| c.0);
         }
-        for (id, cuerpo) in todos {
+        for (id, body) in all {
             self.ber(id as i32);
-            self.ber(cuerpo.len() as i32);
-            self.bytes(&cuerpo);
+            self.ber(body.len() as i32);
+            self.bytes(&body);
         }
     }
 }
 
-/// BER canónico: la misma forma que `LcfWriter::WriteInt`, el mínimo de bytes.
-pub fn cod_ber(v: i32) -> Vec<u8> {
+/// Canonical BER: the same shape as `LcfWriter::WriteInt`, the fewest bytes.
+pub fn enc_ber(v: i32) -> Vec<u8> {
     let v = v as u32;
-    let mut fuera = Vec::new();
+    let mut out = Vec::new();
     let mut i = 28i32;
     while i >= 0 {
         if v >= (1u32 << i) || i == 0 {
-            fuera.push(((v >> i) & 0x7F) as u8 | if i > 0 { 0x80 } else { 0 });
+            out.push(((v >> i) & 0x7F) as u8 | if i > 0 { 0x80 } else { 0 });
         }
         i -= 7;
     }
-    fuera
+    out
 }
 
-// --- El default, una sola vez ----------------------------------------------
+// --- The default, written once ---------------------------------------------
 
-/// Declara un struct del esquema con **el default de cada campo al lado del
-/// campo**, y arma el `Default` desde ahí.
+/// Declares a schema struct with **the default of every field next to the
+/// field**, and builds the `Default` out of that.
 ///
-/// El punto no es la estética. El default es lo que rellena al leer *y* lo que
-/// decide omitir al escribir, y esas dos cosas tienen que ser la misma o la
-/// vuelta deja de ser byte por byte. Escrito dos veces —un comentario y un
-/// `impl Default`, que es como estaba— se pueden separar sin que nada avise.
+/// The point is not aesthetics. The default is what fills a field in when
+/// reading *and* what decides to omit it when writing, and those two have to be
+/// the same thing or the round trip stops being byte for byte. Written twice
+/// —a comment and an `impl Default`, which is how it used to be— the two can
+/// drift apart with nothing warning about it.
 ///
-/// El `= expr` es **obligatorio en todos los campos**, incluso en los que
-/// `fields.csv` no declara default: si fuera opcional, un campo sin default
-/// caería al cero del tipo por la puerta de atrás, que es exactamente el bug
-/// que originó Ditto (`max_hp` en 0 donde el formato dice 10).
+/// The `= expr` is **mandatory on every field**, even on the ones `fields.csv`
+/// declares no default for: if it were optional, a field without a default
+/// would fall back to the zero of its type through the back door, which is
+/// exactly the bug that started Ditto (`max_hp` at 0 where the format says 10).
 ///
-/// No hace falta nada para serde: el `#[serde(default)]` del struct ya toma
-/// los valores de este `Default`, así que un campo que falta en el JSON vale
-/// el default del formato y no el del tipo.
-macro_rules! esquema_struct {
+/// Nothing is needed for serde: the struct's `#[serde(default)]` already takes
+/// its values from this `Default`, so a field missing from the JSON holds the
+/// format's default and not the type's.
+macro_rules! schema_struct {
     (
         $(#[$meta:meta])*
-        pub struct $nombre:ident {
+        pub struct $name:ident {
             $(
-                $(#[$campo_meta:meta])*
-                pub $campo:ident : $tipo:ty = $valor:expr
+                $(#[$field_meta:meta])*
+                pub $field:ident : $ty:ty = $value:expr
             ),* $(,)?
         }
     ) => {
         $(#[$meta])*
-        pub struct $nombre {
+        pub struct $name {
             $(
-                $(#[$campo_meta])*
-                pub $campo: $tipo,
+                $(#[$field_meta])*
+                pub $field: $ty,
             )*
         }
 
-        impl Default for $nombre {
+        impl Default for $name {
             fn default() -> Self {
-                Self { $($campo: $valor,)* }
+                Self { $($field: $value,)* }
             }
         }
     };
 }
-pub(crate) use esquema_struct;
+pub(crate) use schema_struct;
 
-// --- Structs chunk-based ---------------------------------------------------
+// --- Chunk-based structs ---------------------------------------------------
 
 pub trait Chunked: Default + Sized {
-    const NOMBRE: &'static str;
-    /// El 0 que cierra el struct. `Database` y `Save` no lo llevan: liblcf
-    /// avisa que ponérselo rompe el parser de RPG_RT.
-    const TERMINADOR: bool;
-    /// Si dentro de un array cada elemento lleva su id adelante.
-    const CON_ID: bool;
+    const NAME: &'static str;
+    /// The 0 that closes the struct. `Database` and `Save` go without it:
+    /// liblcf warns that adding it breaks RPG_RT's parser.
+    const TERMINATOR: bool;
+    /// Whether, inside an array, each element carries its id in front.
+    const WITH_ID: bool;
 
     fn id(&self) -> i32;
-    fn poner_id(&mut self, v: i32);
-    fn desconocidos_mut(&mut self) -> &mut Vec<ChunkCrudo>;
-    /// Devuelve `false` si el id no es de este struct: el chunk se guarda crudo.
-    fn leer_chunk(&mut self, id: u32, d: &[u8]) -> Resultado<bool>;
-    fn escribir_chunks(&self, e: &mut Escritor) -> Resultado<()>;
+    fn set_id(&mut self, v: i32);
+    fn unknown_mut(&mut self) -> &mut Vec<RawChunk>;
+    /// Returns `false` if the id does not belong to this struct: the chunk is
+    /// then kept raw.
+    fn read_chunk(&mut self, id: u32, d: &[u8]) -> Result<bool>;
+    fn write_chunks(&self, e: &mut Writer) -> Result<()>;
 }
 
-pub fn leer_struct<T: Chunked>(l: &mut Lector) -> Resultado<T> {
+pub fn read_struct<T: Chunked>(l: &mut Reader) -> Result<T> {
     let mut o = T::default();
     while !l.eof() {
         let id = l.ber()? as u32;
         if id == 0 {
             break;
         }
-        let largo = l.ber()? as usize;
-        let d = l.bytes(largo)?;
-        if !o.leer_chunk(id, d)? {
-            o.desconocidos_mut().push(ChunkCrudo {
+        let length = l.ber()? as usize;
+        let d = l.bytes(length)?;
+        if !o.read_chunk(id, d)? {
+            o.unknown_mut().push(RawChunk {
                 id,
                 bytes: d.to_vec(),
             });
@@ -235,71 +241,71 @@ pub fn leer_struct<T: Chunked>(l: &mut Lector) -> Resultado<T> {
     Ok(o)
 }
 
-pub fn escribir_struct<T: Chunked>(o: &T, e: &mut Escritor) -> Resultado<()> {
-    o.escribir_chunks(e)?;
-    if T::TERMINADOR {
+pub fn write_struct<T: Chunked>(o: &T, e: &mut Writer) -> Result<()> {
+    o.write_chunks(e)?;
+    if T::TERMINATOR {
         e.ber(0);
     }
     Ok(())
 }
 
-pub fn dec_struct<T: Chunked>(d: &[u8]) -> Resultado<T> {
-    leer_struct(&mut Lector::nuevo(d))
+pub fn dec_struct<T: Chunked>(d: &[u8]) -> Result<T> {
+    read_struct(&mut Reader::new(d))
 }
 
-pub fn cod_struct<T: Chunked>(o: &T) -> Resultado<Vec<u8>> {
-    let mut e = Escritor::nuevo();
-    escribir_struct(o, &mut e)?;
+pub fn enc_struct<T: Chunked>(o: &T) -> Result<Vec<u8>> {
+    let mut e = Writer::new();
+    write_struct(o, &mut e)?;
     Ok(e.b)
 }
 
-pub fn leer_array<T: Chunked>(l: &mut Lector) -> Resultado<Vec<T>> {
+pub fn read_array<T: Chunked>(l: &mut Reader) -> Result<Vec<T>> {
     let n = l.ber()? as usize;
     let mut v = Vec::with_capacity(n.min(4096));
     for _ in 0..n {
-        let id = if T::CON_ID { l.ber()? } else { 0 };
-        let mut o: T = leer_struct(l)?;
-        o.poner_id(id);
+        let id = if T::WITH_ID { l.ber()? } else { 0 };
+        let mut o: T = read_struct(l)?;
+        o.set_id(id);
         v.push(o);
     }
     Ok(v)
 }
 
-pub fn escribir_array<T: Chunked>(v: &[T], e: &mut Escritor) -> Resultado<()> {
+pub fn write_array<T: Chunked>(v: &[T], e: &mut Writer) -> Result<()> {
     e.ber(v.len() as i32);
     for o in v {
-        if T::CON_ID {
+        if T::WITH_ID {
             e.ber(o.id());
         }
-        escribir_struct(o, e)?;
+        write_struct(o, e)?;
     }
     Ok(())
 }
 
-pub fn dec_array<T: Chunked>(d: &[u8]) -> Resultado<Vec<T>> {
-    leer_array(&mut Lector::nuevo(d))
+pub fn dec_array<T: Chunked>(d: &[u8]) -> Result<Vec<T>> {
+    read_array(&mut Reader::new(d))
 }
 
-pub fn cod_array<T: Chunked>(v: &[T]) -> Resultado<Vec<u8>> {
-    let mut e = Escritor::nuevo();
-    escribir_array(v, &mut e)?;
+pub fn enc_array<T: Chunked>(v: &[T]) -> Result<Vec<u8>> {
+    let mut e = Writer::new();
+    write_array(v, &mut e)?;
     Ok(e.b)
 }
 
-// --- Tipos sueltos ---------------------------------------------------------
+// --- Scalar types ----------------------------------------------------------
 
 pub fn dec_ber(d: &[u8]) -> i32 {
     if d.is_empty() {
         return 0;
     }
-    Lector::nuevo(d).ber().unwrap_or(0)
+    Reader::new(d).ber().unwrap_or(0)
 }
 
 pub fn dec_bool(d: &[u8]) -> bool {
     d.first().map_or(false, |b| *b != 0)
 }
 
-pub fn cod_bool(v: bool) -> Vec<u8> {
+pub fn enc_bool(v: bool) -> Vec<u8> {
     vec![v as u8]
 }
 
@@ -317,7 +323,7 @@ pub fn dec_u32(d: &[u8]) -> u32 {
     u32::from_le_bytes(b)
 }
 
-pub fn cod_u32(v: u32) -> Vec<u8> {
+pub fn enc_u32(v: u32) -> Vec<u8> {
     v.to_le_bytes().to_vec()
 }
 
@@ -327,7 +333,7 @@ pub fn dec_f64(d: &[u8]) -> f64 {
     f64::from_le_bytes(b)
 }
 
-pub fn cod_f64(v: f64) -> Vec<u8> {
+pub fn enc_f64(v: f64) -> Vec<u8> {
     v.to_le_bytes().to_vec()
 }
 
@@ -337,7 +343,7 @@ pub fn dec_vec_i16(d: &[u8]) -> Vec<i16> {
         .collect()
 }
 
-pub fn cod_vec_i16(v: &[i16]) -> Vec<u8> {
+pub fn enc_vec_i16(v: &[i16]) -> Vec<u8> {
     let mut b = Vec::with_capacity(v.len() * 2);
     for x in v {
         b.extend_from_slice(&x.to_le_bytes());
@@ -351,7 +357,7 @@ pub fn dec_vec_i32(d: &[u8]) -> Vec<i32> {
         .collect()
 }
 
-pub fn cod_vec_i32(v: &[i32]) -> Vec<u8> {
+pub fn enc_vec_i32(v: &[i32]) -> Vec<u8> {
     let mut b = Vec::with_capacity(v.len() * 4);
     for x in v {
         b.extend_from_slice(&x.to_le_bytes());
@@ -365,7 +371,7 @@ pub fn dec_vec_u32(d: &[u8]) -> Vec<u32> {
         .collect()
 }
 
-pub fn cod_vec_u32(v: &[u32]) -> Vec<u8> {
+pub fn enc_vec_u32(v: &[u32]) -> Vec<u8> {
     let mut b = Vec::with_capacity(v.len() * 4);
     for x in v {
         b.extend_from_slice(&x.to_le_bytes());
@@ -373,63 +379,66 @@ pub fn cod_vec_u32(v: &[u32]) -> Vec<u8> {
     b
 }
 
-/// `Vector<Boolean>` y `DBBitArray`: un byte entero por valor, no un bit.
+/// `Vector<Boolean>` and `DBBitArray`: a whole byte per value, not a bit.
 pub fn dec_vec_bool(d: &[u8]) -> Vec<bool> {
     d.iter().map(|b| *b != 0).collect()
 }
 
-pub fn cod_vec_bool(v: &[bool]) -> Vec<u8> {
+pub fn enc_vec_bool(v: &[bool]) -> Vec<u8> {
     v.iter().map(|b| *b as u8).collect()
 }
 
-/// Un bit de un campo `*_Flags`, desde el menos significativo del primer byte.
+/// One bit of a `*_Flags` field, from the least significant one of the first
+/// byte.
 pub fn bit(d: &[u8], i: usize) -> bool {
     d.get(i / 8).map_or(false, |b| (b >> (i % 8)) & 1 == 1)
 }
 
-// --- Texto -----------------------------------------------------------------
+// --- Text ------------------------------------------------------------------
 
-/// Los 32 caracteres con los que cp1252 se aparta de Latin-1 (0x80..0x9F).
-const CP1252_ALTO: [char; 32] = [
+/// The 32 characters where cp1252 departs from Latin-1 (0x80..0x9F).
+const CP1252_HIGH: [char; 32] = [
     '\u{20AC}', '\u{0081}', '\u{201A}', '\u{0192}', '\u{201E}', '\u{2026}', '\u{2020}', '\u{2021}',
     '\u{02C6}', '\u{2030}', '\u{0160}', '\u{2039}', '\u{0152}', '\u{008D}', '\u{017D}', '\u{008F}',
     '\u{0090}', '\u{2018}', '\u{2019}', '\u{201C}', '\u{201D}', '\u{2022}', '\u{2013}', '\u{2014}',
     '\u{02DC}', '\u{2122}', '\u{0161}', '\u{203A}', '\u{0153}', '\u{009D}', '\u{017E}', '\u{0178}',
 ];
 
-/// cp1252 **completo**, con los cinco bytes que la tabla oficial deja sin
-/// definir (0x81, 0x8D, 0x8F, 0x90, 0x9D) mapeados a su control C1. Así la
-/// tabla es una biyección byte ⇄ carácter y ningún texto se pierde al volver.
+/// **Complete** cp1252, with the five bytes the official table leaves
+/// undefined (0x81, 0x8D, 0x8F, 0x90, 0x9D) mapped to their C1 control. That
+/// way the table is a byte ⇄ character bijection and no text is lost on the way
+/// back.
 ///
-/// El juego tiene un par de mensajes en Shift-JIS que el autor nunca tocó: acá
-/// salen como caracteres raros, y vuelven al binario idénticos. Traducirlos
-/// bien costaría adivinar la codificación por campo, y a cambio se perdería la
-/// vuelta exacta, que es lo único que hace útil a esta herramienta.
-pub fn dec_texto(d: &[u8]) -> String {
+/// Some games carry messages in other encodings —Shift-JIS, for instance— that
+/// their author never touched: those come out as odd characters here and go
+/// back to the binary identical. Decoding them properly would mean guessing the
+/// encoding field by field, and the price would be the exact round trip, which
+/// is the only thing that makes this tool useful.
+pub fn dec_text(d: &[u8]) -> String {
     d.iter()
         .map(|b| match b {
-            0x80..=0x9F => CP1252_ALTO[(b - 0x80) as usize],
-            otro => *otro as char,
+            0x80..=0x9F => CP1252_HIGH[(b - 0x80) as usize],
+            other => *other as char,
         })
         .collect()
 }
 
-pub fn cod_texto(s: &str) -> Vec<u8> {
-    let mut fuera = Vec::with_capacity(s.len());
+pub fn enc_text(s: &str) -> Vec<u8> {
+    let mut out = Vec::with_capacity(s.len());
     for c in s.chars() {
         if (c as u32) < 0x80 || (0xA0..=0xFF).contains(&(c as u32)) {
-            fuera.push(c as u8);
-        } else if let Some(i) = CP1252_ALTO.iter().position(|x| *x == c) {
-            fuera.push(0x80 + i as u8);
+            out.push(c as u8);
+        } else if let Some(i) = CP1252_HIGH.iter().position(|x| *x == c) {
+            out.push(0x80 + i as u8);
         } else {
-            // Un carácter que cp1252 no tiene: sólo puede venir de un JSON
-            // editado a mano. Se avisa en vez de escribir basura.
-            fuera.push(b'?');
+            // A character cp1252 does not have: it can only come from a
+            // hand-edited JSON. It is flagged instead of writing garbage.
+            out.push(b'?');
         }
     }
-    fuera
+    out
 }
 
-// Los códecs a mano de los structs que no son chunk-based viven al lado, pero
-// el esquema generado sólo importa esto.
-pub use crate::crudos::*;
+// The hand-written codecs of the structs that are not chunk-based live next
+// door, but the generated schema only imports this module.
+pub use crate::raw::*;
