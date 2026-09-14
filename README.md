@@ -2930,6 +2930,19 @@ tope de **39 caracteres por línea**: con 40 la sombra del último se pasa a la
 celda 31 y harían falta ocho tiles más de los que hay. Truncar a 39 pierde el
 1,58% de los caracteres del juego, contra el 1,09% de truncar a 40.
 
+**Y el tope lo repite la ROM**, aunque el conversor no emita nunca un renglón
+más largo. No es paranoia: el buffer del compositor mide un renglón y del otro
+lado viven la tabla del HDMA de la ventana, la imagen de OAM y `vq_n`, el
+contador de la cola de poses, así que un largo de renglón malo no se ve como un
+renglón feo sino como **la pantalla entera hecha basura unos cuadros después y
+en otro mapa**: con `vq_n` alto, `vram_drenar` sube bloques de 128 bytes a
+direcciones cualquiera de la VRAM. Las dos veces que pasó, el largo malo vino de
+un puntero equivocado —el bloque de textos cruzando de banco— y las dos veces
+costó encontrarlo porque el síntoma no señalaba al texto. El tope está en
+`mensaje_tick` y no en `componer_char`, y **corta el dibujo pero no la
+lectura**: el byte se consume igual, porque si no el renglón que sigue
+arrancaría del medio de éste.
+
 Componer un renglón es cebar el buffer con el fondo de la ventana —un DMA de la
 ROM a la RAM, que va por la ventana que la WRAM tiene en el bus B— y escribirle
 los glifos encima. Lo que hace rápida la escritura es que los planos 0 y 1 de
@@ -2957,13 +2970,25 @@ y no del mapa. El conversor lo arma mientras compila las páginas —cada
 `ShowMessage` deja su texto y se lleva su desplazamiento— y lo deduplica, que en
 el juego entero son 2477 cuadros distintos de 2895.
 
-Dieciséis bits alcanzan porque el bloque tiene que entrar **entero en un banco**
-de 32 KB, y eso no es una casualidad de tamaño: lo lee `lda [msg_ptr], y` con un
-puntero que el compositor incrementa de a un byte y que **no arrastra al byte de
-banco**. Por eso el conversor lo emite con `.bloque`, que rellena hasta el banco
-siguiente si no entra, y por eso `msg_empezar` puede sumarle el desplazamiento
-al byte bajo y nada más. Si algún día no entra, lo que hay que agrandar es el
-puntero, no el operando.
+Dieciséis bits alcanzan para el **operando**, y nada más: el bloque entero no
+entra en un banco desde que la demo lleva Lashe City —son 56 KB contra los 32 KB
+que mide la ventana de un banco de LoROM— así que el puntero que lo recorre
+tiene que cruzar. Eso costó dos veces la misma pantalla hecha basura, y las dos
+mitades están arregladas por separado:
+
+* **`msg_empezar`** suma el desplazamiento al puntero largo, sumando un banco y
+  `$8000` por cada vuelta que se pase de `$FFFF`. Lo que sigue a `$FFFF` no es
+  el `$0000` del banco de al lado sino su `$8000`, que es lo mismo que ya sabía
+  `ptr_mas` para la grilla del mapa.
+* **`msg_ptr_sig`** hace la misma cuenta para avanzar de a un byte, que es como
+  el compositor recorre el cuadro. Con un `inc` de dieciséis bits alcanzaba con
+  que **un cuadro cayera encima del borde** —la cabecera de un lado y el texto
+  del otro— para que el resto saliera de `$xx:0000`, que en LoROM no es ROM.
+
+El conversor lo sigue emitiendo con `.bloque`, que rellena hasta el banco
+siguiente cuando no entra en lo que queda: ya no hace falta para leerlo, pero
+deja el bloque alineado al banco y con eso el borde cae siempre en el
+desplazamiento 32768, que es lo que hace reproducible el caso `texto-cruza`.
 
 **Y lo mismo vale para las tablas que se leen con `lda f:tabla, x`**, aunque el
 modo largo sí sume los 24 bits: en LoROM, lo que sigue a `$15:FFFF` no es la ROM
