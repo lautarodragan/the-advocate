@@ -4654,6 +4654,33 @@ vio la sacudida de pantalla, la primera receta que compara cuadro por cuadro.
 Desde el 2026-09-05 el tinte se arma en RAM y se sube en el vblank, como todo
 lo demás: ver "La sacudida de pantalla".
 
+**El botón de reset resetea al SPC700; un `jml reset` no.** La línea de reset
+de la consola les llega a los dos procesadores, así que después de apretarlo el
+SPC700 vuelve a su ROM del IPL y saluda con `$AA`/`$BB`, que es lo que
+`spc_upload` espera para empezar a subir el driver. Un reinicio de adentro del
+juego —el `jml f:reset` con el que `op_batalla` hace el Game Over— no tiene esa
+línea: el SPC700 sigue corriendo **nuestro** driver, el saludo no llega nunca y
+`spc_upload` se queda en su `wait_ready` para siempre. Lo peor es cómo se ve:
+la pantalla ya está encendida y el mapa ya está dibujado —el arranque prende el
+PPU justo antes de subir el audio, a propósito, para no hacer mirar una
+pantalla negra siete décimas de segundo— así que parece un juego que se colgó y
+no un arranque a medias. taro lo reportó como "pantalla en negro, softlock o
+crash" al abrir el cofre trampa de los Rat Tracks, que es una de las quince
+páginas del juego que pierden con Game Over.
+
+El arreglo es el **comando 4 del driver**: prender el bit 7 de `$F1`, que vuelve
+a mapear la ROM del IPL en `$FFC0`, y saltar ahí. El IPL arranca de cero y el
+65816 ve exactamente lo mismo que cuando la consola se enciende. Se manda desde
+`reset`, antes de `spc_upload` y sin esperar acuse —del otro lado ya no queda
+quién lo devuelva—, y con el IPL corriendo no molesta: mientras espera su `$CC`
+mira el puerto 0, y el comando va por el 2 y el 3.
+
+Y la forma en que esto se escondió vale más que el bug: `test_game_over.py`
+existía, corría este camino y **pasaba**, porque miraba `mapa_actual`, que
+`cargar_mapa` deja puesto mucho antes de la subida al SPC700. Lo único que
+distingue "el arranque terminó" de "el arranque se colgó" es que el lazo vuelva
+a contar `vueltas`.
+
 **Un byte más allá del final es de otro.** `music_frame`, con un stream
 vacío —un `OP_END` solo—, volvía al principio, leía el `OP_END` otra vez y se
 iba, dejando el puntero un byte después del final por el `advance`. Al cuadro
