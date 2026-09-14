@@ -3682,106 +3682,80 @@ impl TroopPageConditionFlags {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Actor {
     /// El número con el que el array nombra a este elemento.
-    #[serde(default)]
     pub id: i32,
     /// campo 0x01 del binario
-    #[serde(default)]
     pub name: String,
     /// campo 0x02 del binario
-    #[serde(default)]
     pub title: String,
     /// campo 0x03 del binario
-    #[serde(default)]
     pub character_name: String,
     /// campo 0x04 del binario
     /// default: 0
-    #[serde(default)]
     pub character_index: i32,
     /// campo 0x05 del binario
     /// default: False
-    #[serde(default)]
     pub transparent: bool,
     /// campo 0x07 del binario
     /// default: 1
-    #[serde(default)]
     pub initial_level: i32,
     /// campo 0x08 del binario
     /// default: 50|99
-    #[serde(default)]
     pub final_level: i32,
     /// campo 0x09 del binario
     /// default: True
-    #[serde(default)]
     pub critical_hit: bool,
     /// campo 0x0a del binario
     /// default: 30
-    #[serde(default)]
     pub critical_hit_chance: i32,
     /// campo 0x0f del binario
-    #[serde(default)]
     pub face_name: String,
     /// campo 0x10 del binario
     /// default: 0
-    #[serde(default)]
     pub face_index: i32,
     /// campo 0x15 del binario
     /// default: False
-    #[serde(default)]
     pub two_weapon: bool,
     /// campo 0x16 del binario
     /// default: False
-    #[serde(default)]
     pub lock_equipment: bool,
     /// campo 0x17 del binario
     /// default: False
-    #[serde(default)]
     pub auto_battle: bool,
     /// campo 0x18 del binario
     /// default: False
-    #[serde(default)]
     pub super_guard: bool,
     /// campo 0x1f del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub parameters: Parameters,
     /// campo 0x29 del binario
     /// default: 30|300
-    #[serde(default)]
     pub exp_base: i32,
     /// campo 0x2a del binario
     /// default: 30|300
-    #[serde(default)]
     pub exp_inflation: i32,
     /// campo 0x2b del binario
     /// default: 0
-    #[serde(default)]
     pub exp_correction: i32,
     /// campo 0x33 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub initial_equipment: Equipment,
     /// campo 0x38 del binario
     /// default: 1
-    #[serde(default)]
     pub unarmed_animation: i32,
     /// campo 0x3f del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub skills: Vec<Learning>,
     /// campo 0x42 del binario
     /// default: False
-    #[serde(default)]
     pub rename_skill: bool,
     /// campo 0x43 del binario
-    #[serde(default)]
     pub skill_name: String,
     /// campo 0x48 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub state_ranks: Vec<u8>,
     /// campo 0x4a del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub attribute_ranks: Vec<u8>,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -3822,36 +3796,29 @@ impl Default for Actor {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Animation {
     /// El número con el que el array nombra a este elemento.
-    #[serde(default)]
     pub id: i32,
     /// campo 0x01 del binario
-    #[serde(default)]
     pub name: String,
     /// campo 0x02 del binario
-    #[serde(default)]
     pub animation_name: String,
     /// campo 0x03 del binario
     /// default: False
-    #[serde(default)]
     pub large: bool,
     /// campo 0x06 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub timings: Vec<AnimationTiming>,
     /// campo 0x09 del binario, se guarda aunque valga el default
     /// default: 0
-    #[serde(default)]
     pub scope: AnimationScope,
     /// campo 0x0a del binario, se guarda aunque valga el default
     /// default: 2
-    #[serde(default)]
     pub position: AnimationPosition,
     /// campo 0x0c del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub frames: Vec<AnimationFrame>,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -3873,52 +3840,42 @@ impl Default for Animation {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct AnimationCellData {
     /// El número con el que el array nombra a este elemento.
-    #[serde(default)]
     pub id: i32,
     /// campo 0x01 del binario
     /// default: 1
-    #[serde(default)]
     pub valid: i32,
     /// campo 0x02 del binario
     /// default: 0
-    #[serde(default)]
     pub cell_id: i32,
     /// campo 0x03 del binario
     /// default: 0
-    #[serde(default)]
     pub x: i32,
     /// campo 0x04 del binario
     /// default: 0
-    #[serde(default)]
     pub y: i32,
     /// campo 0x05 del binario
     /// default: 100
-    #[serde(default)]
     pub zoom: i32,
     /// campo 0x06 del binario
     /// default: 100
-    #[serde(default)]
     pub tone_red: i32,
     /// campo 0x07 del binario
     /// default: 100
-    #[serde(default)]
     pub tone_green: i32,
     /// campo 0x08 del binario
     /// default: 100
-    #[serde(default)]
     pub tone_blue: i32,
     /// campo 0x09 del binario
     /// default: 100
-    #[serde(default)]
     pub tone_gray: i32,
     /// campo 0x0a del binario
     /// default: 0
-    #[serde(default)]
     pub transparency: i32,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -3943,15 +3900,14 @@ impl Default for AnimationCellData {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct AnimationFrame {
     /// El número con el que el array nombra a este elemento.
-    #[serde(default)]
     pub id: i32,
     /// campo 0x01 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub cells: Vec<AnimationCellData>,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -3967,43 +3923,35 @@ impl Default for AnimationFrame {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct AnimationTiming {
     /// El número con el que el array nombra a este elemento.
-    #[serde(default)]
     pub id: i32,
     /// campo 0x01 del binario
     /// default: 0
-    #[serde(default)]
     pub frame: i32,
     /// campo 0x02 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub se: Sound,
     /// campo 0x03 del binario, se guarda aunque valga el default
     /// default: 0
-    #[serde(default)]
     pub flash_scope: AnimationTimingFlashScope,
     /// campo 0x04 del binario
     /// default: 31
-    #[serde(default)]
     pub flash_red: i32,
     /// campo 0x05 del binario
     /// default: 31
-    #[serde(default)]
     pub flash_green: i32,
     /// campo 0x06 del binario
     /// default: 31
-    #[serde(default)]
     pub flash_blue: i32,
     /// campo 0x07 del binario
     /// default: 31
-    #[serde(default)]
     pub flash_power: i32,
     /// campo 0x08 del binario
     /// default: 0
-    #[serde(default)]
     pub screen_shake: AnimationTimingScreenShake,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -4026,39 +3974,32 @@ impl Default for AnimationTiming {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Attribute {
     /// El número con el que el array nombra a este elemento.
-    #[serde(default)]
     pub id: i32,
     /// campo 0x01 del binario
-    #[serde(default)]
     pub name: String,
     /// campo 0x02 del binario, se guarda aunque valga el default
     /// default: 0
-    #[serde(default)]
     pub r#type: AttributeType,
     /// campo 0x0b del binario
     /// default: 300
-    #[serde(default)]
     pub a_rate: i32,
     /// campo 0x0c del binario
     /// default: 200
-    #[serde(default)]
     pub b_rate: i32,
     /// campo 0x0d del binario
     /// default: 100
-    #[serde(default)]
     pub c_rate: i32,
     /// campo 0x0e del binario
     /// default: 50
-    #[serde(default)]
     pub d_rate: i32,
     /// campo 0x0f del binario
     /// default: 0
-    #[serde(default)]
     pub e_rate: i32,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -4080,19 +4021,17 @@ impl Default for Attribute {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct BattleCommand {
     /// El número con el que el array nombra a este elemento.
-    #[serde(default)]
     pub id: i32,
     /// campo 0x01 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub name: String,
     /// campo 0x02 del binario
     /// default: 0
-    #[serde(default)]
     pub r#type: BattleCommandType,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -4109,60 +4048,48 @@ impl Default for BattleCommand {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct BattleCommands {
     /// campo 0x02 del binario
     /// default: 0
-    #[serde(default)]
     pub placement: BattleCommandsPlacement,
     /// campo 0x06 del binario
     /// default: 0
-    #[serde(default)]
     pub row: BattleCommandsRowShown,
     /// campo 0x07 del binario
     /// default: 0
-    #[serde(default)]
     pub battle_type: BattleCommandsBattleType,
     /// campo 0x09 del binario
     /// default: True
-    #[serde(default)]
     pub unused_display_normal_parameters: bool,
     /// campo 0x0a del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub commands: Vec<BattleCommand>,
     /// campo 0x10 del binario
     /// default: 1
-    #[serde(default)]
     pub death_event: i32,
     /// campo 0x14 del binario
     /// default: 0
-    #[serde(default)]
     pub window_size: BattleCommandsWindowSize,
     /// campo 0x18 del binario
     /// default: 0
-    #[serde(default)]
     pub transparency: BattleCommandsTransparency,
     /// campo 0x19 del binario
     /// default: False
-    #[serde(default)]
     pub death_teleport: bool,
     /// campo 0x1a del binario
     /// default: 1
-    #[serde(default)]
     pub death_teleport_id: i32,
     /// campo 0x1b del binario
     /// default: 0
-    #[serde(default)]
     pub death_teleport_x: i32,
     /// campo 0x1c del binario
     /// default: 0
-    #[serde(default)]
     pub death_teleport_y: i32,
     /// campo 0x1d del binario
     /// default: 0
-    #[serde(default)]
     pub death_teleport_face: BattleCommandsFacing,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -4189,38 +4116,31 @@ impl Default for BattleCommands {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Chipset {
     /// El número con el que el array nombra a este elemento.
-    #[serde(default)]
     pub id: i32,
     /// campo 0x01 del binario
-    #[serde(default)]
     pub name: String,
     /// campo 0x02 del binario
-    #[serde(default)]
     pub chipset_name: String,
     /// campo 0x03 del binario
     /// default: [1]*162
-    #[serde(default)]
     pub terrain_data: Vec<i16>,
     /// campo 0x04 del binario
     /// default: [15]*162
-    #[serde(default)]
     pub passable_data_lower: Vec<u8>,
     /// campo 0x05 del binario
     /// default: [31]+[15]*143
-    #[serde(default)]
     pub passable_data_upper: Vec<u8>,
     /// campo 0x0b del binario
     /// default: 0
-    #[serde(default)]
     pub animation_type: ChipsetAnimType,
     /// campo 0x0c del binario
     /// default: 0
-    #[serde(default)]
     pub animation_speed: i32,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -4242,62 +4162,48 @@ impl Default for Chipset {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Class {
     /// El número con el que el array nombra a este elemento.
-    #[serde(default)]
     pub id: i32,
     /// campo 0x01 del binario
-    #[serde(default)]
     pub name: String,
     /// campo 0x15 del binario
     /// default: False
-    #[serde(default)]
     pub two_weapon: bool,
     /// campo 0x16 del binario
     /// default: False
-    #[serde(default)]
     pub lock_equipment: bool,
     /// campo 0x17 del binario
     /// default: False
-    #[serde(default)]
     pub auto_battle: bool,
     /// campo 0x18 del binario
     /// default: False
-    #[serde(default)]
     pub super_guard: bool,
     /// campo 0x1f del binario
-    #[serde(default)]
     pub parameters: Parameters,
     /// campo 0x29 del binario
     /// default: 300
-    #[serde(default)]
     pub exp_base: i32,
     /// campo 0x2a del binario
     /// default: 300
-    #[serde(default)]
     pub exp_inflation: i32,
     /// campo 0x2b del binario
     /// default: 0
-    #[serde(default)]
     pub exp_correction: i32,
     /// campo 0x3e del binario
     /// default: 0
-    #[serde(default)]
     pub battler_animation: i32,
     /// campo 0x3f del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub skills: Vec<Learning>,
     /// campo 0x48 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub state_ranks: Vec<u8>,
     /// campo 0x4a del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub attribute_ranks: Vec<u8>,
     /// campo 0x50 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub battle_commands: Vec<i32>,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -4326,30 +4232,25 @@ impl Default for Class {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct CommonEvent {
     /// El número con el que el array nombra a este elemento.
-    #[serde(default)]
     pub id: i32,
     /// campo 0x01 del binario
-    #[serde(default)]
     pub name: String,
     /// campo 0x0b del binario, se guarda aunque valga el default
     /// default: 5
-    #[serde(default)]
     pub trigger: CommonEventTrigger,
     /// campo 0x0c del binario
     /// default: False
-    #[serde(default)]
     pub switch_flag: bool,
     /// campo 0x0d del binario
     /// default: 1
-    #[serde(default)]
     pub switch_id: i32,
     /// campo 0x16 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub event_commands: Vec<EventCommand>,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -4369,58 +4270,43 @@ impl Default for CommonEvent {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Database {
     /// campo 0x0b del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub actors: Vec<Actor>,
     /// campo 0x0c del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub skills: Vec<Skill>,
     /// campo 0x0d del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub items: Vec<Item>,
     /// campo 0x0e del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub enemies: Vec<Enemy>,
     /// campo 0x0f del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub troops: Vec<Troop>,
     /// campo 0x10 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub terrains: Vec<Terrain>,
     /// campo 0x11 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub attributes: Vec<Attribute>,
     /// campo 0x12 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub states: Vec<State>,
     /// campo 0x13 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub animations: Vec<Animation>,
     /// campo 0x14 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub chipsets: Vec<Chipset>,
     /// campo 0x15 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub terms: Terms,
     /// campo 0x16 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub system: System,
     /// campo 0x17 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub switches: Vec<Switch>,
     /// campo 0x18 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub variables: Vec<Variable>,
     /// campo 0x19 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub commonevents: Vec<CommonEvent>,
     /// campo 0x1a del binario
     /// default: 0
-    #[serde(default)]
     pub version: i32,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -4450,16 +4336,15 @@ impl Default for Database {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Encounter {
     /// El número con el que el array nombra a este elemento.
-    #[serde(default)]
     pub id: i32,
     /// campo 0x01 del binario
     /// default: 0
-    #[serde(default)]
     pub troop_id: i32,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -4475,91 +4360,70 @@ impl Default for Encounter {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Enemy {
     /// El número con el que el array nombra a este elemento.
-    #[serde(default)]
     pub id: i32,
     /// campo 0x01 del binario
-    #[serde(default)]
     pub name: String,
     /// campo 0x02 del binario
-    #[serde(default)]
     pub battler_name: String,
     /// campo 0x03 del binario
     /// default: 0
-    #[serde(default)]
     pub battler_hue: i32,
     /// campo 0x04 del binario
     /// default: 10
-    #[serde(default)]
     pub max_hp: i32,
     /// campo 0x05 del binario
     /// default: 10
-    #[serde(default)]
     pub max_sp: i32,
     /// campo 0x06 del binario
     /// default: 10
-    #[serde(default)]
     pub attack: i32,
     /// campo 0x07 del binario
     /// default: 10
-    #[serde(default)]
     pub defense: i32,
     /// campo 0x08 del binario
     /// default: 10
-    #[serde(default)]
     pub spirit: i32,
     /// campo 0x09 del binario
     /// default: 10
-    #[serde(default)]
     pub agility: i32,
     /// campo 0x0a del binario
     /// default: False
-    #[serde(default)]
     pub transparent: bool,
     /// campo 0x0b del binario
     /// default: 0
-    #[serde(default)]
     pub exp: i32,
     /// campo 0x0c del binario
     /// default: 0
-    #[serde(default)]
     pub gold: i32,
     /// campo 0x0d del binario
     /// default: 0
-    #[serde(default)]
     pub drop_id: i32,
     /// campo 0x0e del binario
     /// default: 100
-    #[serde(default)]
     pub drop_prob: i32,
     /// campo 0x15 del binario
     /// default: False
-    #[serde(default)]
     pub critical_hit: bool,
     /// campo 0x16 del binario
     /// default: 30
-    #[serde(default)]
     pub critical_hit_chance: i32,
     /// campo 0x1a del binario
     /// default: False
-    #[serde(default)]
     pub miss: bool,
     /// campo 0x1c del binario
     /// default: False
-    #[serde(default)]
     pub levitate: bool,
     /// campo 0x20 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub state_ranks: Vec<u8>,
     /// campo 0x22 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub attribute_ranks: Vec<u8>,
     /// campo 0x2a del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub actions: Vec<EnemyAction>,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -4595,64 +4459,51 @@ impl Default for Enemy {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct EnemyAction {
     /// El número con el que el array nombra a este elemento.
-    #[serde(default)]
     pub id: i32,
     /// campo 0x01 del binario, se guarda aunque valga el default
     /// default: 0
-    #[serde(default)]
     pub kind: EnemyActionKind,
     /// campo 0x02 del binario, se guarda aunque valga el default
     /// default: 1
-    #[serde(default)]
     pub basic: EnemyActionBasic,
     /// campo 0x03 del binario
     /// default: 1
-    #[serde(default)]
     pub skill_id: i32,
     /// campo 0x04 del binario
     /// default: 1
-    #[serde(default)]
     pub enemy_id: i32,
     /// campo 0x05 del binario, se guarda aunque valga el default
     /// default: 0
-    #[serde(default)]
     pub condition_type: EnemyActionConditionType,
     /// campo 0x06 del binario
     /// default: 0
-    #[serde(default)]
     pub condition_param1: i32,
     /// campo 0x07 del binario
     /// default: 0
-    #[serde(default)]
     pub condition_param2: i32,
     /// campo 0x08 del binario
     /// default: 1
-    #[serde(default)]
     pub switch_id: i32,
     /// campo 0x09 del binario
     /// default: False
-    #[serde(default)]
     pub switch_on: bool,
     /// campo 0x0a del binario
     /// default: 1
-    #[serde(default)]
     pub switch_on_id: i32,
     /// campo 0x0b del binario
     /// default: False
-    #[serde(default)]
     pub switch_off: bool,
     /// campo 0x0c del binario
     /// default: 1
-    #[serde(default)]
     pub switch_off_id: i32,
     /// campo 0x0d del binario
     /// default: 50
-    #[serde(default)]
     pub rating: i32,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -4680,29 +4531,25 @@ impl Default for EnemyAction {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Equipment {
     /// campo 0x00 del binario
     /// default: 0
-    #[serde(default)]
     pub weapon_id: i32,
     /// campo 0x00 del binario
     /// default: 0
-    #[serde(default)]
     pub shield_id: i32,
     /// campo 0x00 del binario
     /// default: 0
-    #[serde(default)]
     pub armor_id: i32,
     /// campo 0x00 del binario
     /// default: 0
-    #[serde(default)]
     pub helmet_id: i32,
     /// campo 0x00 del binario
     /// default: 0
-    #[serde(default)]
     pub accessory_id: i32,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -4721,26 +4568,22 @@ impl Default for Equipment {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Event {
     /// El número con el que el array nombra a este elemento.
-    #[serde(default)]
     pub id: i32,
     /// campo 0x01 del binario
-    #[serde(default)]
     pub name: String,
     /// campo 0x02 del binario
     /// default: 0
-    #[serde(default)]
     pub x: i32,
     /// campo 0x03 del binario
     /// default: 0
-    #[serde(default)]
     pub y: i32,
     /// campo 0x05 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub pages: Vec<EventPage>,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -4759,23 +4602,20 @@ impl Default for Event {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct EventCommand {
     /// campo 0x00 del binario
     /// default: 0
-    #[serde(default)]
     pub code: EventCommandCode,
     /// campo 0x00 del binario
     /// default: 0
-    #[serde(default)]
     pub indent: i32,
     /// campo 0x00 del binario
-    #[serde(default)]
     pub string: String,
     /// campo 0x00 del binario
-    #[serde(default)]
     pub parameters: Vec<i32>,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -4793,68 +4633,53 @@ impl Default for EventCommand {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct EventPage {
     /// El número con el que el array nombra a este elemento.
-    #[serde(default)]
     pub id: i32,
     /// campo 0x02 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub condition: EventPageCondition,
     /// campo 0x15 del binario
-    #[serde(default)]
     pub character_name: String,
     /// campo 0x16 del binario
     /// default: 0
-    #[serde(default)]
     pub character_index: i32,
     /// campo 0x17 del binario, se guarda aunque valga el default
     /// default: 2
-    #[serde(default)]
     pub character_direction: EventPageDirection,
     /// campo 0x18 del binario
     /// default: 1
-    #[serde(default)]
     pub character_pattern: EventPageFrame,
     /// campo 0x19 del binario, se guarda aunque valga el default
     /// default: False
-    #[serde(default)]
     pub translucent: bool,
     /// campo 0x1f del binario, se guarda aunque valga el default
     /// default: 1
-    #[serde(default)]
     pub move_type: EventPageMoveType,
     /// campo 0x20 del binario
     /// default: 3
-    #[serde(default)]
     pub move_frequency: i32,
     /// campo 0x21 del binario, se guarda aunque valga el default
     /// default: 0
-    #[serde(default)]
     pub trigger: EventPageTrigger,
     /// campo 0x22 del binario, se guarda aunque valga el default
     /// default: 0
-    #[serde(default)]
     pub layer: EventPageLayers,
     /// campo 0x23 del binario, se guarda aunque valga el default
     /// default: False
-    #[serde(default)]
     pub overlap_forbidden: bool,
     /// campo 0x24 del binario, se guarda aunque valga el default
     /// default: 0
-    #[serde(default)]
     pub animation_type: EventPageAnimType,
     /// campo 0x25 del binario
     /// default: 3
-    #[serde(default)]
     pub move_speed: EventPageMoveSpeed,
     /// campo 0x29 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub move_route: MoveRoute,
     /// campo 0x34 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub event_commands: Vec<EventCommand>,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -4884,40 +4709,33 @@ impl Default for EventPage {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct EventPageCondition {
     /// campo 0x01 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub flags: EventPageConditionFlags,
     /// campo 0x02 del binario
     /// default: 1
-    #[serde(default)]
     pub switch_a_id: i32,
     /// campo 0x03 del binario
     /// default: 1
-    #[serde(default)]
     pub switch_b_id: i32,
     /// campo 0x04 del binario
     /// default: 1
-    #[serde(default)]
     pub variable_id: i32,
     /// campo 0x05 del binario
     /// default: 0
-    #[serde(default)]
     pub variable_value: i32,
     /// campo 0x06 del binario
     /// default: 1
-    #[serde(default)]
     pub item_id: i32,
     /// campo 0x07 del binario, se guarda aunque valga el default
     /// default: 1
-    #[serde(default)]
     pub actor_id: i32,
     /// campo 0x08 del binario
     /// default: 0
-    #[serde(default)]
     pub timer_sec: i32,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -4939,195 +4757,148 @@ impl Default for EventPageCondition {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Item {
     /// El número con el que el array nombra a este elemento.
-    #[serde(default)]
     pub id: i32,
     /// campo 0x01 del binario
-    #[serde(default)]
     pub name: String,
     /// campo 0x02 del binario
-    #[serde(default)]
     pub description: String,
     /// campo 0x03 del binario, se guarda aunque valga el default
     /// default: 0
-    #[serde(default)]
     pub r#type: ItemType,
     /// campo 0x05 del binario
     /// default: 0
-    #[serde(default)]
     pub price: i32,
     /// campo 0x06 del binario
     /// default: 1
-    #[serde(default)]
     pub uses: i32,
     /// campo 0x0b del binario
     /// default: 0
-    #[serde(default)]
     pub atk_points1: i32,
     /// campo 0x0c del binario
     /// default: 0
-    #[serde(default)]
     pub def_points1: i32,
     /// campo 0x0d del binario
     /// default: 0
-    #[serde(default)]
     pub spi_points1: i32,
     /// campo 0x0e del binario
     /// default: 0
-    #[serde(default)]
     pub agi_points1: i32,
     /// campo 0x0f del binario, se guarda aunque valga el default
     /// default: False
-    #[serde(default)]
     pub two_handed: bool,
     /// campo 0x10 del binario
     /// default: 0
-    #[serde(default)]
     pub sp_cost: i32,
     /// campo 0x11 del binario
     /// default: 90
-    #[serde(default)]
     pub hit: i32,
     /// campo 0x12 del binario
     /// default: 0
-    #[serde(default)]
     pub critical_hit: i32,
     /// campo 0x14 del binario
     /// default: 1
-    #[serde(default)]
     pub animation_id: i32,
     /// campo 0x15 del binario
     /// default: False
-    #[serde(default)]
     pub preemptive: bool,
     /// campo 0x16 del binario
     /// default: False
-    #[serde(default)]
     pub dual_attack: bool,
     /// campo 0x17 del binario
     /// default: False
-    #[serde(default)]
     pub attack_all: bool,
     /// campo 0x18 del binario
     /// default: False
-    #[serde(default)]
     pub ignore_evasion: bool,
     /// campo 0x19 del binario
     /// default: False
-    #[serde(default)]
     pub prevent_critical: bool,
     /// campo 0x1a del binario
     /// default: False
-    #[serde(default)]
     pub raise_evasion: bool,
     /// campo 0x1b del binario
     /// default: False
-    #[serde(default)]
     pub half_sp_cost: bool,
     /// campo 0x1c del binario
     /// default: False
-    #[serde(default)]
     pub no_terrain_damage: bool,
     /// campo 0x1f del binario, se guarda aunque valga el default
     /// default: False
-    #[serde(default)]
     pub entire_party: bool,
     /// campo 0x20 del binario
     /// default: 0
-    #[serde(default)]
     pub recover_hp_rate: i32,
     /// campo 0x21 del binario
     /// default: 0
-    #[serde(default)]
     pub recover_hp: i32,
     /// campo 0x22 del binario
     /// default: 0
-    #[serde(default)]
     pub recover_sp_rate: i32,
     /// campo 0x23 del binario
     /// default: 0
-    #[serde(default)]
     pub recover_sp: i32,
     /// campo 0x25 del binario
     /// default: False
-    #[serde(default)]
     pub occasion_field1: bool,
     /// campo 0x26 del binario
     /// default: False
-    #[serde(default)]
     pub ko_only: bool,
     /// campo 0x29 del binario
     /// default: 0
-    #[serde(default)]
     pub max_hp_points: i32,
     /// campo 0x2a del binario
     /// default: 0
-    #[serde(default)]
     pub max_sp_points: i32,
     /// campo 0x2b del binario
     /// default: 0
-    #[serde(default)]
     pub atk_points2: i32,
     /// campo 0x2c del binario
     /// default: 0
-    #[serde(default)]
     pub def_points2: i32,
     /// campo 0x2d del binario
     /// default: 0
-    #[serde(default)]
     pub spi_points2: i32,
     /// campo 0x2e del binario
     /// default: 0
-    #[serde(default)]
     pub agi_points2: i32,
     /// campo 0x33 del binario, se guarda aunque valga el default
     /// default: 0
-    #[serde(default)]
     pub using_message: i32,
     /// campo 0x35 del binario
     /// default: 1
-    #[serde(default)]
     pub skill_id: i32,
     /// campo 0x37 del binario
     /// default: 1
-    #[serde(default)]
     pub switch_id: i32,
     /// campo 0x39 del binario
     /// default: True
-    #[serde(default)]
     pub occasion_field2: bool,
     /// campo 0x3a del binario
     /// default: False
-    #[serde(default)]
     pub occasion_battle: bool,
     /// campo 0x3e del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub actor_set: Vec<bool>,
     /// campo 0x40 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub state_set: Vec<bool>,
     /// campo 0x42 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub attribute_set: Vec<bool>,
     /// campo 0x43 del binario
     /// default: 0
-    #[serde(default)]
     pub state_chance: i32,
     /// campo 0x44 del binario
     /// default: False
-    #[serde(default)]
     pub reverse_state_effect: bool,
     /// campo 0x4b del binario
     /// default: 0
-    #[serde(default)]
     pub ranged_trajectory: ItemTrajectory,
     /// campo 0x4c del binario
     /// default: 0
-    #[serde(default)]
     pub ranged_target: ItemTarget,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -5189,20 +4960,18 @@ impl Default for Item {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Learning {
     /// El número con el que el array nombra a este elemento.
-    #[serde(default)]
     pub id: i32,
     /// campo 0x01 del binario
     /// default: 1
-    #[serde(default)]
     pub level: i32,
     /// campo 0x02 del binario
     /// default: 1
-    #[serde(default)]
     pub skill_id: i32,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -5219,126 +4988,96 @@ impl Default for Learning {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Map {
     /// campo 0x01 del binario
     /// default: 1
-    #[serde(default)]
     pub chipset_id: i32,
     /// campo 0x02 del binario
     /// default: 20
-    #[serde(default)]
     pub width: i32,
     /// campo 0x03 del binario
     /// default: 15
-    #[serde(default)]
     pub height: i32,
     /// campo 0x0b del binario, se guarda aunque valga el default
     /// default: 0
-    #[serde(default)]
     pub scroll_type: MapScrollType,
     /// campo 0x1f del binario
     /// default: False
-    #[serde(default)]
     pub parallax_flag: bool,
     /// campo 0x20 del binario
-    #[serde(default)]
     pub parallax_name: String,
     /// campo 0x21 del binario
     /// default: False
-    #[serde(default)]
     pub parallax_loop_x: bool,
     /// campo 0x22 del binario
     /// default: False
-    #[serde(default)]
     pub parallax_loop_y: bool,
     /// campo 0x23 del binario
     /// default: False
-    #[serde(default)]
     pub parallax_auto_loop_x: bool,
     /// campo 0x24 del binario
     /// default: 0
-    #[serde(default)]
     pub parallax_sx: i32,
     /// campo 0x25 del binario
     /// default: False
-    #[serde(default)]
     pub parallax_auto_loop_y: bool,
     /// campo 0x26 del binario
     /// default: 0
-    #[serde(default)]
     pub parallax_sy: i32,
     /// campo 0x28 del binario
     /// default: False
-    #[serde(default)]
     pub generator_flag: bool,
     /// campo 0x29 del binario
     /// default: 0
-    #[serde(default)]
     pub generator_mode: MapGeneratorMode,
     /// campo 0x2a del binario
     /// default: False
-    #[serde(default)]
     pub top_level: bool,
     /// campo 0x30 del binario
     /// default: 0
-    #[serde(default)]
     pub generator_tiles: MapGeneratorTiles,
     /// campo 0x31 del binario
     /// default: 4
-    #[serde(default)]
     pub generator_width: i32,
     /// campo 0x32 del binario
     /// default: 1
-    #[serde(default)]
     pub generator_height: i32,
     /// campo 0x33 del binario
     /// default: True
-    #[serde(default)]
     pub generator_surround: bool,
     /// campo 0x34 del binario
     /// default: True
-    #[serde(default)]
     pub generator_upper_wall: bool,
     /// campo 0x35 del binario
     /// default: True
-    #[serde(default)]
     pub generator_floor_b: bool,
     /// campo 0x36 del binario
     /// default: True
-    #[serde(default)]
     pub generator_floor_c: bool,
     /// campo 0x37 del binario
     /// default: True
-    #[serde(default)]
     pub generator_extra_b: bool,
     /// campo 0x38 del binario
     /// default: True
-    #[serde(default)]
     pub generator_extra_c: bool,
     /// campo 0x3c del binario
-    #[serde(default)]
     pub generator_x: Vec<u32>,
     /// campo 0x3d del binario
-    #[serde(default)]
     pub generator_y: Vec<u32>,
     /// campo 0x3e del binario
-    #[serde(default)]
     pub generator_tile_ids: Vec<i16>,
     /// campo 0x47 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub lower_layer: Vec<i16>,
     /// campo 0x48 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub upper_layer: Vec<i16>,
     /// campo 0x51 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub events: Vec<Event>,
     /// campo 0x5b del binario
     /// default: 0
-    #[serde(default)]
     pub save_count: i32,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -5383,75 +5122,58 @@ impl Default for Map {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct MapInfo {
     /// El número con el que el array nombra a este elemento.
-    #[serde(default)]
     pub id: i32,
     /// campo 0x01 del binario
-    #[serde(default)]
     pub name: String,
     /// campo 0x02 del binario
     /// default: 0
-    #[serde(default)]
     pub parent_map: i32,
     /// campo 0x03 del binario
     /// default: 0
-    #[serde(default)]
     pub indentation: i32,
     /// campo 0x04 del binario
     /// default: -1
-    #[serde(default)]
     pub r#type: TreeMapMapType,
     /// campo 0x05 del binario
     /// default: 0
-    #[serde(default)]
     pub scrollbar_x: i32,
     /// campo 0x06 del binario
     /// default: 0
-    #[serde(default)]
     pub scrollbar_y: i32,
     /// campo 0x07 del binario
     /// default: False
-    #[serde(default)]
     pub expanded_node: bool,
     /// campo 0x0b del binario, se guarda aunque valga el default
     /// default: 0
-    #[serde(default)]
     pub music_type: MapInfoMusicType,
     /// campo 0x0c del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub music: Music,
     /// campo 0x15 del binario, se guarda aunque valga el default
     /// default: 0
-    #[serde(default)]
     pub background_type: MapInfoBGMType,
     /// campo 0x16 del binario
-    #[serde(default)]
     pub background_name: String,
     /// campo 0x1f del binario, se guarda aunque valga el default
     /// default: 0
-    #[serde(default)]
     pub teleport: MapInfoTriState,
     /// campo 0x20 del binario, se guarda aunque valga el default
     /// default: 0
-    #[serde(default)]
     pub escape: MapInfoTriState,
     /// campo 0x21 del binario, se guarda aunque valga el default
     /// default: 0
-    #[serde(default)]
     pub save: MapInfoTriState,
     /// campo 0x29 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub encounters: Vec<Encounter>,
     /// campo 0x2c del binario
     /// default: 25
-    #[serde(default)]
     pub encounter_steps: i32,
     /// campo 0x33 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub area_rect: Rect,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -5483,28 +5205,24 @@ impl Default for MapInfo {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct MoveCommand {
     /// campo 0x00 del binario
     /// default: 0
-    #[serde(default)]
     pub command_id: MoveCommandCode,
     /// campo 0x00 del binario
-    #[serde(default)]
     pub parameter_string: String,
     /// campo 0x00 del binario
     /// default: 0
-    #[serde(default)]
     pub parameter_a: i32,
     /// campo 0x00 del binario
     /// default: 0
-    #[serde(default)]
     pub parameter_b: i32,
     /// campo 0x00 del binario
     /// default: 0
-    #[serde(default)]
     pub parameter_c: i32,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -5523,20 +5241,18 @@ impl Default for MoveCommand {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct MoveRoute {
     /// campo 0x0c del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub move_commands: Vec<MoveCommand>,
     /// campo 0x15 del binario
     /// default: True
-    #[serde(default)]
     pub repeat: bool,
     /// campo 0x16 del binario
     /// default: False
-    #[serde(default)]
     pub skippable: bool,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -5553,29 +5269,25 @@ impl Default for MoveRoute {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Music {
     /// campo 0x01 del binario, se guarda aunque valga el default
     /// default: "(OFF)"
-    #[serde(default)]
     pub name: String,
     /// campo 0x02 del binario
     /// default: 0
-    #[serde(default)]
     pub fadein: i32,
     /// campo 0x03 del binario
     /// default: 100
-    #[serde(default)]
     pub volume: i32,
     /// campo 0x04 del binario
     /// default: 100
-    #[serde(default)]
     pub tempo: i32,
     /// campo 0x05 del binario
     /// default: 50
-    #[serde(default)]
     pub balance: i32,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -5594,27 +5306,22 @@ impl Default for Music {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Parameters {
     /// campo 0x00 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub maxhp: Vec<i16>,
     /// campo 0x00 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub maxsp: Vec<i16>,
     /// campo 0x00 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub attack: Vec<i16>,
     /// campo 0x00 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub defense: Vec<i16>,
     /// campo 0x00 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub spirit: Vec<i16>,
     /// campo 0x00 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub agility: Vec<i16>,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -5634,25 +5341,22 @@ impl Default for Parameters {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Rect {
     /// campo 0x00 del binario
     /// default: 0
-    #[serde(default)]
     pub l: u32,
     /// campo 0x00 del binario
     /// default: 0
-    #[serde(default)]
     pub t: u32,
     /// campo 0x00 del binario
     /// default: 0
-    #[serde(default)]
     pub r: u32,
     /// campo 0x00 del binario
     /// default: 0
-    #[serde(default)]
     pub b: u32,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -5670,54 +5374,40 @@ impl Default for Rect {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Save {
     /// campo 0x64 del binario
-    #[serde(default)]
     pub title: SaveTitle,
     /// campo 0x65 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub system: SaveSystem,
     /// campo 0x66 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub screen: SaveScreen,
     /// campo 0x67 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub pictures: Vec<SavePicture>,
     /// campo 0x68 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub party_location: SavePartyLocation,
     /// campo 0x69 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub boat_location: SaveVehicleLocation,
     /// campo 0x6a del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub ship_location: SaveVehicleLocation,
     /// campo 0x6b del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub airship_location: SaveVehicleLocation,
     /// campo 0x6c del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub actors: Vec<SaveActor>,
     /// campo 0x6d del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub inventory: SaveInventory,
     /// campo 0x6e del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub targets: Vec<SaveTarget>,
     /// campo 0x6f del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub map_info: SaveMapInfo,
     /// campo 0x70 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub panorama: SavePanorama,
     /// campo 0x71 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub foreground_event_execstate: SaveEventExecState,
     /// campo 0x72 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub common_events: Vec<SaveCommonEvent>,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -5746,96 +5436,74 @@ impl Default for Save {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct SaveActor {
     /// El número con el que el array nombra a este elemento.
-    #[serde(default)]
     pub id: i32,
     /// campo 0x01 del binario, se guarda aunque valga el default
     /// default: kEmptyName
-    #[serde(default)]
     pub name: String,
     /// campo 0x02 del binario, se guarda aunque valga el default
     /// default: kEmptyName
-    #[serde(default)]
     pub title: String,
     /// campo 0x0b del binario
-    #[serde(default)]
     pub sprite_name: String,
     /// campo 0x0c del binario
     /// default: 0
-    #[serde(default)]
     pub sprite_id: i32,
     /// campo 0x0d del binario
     /// default: 0
-    #[serde(default)]
     pub transparency: i32,
     /// campo 0x15 del binario
-    #[serde(default)]
     pub face_name: String,
     /// campo 0x16 del binario
     /// default: 0
-    #[serde(default)]
     pub face_id: i32,
     /// campo 0x1f del binario
     /// default: -1
-    #[serde(default)]
     pub level: i32,
     /// campo 0x20 del binario
     /// default: -1
-    #[serde(default)]
     pub exp: i32,
     /// campo 0x21 del binario
     /// default: -1
-    #[serde(default)]
     pub hp_mod: i32,
     /// campo 0x22 del binario
     /// default: -1
-    #[serde(default)]
     pub sp_mod: i32,
     /// campo 0x29 del binario
     /// default: 0
-    #[serde(default)]
     pub attack_mod: i32,
     /// campo 0x2a del binario
     /// default: 0
-    #[serde(default)]
     pub defense_mod: i32,
     /// campo 0x2b del binario
     /// default: 0
-    #[serde(default)]
     pub spirit_mod: i32,
     /// campo 0x2c del binario
     /// default: 0
-    #[serde(default)]
     pub agility_mod: i32,
     /// campo 0x34 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub skills: Vec<i16>,
     /// campo 0x3d del binario, se guarda aunque valga el default
     /// default: [0]*5
-    #[serde(default)]
     pub equipped: Vec<i16>,
     /// campo 0x47 del binario
     /// default: -1
-    #[serde(default)]
     pub current_hp: i32,
     /// campo 0x48 del binario
     /// default: -1
-    #[serde(default)]
     pub current_sp: i32,
     /// campo 0x52 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub status: Vec<i16>,
     /// campo 0x53 del binario
     /// default: False
-    #[serde(default)]
     pub changed_battle_commands: bool,
     /// campo 0x5a del binario
     /// default: -1
-    #[serde(default)]
     pub class_id: i32,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -5872,15 +5540,14 @@ impl Default for SaveActor {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct SaveCommonEvent {
     /// El número con el que el array nombra a este elemento.
-    #[serde(default)]
     pub id: i32,
     /// campo 0x01 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub parallel_event_execstate: SaveEventExecState,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -5896,30 +5563,25 @@ impl Default for SaveCommonEvent {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct SaveEventExecFrame {
     /// El número con el que el array nombra a este elemento.
-    #[serde(default)]
     pub id: i32,
     /// campo 0x02 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub commands: Vec<EventCommand>,
     /// campo 0x0b del binario
     /// default: 0
-    #[serde(default)]
     pub current_command: i32,
     /// campo 0x0c del binario
     /// default: 0
-    #[serde(default)]
     pub event_id: i32,
     /// campo 0x0d del binario
     /// default: False
-    #[serde(default)]
     pub triggered_by_decision_key: bool,
     /// campo 0x16 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub subcommand_path: Vec<u8>,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -5939,96 +5601,75 @@ impl Default for SaveEventExecFrame {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct SaveEventExecState {
     /// campo 0x01 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub stack: Vec<SaveEventExecFrame>,
     /// campo 0x04 del binario
     /// default: False
-    #[serde(default)]
     pub show_message: bool,
     /// campo 0x0b del binario
     /// default: False
-    #[serde(default)]
     pub abort_on_escape: bool,
     /// campo 0x0d del binario
     /// default: False
-    #[serde(default)]
     pub wait_movement: bool,
     /// campo 0x15 del binario
     /// default: False
-    #[serde(default)]
     pub keyinput_wait: bool,
     /// campo 0x16 del binario
     /// default: 0
-    #[serde(default)]
     pub keyinput_variable: u8,
     /// campo 0x17 del binario
     /// default: False
-    #[serde(default)]
     pub keyinput_all_directions: bool,
     /// campo 0x18 del binario
     /// default: 0
-    #[serde(default)]
     pub keyinput_decision: i32,
     /// campo 0x19 del binario
     /// default: 0
-    #[serde(default)]
     pub keyinput_cancel: i32,
     /// campo 0x1a del binario
     /// default: 0
-    #[serde(default)]
     pub keyinput_2kshift_2k3numbers: i32,
     /// campo 0x1b del binario
     /// default: 0
-    #[serde(default)]
     pub keyinput_2kdown_2k3operators: i32,
     /// campo 0x1c del binario
     /// default: 0
-    #[serde(default)]
     pub keyinput_2kleft_2k3shift: i32,
     /// campo 0x1d del binario
     /// default: 0
-    #[serde(default)]
     pub keyinput_2kright: i32,
     /// campo 0x1e del binario
     /// default: 0
-    #[serde(default)]
     pub keyinput_2kup: i32,
     /// campo 0x1f del binario
     /// default: 0
-    #[serde(default)]
     pub wait_time: i32,
     /// campo 0x20 del binario
     /// default: 0
-    #[serde(default)]
     pub keyinput_time_variable: i32,
     /// campo 0x23 del binario
     /// default: 0
-    #[serde(default)]
     pub keyinput_2k3down: i32,
     /// campo 0x24 del binario
     /// default: 0
-    #[serde(default)]
     pub keyinput_2k3left: i32,
     /// campo 0x25 del binario
     /// default: 0
-    #[serde(default)]
     pub keyinput_2k3right: i32,
     /// campo 0x26 del binario
     /// default: 0
-    #[serde(default)]
     pub keyinput_2k3up: i32,
     /// campo 0x29 del binario
     /// default: False
-    #[serde(default)]
     pub keyinput_timed: bool,
     /// campo 0x2a del binario
     /// default: False
-    #[serde(default)]
     pub wait_key_enter: bool,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -6064,81 +5705,63 @@ impl Default for SaveEventExecState {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct SaveInventory {
     /// campo 0x02 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub party: Vec<i16>,
     /// campo 0x0c del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub item_ids: Vec<i16>,
     /// campo 0x0d del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub item_counts: Vec<u8>,
     /// campo 0x0e del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub item_usage: Vec<u8>,
     /// campo 0x15 del binario
     /// default: 0
-    #[serde(default)]
     pub gold: i32,
     /// campo 0x17 del binario
     /// default: 0
-    #[serde(default)]
     pub timer1_frames: i32,
     /// campo 0x18 del binario
     /// default: False
-    #[serde(default)]
     pub timer1_active: bool,
     /// campo 0x19 del binario
     /// default: False
-    #[serde(default)]
     pub timer1_visible: bool,
     /// campo 0x1a del binario
     /// default: False
-    #[serde(default)]
     pub timer1_battle: bool,
     /// campo 0x1b del binario
     /// default: 0
-    #[serde(default)]
     pub timer2_frames: i32,
     /// campo 0x1c del binario
     /// default: False
-    #[serde(default)]
     pub timer2_active: bool,
     /// campo 0x1d del binario
     /// default: False
-    #[serde(default)]
     pub timer2_visible: bool,
     /// campo 0x1e del binario
     /// default: False
-    #[serde(default)]
     pub timer2_battle: bool,
     /// campo 0x20 del binario
     /// default: 0
-    #[serde(default)]
     pub battles: i32,
     /// campo 0x21 del binario
     /// default: 0
-    #[serde(default)]
     pub defeats: i32,
     /// campo 0x22 del binario
     /// default: 0
-    #[serde(default)]
     pub escapes: i32,
     /// campo 0x23 del binario
     /// default: 0
-    #[serde(default)]
     pub victories: i32,
     /// campo 0x29 del binario
     /// default: 0
-    #[serde(default)]
     pub turns: i32,
     /// campo 0x2a del binario
     /// default: 0
-    #[serde(default)]
     pub steps: i32,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -6171,27 +5794,23 @@ impl Default for SaveInventory {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct SaveMapEvent {
     /// El número con el que el array nombra a este elemento.
-    #[serde(default)]
     pub id: i32,
     /// campo 0x65 del binario
     /// default: False
-    #[serde(default)]
     pub waiting_execution: bool,
     /// campo 0x66 del binario
     /// default: 0
-    #[serde(default)]
     pub original_move_route_index: i32,
     /// campo 0x67 del binario
     /// default: False
-    #[serde(default)]
     pub triggered_by_decision_key: bool,
     /// campo 0x6c del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub parallel_event_execstate: SaveEventExecState,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -6210,163 +5829,125 @@ impl Default for SaveMapEvent {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct SaveMapEventBase {
     /// campo 0x01 del binario
     /// default: True
-    #[serde(default)]
     pub active: bool,
     /// campo 0x0b del binario, se guarda aunque valga el default
     /// default: 0
-    #[serde(default)]
     pub map_id: i32,
     /// campo 0x0c del binario, se guarda aunque valga el default
     /// default: 0
-    #[serde(default)]
     pub position_x: i32,
     /// campo 0x0d del binario, se guarda aunque valga el default
     /// default: 0
-    #[serde(default)]
     pub position_y: i32,
     /// campo 0x15 del binario, se guarda aunque valga el default
     /// default: 2
-    #[serde(default)]
     pub direction: i32,
     /// campo 0x16 del binario, se guarda aunque valga el default
     /// default: 2
-    #[serde(default)]
     pub facing: i32,
     /// campo 0x17 del binario
     /// default: 1
-    #[serde(default)]
     pub anim_frame: i32,
     /// campo 0x18 del binario
     /// default: 0
-    #[serde(default)]
     pub transparency: i32,
     /// campo 0x1f del binario
     /// default: 0
-    #[serde(default)]
     pub remaining_step: i32,
     /// campo 0x20 del binario
     /// default: 2
-    #[serde(default)]
     pub move_frequency: i32,
     /// campo 0x21 del binario, se guarda aunque valga el default
     /// default: 1
-    #[serde(default)]
     pub layer: i32,
     /// campo 0x22 del binario
     /// default: False
-    #[serde(default)]
     pub overlap_forbidden: bool,
     /// campo 0x23 del binario, se guarda aunque valga el default
     /// default: 0
-    #[serde(default)]
     pub animation_type: EventPageAnimType,
     /// campo 0x24 del binario
     /// default: False
-    #[serde(default)]
     pub lock_facing: bool,
     /// campo 0x25 del binario, se guarda aunque valga el default
     /// default: 4
-    #[serde(default)]
     pub move_speed: i32,
     /// campo 0x29 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub move_route: MoveRoute,
     /// campo 0x2a del binario
     /// default: False
-    #[serde(default)]
     pub move_route_overwrite: bool,
     /// campo 0x2b del binario
     /// default: 0
-    #[serde(default)]
     pub move_route_index: i32,
     /// campo 0x2c del binario
     /// default: False
-    #[serde(default)]
     pub move_route_finished: bool,
     /// campo 0x2e del binario
     /// default: False
-    #[serde(default)]
     pub sprite_hidden: bool,
     /// campo 0x2f del binario
     /// default: False
-    #[serde(default)]
     pub move_route_through: bool,
     /// campo 0x30 del binario
     /// default: 0
-    #[serde(default)]
     pub anim_paused: i32,
     /// campo 0x33 del binario
     /// default: False
-    #[serde(default)]
     pub through: bool,
     /// campo 0x34 del binario
     /// default: 0
-    #[serde(default)]
     pub stop_count: i32,
     /// campo 0x35 del binario
     /// default: 0
-    #[serde(default)]
     pub anim_count: i32,
     /// campo 0x36 del binario
     /// default: 0
-    #[serde(default)]
     pub max_stop_count: i32,
     /// campo 0x3d del binario
     /// default: False
-    #[serde(default)]
     pub jumping: bool,
     /// campo 0x3e del binario
     /// default: 0
-    #[serde(default)]
     pub begin_jump_x: i32,
     /// campo 0x3f del binario
     /// default: 0
-    #[serde(default)]
     pub begin_jump_y: i32,
     /// campo 0x47 del binario
     /// default: False
-    #[serde(default)]
     pub pause: bool,
     /// campo 0x48 del binario
     /// default: False
-    #[serde(default)]
     pub flying: bool,
     /// campo 0x49 del binario
-    #[serde(default)]
     pub sprite_name: String,
     /// campo 0x4a del binario
     /// default: 0
-    #[serde(default)]
     pub sprite_id: i32,
     /// campo 0x4b del binario
     /// default: False
-    #[serde(default)]
     pub processed: bool,
     /// campo 0x51 del binario
     /// default: -1
-    #[serde(default)]
     pub flash_red: i32,
     /// campo 0x52 del binario
     /// default: -1
-    #[serde(default)]
     pub flash_green: i32,
     /// campo 0x53 del binario
     /// default: -1
-    #[serde(default)]
     pub flash_blue: i32,
     /// campo 0x54 del binario
     /// default: 0.0
-    #[serde(default)]
     pub flash_current_level: f64,
     /// campo 0x55 del binario
     /// default: 0
-    #[serde(default)]
     pub flash_time_left: i32,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -6419,63 +6000,50 @@ impl Default for SaveMapEventBase {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct SaveMapInfo {
     /// campo 0x01 del binario
     /// default: 0
-    #[serde(default)]
     pub position_x: i32,
     /// campo 0x02 del binario
     /// default: 0
-    #[serde(default)]
     pub position_y: i32,
     /// campo 0x03 del binario
     /// default: -1
-    #[serde(default)]
     pub encounter_steps: i32,
     /// campo 0x05 del binario
     /// default: 0
-    #[serde(default)]
     pub chipset_id: i32,
     /// campo 0x0b del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub events: Vec<SaveMapEvent>,
     /// campo 0x15 del binario, se guarda aunque valga el default
     /// default: [x for x in range(0, 144)]
-    #[serde(default)]
     pub lower_tiles: Vec<u8>,
     /// campo 0x16 del binario, se guarda aunque valga el default
     /// default: [x for x in range(0, 144)]
-    #[serde(default)]
     pub upper_tiles: Vec<u8>,
     /// campo 0x20 del binario
-    #[serde(default)]
     pub parallax_name: String,
     /// campo 0x21 del binario
     /// default: False
-    #[serde(default)]
     pub parallax_horz: bool,
     /// campo 0x22 del binario
     /// default: False
-    #[serde(default)]
     pub parallax_vert: bool,
     /// campo 0x23 del binario
     /// default: False
-    #[serde(default)]
     pub parallax_horz_auto: bool,
     /// campo 0x24 del binario
     /// default: 0
-    #[serde(default)]
     pub parallax_horz_speed: i32,
     /// campo 0x25 del binario
     /// default: False
-    #[serde(default)]
     pub parallax_vert_auto: bool,
     /// campo 0x26 del binario
     /// default: 0
-    #[serde(default)]
     pub parallax_vert_speed: i32,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -6503,17 +6071,16 @@ impl Default for SaveMapInfo {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct SavePanorama {
     /// campo 0x01 del binario
     /// default: 0
-    #[serde(default)]
     pub pan_x: i32,
     /// campo 0x02 del binario
     /// default: 0
-    #[serde(default)]
     pub pan_y: i32,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -6529,73 +6096,58 @@ impl Default for SavePanorama {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct SavePartyLocation {
     /// campo 0x65 del binario
     /// default: False
-    #[serde(default)]
     pub boarding: bool,
     /// campo 0x66 del binario
     /// default: False
-    #[serde(default)]
     pub aboard: bool,
     /// campo 0x67 del binario
     /// default: 0
-    #[serde(default)]
     pub vehicle: SavePartyLocationVehicleType,
     /// campo 0x68 del binario
     /// default: False
-    #[serde(default)]
     pub unboarding: bool,
     /// campo 0x69 del binario
     /// default: 4
-    #[serde(default)]
     pub preboard_move_speed: i32,
     /// campo 0x6c del binario
     /// default: False
-    #[serde(default)]
     pub menu_calling: bool,
     /// campo 0x6f del binario
     /// default: 1
-    #[serde(default)]
     pub pan_state: SavePartyLocationPanState,
     /// campo 0x70 del binario
     /// default: kPanXDefault
-    #[serde(default)]
     pub pan_current_x: i32,
     /// campo 0x71 del binario
     /// default: kPanYDefault
-    #[serde(default)]
     pub pan_current_y: i32,
     /// campo 0x72 del binario
     /// default: kPanXDefault
-    #[serde(default)]
     pub pan_finish_x: i32,
     /// campo 0x73 del binario
     /// default: kPanYDefault
-    #[serde(default)]
     pub pan_finish_y: i32,
     /// campo 0x79 del binario
     /// default: kPanSpeedDefault
-    #[serde(default)]
     pub pan_speed: i32,
     /// campo 0x7c del binario
     /// default: 0
-    #[serde(default)]
     pub total_encounter_rate: i32,
     /// campo 0x7d del binario
     /// default: False
-    #[serde(default)]
     pub encounter_calling: bool,
     /// campo 0x83 del binario
     /// default: 0
-    #[serde(default)]
     pub map_save_count: i32,
     /// campo 0x84 del binario
     /// default: 0
-    #[serde(default)]
     pub database_save_count: i32,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -6625,139 +6177,107 @@ impl Default for SavePartyLocation {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct SavePicture {
     /// El número con el que el array nombra a este elemento.
-    #[serde(default)]
     pub id: i32,
     /// campo 0x01 del binario
-    #[serde(default)]
     pub name: String,
     /// campo 0x02 del binario
     /// default: 0.0
-    #[serde(default)]
     pub start_x: f64,
     /// campo 0x03 del binario
     /// default: 0.0
-    #[serde(default)]
     pub start_y: f64,
     /// campo 0x04 del binario
     /// default: 0.0
-    #[serde(default)]
     pub current_x: f64,
     /// campo 0x05 del binario
     /// default: 0.0
-    #[serde(default)]
     pub current_y: f64,
     /// campo 0x06 del binario
     /// default: False
-    #[serde(default)]
     pub fixed_to_map: bool,
     /// campo 0x07 del binario
     /// default: 100.0
-    #[serde(default)]
     pub current_magnify: f64,
     /// campo 0x08 del binario
     /// default: 0.0
-    #[serde(default)]
     pub current_top_trans: f64,
     /// campo 0x09 del binario
     /// default: False
-    #[serde(default)]
     pub use_transparent_color: bool,
     /// campo 0x0b del binario
     /// default: 100.0
-    #[serde(default)]
     pub current_red: f64,
     /// campo 0x0c del binario
     /// default: 100.0
-    #[serde(default)]
     pub current_green: f64,
     /// campo 0x0d del binario
     /// default: 100.0
-    #[serde(default)]
     pub current_blue: f64,
     /// campo 0x0e del binario
     /// default: 100.0
-    #[serde(default)]
     pub current_sat: f64,
     /// campo 0x0f del binario
     /// default: 0
-    #[serde(default)]
     pub effect_mode: SavePictureEffect,
     /// campo 0x10 del binario
     /// default: 0.0
-    #[serde(default)]
     pub current_effect_power: f64,
     /// campo 0x12 del binario
     /// default: 0.0
-    #[serde(default)]
     pub current_bot_trans: f64,
     /// campo 0x19 del binario
     /// default: 7
-    #[serde(default)]
     pub map_layer: SavePictureMapLayer,
     /// campo 0x1a del binario
     /// default: 0
-    #[serde(default)]
     pub battle_layer: SavePictureBattleLayer,
     /// campo 0x1b del binario
     /// default: 97
-    #[serde(default)]
     pub flags: SavePictureFlags,
     /// campo 0x1f del binario
     /// default: 0.0
-    #[serde(default)]
     pub finish_x: f64,
     /// campo 0x20 del binario
     /// default: 0.0
-    #[serde(default)]
     pub finish_y: f64,
     /// campo 0x21 del binario
     /// default: 100
-    #[serde(default)]
     pub finish_magnify: i32,
     /// campo 0x22 del binario
     /// default: 0
-    #[serde(default)]
     pub finish_top_trans: i32,
     /// campo 0x23 del binario
     /// default: 0
-    #[serde(default)]
     pub finish_bot_trans: i32,
     /// campo 0x29 del binario
     /// default: 100
-    #[serde(default)]
     pub finish_red: i32,
     /// campo 0x2a del binario
     /// default: 100
-    #[serde(default)]
     pub finish_green: i32,
     /// campo 0x2b del binario
     /// default: 100
-    #[serde(default)]
     pub finish_blue: i32,
     /// campo 0x2c del binario
     /// default: 100
-    #[serde(default)]
     pub finish_sat: i32,
     /// campo 0x2e del binario
     /// default: 0
-    #[serde(default)]
     pub finish_effect_power: i32,
     /// campo 0x33 del binario
     /// default: 0
-    #[serde(default)]
     pub time_left: i32,
     /// campo 0x34 del binario
     /// default: 0.0
-    #[serde(default)]
     pub current_rotation: f64,
     /// campo 0x35 del binario
     /// default: 0
-    #[serde(default)]
     pub current_waver: i32,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -6804,129 +6324,100 @@ impl Default for SavePicture {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct SaveScreen {
     /// campo 0x01 del binario
     /// default: 100
-    #[serde(default)]
     pub tint_finish_red: i32,
     /// campo 0x02 del binario
     /// default: 100
-    #[serde(default)]
     pub tint_finish_green: i32,
     /// campo 0x03 del binario
     /// default: 100
-    #[serde(default)]
     pub tint_finish_blue: i32,
     /// campo 0x04 del binario
     /// default: 100
-    #[serde(default)]
     pub tint_finish_sat: i32,
     /// campo 0x0b del binario
     /// default: 100.0
-    #[serde(default)]
     pub tint_current_red: f64,
     /// campo 0x0c del binario
     /// default: 100.0
-    #[serde(default)]
     pub tint_current_green: f64,
     /// campo 0x0d del binario
     /// default: 100.0
-    #[serde(default)]
     pub tint_current_blue: f64,
     /// campo 0x0e del binario
     /// default: 100.0
-    #[serde(default)]
     pub tint_current_sat: f64,
     /// campo 0x0f del binario
     /// default: 0
-    #[serde(default)]
     pub tint_time_left: i32,
     /// campo 0x14 del binario
     /// default: False
-    #[serde(default)]
     pub flash_continuous: bool,
     /// campo 0x15 del binario
     /// default: 0
-    #[serde(default)]
     pub flash_red: i32,
     /// campo 0x16 del binario
     /// default: 0
-    #[serde(default)]
     pub flash_green: i32,
     /// campo 0x17 del binario
     /// default: 0
-    #[serde(default)]
     pub flash_blue: i32,
     /// campo 0x18 del binario
     /// default: 0.0
-    #[serde(default)]
     pub flash_current_level: f64,
     /// campo 0x19 del binario
     /// default: 0
-    #[serde(default)]
     pub flash_time_left: i32,
     /// campo 0x1e del binario
     /// default: False
-    #[serde(default)]
     pub shake_continuous: bool,
     /// campo 0x1f del binario
     /// default: 0
-    #[serde(default)]
     pub shake_strength: i32,
     /// campo 0x20 del binario
     /// default: 0
-    #[serde(default)]
     pub shake_speed: i32,
     /// campo 0x21 del binario
     /// default: 0
-    #[serde(default)]
     pub shake_position: i32,
     /// campo 0x22 del binario
     /// default: 0
-    #[serde(default)]
     pub shake_position_y: i32,
     /// campo 0x23 del binario
     /// default: 0
-    #[serde(default)]
     pub shake_time_left: i32,
     /// campo 0x29 del binario
     /// default: 0
-    #[serde(default)]
     pub pan_x: i32,
     /// campo 0x2a del binario
     /// default: 0
-    #[serde(default)]
     pub pan_y: i32,
     /// campo 0x2b del binario
     /// default: 0
-    #[serde(default)]
     pub battleanim_id: i32,
     /// campo 0x2c del binario
     /// default: 0
-    #[serde(default)]
     pub battleanim_target: i32,
     /// campo 0x2d del binario
     /// default: 0
-    #[serde(default)]
     pub battleanim_frame: i32,
     /// campo 0x2e del binario
     /// default: False
-    #[serde(default)]
     pub battleanim_active: bool,
     /// campo 0x2f del binario
     /// default: False
-    #[serde(default)]
     pub battleanim_global: bool,
     /// campo 0x30 del binario
     /// default: 0
-    #[serde(default)]
     pub weather: i32,
     /// campo 0x31 del binario
     /// default: 0
-    #[serde(default)]
     pub weather_strength: i32,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -6970,216 +6461,163 @@ impl Default for SaveScreen {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct SaveSystem {
     /// campo 0x01 del binario, se guarda aunque valga el default
     /// default: 0
-    #[serde(default)]
     pub scene: SaveSystemScene,
     /// campo 0x0b del binario
     /// default: 0
-    #[serde(default)]
     pub frame_count: i32,
     /// campo 0x15 del binario
-    #[serde(default)]
     pub graphics_name: String,
     /// campo 0x16 del binario
     /// default: 0
-    #[serde(default)]
     pub message_stretch: SystemStretch,
     /// campo 0x17 del binario
     /// default: 0
-    #[serde(default)]
     pub font_id: SystemFont,
     /// campo 0x20 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub switches: Vec<bool>,
     /// campo 0x22 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub variables: Vec<i32>,
     /// campo 0x29 del binario
     /// default: 0
-    #[serde(default)]
     pub message_transparent: i32,
     /// campo 0x2a del binario
     /// default: 2
-    #[serde(default)]
     pub message_position: i32,
     /// campo 0x2b del binario
     /// default: 1
-    #[serde(default)]
     pub message_prevent_overlap: i32,
     /// campo 0x2c del binario
     /// default: 0
-    #[serde(default)]
     pub message_continue_events: i32,
     /// campo 0x33 del binario
-    #[serde(default)]
     pub face_name: String,
     /// campo 0x34 del binario
     /// default: 0
-    #[serde(default)]
     pub face_id: i32,
     /// campo 0x35 del binario
     /// default: False
-    #[serde(default)]
     pub face_right: bool,
     /// campo 0x36 del binario
     /// default: False
-    #[serde(default)]
     pub face_flip: bool,
     /// campo 0x37 del binario
     /// default: False
-    #[serde(default)]
     pub event_message_active: bool,
     /// campo 0x3d del binario
     /// default: False
-    #[serde(default)]
     pub music_stopping: bool,
     /// campo 0x47 del binario, se guarda aunque valga el default
     /// default: Music{ "" }
-    #[serde(default)]
     pub title_music: Music,
     /// campo 0x48 del binario, se guarda aunque valga el default
     /// default: Music{ "" }
-    #[serde(default)]
     pub battle_music: Music,
     /// campo 0x49 del binario, se guarda aunque valga el default
     /// default: Music{ "" }
-    #[serde(default)]
     pub battle_end_music: Music,
     /// campo 0x4a del binario, se guarda aunque valga el default
     /// default: Music{ "" }
-    #[serde(default)]
     pub inn_music: Music,
     /// campo 0x4b del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub current_music: Music,
     /// campo 0x4c del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub before_vehicle_music: Music,
     /// campo 0x4d del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub before_battle_music: Music,
     /// campo 0x4e del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub stored_music: Music,
     /// campo 0x4f del binario, se guarda aunque valga el default
     /// default: Music{ "" }
-    #[serde(default)]
     pub boat_music: Music,
     /// campo 0x50 del binario, se guarda aunque valga el default
     /// default: Music{ "" }
-    #[serde(default)]
     pub ship_music: Music,
     /// campo 0x51 del binario, se guarda aunque valga el default
     /// default: Music{ "" }
-    #[serde(default)]
     pub airship_music: Music,
     /// campo 0x52 del binario, se guarda aunque valga el default
     /// default: Music{ "" }
-    #[serde(default)]
     pub gameover_music: Music,
     /// campo 0x5b del binario, se guarda aunque valga el default
     /// default: Sound{ "" }
-    #[serde(default)]
     pub cursor_se: Sound,
     /// campo 0x5c del binario, se guarda aunque valga el default
     /// default: Sound{ "" }
-    #[serde(default)]
     pub decision_se: Sound,
     /// campo 0x5d del binario, se guarda aunque valga el default
     /// default: Sound{ "" }
-    #[serde(default)]
     pub cancel_se: Sound,
     /// campo 0x5e del binario, se guarda aunque valga el default
     /// default: Sound{ "" }
-    #[serde(default)]
     pub buzzer_se: Sound,
     /// campo 0x5f del binario, se guarda aunque valga el default
     /// default: Sound{ "" }
-    #[serde(default)]
     pub battle_se: Sound,
     /// campo 0x60 del binario, se guarda aunque valga el default
     /// default: Sound{ "" }
-    #[serde(default)]
     pub escape_se: Sound,
     /// campo 0x61 del binario, se guarda aunque valga el default
     /// default: Sound{ "" }
-    #[serde(default)]
     pub enemy_attack_se: Sound,
     /// campo 0x62 del binario, se guarda aunque valga el default
     /// default: Sound{ "" }
-    #[serde(default)]
     pub enemy_damaged_se: Sound,
     /// campo 0x63 del binario, se guarda aunque valga el default
     /// default: Sound{ "" }
-    #[serde(default)]
     pub actor_damaged_se: Sound,
     /// campo 0x64 del binario, se guarda aunque valga el default
     /// default: Sound{ "" }
-    #[serde(default)]
     pub dodge_se: Sound,
     /// campo 0x65 del binario, se guarda aunque valga el default
     /// default: Sound{ "" }
-    #[serde(default)]
     pub enemy_death_se: Sound,
     /// campo 0x66 del binario, se guarda aunque valga el default
     /// default: Sound{ "" }
-    #[serde(default)]
     pub item_se: Sound,
     /// campo 0x6f del binario, se guarda aunque valga el default
     /// default: -1
-    #[serde(default)]
     pub transition_out: i8,
     /// campo 0x70 del binario, se guarda aunque valga el default
     /// default: -1
-    #[serde(default)]
     pub transition_in: i8,
     /// campo 0x71 del binario, se guarda aunque valga el default
     /// default: -1
-    #[serde(default)]
     pub battle_start_fadeout: i8,
     /// campo 0x72 del binario, se guarda aunque valga el default
     /// default: -1
-    #[serde(default)]
     pub battle_start_fadein: i8,
     /// campo 0x73 del binario, se guarda aunque valga el default
     /// default: -1
-    #[serde(default)]
     pub battle_end_fadeout: i8,
     /// campo 0x74 del binario, se guarda aunque valga el default
     /// default: -1
-    #[serde(default)]
     pub battle_end_fadein: i8,
     /// campo 0x79 del binario
     /// default: True
-    #[serde(default)]
     pub teleport_allowed: bool,
     /// campo 0x7a del binario
     /// default: True
-    #[serde(default)]
     pub escape_allowed: bool,
     /// campo 0x7b del binario
     /// default: True
-    #[serde(default)]
     pub save_allowed: bool,
     /// campo 0x7c del binario
     /// default: True
-    #[serde(default)]
     pub menu_allowed: bool,
     /// campo 0x7d del binario
-    #[serde(default)]
     pub background: String,
     /// campo 0x83 del binario
     /// default: 0
-    #[serde(default)]
     pub save_count: i32,
     /// campo 0x84 del binario
     /// default: 1
-    #[serde(default)]
     pub save_slot: i32,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -7247,32 +6685,27 @@ impl Default for SaveSystem {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct SaveTarget {
     /// El número con el que el array nombra a este elemento.
-    #[serde(default)]
     pub id: i32,
     /// campo 0x01 del binario
     /// default: 0
-    #[serde(default)]
     pub map_id: i32,
     /// campo 0x02 del binario
     /// default: 0
-    #[serde(default)]
     pub map_x: i32,
     /// campo 0x03 del binario
     /// default: 0
-    #[serde(default)]
     pub map_y: i32,
     /// campo 0x04 del binario
     /// default: False
-    #[serde(default)]
     pub switch_on: bool,
     /// campo 0x05 del binario
     /// default: 0
-    #[serde(default)]
     pub switch_id: i32,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -7292,52 +6725,41 @@ impl Default for SaveTarget {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct SaveTitle {
     /// campo 0x01 del binario
     /// default: 0.0
-    #[serde(default)]
     pub timestamp: f64,
     /// campo 0x0b del binario
-    #[serde(default)]
     pub hero_name: String,
     /// campo 0x0c del binario
     /// default: 0
-    #[serde(default)]
     pub hero_level: i32,
     /// campo 0x0d del binario
     /// default: 0
-    #[serde(default)]
     pub hero_hp: i32,
     /// campo 0x15 del binario
-    #[serde(default)]
     pub face1_name: String,
     /// campo 0x16 del binario
     /// default: 0
-    #[serde(default)]
     pub face1_id: i32,
     /// campo 0x17 del binario
-    #[serde(default)]
     pub face2_name: String,
     /// campo 0x18 del binario
     /// default: 0
-    #[serde(default)]
     pub face2_id: i32,
     /// campo 0x19 del binario
-    #[serde(default)]
     pub face3_name: String,
     /// campo 0x1a del binario
     /// default: 0
-    #[serde(default)]
     pub face3_id: i32,
     /// campo 0x1b del binario
-    #[serde(default)]
     pub face4_name: String,
     /// campo 0x1c del binario
     /// default: 0
-    #[serde(default)]
     pub face4_id: i32,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -7363,28 +6785,24 @@ impl Default for SaveTitle {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct SaveVehicleLocation {
     /// campo 0x65 del binario
     /// default: 0
-    #[serde(default)]
     pub vehicle: SaveVehicleLocationVehicleType,
     /// campo 0x6a del binario
     /// default: 0
-    #[serde(default)]
     pub remaining_ascent: i32,
     /// campo 0x6b del binario
     /// default: 0
-    #[serde(default)]
     pub remaining_descent: i32,
     /// campo 0x6f del binario
-    #[serde(default)]
     pub orig_sprite_name: String,
     /// campo 0x70 del binario
     /// default: 0
-    #[serde(default)]
     pub orig_sprite_id: i32,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -7403,121 +6821,92 @@ impl Default for SaveVehicleLocation {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Skill {
     /// El número con el que el array nombra a este elemento.
-    #[serde(default)]
     pub id: i32,
     /// campo 0x01 del binario
-    #[serde(default)]
     pub name: String,
     /// campo 0x02 del binario
-    #[serde(default)]
     pub description: String,
     /// campo 0x03 del binario
-    #[serde(default)]
     pub using_message1: String,
     /// campo 0x04 del binario
-    #[serde(default)]
     pub using_message2: String,
     /// campo 0x07 del binario
     /// default: 0
-    #[serde(default)]
     pub failure_message: i32,
     /// campo 0x08 del binario, se guarda aunque valga el default
     /// default: 0
-    #[serde(default)]
     pub r#type: SkillType,
     /// campo 0x0b del binario
     /// default: 0
-    #[serde(default)]
     pub sp_cost: i32,
     /// campo 0x0c del binario, se guarda aunque valga el default
     /// default: 0
-    #[serde(default)]
     pub scope: SkillScope,
     /// campo 0x0d del binario
     /// default: 1
-    #[serde(default)]
     pub switch_id: i32,
     /// campo 0x0e del binario
     /// default: 1
-    #[serde(default)]
     pub animation_id: i32,
     /// campo 0x10 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub sound_effect: Sound,
     /// campo 0x12 del binario
     /// default: True
-    #[serde(default)]
     pub occasion_field: bool,
     /// campo 0x13 del binario
     /// default: False
-    #[serde(default)]
     pub occasion_battle: bool,
     /// campo 0x15 del binario
     /// default: 0
-    #[serde(default)]
     pub physical_rate: i32,
     /// campo 0x16 del binario
     /// default: 3
-    #[serde(default)]
     pub magical_rate: i32,
     /// campo 0x17 del binario
     /// default: 4
-    #[serde(default)]
     pub variance: i32,
     /// campo 0x18 del binario
     /// default: 0
-    #[serde(default)]
     pub power: i32,
     /// campo 0x19 del binario
     /// default: 100
-    #[serde(default)]
     pub hit: i32,
     /// campo 0x1f del binario
     /// default: False
-    #[serde(default)]
     pub affect_hp: bool,
     /// campo 0x20 del binario
     /// default: False
-    #[serde(default)]
     pub affect_sp: bool,
     /// campo 0x21 del binario
     /// default: False
-    #[serde(default)]
     pub affect_attack: bool,
     /// campo 0x22 del binario
     /// default: False
-    #[serde(default)]
     pub affect_defense: bool,
     /// campo 0x23 del binario
     /// default: False
-    #[serde(default)]
     pub affect_spirit: bool,
     /// campo 0x24 del binario
     /// default: False
-    #[serde(default)]
     pub affect_agility: bool,
     /// campo 0x25 del binario
     /// default: False
-    #[serde(default)]
     pub absorb_damage: bool,
     /// campo 0x26 del binario
     /// default: False
-    #[serde(default)]
     pub ignore_defense: bool,
     /// campo 0x2a del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub state_effects: Vec<bool>,
     /// campo 0x2c del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub attribute_effects: Vec<bool>,
     /// campo 0x2d del binario
     /// default: False
-    #[serde(default)]
     pub affect_attr_defence: bool,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -7561,25 +6950,22 @@ impl Default for Skill {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Sound {
     /// campo 0x01 del binario, se guarda aunque valga el default
     /// default: "(OFF)"
-    #[serde(default)]
     pub name: String,
     /// campo 0x03 del binario
     /// default: 100
-    #[serde(default)]
     pub volume: i32,
     /// campo 0x04 del binario
     /// default: 100
-    #[serde(default)]
     pub tempo: i32,
     /// campo 0x05 del binario
     /// default: 50
-    #[serde(default)]
     pub balance: i32,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -7597,57 +6983,46 @@ impl Default for Sound {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Start {
     /// campo 0x01 del binario
     /// default: 0
-    #[serde(default)]
     pub party_map_id: i32,
     /// campo 0x02 del binario
     /// default: 0
-    #[serde(default)]
     pub party_x: i32,
     /// campo 0x03 del binario
     /// default: 0
-    #[serde(default)]
     pub party_y: i32,
     /// campo 0x0b del binario
     /// default: 0
-    #[serde(default)]
     pub boat_map_id: i32,
     /// campo 0x0c del binario
     /// default: 0
-    #[serde(default)]
     pub boat_x: i32,
     /// campo 0x0d del binario
     /// default: 0
-    #[serde(default)]
     pub boat_y: i32,
     /// campo 0x15 del binario
     /// default: 0
-    #[serde(default)]
     pub ship_map_id: i32,
     /// campo 0x16 del binario
     /// default: 0
-    #[serde(default)]
     pub ship_x: i32,
     /// campo 0x17 del binario
     /// default: 0
-    #[serde(default)]
     pub ship_y: i32,
     /// campo 0x1f del binario
     /// default: 0
-    #[serde(default)]
     pub airship_map_id: i32,
     /// campo 0x20 del binario
     /// default: 0
-    #[serde(default)]
     pub airship_x: i32,
     /// campo 0x21 del binario
     /// default: 0
-    #[serde(default)]
     pub airship_y: i32,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -7673,154 +7048,117 @@ impl Default for Start {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct State {
     /// El número con el que el array nombra a este elemento.
-    #[serde(default)]
     pub id: i32,
     /// campo 0x01 del binario
-    #[serde(default)]
     pub name: String,
     /// campo 0x02 del binario, se guarda aunque valga el default
     /// default: 0
-    #[serde(default)]
     pub r#type: StatePersistence,
     /// campo 0x03 del binario
     /// default: 6
-    #[serde(default)]
     pub color: i32,
     /// campo 0x04 del binario
     /// default: 50
-    #[serde(default)]
     pub priority: i32,
     /// campo 0x05 del binario, se guarda aunque valga el default
     /// default: 0
-    #[serde(default)]
     pub restriction: StateRestriction,
     /// campo 0x0b del binario
     /// default: 100
-    #[serde(default)]
     pub a_rate: i32,
     /// campo 0x0c del binario
     /// default: 80
-    #[serde(default)]
     pub b_rate: i32,
     /// campo 0x0d del binario
     /// default: 60
-    #[serde(default)]
     pub c_rate: i32,
     /// campo 0x0e del binario
     /// default: 30
-    #[serde(default)]
     pub d_rate: i32,
     /// campo 0x0f del binario
     /// default: 0
-    #[serde(default)]
     pub e_rate: i32,
     /// campo 0x15 del binario
     /// default: 0
-    #[serde(default)]
     pub hold_turn: i32,
     /// campo 0x16 del binario
     /// default: 0
-    #[serde(default)]
     pub auto_release_prob: i32,
     /// campo 0x17 del binario
     /// default: 0
-    #[serde(default)]
     pub release_by_damage: i32,
     /// campo 0x1f del binario
     /// default: False
-    #[serde(default)]
     pub affect_attack: bool,
     /// campo 0x20 del binario
     /// default: False
-    #[serde(default)]
     pub affect_defense: bool,
     /// campo 0x21 del binario
     /// default: False
-    #[serde(default)]
     pub affect_spirit: bool,
     /// campo 0x22 del binario
     /// default: False
-    #[serde(default)]
     pub affect_agility: bool,
     /// campo 0x23 del binario
     /// default: 100
-    #[serde(default)]
     pub reduce_hit_ratio: i32,
     /// campo 0x29 del binario
     /// default: False
-    #[serde(default)]
     pub restrict_skill: bool,
     /// campo 0x2a del binario
     /// default: 0
-    #[serde(default)]
     pub restrict_skill_level: i32,
     /// campo 0x2b del binario
     /// default: False
-    #[serde(default)]
     pub restrict_magic: bool,
     /// campo 0x2c del binario
     /// default: 0
-    #[serde(default)]
     pub restrict_magic_level: i32,
     /// campo 0x2d del binario
     /// default: 0
-    #[serde(default)]
     pub hp_change_type: StateChangeType,
     /// campo 0x2e del binario
     /// default: 0
-    #[serde(default)]
     pub sp_change_type: StateChangeType,
     /// campo 0x33 del binario
-    #[serde(default)]
     pub message_actor: String,
     /// campo 0x34 del binario
-    #[serde(default)]
     pub message_enemy: String,
     /// campo 0x35 del binario
-    #[serde(default)]
     pub message_already: String,
     /// campo 0x36 del binario
-    #[serde(default)]
     pub message_affected: String,
     /// campo 0x37 del binario
-    #[serde(default)]
     pub message_recovery: String,
     /// campo 0x3d del binario
     /// default: 0
-    #[serde(default)]
     pub hp_change_max: i32,
     /// campo 0x3e del binario
     /// default: 0
-    #[serde(default)]
     pub hp_change_val: i32,
     /// campo 0x3f del binario
     /// default: 0
-    #[serde(default)]
     pub hp_change_map_steps: i32,
     /// campo 0x40 del binario
     /// default: 0
-    #[serde(default)]
     pub hp_change_map_val: i32,
     /// campo 0x41 del binario
     /// default: 0
-    #[serde(default)]
     pub sp_change_max: i32,
     /// campo 0x42 del binario
     /// default: 0
-    #[serde(default)]
     pub sp_change_val: i32,
     /// campo 0x43 del binario
     /// default: 0
-    #[serde(default)]
     pub sp_change_map_steps: i32,
     /// campo 0x44 del binario
     /// default: 0
-    #[serde(default)]
     pub sp_change_map_val: i32,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -7872,15 +7210,14 @@ impl Default for State {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Switch {
     /// El número con el que el array nombra a este elemento.
-    #[serde(default)]
     pub id: i32,
     /// campo 0x01 del binario
-    #[serde(default)]
     pub name: String,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -7896,169 +7233,123 @@ impl Default for Switch {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct System {
     /// campo 0x0a del binario
     /// default: 0
-    #[serde(default)]
     pub ldb_id: i32,
     /// campo 0x0b del binario
-    #[serde(default)]
     pub boat_name: String,
     /// campo 0x0c del binario
-    #[serde(default)]
     pub ship_name: String,
     /// campo 0x0d del binario
-    #[serde(default)]
     pub airship_name: String,
     /// campo 0x0e del binario
     /// default: 0
-    #[serde(default)]
     pub boat_index: i32,
     /// campo 0x0f del binario
     /// default: 0
-    #[serde(default)]
     pub ship_index: i32,
     /// campo 0x10 del binario
     /// default: 0
-    #[serde(default)]
     pub airship_index: i32,
     /// campo 0x11 del binario
-    #[serde(default)]
     pub title_name: String,
     /// campo 0x12 del binario
-    #[serde(default)]
     pub gameover_name: String,
     /// campo 0x13 del binario
-    #[serde(default)]
     pub system_name: String,
     /// campo 0x16 del binario, se guarda aunque valga el default
     /// default: [1]
-    #[serde(default)]
     pub party: Vec<i16>,
     /// campo 0x1f del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub title_music: Music,
     /// campo 0x20 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub battle_music: Music,
     /// campo 0x21 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub battle_end_music: Music,
     /// campo 0x22 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub inn_music: Music,
     /// campo 0x23 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub boat_music: Music,
     /// campo 0x24 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub ship_music: Music,
     /// campo 0x25 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub airship_music: Music,
     /// campo 0x26 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub gameover_music: Music,
     /// campo 0x29 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub cursor_se: Sound,
     /// campo 0x2a del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub decision_se: Sound,
     /// campo 0x2b del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub cancel_se: Sound,
     /// campo 0x2c del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub buzzer_se: Sound,
     /// campo 0x2d del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub battle_se: Sound,
     /// campo 0x2e del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub escape_se: Sound,
     /// campo 0x2f del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub enemy_attack_se: Sound,
     /// campo 0x30 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub enemy_damaged_se: Sound,
     /// campo 0x31 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub actor_damaged_se: Sound,
     /// campo 0x32 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub dodge_se: Sound,
     /// campo 0x33 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub enemy_death_se: Sound,
     /// campo 0x34 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub item_se: Sound,
     /// campo 0x3d del binario, se guarda aunque valga el default
     /// default: 0
-    #[serde(default)]
     pub transition_out: SystemFadeOut,
     /// campo 0x3e del binario, se guarda aunque valga el default
     /// default: 0
-    #[serde(default)]
     pub transition_in: SystemFadeIn,
     /// campo 0x3f del binario, se guarda aunque valga el default
     /// default: 0
-    #[serde(default)]
     pub battle_start_fadeout: SystemFadeOut,
     /// campo 0x40 del binario, se guarda aunque valga el default
     /// default: 0
-    #[serde(default)]
     pub battle_start_fadein: SystemFadeIn,
     /// campo 0x41 del binario, se guarda aunque valga el default
     /// default: 0
-    #[serde(default)]
     pub battle_end_fadeout: SystemFadeOut,
     /// campo 0x42 del binario, se guarda aunque valga el default
     /// default: 0
-    #[serde(default)]
     pub battle_end_fadein: SystemFadeIn,
     /// campo 0x47 del binario
     /// default: 0
-    #[serde(default)]
     pub message_stretch: SystemStretch,
     /// campo 0x48 del binario
     /// default: 0
-    #[serde(default)]
     pub font_id: SystemFont,
     /// campo 0x51 del binario
     /// default: 0
-    #[serde(default)]
     pub selected_condition: i32,
     /// campo 0x52 del binario, se guarda aunque valga el default
     /// default: 0
-    #[serde(default)]
     pub selected_hero: i32,
     /// campo 0x54 del binario
-    #[serde(default)]
     pub battletest_background: String,
     /// campo 0x55 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub battletest_data: Vec<TestBattler>,
     /// campo 0x5b del binario
     /// default: 0
-    #[serde(default)]
     pub save_count: i32,
     /// campo 0x5e del binario
     /// default: 0
-    #[serde(default)]
     pub battletest_terrain: i32,
     /// campo 0x5f del binario
     /// default: 0
-    #[serde(default)]
     pub battletest_formation: SystemBattleFormation,
     /// campo 0x60 del binario
     /// default: 0
-    #[serde(default)]
     pub battletest_condition: SystemBattleCondition,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -8119,369 +7410,250 @@ impl Default for System {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Terms {
     /// campo 0x01 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub encounter: String,
     /// campo 0x02 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub special_combat: String,
     /// campo 0x03 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub escape_success: String,
     /// campo 0x04 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub escape_failure: String,
     /// campo 0x05 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub victory: String,
     /// campo 0x06 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub defeat: String,
     /// campo 0x07 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub exp_received: String,
     /// campo 0x08 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub gold_recieved_a: String,
     /// campo 0x09 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub gold_recieved_b: String,
     /// campo 0x0a del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub item_recieved: String,
     /// campo 0x0b del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub attacking: String,
     /// campo 0x0c del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub enemy_critical: String,
     /// campo 0x0d del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub actor_critical: String,
     /// campo 0x0e del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub defending: String,
     /// campo 0x0f del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub observing: String,
     /// campo 0x10 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub focus: String,
     /// campo 0x11 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub autodestruction: String,
     /// campo 0x12 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub enemy_escape: String,
     /// campo 0x13 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub enemy_transform: String,
     /// campo 0x14 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub enemy_damaged: String,
     /// campo 0x15 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub enemy_undamaged: String,
     /// campo 0x16 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub actor_damaged: String,
     /// campo 0x17 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub actor_undamaged: String,
     /// campo 0x18 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub skill_failure_a: String,
     /// campo 0x19 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub skill_failure_b: String,
     /// campo 0x1a del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub skill_failure_c: String,
     /// campo 0x1b del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub dodge: String,
     /// campo 0x1c del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub use_item: String,
     /// campo 0x1d del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub hp_recovery: String,
     /// campo 0x1e del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub parameter_increase: String,
     /// campo 0x1f del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub parameter_decrease: String,
     /// campo 0x20 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub enemy_hp_absorbed: String,
     /// campo 0x21 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub actor_hp_absorbed: String,
     /// campo 0x22 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub resistance_increase: String,
     /// campo 0x23 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub resistance_decrease: String,
     /// campo 0x24 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub level_up: String,
     /// campo 0x25 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub skill_learned: String,
     /// campo 0x29 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub shop_greeting1: String,
     /// campo 0x2a del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub shop_regreeting1: String,
     /// campo 0x2b del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub shop_buy1: String,
     /// campo 0x2c del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub shop_sell1: String,
     /// campo 0x2d del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub shop_leave1: String,
     /// campo 0x2e del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub shop_buy_select1: String,
     /// campo 0x2f del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub shop_buy_number1: String,
     /// campo 0x30 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub shop_purchased1: String,
     /// campo 0x31 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub shop_sell_select1: String,
     /// campo 0x32 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub shop_sell_number1: String,
     /// campo 0x33 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub shop_sold1: String,
     /// campo 0x36 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub shop_greeting2: String,
     /// campo 0x37 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub shop_regreeting2: String,
     /// campo 0x38 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub shop_buy2: String,
     /// campo 0x39 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub shop_sell2: String,
     /// campo 0x3a del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub shop_leave2: String,
     /// campo 0x3b del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub shop_buy_select2: String,
     /// campo 0x3c del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub shop_buy_number2: String,
     /// campo 0x3d del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub shop_purchased2: String,
     /// campo 0x3e del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub shop_sell_select2: String,
     /// campo 0x3f del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub shop_sell_number2: String,
     /// campo 0x40 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub shop_sold2: String,
     /// campo 0x43 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub shop_greeting3: String,
     /// campo 0x44 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub shop_regreeting3: String,
     /// campo 0x45 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub shop_buy3: String,
     /// campo 0x46 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub shop_sell3: String,
     /// campo 0x47 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub shop_leave3: String,
     /// campo 0x48 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub shop_buy_select3: String,
     /// campo 0x49 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub shop_buy_number3: String,
     /// campo 0x4a del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub shop_purchased3: String,
     /// campo 0x4b del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub shop_sell_select3: String,
     /// campo 0x4c del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub shop_sell_number3: String,
     /// campo 0x4d del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub shop_sold3: String,
     /// campo 0x50 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub inn_a_greeting_1: String,
     /// campo 0x51 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub inn_a_greeting_2: String,
     /// campo 0x52 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub inn_a_greeting_3: String,
     /// campo 0x53 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub inn_a_accept: String,
     /// campo 0x54 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub inn_a_cancel: String,
     /// campo 0x55 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub inn_b_greeting_1: String,
     /// campo 0x56 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub inn_b_greeting_2: String,
     /// campo 0x57 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub inn_b_greeting_3: String,
     /// campo 0x58 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub inn_b_accept: String,
     /// campo 0x59 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub inn_b_cancel: String,
     /// campo 0x5c del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub possessed_items: String,
     /// campo 0x5d del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub equipped_items: String,
     /// campo 0x5f del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub gold: String,
     /// campo 0x65 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub battle_fight: String,
     /// campo 0x66 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub battle_auto: String,
     /// campo 0x67 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub battle_escape: String,
     /// campo 0x68 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub command_attack: String,
     /// campo 0x69 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub command_defend: String,
     /// campo 0x6a del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub command_item: String,
     /// campo 0x6b del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub command_skill: String,
     /// campo 0x6c del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub menu_equipment: String,
     /// campo 0x6e del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub menu_save: String,
     /// campo 0x70 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub menu_quit: String,
     /// campo 0x72 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub new_game: String,
     /// campo 0x73 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub load_game: String,
     /// campo 0x75 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub exit_game: String,
     /// campo 0x7b del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub level: String,
     /// campo 0x7c del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub health_points: String,
     /// campo 0x7d del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub spirit_points: String,
     /// campo 0x7e del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub normal_status: String,
     /// campo 0x7f del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub exp_short: String,
     /// campo 0x80 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub lvl_short: String,
     /// campo 0x81 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub hp_short: String,
     /// campo 0x82 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub sp_short: String,
     /// campo 0x83 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub sp_cost: String,
     /// campo 0x84 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub attack: String,
     /// campo 0x85 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub defense: String,
     /// campo 0x86 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub spirit: String,
     /// campo 0x87 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub agility: String,
     /// campo 0x88 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub weapon: String,
     /// campo 0x89 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub shield: String,
     /// campo 0x8a del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub armor: String,
     /// campo 0x8b del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub helmet: String,
     /// campo 0x8c del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub accessory: String,
     /// campo 0x92 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub save_game_message: String,
     /// campo 0x93 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub load_game_message: String,
     /// campo 0x94 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub file: String,
     /// campo 0x97 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub exit_game_message: String,
     /// campo 0x98 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub yes: String,
     /// campo 0x99 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub no: String,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -8615,46 +7787,37 @@ impl Default for Terms {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Terrain {
     /// El número con el que el array nombra a este elemento.
-    #[serde(default)]
     pub id: i32,
     /// campo 0x01 del binario
-    #[serde(default)]
     pub name: String,
     /// campo 0x02 del binario
     /// default: 0
-    #[serde(default)]
     pub damage: i32,
     /// campo 0x03 del binario
     /// default: 100
-    #[serde(default)]
     pub encounter_rate: i32,
     /// campo 0x04 del binario
-    #[serde(default)]
     pub background_name: String,
     /// campo 0x05 del binario
     /// default: False
-    #[serde(default)]
     pub boat_pass: bool,
     /// campo 0x06 del binario
     /// default: False
-    #[serde(default)]
     pub ship_pass: bool,
     /// campo 0x07 del binario
     /// default: True
-    #[serde(default)]
     pub airship_pass: bool,
     /// campo 0x09 del binario
     /// default: True
-    #[serde(default)]
     pub airship_land: bool,
     /// campo 0x0b del binario, se guarda aunque valga el default
     /// default: 0
-    #[serde(default)]
     pub bush_depth: TerrainBushDepth,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -8678,40 +7841,33 @@ impl Default for Terrain {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct TestBattler {
     /// El número con el que el array nombra a este elemento.
-    #[serde(default)]
     pub id: i32,
     /// campo 0x01 del binario
     /// default: 1
-    #[serde(default)]
     pub actor_id: i32,
     /// campo 0x02 del binario
     /// default: 1
-    #[serde(default)]
     pub level: i32,
     /// campo 0x0b del binario
     /// default: 0
-    #[serde(default)]
     pub weapon_id: i32,
     /// campo 0x0c del binario
     /// default: 0
-    #[serde(default)]
     pub shield_id: i32,
     /// campo 0x0d del binario
     /// default: 0
-    #[serde(default)]
     pub armor_id: i32,
     /// campo 0x0e del binario
     /// default: 0
-    #[serde(default)]
     pub helmet_id: i32,
     /// campo 0x0f del binario
     /// default: 0
-    #[serde(default)]
     pub accessory_id: i32,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -8733,22 +7889,19 @@ impl Default for TestBattler {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct TreeMap {
     /// campo 0x00 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub maps: Vec<MapInfo>,
     /// campo 0x00 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub tree_order: Vec<i32>,
     /// campo 0x00 del binario
     /// default: 0
-    #[serde(default)]
     pub active_node: i32,
     /// campo 0x00 del binario
-    #[serde(default)]
     pub start: Start,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -8766,24 +7919,20 @@ impl Default for TreeMap {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Troop {
     /// El número con el que el array nombra a este elemento.
-    #[serde(default)]
     pub id: i32,
     /// campo 0x01 del binario
-    #[serde(default)]
     pub name: String,
     /// campo 0x02 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub members: Vec<TroopMember>,
     /// campo 0x05 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub terrain_set: Vec<bool>,
     /// campo 0x0b del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub pages: Vec<TroopPage>,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -8802,28 +7951,24 @@ impl Default for Troop {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct TroopMember {
     /// El número con el que el array nombra a este elemento.
-    #[serde(default)]
     pub id: i32,
     /// campo 0x01 del binario
     /// default: 1
-    #[serde(default)]
     pub enemy_id: i32,
     /// campo 0x02 del binario
     /// default: 0
-    #[serde(default)]
     pub x: i32,
     /// campo 0x03 del binario
     /// default: 0
-    #[serde(default)]
     pub y: i32,
     /// campo 0x04 del binario
     /// default: False
-    #[serde(default)]
     pub invisible: bool,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -8842,18 +7987,16 @@ impl Default for TroopMember {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct TroopPage {
     /// El número con el que el array nombra a este elemento.
-    #[serde(default)]
     pub id: i32,
     /// campo 0x02 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub condition: TroopPageCondition,
     /// campo 0x0c del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub event_commands: Vec<EventCommand>,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -8870,68 +8013,54 @@ impl Default for TroopPage {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct TroopPageCondition {
     /// campo 0x01 del binario, se guarda aunque valga el default
-    #[serde(default)]
     pub flags: TroopPageConditionFlags,
     /// campo 0x02 del binario
     /// default: 1
-    #[serde(default)]
     pub switch_a_id: i32,
     /// campo 0x03 del binario
     /// default: 1
-    #[serde(default)]
     pub switch_b_id: i32,
     /// campo 0x04 del binario
     /// default: 1
-    #[serde(default)]
     pub variable_id: i32,
     /// campo 0x05 del binario
     /// default: 0
-    #[serde(default)]
     pub variable_value: i32,
     /// campo 0x06 del binario
     /// default: 0
-    #[serde(default)]
     pub turn_a: i32,
     /// campo 0x07 del binario
     /// default: 0
-    #[serde(default)]
     pub turn_b: i32,
     /// campo 0x08 del binario
     /// default: 0
-    #[serde(default)]
     pub fatigue_min: i32,
     /// campo 0x09 del binario
     /// default: 100
-    #[serde(default)]
     pub fatigue_max: i32,
     /// campo 0x0a del binario
     /// default: 0
-    #[serde(default)]
     pub enemy_id: i32,
     /// campo 0x0b del binario
     /// default: 0
-    #[serde(default)]
     pub enemy_hp_min: i32,
     /// campo 0x0c del binario
     /// default: 100
-    #[serde(default)]
     pub enemy_hp_max: i32,
     /// campo 0x0d del binario
     /// default: 1
-    #[serde(default)]
     pub actor_id: i32,
     /// campo 0x0e del binario
     /// default: 0
-    #[serde(default)]
     pub actor_hp_min: i32,
     /// campo 0x0f del binario
     /// default: 100
-    #[serde(default)]
     pub actor_hp_max: i32,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 
@@ -8960,15 +8089,14 @@ impl Default for TroopPageCondition {
 
 /// Generado desde `fields.csv`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Variable {
     /// El número con el que el array nombra a este elemento.
-    #[serde(default)]
     pub id: i32,
     /// campo 0x01 del binario
-    #[serde(default)]
     pub name: String,
     /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub desconocidos: Vec<ChunkCrudo>,
 }
 

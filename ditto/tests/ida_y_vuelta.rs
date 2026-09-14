@@ -116,6 +116,28 @@ fn el_juego_entero_vuelve_igual() {
     tanda(&corpus());
 }
 
+/// El bug que originó todo esto, de los dos lados: un campo que no está —en el
+/// binario o en el JSON— vale lo que dice `fields.csv`, y no el cero del tipo.
+/// El `max_hp` de un enemigo es 10; nuestro lector de Python lo tenía en 1 y un
+/// enemigo del juego moría de un golpe.
+#[test]
+fn un_campo_que_falta_vale_el_default_del_formato() {
+    let e: ditto::esquema::Enemy = serde_json::from_str("{}").unwrap();
+    assert_eq!(e.max_hp, 10, "max_hp de un Enemy sin datos");
+    assert_eq!(e.max_sp, 10, "max_sp de un Enemy sin datos");
+    assert_eq!(e.attack, 10);
+    // Y lo mismo leyendo el binario: un chunk ausente no es un cero.
+    let vacio = ditto::lcf::dec_struct::<ditto::esquema::Enemy>(&[]).unwrap();
+    assert_eq!(vacio.max_hp, 10);
+
+    let a: ditto::esquema::Actor = serde_json::from_str(r#"{"name":"Kersh"}"#).unwrap();
+    assert_eq!(a.name, "Kersh");
+    assert_eq!(a.initial_level, 1);
+    assert_eq!(a.final_level, 50, "en RPG Maker 2000, no 99");
+    assert_eq!(a.exp_base, 30);
+    assert!(a.critical_hit, "el default declarado es True");
+}
+
 /// La ida y vuelta sola no alcanza como prueba: un lector que no entendiera
 /// **nada** y guardara cada chunk crudo también daría byte por byte, y el JSON
 /// no serviría para nada. Así que además se exige que no quede ni un chunk sin

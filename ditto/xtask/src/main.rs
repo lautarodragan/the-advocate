@@ -513,14 +513,19 @@ fn emitir_struct(
     let con_id = estructuras
         .iter()
         .any(|e| e.nombre == estructura && e.con_id);
+    // El `#[serde(default)]` va en el struct y no en cada campo a propósito:
+    // así un JSON al que le falta un campo lo toma del `Default` de acá abajo
+    // —el del CSV— y no del cero del tipo. Campo por campo, un `max_hp` que
+    // falta volvería a valer 0 en vez de 10.
     out.push_str(&format!(
         "/// Generado desde `fields.csv`.\n\
          #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]\n\
+         #[serde(default)]\n\
          pub struct {nombre} {{\n"
     ));
     if con_id {
         out.push_str("    /// El número con el que el array nombra a este elemento.\n");
-        out.push_str("    #[serde(default)]\n    pub id: i32,\n");
+        out.push_str("    pub id: i32,\n");
     }
     for c in visibles(campos) {
         let cd = cod(&c.tipo, enums, &nombre_enum(c, enums));
@@ -537,7 +542,7 @@ fn emitir_struct(
             out.push_str(&format!("    /// default: {}\n", c.default.replace('\n', " ")));
         }
         out.push_str(&format!(
-            "    #[serde(default)]\n    pub {}: {},\n",
+            "    pub {}: {},\n",
             identificador_campo(&c.nombre),
             tipo_rust(&cd)
         ));
@@ -547,7 +552,7 @@ fn emitir_struct(
     // 2003— rompería la ida y vuelta en silencio.
     out.push_str(
         "    /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.\n\
-         \x20   #[serde(default, skip_serializing_if = \"Vec::is_empty\")]\n\
+         \x20   #[serde(skip_serializing_if = \"Vec::is_empty\")]\n\
          \x20   pub desconocidos: Vec<ChunkCrudo>,\n}\n\n",
     );
 
