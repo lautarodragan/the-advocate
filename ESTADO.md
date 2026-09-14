@@ -19,14 +19,26 @@ Se escribe **mientras se trabaja**, no al final.
 **Los primeros diez minutos jugables**, que es lo que taro viene probando vuelta
 a vuelta.
 
-Al 2026-09-13: `just snes-hitos-foto` son **165 casos, todos en verde** —el que
-se agregó es `snes-encuentro`— y `just pruebas` son **157 en verde y 1 `xfail`,
+Al 2026-09-14, con la vuelta de audio adentro: `just snes-hitos-foto` son **168
+casos, todos en verde** —foto `0ae85e1`— y `just pruebas` **159 en verde y 1
+`xfail`, sin rojos**. Al banco 0 le quedan **67 bytes libres** con
+`demo-ciudad`, medidos por bisección: eran 81 antes de los 14 que se llevó la
+espera del MSU-1. Y `just snes-demo demo-ciudad` y `demo-titulo` arman las dos.
+
+Al 2026-09-13: `just snes-hitos-foto` eran **165 casos, todos en verde** —el que
+se agregó es `snes-encuentro`— y `just pruebas` **157 en verde y 1 `xfail`,
 sin rojos**; las nueve nuevas son las de los encuentros al azar y las dos
 últimas las del save point —`test_guardar_save_point.py`—.
 El `xfail` no es adorno, pero desde el 2026-09-13 se sabe de quién es: es un
 defecto de la **página de prueba** de guardado y no del juego, y está abajo.
 
-**La ROM de esta vuelta** está en `pruebas-manuales/piedras/`: el minijuego de
+**Las ROMs de la vuelta de audio (2026-09-14)** están en
+`pruebas-manuales/audio/`: nueve cartuchos para escuchar, uno por tema de los
+mapas donde taro oyó faltar voces, más el par de cada uno con `--banco-entero`,
+más las dos demos con el arreglo del MSU-1. Su `LEEME.txt` dice qué escuchar y
+cuál es la pregunta que hay que contestar de oído.
+
+**La ROM de la vuelta anterior** está en `pruebas-manuales/piedras/`: el minijuego de
 las piedras del Lazer Teeth HQ, con un cartucho de un solo mapa que arranca
 parado abajo de la reja y con `demo-ciudad` al lado para el control. Su
 `LEEME.txt` dice qué apretar y en qué orden.
@@ -122,9 +134,20 @@ es: el 20 suena mejor que el 19, y taro lo dijo así sin saberlo.
 ninguno de esos temas tiene pista. `PISTAS_MSU` son ocho y le tocan a los temas
 0, 1, 2, 4, 5, 6 y 7 más el del título; del 8 en adelante `tema_msu` es `$FF`.
 O sea que en la oficina del director **las dos corridas de taro fueron el mismo
-camino, el del SPC700**, y por eso les falta lo mismo. Lo único que sigue sin
-encajar es su *"los samples son mejores"*: ahí los dos cartuchos son byte por
-byte el mismo sonido.
+camino, el del SPC700**, y por eso les falta lo mismo. Medido en la ROM y no
+deducido, con bsnes y los ocho `.pcm` al lado:
+
+    musica-17-hzstream   MSU_HAY=1  MSU_SUENA=1   la pista suena
+    musica-19-Gaden      MSU_HAY=1  MSU_SUENA=0   el MSU-1 está y no suena
+
+Y `Gaden` es el caso concreto: usa siete canales, con los programas 58, 49, 49,
+49, percusión, 46 y 52. Al banco no entraron ni el 58 ni el 49 ni el 52, así
+que **quedan dos de siete**. Eso es el "suenan solo dos o tres voces", y se ve
+también desde adentro del cartucho: el stream de `Gaden` nombra **dos**
+muestras, y con `--banco-entero` nombra **cinco**.
+
+Lo único que sigue sin encajar es su *"los samples son mejores"*: ahí los dos
+cartuchos producen el mismo sonido.
 
 **No es el soundfont.** Se midió: los veinte programas que faltan —58, 49, 52,
 18, 92, 94, 45, 96, 102, 26, 56, 16, 39, 112, 91, 99, 118, 32, 36 y 50— están
@@ -155,6 +178,25 @@ porque el presupuesto de la batería es lo que sobra.
 **Cuál de las dos suena peor lo tiene que decir taro**, y para eso están las
 ROMs de `pruebas-manuales/audio/`. La tercera salida —pistas de MSU-1 para esos
 nueve temas— son unos 280 MB más de PCM por cartucho y no se hizo.
+
+Dos cosas que costaron al armar esas ROMs y conviene no volver a descubrir:
+
+* **El mapa de arranque se elige con `--inicial`, no con `--map-id`.** El orden
+  de la tabla de mapas es el orden en que se numeran los temas, y `--map-id`
+  pone al mapa primero: el tema a escuchar quedaba primero de la lista y por
+  eso entre los que sí aportan. `musica-20` armada así daba `wb3shop` al 100%.
+* **Y aun así hace falta `--banco-sin-prioridad`**, porque el tema del mapa de
+  arranque tiene prioridad para aportar al banco. Es la misma trampa una capa
+  más abajo, y también hace sonar entero justo lo que hay que escuchar roto.
+* **Y `--tema-de-arranque`**, porque la mayoría de esos mapas no tiene BGM
+  propia en el LDB: la prende un `PlayBGM` de una de sus páginas, que suele
+  pedir switches de la historia. Sin eso `musica-20` arrancaba muda y seguía
+  muda a los 300 ticks.
+
+Y una que conviene saber: **snes9x sí emula el MSU-1**. Una ROM con sus `.pcm`
+al lado en `rom/build/` suena por pista también en la tanda; el `.msu` no está
+en ningún build de las pruebas, así que no las afecta, pero al medir audio a
+mano hay que mirar dónde quedaron esos archivos.
 
 ### El MSU-1 de `demo-titulo`: no se pudo reproducir, y el camino no tiene red (2026-09-14)
 
