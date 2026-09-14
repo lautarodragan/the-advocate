@@ -37,3 +37,4 @@ rom/src/mapdata.inc
 
 # El target de Ditto: binarios y dependencias compiladas.
 ditto/target/
+ditto/.idea/
