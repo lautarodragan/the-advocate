@@ -1,173 +1,146 @@
-"""Lector mínimo de formatos LCF de RPG Maker 2000 (.lmu / .ldb / .lmt).
+"""El juego, leído del volcado a JSON de `data/`.
 
-Sólo lee lo que hace falta para renderizar un mapa: dimensiones, chipset y las
-dos capas de tiles. Portado de liblcf (EasyRPG), que es la referencia del
-formato: src/reader_struct_impl.h para el encoding de structs/arrays y
-src/generated/lcf/{lmu,ldb,lmt}/chunks.h para los IDs de chunk.
+Hasta el 2026-09-14 esto parseaba los binarios de RPG Maker 2000 en cada build
+—ese lector sigue existiendo, en `lcf_bin.py`, y ya no lo usa el port—. Desde
+entonces el formato se lee **una sola vez**, en Ditto, y lo que hay en `data/`
+es el resultado: `maps/MapNNNN.json` con su `.tiles` al lado, `maps.json` con el
+árbol y `db/*.json` con las quince secciones de la base. El porqué está en
+`DITTO.md`; lo que hay adentro de `data/`, en `data/README.md`.
 
-Encoding del archivo:
-  - Header: int BER con el largo, seguido del string ("LcfMapUnit", etc).
-  - Struct: secuencia de chunks (id BER, largo BER, bytes) terminada en id 0.
-  - Array de structs: count BER, y por cada elemento un ID BER + un Struct.
+**Los consumidores no se enteraron.** Las clases de acá —`Map`, `Database`,
+`TreeMap` y todo lo que cuelga— tienen los mismos atributos que antes, con los
+mismos tipos, y siguen recibiendo la ruta a un `.lmu` o a un `RPG_RT.ldb`: de
+esa ruta sólo se usa **el nombre**, para saber qué mapa es, y el directorio
+sólo si tiene adentro un volcado propio (un `ditto.json`). Los gráficos y el
+audio siguen saliendo del juego de verdad, que es lo que `--game-dir` nombra.
+
+Lo que cambia de fondo: **los defaults ya no se escriben acá**. El JSON omite
+todo campo que valga el suyo —la misma regla que el binario—, así que leerlo es
+saber qué vale un campo ausente, y eso sale de `ditto_schema.py`, generado
+desde el esquema de Ditto, que sale de liblcf. Un `max_hp` que vale 10 y no 1
+no es más una opinión de este archivo: es el dato del formato. Ese error ya se
+pagó una vez —el DirtShadow moría de un golpe— y es el que originó a Ditto.
+
+Y los enums vienen **por nombre**: `"same"`, `"auto_start"`, `"ShowMessage"`.
+Acá se vuelven al número que espera el port, con las tablas del mismo esquema.
 """
 
+import json
 import os
-import struct
 
-from lcf_schema import FLAGS, SCHEMA, SKIP
+from ditto_schema import CAMPOS, ENUMS
 
-
-class Reader:
-    def __init__(self, data):
-        self.data = data
-        self.pos = 0
-
-    def eof(self):
-        return self.pos >= len(self.data)
-
-    def read(self, n):
-        chunk = self.data[self.pos:self.pos + n]
-        if len(chunk) != n:
-            raise EOFError("lectura fuera de rango")
-        self.pos += n
-        return chunk
-
-    def read_int(self):
-        """Entero BER: 7 bits por byte, bit 8 indica "sigue"."""
-        value = 0
-        while True:
-            byte = self.read(1)[0]
-            value = (value << 7) | (byte & 0x7F)
-            if not byte & 0x80:
-                return value
-
-    def read_string(self, length):
-        return self.read(length).decode("cp1252", errors="replace")
-
-    def read_header(self):
-        return self.read_string(self.read_int())
-
-    def chunks(self):
-        """Itera (id, payload) hasta el chunk terminador 0 o el fin del archivo."""
-        while not self.eof():
-            chunk_id = self.read_int()
-            if chunk_id == 0:
-                return
-            yield chunk_id, self.read(self.read_int())
-
-    def read_struct(self):
-        """Un struct completo como dict {chunk_id: bytes}."""
-        return dict(self.chunks())
-
-    def read_struct_array(self):
-        """Array de structs con ID como dict {id: {chunk_id: bytes}}."""
-        count = self.read_int()
-        items = {}
-        for _ in range(count):
-            item_id = self.read_int()
-            items[item_id] = self.read_struct()
-        return items
+REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATOS = os.path.join(REPO, "data")
+MANIFIESTO = "ditto.json"
 
 
-def to_signed(value):
-    """BER no tiene signo: los negativos vienen en complemento a dos de 32 bits."""
-    return value - 0x100000000 if value >= 0x80000000 else value
+def volcado(path):
+    """De dónde se lee: el volcado propio del directorio, o el del repo.
+
+    Los llamadores pasan una ruta adentro del juego original —`--game-dir`—,
+    que es de donde siguen saliendo los PNG y los MIDI. Si ese directorio
+    tiene un volcado de Ditto adentro se usa ése, que es como se lee un juego
+    que no es éste; si no, el de `data/`, que es el del repo.
+    """
+    directorio = os.path.dirname(os.path.abspath(path))
+    if os.path.isfile(os.path.join(directorio, MANIFIESTO)):
+        return directorio
+    return DATOS
 
 
-def to_int(payload):
-    """Los enteros dentro de un chunk también van en BER."""
-    return to_signed(Reader(payload).read_int())
+def leer(*partes):
+    with open(os.path.join(*partes), encoding="utf-8") as handle:
+        return json.load(handle)
 
 
-def to_bool(payload):
-    return bool(payload and payload[0])
+# --- Acceso a un campo, con el default y el enum del esquema ----------------
+
+def valor_enum(enum, valor):
+    """El número de un enum que el JSON trae por nombre.
+
+    Un valor que `enums.csv` no nombra viaja como `{"Other": n}`: Ditto lo
+    guarda como número para no perderlo, y acá vale ese número.
+    """
+    if isinstance(valor, dict):
+        return valor["Other"]
+    return ENUMS[enum][valor]
+
+
+def campo(struct, datos, nombre):
+    """Un campo, o su default si el JSON lo omitió por valer exactamente eso."""
+    _chunk, default, enum, _siempre, _anidado = CAMPOS[struct][nombre]
+    if nombre not in datos:
+        return default
+    valor = datos[nombre]
+    if enum:
+        return valor_enum(enum, valor)
+    return texto(valor) if isinstance(valor, str) else valor
+
+
+def lista(datos, nombre):
+    return datos.get(nombre) or []
+
+
+def sub(datos, nombre):
+    return datos.get(nombre) or {}
+
+
+def por_id(elementos):
+    """Un array de structs como `{id: elemento}`, que es como se lo indexa.
+
+    En el binario el id es la etiqueta con la que el array nombra a cada
+    elemento; en el JSON es un campo más del objeto, y vale 0 si falta —que es
+    lo que le pasa a la raíz del árbol de mapas—.
+    """
+    return {elemento.get("id", 0): elemento for elemento in elementos}
+
+
+# Los cinco bytes que cp1252 no define. Ditto los escribe como su control C1
+# para que la tabla sea una biyección y no se pierda ningún byte; acá son la
+# señal de que ese texto no es cp1252.
+C1 = {"\x81": 0x81, "\x8d": 0x8D, "\x8f": 0x8F, "\x90": 0x90, "\x9d": 0x9D}
+
+
+def texto(valor):
+    """Un texto del juego, con los restos del RTP japonés leídos como tales.
+
+    ABL se hizo con el RPG Maker 2000 de Don Miguel, así que casi todo es
+    cp1252; un par de mensajes que el autor nunca tocó siguen en Shift-JIS.
+    Ditto los guarda tal cual vinieron —decodificar adivinando le costaría la
+    vuelta exacta, que es lo único que lo hace útil—, así que el que adivina es
+    éste: si el texto trae alguno de los cinco bytes que cp1252 no define, se
+    lo vuelve a armar y se lo lee en Shift-JIS. Son cuatro strings del LDB.
+    """
+    if not any(c in valor for c in C1):
+        return valor
+    crudo = bytearray()
+    for ch in valor:
+        if ch in C1:
+            crudo.append(C1[ch])
+        else:
+            try:
+                crudo.extend(ch.encode("cp1252"))
+            except UnicodeEncodeError:
+                return valor
+    try:
+        return bytes(crudo).decode("shift_jis")
+    except UnicodeDecodeError:
+        return valor
 
 
 def to_string(payload):
-    """El texto del juego es cp1252, pero quedan restos del RTP japonés.
-
-    ABL se hizo con el RPG Maker 2000 de Don Miguel, así que casi todo es
-    cp1252; un par de mensajes que el autor nunca tocó siguen en Shift-JIS. Los
-    bytes que cp1252 no define (0x81, 0x8D, 0x8F, 0x90, 0x9D) son la señal para
-    reintentar: no aparecen en texto occidental y sí en Shift-JIS.
-    """
-    try:
-        return payload.decode("cp1252")
-    except UnicodeDecodeError:
-        pass
-    try:
-        return payload.decode("shift_jis")
-    except UnicodeDecodeError:
-        return payload.decode("cp1252", errors="replace")
+    """Lo que queda del lector de binarios: `db.terminos` sigue dando bytes."""
+    return texto(payload.decode("cp1252", errors="replace"))
 
 
-def to_u16_array(payload):
-    return list(struct.unpack("<%dH" % (len(payload) // 2), payload))
 
+# --- Enums, para nombrarlos en un volcado o en un mensaje -------------------
+#
+# Los nombres son los de liblcf y el orden es el de sus números; las tablas de
+# `ditto_schema.ENUMS` dicen lo mismo y son las que se usan para leer. Éstas
+# quedan porque hay quien las recorre por índice.
 
-def to_i16_array(payload):
-    return list(struct.unpack("<%dh" % (len(payload) // 2), payload))
-
-
-# --- Chunk IDs (liblcf: src/generated/lcf/*/chunks.h) ---------------------
-
-MAP_CHIPSET_ID = 0x01
-MAP_WIDTH = 0x02
-MAP_HEIGHT = 0x03
-MAP_SCROLL_TYPE = 0x0B
-MAP_PARALLAX_FLAG = 0x1F
-MAP_PARALLAX_NAME = 0x20
-MAP_PARALLAX_LOOP_X = 0x21
-MAP_PARALLAX_LOOP_Y = 0x22
-MAP_PARALLAX_AUTO_LOOP_X = 0x23
-MAP_PARALLAX_SX = 0x24
-MAP_PARALLAX_AUTO_LOOP_Y = 0x25
-MAP_PARALLAX_SY = 0x26
-MAP_LOWER_LAYER = 0x47
-MAP_UPPER_LAYER = 0x48
-MAP_EVENTS = 0x51
-
-EVENT_NAME = 0x01
-EVENT_X = 0x02
-EVENT_Y = 0x03
-EVENT_PAGES = 0x05
-
-PAGE_CONDITION = 0x02
-PAGE_CHARACTER_NAME = 0x15
-PAGE_CHARACTER_INDEX = 0x16
-PAGE_CHARACTER_DIRECTION = 0x17
-PAGE_CHARACTER_PATTERN = 0x18
-PAGE_TRANSLUCENT = 0x19
-PAGE_MOVE_TYPE = 0x1F
-PAGE_MOVE_FREQUENCY = 0x20
-PAGE_TRIGGER = 0x21
-PAGE_LAYER = 0x22
-PAGE_OVERLAP_FORBIDDEN = 0x23
-PAGE_ANIMATION_TYPE = 0x24
-PAGE_MOVE_SPEED = 0x25
-PAGE_MOVE_ROUTE = 0x29
-PAGE_COMMANDS = 0x34
-
-# La ruta propia de la página —la que camina sola con move_type 6— es un
-# struct MoveRoute: liblcf, src/generated/lcf/lmu/chunks.h.
-ROUTE_COMMANDS = 0x0C
-ROUTE_REPEAT = 0x15
-ROUTE_SKIPPABLE = 0x16
-
-CONDITION_FLAGS = 0x01
-# switch_a, switch_b, variable, item, actor, timer, timer2: un bit cada una,
-# LSB primero (liblcf: src/reader_flags.cpp).
-CONDITION_ALL = 0x7F
-CONDITION_NAMES = ("switch_a", "switch_b", "variable", "item",
-                   "actor", "timer", "timer2")
-CONDITION_IDS = {"switch_a": 0x02, "switch_b": 0x03, "variable": 0x04,
-                 "item": 0x06, "actor": 0x07, "timer": 0x08, "timer2": 0x09}
-CONDITION_VARIABLE_VALUE = 0x05
-CONDITION_OPERATOR = 0x0A
-
-# Nombres de los enums (liblcf: src/generated/lcf/rpg/eventpage.h y
-# eventpagecondition.h). Los guardamos como texto en el JSON: un `trigger: 3`
-# no le dice nada a nadie, un `trigger: "auto_start"` sí.
 DIRECTIONS = ("up", "right", "down", "left")
 PATTERNS = ("left", "middle", "right", "middle2")
 MOVE_TYPES = ("stationary", "random", "vertical", "horizontal",
@@ -180,140 +153,28 @@ MOVE_SPEEDS = (None, "eighth", "quarter", "half", "normal", "double", "fourfold"
 COMPARISONS = ("equal", "greater_equal", "less_equal",
                "greater", "less", "not_equal")
 
+# Las condiciones de una página, en el orden de sus bits. `timer2` sólo existe
+# en RPG Maker 2003: en un archivo de 2000 no tiene bit y nunca está prendida.
+CONDITION_NAMES = ("switch_a", "switch_b", "variable", "item",
+                   "actor", "timer", "timer2")
+# Y con qué campo se contesta cada una. El de `timer` es su cantidad de
+# segundos, que es lo que el formato guarda; `timer2` es de 2003 y no está.
+CONDITION_CAMPOS = {"switch_a": "switch_a_id", "switch_b": "switch_b_id",
+                    "variable": "variable_id", "item": "item_id",
+                    "actor": "actor_id", "timer": "timer_sec"}
+# `compare_operator` es el chunk 0x0A de `EventPageCondition` y **es de RPG
+# Maker 2003** (liblcf, `generator/csv/fields.csv`: "Integer - RPG2003").
+# Ditto apunta a 2000 y no lo genera, así que en este juego nunca está escrito
+# y vale siempre su default, que esa misma línea da en 1.
+CONDITION_OPERATOR_DEFAULT = 1
+
 
 def enum_name(names, value):
     """El nombre del enum, o el número crudo si está fuera de rango."""
     return names[value] if 0 <= value < len(names) and names[value] else value
 
-DB_ACTORS = 0x0B
-# Las habilidades, desde el 2026-09-13: la batalla las usa y hasta ahora nadie
-# las había leído. El código es el `skills` de ChunkDatabase de liblcf.
-DB_SKILLS = 0x0C
-DB_ITEMS = 0x0D
-# Los enemigos y las tropas, que es lo que una batalla necesita del LDB. Los
-# códigos salen de `ldb/chunks.h` de liblcf, como todo lo demás de este
-# archivo; los nombres de los campos, de `lcf_schema.py`, que se genera de ahí.
-DB_ENEMIES = 0x0E
-DB_TROOPS = 0x0F
-DB_CHIPSETS = 0x14
-DB_SYSTEM = 0x16
-# Los términos del juego: los textos que el motor pone y no un evento. La
-# pantalla de título usa tres. Los códigos salen de `chunks.h` de liblcf, igual
-# que todo lo demás de este archivo.
-DB_TERMS = 0x15
-TERMS_NEW_GAME = 0x72
-TERMS_LOAD_GAME = 0x73
-TERMS_EXIT_GAME = 0x75
-TERMS_LOAD_MESSAGE = 0x93
-TERMS_SAVE_MESSAGE = 0x92
-TERMS_FILE = 0x94
-TERMS_LEVEL = 0x7B
-# El nivel abreviado —"L" en el ABL— que es lo que el menú de archivos escribe
-# delante del número: `lcf::Data::terms.lvl_short` en `Window_SaveFile`.
-TERMS_LVL_SHORT = 0x80
-# Los del menú de pausa (liblcf: ldb/chunks.h, ChunkTerms). En el ABL dicen
-# 'Use Item', 'Tech Skill', 'Equipment', 'Save', 'End Game', 'Cr', 'Normal'
-# y 'HP'.
-TERMS_GOLD = 0x5F
-TERMS_COMMAND_ITEM = 0x6A
-TERMS_COMMAND_SKILL = 0x6B
-TERMS_MENU_EQUIPMENT = 0x6C
-TERMS_MENU_SAVE = 0x6E
-TERMS_MENU_QUIT = 0x70
-TERMS_NORMAL_STATUS = 0x7E
-TERMS_HP_SHORT = 0x81
-# Los del equipo: los cuatro parámetros y las cinco ranuras. En el ABL dicen
-# 'Attack', 'Defense', 'Mental', 'Agility' y 'Right Hand', 'Left Hand',
-# 'Body', 'Head', 'Other'.
-TERMS_PARAMS = (0x84, 0x85, 0x86, 0x87)
-TERMS_EQUIPO = (0x88, 0x89, 0x8A, 0x8B, 0x8C)
 
-# Del esquema de liblcf, igual que todo lo demás de este archivo: los números no
-# se ponen de memoria. Ya pasó una vez con los códigos de comando de las puertas
-# —tres estaban mal— y por eso event_codes.py se genera desde ahí.
-ACTOR_NAME = 0x01
-ACTOR_CHARSET = 0x03
-ACTOR_CHARSET_INDEX = 0x04
-# La cara del actor —el FaceSet y cuál de sus dieciséis— que es lo que el menú
-# de archivos muestra por cada uno del grupo. `ChunkActor::face_name` y
-# `face_index` en ldb/chunks.h de liblcf.
-ACTOR_FACE_NAME = 0x0F
-ACTOR_FACE_INDEX = 0x10
-# Los parámetros por nivel: seis tablas de int16 seguidas —HP máximo, SP
-# máximo, ataque, defensa, espíritu y agilidad—, una entrada por nivel.
-ACTOR_PARAMETERS = 0x1F
-ACTOR_INITIAL_EQUIPMENT = 0x33
-ACTOR_INITIAL_LEVEL = 0x07
-ACTOR_SKILLS = 0x3F
-ACTOR_RENAME_SKILL = 0x42
-ACTOR_SKILL_NAME = 0x43
-# Una entrada de la tabla de aprendizaje (liblcf: ChunkLearning).
-LEARNING_LEVEL = 0x01
-LEARNING_SKILL_ID = 0x02
-SYSTEM_PARTY = 0x16
-# El System del juego: el PNG con el marco de la ventana, los colores de texto
-# y la sombra. Este juego usa `ablskin`, no el `BLSys` que también trae.
-SYSTEM_NAME = 0x13
-# La pantalla de título: qué imagen lleva y con qué tema suena. Los dos códigos
-# salen de `src/generated/lcf/ldb/chunks.h` de liblcf, igual que el resto de
-# este archivo; ponerlos de memoria es exactamente el error que este repo ya
-# pagó con los códigos de comando de las puertas.
-SYSTEM_TITLE_NAME = 0x11
-SYSTEM_TITLE_MUSIC = 0x1F
-# El audio de la pelea, del mismo `ChunkSystem`: el tema que suena al entrar,
-# el que suena al ganar, y los efectos que `Game_System::GetSystemSE` reparte.
-# Los códigos son los de liblcf y el orden de este diccionario es el que
-# `eventos.AUDIO_BATALLA_SE` recorre.
-SYSTEM_BATTLE_MUSIC = 0x20
-SYSTEM_BATTLE_END_MUSIC = 0x21
-SYSTEM_SE = {
-    "battle_se": 0x2D,
-    "escape_se": 0x2E,
-    "enemy_attack_se": 0x2F,
-    "enemy_damaged_se": 0x30,
-    "actor_damaged_se": 0x31,
-    "dodge_se": 0x32,
-    "enemy_death_se": 0x33,
-    "item_se": 0x34,
-}
-# Con qué fuente dibuja el texto: 0 Gothic, 1 Mincho. easyrpg elige ttyp0 o
-# rmg2000 con esto, y las letras salen distintas. Este juego pide Mincho.
-SYSTEM_FONT_ID = 0x48
-
-CHIPSET_NAME = 0x01
-CHIPSET_FILENAME = 0x02
-CHIPSET_TERRAIN = 0x03
-CHIPSET_PASSABLE_LOWER = 0x04
-CHIPSET_PASSABLE_UPPER = 0x05
-# Los dos que gobiernan la animación del agua: el tipo elige entre el ciclo de
-# cuatro pasos —0,1,2,1— y el de tres, y la velocidad entre 24 y 12 cuadros por
-# paso. Los dos faltan en casi todos los chipsets, y faltar es el default: ver
-# `paso_de_agua` en rm2k.py.
-CHIPSET_ANIMATION_TYPE = 0x0B
-CHIPSET_ANIMATION_SPEED = 0x0C
-
-START_PARTY_MAP_ID = 0x01
-START_PARTY_X = 0x02
-START_PARTY_Y = 0x03
-
-MAPINFO_NAME = 0x01
-MAPINFO_MUSIC_TYPE = 0x0B   # 0 = heredar del padre, 1 = del evento, 2 = el de acá
-MAPINFO_MUSIC = 0x0C
-
-MUSIC_NAME = 0x01
-MUSIC_FADEIN = 0x02
-MUSIC_VOLUME = 0x03
-MUSIC_TEMPO = 0x04
-MUSIC_BALANCE = 0x05
-MAPINFO_PARENT = 0x02
-MAPINFO_INDENTATION = 0x03
-MAPINFO_TYPE = 0x04
-MAPINFO_ENCOUNTERS = 0x29     # array de rpg::Encounter, un troop_id cada uno
-MAPINFO_ENCOUNTER_STEPS = 0x2C
-MAPINFO_AREA_RECT = 0x33      # cuatro u32: izquierda, arriba, derecha, abajo
-
-ENCOUNTER_TROOP_ID = 0x01
-
+# --- Los tipos del juego ---------------------------------------------------
 
 class EventCommand:
     """Una línea del script de una página.
@@ -332,18 +193,13 @@ class EventCommand:
         self.parameters = parameters
 
 
-def read_commands(payload):
-    """La lista de comandos de una página. No lleva contador: termina en 4 ceros."""
-    reader = Reader(payload)
-    commands = []
-    while not reader.eof() and reader.data[reader.pos] != 0:
-        code = reader.read_int()
-        indent = reader.read_int()
-        string = reader.read_string(reader.read_int())
-        parameters = [to_signed(reader.read_int())
-                      for _ in range(reader.read_int())]
-        commands.append(EventCommand(code, indent, string, parameters))
-    return commands
+def comandos(datos):
+    """La lista de comandos de una página o de un evento común."""
+    return [EventCommand(campo("EventCommand", c, "code"),
+                         campo("EventCommand", c, "indent"),
+                         campo("EventCommand", c, "string"),
+                         campo("EventCommand", c, "parameters") or [])
+            for c in lista(datos, "event_commands")]
 
 
 # Si no es None, el nombre del CharSet de una página translúcida pasa por acá
@@ -357,18 +213,18 @@ def read_commands(payload):
 DECORAR_TRANSLUCIDO = None
 
 
-
 class EventPageCondition:
     """Lo que tiene que pasar para que esta página sea la activa."""
 
-    def __init__(self, fields):
-        flags = fields.get(CONDITION_FLAGS, b"\x00")[0]
-        self.active = [name for i, name in enumerate(CONDITION_NAMES)
-                       if flags & (1 << i)]
-        self.ids = {name: to_int(fields.get(chunk, b"\x01"))
-                    for name, chunk in CONDITION_IDS.items()}
-        self.variable_value = to_int(fields.get(CONDITION_VARIABLE_VALUE, b"\x00"))
-        self.operator = to_int(fields.get(CONDITION_OPERATOR, b"\x01"))
+    def __init__(self, datos):
+        flags = sub(datos, "flags")
+        self.active = [n for n in CONDITION_NAMES if flags.get(n)]
+        self.ids = {n: campo("EventPageCondition", datos, c)
+                    for n, c in CONDITION_CAMPOS.items()}
+        self.ids["timer2"] = 0
+        self.variable_value = campo("EventPageCondition", datos,
+                                    "variable_value")
+        self.operator = CONDITION_OPERATOR_DEFAULT
 
     def __bool__(self):
         return bool(self.active)
@@ -376,72 +232,50 @@ class EventPageCondition:
 
 class MoveRoute:
     """La ruta propia de una página: las órdenes, si se repite y si una orden
-    bloqueada se saltea. Los defaults son los de liblcf: se repite y no se
-    saltea.
+    bloqueada se saltea.
 
-    Las órdenes van con los mismos códigos que las de un `MoveEvent`, y se
-    leen como `RawStruct<rpg::MoveCommand>::ReadLcf` de liblcf: el código, y
-    según cuál, sus operandos —un entero para los switches, texto y entero
-    para cambiar el gráfico, texto y tres enteros para el sonido—. Acá se
-    guarda sólo el código; ninguna de las órdenes con operandos se ejecuta.
+    De cada orden se guarda sólo el código; ninguna de las cuatro que llevan
+    operandos se ejecuta.
     """
 
-    def __init__(self, fields):
-        self.repeat = to_bool(fields.get(ROUTE_REPEAT, b"\x01"))
-        self.skippable = to_bool(fields.get(ROUTE_SKIPPABLE))
-        self.commands = []
-        reader = Reader(fields.get(ROUTE_COMMANDS, b""))
-        while not reader.eof():
-            code = reader.read_int()
-            if code in (32, 33):                # switch_on, switch_off
-                reader.read_int()
-            elif code == 34:                    # change_graphic
-                reader.read_string(reader.read_int())
-                reader.read_int()
-            elif code == 35:                    # play_sound_effect
-                reader.read_string(reader.read_int())
-                reader.read_int(); reader.read_int(); reader.read_int()
-            self.commands.append(code)
+    def __init__(self, datos):
+        self.repeat = campo("MoveRoute", datos, "repeat")
+        self.skippable = campo("MoveRoute", datos, "skippable")
+        self.commands = [campo("MoveCommand", c, "command_id")
+                         for c in lista(datos, "move_commands")]
 
 
 class EventPage:
-    """Una de las versiones que puede adoptar un evento.
+    """Una de las versiones que puede adoptar un evento."""
 
-    Los defaults salen de liblcf (src/generated/lcf/rpg/eventpage.h): mirando
-    hacia abajo (dirección 2) y con el frame del medio (patrón 1), que es la
-    pose parada.
-    """
-
-    def __init__(self, fields):
-        self.character_name = to_string(fields.get(PAGE_CHARACTER_NAME, b""))
-        self.translucent = to_bool(fields.get(PAGE_TRANSLUCENT))
-        self.character_index = to_int(fields.get(PAGE_CHARACTER_INDEX, b"\x00"))
-        self.character_direction = to_int(fields.get(PAGE_CHARACTER_DIRECTION, b"\x02"))
-        self.character_pattern = to_int(fields.get(PAGE_CHARACTER_PATTERN, b"\x01"))
-        self.move_type = to_int(fields.get(PAGE_MOVE_TYPE, b"\x01"))
-        self.move_frequency = to_int(fields.get(PAGE_MOVE_FREQUENCY, b"\x03"))
-        self.move_speed = to_int(fields.get(PAGE_MOVE_SPEED, b"\x03"))
-        self.trigger = to_int(fields.get(PAGE_TRIGGER, b"\x00"))
-        self.layer = to_int(fields.get(PAGE_LAYER, b"\x00"))
-        self.overlap_forbidden = to_bool(fields.get(PAGE_OVERLAP_FORBIDDEN))
-        self.animation_type = to_int(fields.get(PAGE_ANIMATION_TYPE, b"\x00"))
-        self.commands = read_commands(fields.get(PAGE_COMMANDS, b""))
-        self.move_route = MoveRoute(
-            Reader(fields.get(PAGE_MOVE_ROUTE, b"\x00")).read_struct())
-
-        self.condition = EventPageCondition(
-            Reader(fields.get(PAGE_CONDITION, b"\x00")).read_struct())
+    def __init__(self, datos):
+        self.character_name = campo("EventPage", datos, "character_name")
+        self.translucent = campo("EventPage", datos, "translucent")
+        self.character_index = campo("EventPage", datos, "character_index")
+        self.character_direction = campo("EventPage", datos,
+                                         "character_direction")
+        self.character_pattern = campo("EventPage", datos, "character_pattern")
+        self.move_type = campo("EventPage", datos, "move_type")
+        self.move_frequency = campo("EventPage", datos, "move_frequency")
+        self.move_speed = campo("EventPage", datos, "move_speed")
+        self.trigger = campo("EventPage", datos, "trigger")
+        self.layer = campo("EventPage", datos, "layer")
+        self.overlap_forbidden = campo("EventPage", datos, "overlap_forbidden")
+        self.animation_type = campo("EventPage", datos, "animation_type")
+        self.commands = comandos(datos)
+        self.move_route = MoveRoute(sub(datos, "move_route"))
+        self.condition = EventPageCondition(sub(datos, "condition"))
         self.unconditional = not self.condition
 
 
 class Event:
-    def __init__(self, event_id, fields, map_id=0):
-        self.id = event_id
-        self.name = to_string(fields.get(EVENT_NAME, b""))
-        self.x = to_int(fields.get(EVENT_X, b"\x00"))
-        self.y = to_int(fields.get(EVENT_Y, b"\x00"))
-        self.pages = [EventPage(f) for _, f
-                      in sorted(Reader(fields[EVENT_PAGES]).read_struct_array().items())]
+    def __init__(self, datos, map_id=0):
+        self.id = campo("Event", datos, "id")
+        self.name = campo("Event", datos, "name")
+        self.x = campo("Event", datos, "x")
+        self.y = campo("Event", datos, "y")
+        self.pages = [EventPage(p) for _, p
+                      in sorted(por_id(lista(datos, "pages")).items())]
         if DECORAR_TRANSLUCIDO:
             # Ver DECORAR_TRANSLUCIDO: para el port, un CharSet translúcido es
             # otro gráfico, y si va horneado también depende de dónde está.
@@ -466,6 +300,33 @@ class Event:
         return None
 
 
+def capas(path, datos, ancho, alto):
+    """Las dos capas de tiles, del `.tiles` de al lado o del propio JSON.
+
+    Ditto las saca del JSON y las escribe como una grilla de texto, una fila
+    por línea, para que un tile cambiado se vea en el diff donde está en el
+    mapa. Una capa que no entre en una grilla de `ancho * alto` se queda
+    adentro del JSON, así que hay que mirar los dos lados.
+    """
+    if not os.path.isfile(path):
+        return (campo("Map", datos, "lower_layer") or [],
+                campo("Map", datos, "upper_layer") or [])
+
+    todas = [[]]
+    with open(path, encoding="utf-8") as handle:
+        for linea in handle:
+            if linea.startswith("#"):
+                if todas[-1]:
+                    todas.append([])
+                continue
+            todas[-1].extend(int(t) for t in linea.split())
+    esperado = ancho * alto
+    if len(todas) != 2 or any(len(c) != esperado for c in todas):
+        raise ValueError("%s: %s tiles para un mapa de %dx%d"
+                         % (path, [len(c) for c in todas], ancho, alto))
+    return todas[0], todas[1]
+
+
 class Map:
     def __init__(self, path):
         # El número de mapa no está adentro del archivo: sale del nombre, que
@@ -474,250 +335,107 @@ class Map:
         # están parados.
         base = os.path.basename(path)
         self.map_id = int(base[3:7]) if base[3:7].isdigit() else 0
-        reader = Reader(open(path, "rb").read())
-        header = reader.read_header()
-        if header != "LcfMapUnit":
-            raise ValueError("%s no es un mapa LCF (header %r)" % (path, header))
+        raiz = os.path.join(volcado(path), "maps")
+        datos = leer(raiz, "Map%04d.json" % self.map_id)
 
-        # RM2k omite los chunks que quedaron en su valor por defecto
-        # (liblcf: src/generated/lcf/rpg/map.h).
-        fields = reader.read_struct()
-        self.chipset_id = to_int(fields.get(MAP_CHIPSET_ID, b"\x01"))
-        self.width = to_int(fields.get(MAP_WIDTH, b"\x14"))
-        self.height = to_int(fields.get(MAP_HEIGHT, b"\x0f"))
-        self.scroll_type = to_int(fields.get(MAP_SCROLL_TYPE, b"\x00"))
-        self.parallax_flag = to_bool(fields.get(MAP_PARALLAX_FLAG))
-        self.parallax_name = to_string(fields.get(MAP_PARALLAX_NAME, b""))
-        self.parallax_loop_x = to_bool(fields.get(MAP_PARALLAX_LOOP_X))
-        self.parallax_loop_y = to_bool(fields.get(MAP_PARALLAX_LOOP_Y))
-        self.parallax_auto_loop_x = to_bool(fields.get(MAP_PARALLAX_AUTO_LOOP_X))
-        self.parallax_auto_loop_y = to_bool(fields.get(MAP_PARALLAX_AUTO_LOOP_Y))
-        self.parallax_sx = to_int(fields.get(MAP_PARALLAX_SX, b"\x00"))
-        self.parallax_sy = to_int(fields.get(MAP_PARALLAX_SY, b"\x00"))
-        self.lower_layer = to_u16_array(fields[MAP_LOWER_LAYER])
-        self.upper_layer = to_u16_array(fields[MAP_UPPER_LAYER])
-        self.events = [Event(i, f, self.map_id) for i, f in sorted(
-            Reader(fields.get(MAP_EVENTS, b"\x00")).read_struct_array().items())]
+        self.chipset_id = campo("Map", datos, "chipset_id")
+        self.width = campo("Map", datos, "width")
+        self.height = campo("Map", datos, "height")
+        self.scroll_type = campo("Map", datos, "scroll_type")
+        self.parallax_flag = campo("Map", datos, "parallax_flag")
+        self.parallax_name = campo("Map", datos, "parallax_name")
+        self.parallax_loop_x = campo("Map", datos, "parallax_loop_x")
+        self.parallax_loop_y = campo("Map", datos, "parallax_loop_y")
+        self.parallax_auto_loop_x = campo("Map", datos, "parallax_auto_loop_x")
+        self.parallax_auto_loop_y = campo("Map", datos, "parallax_auto_loop_y")
+        self.parallax_sx = campo("Map", datos, "parallax_sx")
+        self.parallax_sy = campo("Map", datos, "parallax_sy")
+        self.lower_layer, self.upper_layer = capas(
+            os.path.join(raiz, "Map%04d.tiles" % self.map_id),
+            datos, self.width, self.height)
+        self.events = [Event(e, self.map_id) for _, e
+                       in sorted(por_id(lista(datos, "events")).items())]
 
 
-# Passability por defecto, para los chipsets que dejaron el chunk sin escribir
-# (liblcf: src/generated/lcf/rpg/chipset.h). 15 = transitable por los cuatro
-# lados y por debajo del héroe; el 31 del primer tile alto lo pone por encima.
-PASSABLE_LOWER_DEFAULT = bytes([15]) * 162
-PASSABLE_UPPER_DEFAULT = bytes([31]) + bytes([15]) * 143
+def passability(datos, nombre):
+    """La transitabilidad de un chipset, completada con los defaults.
 
-
-def _passability(payload, default):
-    """Completa con los defaults lo que el archivo no traiga."""
-    return payload + default[len(payload):]
-
-
-# --- Decodificador genérico, guiado por el esquema -------------------------
-#
-# Los formatos LCF son todos el mismo mecanismo: structs de chunks tipados. Con
-# el esquema que tools/gen_schema.py saca de liblcf se puede decodificar
-# cualquiera de los 63 structs sin escribir una clase por cada uno. Es lo que
-# usa el volcado de la base de datos, que tiene cientos de campos.
-
-MOVE_COMMANDS = {
-    32: "switch_on", 33: "switch_off", 34: "change_graphic", 35: "play_sound_effect",
-}
-
-
-def read_move_commands(payload):
-    """Las órdenes de una ruta de movimiento. Casi todas son sólo un código."""
-    reader = Reader(payload)
-    commands = []
-    while not reader.eof():
-        code = reader.read_int()
-        command = {"command": MOVE_COMMANDS.get(code, code)}
-        if code in (32, 33):                       # switch_on / switch_off
-            command["switch"] = reader.read_int()
-        elif code == 34:                           # change_graphic
-            command["charset"] = reader.read_string(reader.read_int())
-            command["index"] = reader.read_int()
-        elif code == 35:                           # play_sound_effect
-            command["sound"] = reader.read_string(reader.read_int())
-            command["volume"] = reader.read_int()
-            command["tempo"] = reader.read_int()
-            command["balance"] = reader.read_int()
-        commands.append(command)
-    return commands
-
-
-def _unpack(fmt, payload, size):
-    return list(struct.unpack("<%d%s" % (len(payload) // size, fmt), payload))
-
-
-def decode_value(payload, kind, unknown):
-    """Un chunk, según el tipo que le da el esquema."""
-    if kind == "int":
-        return to_int(payload)
-    if kind == "bool":
-        return to_int(payload) > 0
-    if kind == "string":
-        return to_string(payload)
-    if kind == "u8":
-        return payload[0] if payload else 0
-    if kind == "i8":
-        return struct.unpack("<b", payload[:1])[0] if payload else 0
-    if kind == "u32":
-        return struct.unpack("<I", payload)[0]
-    if kind == "double":
-        return struct.unpack("<d", payload)[0]
-    if kind == "bits":
-        return [bool(b) for b in payload]
-    if kind == "u8array":
-        return list(payload)
-    if kind == "i16array":
-        return to_i16_array(payload)
-    if kind == "i32array":
-        return _unpack("i", payload, 4)
-    if kind == "u32array":
-        return _unpack("I", payload, 4)
-    if kind == "rect":
-        return dict(zip(("l", "t", "r", "b"), _unpack("I", payload, 4)))
-    if kind == "equipment":
-        return dict(zip(("weapon", "shield", "armor", "helmet", "accessory"),
-                        to_i16_array(payload)))
-    if kind == "parameters":
-        # Seis curvas de estadística por nivel, una atrás de la otra.
-        levels = len(payload) // 12
-        values = to_i16_array(payload)
-        names = ("maxhp", "maxsp", "attack", "defense", "spirit", "agility")
-        return {n: values[i * levels:(i + 1) * levels] for i, n in enumerate(names)}
-    if kind == "commands":
-        return [{"indent": c.indent, "code": c.code,
-                 "string": c.string, "parameters": c.parameters}
-                for c in read_commands(payload)]
-    if kind == "movecommands":
-        return read_move_commands(payload)
-    if kind.startswith("flags:"):
-        # Sólo los bits prendidos. Listar los ocho con su false no agrega nada
-        # y llena el JSON de ruido: qué flags existen es cosa del esquema.
-        names = FLAGS.get(kind[6:], [])
-        return [n for i, n in enumerate(names)
-                if i // 8 < len(payload) and payload[i // 8] & (1 << (i % 8))]
-    if kind.startswith("struct:"):
-        return decode_struct(Reader(payload).read_struct(), kind[7:], unknown)
-    if kind.startswith("array:"):
-        return {i: decode_struct(f, kind[6:], unknown)
-                for i, f in Reader(payload).read_struct_array().items()}
-
-    unknown.add(kind)
-    return payload.hex()
-
-
-def decode_struct(fields, struct_name, unknown=None):
-    """Un struct entero como dict, con los nombres de campo de liblcf."""
-    if unknown is None:
-        unknown = set()
-    schema = SCHEMA.get(struct_name, {})
-    skip = SKIP.get(struct_name, ())
-
-    result = {}
-    for chunk_id, payload in fields.items():
-        if chunk_id in skip:
-            continue
-        entry = schema.get(chunk_id)
-        if entry is None:
-            # Nada se pierde en silencio: los chunks que el esquema no conoce
-            # quedan en hexa, con su ID a la vista.
-            unknown.add("%s:0x%02X" % (struct_name, chunk_id))
-            result["unknown_0x%02X" % chunk_id] = payload.hex()
-            continue
-        name, kind = entry
-        result[name] = decode_value(payload, kind, unknown)
-    return result
+    Un chipset puede traer la lista más corta que los 162 o 144 tiles que
+    describe, y lo que falta vale lo que dice el formato: 15 es transitable por
+    los cuatro lados y por debajo del héroe, y el 31 del primer tile alto lo
+    pone por encima.
+    """
+    valores = campo("Chipset", datos, nombre)
+    _chunk, default, _enum, _siempre, _anidado = CAMPOS["Chipset"][nombre]
+    return bytes(valores + default[len(valores):])
 
 
 class Chipset:
-    def __init__(self, fields):
-        self.name = to_string(fields.get(CHIPSET_NAME, b""))
-        self.filename = to_string(fields.get(CHIPSET_FILENAME, b""))
-        self.passable_lower = _passability(
-            fields.get(CHIPSET_PASSABLE_LOWER, b""), PASSABLE_LOWER_DEFAULT)
-        self.passable_upper = _passability(
-            fields.get(CHIPSET_PASSABLE_UPPER, b""), PASSABLE_UPPER_DEFAULT)
-        self.terrain = to_i16_array(fields.get(CHIPSET_TERRAIN, b""))
-        self.animation_type = to_int(
-            fields.get(CHIPSET_ANIMATION_TYPE, b"\x00"))
-        self.animation_speed = to_int(
-            fields.get(CHIPSET_ANIMATION_SPEED, b"\x00"))
+    def __init__(self, datos):
+        self.name = campo("Chipset", datos, "name")
+        self.filename = campo("Chipset", datos, "chipset_name")
+        self.passable_lower = passability(datos, "passable_data_lower")
+        self.passable_upper = passability(datos, "passable_data_upper")
+        self.terrain = campo("Chipset", datos, "terrain_data")
+        self.animation_type = campo("Chipset", datos, "animation_type")
+        self.animation_speed = campo("Chipset", datos, "animation_speed")
+
+
+# Las cinco ranuras de equipo, en el orden en que las numera el port.
+RANURAS_EQUIPO = ("weapon_id", "shield_id", "armor_id", "helmet_id",
+                  "accessory_id")
+# Y las seis curvas de `Parameters`, en el orden del formato.
+CURVAS = ("maxhp", "maxsp", "attack", "defense", "spirit", "agility")
 
 
 class Actor:
     """Un personaje de la base: de acá sale con qué gráfico se lo dibuja."""
 
-    def __init__(self, fields):
-        self.name = to_string(fields.get(ACTOR_NAME, b""))
-        self.charset = to_string(fields.get(ACTOR_CHARSET, b""))
-        self.charset_index = to_int(fields.get(ACTOR_CHARSET_INDEX, b"\x00"))
-        self.face_name = to_string(fields.get(ACTOR_FACE_NAME, b""))
-        self.face_index = to_int(fields.get(ACTOR_FACE_INDEX, b"\x00"))
+    def __init__(self, datos):
+        self.name = campo("Actor", datos, "name")
+        self.charset = campo("Actor", datos, "character_name")
+        self.charset_index = campo("Actor", datos, "character_index")
+        self.face_name = campo("Actor", datos, "face_name")
+        self.face_index = campo("Actor", datos, "face_index")
         # Los parámetros por nivel, desde el 1: `maxhp`, `attack`, `defense`,
         # `spirit`, `agility`, cada uno una lista.
-        self.params = decode_value(fields.get(ACTOR_PARAMETERS, b""),
-                                   "parameters", set())
+        parametros = sub(datos, "parameters")
+        self.params = {c: campo("Parameters", parametros, c) or []
+                       for c in CURVAS}
         self.hp_max = self.params.get("maxhp", [])
         self.sp_max = self.params.get("maxsp", [])
         # **El nivel con el que arranca**, que en el ABL no es el 1: Kersh
-        # arranca en 20 y Core y Manta en 15. Un actor sin el campo arranca en
-        # 1, que es el default de RM2k. Hasta el 2026-09-13 este port tenía a
-        # todos en 1 —una constante `titulo.NIVEL`— y de ahí salían los HP,
-        # los parámetros y la conclusión de que nadie sabía ninguna habilidad.
-        self.initial_level = to_int(fields.get(ACTOR_INITIAL_LEVEL,
-                                               b"\x01")) or 1
+        # arranca en 20 y Core y Manta en 15. Hasta el 2026-09-13 este port
+        # tenía a todos en 1 —una constante `titulo.NIVEL`— y de ahí salían los
+        # HP, los parámetros y la conclusión de que nadie sabía ninguna
+        # habilidad.
+        self.initial_level = campo("Actor", datos, "initial_level") or 1
         # Qué habilidad aprende en cada nivel, en el orden del LDB:
         # `Game_Actor::LearnLevelSkills` las recorre así.
-        self.skills = [(to_int(f.get(LEARNING_LEVEL, b"\x01")),
-                        to_int(f.get(LEARNING_SKILL_ID, b"\x00")))
-                       for _, f in sorted(Reader(
-                           fields.get(ACTOR_SKILLS, b"\x00")
-                       ).read_struct_array().items())]
+        # `skill_id` vale **1** cuando el archivo no lo trae, que es lo que
+        # dice el formato: es el único dato del juego que cambió al mudarse a
+        # Ditto. Alex —el actor 1, del RTP, que este juego no usa— aprende la
+        # habilidad 1 en el nivel 1, y antes eso llegaba como la 0 y se caía.
+        # Son dos bytes en `sabe_hab`; sin eso el `mapdata.inc` es idéntico.
+        self.skills = [(campo("Learning", l, "level"),
+                        campo("Learning", l, "skill_id"))
+                       for _, l in sorted(por_id(lista(datos, "skills")).items())]
         # Cómo se llama su orden de habilidades en el menú de batalla:
         # `Game_Actor::GetSkillName` devuelve `skill_name` si `rename_skill`
         # está puesto y si no el `command_skill` del LDB. Los cuatro actores de
         # la intro lo tienen puesto: "AgentTrain", "Telepathy", "Slicing" y
         # "Special".
-        self.rename_skill = to_bool(fields.get(ACTOR_RENAME_SKILL, b"\x00"))
-        self.skill_name = to_string(fields.get(ACTOR_SKILL_NAME, b""))
+        self.rename_skill = campo("Actor", datos, "rename_skill")
+        self.skill_name = campo("Actor", datos, "skill_name")
         # El equipo con el que arranca: arma, escudo, armadura, casco y
         # accesorio, por número de ítem, 0 si nada.
-        equipo = decode_value(fields.get(ACTOR_INITIAL_EQUIPMENT, b""),
-                              "equipment", set())
-        self.initial_equipment = [equipo.get(k, 0) for k in (
-            "weapon", "shield", "armor", "helmet", "accessory")]
+        equipo = sub(datos, "initial_equipment")
+        self.initial_equipment = [campo("Equipment", equipo, r)
+                                  for r in RANURAS_EQUIPO]
 
 
-# Una habilidad de la base (liblcf: ldb/chunks.h, ChunkSkill). Sólo los campos
-# que la batalla de este port mira. Los defaults son los de `rpg::Skill` de
-# liblcf y **no son todos cero**: `magical_rate` vale 3, `variance` 4, `hit`
-# 100 y `switch_id` y `animation_id` 1. Leerlos como cero cambiaría el daño de
-# cualquier habilidad a la que el LDB no le haya escrito el campo.
-SKILL_NAME = 0x01
-SKILL_DESCRIPTION = 0x02
-SKILL_USING_MESSAGE1 = 0x03
-SKILL_USING_MESSAGE2 = 0x04
-SKILL_TYPE = 0x08
-SKILL_SP_COST = 0x0B
-SKILL_SCOPE = 0x0C
-SKILL_SWITCH_ID = 0x0D
-SKILL_ANIMATION_ID = 0x0E
-SKILL_PHYSICAL_RATE = 0x15
-SKILL_MAGICAL_RATE = 0x16
-SKILL_VARIANCE = 0x17
-SKILL_POWER = 0x18
-SKILL_HIT = 0x19
-SKILL_AFFECT_HP = 0x1F
-SKILL_AFFECT_SP = 0x20
-SKILL_AFFECT_ATTACK = 0x21
-SKILL_AFFECT_DEFENSE = 0x22
-SKILL_AFFECT_SPIRIT = 0x23
-SKILL_AFFECT_AGILITY = 0x24
-SKILL_IGNORE_DEFENSE = 0x26
-# Los tipos, en el orden de `rpg::Skill::Type`. Las siete que el grupo de la
-# intro sabe son `normal` o `switch`.
+# Los tipos de habilidad, en el orden de `rpg::Skill::Type`. Las siete que el
+# grupo de la intro sabe son `normal` o `switch`.
 SKILL_TIPO_NORMAL, SKILL_TIPO_TELEPORT, SKILL_TIPO_ESCAPE, \
     SKILL_TIPO_SWITCH, SKILL_TIPO_SUBSKILL = range(5)
 # Y los alcances, `rpg::Skill::Scope`. `SkillTargetsEnemies` de algo.h es
@@ -725,35 +443,24 @@ SKILL_TIPO_NORMAL, SKILL_TIPO_TELEPORT, SKILL_TIPO_ESCAPE, \
 SKILL_SCOPE_ENEMIGO, SKILL_SCOPE_ENEMIGOS, SKILL_SCOPE_UNO_MISMO, \
     SKILL_SCOPE_ALIADO, SKILL_SCOPE_GRUPO = range(5)
 
+SKILL_CAMPOS = ("name", "description", "using_message1", "using_message2",
+                "type", "sp_cost", "scope", "switch_id", "animation_id",
+                "physical_rate", "magical_rate", "variance", "power", "hit",
+                "affect_hp", "affect_sp", "affect_attack", "affect_defense",
+                "affect_spirit", "affect_agility", "ignore_defense")
+
 
 class Skill:
-    """Una habilidad: lo que la pantalla muestra y lo que la cuenta necesita."""
+    """Una habilidad: lo que la pantalla muestra y lo que la cuenta necesita.
 
-    def __init__(self, fields):
-        self.name = to_string(fields.get(SKILL_NAME, b""))
-        self.description = to_string(fields.get(SKILL_DESCRIPTION, b""))
-        self.using_message1 = to_string(fields.get(SKILL_USING_MESSAGE1, b""))
-        self.using_message2 = to_string(fields.get(SKILL_USING_MESSAGE2, b""))
-        self.type = to_int(fields.get(SKILL_TYPE, b"\x00"))
-        self.sp_cost = to_int(fields.get(SKILL_SP_COST, b"\x00"))
-        self.scope = to_int(fields.get(SKILL_SCOPE, b"\x00"))
-        self.switch_id = to_int(fields.get(SKILL_SWITCH_ID, b"\x01"))
-        self.animation_id = to_int(fields.get(SKILL_ANIMATION_ID, b"\x01"))
-        self.physical_rate = to_int(fields.get(SKILL_PHYSICAL_RATE, b"\x00"))
-        self.magical_rate = to_int(fields.get(SKILL_MAGICAL_RATE, b"\x03"))
-        self.variance = to_int(fields.get(SKILL_VARIANCE, b"\x04"))
-        self.power = to_int(fields.get(SKILL_POWER, b"\x00"))
-        self.hit = to_int(fields.get(SKILL_HIT, b"\x64"))
-        self.affect_hp = to_bool(fields.get(SKILL_AFFECT_HP, b"\x00"))
-        self.affect_sp = to_bool(fields.get(SKILL_AFFECT_SP, b"\x00"))
-        self.affect_attack = to_bool(fields.get(SKILL_AFFECT_ATTACK, b"\x00"))
-        self.affect_defense = to_bool(
-            fields.get(SKILL_AFFECT_DEFENSE, b"\x00"))
-        self.affect_spirit = to_bool(fields.get(SKILL_AFFECT_SPIRIT, b"\x00"))
-        self.affect_agility = to_bool(
-            fields.get(SKILL_AFFECT_AGILITY, b"\x00"))
-        self.ignore_defense = to_bool(
-            fields.get(SKILL_IGNORE_DEFENSE, b"\x00"))
+    Los defaults no son todos cero —`magical_rate` vale 3, `variance` 4, `hit`
+    100, `switch_id` y `animation_id` 1— y ya no están escritos acá: salen del
+    esquema, que es de donde tienen que salir.
+    """
+
+    def __init__(self, datos):
+        for nombre in SKILL_CAMPOS:
+            setattr(self, nombre, campo("Skill", datos, nombre))
 
     @property
     def apunta_a_enemigos(self):
@@ -761,55 +468,32 @@ class Skill:
         return self.scope in (SKILL_SCOPE_ENEMIGO, SKILL_SCOPE_ENEMIGOS)
 
 
-# Un ítem de la base (liblcf: ldb/chunks.h, ChunkItem).
-ITEM_NAME = 0x01
-ITEM_DESCRIPTION = 0x02
-ITEM_TYPE = 0x03
-ITEM_USES = 0x06
-ITEM_SWITCH_ID = 0x37
-ITEM_OCCASION_FIELD2 = 0x39
-ITEM_PRICE = 0x05
-ITEM_ATK = 0x0B
-ITEM_DEF = 0x0C
-ITEM_SPI = 0x0D
-ITEM_AGI = 0x0E
-ITEM_TWO_HANDED = 0x0F
-ITEM_ACTOR_SET = 0x3E
-# Los tipos, en el orden de `rpg::Item::Type`.
+# Los tipos de ítem, en el orden de `rpg::Item::Type`.
 ITEM_TIPO_COMUN, ITEM_TIPO_ARMA, ITEM_TIPO_ESCUDO, ITEM_TIPO_ARMADURA, \
     ITEM_TIPO_CASCO, ITEM_TIPO_ACCESORIO, ITEM_TIPO_MEDICINA, \
     ITEM_TIPO_LIBRO, ITEM_TIPO_MATERIAL, ITEM_TIPO_UNICO, \
     ITEM_TIPO_SWITCH = range(11)
 
+ITEM_CAMPOS = ("name", "description", "type", "uses", "switch_id",
+               "occasion_field2", "price", "two_handed", "recover_hp_rate",
+               "recover_hp", "occasion_field1", "ko_only")
+# Lo que suma al equipárselo: ataque, defensa, espíritu, agilidad.
+ITEM_PUNTOS = ("atk_points1", "def_points1", "spi_points1", "agi_points1")
+
 
 class Item:
-    """Un ítem: lo que el menú muestra de él y lo poco que hace hoy."""
+    """Un ítem: lo que el menú muestra de él y lo poco que hace hoy.
 
-    def __init__(self, fields):
-        self.name = to_string(fields.get(ITEM_NAME, b""))
-        self.description = to_string(fields.get(ITEM_DESCRIPTION, b""))
-        self.type = to_int(fields.get(ITEM_TYPE, b"\x00"))
-        self.uses = to_int(fields.get(ITEM_USES, b"\x01"))
-        self.switch_id = to_int(fields.get(ITEM_SWITCH_ID, b"\x01"))
-        self.occasion_field2 = to_bool(fields.get(ITEM_OCCASION_FIELD2,
-                                                  b"\x01"))
-        self.price = to_int(fields.get(ITEM_PRICE, b"\x00"))
-        # Lo que suma al equipárselo: ataque, defensa, espíritu, agilidad.
-        self.puntos = [to_int(fields.get(c, b"\x00"))
-                       for c in (ITEM_ATK, ITEM_DEF, ITEM_SPI, ITEM_AGI)]
-        self.two_handed = to_bool(fields.get(ITEM_TWO_HANDED, b"\x00"))
-        self.actor_set = [bool(b) for b in fields.get(ITEM_ACTOR_SET, b"")]
-        # Lo que cura, desde el 2026-09-13, que es cuando la pelea empezó a
-        # dejar usar ítems: `recover_hp_rate` es por ciento del máximo y
-        # `recover_hp` es a secas. `occasion_field1` es "sólo fuera de
-        # batalla" y `ko_only` "sólo sobre un muerto"; ver
-        # `batalla.item_usable_en_batalla`.
-        self.recover_hp_rate = to_int(fields.get(ITEM_RECOVER_HP_RATE,
-                                                 b"\x00"))
-        self.recover_hp = to_int(fields.get(ITEM_RECOVER_HP, b"\x00"))
-        self.occasion_field1 = to_bool(fields.get(ITEM_OCCASION_FIELD1,
-                                                  b"\x00"))
-        self.ko_only = to_bool(fields.get(ITEM_KO_ONLY, b"\x00"))
+    `recover_hp_rate` es por ciento del máximo y `recover_hp` es a secas;
+    `occasion_field1` es "sólo fuera de batalla" y `ko_only` "sólo sobre un
+    muerto". Ver `batalla.item_usable_en_batalla`.
+    """
+
+    def __init__(self, datos):
+        for nombre in ITEM_CAMPOS:
+            setattr(self, nombre, campo("Item", datos, nombre))
+        self.puntos = [campo("Item", datos, p) for p in ITEM_PUNTOS]
+        self.actor_set = campo("Item", datos, "actor_set") or []
 
     def equipable_por(self, actor):
         """`actor_set`, con los que no alcanza la lista en sí: es lo que
@@ -818,28 +502,9 @@ class Item:
             else True
 
 
-ITEM_RECOVER_HP_RATE = 0x20
-ITEM_RECOVER_HP = 0x21
-ITEM_OCCASION_FIELD1 = 0x25
-ITEM_KO_ONLY = 0x26
-
-
-# Un enemigo de la base (liblcf: ldb/chunks.h, ChunkEnemy). Sólo los campos
-# que la batalla de este port mira; los que no, se ignoran y quedan en el
-# volcado a JSON, que es el que sirve para leerlos.
-ENEMY_NAME = 0x01
-ENEMY_BATTLER_NAME = 0x02
-ENEMY_MAX_HP = 0x04
-ENEMY_MAX_SP = 0x05
-ENEMY_ATTACK = 0x06
-ENEMY_DEFENSE = 0x07
-ENEMY_SPIRIT = 0x08
-ENEMY_AGILITY = 0x09
-ENEMY_EXP = 0x0B
-ENEMY_GOLD = 0x0C
-ENEMY_CRITICAL_HIT = 0x15
-ENEMY_CRITICAL_HIT_CHANCE = 0x16
-ENEMY_MISS = 0x1A
+ENEMY_CAMPOS = ("name", "battler_name", "max_hp", "max_sp", "attack",
+                "defense", "spirit", "agility", "exp", "gold", "critical_hit",
+                "miss")
 
 
 class Enemy:
@@ -849,37 +514,19 @@ class Enemy:
     `Game_Enemy::GetCriticalHitChance` de easyrpg-player: el que falla acierta
     70 de 100 y el que no, 90, y el crítico es una vez cada
     `critical_hit_chance`.
+
+    Los seis parámetros valen **10** cuando el archivo no los trae, que es lo
+    que dice el formato. Acá estaban escritos en 1 y 0, y no era una diferencia
+    teórica: taro encontró el 2026-09-14, jugando, que el DirtShadow moría de
+    un golpe. Son 24 enemigos de los 175, casi todos separadores del editor,
+    pero el DirtShadow es uno de verdad. Es el error que originó a Ditto.
     """
 
-    def __init__(self, fields):
-        self.name = to_string(fields.get(ENEMY_NAME, b""))
-        # Con qué se dibuja, desde el 2026-09-13: el PNG de `Monster/`. El
-        # `battler_hue` no se lee —ninguno de los dos enemigos que el cartucho
-        # lleva lo usa— y si apareciera uno habría que rotarle el tono acá y en
-        # la referencia con la misma función.
-        self.battler_name = to_string(fields.get(ENEMY_BATTLER_NAME, b""))
-        # **Los seis van con 10 y no con 1**, que es lo que dice liblcf
-        # (`generator/csv/fields.csv`, columna del default). Acá estaban en 1 y
-        # 0, y no era una diferencia teórica: el LDB **no guarda el campo
-        # cuando vale el default**, así que un enemigo que en el editor tiene
-        # los valores de fábrica llegaba con 1 de HP. taro lo encontró el
-        # 2026-09-14 jugando —el `DirtShadow` moría de un golpe— y mirando el
-        # volcado a JSON, donde el campo directamente no aparece.
-        #
-        # Son 24 enemigos de los 175, casi todos separadores del editor, pero
-        # el DirtShadow es uno de verdad.
-        self.max_hp = to_int(fields.get(ENEMY_MAX_HP, b"\x0A"))
-        self.max_sp = to_int(fields.get(ENEMY_MAX_SP, b"\x0A"))
-        self.attack = to_int(fields.get(ENEMY_ATTACK, b"\x0A"))
-        self.defense = to_int(fields.get(ENEMY_DEFENSE, b"\x0A"))
-        self.spirit = to_int(fields.get(ENEMY_SPIRIT, b"\x0A"))
-        self.agility = to_int(fields.get(ENEMY_AGILITY, b"\x0A"))
-        self.exp = to_int(fields.get(ENEMY_EXP, b"\x00"))
-        self.gold = to_int(fields.get(ENEMY_GOLD, b"\x00"))
-        self.critical_hit = to_bool(fields.get(ENEMY_CRITICAL_HIT, b"\x00"))
-        self.critical_hit_chance = to_int(
-            fields.get(ENEMY_CRITICAL_HIT_CHANCE, b"\x1E")) or 30
-        self.miss = to_bool(fields.get(ENEMY_MISS, b"\x00"))
+    def __init__(self, datos):
+        for nombre in ENEMY_CAMPOS:
+            setattr(self, nombre, campo("Enemy", datos, nombre))
+        self.critical_hit_chance = campo(
+            "Enemy", datos, "critical_hit_chance") or 30
 
     @property
     def hit(self):
@@ -887,125 +534,128 @@ class Enemy:
         return 70 if self.miss else 90
 
 
-TROOP_NAME = 0x01
-TROOP_MEMBERS = 0x02
-TROOP_MEMBER_ENEMY_ID = 0x01
-# Dónde va cada battler, en la pantalla de 320x240 de RM2k y como **centro** de
-# la imagen. Los códigos son los de `ChunkTroopMember` de liblcf.
-TROOP_MEMBER_X = 0x02
-TROOP_MEMBER_Y = 0x03
-
-
 class Troop:
     """Una tropa: qué enemigos la forman y dónde va cada uno.
 
     Las posiciones (x, y) son del **centro** de cada battler en la pantalla de
-    320x240 de RM2k, y se leen desde el 2026-09-13, que es cuando la pelea
-    empezó a dibujarlos: ver `escena.py`. Las páginas de eventos de batalla no
-    se leen: ver "lo que falta" de la batalla en README.md.
+    320x240 de RM2k. Las páginas de eventos de batalla no se leen: ver "lo que
+    falta" de la batalla en README.md.
     """
 
-    def __init__(self, fields):
-        self.name = to_string(fields.get(TROOP_NAME, b""))
-        miembros = sorted(Reader(
-            fields.get(TROOP_MEMBERS, b"\x00")).read_struct_array().items())
-        self.members = [to_int(m.get(TROOP_MEMBER_ENEMY_ID, b"\x01"))
+    def __init__(self, datos):
+        miembros = sorted(por_id(lista(datos, "members")).items())
+        self.name = campo("Troop", datos, "name")
+        self.members = [campo("TroopMember", m, "enemy_id")
                         for _, m in miembros]
-        self.posiciones = [(to_int(m.get(TROOP_MEMBER_X, b"\x00")),
-                            to_int(m.get(TROOP_MEMBER_Y, b"\x00")))
+        self.posiciones = [(campo("TroopMember", m, "x"),
+                            campo("TroopMember", m, "y"))
                            for _, m in miembros]
 
 
+# Las quince secciones del LDB, cada una en su archivo. Los nombres son los
+# campos de `Database`, que es como se llaman los archivos de `db/`.
+SECCIONES = ("actors", "skills", "items", "enemies", "troops", "terrains",
+             "attributes", "states", "animations", "chipsets", "terms",
+             "system", "switches", "variables", "commonevents")
+# Y las que son una lista de elementos numerados; `system` y `terms` son un
+# objeto solo.
+SECCIONES_LISTA = tuple(s for s in SECCIONES if s not in ("system", "terms"))
+
+# Los efectos de sonido que `Game_System::GetSystemSE` reparte, en el orden que
+# recorre `eventos.AUDIO_BATALLA_SE`.
+SYSTEM_SE = ("battle_se", "escape_se", "enemy_attack_se", "enemy_damaged_se",
+             "actor_damaged_se", "dodge_se", "enemy_death_se", "item_se")
+
+# Los términos que el port usa por nombre. El resto sigue estando en
+# `db.terminos`, por chunk, que es como los pide la tienda.
+TERM_MENU = ("command_item", "command_skill", "menu_equipment", "menu_save",
+             "menu_quit")
+TERM_PARAMS = ("attack", "defense", "spirit", "agility")
+TERM_EQUIPO = ("weapon", "shield", "armor", "helmet", "accessory")
+TERM_SUELTOS = {
+    "term_new_game": "new_game", "term_load_game": "load_game",
+    "term_load_message": "load_game_message",
+    "term_save_message": "save_game_message", "term_file": "file",
+    "term_level": "level", "term_lvl_short": "lvl_short", "term_gold": "gold",
+    "term_normal_status": "normal_status", "term_hp_short": "hp_short",
+}
+
+
+def sonido(datos, struct="Sound"):
+    """Un `Music` o un `Sound` como la tupla que espera el port."""
+    return (campo(struct, datos, "name"), campo(struct, datos, "volume"),
+            campo(struct, datos, "tempo"), campo(struct, datos, "balance"))
+
+
 class Database:
-    """RPG_RT.ldb: los chipsets, los personajes y el grupo con el que se arranca."""
+    """RPG_RT.ldb: los chipsets, los personajes y el grupo con el que se arranca.
+
+    Del `path` sólo se usa el directorio, y sólo para saber si trae un volcado
+    propio: los datos salen de `db/` del volcado.
+    """
 
     def __init__(self, path):
-        reader = Reader(open(path, "rb").read())
-        header = reader.read_header()
-        if header != "LcfDataBase":
-            raise ValueError("%s no es una base LCF (header %r)" % (path, header))
+        raiz = os.path.join(volcado(path), "db")
+        self.secciones = {s: leer(raiz, "%s.json" % s) for s in SECCIONES}
 
-        self.fields = reader.read_struct()
-        self.chipsets = {i: Chipset(f) for i, f in Reader(
-            self.fields.get(DB_CHIPSETS, b"\x00")).read_struct_array().items()}
-        self.actors = {i: Actor(f) for i, f in Reader(
-            self.fields.get(DB_ACTORS, b"\x00")).read_struct_array().items()}
+        crudas = {s: por_id(self.secciones[s]) for s in SECCIONES_LISTA}
+        self.chipsets = {i: Chipset(f) for i, f in crudas["chipsets"].items()}
+        self.actors = {i: Actor(f) for i, f in crudas["actors"].items()}
         # Los ítems, y el número más alto: `ITEMS_N` en eventos.py es éste
         # más uno, y test_items.py lo comprueba.
-        self.items = {i: Item(f) for i, f in Reader(
-            self.fields.get(DB_ITEMS, b"\x00")).read_struct_array().items()}
+        self.items = {i: Item(f) for i, f in crudas["items"].items()}
         # Las habilidades, que `lcf.Actor.skills` nombra por número.
-        self.skills = {i: Skill(f) for i, f in Reader(
-            self.fields.get(DB_SKILLS, b"\x00")).read_struct_array().items()}
+        self.skills = {i: Skill(f) for i, f in crudas["skills"].items()}
         self.items_max = max(self.items, default=0)
-        # Los enemigos y las tropas: lo que una batalla necesita. Ver `Enemy`
-        # y `Troop`.
-        self.enemies = {i: Enemy(f) for i, f in Reader(
-            self.fields.get(DB_ENEMIES, b"\x00")).read_struct_array().items()}
-        self.troops = {i: Troop(f) for i, f in Reader(
-            self.fields.get(DB_TROOPS, b"\x00")).read_struct_array().items()}
+        # Los enemigos y las tropas: lo que una batalla necesita.
+        self.enemies = {i: Enemy(f) for i, f in crudas["enemies"].items()}
+        self.troops = {i: Troop(f) for i, f in crudas["troops"].items()}
+        # Los eventos comunes, que antes se leían del chunk crudo: acá ya son
+        # sus comandos, que es lo único que se les pide.
+        self.common_events = {
+            i: comandos(f) for i, f in crudas["commonevents"].items()}
 
         # El grupo con el que empieza la partida. En RM2k el gráfico del héroe
         # es el del primero de la lista, así que este dato es el que decide con
-        # qué sprite se dibuja: hasta ahora salía de un default de la línea de
-        # comandos del conversor, que daba Future1[0] cuando el juego arranca
-        # con el actor 10, 'DummyHero', que es Chubby2[2].
-        sistema = Reader(self.fields.get(DB_SYSTEM, b"\x00")).read_struct()
-        self.party = to_i16_array(sistema.get(SYSTEM_PARTY, b""))
-        self.system_name = sistema.get(SYSTEM_NAME, b"").decode(
-            "cp1252", "replace")
-        self.font_id = sistema.get(SYSTEM_FONT_ID, b"\x00")[0]
+        # qué sprite se dibuja.
+        sistema = self.secciones["system"]
+        self.party = campo("System", sistema, "party") or []
+        # El System del juego: el PNG con el marco de la ventana, los colores
+        # de texto y la sombra. Este juego usa `ablskin`.
+        self.system_name = campo("System", sistema, "system_name")
+        # Con qué fuente dibuja el texto: 0 Gothic, 1 Mincho. easyrpg elige
+        # ttyp0 o rmg2000 con esto, y las letras salen distintas. Este juego
+        # pide Mincho.
+        self.font_id = campo("System", sistema, "font_id")
         # La imagen de la pantalla de título y su tema. En el ABL son
         # 'ABL20Title' y 'Fantasia_Of_The_Wind'; el otro PNG que hay en Title/
         # —'LineTitle'— es de una versión anterior y el juego no lo usa.
-        self.title_name = to_string(sistema.get(SYSTEM_TITLE_NAME, b""))
-        titulo_music = Reader(
-            sistema.get(SYSTEM_TITLE_MUSIC, b"\x00")).read_struct()
-        self.title_music = to_string(titulo_music.get(MUSIC_NAME, b""))
+        self.title_name = campo("System", sistema, "title_name")
+        self.title_music = campo("Music", sub(sistema, "title_music"), "name")
         # El audio de la pelea. Sale de acá y no de un literal nuestro por lo
         # mismo que los términos: es un dato del juego. En el ABL el tema de
         # batalla y el de victoria son **el mismo** —T_VGFighterMAX_Masako—, y
         # `battle_se` está en "(OFF)", que es un nombre que no resuelve a
         # ningún archivo y sale mudo sin que haya que tratarlo aparte.
-        self.battle_music = to_string(Reader(
-            sistema.get(SYSTEM_BATTLE_MUSIC, b"\x00")
-        ).read_struct().get(MUSIC_NAME, b""))
-        self.battle_end_music = to_string(Reader(
-            sistema.get(SYSTEM_BATTLE_END_MUSIC, b"\x00")
-        ).read_struct().get(MUSIC_NAME, b""))
-        self.system_se = {}
-        for nombre, chunk in SYSTEM_SE.items():
-            campos = Reader(sistema.get(chunk, b"\x00")).read_struct()
-            self.system_se[nombre] = (
-                to_string(campos.get(MUSIC_NAME, b"")),
-                to_int(campos.get(MUSIC_VOLUME, b"\x64")),
-                to_int(campos.get(MUSIC_TEMPO, b"\x64")),
-                to_int(campos.get(MUSIC_BALANCE, b"\x32")))
+        self.battle_music = campo("Music", sub(sistema, "battle_music"), "name")
+        self.battle_end_music = campo(
+            "Music", sub(sistema, "battle_end_music"), "name")
+        self.system_se = {n: sonido(sub(sistema, n)) for n in SYSTEM_SE}
+
         # Los términos de la pantalla de título. En el ABL no son los de
         # fábrica: dicen 'Begin the Story' y 'Resume the Story', que es lo que
         # el juego eligió y por eso salen de acá y no de un literal nuestro.
-        terminos = Reader(self.fields.get(DB_TERMS, b"\x00")).read_struct()
-        self.term_new_game = to_string(terminos.get(TERMS_NEW_GAME, b""))
-        self.term_load_game = to_string(terminos.get(TERMS_LOAD_GAME, b""))
-        self.term_load_message = to_string(
-            terminos.get(TERMS_LOAD_MESSAGE, b""))
-        self.term_save_message = to_string(
-            terminos.get(TERMS_SAVE_MESSAGE, b""))
-        self.term_file = to_string(terminos.get(TERMS_FILE, b""))
-        self.term_level = to_string(terminos.get(TERMS_LEVEL, b""))
-        self.term_lvl_short = to_string(terminos.get(TERMS_LVL_SHORT, b""))
-        self.term_gold = to_string(terminos.get(TERMS_GOLD, b""))
-        self.term_menu = [to_string(terminos.get(t, b"")) for t in (
-            TERMS_COMMAND_ITEM, TERMS_COMMAND_SKILL, TERMS_MENU_EQUIPMENT,
-            TERMS_MENU_SAVE, TERMS_MENU_QUIT)]
-        self.term_normal_status = to_string(
-            terminos.get(TERMS_NORMAL_STATUS, b""))
-        self.term_hp_short = to_string(terminos.get(TERMS_HP_SHORT, b""))
-        self.term_params = [to_string(terminos.get(t, b""))
-                            for t in TERMS_PARAMS]
-        self.term_equipo = [to_string(terminos.get(t, b""))
-                            for t in TERMS_EQUIPO]
-        self.terminos = terminos    # crudos, para la tienda
+        terminos = self.secciones["terms"]
+        for atributo, nombre in TERM_SUELTOS.items():
+            setattr(self, atributo, campo("Terms", terminos, nombre))
+        self.term_menu = [campo("Terms", terminos, t) for t in TERM_MENU]
+        self.term_params = [campo("Terms", terminos, t) for t in TERM_PARAMS]
+        self.term_equipo = [campo("Terms", terminos, t) for t in TERM_EQUIPO]
+        # Y los crudos, por chunk, que es como los pide la tienda: ahí los
+        # nombres se arman sumando el número de la tienda al chunk base.
+        self.terminos = {
+            chunk: campo("Terms", terminos, nombre).encode("cp1252", "replace")
+            for nombre, (chunk, *_r) in CAMPOS["Terms"].items()}
 
     def lider(self, party=None):
         """El CharSet del primero del grupo: (nombre, índice).
@@ -1021,71 +671,116 @@ class Database:
         return actor.charset, actor.charset_index
 
     def decode(self, unknown=None):
-        """La base entera como dicts, para volcarla a JSON."""
-        return decode_struct(self.fields, "Database", unknown)
+        """La base entera como dicts, tal como está en el JSON.
+
+        Los arrays vienen indexados por id y los enums, en número. **No se
+        rellenan los defaults** salvo los que el binario escribe igual
+        —`PersistIfDefault`—, y ésos porque un lector del `.ldb` siempre los
+        veía: rellenar el resto cambiaría lo que contesta un `.get(campo, x)`
+        de quien lee esto.
+        """
+        return {seccion: normalizar(self.secciones[seccion],
+                                    ESTRUCTURA[seccion])
+                for seccion in SECCIONES}
+
+
+# Qué struct es cada sección del LDB. El resto de los nombres —qué struct hay
+# adentro de cada campo— lo sabe el esquema.
+ESTRUCTURA = {
+    "actors": "Actor", "skills": "Skill", "items": "Item", "enemies": "Enemy",
+    "troops": "Troop", "terrains": "Terrain", "attributes": "Attribute",
+    "states": "State", "animations": "Animation", "chipsets": "Chipset",
+    "switches": "Switch", "variables": "Variable", "system": "System",
+    "terms": "Terms", "commonevents": "CommonEvent",
+}
+
+
+def normalizar(datos, struct):
+    """El JSON como lo espera quien leía chunks: por id y con los enums en número.
+
+    Un array de structs vuelve a ser `{id: elemento}`, que es como lo daba el
+    lector del binario; los que no tienen id —los comandos de un evento, que en
+    el formato van uno atrás del otro y sin numerar— se quedan como lista.
+
+    Los campos que el formato escribe **siempre** —`PersistIfDefault`— se
+    rellenan con su default, porque el binario los traía y el JSON los omite:
+    es la única diferencia de presencia entre los dos, y la que haría que un
+    `.get(campo, otra_cosa)` de quien lee esto contestara distinto.
+    """
+    if isinstance(datos, list):
+        if "id" not in CAMPOS[struct]:
+            return [normalizar(e, struct) for e in datos]
+        return {e.get("id", i): normalizar(e, struct)
+                for i, e in enumerate(datos)}
+
+    salida = {}
+    for nombre, (_chunk, default, enum, siempre, anidado) in \
+            CAMPOS[struct].items():
+        if nombre == "id":
+            continue            # es la clave, no un campo
+        if nombre not in datos:
+            if siempre and default is not None:
+                salida[nombre] = default
+            continue
+        valor = datos[nombre]
+        if anidado:
+            salida[nombre] = normalizar(valor, anidado)
+        elif enum:
+            salida[nombre] = valor_enum(enum, valor)
+        elif isinstance(valor, str):
+            salida[nombre] = texto(valor)
+        else:
+            salida[nombre] = valor
+    return salida
 
 
 class TreeMap:
-    """RPG_RT.lmt: el árbol de mapas y la posición inicial del jugador.
-
-    No es chunk-based en el nivel raíz; ver liblcf src/lmt_treemap.cpp.
-    """
+    """RPG_RT.lmt: el árbol de mapas y la posición inicial del jugador."""
 
     def __init__(self, path):
-        reader = Reader(open(path, "rb").read())
-        header = reader.read_header()
-        if header != "LcfMapTree":
-            raise ValueError("%s no es un árbol LCF (header %r)" % (path, header))
+        datos = leer(volcado(path), "maps.json")
+        infos = por_id(lista(datos, "maps"))
 
-        infos = reader.read_struct_array()
-        self.map_names = {i: to_string(f.get(MAPINFO_NAME, b""))
+        self.map_names = {i: campo("MapInfo", f, "name")
                           for i, f in infos.items()}
-        self.map_parents = {i: to_int(f.get(MAPINFO_PARENT, b"\x00"))
+        self.map_parents = {i: campo("MapInfo", f, "parent_map")
                             for i, f in infos.items()}
         # Tipo 0 = raíz del árbol, 1 = mapa de verdad, 2 = **área**. Un área es
-        # un nodo sin `.lmu` que cuelga de un mapa y le tapa un rectángulo:
-        # `MapType_area` de liblcf (rpg/treemap.h). Acá se usan para los
-        # encuentros al azar, que es lo único que ABL les pone.
-        self.map_types = {i: to_int(f.get(MAPINFO_TYPE, b"\x00"))
+        # un nodo sin `.lmu` que cuelga de un mapa y le tapa un rectángulo.
+        # Acá se usan para los encuentros al azar, que es lo único que ABL les
+        # pone.
+        self.map_types = {i: campo("MapInfo", f, "type")
                           for i, f in infos.items()}
 
         # Los encuentros al azar, que viven en el árbol y no en el `.lmu`:
         # la lista de tropas, cada cuántos pasos y —para las áreas— el
-        # rectángulo que cubren. Ver rpg/mapinfo.h en liblcf.
+        # rectángulo que cubren.
         self.encounters = {}
         self.encounter_steps = {}
         self.area_rect = {}
         for i, f in infos.items():
-            tropas = Reader(f.get(MAPINFO_ENCOUNTERS, b"\x00")).read_struct_array()
             self.encounters[i] = [
-                to_int(e.get(ENCOUNTER_TROOP_ID, b"\x00"))
-                for _, e in sorted(tropas.items())
-            ]
+                campo("Encounter", e, "troop_id")
+                for _, e in sorted(por_id(lista(f, "encounters")).items())]
             # El default de RM2k son 25 pasos; 0 es "sin encuentros".
-            self.encounter_steps[i] = to_int(
-                f.get(MAPINFO_ENCOUNTER_STEPS, b"\x19"))
-            rect = f.get(MAPINFO_AREA_RECT, b"")
-            self.area_rect[i] = (struct.unpack("<4i", rect) if len(rect) == 16
-                                 else (0, 0, 0, 0))
+            self.encounter_steps[i] = campo("MapInfo", f, "encounter_steps")
+            rect = sub(f, "area_rect")
+            self.area_rect[i] = tuple(campo("Rect", rect, c) for c in "ltrb")
 
-        count = reader.read_int()
         self.music = {}
         for i, f in infos.items():
-            kind = to_int(f.get(MAPINFO_MUSIC_TYPE, b"\x00"))
-            fields = Reader(f.get(MAPINFO_MUSIC, b"\x00")).read_struct()
-            self.music[i] = (kind, {
-                "name": to_string(fields.get(MUSIC_NAME, b"")),
-                "volume": to_int(fields.get(MUSIC_VOLUME, b"\x64")),
-                "tempo": to_int(fields.get(MUSIC_TEMPO, b"\x64")),
+            musica = sub(f, "music")
+            self.music[i] = (campo("MapInfo", f, "music_type"), {
+                "name": campo("Music", musica, "name"),
+                "volume": campo("Music", musica, "volume"),
+                "tempo": campo("Music", musica, "tempo"),
             })
 
-        self.tree_order = [reader.read_int() for _ in range(count)]
-        reader.read_int()                   # active_node, cosa del editor
-
-        start = reader.read_struct()
-        self.start_map_id = to_int(start[START_PARTY_MAP_ID])
-        self.start_x = to_int(start[START_PARTY_X])
-        self.start_y = to_int(start[START_PARTY_Y])
+        self.tree_order = campo("TreeMap", datos, "tree_order") or []
+        start = sub(datos, "start")
+        self.start_map_id = campo("Start", start, "party_map_id")
+        self.start_x = campo("Start", start, "party_x")
+        self.start_y = campo("Start", start, "party_y")
 
     def map_music(self, map_id):
         """El tema de un mapa, siguiendo la herencia hacia el padre.

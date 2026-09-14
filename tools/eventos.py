@@ -2376,12 +2376,6 @@ def variables_de(game_dir, map_ids=None, extra=()):
 
 
 COMUNES = {}            # evento común de RM2k -> sus comandos
-# Los dos chunks de la base: la lista de eventos comunes y, adentro de cada
-# uno, sus comandos con el formato de una página. Los números salen de liblcf
-# —`rpg::Database` y `rpg::CommonEvent`— y no de memoria, que es de donde
-# salieron mal los códigos de las puertas la primera vez.
-DB_COMMON_EVENTS = 0x19
-COMMON_COMMANDS = 0x16
 
 
 def indexar_comunes(game_dir):
@@ -2394,10 +2388,7 @@ def indexar_comunes(game_dir):
     import lcf
     db = lcf.Database(os.path.join(game_dir, "RPG_RT.ldb"))
     COMUNES.clear()
-    COMUNES.update({
-        i: lcf.read_commands(f.get(COMMON_COMMANDS, b""))
-        for i, f in lcf.Reader(
-            db.fields[DB_COMMON_EVENTS]).read_struct_array().items()})
+    COMUNES.update(db.common_events)
     return COMUNES
 
 
