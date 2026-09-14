@@ -7,6 +7,14 @@ version = "0.1.0"
 edition = "2021"
 description = "Lee los archivos de RPG Maker 2000 y los vuelca a JSON"
 
+[lib]
+name = "ditto"
+path = "src/lib.rs"
+
+[[bin]]
+name = "ditto"
+path = "src/main.rs"
+
 [dependencies]
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
