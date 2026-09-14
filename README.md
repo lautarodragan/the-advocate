@@ -1560,10 +1560,26 @@ consola sino una extensión que soportan el FX Pak Pro y los emuladores, con la
 música en archivos PCM al lado de la ROM. El tema sale de un archivo de 44,1
 kHz estéreo en vez de las ocho voces del SPC700.
 
-Lo usan **los ocho temas de las demos**: `PISTAS_MSU` en `snes_music.py` dice
-cuáles tienen pista y con qué número, y el conversor emite `tema_msu`, un byte
-por tema —`$FF` el que no tiene—. Los del juego entero son 43, noventa y un
-minutos, 923 MB de PCM; entran el día que haya una ROM que los toque.
+Lo usan **los 21 temas que suenan hasta salir de Lashe City**, más el del
+título: `PISTAS_MSU` en `snes_music.py` dice cuáles tienen pista y con qué
+número, y el conversor emite `tema_msu`, un byte por tema —`$FF` el que no
+tiene—. Los del juego entero son 43, noventa y un minutos, 923 MB de PCM;
+entran el día que haya una ROM que los toque.
+
+Eran ocho hasta el 2026-09-14, y los otros catorce entraron porque taro los
+pidió por su nombre después de jugar: los temas sin pista sonaban por el SPC700
+y a nueve de ellos les faltaban entre el 28% y el 88% de las notas (ver "Varios
+temas en el cartucho"). **Los números del 1 al 8 no se mueven nunca**: son los
+que ya están en la tarjeta, y renumerarlos obligaría a renombrar archivos.
+
+Dos de los temas **no son de ningún mapa** y por eso se escapan de cualquier
+barrido de `PlayBGM`: salen del LDB. `title_music` es el de la pantalla de
+título y `battle_music` el de **todas** las peleas —`T_VGFighterMAX_Masako`—.
+
+Cuestan 10,6 MB por minuto, o sea unos **423 MB por cartucho** para los 21. Y
+no hay atajo por el loop: de los 21 el único que repite exacto a la mitad es
+`C3classi`, medido nota por nota sobre las dos mitades del MIDI, y son 8,6 MB
+de 423.
 
 Cómo funciona, del lado de la ROM:
 
@@ -1572,11 +1588,26 @@ Cómo funciona, del lado de la ROM:
   en cero y **nada más del sistema se enciende**: la música sigue saliendo del
   SPC700 como antes de todo esto. Esa es la propiedad que importa, porque la
   ROM tiene que andar igual en una consola sin tarjeta preparada.
-* **`PlayBGM` prueba primero con la pista** (`msu_arrancar`): escribe el número,
-  espera a que deje de estar cargando, y si el MSU-1 dice que la pista no está
-  en la tarjeta se vuelve sin hacer nada y suena el SPC700. Con pista, en
-  cambio, el SPC700 **se calla**: `music_apagada` y un `KOF` de las ocho voces.
-  Los efectos de sonido siguen en el SPC700, así que la ARAM les queda libre.
+* **`PlayBGM` prueba primero con la pista** (`msu_arrancar`): espera a que el
+  MSU-1 esté libre, escribe el número, espera a que termine de cargarla, y si
+  el MSU-1 dice que la pista no está en la tarjeta se vuelve sin hacer nada y
+  suena el SPC700. Con pista, en cambio, el SPC700 **se calla**:
+  `music_apagada` y un `KOF` de las ocho voces. Los efectos de sonido siguen en
+  el SPC700, así que la ARAM les queda libre.
+* **La espera de `AUDIO_BUSY` es un camino que ningún emulador ejecuta**, y
+  conviene saberlo antes de tocarlo. bsnes no pone `io.audioBusy` nunca —nace
+  en falso en `power()` y no se escribe en ningún lado:
+  `bsnes/sfc/coprocessor/msu1/msu1.cpp`—, así que en toda la tanda y en todas
+  las pruebas de estado el lazo sale en la primera vuelta. En el FX Pak la
+  pista sale de la tarjeta SD y abrirla lleva tiempo de verdad. En el mismo
+  archivo está el porqué de esperar **antes** de escribir y no sólo después:
+  `case 0x2007: if(io.audioBusy) break;`, o sea que con `AUDIO_BUSY` puesto el
+  hardware **ignora** las escrituras a los registros de audio, y un `PlayBGM`
+  que llega mientras la pista anterior todavía se abre se pierde entero. Con
+  pantalla de título eso pasa: se piden dos pistas con 1,8 s de diferencia.
+  El tope de la espera son `$FFFF` vueltas, unas tres décimas de segundo; era
+  `$4000` hasta el 2026-09-14, y quedarse corto no cuesta un cuadro sino el
+  tema entero.
 * **El `FadeOutBGM` baja el volumen del MSU-1**, no el del DSP: el nivel del
   fundido ya va de 255 a 0, que es justo la escala de `$2006`, y al llegar a
   cero se corta la pista. El volumen del DSP no se toca **porque es el que
@@ -3434,9 +3465,43 @@ Ahora la lista es completa siempre —un índice y su stream cuestan cartucho, y
 de eso sobra— y lo que se recorta es **quién aporta programas al banco**, en
 orden de prioridad: primero el del título, después el del mapa donde la ROM
 arranca, y detrás la lista tal cual. Un tema que no aporta suena con lo que
-otros ya pusieron, porque el banco es por programa de General MIDI: de los
-siete que hoy quedan afuera, sus notas con muestra van del 8% de
-`golden_axe-turtlevillage2` al 70% de `Lunar_Pyramid`. Antes no sonaba ninguno.
+otros ya pusieron, porque el banco es por programa de General MIDI. Antes no
+sonaba ninguno.
+
+**Lo que cuesta, medido de nuevo el 2026-09-14 y esta vez contando notas.** Una
+nota cuyo programa no está en el banco no suena más bajo: **se cae del stream**
+—el `continue` de `build_events`— y la voz desaparece. Sobre los 21 temas de
+`demo-ciudad`, los doce primeros están al 100% y los nueve del final quedan
+así:
+
+    Astpgmarch                  64,4%      Auditorium (18)
+    Gaden                       63,6%      Talan and the Director (19)
+    3D-Galax                    43,4%      idem
+    wb3shop                     72,5%      Sector 30 Back Alleys (20)
+    KSSMKEND                    42,0%      Rat Tracks B2 (26)
+    vswar                       69,2%      idem
+    Lunar_Pyramid               70,4%      Sector 27 Back Alleys (28)
+    dcbest                      27,5%      Sector 27 Warehouse (32, 33)
+    golden_axe-turtlevillage2   12,2%      LasheCityVehicle (36)
+
+Es lo que taro oyó jugando en la SNES el 2026-09-13 y describió como que la
+música *"pierde calidad progresivamente"*. **No es progresivo**: es un tema
+distinto por mapa, y el recorte se lleva a los últimos de la lista, que es más
+o menos el orden en que se visitan los mapas. El 20 suena mejor que el 19, y él
+lo dijo así. Y **no lo tapa el MSU-1**, porque ninguno de esos nueve tiene
+pista: en la oficina del director las dos corridas son el mismo camino.
+
+**El lever para decidirlo de oído es `--banco-entero`**, que le saca el tope a
+`build_varios`:
+
+    hoy                  58 muestras, 57517 B, tasa mediana 11521 Hz, 9 mutilados
+    con --banco-entero   95 muestras, 67376 B, tasa mediana  8109 Hz, 0 mutilados
+
+O sea, o los doce primeros perfectos y los nueve últimos con la mitad de las
+notas, o los veintiuno enteros y todos un 30% más chillones. Con
+`--banco-entero` el banco deja de entrar en la ARAM de una vez, y eso está
+bien: ahí vive **un paquete de mapa por vez**. Cuál de las dos suena peor no lo
+contesta un número.
 
 **Por qué el límite sigue estando, ahora que el audio sube por paquetes de
 mapa.** En la ARAM no vive el banco entero sino el directorio y **un** paquete,

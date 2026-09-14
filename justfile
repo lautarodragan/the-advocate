@@ -3145,6 +3145,67 @@ snes-demo-cofres nombre="demo-cofres":
       -o rom/build/{{nombre}}/{{nombre}}.sfc \
       --simbolos rom/build/{{nombre}}/{{nombre}}.sfc.sym
 
+# La misma demo que `demo-ciudad` pero **arrancando en el mapa que se le diga**,
+# para escuchar su tema sin tener que caminar hasta ahí. Nació de los dos
+# defectos de audio que taro reportó jugando en la SNES el 2026-09-13.
+#
+#   just snes-musica 20 wb3shop
+#   just snes-musica 20 wb3shop banco-entero
+#
+# Los cinco que taro señaló, con el mapa donde suenan y cuánto les sobrevive:
+#
+#   17 hzstream     100%   Delcentric Factory (y es el único con pista de MSU-1)
+#   18 Astpgmarch    64%   Auditorium
+#   19 Gaden         64%   Talan and the Director
+#   19 3D-Galax      43%   idem
+#   20 wb3shop       72%   Sector 30 Back Alleys
+#   26 KSSMKEND      42%   Rat Tracks B2
+#
+# **El tema se pasa a mano y no sale del mapa**: la mayoría de esos mapas no
+# tiene BGM propia en el LDB —la prende un `PlayBGM` de una de sus páginas— así
+# que arrancar ahí sin `--tema-de-arranque` deja la ROM muda hasta que corra esa
+# página, que suele pedir switches de la historia. Medido con `musica-20`, que
+# arrancaba con `music_apagada` en 1 y ahí se quedaba.
+#
+# **Lleva los mismos 29 mapas que `demo-ciudad` a propósito, y
+# `--banco-sin-prioridad`.** El tema suena distinto según con cuántos comparta
+# el banco de muestras: una ROM de un mapa solo le da el banco entero y no
+# reproduce lo que taro oye. Y arrancar en el mapa 20 le daba **prioridad** al
+# tema del 20 —`build_varios` se la da al del mapa de arranque— así que sonaba
+# entero, que es justo lo contrario de lo que hay que escuchar; medido armando
+# `musica-20` sin el flag, donde `wb3shop` desaparecía de la lista de los que
+# no aportan. Ver "El paquete de audio de cada mapa" en el README.
+#
+# `banco-entero` es la comparación que hay que hacer de oído: sin él los nueve
+# temas del final de la lista no aportan ninguna muestra y se les caen del
+# stream las notas cuyo programa no está —del 28% al 88%, medido—; con él no se
+# le cae ninguna nota a nadie y lo que baja es la resolución de todas.
+snes-musica mapa tema banco="":
+  #!/usr/bin/env bash
+  set -euo pipefail
+  nombre="musica-{{mapa}}-{{tema}}{{ if banco == "" { "" } else { "-banco-entero" } }}"
+  # La tabla de mapas es **la de `demo-ciudad`, en su orden**, y el mapa donde
+  # arranca se elige con `--inicial`, que es un índice en esa tabla. No con
+  # `--map-id`: ése pone al mapa primero en la tabla, y el orden de la tabla es
+  # el orden en que se numeran los temas, así que el tema del mapa elegido
+  # quedaba **primero de la lista** y por lo tanto entre los que sí aportan al
+  # banco. Medido: `musica-20` armada con `--map-id 20` daba `wb3shop` al 100%.
+  tabla="4 1 2 3 5 6 7 8 9 10 11 12 13 14 16 17 18 19 20 21 23 26 28 29 30 32 33 34 36"
+  inicial=$(echo $tabla | tr ' ' '\n' | grep -nx "{{mapa}}" | cut -d: -f1)
+  if [ -z "$inicial" ]; then echo "el mapa {{mapa}} no está en demo-ciudad"; exit 1; fi
+  inicial=$((inicial - 1))
+  mkdir -p rom/build/$nombre
+  python3 tools/snes_convert.py --grupo 10 --map-id 4 \
+      --mapas 1 2 3 5 6 7 8 9 10 11 12 13 14 16 17 18 19 20 21 23 26 28 29 30 \
+              32 33 34 36 \
+      --inicial $inicial --tema-de-arranque {{tema}} \
+      --con-ventana --con-timer --banco-sin-prioridad \
+      {{ if banco == "" { "" } else { "--banco-entero" } }} \
+      -o rom/build/$nombre/mapdata.inc
+  python3 tools/w65.py rom/src/main.s -I rom/build/$nombre \
+      -o rom/build/$nombre/$nombre.sfc \
+      --simbolos rom/build/$nombre/$nombre.sfc.sym
+
 # El cofre trampa de los Rat Tracks B1, al lado del héroe: la demo más corta
 # posible para ver el Game Over de la pelea que ese cofre abre. Arranca en
 # (22,36), o sea pegado al `RatTrackChest6c`; con mirar hacia arriba y apretar A

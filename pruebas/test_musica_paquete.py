@@ -156,3 +156,66 @@ def test_un_tema_pierde_sus_muestras_pero_nunca_su_numero():
         "el tema del título quedó sin una sola muestra aunque tenía la "
         "prioridad: es la primera pantalla del juego y suena antes que "
         "cualquier mapa")
+
+
+def test_un_tema_que_no_aporta_pierde_notas_y_la_ROM_lo_dice():
+    """Y cuánto pierde tiene que estar dicho, porque es lo que se oye.
+
+    Esto es lo que taro escuchó en la consola el 2026-09-13 y describió como
+    que a la música *"le falta una voz"*: una nota cuyo programa de General MIDI
+    no está en el banco compartido **no llega al stream** —`build_events` la
+    saltea con un `continue`—, así que el canal entero desaparece. De `Gaden`,
+    con siete canales, quedan dos.
+
+    Lo que esta prueba fija no es el número sino que exista y que se mueva: el
+    conversor imprimía "no aportan muestras al banco" y una lista de nombres, o
+    sea la causa sin la consecuencia, y con eso la demo pasó de once a
+    veintiún temas sin que nadie viera el costo.
+
+    Y fija la otra mitad: que `--banco-entero` —el `tope` de `build_varios`— lo
+    devuelva. Es el lever con el que se decide de oído entre los primeros temas
+    perfectos y todos completos pero más chillones.
+
+    **Ojo con medirlo con `coverage`**, que es el otro número del resumen: ése
+    mide polifonía y da exactamente lo mismo con el banco compartido que con el
+    banco propio, así que con él parecía que compartir no costaba nada. Son dos
+    preguntas distintas y por eso van las dos.
+    """
+    import snes_music
+
+    nombres = ["escape_newyork", "evilrhys", "Fantasia_Of_The_Wind"]
+    titulo = nombres.index("Fantasia_Of_The_Wind")
+
+    # El mismo tope medido que la prueba de arriba: lo que ocupan los dos que
+    # tienen que quedar, así que el recorte se lleva exactamente a `evilrhys`.
+    leidos = [snes_music.leer_tema(n) for n in nombres]
+    quedan = [leidos[titulo], leidos[0]]
+    tope = snes_music.Banco(
+        set().union(*[t["melodicos"] for t in quedan]),
+        set().union(*[t["golpes"] for t in quedan])).bytes
+
+    _d, _v, apretado, _b, afuera = snes_music.build_varios(
+        nombres, prioridad=[titulo], tope=tope)
+    assert afuera == ["evilrhys"], (
+        "el banco apretado tenía que dejar afuera a evilrhys y dejó a %s"
+        % (afuera,))
+
+    recortado = apretado[nombres.index("evilrhys")]["resumen"]["notas"]
+    assert recortado < 1.0, (
+        "evilrhys no aporta ninguna muestra al banco y sin embargo el resumen "
+        "dice que suenan todas sus notas (%.3f): si esto pasa, el conversor "
+        "imprime un 100%% sobre un tema al que le faltan voces" % recortado)
+    for i, nombre in enumerate(nombres):
+        if nombre != "evilrhys":
+            assert apretado[i]["resumen"]["notas"] == 1.0, (
+                "%s sí aporta al banco, así que tienen que sonar todas sus "
+                "notas" % nombre)
+
+    _d, _v, enteros, _b, afuera = snes_music.build_varios(
+        nombres, prioridad=[titulo], tope=1 << 30)
+    assert not afuera, (
+        "con el tope sacado no tenía que quedar ningún tema sin aportar, y "
+        "quedaron %s" % (afuera,))
+    assert enteros[nombres.index("evilrhys")]["resumen"]["notas"] == 1.0, (
+        "con el tope sacado evilrhys tiene que recuperar todas sus notas, y "
+        "quedó en %.3f" % enteros[nombres.index("evilrhys")]["resumen"]["notas"])

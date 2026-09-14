@@ -1,0 +1,45 @@
+  {
+    "id": 52,
+    "name": "DirtShadow",
+    "battler_name": "dirtshadow2",
+    "attack": 16,
+    "agility": 14,
+    "exp": 4,
+    "gold": 4,
+    "levitate": true,
+    "state_ranks": [],
+    "attribute_ranks": [],
+    "actions": [
+      {
+        "id": 1,
+        "kind": 0,
+        "basic": 0,
+        "condition_type": 0
+      }
+    ]
+  },
+  {
+    "id": 129,
+    "name": "TwirlingSand",
+    "battler_name": "dirtshadow2",
+    "max_hp": 94,
+    "max_sp": 30,
+    "attack": 58,
+    "defense": 25,
+    "spirit": 16,
+    "agility": 22,
+    "exp": 44,
+    "gold": 40,
+    "drop_id": 312,
+    "drop_prob": 35,
+    "state_ranks": [],
+    "attribute_ranks": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
+    "actions": [
+      {
+        "id": 1,
+        "kind": 0,
+        "basic": 0,
+        "condition_type": 0
+      }
+    ]
+  },

@@ -76,11 +76,32 @@ DRUM_VOICES = 2
 # sintetizada suena fea. Las pistas las arma `tools/msu.py` desde los mismos
 # MIDI, con el soundfont con que sonaba el juego original en la PC.
 #
-# Son los ocho temas que llevan las demos. `escape_newyork` se queda en la 1,
-# que es el número con el que se armó la primera pista: cambiarlo obligaría a
-# renombrar archivos que ya están en la tarjeta. Los temas del juego son 43 en
-# total —91 minutos, 923 MB de PCM—, así que el resto entra el día que haya
-# una ROM que los toque.
+# **Son los 21 temas que suenan hasta salir de Lashe City**, que es el alcance
+# que pidió taro el 2026-09-14: *"tal vez no sea factible usar PCM para todo,
+# pero sí o sí quiero todos los temas que suenan hasta salir de Lashe City"*.
+# Los del juego entero son 43 —91 minutos, 923 MB— y ésos entran el día que
+# haya una ROM que los toque.
+#
+# **Los números del 1 al 8 no se tocan nunca**: son los que ya están en la
+# tarjeta de taro, y cambiarlos obligaría a renombrar archivos. Por eso los
+# catorce que se agregaron el 2026-09-14 van del 9 en adelante y en un orden
+# que no dice nada: el orden acá no significa nada para la ROM, que lee
+# `tema_msu` por índice de tema.
+#
+# El del **título** (8) y el de **batalla** (9) no son de ningún mapa: salen de
+# `title_music` y `battle_music` del LDB. El de batalla suena en todas las
+# peleas y es el más caro del cartucho —226 s y 156.520 B de stream, el doble
+# que el siguiente—; que tenga pista es lo que más se oye por tema emitido.
+#
+# **Lo que NO arregla darle pista al de batalla**, medido el 2026-09-14 porque
+# parecía que sí: sacarlo del banco compartido libera 4 muestras y 565 B, sube
+# la tasa mediana de 11521 a 12496 Hz y **no devuelve ni un tema** de los nueve
+# recortados. Su peso es de stream, que vive en el cartucho, no de ARAM.
+#
+# Y el tamaño: 16 bits estéreo a 44,1 kHz son 10,6 MB por minuto, así que los
+# 21 son unos 423 MB por ROM. Recortarlos por loop tampoco da: de los 21, el
+# **único** que repite exacto a la mitad es `C3classi` —medido comparando las
+# notas de las dos mitades— y son 8,6 MB de 423.
 PISTAS_MSU = {
     "escape_newyork": 1,
     "hzstream": 2,
@@ -90,6 +111,20 @@ PISTAS_MSU = {
     "cd4": 6,
     "C3classi": 7,
     "Fantasia_Of_The_Wind": 8,
+    "T_VGFighterMAX_Masako": 9,
+    "rshinld": 10,
+    "cd2": 11,
+    "hzbreach": 12,
+    "wb3mlair": 13,
+    "Astpgmarch": 14,
+    "Gaden": 15,
+    "3D-Galax": 16,
+    "wb3shop": 17,
+    "KSSMKEND": 18,
+    "vswar": 19,
+    "Lunar_Pyramid": 20,
+    "dcbest": 21,
+    "golden_axe-turtlevillage2": 22,
 }
 
 
@@ -669,7 +704,8 @@ def leer_tema(name, game_dir=GAME_DIR):
     }
 
 
-def build_varios(nombres, game_dir=GAME_DIR, efectos=(), prioridad=()):
+def build_varios(nombres, game_dir=GAME_DIR, efectos=(), prioridad=(),
+                 tope=None):
     """Todos los temas de la ROM, compartiendo un solo banco de muestras.
 
     Devuelve (driver, las voces —las del banco y detrás los efectos, cada una
@@ -697,6 +733,16 @@ def build_varios(nombres, game_dir=GAME_DIR, efectos=(), prioridad=()):
     los últimos: el del título va ahí, porque es la primera pantalla del juego
     y no un tema de un mapa que el jugador puede no visitar nunca.
 
+    `tope` es contra cuánto se mide el banco. Con `ARAM_LIBRE`, que es lo de
+    siempre, entran los primeros y los últimos quedan mutilados: una nota cuyo
+    programa no está en el banco **se cae del stream** —ver el `continue` de
+    `build_events`—, y en `demo-ciudad` eso son nueve temas a los que les
+    sobrevive entre el 12% y el 72% de las notas. Con un tope más alto aportan
+    todos y lo que se paga es resolución para todos, porque los mismos 40 KB
+    melódicos se reparten entre más programas. **Cuál de las dos suena peor lo
+    dice el oído**, y por eso hay con qué armar las dos: `--banco-entero` en el
+    conversor. Ver "Varios temas en el cartucho" en el README.
+
     El límite sigue siendo el banco entero contra `ARAM_LIBRE`, que es más
     estricto de lo que el hardware pide desde que el audio sube por paquetes de
     mapa —en la ARAM viven el directorio y **un** paquete, no el banco—; queda
@@ -710,13 +756,14 @@ def build_varios(nombres, game_dir=GAME_DIR, efectos=(), prioridad=()):
 
     orden = [i for i in prioridad if 0 <= i < len(leidos)]
     orden += [i for i in range(len(leidos)) if i not in orden]
+    tope = ARAM_LIBRE if tope is None else tope
     aportan, afuera = [i for i in orden if leidos[i]], []
     while True:
         banco = Banco(set().union(*[leidos[i]["melodicos"] for i in aportan])
                       if aportan else set(),
                       set().union(*[leidos[i]["golpes"] for i in aportan])
                       if aportan else set())
-        if banco.bytes <= ARAM_LIBRE or not aportan:
+        if banco.bytes <= tope or not aportan:
             break
         afuera.insert(0, nombres[aportan.pop()])
 
@@ -761,7 +808,29 @@ def resumen_del_tema(leido, banco):
         "coverage": sum(musica.coverage(spans[c], len(voices.get(c, [])))
                         * sum(a * b for a, b in spans[c].items())
                         for c in spans) / max(1, total),
+        # Y cuántas de sus notas llegan al stream. Una nota cuyo programa no
+        # está en el banco **no suena más bajo: no existe** —el `continue` de
+        # `build_events`—, así que esto es la voz que el jugador no oye. Es un
+        # número distinto de `coverage`, que mide la polifonía; se confundieron
+        # el 2026-09-14 y por un rato pareció que compartir el banco no costaba
+        # nada, porque `coverage` da igual con el banco entero o compartido.
+        "notas": notas_que_suenan(leido, banco),
     }
+
+
+def notas_que_suenan(leido, banco):
+    """Qué fracción de las notas del MIDI tiene su muestra en el banco."""
+    total = suenan = 0
+    for nota in leido["notas"]:
+        if nota.channel not in leido["voces"]:
+            continue
+        total += 1
+        if nota.channel == midi.DRUM_CHANNEL:
+            suenan += banco.golpes.get(nota.pitch) is not None
+        else:
+            programa = leido["programas"].get(nota.channel, 0)
+            suenan += banco.melodicas.get(programa) is not None
+    return suenan / max(1, total)
 
 
 def build_nombre(name, game_dir=GAME_DIR):
@@ -1002,6 +1071,12 @@ def main():
         print("  banco:           %s" % ", ".join(summary["bank"]))
         print("  se reproduce el %.0f%% del tiempo-nota"
               % (100 * summary["coverage"]))
+        # Y el otro número, que es el que se oye como voces que faltan: ver
+        # `notas_que_suenan`. Con un tema solo suele ser 100%, y justamente por
+        # eso conviene que esté: la diferencia contra la ROM entera es el costo
+        # de compartir el banco.
+        print("  suenan el %.0f%% de las notas"
+              % (100 * summary["notas"]))
 
     emit(args.output,
          [{"nombre": name, "stream": stream, "segundos": seconds,
