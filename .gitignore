@@ -34,3 +34,6 @@ rom/src/musicdata.inc
 .ripgreprc
 .vscode
 rom/src/mapdata.inc
+
+# El target de Ditto: binarios y dependencias compiladas.
+ditto/target/
