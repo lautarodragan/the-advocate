@@ -153,6 +153,51 @@ pub fn cod_ber(v: i32) -> Vec<u8> {
     fuera
 }
 
+// --- El default, una sola vez ----------------------------------------------
+
+/// Declara un struct del esquema con **el default de cada campo al lado del
+/// campo**, y arma el `Default` desde ahí.
+///
+/// El punto no es la estética. El default es lo que rellena al leer *y* lo que
+/// decide omitir al escribir, y esas dos cosas tienen que ser la misma o la
+/// vuelta deja de ser byte por byte. Escrito dos veces —un comentario y un
+/// `impl Default`, que es como estaba— se pueden separar sin que nada avise.
+///
+/// El `= expr` es **obligatorio en todos los campos**, incluso en los que
+/// `fields.csv` no declara default: si fuera opcional, un campo sin default
+/// caería al cero del tipo por la puerta de atrás, que es exactamente el bug
+/// que originó Ditto (`max_hp` en 0 donde el formato dice 10).
+///
+/// No hace falta nada para serde: el `#[serde(default)]` del struct ya toma
+/// los valores de este `Default`, así que un campo que falta en el JSON vale
+/// el default del formato y no el del tipo.
+macro_rules! esquema_struct {
+    (
+        $(#[$meta:meta])*
+        pub struct $nombre:ident {
+            $(
+                $(#[$campo_meta:meta])*
+                pub $campo:ident : $tipo:ty = $valor:expr
+            ),* $(,)?
+        }
+    ) => {
+        $(#[$meta])*
+        pub struct $nombre {
+            $(
+                $(#[$campo_meta])*
+                pub $campo: $tipo,
+            )*
+        }
+
+        impl Default for $nombre {
+            fn default() -> Self {
+                Self { $($campo: $valor,)* }
+            }
+        }
+    };
+}
+pub(crate) use esquema_struct;
+
 // --- Structs chunk-based ---------------------------------------------------
 
 pub trait Chunked: Default + Sized {

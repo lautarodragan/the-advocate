@@ -74,9 +74,34 @@ Conceptualmente el CSV es una **dependencia** de Ditto: subirle la versión es
 un cambio que se revisa como cualquier otro.
 
 Lo que se genera son tres cosas, y las tres salen del CSV y de ningún criterio
-nuestro: los structs y los enums, el `Default` de cada struct, y el códec
-—qué campo es qué chunk, cómo se codifica, y si se emite cuando vale el
-default—.
+nuestro: los structs y los enums, el default de cada campo, y el códec —qué
+campo es qué chunk, cómo se codifica, y si se emite cuando vale el default—.
+
+### El default va al lado del campo, una sola vez
+
+    pub max_hp: i32 = 10,
+
+No es estética. El default es lo que rellena al leer **y** lo que decide omitir
+al escribir: son la misma cosa o la vuelta deja de ser byte por byte. Escrito
+dos veces —como estaba: un comentario `/// default: 10` y un `impl Default` al
+final del struct— se pueden separar sin que nada avise. La macro
+`esquema_struct!` (`src/lcf.rs`, 40 líneas, sin dependencias) arma el `Default`
+desde ahí, y el `#[serde(default)]` del struct lo usa para el JSON. Sacó 61
+bloques `impl Default` y 1.889 líneas del generado.
+
+El `= <valor>` es **obligatorio en todos los campos**, incluso en los que
+`fields.csv` no declara default: si fuera opcional, un campo sin default caería
+al cero del tipo por la puerta de atrás, que es el bug que originó Ditto. Al
+ser parte de la gramática de la macro, olvidarse es un error de compilación.
+
+Y por eso **no** se usa `#[serde(default)]` campo por campo ni
+`serde-inline-default`. El primero rellena con el cero del *tipo* y reintroduce
+el bug. El segundo —evaluado: 1.0.2 en crates.io, sin deps nuevas, syn 3 que ya
+está— sólo emite `#[serde(default = "fn")]`: **no implementa
+`std::default::Default`**, que es justo el que necesita el códec para decidir
+la omisión y el que pide `trait Chunked: Default`. O sea que no sacaría ningún
+`impl Default`: dejaría el default escrito dos veces igual, con una dependencia
+de proc-macro encima.
 
 ## El formato, y las cuatro cosas que hacen difícil la vuelta exacta
 
@@ -93,6 +118,37 @@ sea que leer y escribir no son simétricos por construcción: son simétricos
 porque el default que rellena al leer es el mismo que decide omitir al
 escribir, y los dos salen de la misma tabla. Ése es todo el truco, y es por eso
 que el default tiene que salir del CSV y no del criterio de nadie.
+
+#### El límite de la regla de omisión, medido
+
+La regla es del **que escribe**, no del formato, así que un archivo hecho por
+otra herramienta podría guardar un campo con su valor default en vez de
+omitirlo. Medido sobre `Map0001.lmu` (`tests/omision.rs`): agregándole a mano
+el chunk `0x33` —`generator_surround`, cuyo default es `True`— con el valor
+`True`, entran 43.958 bytes y salen 43.955. **Se pierden exactamente 3 bytes**
+—el id, el largo y el cuerpo del chunk—, y lo que sale es el archivo original
+tal cual. Lo mismo con cualquier otro: siempre son los bytes de ese chunk.
+
+Ahora, los dos escritores que importan hacen lo mismo que Ditto:
+
+* **RPG Maker 2000**, que es quien escribió ABL: sobre los 328 mapas hay 2.363
+  chunks de primer nivel presentes de 10.824 posibles, o sea que **omitió
+  8.461 veces**. Con esa cuenta, que los 330 archivos vuelvan byte por byte
+  deja de ser suerte: es la prueba de que el editor sigue la misma regla.
+* **EasyRPG**: `Struct<S>::WriteLcf` en `reader_struct_impl.h` de liblcf saltea
+  el campo con `if (!field->isPresentIfDefault(...) && field->IsDefault(...))`,
+  que es literalmente lo que hace el códec generado de acá.
+
+Así que el riesgo existe pero no lo dispara ninguna de las dos herramientas
+para las que esto se hizo. Si alguna vez lo dispara una tercera, la salida
+barata es **recordar los chunks anómalos, sin tocar el tipo de los campos**:
+en `leer_struct`, comparar los ids que venían en el archivo contra los que
+`escribir_chunks` volvería a emitir, y guardar los que se perderían en el
+`desconocidos` que ya existe —`volcar` los reinserta ordenados por id—. Son
+unas 15 líneas en `lcf.rs`, cero cambios en el generador y cero ruido en el
+JSON de ABL (la lista queda vacía en los 330); el costo es una serialización
+de más por struct al leer. Lo caro sería `Option<T>` en los campos, que mudaría
+el default del esquema a cada consumidor, que es de donde lo sacamos.
 
 **2. El largo de algunos vectores va en su propio chunk.** `fields.csv` los
 marca con una `t` y les da un índice aparte, siempre el anterior al del dato.

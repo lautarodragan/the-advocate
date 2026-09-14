@@ -18,8 +18,10 @@
 //! Tres cosas, y las tres salen del CSV y de ningún criterio nuestro:
 //!
 //! * los **structs** y los **enums**, con los nombres de liblcf;
-//! * el **`Default`** de cada struct, con el valor que la columna
-//!   `Default Value` declara —acá estaba el `max_hp` que valía 1 y vale 10—;
+//! * el **default de cada campo**, con el valor que la columna `Default Value`
+//!   declara —acá estaba el `max_hp` que valía 1 y vale 10—, escrito **una
+//!   sola vez y al lado del campo**: `esquema_struct!` arma el `Default` desde
+//!   ahí, y el `#[serde(default)]` del struct lo usa para el JSON;
 //! * el **códec**: qué campo es qué chunk, cómo se codifica, y si se emite
 //!   cuando vale el default (la columna `PersistIfDefault`).
 //!
@@ -160,6 +162,10 @@ fn cabecera(out: &mut String, liblcf: &Path) {
          //! Sale de las tablas de liblcf ({}), que es de donde el ecosistema\n\
          //! entero saca los nombres: en el binario no hay ninguno, sólo\n\
          //! índices de campo.\n\
+         //!\n\
+         //! Cada campo lleva su default al lado (`= 10`): es lo que rellena al\n\
+         //! leer y lo que decide omitir al escribir, y `esquema_struct!` arma\n\
+         //! el `Default` con eso. Ver `crate::lcf::esquema_struct`.\n\
          \n\
          #![allow(dead_code, unused_variables, clippy::all)]\n\
          \n\
@@ -513,19 +519,27 @@ fn emitir_struct(
     let con_id = estructuras
         .iter()
         .any(|e| e.nombre == estructura && e.con_id);
+    // El `= <valor>` de cada campo es el default que declara el CSV, y es lo
+    // único que decide qué campo se omite al escribir: un default mal puesto
+    // es un archivo distinto (y, antes de esto, un enemigo con 1 de HP). Va
+    // pegado al campo y no en un `impl Default` aparte porque escrito en dos
+    // lugares se puede separar sin que nada avise; `esquema_struct!` arma el
+    // `Default` desde acá.
+    //
     // El `#[serde(default)]` va en el struct y no en cada campo a propósito:
-    // así un JSON al que le falta un campo lo toma del `Default` de acá abajo
-    // —el del CSV— y no del cero del tipo. Campo por campo, un `max_hp` que
-    // falta volvería a valer 0 en vez de 10.
+    // así un JSON al que le falta un campo lo toma de ese `Default` —el del
+    // CSV— y no del cero del tipo. Campo por campo, un `max_hp` que falta
+    // volvería a valer 0 en vez de 10.
     out.push_str(&format!(
-        "/// Generado desde `fields.csv`.\n\
+        "esquema_struct! {{\n\
+         /// Generado desde `fields.csv`.\n\
          #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]\n\
          #[serde(default)]\n\
          pub struct {nombre} {{\n"
     ));
     if con_id {
         out.push_str("    /// El número con el que el array nombra a este elemento.\n");
-        out.push_str("    pub id: i32,\n");
+        out.push_str("    pub id: i32 = 0,\n");
     }
     for c in visibles(campos) {
         let cd = cod(&c.tipo, enums, &nombre_enum(c, enums));
@@ -538,13 +552,13 @@ fn emitir_struct(
                 ""
             }
         ));
-        if !c.default.is_empty() {
-            out.push_str(&format!("    /// default: {}\n", c.default.replace('\n', " ")));
-        }
+        // Un campo que el CSV no declara con default igual lleva el suyo
+        // escrito: si quedara implícito volvería al cero del tipo.
         out.push_str(&format!(
-            "    pub {}: {},\n",
+            "    pub {}: {} = {},\n",
             identificador_campo(&c.nombre),
-            tipo_rust(&cd)
+            tipo_rust(&cd),
+            valor_default(&c.default, &cd, enums)
         ));
     }
     // Un chunk que el esquema no nombra se guarda crudo y vuelve al archivo en
@@ -553,27 +567,8 @@ fn emitir_struct(
     out.push_str(
         "    /// Los chunks que el esquema no nombra, para que la vuelta sea exacta.\n\
          \x20   #[serde(skip_serializing_if = \"Vec::is_empty\")]\n\
-         \x20   pub desconocidos: Vec<ChunkCrudo>,\n}\n\n",
+         \x20   pub desconocidos: Vec<ChunkCrudo> = Vec::new(),\n}\n}\n\n",
     );
-
-    // El `Default` con los valores que declara el CSV. Es lo único que decide
-    // qué campo se omite al escribir, así que un default mal puesto es un
-    // archivo distinto (y, antes de esto, un enemigo con 1 de HP).
-    out.push_str(&format!(
-        "impl Default for {nombre} {{\n    fn default() -> Self {{\n        Self {{\n"
-    ));
-    if con_id {
-        out.push_str("            id: 0,\n");
-    }
-    for c in visibles(campos) {
-        let cd = cod(&c.tipo, enums, &nombre_enum(c, enums));
-        out.push_str(&format!(
-            "            {}: {},\n",
-            identificador_campo(&c.nombre),
-            valor_default(&c.default, &cd, enums)
-        ));
-    }
-    out.push_str("            desconocidos: Vec::new(),\n        }\n    }\n}\n\n");
 }
 
 /// Los campos que existen como campo de Rust: los `f` y los posicionales de
