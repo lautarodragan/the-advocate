@@ -28,13 +28,18 @@ defecto de la **página de prueba** de guardado y no del juego, y está abajo.
 
 **Ditto** (`ditto/`) ya hace `.ldb`/`.lmu`/`.lmt` ⇄ JSON en los dos sentidos,
 con la vuelta byte por byte en **330 de 330** archivos del juego (`just
-ditto-vuelta-entera`); todavía no reemplaza a `tools/lcf.py` ni al conversor, y
-lo que le falta está en `ditto/README.md`. Desde el 2026-09-14 el default de
-cada campo va **una sola vez y al lado del campo** en el esquema generado, y
-está medido hasta dónde aguanta la regla de omisión: un chunk escrito con su
-valor default se pierde —son 3 bytes—, pero ni RPG Maker 2000 ni EasyRPG lo
-escriben, así que no se tocó el esquema. La salida barata, por si aparece una
-tercera herramienta, está anotada en `ditto/README.md` y sin implementar.
+ditto-vuelta-entera`); todavía no reemplaza a `tools/lcf.py` ni al conversor.
+Desde el 2026-09-14 es un **proyecto independiente en inglés**: adentro de
+`ditto/` no hay una sola mención a ABL, a la SNES ni al port, el corpus se lo
+pasa el justfile en `DITTO_CORPUS` —sin esa variable las pruebas que lo
+necesitan se saltean con un mensaje— y lo que ata a Ditto con este repo está en
+**`DITTO.md`**, en la raíz y en castellano. Lo que le falta a la herramienta
+está en `ditto/README.md`, ya en inglés. El default de cada campo va **una sola
+vez y al lado del campo** en el esquema generado, y está medido hasta dónde
+aguanta la regla de omisión: un chunk escrito con su valor default se pierde
+—son 3 bytes—, pero ni RPG Maker 2000 ni EasyRPG lo escriben, así que no se
+tocó el esquema. La salida barata, por si aparece una tercera herramienta, está
+anotada en `ditto/README.md` y sin implementar.
 
 **La ROM de esta vuelta** está en `pruebas-manuales/hq-graficos/`: `demo-ciudad`
 con el arreglo de la cinemática de los Neon Vipers, y `demo-vipers` —un cartucho

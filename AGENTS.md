@@ -8,10 +8,30 @@ fuentes mejores, y hay que ir a ellas antes que a este archivo:
     README.md        el juego original, el volcado a JSON, y el port a SNES
                      entero con sus trampas y "Lo que falta"
     data/README.md   el volcado a JSON visto desde adentro de data/
+    DITTO.md         qué es Ditto, por qué existe acá y en qué estado está
+                     la idea de que los JSON sean la fuente de verdad
     git log          los mensajes son largos a propósito: son el registro
 
 Al empezar, leer `ESTADO.md`. Al terminar algo, actualizarlo —y mientras se
 trabaja, no al final—.
+
+## `ditto/` está en inglés a propósito
+
+Todo lo demás de este repo va en castellano: los comentarios, la documentación
+y los mensajes de commit. **`ditto/` no.** Desde el 2026-09-14 es un proyecto
+independiente —lee y escribe el formato de RPG Maker 2000, y no sabe nada de
+este port—, así que adentro de ese directorio el código, los comentarios, los
+nombres de las pruebas y el README van **en inglés**, y no hay una sola
+mención a ABL, a la SNES ni al port. Lo que ata a Ditto con este repo vive en
+`DITTO.md`, en la raíz y en castellano.
+
+No es un descuido que corregir: si alguien lo "arregla" al castellano, deshace
+la decisión. Los mensajes de commit, eso sí, siguen en castellano también para
+los cambios de `ditto/`: son del repo.
+
+Y sus pruebas no dependen del juego: el corpus se lo pasa el justfile en
+`DITTO_CORPUS`, y sin esa variable las que lo necesitan se saltean con un
+mensaje en vez de fallar.
 
 ## La regla que sostiene todo
 

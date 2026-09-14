@@ -1,245 +1,207 @@
 # Ditto
 
-Lee los archivos de RPG Maker 2000 —`.ldb`, `.lmu`, `.lmt`— y los vuelca a
-JSON, **y los vuelve a escribir desde el JSON**. Se llama así porque hace una
-sola cosa: copiar la forma de otro.
+Reads the RPG Maker 2000 files —`.ldb`, `.lmu`, `.lmt`— and dumps them to
+JSON, **and writes them back from the JSON**. It is called that because it does
+one thing only: copy somebody else's shape.
 
-    cargo run --release -- leer   /extras/abl-rm/Map0001.lmu mapa1.json
-    cargo run --release -- volver mapa1.json                 Map0001.lmu
+    cargo run --release -- read  Map0001.lmu mapa1.json
+    cargo run --release -- write mapa1.json  Map0001.lmu
 
-## Lo único que lo hace valioso: la vuelta es byte por byte
+## The only thing that makes it worth anything: the way back is byte for byte
 
-Sobre el juego entero —los **328 `.lmu`**, el `RPG_RT.ldb` y el `RPG_RT.lmt`—
-leer, volcar a JSON, volver a escribir desde el JSON y comparar contra el
-original da **330 de 330 idénticos**. Eso es lo que permite lo que taro pidió:
-tener el juego como JSON en el repositorio, abrirlo con el RPG Maker de verdad
-—o con el de EasyRPG—, guardarlo y volver, usando el formato propio nada más
-que como medio de transporte. Un "casi" no sirve: un byte de más rompe el juego
-de otro.
+Over a whole game —328 `.lmu`, the `RPG_RT.ldb` and the `RPG_RT.lmt`— reading,
+dumping to JSON, writing back from the JSON and comparing against the original
+gives **330 out of 330 identical**. That is what lets a game live in a version
+control system as JSON, be opened with the real RPG Maker —or with EasyRPG's—,
+saved, and come back, using the proprietary format as nothing but a transport.
+An "almost" is no good: one byte too many breaks somebody else's game.
 
-Lo mide `cargo test`:
+`cargo test` measures it:
 
-    just ditto-pruebas          # una muestra de mapas, un segundo
-    just ditto-vuelta-entera    # los 330, con el número impreso
+    cargo test                                        # a sample of maps, one second
+    cargo test --release -- --ignored --nocapture     # the whole corpus, with the number
 
-La tanda corta va por omisión para que `cargo test` siga siendo algo que uno
-corre sin pensarlo. `GAME_DIR` dice de dónde sale el juego; por omisión
-`/extras/abl-rm`.
+The short batch is the default so that `cargo test` stays something one runs
+without thinking about it.
 
-Y hay una segunda prueba, porque la vuelta sola no alcanza: un lector que no
-entendiera **nada** y guardara cada chunk crudo también daría byte por byte, y
-el JSON no serviría. Así que `ningun_chunk_queda_sin_nombre` exige que no
-sobreviva un solo chunk sin nombre en el volcado. Hoy no sobrevive ninguno.
+### The tests need a game, and the game is not in here
 
-## Por qué existe
+No RPG Maker game ships with this repository —they belong to their authors— so
+the tests that measure the round trip take one from the environment:
 
-Hasta el 2026-09-14 el conversor a SNES leía los binarios de RM2k **cada vez**,
-con un lector propio en Python (`tools/lcf.py`), y el volcado a `data/*.json`
-era un camino paralelo con su propio decodificador. Dos caminos para el mismo
-formato, y los dos con los defaults escritos a mano.
+    DITTO_CORPUS=/path/to/a/game cargo test
 
-Eso se pagó: el `max_hp` de un enemigo llegaba con 1 donde el formato dice 10,
-porque **el binario no guarda un campo cuando vale el default** y el default
-nuestro estaba mal. Un enemigo del juego moría de un golpe y nadie lo notó
-hasta que taro lo jugó. En el volcado de Ditto son **24 los enemigos de ABL con
-`max_hp` en 10, y ninguno con 1**.
+That directory is the one holding `RPG_RT.ldb`, `RPG_RT.lmt` and the `Map*.lmu`
+files. Without it, those tests **skip with a message** instead of failing: a
+missing corpus is not a defect of the code under test. The tests that need no
+game —the defaults of the generated schema, for one— always run. `DITTO_ALL=1`
+makes the sample test cover every map.
 
-La decisión que Ditto implementa: **los JSON son la fuente de verdad de las
-ROMs**, y el formato de RM2k se lee **una sola vez**, acá.
+And there is a second test, because the round trip on its own is not enough: a
+reader that understood **nothing** and kept every chunk raw would also give
+byte for byte, and the JSON would be useless. So `no_chunk_goes_unnamed`
+requires that not a single chunk survives unnamed in the dump.
 
-## Los nombres no son nuestros
+## The names are not ours
 
-En el binario no hay nombres: el formato es *chunk-based* y cada campo es un
-índice numérico —el HP máximo de un enemigo es el campo `0x04` de `Enemy`—. Los
-nombres, los tipos y los defaults salen de **liblcf**, que los define en unas
-tablas CSV (`generator/csv/`), y de ahí generamos nuestros structs.
+The binary has no names in it: the format is *chunk-based* and every field is a
+numeric index —an enemy's maximum HP is field `0x04` of `Enemy`—. The names,
+the types and the defaults come from **liblcf**, which defines them in a set of
+CSV tables (`generator/csv/`), and the structs are generated from there.
 
-Eso no es fidelidad —liblcf también es ingeniería inversa, hecha por EasyRPG—,
-es **compatibilidad y cultura**: usar el vocabulario que el ecosistema ya usa
-nos ahorra decisiones y hace nuestro volcado comparable con el de cualquier
-otra herramienta.
+That is not fidelity —liblcf is reverse engineering too, done by EasyRPG—, it
+is **compatibility and culture**: using the vocabulary the ecosystem already
+uses saves decisions and makes this dump comparable with any other tool's.
 
-## El código generado se versiona
+## The generated code is committed
 
-`src/esquema/` sale de las tablas de liblcf, **pero está en git y es la fuente
-de verdad de este proyecto**. Regenerar es una acción explícita:
+`src/schema/` comes out of liblcf's tables, **but it is in git and it is this
+project's source of truth**. Regenerating is an explicit action:
 
-    cargo xtask generar --liblcf /extras/ref/liblcf
+    cargo xtask generate --liblcf /path/to/liblcf
 
-Lo que eso produce es un diff que se lee y se revisa, no un paso oculto del
-build. Si liblcf renombra un campo, el commit dice exactamente eso: un nombre
-que cambia en el struct que corresponde.
+What that produces is a diff that gets read and reviewed, not a hidden build
+step. If liblcf renames a field, the commit says exactly that: a name changing
+in the corresponding struct.
 
-Conceptualmente el CSV es una **dependencia** de Ditto: subirle la versión es
-un cambio que se revisa como cualquier otro.
+Conceptually the CSV is a **dependency** of Ditto: bumping its version is a
+change that gets reviewed like any other.
 
-Lo que se genera son tres cosas, y las tres salen del CSV y de ningún criterio
-nuestro: los structs y los enums, el default de cada campo, y el códec —qué
-campo es qué chunk, cómo se codifica, y si se emite cuando vale el default—.
+Three things are generated, and all three come from the CSV and from no
+judgement of ours: the structs and the enums, the default of every field, and
+the codec —which field is which chunk, how it is encoded, and whether it is
+emitted when it holds the default—.
 
-### El default va al lado del campo, una sola vez
+### The default goes next to the field, written once
 
     pub max_hp: i32 = 10,
 
-No es estética. El default es lo que rellena al leer **y** lo que decide omitir
-al escribir: son la misma cosa o la vuelta deja de ser byte por byte. Escrito
-dos veces —como estaba: un comentario `/// default: 10` y un `impl Default` al
-final del struct— se pueden separar sin que nada avise. La macro
-`esquema_struct!` (`src/lcf.rs`, 40 líneas, sin dependencias) arma el `Default`
-desde ahí, y el `#[serde(default)]` del struct lo usa para el JSON. Sacó 61
-bloques `impl Default` y 1.889 líneas del generado.
+This is not about looks. The default is what fills a field in when reading
+**and** what decides to omit it when writing: they have to be the same thing or
+the round trip stops being byte for byte. Written twice —as it used to be: a
+`/// default: 10` comment and an `impl Default` at the end of the struct— the
+two can drift apart with nothing warning about it. The `schema_struct!` macro
+(`src/lcf.rs`, 40 lines, no dependencies) builds the `Default` from there, and
+the struct's `#[serde(default)]` uses it for the JSON. It removed 61
+`impl Default` blocks and 1,889 lines of generated code.
 
-El `= <valor>` es **obligatorio en todos los campos**, incluso en los que
-`fields.csv` no declara default: si fuera opcional, un campo sin default caería
-al cero del tipo por la puerta de atrás, que es el bug que originó Ditto. Al
-ser parte de la gramática de la macro, olvidarse es un error de compilación.
+The `= <value>` is **mandatory on every field**, including the ones
+`fields.csv` declares no default for: if it were optional, a field without a
+default would fall back to the zero of its type through the back door, which is
+the bug that gave rise to Ditto. Being part of the macro's grammar, forgetting
+it is a compile error.
 
-Y por eso **no** se usa `#[serde(default)]` campo por campo ni
-`serde-inline-default`. El primero rellena con el cero del *tipo* y reintroduce
-el bug. El segundo —evaluado: 1.0.2 en crates.io, sin deps nuevas, syn 3 que ya
-está— sólo emite `#[serde(default = "fn")]`: **no implementa
-`std::default::Default`**, que es justo el que necesita el códec para decidir
-la omisión y el que pide `trait Chunked: Default`. O sea que no sacaría ningún
-`impl Default`: dejaría el default escrito dos veces igual, con una dependencia
-de proc-macro encima.
+And that is why **neither** per-field `#[serde(default)]` nor
+`serde-inline-default` is used. The first one fills in with the zero of the
+*type* and reintroduces the bug. The second one —evaluated: 1.0.2 on crates.io,
+no new deps, syn 3 which is already here— only emits
+`#[serde(default = "fn")]`: it **does not implement `std::default::Default`**,
+which is exactly what the codec needs in order to decide omission and what
+`trait Chunked: Default` asks for. So it would remove no `impl Default` at all:
+it would leave the default written twice all the same, with a proc-macro
+dependency on top.
 
-## El formato, y las cuatro cosas que hacen difícil la vuelta exacta
+## The format, and the four things that make the exact round trip hard
 
-Un archivo es un encabezado —un largo y un nombre— y atrás un struct. Un struct
-es una tira de chunks `(id, largo, bytes)` cerrada por un id 0. Un array de
-structs es una cantidad y, por cada elemento, su id y su struct. Los enteros van
-en **BER**: siete bits por byte, el bit alto dice que sigue.
+A file is a header —a length and a name— and a struct behind it. A struct is a
+run of chunks `(id, length, bytes)` closed by an id 0. An array of structs is a
+count and, per element, its id and its struct. Integers are in **BER**: seven
+bits per byte, the high bit says it continues.
 
-Hasta ahí es mecánico. Lo que cuesta es esto:
+That much is mechanical. What costs is this:
 
-**1. Un campo que vale su default no se escribe.** Salvo los que `fields.csv`
-marca con `PersistIfDefault`, que se escriben siempre —hasta con largo 0—. O
-sea que leer y escribir no son simétricos por construcción: son simétricos
-porque el default que rellena al leer es el mismo que decide omitir al
-escribir, y los dos salen de la misma tabla. Ése es todo el truco, y es por eso
-que el default tiene que salir del CSV y no del criterio de nadie.
+**1. A field holding its default is not written.** Except for the ones
+`fields.csv` marks with `PersistIfDefault`, which are always written —even with
+length 0—. So reading and writing are not symmetric by construction: they are
+symmetric because the default that fills a field in when reading is the same
+one that decides to omit it when writing, and both come from the same table.
+That is the whole trick, and it is why the default has to come from the CSV and
+not from anybody's judgement.
 
-#### El límite de la regla de omisión, medido
+#### The limit of the omission rule, measured
 
-La regla es del **que escribe**, no del formato, así que un archivo hecho por
-otra herramienta podría guardar un campo con su valor default en vez de
-omitirlo. Medido sobre `Map0001.lmu` (`tests/omision.rs`): agregándole a mano
-el chunk `0x33` —`generator_surround`, cuyo default es `True`— con el valor
-`True`, entran 43.958 bytes y salen 43.955. **Se pierden exactamente 3 bytes**
-—el id, el largo y el cuerpo del chunk—, y lo que sale es el archivo original
-tal cual. Lo mismo con cualquier otro: siempre son los bytes de ese chunk.
+The rule belongs to **whoever writes**, not to the format, so a file made by
+another tool could store a field with its default value instead of omitting it.
+Measured over a map (`tests/omission.rs`): adding by hand the `0x33` chunk
+—`generator_surround`, whose default is `True`— with the value `True`, 43,958
+bytes go in and 43,955 come out. **Exactly 3 bytes are lost** —the id, the
+length and the body of the chunk—, and what comes out is the original file
+unchanged. The same goes for any other one: it is always that chunk's bytes.
 
-Ahora, los dos escritores que importan hacen lo mismo que Ditto:
+Now, the two writers that matter do the same thing Ditto does:
 
-* **RPG Maker 2000**, que es quien escribió ABL: sobre los 328 mapas hay 2.363
-  chunks de primer nivel presentes de 10.824 posibles, o sea que **omitió
-  8.461 veces**. Con esa cuenta, que los 330 archivos vuelvan byte por byte
-  deja de ser suerte: es la prueba de que el editor sigue la misma regla.
-* **EasyRPG**: `Struct<S>::WriteLcf` en `reader_struct_impl.h` de liblcf saltea
-  el campo con `if (!field->isPresentIfDefault(...) && field->IsDefault(...))`,
-  que es literalmente lo que hace el códec generado de acá.
+* **RPG Maker 2000** itself: over the 328 maps of the measured game there are
+  2,363 top-level chunks present out of 10,824 possible, that is, it **omitted
+  8,461 times**. With that count, 330 files coming back byte for byte stops
+  being luck: it is the proof that the editor follows the same rule.
+* **EasyRPG**: `Struct<S>::WriteLcf` in liblcf's `reader_struct_impl.h` skips
+  the field with `if (!field->isPresentIfDefault(...) && field->IsDefault(...))`,
+  which is literally what the generated codec here does.
 
-Así que el riesgo existe pero no lo dispara ninguna de las dos herramientas
-para las que esto se hizo. Si alguna vez lo dispara una tercera, la salida
-barata es **recordar los chunks anómalos, sin tocar el tipo de los campos**:
-en `leer_struct`, comparar los ids que venían en el archivo contra los que
-`escribir_chunks` volvería a emitir, y guardar los que se perderían en el
-`desconocidos` que ya existe —`volcar` los reinserta ordenados por id—. Son
-unas 15 líneas en `lcf.rs`, cero cambios en el generador y cero ruido en el
-JSON de ABL (la lista queda vacía en los 330); el costo es una serialización
-de más por struct al leer. Lo caro sería `Option<T>` en los campos, que mudaría
-el default del esquema a cada consumidor, que es de donde lo sacamos.
+So the risk exists but neither of the two tools this was built for triggers it.
+If a third one ever does, the cheap way out is to **remember the anomalous
+chunks, without touching the type of the fields**: in `read_struct`, compare the
+ids that came in the file against the ones `write_chunks` would emit again, and
+keep the ones that would be lost in the `unknown` list that already exists
+—`dump` reinserts them ordered by id—. That is some 15 lines in `lcf.rs`, zero
+changes in the generator and zero noise in the JSON of a game written by the
+editor (the list stays empty in all 330 files); the cost is one extra
+serialization per struct when reading. The expensive way would be `Option<T>`
+on the fields, which would move the default out of the schema and into every
+consumer, which is where it is taken from.
 
-**2. El largo de algunos vectores va en su propio chunk.** `fields.csv` los
-marca con una `t` y les da un índice aparte, siempre el anterior al del dato.
-Hay dos variantes y el CSV las distingue por el tipo: `Count<...>` guarda la
-**cantidad de elementos** y el resto guarda los **bytes**. Ditto los recalcula
-al escribir en vez de guardarlos en el JSON, que es lo que hace liblcf, y sobre
-ABL eso da el mismo número en los 330 archivos.
+**2. The length of some vectors lives in its own chunk.** `fields.csv` marks
+those with a `t` and gives them a separate index, always the one before the
+data's. There are two variants and the CSV tells them apart by type:
+`Count<...>` stores the **number of elements** and the rest store the **bytes**.
+Ditto recomputes them when writing instead of keeping them in the JSON, which
+is what liblcf does, and over the measured game that gives the same number in
+all 330 files.
 
-**3. Seis structs no son chunk-based.** `Parameters`, `Equipment`, `Rect`,
-`EventCommand`, `MoveCommand` y `TreeMap` van posicionales adentro de su chunk:
-el CSV les declara los campos pero no los índices, porque no los tienen. liblcf
-los resuelve a mano y acá también (`src/crudos.rs`). Los dos que tienen forma
-propia:
+**3. Six structs are not chunk-based.** `Parameters`, `Equipment`, `Rect`,
+`EventCommand`, `MoveCommand` and `TreeMap` are positional inside their chunk:
+the CSV declares their fields but not their indices, because they have none.
+liblcf resolves them by hand and so does this (`src/raw.rs`). The two with a
+shape of their own:
 
-* la lista de comandos de un evento **no** guarda cuántos son: termina con
-  cuatro bytes en cero;
-* una ruta de movimiento se lee hasta que se acaba el chunk, y cuántos
-  parámetros lleva cada comando depende del código —sólo cuatro de los 35
-  llevan alguno—.
+* the command list of an event does **not** store how many there are: it ends
+  with four zero bytes;
+* a movement route is read until the chunk runs out, and how many parameters
+  each command carries depends on its code —only four of the 35 carry any—.
 
-**4. `Database` y `Save` no llevan el 0 del final.** liblcf avisa que
-ponérselo rompe el parser de RPG_RT. Todos los demás structs sí.
+**4. `Database` and `Save` do not carry the trailing 0.** liblcf warns that
+giving them one breaks RPG_RT's parser. Every other struct does carry it.
 
-### Detalles que muerden
+### Details that bite
 
-* **`Int32` va en BER, `Vector<Int32>` no.** Adentro de un vector cada entero
-  son cuatro bytes crudos. Lo mismo `Vector<UInt32>` y los `Rect`.
-* **`DBBitArray` no es un bitfield**: es un byte entero por valor. El que sí es
-  un bitfield es un campo `*_Flags`, y ahí `flags.csv` da el orden de los bits
-  —del menos significativo para arriba— y las banderas que sólo existen en 2003
-  **no ocupan bit** en un archivo de 2000.
-* **El texto es cp1252**, con los cinco bytes que la tabla deja sin definir
-  (0x81, 0x8D, 0x8F, 0x90, 0x9D) mapeados a su control C1, así la tabla es una
-  biyección y ningún byte se pierde. ABL tiene un par de mensajes en Shift-JIS
-  que el autor nunca tocó: en el JSON salen como caracteres raros y vuelven al
-  binario idénticos. Traducirlos bien pediría adivinar la codificación campo
-  por campo y costaría la vuelta exacta, que es lo único que hace útil a esto.
-* **El encabezado se guarda en el JSON** en vez de darlo por sentado: liblcf
-  tiene una opción para conservarlo justamente porque hay juegos con el nombre
-  cambiado.
-* **Los enums tienen un `Otro(n)`.** Un valor que `enums.csv` no nombra se
-  guarda como número y vuelve igual, en vez de caer al default y perderse.
-* **Cada struct tiene un `desconocidos`** donde va cualquier chunk que el
-  esquema no nombre, para que vuelva al archivo en su lugar. Sobre ABL está
-  vacío en los 330 archivos, y hay una prueba que lo exige.
+* **`Int32` is BER, `Vector<Int32>` is not.** Inside a vector every integer is
+  four raw bytes. Same for `Vector<UInt32>` and the `Rect`s.
+* **`DBBitArray` is not a bitfield**: it is a whole byte per value. The one
+  that *is* a bitfield is a `*_Flags` field, and there `flags.csv` gives the
+  order of the bits —from the least significant one upwards— and the flags that
+  only exist in 2003 **take no bit** in a 2000 file.
+* **Text is cp1252**, with the five bytes the table leaves undefined (0x81,
+  0x8D, 0x8F, 0x90, 0x9D) mapped to their C1 control, so the table is a
+  bijection and no byte is lost. A game may carry messages in another encoding
+  —Shift-JIS, for instance— that its author never touched: in the JSON they
+  come out as odd characters and go back to the binary identical. Decoding them
+  properly would mean guessing the encoding field by field and would cost the
+  exact round trip, which is the only thing that makes this useful.
+* **The header is kept in the JSON** instead of being taken for granted: liblcf
+  has an option to preserve it precisely because there are games with a changed
+  name.
+* **Enums have an `Other(n)`.** A value `enums.csv` does not name is stored as
+  a number and comes back the same, instead of falling to the default and being
+  lost.
+* **Every struct has an `unknown` list** where any chunk the schema does not
+  name goes, so that it returns to the file in its place. Over the measured
+  game it is empty in all 330 files, and there is a test that requires it.
 
-## Lo que falta
+## What is missing
 
-* **`.lsd`** —las partidas guardadas—. Los structs están generados; el códec
-  no. No está en el corpus con el que se mide la ida y vuelta, y sin eso no
-  habría con qué comprobarlo.
-* **Los campos de RPG Maker 2003.** El generador los saltea entero: este port
-  es de 2000. Un archivo de 2003 leído con Ditto guardaría esos chunks en
-  `desconocidos` y volvería igual, pero no se los vería en el JSON.
-* **Reemplazar a `tools/lcf.py` y al conversor.** Ditto todavía no reemplaza a
-  nadie: convive. Que los JSON sean la fuente de verdad de las ROMs es la
-  decisión, pero el cambio es otra vuelta.
-
-## Lo que viene, y una decisión ya tomada
-
-El emisor hacia la SNES. Hoy el conversor escribe **texto de assembler**: para
-`demo-ciudad` son 148.686 líneas y 11 MB, de las cuales 145.885 son `.byte` y
-`.word`. Eso se ensambla en unos 11 segundos por build.
-
-Ese `.inc` mezcla tres cosas y sólo una puede volverse binario opaco:
-
-1. **Datos** —tilemaps, tablas de NPCs, bytecode de eventos—: el 98% de las
-   líneas, y candidatos a `.incbin`.
-2. **Constantes** (`MAPA_STRIDE = 128`, `OP_TELEPORT = $02`), que `main.s` usa
-   como símbolos y tienen que seguir siendo texto.
-3. **Referencias a símbolos del ensamblador** (`.loword(fuente_pre0)`), que
-   dependen de dónde caiga el código y sólo las resuelve `w65`.
-
-**Y la decisión, de taro, que hay que respetar desde el primer día del emisor:
-sale con un sourcemap.** Cuando el dato pasa a binario deja de poder leerse, y
-hoy los comentarios del `.inc` son lo que permite depurar; pero además esa
-información **ya se evapora al ensamblar**, así que el mapa vale por sí mismo y
-no sólo como compensación.
-
-Es un sourcemap en el sentido literal: del offset del `.bin` a "el campo
-`trigger` de la página 2 del evento 12 del mapa 8". Con dos saltos y no uno
-—JSON → `.bin` → offset de ROM—, y el segundo lo aporta `w65`, que ya escribe
-un `.sym` con los símbolos del código: esto es su extensión a los datos.
-
-Para qué sirve, más allá de leer un dato:
-
-* que un caso de prueba en rojo diga **qué dato** falla y no sólo cuántos
-  pixeles difieren. Los tres bugs de esta semana que salieron como "la pantalla
-  se hizo basura" eran punteros leyendo donde no debían;
-* traducir un puntero leído de la RAM a qué apunta, con el juego corriendo.
-
-Nace con el emisor o no nace: el serializador sabe en qué offset escribió cada
-campo **mientras lo escribe**, y reconstruirlo después es recorrer todo de
-nuevo.
+* **`.lsd`** —the save files—. The structs are generated; the codec is not. It
+  is not in the corpus the round trip is measured against, and without that
+  there would be nothing to check it with.
+* **The RPG Maker 2003 fields.** The generator skips them wholesale: Ditto
+  targets 2000. A 2003 file read with Ditto would keep those chunks in
+  `unknown` and come back identical, but they would not be visible in the JSON.
