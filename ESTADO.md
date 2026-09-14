@@ -11,7 +11,7 @@ volvió inusable; se borra sin culpa lo que ya esté en esos dos lados.
 
 Se escribe **mientras se trabaja**, no al final.
 
-Última vez que se tocó: 2026-09-13.
+Última vez que se tocó: 2026-09-14.
 
 
 ## El objetivo, y dónde estamos
@@ -19,14 +19,26 @@ Se escribe **mientras se trabaja**, no al final.
 **Los primeros diez minutos jugables**, que es lo que taro viene probando vuelta
 a vuelta.
 
-Al 2026-09-13: `just snes-hitos-foto` son **165 casos, todos en verde** —el que
-se agregó es `snes-encuentro`— y `just pruebas` son **157 en verde y 1 `xfail`,
-sin rojos**; las nueve nuevas son las de los encuentros al azar y las dos
-últimas las del save point —`test_guardar_save_point.py`—.
-El `xfail` no es adorno, pero desde el 2026-09-13 se sabe de quién es: es un
-defecto de la **página de prueba** de guardado y no del juego, y está abajo.
+Al 2026-09-14: `just snes-hitos-foto` son **168 casos, todos en verde** —sobre
+la foto `151599a`— y `just pruebas` son **164 en verde y 1 `xfail`, sin
+rojos**; las siete últimas son las de los HP del menú y el Game Over de los
+encuentros al azar, y antes de ésas las nueve de los encuentros y las dos del
+save point. El `xfail` no es adorno, pero desde el 2026-09-13 se sabe de quién
+es: es un defecto de la **página de prueba** de guardado y no del juego, y está
+abajo.
 
-**La ROM de esta vuelta** está en `pruebas-manuales/piedras/`: el minijuego de
+**Al banco 0 le sobran 49 bytes con `demo-ciudad`**, medidos el 2026-09-14 por
+bisección con un `.res` en `TABLAS`; venían 85, y los 36 que faltan se los
+llevaron el enganche del menú a los HP y la comprobación de derrota del
+encuentro al azar.
+
+**La ROM de esta vuelta** está en `pruebas-manuales/hp-y-game-over/`: los dos
+defectos del sistema de batalla que taro reportó, con `demo-titulo` y
+`demo-ciudad`. Su `LEEME.txt` dice qué mirar —el HP del menú después de
+pelear, perder a propósito, y dos peleas seguidas— y qué sigue sin poder
+hacerse (curar).
+
+**La de la vuelta anterior** está en `pruebas-manuales/piedras/`: el minijuego de
 las piedras del Lazer Teeth HQ, con un cartucho de un solo mapa que arranca
 parado abajo de la reja y con `demo-ciudad` al lado para el control. Su
 `LEEME.txt` dice qué apretar y en qué orden.
@@ -838,6 +850,10 @@ siempre en su máximo. Lo que taro vio son los datos del juego: las tropas de
 Rat Tracks B1 son GiantRat (20 HP), MutantMouse (25) y HairyVermin (40), y la
 pantalla de la pelea muestra el HP de cada enemigo sin su máximo —`BA_CONMAX`
 en cero—, así que un GiantRat dice "20" porque tiene 20.
+
+Verificado el 2026-09-14 sobre la foto `151599a`: `just snes-hitos-foto 4` da
+**168 casos en verde**, `just pruebas` **164 y 1 xfail**, y `just snes-demo
+demo-ciudad` arma con **49 bytes libres** en el banco 0.
 
 Lo cubren, todos comprobados en rojo antes:
 
