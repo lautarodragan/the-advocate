@@ -119,6 +119,37 @@ porque el default que rellena al leer es el mismo que decide omitir al
 escribir, y los dos salen de la misma tabla. Ése es todo el truco, y es por eso
 que el default tiene que salir del CSV y no del criterio de nadie.
 
+#### El límite de la regla de omisión, medido
+
+La regla es del **que escribe**, no del formato, así que un archivo hecho por
+otra herramienta podría guardar un campo con su valor default en vez de
+omitirlo. Medido sobre `Map0001.lmu` (`tests/omision.rs`): agregándole a mano
+el chunk `0x33` —`generator_surround`, cuyo default es `True`— con el valor
+`True`, entran 43.958 bytes y salen 43.955. **Se pierden exactamente 3 bytes**
+—el id, el largo y el cuerpo del chunk—, y lo que sale es el archivo original
+tal cual. Lo mismo con cualquier otro: siempre son los bytes de ese chunk.
+
+Ahora, los dos escritores que importan hacen lo mismo que Ditto:
+
+* **RPG Maker 2000**, que es quien escribió ABL: sobre los 328 mapas hay 2.363
+  chunks de primer nivel presentes de 10.824 posibles, o sea que **omitió
+  8.461 veces**. Con esa cuenta, que los 330 archivos vuelvan byte por byte
+  deja de ser suerte: es la prueba de que el editor sigue la misma regla.
+* **EasyRPG**: `Struct<S>::WriteLcf` en `reader_struct_impl.h` de liblcf saltea
+  el campo con `if (!field->isPresentIfDefault(...) && field->IsDefault(...))`,
+  que es literalmente lo que hace el códec generado de acá.
+
+Así que el riesgo existe pero no lo dispara ninguna de las dos herramientas
+para las que esto se hizo. Si alguna vez lo dispara una tercera, la salida
+barata es **recordar los chunks anómalos, sin tocar el tipo de los campos**:
+en `leer_struct`, comparar los ids que venían en el archivo contra los que
+`escribir_chunks` volvería a emitir, y guardar los que se perderían en el
+`desconocidos` que ya existe —`volcar` los reinserta ordenados por id—. Son
+unas 15 líneas en `lcf.rs`, cero cambios en el generador y cero ruido en el
+JSON de ABL (la lista queda vacía en los 330); el costo es una serialización
+de más por struct al leer. Lo caro sería `Option<T>` en los campos, que mudaría
+el default del esquema a cada consumidor, que es de donde lo sacamos.
+
 **2. El largo de algunos vectores va en su propio chunk.** `fields.csv` los
 marca con una `t` y les da un índice aparte, siempre el anterior al del dato.
 Hay dos variantes y el CSV las distingue por el tipo: `Count<...>` guarda la
