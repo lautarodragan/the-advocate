@@ -19,9 +19,9 @@ Se escribe **mientras se trabaja**, no al final.
 **Los primeros diez minutos jugables**, que es lo que taro viene probando vuelta
 a vuelta.
 
-Al 2026-09-13: `just snes-hitos-foto` son **168 casos, todos en verde** y `just
-pruebas` son **159 en verde y 1 `xfail`, sin rojos**; las dos últimas son las
-del Game Over que cuelga —`test_game_over.py`—.
+Al 2026-09-14: `just snes-hitos-foto` son **169 casos, todos en verde** —sobre
+la foto `0246651`, con el arreglo del menú de la pelea adentro— y `just
+pruebas` son **159 en verde y 1 `xfail`, sin rojos**.
 El `xfail` no es adorno, pero desde el 2026-09-13 se sabe de quién es: es un
 defecto de la **página de prueba** de guardado y no del juego, y está abajo.
 
@@ -31,7 +31,12 @@ AGENTS.md, "Trampas del entorno". **Siguen siendo 69 el 2026-09-14**, después
 del arreglo del menú de la pelea: sus cinco bytes de más viven en RODATA y su
 código está en el banco de la batalla.
 
-**La ROM de esta vuelta** está en `pruebas-manuales/cofre-trampa/`: el cofre que
+**La ROM de esta vuelta** está en `pruebas-manuales/menu-de-pelea/`: la
+`demo-ciudad` con el menú de la pelea arreglado, y las dos capturas del caso
+nuevo —el menú roto y el mismo arreglado—. Su `LEEME.txt` dice los dos caminos
+para llegar a una pelea con varios actores.
+
+**La anterior** está en `pruebas-manuales/cofre-trampa/`: el cofre que
 colgaba el juego, con un cartucho que arranca pegado a él. Su `LEEME.txt` dice
 qué apretar y qué mirar al volver.
 
