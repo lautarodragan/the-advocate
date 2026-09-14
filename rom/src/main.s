@@ -10697,7 +10697,7 @@ mudo:
     sta TM                      ; la imagen y el menú; sprites no hay
 
     stz titulo_sel              ; se entra con la primera opción elegida
-    jsr titulo_subir_menu
+    jsl f:titulo_subir_menu
 
     lda #$0F
     sta INIDISP                 ; y la pantalla encendida, al máximo
@@ -10727,7 +10727,7 @@ espera:
 sube_una:
     dec a
     sta titulo_sel
-    jsr titulo_subir_menu
+    jsl f:titulo_subir_menu
     bra espera
 no_arriba:
     lda titulo_flancos
@@ -10740,7 +10740,7 @@ no_arriba:
     lda #0                      ; y desde la última, abajo también
 baja_una:
     sta titulo_sel
-    jsr titulo_subir_menu
+    jsl f:titulo_subir_menu
     bra espera
 no_abajo:
     ; Elegir es A o START. START no lo mira RM2k —allá el menú es del ratón y
@@ -10851,46 +10851,9 @@ listo_musica:
 ; Corre con la pantalla apagada la primera vez y adentro del vblank las demás:
 ; son 2048 bytes por DMA, que entran de sobra en un vblank que no tiene nada más
 ; que hacer.
-.proc titulo_subir_menu
-.a8
-.i16
-    lda #$80
-    sta VMAIN
-    rep #$20
-.a16
-    lda #TITULO_MENU_MAP
-    sta VMADDL
-    lda #(32 * 32 * 2)
-    sta DAS0L
-    ; El origen: el principio del bloque más 2048 por opción.
-    lda titulo_sel
-    and #$00FF
-    xba                         ; por 256
-    asl a
-    asl a
-    asl a                       ; y por 8: 2048 en total
-    sta temp
-    lda #<(titulo_menu_celdas)
-    ora #(>(titulo_menu_celdas) * 256)
-    clc
-    adc temp
-    ; La suma puede pasarse de los 16 bits del desplazamiento, así que el banco
-    ; se toma del acarreo: `.bloque` garantiza que el bloque no cruce de banco,
-    ; no en qué banco arranca.
-    sta A1T0L
-    sep #$20
-.a8
-    lda #^(titulo_menu_celdas)
-    adc #0
-    sta A1B0
-    lda #$01
-    sta DMAP0
-    lda #$18
-    sta BBAD0
-    lda #$01
-    sta MDMAEN
-    rts
-.endproc
+; `titulo_subir_menu` vive en RODATA desde el 2026-09-14: la demo con
+; pantalla de título se pasaba del banco 0 por cuatro bytes. No llama a nadie,
+; así que mudarla sólo cuesta el `jsl` de sus tres llamadores.
 
 ; --- la pantalla de ranuras ------------------------------------------------
 ;
@@ -25293,6 +25256,47 @@ paso_por_vel:
 ; por X cuesta cuatro bytes contra los doce de la tabla.
 salto_por_vel:
     .byte 8, 12, 16, 24, 32, 64
+
+.proc titulo_subir_menu
+.a8
+.i16
+    lda #$80
+    sta VMAIN
+    rep #$20
+.a16
+    lda #TITULO_MENU_MAP
+    sta VMADDL
+    lda #(32 * 32 * 2)
+    sta DAS0L
+    ; El origen: el principio del bloque más 2048 por opción.
+    lda titulo_sel
+    and #$00FF
+    xba                         ; por 256
+    asl a
+    asl a
+    asl a                       ; y por 8: 2048 en total
+    sta temp
+    lda #<(titulo_menu_celdas)
+    ora #(>(titulo_menu_celdas) * 256)
+    clc
+    adc temp
+    ; La suma puede pasarse de los 16 bits del desplazamiento, así que el banco
+    ; se toma del acarreo: `.bloque` garantiza que el bloque no cruce de banco,
+    ; no en qué banco arranca.
+    sta A1T0L
+    sep #$20
+.a8
+    lda #^(titulo_menu_celdas)
+    adc #0
+    sta A1B0
+    lda #$01
+    sta DMAP0
+    lda #$18
+    sta BBAD0
+    lda #$01
+    sta MDMAEN
+    rtl
+.endproc
 
 ; Un bit por posición, para el bitmap de switches. Sale más barata que ocho
 ; corrimientos y se lee con el índice que ya tenemos.
