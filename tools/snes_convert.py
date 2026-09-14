@@ -4121,6 +4121,16 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             for c in list(paleta) + [(0, 0, 0)] * (titulo_mod.MENU_CGRAM
                                                    - len(paleta)))) + "\n")
         item_textos, item_textos_ofs = bytearray(), []
+        # Textos muertos delante de todos los demás, para que los índices de
+        # la batalla pasen de 255 en un cartucho de un mapa. Es el hermano de
+        # `--relleno-de-mensajes`: reproducirlo de verdad pide los cincuenta y
+        # siete ítems de `demo-ciudad`, o sea sus veintinueve mapas y dos
+        # minutos y medio de conversor por caso. **No cambia un pixel**: son
+        # textos de largo cero que nadie dibuja, y el índice de un texto no lo
+        # modela la referencia —ella escribe caracteres—, así que el flag es de
+        # un solo lado a propósito.
+        for _ in range(ranuras.get("relleno_textos") or 0):
+            item_textos_ofs.append((0, 0))
 
         def texto_nuevo(texto):
             texto = titulo_mod.texto_de_item(texto, 255)
@@ -4827,7 +4837,11 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             pos((P.BA_MSG_FILA1, P.BA_MSG_FILA2)[f], 0)
             for _n, f, _c in P.BA_ORDENES])
         words_asm("ba_orden_dx", [c * 2 for _n, _f, c in P.BA_ORDENES])
-        bytes_asm("ba_orden_txt", [
+        # **De dos bytes.** Un índice de texto no entra en uno: con los 29
+        # mapas de `demo-ciudad` los de la batalla arrancan en el 273, y la
+        # tabla de un byte que había acá hasta el 2026-09-14 los emitía igual
+        # —`.byte 273`— para que el ensamblador los truncara sin decir nada.
+        words_asm("ba_orden_txt", [
             texto_batalla + [n for n, _c in P.BA_TERMINOS].index(nombre)
             for nombre, _f, _c in P.BA_ORDENES])
         bytes_asm("ba_orden_gris", [
@@ -5401,6 +5415,12 @@ def main():
                              "--pagina-de-prueba—: sirve para comparar la "
                              "apertura y el cierre sin depender de qué diga "
                              "el juego. Implica --con-ventana")
+    parser.add_argument("--relleno-de-textos", type=int, default=0,
+                        help="textos muertos delante del bloque de textos de\n"
+                             "las pantallas, para que los índices de la\n"
+                             "batalla pasen de 255 sin armar un cartucho de\n"
+                             "veintinueve mapas. No cambia un pixel: la\n"
+                             "referencia no modela índices de texto")
     parser.add_argument("--relleno-de-mensajes", type=int, default=0,
                         help="bytes muertos al principio del bloque de textos, para\n"
                              "que los desplazamientos pasen los 32 KB que mide\n"
@@ -6115,6 +6135,7 @@ def main():
                      "caras": ranura_caras, "nombres": ranura_nombres,
                      "menu": ranura_menu, "items": items_rom,
                      "db": renderer.database, "actores": miembros,
+                     "relleno_textos": args.relleno_de_textos,
                      "items_db": renderer.database.items,
                      "items_tiles": items_tiles,
                      "items_paletas": items_paletas,

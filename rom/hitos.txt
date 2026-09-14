@@ -189,6 +189,19 @@ snes-batalla 86 "11 12 13" 20 250 "right:130 right:140 right:150 a:160 a:170 dow
 snes-batalla 86 "11 12 13" 20 220 "right:130 a:140" batalla-hab ABLBackdropSJ03 "" "" "--modo 4 --habilidad 0"
 snes-batalla 86 "11 12 13" 20 240 "right:130 a:140 right:150" batalla-hab-dos ABLBackdropSJ03 "" "" "--modo 4 --habilidad 1"
 snes-batalla 86 "11 12 13" 20 240 "right:130 a:140 a:150" batalla-hab-blanco ABLBackdropSJ03 "" "" "--modo 3 --blanco 0 --orden 1"
+# Y el menú con los textos del cartucho **pasados del 255**, que es lo que
+# taro jugó: `demo-ciudad` lleva 57 ítems y los textos de la batalla arrancan
+# en el 273, así que la tabla de un byte que los nombraba dibujaba otros cuatro
+# —"detonated shell.", "A bandana with a circuit", "Circuit Bandana-H",
+# "Prices - Sector 32"— uno encima del otro, y con eso el menú era ilegible.
+# Ningún otro caso de la tanda lo ve porque sus cartuchos llevan un mapa y
+# ningún ítem: ahí los textos arrancan en el 103.
+#
+# El relleno son textos muertos de largo cero, sólo del lado de la ROM: la
+# referencia escribe caracteres y no sabe qué índice tiene cada texto, así que
+# no hay nada que correrle. Verificado en rojo con la tabla de un byte puesta:
+# 754 pixeles, 1,31%, todos en los dos renglones del menú.
+snes-batalla 86 "11 12 13" 20 200 "" batalla-textos-lejos ABLBackdropSJ03 "" "" "--modo 1 --blanco 2" 200
 # Y la pelea **terminada**, con el mapa comparado al volver: es el único lado
 # de la batalla que `snes-batalla` no mira, y por eso el mapa volvía hecho
 # basura hasta el 2026-09-13. Van los dos repartos de VRAM porque la escena

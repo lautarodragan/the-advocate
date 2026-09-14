@@ -1848,20 +1848,32 @@ snes-anclada mapa="6" ruta="1 1 1 1 1 1 2 2 2 2 2 2" cuadros="21 23 50 130" arra
 #                  el tercer enemigo, y las órdenes en gris. Ejercita el modo
 #                  que el otro no toca.
 #
+# Y `relleno` son textos muertos delante del bloque de textos de las pantallas,
+# que es lo que corre los índices de la batalla más allá del 255. Ahí la tabla
+# `ba_orden_txt` —de un byte hasta el 2026-09-14— los truncaba y el menú
+# dibujaba cuatro textos de ítem, largos y encimados entre ellos: es lo que
+# taro vio jugando. Reproducirlo de verdad pide los 57 ítems de `demo-ciudad`,
+# o sea sus 29 mapas y dos minutos y medio de conversor por caso; con el
+# relleno lo hace un cartucho de un mapa. **Va de un solo lado**, al revés que
+# `--relleno-de-mensajes`: la referencia escribe caracteres y no modela ningún
+# índice de texto, así que no hay nada que correrle.
+#
 # **Verificado que dan rojo con un defecto puesto**: corriendo una celda el
 # `BA_HP_NUM_DX` que emite el conversor —o sea los HP en la columna de al
 # lado, y **sólo del lado de la ROM**, que es lo que hace que la comparación
 # mida algo— los dos dan 556 pixeles. Un caso que no falla con algo roto no
 # prueba nada.
-snes-batalla tropa="86" grupo="11 12 13" espera="20" cuadros="200" toques="" nombre="batalla" fondo="ABLBackdropSJ03" mapas="" items="" ref="--modo 1 --blanco 2":
+snes-batalla tropa="86" grupo="11 12 13" espera="20" cuadros="200" toques="" nombre="batalla" fondo="ABLBackdropSJ03" mapas="" items="" ref="--modo 1 --blanco 2" relleno="":
   #!/usr/bin/env bash
   set -euo pipefail
   mkdir -p {{snes_pngs}} {{snes_inc}}
   toques="{{toques}}"
   mapas="{{mapas}}"
   items="{{items}}"
+  relleno="{{relleno}}"
   python3 tools/snes_convert.py --grupo {{grupo}} --map-id 6 --con-ventana \
       ${mapas:+--mapas $mapas} ${items:+--items-de-prueba $items} \
+      ${relleno:+--relleno-de-textos $relleno} \
       --pagina-de-prueba {{espera}} 0 0 0 --batalla-de-prueba {{tropa}} \
       --fondo-de-prueba "{{fondo}}" \
       -o {{snes_inc}}/mapdata.inc
