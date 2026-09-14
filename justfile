@@ -3058,6 +3058,32 @@ snes-demo-carrera nombre="demo-carrera":
       -o rom/build/{{nombre}}/{{nombre}}.sfc \
       --simbolos rom/build/{{nombre}}/{{nombre}}.sfc.sym
 
+# La cinemática de los Neon Vipers, que es donde taro vio la pantalla hecha
+# basura el 2026-09-14. **El mapa es el 14, `NV Get Talan to Work`**, no el 11:
+# la escena pasa en la calle de enfrente del escondite de los Lazer Teeth, y eso
+# es lo que la hace parecer parte del HQ.
+#
+# Un solo mapa y sin nada que apretar para llegar: la página del `SceneDriver`
+# es **automática y sin condición**, así que arranca sola al entrar. Lo único
+# que hace el jugador es apretar A cuadro por cuadro.
+#
+# El cuadro a mirar es el cuarto —"Not yet, man. I'm surprised the Vipers..."—,
+# que en `demo-ciudad` es el único de la ROM que cae encima del borde de banco
+# del bloque de textos. **Con un mapa solo el bloque no llega a cruzar**, así
+# que esta demo sirve para ver la escena entera y no para reproducir el defecto:
+# para eso está `demo-ciudad`, que es la que taro jugó, y el caso `texto-cruza`
+# de la tanda.
+#
+# `--grupo 14` es Talan, igual que en la carrera y en las piedras.
+snes-demo-vipers nombre="demo-vipers":
+  mkdir -p rom/build/{{nombre}}
+  python3 tools/snes_convert.py --grupo 14 --map-id 14 \
+      --con-ventana --con-timer \
+      -o rom/build/{{nombre}}/mapdata.inc
+  python3 tools/w65.py rom/src/main.s -I rom/build/{{nombre}} \
+      -o rom/build/{{nombre}}/{{nombre}}.sfc \
+      --simbolos rom/build/{{nombre}}/{{nombre}}.sfc.sym
+
 # El minijuego de las piedras del `Lazer Teeth HQ`, para jugarlo sin caminar
 # media Lashe City. Un solo mapa —el 11— y el héroe **parado abajo de la reja**.
 #

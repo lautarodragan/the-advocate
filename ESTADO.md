@@ -11,7 +11,7 @@ volvió inusable; se borra sin culpa lo que ya esté en esos dos lados.
 
 Se escribe **mientras se trabaja**, no al final.
 
-Última vez que se tocó: 2026-09-13.
+Última vez que se tocó: 2026-09-14.
 
 
 ## El objetivo, y dónde estamos
@@ -19,14 +19,19 @@ Se escribe **mientras se trabaja**, no al final.
 **Los primeros diez minutos jugables**, que es lo que taro viene probando vuelta
 a vuelta.
 
-Al 2026-09-13: `just snes-hitos-foto` son **165 casos, todos en verde** —el que
-se agregó es `snes-encuentro`— y `just pruebas` son **157 en verde y 1 `xfail`,
-sin rojos**; las nueve nuevas son las de los encuentros al azar y las dos
-últimas las del save point —`test_guardar_save_point.py`—.
+Al 2026-09-14: `just snes-hitos-foto` son **169 casos, todos en verde** —el que
+se agregó es `texto-cruza`— y `just pruebas` son **159 en verde y 1 `xfail`,
+sin rojos**; las dos nuevas son las del tope de columna del compositor
+—`test_compositor.py`—.
 El `xfail` no es adorno, pero desde el 2026-09-13 se sabe de quién es: es un
 defecto de la **página de prueba** de guardado y no del juego, y está abajo.
 
-**La ROM de esta vuelta** está en `pruebas-manuales/piedras/`: el minijuego de
+**La ROM de esta vuelta** está en `pruebas-manuales/hq-graficos/`: `demo-ciudad`
+con el arreglo de la cinemática de los Neon Vipers, y `demo-vipers` —un cartucho
+de un mapa— para ver esa escena sin caminar media Lashe City. Su `LEEME.txt`
+dice cuál sirve para reproducir el defecto y cuál no, y por qué.
+
+**La anterior** está en `pruebas-manuales/piedras/`: el minijuego de
 las piedras del Lazer Teeth HQ, con un cartucho de un solo mapa que arranca
 parado abajo de la reja y con `demo-ciudad` al lado para el control. Su
 `LEEME.txt` dice qué apretar y en qué orden.
@@ -35,7 +40,7 @@ Y **la del lag del HQ** está en `pruebas-manuales/lag-hq/`: el mismo mapa, que
 pasó de 30,00 a 59,80 fps. Su `LEEME.txt` dice adónde ir y qué otras escenas
 conviene jugar para ver que las páginas siguen cambiando cuando deben.
 
-**La de la vuelta anterior** está en `pruebas-manuales/2026-09-13-68539a8/`,
+**Y la de antes** está en `pruebas-manuales/2026-09-13-68539a8/`,
 con los tres arreglos y las tres ROMs —la ciudad con sus pistas, la carrera, y
 la carrera con el volante prendido a mano, que espera el veredicto de taro—.
 La anterior, con la que él encontró los tres bugs, está en
@@ -330,16 +335,76 @@ Lo usan los dos lados con el mismo número, así que los desplazamientos siguen
 coincidiendo. Comprobado en rojo con el `msg_empezar` de antes: **3116 pixeles
 en el cuadro 60 y 3404 en el 400**.
 
-Lo que queda abierto de esto:
+Lo que quedaba abierto de esto **está hecho el 2026-09-14**, y encima hizo
+falta: el arreglo de arriba era la mitad del defecto. Ver "La otra mitad del
+bloque de textos", abajo.
 
-* **`componer_char` sigue sin topar la columna.** Con el puntero arreglado
-  ningún largo pasa de 39, pero la única razón por la que un largo malo no
-  vuelve a escribir encima de `vq_n` es que ya no hay largos malos. Un tope
-  cuesta unos pocos bytes del banco 0 y convertiría un error de puntero futuro
-  en un renglón cortado en vez de en la pantalla hecha basura.
-* **`vq_n` vive pegado al final de la imagen de OAM**, así que es lo primero
-  que pisa cualquier desborde de ahí. Si alguna vez sobra RAM, conviene
-  separarlos.
+* **El tope de columna está puesto**, en `mensaje_tick` y no en `componer_char`.
+* **`vq_n` sigue pegado al final de la imagen de OAM.** Ya no es lo que decide
+  si la pantalla se rompe —para llegar hasta ahí hay que escribir fuera del
+  buffer, y eso el tope ya no lo deja— así que separarlos pasó a ser prolijidad
+  y no red. Y la RAM del banco 0 no sobra: la BSS está al tope.
+
+### La otra mitad del bloque de textos: un cuadro **encima** del borde (2026-09-14)
+
+taro lo reportó jugando en la SNES: *"se rompen los gráficos en la cinemática de
+neon vipers ayudando a Talan, en el mapa del HQ de los Lazer Teeth"*, y que se
+arregla al pasar al mapa siguiente. La foto de la tele es el mismo aspecto que
+la de la fábrica: el mapa entero con los tiles pisados por basura.
+
+**El mapa es el 14, `NV Get Talan to Work`** —la escena pasa delante del
+escondite de los Lazer Teeth, que es lo que lo hacía parecer el 11—. Y el
+defecto es el hermano del de arriba: **el arreglo del 2026-09-13 tocó
+`msg_empezar` y no el compositor.** `msg_ptr` es un puntero largo pero
+`mensaje_tick` lo avanzaba con un `inc` de dieciséis bits, así que un cuadro de
+texto cuyos bytes caen **encima** del borde de banco arranca bien y sigue
+leyendo el `$xx:0000` del mismo banco, que en LoROM no es ROM.
+
+Con `demo-ciudad` hay exactamente **un** cuadro así, porque el bloque está
+alineado al banco y lo cruza una sola vez: el cuarto de la escena del mapa 14
+—"Not yet, man. I'm surprised the Vipers..."— que arranca dos bytes antes del
+borde. Medido con `pruebas/consola.py`, entrando al 14 y dejando correr la
+cinemática:
+
+    antes    el cuadro en $47:FFFA, largo de renglón 76, vq_n 23
+    después  el mismo cuadro, largo 39 como máximo, vq_n 0
+
+Y con `vq_n` en 23, `vram_drenar` sube bloques de 128 bytes a direcciones
+cualquiera de la VRAM, que es la pantalla hecha basura que taro vio.
+
+**El tope de columna, que era la deuda declarada, está puesto de paso** —y
+habría cazado esto: con él, ese largo de 76 se hubiera visto como un renglón con
+la mitad del texto y nada más—. Va en `mensaje_tick`, corta el dibujo y **no la
+lectura**: el byte se consume igual, porque si no el renglón que sigue
+arrancaría del medio de éste. Lo cobran `pruebas/test_compositor.py` —dos casos,
+comprobados en rojo: 207 bytes escritos fuera de `texto_buf` sin el tope, y el
+puntero corto con un tope ingenuo— y el caso `texto-cruza` de la tanda, que es
+`snes-texto` con el relleno puesto en 32766 para que el cuadro quede a caballo
+del borde. Verificado en rojo con el `inc msg_ptr` de antes: **3414 pixeles en
+el cuadro 60**.
+
+**Lo que cuesta**: 29 bytes del banco 0. Con `demo-ciudad` quedan **56** libres,
+medidos por bisección con un `.res` en `TABLAS`.
+
+Lo que queda abierto:
+
+* **La pantalla rota del mapa 17 ya no se reproduce**, y no está claro que la
+  haya arreglado esto. Medido el 2026-09-14 con el mismo recorrido de
+  `test_recorrido.py` corrido sobre el cartucho de 29 mapas —entrar al 16,
+  dejar correr la escena y pasar al 17— y mirando los 400 ticks siguientes:
+  **cero anomalías, y la captura del tick 400 sale limpia, con y sin el
+  arreglo puesto**. O sea que sobre este árbol ese camino ya no pasa por
+  ningún cuadro roto; lo más probable es que fuera el mismo defecto y que el
+  reparto del bloque de textos se haya movido —hoy el único cuadro que cruza el
+  borde es el del mapa 14—, pero eso **no está medido** y su sección se deja
+  como estaba.
+* **Los renglones de más no se topan, y no hace falta.** Una cabecera de basura
+  puede pedir siete renglones —`CABECERA_LINEAS` son tres bits y la ventana
+  tiene cuatro— y el lazo de `mensaje_tick` corta igual en
+  `VENTANA_LINEAS_TEXTO`, así que no desborda nada: los de más no se dibujan ni
+  se consumen, y el puntero del cuadro que viene no arrastra nada porque
+  `msg_empezar` lo recalcula desde el operando. Queda anotado para no volver a
+  mirarlo.
 
 ### Lo que se descartó buscando esto, para no volver a medirlo (2026-09-13)
 

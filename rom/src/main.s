@@ -20827,14 +20827,41 @@ VENTANA_BORDE = 8
 ; de celda y el buffer puede ser de dos.
 TEXTO_OFS_Y = 2
 
+; Un byte más adelante en el bloque de textos, cruzando la ventana de banco.
+;
+; `msg_ptr` es un puntero largo pero el compositor lo avanzaba con un `inc` de
+; dieciséis bits, así que al pasar de $FFFF volvía al $0000 del **mismo** banco.
+; En LoROM ahí no hay ROM: lo que sigue a $FFFF es el $8000 del banco siguiente,
+; que es lo que ya sabían `ptr_mas` y `msg_empezar`.
+;
+; No es teórico y no bastaba con arreglar `msg_empezar`: el bloque de textos de
+; `demo-ciudad` mide 56 KB, o sea que cruza, y **un cuadro cuyos bytes caen
+; encima del borde** empieza bien y sigue leyendo basura. Es la cinemática de
+; los Neon Vipers del mapa 14: de la basura salía un largo de renglón de 76
+; caracteres y con él la pantalla hecha basura, por el camino que el tope de
+; `mensaje_tick` ahora corta.
+.proc msg_ptr_sig
+.a16
+.i16
+    inc msg_ptr
+    bne listo
+    lda #$8000
+    sta msg_ptr
+    sep #$20
+.a8
+    inc msg_ptr + 2
+    rep #$20
+.a16
+listo:
+    rts
+.endproc
+
 ; Arranca un mensaje: deja el puntero en su primer renglón y el compositor en
 ; marcha. La ventana no aparece hasta que termine.
 ;
-; **A trae el desplazamiento del cuadro dentro de `mensajes`, en 16 bits**, y se
-; suma al byte bajo y nada más. Alcanza porque el bloque entra entero en un
-; banco —lo garantiza el `.bloque` con que lo emite el conversor— así que la
-; suma no se lleva nada al byte de banco. Es la misma razón por la que el
-; compositor puede hacer `inc msg_ptr` de a 16 bits mientras avanza.
+; **A trae el desplazamiento del cuadro dentro de `mensajes`, en 16 bits**, y
+; hay que sumárselo a un puntero largo cruzando bancos: ver el lazo de abajo y
+; `msg_ptr_sig`, que es la misma cuenta para avanzar de a un byte.
 .proc msg_empezar
 .a16
 .i16
@@ -20912,7 +20939,7 @@ hay:
 sin_pausa:
     rep #$20
 .a16
-    inc msg_ptr
+    jsr msg_ptr_sig
     sep #$20
 .a8
     stz msg_linea
@@ -20955,7 +20982,7 @@ sin_subir:
     sta msg_largo
     rep #$20
 .a16
-    inc msg_ptr
+    jsr msg_ptr_sig
     sep #$20
 .a8
 vacio:
@@ -20978,13 +21005,23 @@ otro:
     lda msg_col
     and #$00FF
     sta comp_col
-    inc msg_ptr
+    jsr msg_ptr_sig
     sep #$20
 .a8
     inc msg_col
+    ; El tope de la columna. El byte se consume igual —si no, el puntero
+    ; quedaría desfasado y el renglón que sigue leería del medio de éste— pero
+    ; no se dibuja: `componer_char` escribe en `texto_buf` con un desplazamiento
+    ; que sale de la columna, y a partir de la 39 eso cae **afuera** del buffer,
+    ; encima del HDMA de la ventana, de la imagen de OAM y de `vq_n`. Ver el
+    ; comentario de `componer_char`, más abajo.
+    lda comp_col
+    cmp #MENSAJE_COLS
+    bcs sin_dibujar
     phx
     jsr componer_char
     plx
+sin_dibujar:
     dex
     bne otro
     rts
@@ -21121,6 +21158,10 @@ mas:
 ; los planos 0-1 y en los 2-3—, así que pintar es leer, enmascarar y
 ; escribir. Una celda que no toca nada viene con la máscara en $FFFF y se
 ; saltea.
+;
+; **La columna la topa `mensaje_tick`**, no esto: acá `comp_col` ya llegó como
+; buena y el desplazamiento que sale de ella se usa sin mirar. El tope está allá
+; porque el byte hay que consumirlo igual aunque no se dibuje.
 ;
 ; Hasta el 2026-09-11 esto pintaba cada fila dos veces —la sombra y después
 ; el glifo, con una rutina `pintar` que armaba las máscaras en cada llamada—

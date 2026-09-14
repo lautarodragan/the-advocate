@@ -86,6 +86,22 @@ snes-texto
 # 3116 pixeles en el cuadro 60 y 3404 en el 400, todos en la ventana, que ahí
 # dibuja el texto que le tocó leer de otro lado.
 snes-texto 255 200 texto-lejos 33000
+# Y el mismo caso con el cuadro **encima** del borde de banco, que es lo que
+# `texto-lejos` no cubría: allá el cuadro entero cae del otro lado y
+# `msg_empezar` ya lo ubicaba bien, acá la cabecera y el primer largo quedan en
+# el banco de antes y el texto sigue en el de después. El compositor avanzaba
+# `msg_ptr` con un `inc` de dieciséis bits, así que a partir del borde leía el
+# $0000 del mismo banco, que en LoROM no es ROM. Es la cinemática de los Neon
+# Vipers del mapa 14 en `demo-ciudad`, con 76 caracteres de largo de renglón y
+# la pantalla hecha basura.
+#
+# El relleno son 32766 y no un número redondo: el bloque queda alineado al banco
+# —lo hace el `.bloque`, porque pasado los 32 KB no entra en lo que sobra— así
+# que el cuadro de dos bytes antes del borde es el que lo cruza. Verificado en
+# rojo con el `inc msg_ptr` de antes: **3414 pixeles en el cuadro 60**. El 400
+# da cero también con el defecto puesto, porque el segundo cuadro arranca
+# entero del otro lado.
+snes-texto 255 200 texto-cruza 32766
 snes-ruta-evento
 snes-npc
 snes-lugar
