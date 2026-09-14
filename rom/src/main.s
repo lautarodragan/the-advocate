@@ -15274,6 +15274,41 @@ listo:
     rts
 .endproc
 
+; Espera a que el MSU-1 suelte `AUDIO_BUSY`. Vuelve con el acarreo limpio si lo
+; soltó y puesto si se acabó el tiempo. Se lleva X.
+;
+; **Este lazo no lo ejercita ningún emulador.** bsnes no pone `io.audioBusy`
+; nunca —arranca en falso en `power()` y no se escribe en ningún lado; está en
+; `/extras/ref/bsnes-libretro/bsnes/sfc/coprocessor/msu1/msu1.cpp`—, así que en
+; la tanda, en las pruebas de estado y en cualquier corrida de acá adentro sale
+; en la primera vuelta. En el FX Pak la pista sale de la tarjeta SD y abrirla
+; lleva tiempo de verdad, así que **el único lugar donde esto corre es el
+; hardware**, que es la definición de camino sin red.
+;
+; Por eso el tope es generoso y no ajustado: son $FFFF vueltas de unos dieciséis
+; ciclos, del orden de tres décimas de segundo. Antes eran $4000 —setenta
+; milisegundos— y el precio de quedarse corto no es un cuadro perdido sino que
+; el tema entero suene por el SPC700.
+MSU_ESPERA = $FFFF
+
+.proc msu_esperar
+.a8
+.i16
+    ldx #$0000
+otra:
+    lda MSU_ESTADO
+    and #$40                    ; la está cargando
+    beq listo
+    inx
+    cpx #MSU_ESPERA
+    bcc otra
+    sec
+    rts
+listo:
+    clc
+    rts
+.endproc
+
 ; Arranca la pista del tema A, si tiene y si hay MSU-1. Vuelve con A distinto
 ; de cero si la pista quedó sonando, y ahí la música del SPC700 no va.
 .proc msu_arrancar
@@ -15294,18 +15329,23 @@ listo:
     lda tema_msu, x
     cmp #$FF
     beq no
+    ; **Antes de escribir la pista, esperar a que el MSU-1 esté libre.** Con
+    ; `AUDIO_BUSY` puesto el hardware ignora las escrituras a los registros de
+    ; audio —en bsnes se ve en `writeIO`, `case 0x2007: if(io.audioBusy)
+    ; break;`—, así que un `PlayBGM` que llega mientras la pista anterior
+    ; todavía se está abriendo se pierde entero. Acá pasa de verdad: con
+    ; pantalla de título hay dos pistas pedidas con 1,8 s de diferencia —la del
+    ; título y la de la apertura—, y en `demo-ciudad` la primera es la única.
+    ;
+    ; La pista se guarda en Y mientras tanto: la espera usa X.
+    tay
+    jsr msu_esperar
+    bcs no                      ; sigue ocupado: que suene el SPC700
+    tya
     sta MSU_PISTA
     stz MSU_PISTA + 1
-    ldx #$0000
-espera:
-    lda MSU_ESTADO
-    and #$40                    ; la está cargando
-    beq cargada
-    inx
-    cpx #$4000
-    bcc espera
-    bra no                      ; no cargó: que suene el SPC700
-cargada:
+    jsr msu_esperar             ; y ahora, que termine de abrirla
+    bcs no
     lda MSU_ESTADO
     and #$08                    ; la pista no está en la tarjeta
     bne no
