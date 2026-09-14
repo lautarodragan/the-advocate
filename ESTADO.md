@@ -41,6 +41,16 @@ aguanta la regla de omisión: un chunk escrito con su valor default se pierde
 tocó el esquema. La salida barata, por si aparece una tercera herramienta, está
 anotada en `ditto/README.md` y sin implementar.
 
+Y desde el 2026-09-14, Ditto **omite los defaults también en el JSON** y sabe
+volcar **un juego entero como árbol de archivos**: `ditto unpack <juego> <dir>`
+y `ditto pack <dir> <juego>`, con la misma estructura que `data/` —`maps.json`,
+`maps/Map0001.json` + `.tiles`, `db/*.json`—. La vuelta desde el árbol da otros
+**330 de 330** (`ditto/tests/directory_dump.rs`). Es el paso 1 de los tres que
+están en `DITTO.md`; **no toca `data/` ni `tools/export_json.py`**, que siguen
+siendo los que mandan. Los pesos, para el paso 2: el volcado de Ditto son
+19.506.490 bytes en 674 archivos contra los 16.121.259 del de hoy, y el `.ldb`
+suelto bajó de 25.675.888 a 17.569.229 sólo por omitir defaults.
+
 **La ROM de esta vuelta** está en `pruebas-manuales/hq-graficos/`: `demo-ciudad`
 con el arreglo de la cinemática de los Neon Vipers, y `demo-vipers` —un cartucho
 de un mapa— para ver esa escena sin caminar media Lashe City. Su `LEEME.txt`
